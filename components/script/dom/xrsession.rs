@@ -112,7 +112,8 @@ impl XRSession {
     }
 
     pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
+        use std::f64::consts::FRAC_PI_2;
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, FRAC_PI_2, None);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
@@ -399,9 +400,10 @@ impl XRSessionMethods for XRSession {
             }
         }
 
-        // XXXManishearth step 4:
-        // If newState’s inlineVerticalFieldOfView is set and session is an
-        // immersive session, throw an InvalidStateError and abort these steps.
+        // Step 4:
+        if init.inlineVerticalFieldOfView.is_some() {
+            return Err(Error::InvalidState);
+        }
 
         let pending = self
             .pending_render_state
@@ -412,6 +414,9 @@ impl XRSessionMethods for XRSession {
         if let Some(far) = init.depthFar {
             pending.set_depth_far(*far);
         }
+        if let Some(fov) = init.inlineVerticalFieldOfView {
+            pending.set_inline_vertical_fov(*fov);
+        }
         if let Some(ref layer) = init.baseLayer {
             pending.set_layer(Some(&layer))
         }
@@ -421,7 +426,6 @@ impl XRSessionMethods for XRSession {
                 .borrow_mut()
                 .update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
         }
-        // XXXManishearth handle inlineVerticalFieldOfView
         Ok(())
     }
 
