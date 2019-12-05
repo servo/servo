@@ -36,6 +36,8 @@ public:
   virtual void OnServoIMEStateChanged(bool) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
+  virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
+  virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
 
 protected:
   virtual ~ServoDelegate(){};
@@ -48,6 +50,8 @@ public:
   ServoDelegate &Delegate() { return mDelegate; }
 
   typedef capi::CMouseButton MouseButton;
+  typedef capi::CMediaSessionActionType MediaSessionActionType;
+  typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
 
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }
@@ -85,6 +89,9 @@ public:
       mWindowHeight = height;
       capi::resize(mWindowWidth, mWindowHeight);
     }
+  }
+  void SendMediaSessionAction(capi::CMediaSessionActionType action) {
+    capi::media_session_action(action);
   }
 
 private:

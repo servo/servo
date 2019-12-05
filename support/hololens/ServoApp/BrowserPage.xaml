@@ -137,5 +137,10 @@
                 <Button Margin="0,10,10,0" Click="OnXRPkgWarningDismissClick">Dismiss</Button>
             </StackPanel>
         </StackPanel>
+        <CommandBar Grid.Row="3" x:Name="mediaControls" Visibility="Collapsed">
+            <AppBarButton Icon="Play" Label="Play" x:Name="playButton" Visibility="Collapsed" Click="OnMediaControlsPlayClicked"/>
+            <AppBarButton Icon="Pause" Label="Pause" x:Name="pauseButton" Click="OnMediaControlsPauseClicked"/>
+        </CommandBar>
     </Grid>
+
 </Page>

@@ -41,6 +41,10 @@ public:
                                   Windows::UI::Xaml::RoutedEventArgs const &);
   void OnXRPkgWarningDismissClick(Windows::Foundation::IInspectable const &,
                                   Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnMediaControlsPlayClicked(Windows::Foundation::IInspectable const &,
+                                  Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnMediaControlsPauseClicked(Windows::Foundation::IInspectable const &,
+                                   Windows::UI::Xaml::RoutedEventArgs const &);
 
 private:
   void BindServoEvents();

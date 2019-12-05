@@ -7,7 +7,8 @@ extern crate log;
 
 pub mod gl_glue;
 
-pub use servo::script_traits::MouseButton;
+pub use servo::embedder_traits::MediaSessionPlaybackState;
+pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 
 use getopts::Options;
 use servo::compositing::windowing::{
@@ -133,7 +134,7 @@ pub trait HostTrait {
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media session playback state changes.
-    fn on_media_session_playback_state_change(&self, state: i32);
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
 }
@@ -472,9 +473,12 @@ impl ServoGlue {
         self.process_event(WindowEvent::Keyboard(key_event))
     }
 
-    pub fn media_session_action(&mut self, action: i32) -> Result<(), &'static str> {
+    pub fn media_session_action(
+        &mut self,
+        action: MediaSessionActionType,
+    ) -> Result<(), &'static str> {
         info!("Media session action {:?}", action);
-        self.process_event(WindowEvent::MediaSessionAction(action.into()))
+        self.process_event(WindowEvent::MediaSessionAction(action))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
@@ -595,7 +599,7 @@ impl ServoGlue {
                         MediaSessionEvent::PlaybackStateChange(state) => self
                             .callbacks
                             .host_callbacks
-                            .on_media_session_playback_state_change(state as i32),
+                            .on_media_session_playback_state_change(state),
                         MediaSessionEvent::SetPositionState(position_state) => self
                             .callbacks
                             .host_callbacks

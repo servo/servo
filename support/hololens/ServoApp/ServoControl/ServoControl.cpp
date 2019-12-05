@@ -271,6 +271,13 @@ hstring ServoControl::LoadURIOrSearch(hstring input) {
   return searchUri;
 }
 
+void ServoControl::SendMediaSessionAction(int32_t action) {
+  RunOnGLThread([=] {
+    mServo->SendMediaSessionAction(
+        static_cast<Servo::MediaSessionActionType>(action));
+  });
+}
+
 void ServoControl::TryLoadUri(hstring input) {
   if (!mLooping) {
     mInitialURL = input;
@@ -430,6 +437,15 @@ void ServoControl::OnServoAnimatingChanged(bool animating) {
 void ServoControl::OnServoIMEStateChanged(bool aShow) {
   // FIXME:
   // https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
+}
+
+void ServoControl::OnServoMediaSessionMetadata(hstring title, hstring artist,
+                                               hstring album) {
+  RunOnUIThread([=] { mOnMediaSessionMetadataEvent(title, artist, album); });
+}
+
+void ServoControl::OnServoMediaSessionPlaybackStateChange(int state) {
+  RunOnUIThread([=] { mOnMediaSessionPlaybackStateChangeEvent(*this, state); });
 }
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {

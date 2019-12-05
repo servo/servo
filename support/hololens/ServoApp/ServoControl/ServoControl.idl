@@ -2,6 +2,7 @@ namespace ServoApp {
 
   delegate void EventDelegate();
   delegate void HistoryChangedDelegate(Boolean back, Boolean forward);
+  delegate void MediaSessionMetadataDelegate(String title, String artist, String album);
 
   runtimeclass ServoControl : Windows.UI.Xaml.Controls.Control {
       ServoControl();
@@ -13,6 +14,7 @@ namespace ServoApp {
       void SetTransientMode(Boolean transient);
       void SetArgs(String args);
       void Shutdown();
+      void SendMediaSessionAction(UInt32 action);
       event EventDelegate OnLoadStarted;
       event EventDelegate OnLoadEnded;
       event EventDelegate OnCaptureGesturesStarted;
@@ -20,5 +22,7 @@ namespace ServoApp {
       event HistoryChangedDelegate OnHistoryChanged;
       event Windows.Foundation.EventHandler<String> OnTitleChanged;
       event Windows.Foundation.EventHandler<String> OnURLChanged;
+      event MediaSessionMetadataDelegate OnMediaSessionMetadata;
+      event Windows.Foundation.EventHandler<int> OnMediaSessionPlaybackStateChange;
 }
 } // namespace ServoApp

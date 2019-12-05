@@ -17,7 +17,8 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MouseButton, VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
+    MediaSessionPlaybackState, MouseButton, VRInitOptions,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -218,7 +219,7 @@ pub struct CHostCallbacks {
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
     pub on_media_session_metadata:
         extern "C" fn(title: *const c_char, album: *const c_char, artist: *const c_char),
-    pub on_media_session_playback_state_change: extern "C" fn(state: i32),
+    pub on_media_session_playback_state_change: extern "C" fn(state: CMediaSessionPlaybackState),
     pub on_media_session_set_position_state:
         extern "C" fn(duration: f64, position: f64, playback_rate: f64),
 }
@@ -250,6 +251,52 @@ impl CMouseButton {
             CMouseButton::Left => MouseButton::Left,
             CMouseButton::Right => MouseButton::Right,
             CMouseButton::Middle => MouseButton::Middle,
+        }
+    }
+}
+
+#[repr(C)]
+pub enum CMediaSessionPlaybackState {
+    None = 1,
+    Playing,
+    Paused,
+}
+
+impl From<MediaSessionPlaybackState> for CMediaSessionPlaybackState {
+    fn from(state: MediaSessionPlaybackState) -> Self {
+        match state {
+            MediaSessionPlaybackState::None_ => CMediaSessionPlaybackState::None,
+            MediaSessionPlaybackState::Playing => CMediaSessionPlaybackState::Playing,
+            MediaSessionPlaybackState::Paused => CMediaSessionPlaybackState::Paused,
+        }
+    }
+}
+
+#[repr(C)]
+pub enum CMediaSessionActionType {
+    Play = 1,
+    Pause,
+    SeekBackward,
+    SeekForward,
+    PreviousTrack,
+    NextTrack,
+    SkipAd,
+    Stop,
+    SeekTo,
+}
+
+impl CMediaSessionActionType {
+    pub fn convert(&self) -> MediaSessionActionType {
+        match self {
+            CMediaSessionActionType::Play => MediaSessionActionType::Play,
+            CMediaSessionActionType::Pause => MediaSessionActionType::Pause,
+            CMediaSessionActionType::SeekBackward => MediaSessionActionType::SeekBackward,
+            CMediaSessionActionType::SeekForward => MediaSessionActionType::SeekForward,
+            CMediaSessionActionType::PreviousTrack => MediaSessionActionType::PreviousTrack,
+            CMediaSessionActionType::NextTrack => MediaSessionActionType::NextTrack,
+            CMediaSessionActionType::SkipAd => MediaSessionActionType::SkipAd,
+            CMediaSessionActionType::Stop => MediaSessionActionType::Stop,
+            CMediaSessionActionType::SeekTo => MediaSessionActionType::SeekTo,
         }
     }
 }
@@ -607,6 +654,14 @@ pub extern "C" fn click(x: f32, y: f32) {
     });
 }
 
+#[no_mangle]
+pub extern "C" fn media_session_action(action: CMediaSessionActionType) {
+    catch_any_panic(|| {
+        debug!("media_session_action");
+        call(|s| s.media_session_action(action.convert()));
+    });
+}
+
 pub struct WakeupCallback(extern "C" fn());
 
 impl WakeupCallback {
@@ -725,9 +780,9 @@ impl HostTrait for HostCallbacks {
         (self.0.on_media_session_metadata)(title.as_ptr(), artist.as_ptr(), album.as_ptr());
     }
 
-    fn on_media_session_playback_state_change(&self, state: i32) {
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
         debug!("on_media_session_playback_state_change {:?}", state);
-        (self.0.on_media_session_playback_state_change)(state);
+        (self.0.on_media_session_playback_state_change)(state.into());
     }
 
     fn on_media_session_set_position_state(

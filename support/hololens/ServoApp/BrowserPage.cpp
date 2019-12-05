@@ -70,6 +70,24 @@ void BrowserPage::BindServoEvents() {
   servoControl().OnCaptureGesturesEnded(
       [=] { navigationBar().IsHitTestVisible(true); });
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
+  servoControl().OnMediaSessionMetadata(
+      [=](hstring title, hstring artist, hstring album) {});
+  servoControl().OnMediaSessionPlaybackStateChange(
+      [=](const auto &, int state) {
+        if (state == servo::Servo::MediaSessionPlaybackState::None) {
+          mediaControls().Visibility(Visibility::Collapsed);
+          return;
+        }
+        mediaControls().Visibility(Visibility::Visible);
+        playButton().Visibility(
+            state == servo::Servo::MediaSessionPlaybackState::Paused
+                ? Visibility::Visible
+                : Visibility::Collapsed);
+        pauseButton().Visibility(
+            state == servo::Servo::MediaSessionPlaybackState::Paused
+                ? Visibility::Collapsed
+                : Visibility::Visible);
+      });
 }
 
 void BrowserPage::OnURLFocused(Windows::Foundation::IInspectable const &) {
@@ -141,6 +159,19 @@ void BrowserPage::OnURLEdited(IInspectable const &,
     auto uri = servoControl().LoadURIOrSearch(input);
     urlTextbox().Text(uri);
   }
+}
+
+void BrowserPage::OnMediaControlsPlayClicked(
+    Windows::Foundation::IInspectable const &,
+    Windows::UI::Xaml::RoutedEventArgs const &) {
+  servoControl().SendMediaSessionAction(
+      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Play));
+}
+void BrowserPage::OnMediaControlsPauseClicked(
+    Windows::Foundation::IInspectable const &,
+    Windows::UI::Xaml::RoutedEventArgs const &) {
+  servoControl().SendMediaSessionAction(
+      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Pause));
 }
 
 } // namespace winrt::ServoApp::implementation

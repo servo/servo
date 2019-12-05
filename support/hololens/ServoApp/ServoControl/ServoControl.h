@@ -15,6 +15,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void Stop();
   void Shutdown();
   hstring LoadURIOrSearch(hstring);
+  void SendMediaSessionAction(int32_t);
 
   void OnLoaded(IInspectable const &,
                 Windows::UI::Xaml::RoutedEventArgs const &);
@@ -70,6 +71,23 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
     mOnCaptureGesturesEndedEvent.remove(token);
   }
 
+  winrt::event_token
+  OnMediaSessionMetadata(MediaSessionMetadataDelegate const &handler) {
+    return mOnMediaSessionMetadataEvent.add(handler);
+  };
+  void OnMediaSessionMetadata(winrt::event_token const &token) noexcept {
+    mOnMediaSessionMetadataEvent.remove(token);
+  }
+
+  winrt::event_token OnMediaSessionPlaybackStateChange(
+      Windows::Foundation::EventHandler<int> const &handler) {
+    return mOnMediaSessionPlaybackStateChangeEvent.add(handler);
+  };
+  void
+  OnMediaSessionPlaybackStateChange(winrt::event_token const &token) noexcept {
+    mOnMediaSessionPlaybackStateChangeEvent.remove(token);
+  }
+
   void SetTransientMode(bool transient) { mTransient = transient; }
 
   void SetArgs(hstring args) { mArgs = args; }
@@ -87,6 +105,9 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual bool OnServoAllowNavigation(winrt::hstring);
   virtual void OnServoAnimatingChanged(bool);
   virtual void OnServoIMEStateChanged(bool);
+  virtual void OnServoMediaSessionMetadata(winrt::hstring, winrt::hstring,
+                                           winrt::hstring);
+  virtual void OnServoMediaSessionPlaybackStateChange(int);
 
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
@@ -96,6 +117,9 @@ private:
   winrt::event<EventDelegate> mOnLoadEndedEvent;
   winrt::event<EventDelegate> mOnCaptureGesturesStartedEvent;
   winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
+  winrt::event<MediaSessionMetadataDelegate> mOnMediaSessionMetadataEvent;
+  winrt::event<Windows::Foundation::EventHandler<int>>
+      mOnMediaSessionPlaybackStateChangeEvent;
 
   float mDPI = 1;
   hstring mInitialURL = DEFAULT_URL;
