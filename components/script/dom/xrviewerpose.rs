@@ -42,6 +42,7 @@ impl XRViewerPose {
     ) -> DomRoot<XRViewerPose> {
         rooted_vec!(let mut views);
         session.with_session(|s| match s.views() {
+            Views::Inline => unimplemented!(),
             Views::Mono(view) => {
                 views.push(XRView::new(global, session, &view, XREye::None, &pose))
             },
