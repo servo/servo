@@ -12,7 +12,7 @@ typedef (HTMLOrSVGImageElement or
          /*HTMLVideoElement or*/
          HTMLCanvasElement or
          /*ImageBitmap or*/
-         /*OffscreenCanvas or*/
+         OffscreenCanvas or
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
 enum CanvasFillRule { "nonzero", "evenodd" };

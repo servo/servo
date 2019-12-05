@@ -24,8 +24,10 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::textmetrics::TextMetrics;
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use ipc_channel::ipc::IpcSender;
 
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {
@@ -71,6 +73,22 @@ impl OffscreenCanvasRenderingContext2D {
 
     pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.borrow().set_bitmap_dimensions(size);
+    }
+
+    pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+        self.canvas_state.borrow().send_canvas_2d_msg(msg)
+    }
+
+    pub fn origin_is_clean(&self) -> bool {
+        self.canvas_state.borrow().origin_is_clean()
+    }
+
+    pub fn get_canvas_id(&self) -> CanvasId {
+        self.canvas_state.borrow().get_canvas_id()
+    }
+
+    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        self.canvas_state.borrow().get_ipc_renderer().clone()
     }
 }
 

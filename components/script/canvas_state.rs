@@ -22,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage};
+use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::euclidext::Size2DExt;
@@ -222,6 +223,7 @@ impl CanvasState {
     fn is_origin_clean(&self, image: CanvasImageSource) -> bool {
         match image {
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
+            CanvasImageSource::OffscreenCanvas(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
                 image.same_origin(GlobalScope::entry().origin())
             },
@@ -372,6 +374,9 @@ impl CanvasState {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
+            CanvasImageSource::OffscreenCanvas(ref canvas) => {
+                self.draw_offscreen_canvas(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
+            },
             CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
@@ -408,10 +413,66 @@ impl CanvasState {
         result
     }
 
+    fn draw_offscreen_canvas(
+        &self,
+        canvas: &OffscreenCanvas,
+        htmlcanvas: Option<&HTMLCanvasElement>,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) -> ErrorResult {
+        let canvas_size = canvas.get_size();
+        let dw = dw.unwrap_or(canvas_size.width as f64);
+        let dh = dh.unwrap_or(canvas_size.height as f64);
+        let sw = sw.unwrap_or(canvas_size.width as f64);
+        let sh = sh.unwrap_or(canvas_size.height as f64);
+
+        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        // 2. Establish the source and destination rectangles
+        let (source_rect, dest_rect) =
+            self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return Ok(());
+        }
+
+        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
+
+        if let Some(context) = canvas.context() {
+            match *context {
+                OffscreenCanvasContext::OffscreenContext2d(ref context) => {
+                    context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
+                        self.get_canvas_id(),
+                        image_size,
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
+                },
+            }
+        } else {
+            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                None,
+                image_size,
+                dest_rect,
+                source_rect,
+                smoothing_enabled,
+            ));
+        }
+
+        self.mark_as_dirty(htmlcanvas);
+        Ok(())
+    }
+
     fn draw_html_canvas_element(
         &self,
-        canvas: &HTMLCanvasElement,
-        htmlcanvas: Option<&HTMLCanvasElement>,
+        canvas: &HTMLCanvasElement,             // source canvas
+        htmlcanvas: Option<&HTMLCanvasElement>, // destination canvas
         sx: f64,
         sy: f64,
         sw: Option<f64>,
@@ -836,6 +897,13 @@ impl CanvasState {
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
+                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
+                let data = data
+                    .map(|data| data.to_vec())
+                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+                (data, size)
+            },
+            CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
                 let data = data
                     .map(|data| data.to_vec())
