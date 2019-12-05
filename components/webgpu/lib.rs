@@ -12,12 +12,12 @@ pub extern crate wgpu_native as wgpu;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_config::pref;
-use wgpu::adapter_get_info;
+use wgpu::{adapter_get_info, adapter_request_device};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
     RequestAdapter(String, WebGPUAdapter),
-    RequestDevice,
+    RequestDevice(WebGPUDevice, wgpu::DeviceDescriptor),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -29,7 +29,12 @@ pub enum WebGPURequest {
         wgpu::RequestAdapterOptions,
         wgpu::AdapterId,
     ),
-    RequestDevice,
+    RequestDevice(
+        IpcSender<WebGPUResponseResult>,
+        WebGPUAdapter,
+        wgpu::DeviceDescriptor,
+        wgpu::DeviceId,
+    ),
     Exit(IpcSender<()>),
 }
 
@@ -124,7 +129,18 @@ impl WGPU {
                         )
                     }
                 },
-                WebGPURequest::RequestDevice => {},
+                WebGPURequest::RequestDevice(sender, adapter, descriptor, id) => {
+                    let _output = gfx_select!(id => adapter_request_device(&self.global, adapter.0, &descriptor, id));
+                    let device = WebGPUDevice(id);
+                    if let Err(e) =
+                        sender.send(Ok(WebGPUResponse::RequestDevice(device, descriptor)))
+                    {
+                        warn!(
+                            "Failed to send response to WebGPURequest::RequestDevice ({})",
+                            e
+                        )
+                    }
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -137,11 +153,20 @@ impl WGPU {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct WebGPUAdapter(pub wgpu::AdapterId);
+macro_rules! webgpu_resource {
+    ($name:ident, $id:ty) => {
+        #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+        pub struct $name(pub $id);
 
-impl MallocSizeOf for WebGPUAdapter {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
-    }
+        impl MallocSizeOf for $name {
+            fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+                0
+            }
+        }
+
+        impl Eq for $name {}
+    };
 }
+
+webgpu_resource!(WebGPUAdapter, wgpu::AdapterId);
+webgpu_resource!(WebGPUDevice, wgpu::DeviceId);
