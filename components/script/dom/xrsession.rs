@@ -40,7 +40,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
+use euclid::{Rect, RigidTransform3D, Transform3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -48,8 +48,8 @@ use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
-    self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind, Session,
-    Visibility,
+    self, util, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind,
+    Session, View, Viewer, Visibility,
 };
 
 #[dom_struct]
@@ -65,6 +65,8 @@ pub struct XRSession {
     frame_requested: Cell<bool>,
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
+    /// Cached projection matrix for inline sessions
+    inline_projection_matrix: DomRefCell<Transform3D<f32, Viewer, Display>>,
 
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
@@ -100,6 +102,7 @@ impl XRSession {
             frame_requested: Cell::new(false),
             pending_render_state: MutNullableDom::new(None),
             active_render_state: MutDom::new(render_state),
+            inline_projection_matrix: Default::default(),
 
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
@@ -138,6 +141,10 @@ impl XRSession {
 
     pub fn is_ended(&self) -> bool {
         self.ended.get()
+    }
+
+    pub fn is_immersive(&self) -> bool {
+        self.mode != XRSessionMode::Inline
     }
 
     fn setup_raf_loop(&self) {
@@ -304,9 +311,12 @@ impl XRSession {
             self.active_render_state.set(&pending);
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
-            // XXXManishearth handle inline sessions and composition disabled flag
-            let swap_chain_id = pending.GetBaseLayer().map(|layer| layer.swap_chain_id());
-            self.session.borrow_mut().set_swap_chain(swap_chain_id);
+            if self.is_immersive() {
+                let swap_chain_id = pending.GetBaseLayer().map(|layer| layer.swap_chain_id());
+                self.session.borrow_mut().set_swap_chain(swap_chain_id);
+            } else {
+                self.update_inline_projection_matrix()
+            }
         }
 
         for event in frame.events.drain(..) {
@@ -339,8 +349,10 @@ impl XRSession {
         self.outside_raf.set(true);
 
         frame.set_active(false);
-        base_layer.swap_buffers();
-        self.session.borrow_mut().render_animation_frame();
+        if self.is_immersive() {
+            base_layer.swap_buffers();
+            self.session.borrow_mut().render_animation_frame();
+        }
         self.request_new_xr_frame();
 
         // If the canvas element is attached to the DOM, it is now dirty,
@@ -350,6 +362,44 @@ impl XRSession {
             .Canvas()
             .upcast::<Node>()
             .dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    fn update_inline_projection_matrix(&self) {
+        debug_assert!(!self.is_immersive());
+        let render_state = self.active_render_state.get();
+        let size = if let Some(base) = render_state.GetBaseLayer() {
+            base.size()
+        } else {
+            return;
+        };
+        let mut clip_planes = util::ClipPlanes::default();
+        let near = *render_state.DepthNear() as f32;
+        let far = *render_state.DepthFar() as f32;
+        clip_planes.update(near, far);
+        let top = *render_state.InlineVerticalFieldOfView() / 2.;
+        let top = near * top.tan() as f32;
+        let bottom = top;
+        let left = top * size.width as f32 / size.height as f32;
+        let right = left;
+        let matrix = util::frustum_to_projection_matrix(left, right, top, bottom, clip_planes);
+        *self.inline_projection_matrix.borrow_mut() = matrix;
+    }
+
+    /// Constructs a View suitable for inline sessions using the inlineVerticalFieldOfView and canvas size
+    pub fn inline_view(&self) -> View<Viewer> {
+        debug_assert!(!self.is_immersive());
+        let size = self
+            .active_render_state
+            .get()
+            .GetBaseLayer()
+            .expect("Must never construct views when base layer is not set")
+            .size();
+        View {
+            // Inline views have no offset
+            transform: RigidTransform3D::identity(),
+            projection: *self.inline_projection_matrix.borrow(),
+            viewport: Rect::from_size(size.to_i32()),
+        }
     }
 }
 

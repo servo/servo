@@ -61,7 +61,7 @@ use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use embedder_traits::{EventLoopWaker, MediaMetadata};
 use encoding_rs::{Decoder, Encoding};
-use euclid::default::{Point2D, Rect, Rotation3D, Transform2D, Transform3D};
+use euclid::default::{Point2D, Rect, Rotation3D, Transform2D};
 use euclid::Length as EuclidLength;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
@@ -534,7 +534,7 @@ unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
-unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
+unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(CascadeData);
@@ -659,6 +659,20 @@ unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f32, T, U> {
 }
 
 unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f64, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::Transform3D<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::Transform3D<f64, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
