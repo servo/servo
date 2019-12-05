@@ -20,6 +20,7 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
+use euclid::default::Size2D;
 use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Views;
@@ -35,7 +36,8 @@ pub struct XRWebGLLayer {
     swap_chain_id: WebXRSwapChainId,
     context: Dom<WebGLRenderingContext>,
     session: Dom<XRSession>,
-    framebuffer: Dom<WebGLFramebuffer>,
+    /// If none, this is an inline session (the composition disabled flag is true)
+    framebuffer: Option<Dom<WebGLFramebuffer>>,
 }
 
 impl XRWebGLLayer {
@@ -44,7 +46,7 @@ impl XRWebGLLayer {
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
-        framebuffer: &WebGLFramebuffer,
+        framebuffer: Option<&WebGLFramebuffer>,
     ) -> XRWebGLLayer {
         XRWebGLLayer {
             reflector_: Reflector::new(),
@@ -55,7 +57,7 @@ impl XRWebGLLayer {
             swap_chain_id,
             context: Dom::from_ref(context),
             session: Dom::from_ref(session),
-            framebuffer: Dom::from_ref(framebuffer),
+            framebuffer: framebuffer.map(Dom::from_ref),
         }
     }
 
@@ -65,7 +67,7 @@ impl XRWebGLLayer {
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
-        framebuffer: &WebGLFramebuffer,
+        framebuffer: Option<&WebGLFramebuffer>,
     ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object(
             Box::new(XRWebGLLayer::new_inherited(
@@ -115,7 +117,7 @@ impl XRWebGLLayer {
             session,
             context,
             init,
-            &framebuffer,
+            Some(&framebuffer),
         ))
     }
 
@@ -128,8 +130,22 @@ impl XRWebGLLayer {
     }
 
     pub fn swap_buffers(&self) {
-        if let WebGLFramebufferId::Opaque(id) = self.framebuffer.id() {
+        if let WebGLFramebufferId::Opaque(id) = self
+            .framebuffer
+            .as_ref()
+            .expect("Must have framebuffer")
+            .id()
+        {
             self.context.swap_buffers(Some(id));
+        }
+    }
+
+    fn size(&self) -> Size2D<i32> {
+        if let Some(framebuffer) = self.framebuffer {
+            let size = framebuffer.size().unwrap_or((0, 0));
+            Size2D::new(size.0, size.1)
+        } else {
+            self.context.Canvas().get_size()
         }
     }
 }
@@ -161,28 +177,18 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer
-    fn Framebuffer(&self) -> DomRoot<WebGLFramebuffer> {
-        DomRoot::from_ref(&self.framebuffer)
+    fn GetFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
+        self.framebuffer.as_ref().map(|x| DomRoot::from_ref(&**x))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferwidth
     fn FramebufferWidth(&self) -> u32 {
-        self.framebuffer
-            .size()
-            .unwrap_or((0, 0))
-            .0
-            .try_into()
-            .unwrap_or(0)
+        self.size().width.try_into().unwrap_or(0)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferheight
     fn FramebufferHeight(&self) -> u32 {
-        self.framebuffer
-            .size()
-            .unwrap_or((0, 0))
-            .1
-            .try_into()
-            .unwrap_or(0)
+        self.size().height.try_into().unwrap_or(0)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
