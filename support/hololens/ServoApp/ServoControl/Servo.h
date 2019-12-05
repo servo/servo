@@ -62,6 +62,12 @@ public:
   void MouseUp(float x, float y, capi::CMouseButton b) {
     capi::mouse_up(x, y, b);
   }
+  void TouchDown(float x, float y, int32_t id) { capi::touch_down(x, y, id); }
+  void TouchUp(float x, float y, int32_t id) { capi::touch_up(x, y, id); }
+  void TouchMove(float x, float y, int32_t id) { capi::touch_move(x, y, id); }
+  void TouchCancel(float x, float y, int32_t id) {
+    capi::touch_cancel(x, y, id);
+  }
   void MouseMove(float x, float y) { capi::mouse_move(x, y); }
 
   void Reload() { capi::reload(); }

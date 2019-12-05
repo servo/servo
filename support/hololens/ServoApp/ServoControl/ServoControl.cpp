@@ -9,6 +9,7 @@ using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::System;
+using namespace winrt::Windows::Devices::Input;
 using namespace concurrency;
 using namespace winrt::servo;
 
@@ -38,13 +39,15 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   auto panel = Panel();
   panel.Tapped(std::bind(&ServoControl::OnSurfaceTapped, this, _1, _2));
   panel.PointerPressed(
-      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2, true));
   panel.PointerReleased(
-      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2));
+      std::bind(&ServoControl::OnSurfacePointerPressed, this, _1, _2, false));
   panel.PointerCanceled(
       std::bind(&ServoControl::OnSurfacePointerCanceled, this, _1, _2));
+  panel.PointerExited(
+      std::bind(&ServoControl::OnSurfacePointerExited, this, _1, _2));
   panel.PointerCaptureLost(
-      std::bind(&ServoControl::OnSurfacePointerCanceled, this, _1, _2));
+      std::bind(&ServoControl::OnSurfacePointerLost, this, _1, _2));
   panel.PointerMoved(
       std::bind(&ServoControl::OnSurfacePointerMoved, this, _1, _2));
   panel.PointerWheelChanged(
@@ -105,17 +108,19 @@ void ServoControl::OnSurfaceManipulationDelta(
 
 void ServoControl::OnSurfaceTapped(IInspectable const &,
                                    Input::TappedRoutedEventArgs const &e) {
-  auto coords = e.GetPosition(Panel());
-  auto x = coords.X * mDPI;
-  auto y = coords.Y * mDPI;
-  RunOnGLThread([=] { mServo->Click(x, y); });
+  if (e.PointerDeviceType() == PointerDeviceType::Mouse) {
+    auto coords = e.GetPosition(Panel());
+    auto x = coords.X * mDPI;
+    auto y = coords.Y * mDPI;
+    RunOnGLThread([=] { mServo->Click(x, y); });
+  }
   e.Handled(true);
 }
 
 void ServoControl::OnSurfacePointerPressed(
-    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  if (e.Pointer().PointerDeviceType() ==
-      Windows::Devices::Input::PointerDeviceType::Mouse) {
+    IInspectable const &, Input::PointerRoutedEventArgs const &e, bool down) {
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == PointerDeviceType::Mouse) {
     auto point = e.GetCurrentPoint(Panel());
 
     auto x = point.Position().X * mDPI;
@@ -144,30 +149,76 @@ void ServoControl::OnSurfacePointerPressed(
     }
 
     mPressedMouseButton = button;
+  } else if (ty == PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+
+    if (down) {
+      RunOnGLThread([=] { mServo->TouchDown(x, y, point.PointerId()); });
+    } else {
+      RunOnGLThread([=] { mServo->TouchUp(x, y, point.PointerId()); });
+    }
+    e.Handled(true);
   }
 }
 
 void ServoControl::OnSurfacePointerCanceled(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  mPressedMouseButton = {};
+  e.Handled(true);
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == PointerDeviceType::Mouse) {
+    mPressedMouseButton = {};
+  } else if (ty == PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    RunOnGLThread([=] { mServo->TouchCancel(x, y, point.PointerId()); });
+  }
+}
+
+void ServoControl::OnSurfacePointerExited(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+  e.Handled(true);
+  auto ty = e.Pointer().PointerDeviceType();
+  if (ty == PointerDeviceType::Touch) {
+    auto point = e.GetCurrentPoint(Panel());
+    auto x = point.Position().X * mDPI;
+    auto y = point.Position().Y * mDPI;
+    RunOnGLThread([=] { mServo->TouchCancel(x, y, point.PointerId()); });
+    ;
+  }
+}
+
+void ServoControl::OnSurfacePointerLost(
+    IInspectable const &, Input::PointerRoutedEventArgs const &e) {
+  // According to the documentation:
+  // https://docs.microsoft.com/en-us/windows/uwp/design/input/handle-pointer-input#handle-pointer-events
+  // we should cancel the event on PointLost. But we keep getting
+  // PointerMoved events after PointerLost. Servo doesn't like getting events
+  // from a pointer id that has been canceled. So we do nothing.
+  e.Handled(true);
+  return;
 }
 
 void ServoControl::OnSurfacePointerMoved(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  if (e.Pointer().PointerDeviceType() ==
-      Windows::Devices::Input::PointerDeviceType::Mouse) {
-    auto point = e.GetCurrentPoint(Panel());
-    auto x = point.Position().X * mDPI;
-    auto y = point.Position().Y * mDPI;
-    e.Handled(true);
+  auto ty = e.Pointer().PointerDeviceType();
+  auto point = e.GetCurrentPoint(Panel());
+  auto x = point.Position().X * mDPI;
+  auto y = point.Position().Y * mDPI;
+  if (ty == PointerDeviceType::Touch && point.IsInContact()) {
+    RunOnGLThread([=] { mServo->TouchMove(x, y, point.PointerId()); });
+  } else {
     RunOnGLThread([=] { mServo->MouseMove(x, y); });
   }
+  e.Handled(true);
 }
 
 void ServoControl::OnSurfaceWheelChanged(
     IInspectable const &, Input::PointerRoutedEventArgs const &e) {
-  if (e.Pointer().PointerDeviceType() ==
-      Windows::Devices::Input::PointerDeviceType::Mouse) {
+  if (e.Pointer().PointerDeviceType() == PointerDeviceType::Mouse) {
     auto point = e.GetCurrentPoint(Panel());
     auto x = point.Position().X * mDPI;
     auto y = point.Position().Y * mDPI;
