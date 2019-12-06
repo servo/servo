@@ -494,6 +494,7 @@ ${helpers.single_keyword(
     engines="gecko",
     spec="https://drafts.fxtf.org/compositing/#isolation",
     flags="CREATES_STACKING_CONTEXT",
+    gecko_enum_prefix="StyleIsolation",
     animation_value_type="discrete",
 )}
 
