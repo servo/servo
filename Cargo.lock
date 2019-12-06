@@ -4788,6 +4788,7 @@ dependencies = [
  "gstreamer",
  "gstreamer-base",
  "gstreamer-gl",
+ "gstreamer-gl-sys",
  "gstreamer-video",
  "lazy_static",
  "libservo",

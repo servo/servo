@@ -23,6 +23,7 @@ use glib::subclass::object::ObjectImplExt;
 use glib::subclass::object::Property;
 use glib::subclass::simple::ClassStruct;
 use glib::subclass::types::ObjectSubclass;
+use glib::translate::FromGlibPtrBorrow;
 use glib::value::Value;
 use glib::ParamSpec;
 use gstreamer::gst_element_error;
@@ -38,9 +39,6 @@ use gstreamer::ErrorMessage;
 use gstreamer::FlowError;
 use gstreamer::FlowSuccess;
 use gstreamer::Format;
-use gstreamer::Fraction;
-use gstreamer::FractionRange;
-use gstreamer::IntRange;
 use gstreamer::LoggableError;
 use gstreamer::PadDirection;
 use gstreamer::PadPresence;
@@ -49,8 +47,12 @@ use gstreamer::ResourceError;
 use gstreamer_base::subclass::base_src::BaseSrcImpl;
 use gstreamer_base::BaseSrc;
 use gstreamer_base::BaseSrcExt;
-use gstreamer_video::VideoFormat;
-use gstreamer_video::VideoFrameRef;
+use gstreamer_gl::GLContext;
+use gstreamer_gl::GLContextExt;
+use gstreamer_gl::GLContextExtManual;
+use gstreamer_gl_sys::gst_gl_texture_target_to_gl;
+use gstreamer_gl_sys::gst_is_gl_memory;
+use gstreamer_gl_sys::GstGLMemory;
 use gstreamer_video::VideoInfo;
 
 use log::debug;
@@ -80,6 +82,7 @@ use surfman_chains::SwapChain;
 use surfman_chains_api::SwapChainAPI;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -96,89 +99,19 @@ struct ServoSrcGfx {
     device: Device,
     context: Context,
     gl: Rc<Gl>,
-    fbo: GLuint,
-}
-
-impl ServoSrcGfx {
-    fn new() -> ServoSrcGfx {
-        let version = surfman::GLVersion { major: 4, minor: 3 };
-        let flags = surfman::ContextAttributeFlags::empty();
-        let attributes = surfman::ContextAttributes { version, flags };
-
-        let connection = surfman::Connection::new().expect("Failed to create connection");
-        let adapter = surfman::Adapter::default().expect("Failed to create adapter");
-        let mut device =
-            surfman::Device::new(&connection, &adapter).expect("Failed to create device");
-        let descriptor = device
-            .create_context_descriptor(&attributes)
-            .expect("Failed to create descriptor");
-        let context = device
-            .create_context(&descriptor)
-            .expect("Failed to create context");
-        let gl = Gl::gl_fns(gl::ffi_gl::Gl::load_with(|s| {
-            device.get_proc_address(&context, s)
-        }));
-
-        // This is a workaround for surfman having a different bootstrap API with Angle
-        #[cfg(target_os = "windows")]
-        let mut device = device;
-        #[cfg(not(target_os = "windows"))]
-        let mut device = Device::Hardware(device);
-        #[cfg(target_os = "windows")]
-        let mut context = context;
-        #[cfg(not(target_os = "windows"))]
-        let mut context = Context::Hardware(context);
-
-        device.make_context_current(&context).unwrap();
-
-        let size = Size2D::new(512, 512);
-        let surface_type = SurfaceType::Generic { size };
-        let surface = device
-            .create_surface(&mut context, SurfaceAccess::GPUCPU, &surface_type)
-            .expect("Failed to create surface");
-
-        gl.viewport(0, 0, size.width, size.height);
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
-
-        device
-            .bind_surface_to_context(&mut context, surface)
-            .expect("Failed to bind surface");
-        let fbo = device
-            .context_surface_info(&context)
-            .expect("Failed to get context info")
-            .expect("Failed to get context info")
-            .framebuffer_object;
-        gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
-        debug_assert_eq!(
-            (gl.check_framebuffer_status(gl::FRAMEBUFFER), gl.get_error()),
-            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-        );
-
-        let fbo = gl.gen_framebuffers(1)[0];
-        debug_assert_eq!(
-            (gl.check_framebuffer_status(gl::FRAMEBUFFER), gl.get_error()),
-            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-        );
-
-        device.make_no_context_current().unwrap();
-
-        Self {
-            device,
-            context,
-            gl,
-            fbo,
-        }
-    }
+    read_fbo: GLuint,
+    draw_fbo: GLuint,
 }
 
 impl Drop for ServoSrcGfx {
     fn drop(&mut self) {
+        self.gl.delete_framebuffers(&[self.read_fbo, self.draw_fbo]);
         let _ = self.device.destroy_context(&mut self.context);
     }
 }
 
 thread_local! {
-    static GFX: RefCell<ServoSrcGfx> = RefCell::new(ServoSrcGfx::new());
+    static GFX_CACHE: RefCell<HashMap<GLContext, ServoSrcGfx>> = RefCell::new(HashMap::new());
 }
 
 #[derive(Debug)]
@@ -196,6 +129,7 @@ const DEFAULT_URL: &'static str =
 struct ServoThread {
     receiver: Receiver<ServoSrcMsg>,
     swap_chain: SwapChain,
+    gfx: Rc<RefCell<ServoSrcGfx>>,
     servo: Servo<ServoSrcWindow>,
 }
 
@@ -204,10 +138,12 @@ impl ServoThread {
         let embedder = Box::new(ServoSrcEmbedder);
         let window = Rc::new(ServoSrcWindow::new());
         let swap_chain = window.swap_chain.clone();
+        let gfx = window.gfx.clone();
         let servo = Servo::new(embedder, window);
         Self {
             receiver,
             swap_chain,
+            gfx,
             servo,
         }
     }
@@ -235,8 +171,8 @@ impl ServoThread {
     }
 
     fn resize(&mut self, size: Size2D<i32, DevicePixel>) {
-        GFX.with(|gfx| {
-            let mut gfx = gfx.borrow_mut();
+        {
+            let mut gfx = self.gfx.borrow_mut();
             let gfx = &mut *gfx;
             self.swap_chain
                 .resize(&mut gfx.device, &mut gfx.context, size.to_untyped())
@@ -248,6 +184,9 @@ impl ServoThread {
                 .expect("Failed to get context info")
                 .expect("Failed to get context info")
                 .framebuffer_object;
+            gfx.device
+                .make_context_current(&gfx.context)
+                .expect("Failed to make current");
             gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
             debug_assert_eq!(
                 (
@@ -256,20 +195,18 @@ impl ServoThread {
                 ),
                 (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
             );
-        });
+        }
         self.servo.handle_events(vec![WindowEvent::Resize]);
     }
 }
 
 impl Drop for ServoThread {
     fn drop(&mut self) {
-        GFX.with(|gfx| {
-            let mut gfx = gfx.borrow_mut();
-            let gfx = &mut *gfx;
-            self.swap_chain
-                .destroy(&mut gfx.device, &mut gfx.context)
-                .expect("Failed to destroy swap chain")
-        })
+        let mut gfx = self.gfx.borrow_mut();
+        let gfx = &mut *gfx;
+        self.swap_chain
+            .destroy(&mut gfx.device, &mut gfx.context)
+            .expect("Failed to destroy swap chain")
     }
 }
 
@@ -291,102 +228,142 @@ impl EventLoopWaker for ServoSrcEmbedder {
 
 struct ServoSrcWindow {
     swap_chain: SwapChain,
+    gfx: Rc<RefCell<ServoSrcGfx>>,
     gl: Rc<dyn gleam::gl::Gl>,
 }
 
 impl ServoSrcWindow {
     fn new() -> Self {
-        GFX.with(|gfx| {
-            let mut gfx = gfx.borrow_mut();
-            let gfx = &mut *gfx;
-            let access = SurfaceAccess::GPUCPU;
-            gfx.device
-                .make_context_current(&mut gfx.context)
-                .expect("Failed to make context current");
-            debug_assert_eq!(
-                (
-                    gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                    gfx.gl.get_error()
-                ),
-                (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-            );
-            let swap_chain = SwapChain::create_attached(&mut gfx.device, &mut gfx.context, access)
-                .expect("Failed to create swap chain");
-            let fbo = gfx
-                .device
-                .context_surface_info(&gfx.context)
-                .expect("Failed to get context info")
-                .expect("Failed to get context info")
-                .framebuffer_object;
-            gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
-            debug_assert_eq!(
-                (
-                    gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                    gfx.gl.get_error()
-                ),
-                (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-            );
-            let gl = unsafe {
-                gleam::gl::GlFns::load_with(|s| gfx.device.get_proc_address(&gfx.context, s))
-            };
-            Self { swap_chain, gl }
-        })
+        let version = surfman::GLVersion { major: 4, minor: 3 };
+        let flags = surfman::ContextAttributeFlags::empty();
+        let attributes = surfman::ContextAttributes { version, flags };
+
+        let connection = surfman::Connection::new().expect("Failed to create connection");
+        let adapter = surfman::Adapter::default().expect("Failed to create adapter");
+        let mut device =
+            surfman::Device::new(&connection, &adapter).expect("Failed to create device");
+        let descriptor = device
+            .create_context_descriptor(&attributes)
+            .expect("Failed to create descriptor");
+        let context = device
+            .create_context(&descriptor)
+            .expect("Failed to create context");
+
+        // This is a workaround for surfman having a different bootstrap API with Angle
+        #[cfg(target_os = "windows")]
+        let mut device = device;
+        #[cfg(not(target_os = "windows"))]
+        let mut device = Device::Hardware(device);
+        #[cfg(target_os = "windows")]
+        let mut context = context;
+        #[cfg(not(target_os = "windows"))]
+        let mut context = Context::Hardware(context);
+
+        let gleam =
+            unsafe { gleam::gl::GlFns::load_with(|s| device.get_proc_address(&context, s)) };
+        let gl = Gl::gl_fns(gl::ffi_gl::Gl::load_with(|s| {
+            device.get_proc_address(&context, s)
+        }));
+
+        device
+            .make_context_current(&mut context)
+            .expect("Failed to make context current");
+        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+        let access = SurfaceAccess::GPUCPU;
+        let size = Size2D::new(512, 512);
+        let surface_type = SurfaceType::Generic { size };
+        let surface = device
+            .create_surface(&mut context, access, &surface_type)
+            .expect("Failed to create surface");
+
+        device
+            .bind_surface_to_context(&mut context, surface)
+            .expect("Failed to bind surface");
+        let fbo = device
+            .context_surface_info(&context)
+            .expect("Failed to get context info")
+            .expect("Failed to get context info")
+            .framebuffer_object;
+        gl.viewport(0, 0, size.width, size.height);
+        gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
+        debug_assert_eq!(
+            (gl.check_framebuffer_status(gl::FRAMEBUFFER), gl.get_error()),
+            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
+        );
+
+        let swap_chain = SwapChain::create_attached(&mut device, &mut context, access)
+            .expect("Failed to create swap chain");
+
+        let read_fbo = gl.gen_framebuffers(1)[0];
+        let draw_fbo = gl.gen_framebuffers(1)[0];
+
+        device.make_no_context_current().unwrap();
+
+        let gfx = Rc::new(RefCell::new(ServoSrcGfx {
+            device,
+            context,
+            gl,
+            read_fbo,
+            draw_fbo,
+        }));
+
+        Self {
+            swap_chain,
+            gfx,
+            gl: gleam,
+        }
     }
 }
 
 impl WindowMethods for ServoSrcWindow {
     fn present(&self) {
-        GFX.with(|gfx| {
-            debug!("EMBEDDER present");
-            let mut gfx = gfx.borrow_mut();
-            let gfx = &mut *gfx;
-            gfx.device
-                .make_context_current(&mut gfx.context)
-                .expect("Failed to make context current");
-            debug_assert_eq!(
-                (
-                    gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                    gfx.gl.get_error()
-                ),
-                (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-            );
-            let _ = self
-                .swap_chain
-                .swap_buffers(&mut gfx.device, &mut gfx.context);
-            let fbo = gfx
-                .device
-                .context_surface_info(&gfx.context)
-                .expect("Failed to get context info")
-                .expect("Failed to get context info")
-                .framebuffer_object;
-            gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
-            debug_assert_eq!(
-                (
-                    gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                    gfx.gl.get_error()
-                ),
-                (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-            );
-            let _ = gfx.device.make_no_context_current();
-        })
+        debug!("EMBEDDER present");
+        let mut gfx = self.gfx.borrow_mut();
+        let gfx = &mut *gfx;
+        gfx.device
+            .make_context_current(&mut gfx.context)
+            .expect("Failed to make context current");
+        debug_assert_eq!(
+            (
+                gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
+                gfx.gl.get_error()
+            ),
+            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
+        );
+        let _ = self
+            .swap_chain
+            .swap_buffers(&mut gfx.device, &mut gfx.context);
+        let fbo = gfx
+            .device
+            .context_surface_info(&gfx.context)
+            .expect("Failed to get context info")
+            .expect("Failed to get context info")
+            .framebuffer_object;
+        gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);
+        debug_assert_eq!(
+            (
+                gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
+                gfx.gl.get_error()
+            ),
+            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
+        );
+        let _ = gfx.device.make_no_context_current();
     }
 
     fn make_gl_context_current(&self) {
-        GFX.with(|gfx| {
-            debug!("EMBEDDER make_context_current");
-            let mut gfx = gfx.borrow_mut();
-            let gfx = &mut *gfx;
-            gfx.device
-                .make_context_current(&mut gfx.context)
-                .expect("Failed to make context current");
-            debug_assert_eq!(
-                (
-                    gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                    gfx.gl.get_error()
-                ),
-                (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-            );
-        })
+        debug!("EMBEDDER make_context_current");
+        let mut gfx = self.gfx.borrow_mut();
+        let gfx = &mut *gfx;
+        gfx.device
+            .make_context_current(&mut gfx.context)
+            .expect("Failed to make context current");
+        debug_assert_eq!(
+            (
+                gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
+                gfx.gl.get_error()
+            ),
+            (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
+        );
     }
 
     fn gl(&self) -> Rc<dyn gleam::gl::Gl> {
@@ -432,6 +409,12 @@ static PROPERTIES: [Property; 1] = [Property("url", |name| {
     )
 })];
 
+const CAPS: &str = "video/x-raw(memory:GLMemory),
+  format={RGBA,RGBx},
+  width=[1,2147483647],
+  height=[1,2147483647],
+  framerate=[0/1,2147483647/1]";
+
 impl ObjectSubclass for ServoSrc {
     const NAME: &'static str = "ServoSrc";
     // gstreamer-gl doesn't have support for GLBaseSrc yet
@@ -464,21 +447,7 @@ impl ObjectSubclass for ServoSrc {
             env!("CARGO_PKG_AUTHORS"),
         );
 
-        let src_caps = Caps::new_simple(
-            "video/x-raw",
-            &[
-                ("format", &VideoFormat::Bgrx.to_string()),
-                ("width", &IntRange::<i32>::new(1, std::i32::MAX)),
-                ("height", &IntRange::<i32>::new(1, std::i32::MAX)),
-                (
-                    "framerate",
-                    &FractionRange::new(
-                        Fraction::new(1, std::i32::MAX),
-                        Fraction::new(std::i32::MAX, 1),
-                    ),
-                ),
-            ],
-        );
+        let src_caps = Caps::from_string(CAPS).unwrap();
         let src_pad_template =
             PadTemplate::new("src", PadDirection::Src, PadPresence::Always, &src_caps).unwrap();
         klass.add_pad_template(src_pad_template);
@@ -525,6 +494,9 @@ impl ObjectImpl for ServoSrc {
 
 impl ElementImpl for ServoSrc {}
 
+thread_local! {
+    static GL: RefCell<Option<Rc<Gl>>> = RefCell::new(None);
+}
 impl BaseSrcImpl for ServoSrc {
     fn set_caps(&self, _src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
         let info = VideoInfo::from_caps(outcaps)
@@ -563,35 +535,85 @@ impl BaseSrcImpl for ServoSrc {
         _length: u32,
         buffer: &mut BufferRef,
     ) -> Result<FlowSuccess, FlowError> {
-        let guard = self.info.lock().map_err(|_| {
-            gst_element_error!(src, CoreError::Negotiation, ["Lock poisoned"]);
-            FlowError::NotNegotiated
-        })?;
-        let info = guard.as_ref().ok_or_else(|| {
-            gst_element_error!(src, CoreError::Negotiation, ["Caps not set yet"]);
-            FlowError::NotNegotiated
-        })?;
-        let mut frame = VideoFrameRef::from_buffer_ref_writable(buffer, info).ok_or_else(|| {
-            gst_element_error!(
-                src,
-                CoreError::Failed,
-                ["Failed to map output buffer writable"]
-            );
+        let memory = buffer.get_all_memory().ok_or_else(|| {
+            gst_element_error!(src, CoreError::Failed, ["Failed to get memory"]);
             FlowError::Error
         })?;
-        let height = frame.height() as i32;
-        let width = frame.width() as i32;
-        let size = Size2D::new(width, height);
-        let format = frame.format();
-        debug!(
-            "Filling servosrc buffer {}x{} {:?} {:?}",
-            width, height, format, frame,
-        );
-        let data = frame.plane_data_mut(0).unwrap();
+        let memory = unsafe { memory.into_ptr() };
+        if unsafe { gst_is_gl_memory(memory) } == 0 {
+            gst_element_error!(src, CoreError::Failed, ["Memory isn't GL memory"]);
+            return Err(FlowError::Error);
+        }
+        let gl_memory = unsafe { (memory as *mut GstGLMemory).as_ref() }.ok_or_else(|| {
+            gst_element_error!(src, CoreError::Failed, ["Memory is null"]);
+            FlowError::Error
+        })?;
 
-        GFX.with(|gfx| {
-            let mut gfx = gfx.borrow_mut();
-            let gfx = &mut *gfx;
+        let gl_context = unsafe { GLContext::from_glib_borrow(gl_memory.mem.context) };
+        let draw_texture_id = gl_memory.tex_id;
+        let draw_texture_target = unsafe { gst_gl_texture_target_to_gl(gl_memory.tex_target) };
+        let height = gl_memory.info.height;
+        let width = gl_memory.info.width;
+        let size = Size2D::new(width, height);
+        debug!("Filling texture {} {}x{}", draw_texture_id, width, height);
+
+        gl_context.activate(true).map_err(|_| {
+            gst_element_error!(src, CoreError::Failed, ["Failed to activate GL context"]);
+            FlowError::Error
+        })?;
+
+        GFX_CACHE.with(|gfx_cache| {
+            let mut gfx_cache = gfx_cache.borrow_mut();
+            let gfx = gfx_cache.entry(gl_context.clone()).or_insert_with(|| {
+                debug!("Bootstrapping surfman");
+                let (device, context) = unsafe { surfman::Device::from_current_context() }
+                    .expect("Failed to bootstrap surfman");
+
+                // This is a workaround for surfman having a different bootstrap API with Angle
+                #[cfg(not(target_os = "windows"))]
+                let device = Device::Hardware(device);
+                #[cfg(not(target_os = "windows"))]
+                let context = Context::Hardware(context);
+
+                let gl = Gl::gl_fns(gl::ffi_gl::Gl::load_with(|s| {
+                    gl_context.get_proc_address(s) as *const _
+                }));
+                let draw_fbo = gl.gen_framebuffers(1)[0];
+                let read_fbo = gl.gen_framebuffers(1)[0];
+                ServoSrcGfx {
+                    device,
+                    context,
+                    gl,
+                    read_fbo,
+                    draw_fbo,
+                }
+            });
+
+            debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
+
+            // Save the current GL state
+            let mut bound_fbos = [0, 0];
+            unsafe {
+                gfx.gl
+                    .get_integer_v(gl::DRAW_FRAMEBUFFER_BINDING, &mut bound_fbos[0..]);
+                gfx.gl
+                    .get_integer_v(gl::READ_FRAMEBUFFER_BINDING, &mut bound_fbos[1..]);
+            }
+
+            gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, gfx.draw_fbo);
+            gfx.gl.framebuffer_texture_2d(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                draw_texture_id,
+                0,
+            );
+            debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
+
+            gfx.gl.clear_color(0.3, 0.2, 0.1, 1.0);
+            gfx.gl.clear(gl::COLOR_BUFFER_BIT);
+            debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
+
             if let Some(surface) = self.swap_chain.take_surface() {
                 let surface_size = Size2D::from_untyped(gfx.device.surface_info(&surface).size);
                 if size != surface_size {
@@ -600,36 +622,27 @@ impl BaseSrcImpl for ServoSrc {
                     let _ = self.sender.send(ServoSrcMsg::Resize(size));
                 }
 
-                gfx.device.make_context_current(&gfx.context).unwrap();
-                debug_assert_eq!(
-                    (
-                        gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                        gfx.gl.get_error()
-                    ),
-                    (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-                );
-
-                gfx.gl.viewport(0, 0, width, height);
-                debug_assert_eq!(
-                    (
-                        gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
-                        gfx.gl.get_error()
-                    ),
-                    (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
-                );
-
                 let surface_texture = gfx
                     .device
                     .create_surface_texture(&mut gfx.context, surface)
                     .unwrap();
-                let texture_id = surface_texture.gl_texture();
+                let read_texture_id = surface_texture.gl_texture();
+                let read_texture_target = gfx.device.surface_gl_texture_target();
 
-                gfx.gl.bind_framebuffer(gl::FRAMEBUFFER, gfx.fbo);
+                gfx.gl.bind_framebuffer(gl::READ_FRAMEBUFFER, gfx.read_fbo);
                 gfx.gl.framebuffer_texture_2d(
-                    gl::FRAMEBUFFER,
+                    gl::READ_FRAMEBUFFER,
                     gl::COLOR_ATTACHMENT0,
-                    gfx.device.surface_gl_texture_target(),
-                    texture_id,
+                    read_texture_target,
+                    read_texture_id,
+                    0,
+                );
+                gfx.gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, gfx.draw_fbo);
+                gfx.gl.framebuffer_texture_2d(
+                    gl::DRAW_FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0,
+                    draw_texture_target,
+                    draw_texture_id,
                     0,
                 );
                 debug_assert_eq!(
@@ -640,15 +653,31 @@ impl BaseSrcImpl for ServoSrc {
                     (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
                 );
 
-                // TODO: use GL memory to avoid readback
-                gfx.gl.read_pixels_into_buffer(
+                gfx.gl.clear_color(0.3, 0.7, 0.3, 0.0);
+                gfx.gl.clear(gl::COLOR_BUFFER_BIT);
+                debug_assert_eq!(
+                    (
+                        gfx.gl.check_framebuffer_status(gl::FRAMEBUFFER),
+                        gfx.gl.get_error()
+                    ),
+                    (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
+                );
+
+                debug!(
+                    "Filling with {}/{} {}",
+                    read_texture_id, read_texture_target, surface_size
+                );
+                gfx.gl.blit_framebuffer(
+                    0,
+                    0,
+                    surface_size.width,
+                    surface_size.height,
                     0,
                     0,
                     width,
                     height,
-                    gl::BGRA,
-                    gl::UNSIGNED_BYTE,
-                    data,
+                    gl::COLOR_BUFFER_BIT,
+                    gl::NEAREST,
                 );
                 debug_assert_eq!(
                     (
@@ -657,16 +686,29 @@ impl BaseSrcImpl for ServoSrc {
                     ),
                     (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
                 );
-
-                gfx.device.make_no_context_current().unwrap();
 
                 let surface = gfx
                     .device
                     .destroy_surface_texture(&mut gfx.context, surface_texture)
                     .unwrap();
                 self.swap_chain.recycle_surface(surface);
+            } else {
+                debug!("Failed to get current surface");
             }
+
+            // Restore the GL state
+            gfx.gl
+                .bind_framebuffer(gl::DRAW_FRAMEBUFFER, bound_fbos[0] as GLuint);
+            gfx.gl
+                .bind_framebuffer(gl::READ_FRAMEBUFFER, bound_fbos[1] as GLuint);
+            debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
         });
+
+        gl_context.activate(false).map_err(|_| {
+            gst_element_error!(src, CoreError::Failed, ["Failed to deactivate GL context"]);
+            FlowError::Error
+        })?;
+
         let _ = self.sender.send(ServoSrcMsg::Heartbeat);
         Ok(FlowSuccess::Ok)
     }
