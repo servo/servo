@@ -67,8 +67,7 @@ use style::str::split_html_space_chars;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::radionodelist::RadioNodeList;
 use std::collections::HashMap;
-use time::{now, Tm, Duration};
-
+use time::{now, Duration, Tm};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -264,12 +263,10 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
-        let window = window_from_node(self);
-
         let mut candidates: Vec<DomRoot<Node>> = Vec::new();
 
         let controls = self.controls.borrow();
-
+        // Step 1
         for child in controls.iter() {
             if child
                 .downcast::<HTMLElement>()
@@ -283,7 +280,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 }
             }
         }
-
+        // Step 2
         if candidates.len() == 0 {
             for child in controls.iter() {
                 if child.is::<HTMLImageElement>() {
@@ -299,6 +296,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
         let mut past_names_map = self.past_names_map.borrow_mut();
 
+        // Step 3
         if candidates.len() == 0 {
             if past_names_map.contains_key(&name) {
                 return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
@@ -308,18 +306,26 @@ impl HTMLFormElementMethods for HTMLFormElement {
             return None;
         }
 
+        // Step 4
         if candidates.len() > 1 {
+            let window = window_from_node(self);
+
             return Some(RadioNodeListOrElement::RadioNodeList(
                 RadioNodeList::new_simple_list(&window, candidates.into_iter()),
             ));
         }
 
+        // Step 5
         let element_node = &candidates[0];
         past_names_map.insert(
             name,
-            (Dom::from_ref(&*element_node.downcast::<Element>().unwrap()), now()),
+            (
+                Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+                now(),
+            ),
         );
 
+        // Step 6
         return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
             &*element_node.downcast::<Element>().unwrap(),
         )));
@@ -327,6 +333,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // Step 1
         enum SourcedNameSource {
             Id,
             Name,
@@ -339,23 +346,17 @@ impl HTMLFormElementMethods for HTMLFormElement {
             source: SourcedNameSource,
         }
 
-        // vector to store sourced names tuple information
         let mut sourcedNamesVec: Vec<SourcedName> = Vec::new();
 
-        // let controls = self.controls.borrow_mut(); - line 849 → unsure of which "borrow" to use
-        let controls = self.controls.borrow(); // line 807 in this file
+        let controls = self.controls.borrow();
 
-        // controls - list of form elements
-        // check all listed elements first, push to sourcedNamesVec as per spec
+        // Step 2
         for child in controls.iter() {
             if child
                 .downcast::<HTMLElement>()
                 .map_or(false, |c| c.is_listed_element())
             {
-                // if child.is_listed()
-
                 if child.has_attribute(&local_name!("id")) {
-                    // https://learning-rust.github.io/docs/b2.structs.html
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("id")),
                         element: DomRoot::from_ref(&*child),
@@ -373,15 +374,10 @@ impl HTMLFormElementMethods for HTMLFormElement {
             }
         }
 
-        // check img elements now, push to sourcedNamesVec as per spec
+        // Step 3
         for child in controls.iter() {
-            // https://doc.servo.org/src/script/dom/htmlelement.rs.html#645-665
-            // if child.get_string_attribute(&local_name!("type")) == "image" {
-
-            // https://users.rust-lang.org/t/how-check-type-of-variable/33845/7
             if child.is::<HTMLImageElement>() {
                 if child.has_attribute(&local_name!("id")) {
-                    // https://learning-rust.github.io/docs/b2.structs.html
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("id")),
                         element: DomRoot::from_ref(&*child),
@@ -399,7 +395,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             }
         }
 
-        // return list of names
+        // Step 8
         let mut namesVec: Vec<DOMString> = Vec::new();
         for elem in sourcedNamesVec.iter() {
             namesVec.push(elem.name.clone());
