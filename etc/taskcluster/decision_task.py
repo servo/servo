@@ -628,13 +628,15 @@ def linux_release_build_with_debug_assertions(layout_2020):
         name_prefix = "Layout 2020 "
         build_args = "--with-layout-2020"
         index_key_suffix = "_2020"
+        treeherder_prefix = "2020-"
     else:
         name_prefix = ""
         build_args = ""
         index_key_suffix = ""
+        treeherder_prefix = ""
     return (
         linux_build_task(name_prefix + "Release build, with debug assertions")
-        .with_treeherder("Linux x64", "Release+A")
+        .with_treeherder("Linux x64", treeherder_prefix + "Release+A")
         .with_script("""
             time ./mach rustc -V
             time ./mach fetch
