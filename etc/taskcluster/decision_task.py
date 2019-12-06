@@ -682,7 +682,7 @@ def linux_wpt_common(total_chunks, layout_2020):
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               processes=12, total_chunks=total_chunks, layout_2020=layout_2020)
+               processes=20, total_chunks=total_chunks, layout_2020=layout_2020)
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
