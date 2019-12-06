@@ -12,4 +12,4 @@ RUN apt-get install -qy --no-install-recommends \
     libunwind8 \
     #
     # Compiling shaders in OSMesa:
-    llvm \
+    llvm
