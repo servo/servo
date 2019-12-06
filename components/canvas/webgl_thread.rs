@@ -680,10 +680,14 @@ impl WebGLThread {
             )
             .expect("Where's the GL data?");
 
+            // Ensure there are no pending GL errors from other parts of the pipeline.
+            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+
             // Check to see if any of the current framebuffer bindings are the surface we're about
             // to swap out. If so, we'll have to reset them after destroying the surface.
             let framebuffer_rebinding_info =
                 FramebufferRebindingInfo::detect(&self.device, &data.ctx, &*data.gl);
+            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             debug!("Getting swap chain for {:?}", swap_id);
             let swap_chain = match swap_id {
@@ -698,6 +702,7 @@ impl WebGLThread {
             swap_chain
                 .swap_buffers(&mut self.device, &mut data.ctx)
                 .unwrap();
+            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             // TODO: if preserveDrawingBuffer is true, then blit the front buffer to the back buffer
             // https://github.com/servo/servo/issues/24604
@@ -705,10 +710,12 @@ impl WebGLThread {
             swap_chain
                 .clear_surface(&mut self.device, &mut data.ctx, &*data.gl)
                 .unwrap();
+            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             // Rebind framebuffers as appropriate.
             debug!("Rebinding {:?}", swap_id);
             framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
+            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             let SurfaceInfo {
                 framebuffer_object,
