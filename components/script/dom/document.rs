@@ -3811,6 +3811,9 @@ impl DocumentMethods for Document {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
             ))),
+            "compositionevent" | "textevent" => Ok(DomRoot::upcast(
+                CompositionEvent::new_uninitialized(&self.window),
+            )),
             "closeevent" => Ok(DomRoot::upcast(CloseEvent::new_uninitialized(
                 self.window.upcast(),
             ))),
