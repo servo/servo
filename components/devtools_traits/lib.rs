@@ -82,6 +82,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Report a CSS parse error for the given pipeline
     ReportCSSError(PipelineId, CSSError),
+
+    /// Report a page error for the given pipeline
+    ReportPageError(PipelineId, PageError),
 }
 
 /// Serialized JS return values
@@ -196,12 +199,6 @@ pub enum DevtoolScriptControlMsg {
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
-    /// Retrieve all stored console messages for the given pipeline.
-    GetCachedMessages(
-        PipelineId,
-        CachedConsoleMessageTypes,
-        IpcSender<Vec<CachedConsoleMessage>>,
-    ),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
@@ -253,7 +250,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PageError {
     #[serde(rename = "_type")]
     pub type_: String,

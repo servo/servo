@@ -1991,9 +1991,6 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&*documents, id, node_id, reply)
             },
-            DevtoolScriptControlMsg::GetCachedMessages(id, message_types, reply) => {
-                devtools::handle_get_cached_messages(id, message_types, reply)
-            },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(&*documents, id, node_id, modifications)
             },
