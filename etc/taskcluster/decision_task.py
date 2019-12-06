@@ -318,7 +318,7 @@ def with_rust_nightly():
 def android_arm32_dev_from_macos():
     return (
         macos_build_task("Dev build (macOS)")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Dev(macOS)")
         .with_script("""
             export HOST_CC="$(brew --prefix llvm)/bin/clang"
             export HOST_CXX="$(brew --prefix llvm)/bin/clang++"
@@ -332,7 +332,7 @@ def android_arm32_dev_from_macos():
 def android_arm32_dev():
     return (
         android_build_task("Dev build")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Dev")
         .with_script("""
             ./mach build --android --dev
             ./etc/ci/lockfile_changed.sh
@@ -345,7 +345,7 @@ def android_arm32_dev():
 def android_nightly():
     return (
         android_build_task("Nightly build and upload")
-        .with_treeherder("Android Nightlies")
+        .with_treeherder("Android", "Nightlies")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
@@ -396,7 +396,7 @@ def android_x86_wpt():
     build_task = android_x86_release()
     task = (
         linux_task("WPT")
-        .with_treeherder("Android x86")
+        .with_treeherder("Android x86", "WPT")
         .with_provisioner_id("proj-servo")
         .with_worker_type("docker-worker-kvm")
         .with_capabilities(privileged=True)
@@ -434,7 +434,7 @@ def appx_artifact(debug):
 def windows_arm64():
     return (
         windows_build_task("UWP dev build", arch="arm64", package=False)
-        .with_treeherder("Windows arm64")
+        .with_treeherder("Windows arm64", "UWP-Dev")
         .with_script(
             "python mach build --dev --target=aarch64-uwp-windows-msvc",
             "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
@@ -447,7 +447,7 @@ def windows_arm64():
 def windows_uwp_x64():
     return (
         windows_build_task("UWP dev build", package=False)
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "UWP-Dev")
         .with_script(
             "python mach build --dev --target=x86_64-uwp-windows-msvc",
             "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
@@ -461,7 +461,7 @@ def windows_uwp_x64():
 def uwp_nightly():
     return (
         windows_build_task("Nightly UWP build and upload", package=False)
-        .with_treeherder("Windows x64", "UWP Nightly")
+        .with_treeherder("Windows x64", "UWP-Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script(
@@ -584,7 +584,7 @@ def update_wpt():
     build_task = linux_release_build_with_debug_assertions(layout_2020=False)
     return (
         linux_task("WPT update")
-        .with_treeherder("Linux x64", "WPT update")
+        .with_treeherder("Linux x64", "WPT-update")
         .with_dockerfile(dockerfile_path("wpt-update"))
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
