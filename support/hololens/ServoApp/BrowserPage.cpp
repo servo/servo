@@ -19,23 +19,6 @@ namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
   InitializeComponent();
   BindServoEvents();
-  if (!xrPkgChecker.IsInstalled()) {
-    XRPkgWarning().Visibility(Visibility::Visible);
-    xrPkgChecker.OnInstalled(
-        [=] { XRPkgWarning().Visibility(Visibility::Collapsed); },
-        std::chrono::seconds{5});
-  }
-}
-
-void BrowserPage::OnXRPkgWarningDismissClick(IInspectable const &,
-                                             RoutedEventArgs const &) {
-  xrPkgChecker.StopTracking();
-  XRPkgWarning().Visibility(Visibility::Collapsed);
-}
-
-void BrowserPage::OnXRPkgWarningInstallClick(IInspectable const &,
-                                             RoutedEventArgs const &) {
-  xrPkgChecker.OpenStore();
 }
 
 void BrowserPage::BindServoEvents() {

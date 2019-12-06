@@ -84,7 +84,6 @@
             <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" x:Name="navigationBar" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}">
             <Grid.ColumnDefinitions>
@@ -130,14 +129,7 @@
         </Grid>
         <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
         <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="2"/>
-        <StackPanel Grid.Row="2" Background="LightYellow" Padding="10" BorderThickness="0,2,0,0" BorderBrush="Black" x:Name="XRPkgWarning" Visibility="Collapsed">
-            <TextBlock Margin="0,0" VerticalAlignment="Center">The package "Windows OpenXR Developer Preview" is not installed. WebXR pages won't work.</TextBlock>
-            <StackPanel Orientation="Horizontal">
-                <Button Margin="0,10,10,0" Click="OnXRPkgWarningInstallClick">Install Package</Button>
-                <Button Margin="0,10,10,0" Click="OnXRPkgWarningDismissClick">Dismiss</Button>
-            </StackPanel>
-        </StackPanel>
-        <CommandBar Grid.Row="3" x:Name="mediaControls" Visibility="Collapsed">
+        <CommandBar Grid.Row="2" x:Name="mediaControls" Visibility="Collapsed">
             <AppBarButton Icon="Play" Label="Play" x:Name="playButton" Visibility="Collapsed" Click="OnMediaControlsPlayClicked"/>
             <AppBarButton Icon="Pause" Label="Pause" x:Name="pauseButton" Click="OnMediaControlsPauseClicked"/>
         </CommandBar>
