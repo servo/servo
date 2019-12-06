@@ -67,6 +67,8 @@ use style::str::split_html_space_chars;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::radionodelist::RadioNodeList;
 use std::collections::HashMap;
+use time::{now, Tm, Duration};
+
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -80,7 +82,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMap<DOMString, Dom<Element>>>,
+    past_names_map: DomRefCell<HashMap<DOMString, (Dom<Element>, Tm)>>,
 }
 
 impl HTMLFormElement {
@@ -300,7 +302,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         if candidates.len() == 0 {
             if past_names_map.contains_key(&name) {
                 return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
-                    &*past_names_map.get(&name).unwrap(),
+                    &*past_names_map.get(&name).unwrap().0,
                 )));
             }
             return None;
@@ -315,7 +317,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         let element_node = &candidates[0];
         past_names_map.insert(
             name,
-            Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+            (Dom::from_ref(&*element_node.downcast::<Element>().unwrap()), now()),
         );
 
         return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
@@ -328,7 +330,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         enum SourcedNameSource {
             Id,
             Name,
-            Past(std::time::Duration),
+            Past(Duration),
         }
 
         struct SourcedName {
