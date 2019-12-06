@@ -80,7 +80,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMap<DOMString, Dom<HTMLElement>>>,
+    past_names_map: DomRefCell<HashMap<DOMString, Dom<Element>>>,
 }
 
 impl HTMLFormElement {
@@ -262,13 +262,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
-        // unimplemented!();
         let window = window_from_node(self);
 
-        // Q2. ERROR in the following declaration - check the attached screenshot (image2)
-        let mut candidates: Vec<Dom<HTMLElement>> = Vec::new();
-
-        // let mut candidates: RadioNodeList = RadioNodeList::new(&window, Dom<HTMLElement>);
+        let mut candidates: Vec<DomRoot<Node>> = Vec::new();
 
         let controls = self.controls.borrow();
 
@@ -281,8 +277,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                     (child.has_attribute(&local_name!("name")) &&
                         child.get_string_attribute(&local_name!("name")) == name)
                 {
-                    // println!("{:?}", child.what_is_this());
-                    candidates.push(Dom::from_ref(&*child.downcast::<HTMLElement>().unwrap()));
+                    candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
                 }
             }
         }
@@ -294,7 +289,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                         (child.has_attribute(&local_name!("name")) &&
                             child.get_string_attribute(&local_name!("name")) == name)
                     {
-                        candidates.push(Dom::from_ref(&*child.downcast::<HTMLElement>().unwrap()));
+                        candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
                     }
                 }
             }
@@ -303,41 +298,28 @@ impl HTMLFormElementMethods for HTMLFormElement {
         let mut past_names_map = self.past_names_map.borrow_mut();
 
         if candidates.len() == 0 {
-            for (key, val) in past_names_map.iter() {
-                if *key == name {
-                    // println!("{:?}", val.what_is_this());
-                    return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
-                        &*val.upcast::<Element>(),
-                    )));
-                }
+            if past_names_map.contains_key(&name) {
+                return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+                    &*past_names_map.get(&name).unwrap(),
+                )));
             }
+            return None;
         }
 
         if candidates.len() > 1 {
-            let mut candidatesDomRoot: Vec<DomRoot<Node>> = Vec::new();
-            for cand in candidates.iter() {
-                // println!("{:?}", cand.what_is_this());
-                candidatesDomRoot.push(DomRoot::from_ref(&*cand.upcast::<Node>()));
-            }
-
-            // Q1. ERROR in the following line - check the attached screenshot (image1)
-            // Related link for potential fix: https://stackoverflow.com/a/26953620/11978763
-            // we are unsure of how to incorporate this
             return Some(RadioNodeListOrElement::RadioNodeList(
-                RadioNodeList::new_simple_list(&window, candidatesDomRoot.iter()),
+                RadioNodeList::new_simple_list(&window, candidates.into_iter()),
             ));
         }
 
         let element_node = &candidates[0];
-        if past_names_map.contains_key(&name) {
-            let stat = past_names_map.entry(name).or_insert(element_node.clone());
-            *stat = element_node.clone();
-        } else {
-            past_names_map.insert(name, element_node.clone());
-        }
+        past_names_map.insert(
+            name,
+            Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+        );
 
         return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
-            &*element_node.upcast::<Element>(),
+            &*element_node.downcast::<Element>().unwrap(),
         )));
     }
 
