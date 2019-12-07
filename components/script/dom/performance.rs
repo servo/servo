@@ -371,6 +371,12 @@ impl Performance {
             .push_back(DomRoot::from_ref(entry));
         false
     }
+
+    pub fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+        if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
+            *e = DomRoot::from_ref(entry);
+        }
+    }
 }
 
 impl PerformanceMethods for Performance {
