@@ -6,6 +6,7 @@ use crate::dom_traversal::NodeExt;
 use crate::fragments::{Fragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::physical;
+use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
 use net_traits::image::base::Image;
@@ -63,6 +64,41 @@ impl ReplacedContent {
         None
     }
 
+    fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {
+        let intrinsic_size = physical::Vec2 {
+            x: self.intrinsic_width,
+            y: self.intrinsic_height,
+        };
+        intrinsic_size.size_to_flow_relative(style.writing_mode)
+    }
+
+    fn inline_size_over_block_size_intrinsic_ratio(
+        &self,
+        style: &ComputedValues,
+    ) -> Option<CSSFloat> {
+        self.intrinsic_ratio.map(|width_over_height| {
+            if style.writing_mode.is_vertical() {
+                1. / width_over_height
+            } else {
+                width_over_height
+            }
+        })
+    }
+
+    pub fn inline_content_sizes(&self, style: &ComputedValues) -> ContentSizes {
+        // FIXME: min/max-content of replaced elements is not defined in
+        // https://dbaron.org/css/intrinsic/
+        // This seems sensible?
+        let inline = self
+            .flow_relative_intrinsic_size(style)
+            .inline
+            .unwrap_or(Length::zero());
+        ContentSizes {
+            min_content: inline,
+            max_content: inline,
+        }
+    }
+
     pub fn make_fragments<'a>(
         &'a self,
         style: &ServoArc<ComputedValues>,
@@ -95,19 +131,8 @@ impl ReplacedContent {
         style: &ComputedValues,
     ) -> Vec2<Length> {
         let mode = style.writing_mode;
-        let intrinsic_size = physical::Vec2 {
-            x: self.intrinsic_width,
-            y: self.intrinsic_height,
-        };
-        let intrinsic_size = intrinsic_size.size_to_flow_relative(mode);
-        let intrinsic_ratio = self.intrinsic_ratio.map(|width_over_height| {
-            // inline-size over block-size
-            if style.writing_mode.is_vertical() {
-                1. / width_over_height
-            } else {
-                width_over_height
-            }
-        });
+        let intrinsic_size = self.flow_relative_intrinsic_size(style);
+        let intrinsic_ratio = self.inline_size_over_block_size_intrinsic_ratio(style);
 
         let box_size = style.box_size().percentages_relative_to(containing_block);
         let min_box_size = style
