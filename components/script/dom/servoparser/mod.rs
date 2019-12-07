@@ -689,6 +689,8 @@ pub struct ParserContext {
     url: ServoUrl,
     /// timing data for this resource
     resource_timing: ResourceFetchTiming,
+    /// pushed entry index
+    pushed_entry_index: Option<usize>,
 }
 
 impl ParserContext {
@@ -699,6 +701,7 @@ impl ParserContext {
             id: id,
             url: url,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
+            pushed_entry_index: None,
         }
     }
 }
@@ -883,8 +886,16 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync();
         }
 
-        //TODO only submit if this is the current document resource
-        self.submit_resource_timing();
+        //TODO only update if this is the current document resource
+        if let Some(pushed_index) = self.pushed_entry_index {
+            let document = &parser.document;
+            let performance_entry =
+                PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+            document
+                .global()
+                .performance()
+                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -910,7 +921,7 @@ impl FetchResponseListener for ParserContext {
         //TODO nav_start and nav_start_precise
         let performance_entry =
             PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
-        document
+        self.pushed_entry_index = document
             .global()
             .performance()
             .queue_entry(performance_entry.upcast::<PerformanceEntry>());
