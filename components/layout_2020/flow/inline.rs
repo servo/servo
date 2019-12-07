@@ -465,9 +465,7 @@ fn layout_atomic<'box_tree>(
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
-            // FIXME: implement https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
-            // and https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
-            let size = Vec2::zero();
+            let size = replaced.used_size(ifc.containing_block, &atomic.style);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment {
