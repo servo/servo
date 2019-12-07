@@ -482,10 +482,29 @@ fn layout_atomic<'box_tree>(
         },
         Err(non_replaced) => {
             let box_size = atomic.style.box_size();
-            let inline_size = box_size.inline.percentage_relative_to(cbis).auto_is(|| {
-                let available_size = cbis - pbm.inline_sum();
-                atomic.content_sizes.shrink_to_fit(available_size)
-            });
+            let max_box_size = atomic
+                .style
+                .max_box_size()
+                .percentages_relative_to(ifc.containing_block);
+            let min_box_size = atomic
+                .style
+                .min_box_size()
+                .percentages_relative_to(ifc.containing_block)
+                .auto_is(Length::zero);
+
+            // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
+            let tentative_inline_size =
+                box_size.inline.percentage_relative_to(cbis).auto_is(|| {
+                    let available_size = cbis - pbm.inline_sum();
+                    atomic.content_sizes.shrink_to_fit(available_size)
+                });
+
+            // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+            // In this case “applying the rules above again” with a non-auto inline-size
+            // always results in that size.
+            let inline_size = tentative_inline_size
+                .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+
             let block_size = box_size
                 .block
                 .maybe_percentage_relative_to(ifc.containing_block.block_size.non_auto());
@@ -508,7 +527,16 @@ fn layout_atomic<'box_tree>(
                 dummy_tree_rank,
                 ifc.absolutely_positioned_fragments,
             );
-            let block_size = block_size.auto_is(|| independent_layout.content_block_size);
+
+            // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+            let tentative_block_size = block_size.auto_is(|| independent_layout.content_block_size);
+
+            // https://drafts.csswg.org/css2/visudet.html#min-max-heights
+            // In this case “applying the rules above again” with a non-auto block-size
+            // always results in that size.
+            let block_size = tentative_block_size
+                .clamp_between_extremums(min_box_size.block, max_box_size.block);
+
             let content_rect = Rect {
                 start_corner,
                 size: Vec2 {

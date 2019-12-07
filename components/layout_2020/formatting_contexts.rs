@@ -29,6 +29,8 @@ pub(crate) struct IndependentFormattingContext {
 
 pub(crate) struct IndependentLayout {
     pub fragments: Vec<Fragment>,
+
+    /// https://drafts.csswg.org/css2/visudet.html#root-height
     pub content_block_size: Length,
 }
 
