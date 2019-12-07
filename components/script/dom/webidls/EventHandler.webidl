@@ -51,6 +51,7 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onended;
            attribute OnErrorEventHandler onerror;
            attribute EventHandler onfocus;
+           attribute EventHandler onformdata;
            attribute EventHandler oninput;
            attribute EventHandler oninvalid;
            attribute EventHandler onkeydown;
