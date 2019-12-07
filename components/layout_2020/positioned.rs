@@ -158,7 +158,30 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
 
-        let box_size = style.box_size();
+        let size;
+        let replaced_used_size;
+        match self.absolutely_positioned_box.contents.as_replaced() {
+            Ok(replaced) => {
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let u = replaced.used_size_as_if_inline_element(&containing_block.into(), style);
+                size = Vec2 {
+                    inline: LengthOrAuto::LengthPercentage(u.inline),
+                    block: LengthOrAuto::LengthPercentage(u.block),
+                };
+                replaced_used_size = Some(u);
+            }
+            Err(_non_replaced) => {
+                let box_size = style.box_size();
+                size = Vec2 {
+                    inline: box_size.inline.percentage_relative_to(cbis),
+                    block: box_size.block.percentage_relative_to(cbbs),
+                };
+                replaced_used_size = None;
+            }
+        }
+
+
         let padding = style.padding().percentages_relative_to(cbis);
         let border = style.border_width();
         let computed_margin = style.margin().percentages_relative_to(cbis);
@@ -169,6 +192,17 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             End(Length),
         }
 
+        /// This unifies both:
+        ///
+        /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+        /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+        ///
+        /// … and:
+        ///
+        /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+        /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+        ///
+        /// In the replaced case, `size` is never `Auto`.
         fn solve_axis(
             containing_size: Length,
             padding_border_sum: Length,
@@ -176,9 +210,8 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin_end: LengthOrAuto,
             solve_margins: impl FnOnce(Length) -> (Length, Length),
             box_offsets: AbsoluteBoxOffsets,
-            size: LengthPercentageOrAuto,
+            size: LengthOrAuto,
         ) -> (Anchor, LengthOrAuto, Length, Length) {
-            let size = size.percentage_relative_to(containing_size);
             match box_offsets {
                 AbsoluteBoxOffsets::StaticStart { start } => (
                     Anchor::Start(start),
@@ -257,7 +290,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 }
             },
             self.box_offsets.inline,
-            box_size.inline,
+            size.inline,
         );
 
         let (block_anchor, block_size, margin_block_start, margin_block_end) = solve_axis(
@@ -267,7 +300,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin.block_end,
             |margins| (margins / 2., margins / 2.),
             self.box_offsets.block,
-            box_size.block,
+            size.block,
         );
 
         let margin = Sides {
@@ -277,47 +310,30 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             block_end: margin_block_end,
         };
 
-        let inline_size = inline_size.auto_is(|| {
-            let available_size = match inline_anchor {
-                Anchor::Start(start) => cbis - start - pb.inline_sum() - margin.inline_sum(),
-                Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
-            };
-
-            if self
-                .absolutely_positioned_box
-                .contents
-                .as_replaced()
-                .is_ok()
-            {
-                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                available_size
-            } else {
-                self.absolutely_positioned_box
-                    .contents
-                    .content_sizes
-                    .shrink_to_fit(available_size)
-            }
-        });
-
         let mut absolutely_positioned_fragments = Vec::new();
-        let mut independent_layout = match self.absolutely_positioned_box.contents.as_replaced() {
+        let (size, mut fragments) = match self.absolutely_positioned_box.contents.as_replaced() {
             Ok(replaced) => {
-                // FIXME: implement https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                // and https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let block_size = block_size.auto_is(Length::zero);
-                let fragments = replaced.make_fragments(
-                    &self.absolutely_positioned_box.contents.style,
-                    Vec2 {
-                        inline: inline_size,
-                        block: block_size,
-                    },
-                );
-                crate::formatting_contexts::IndependentLayout {
-                    fragments,
-                    content_block_size: block_size,
-                }
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let style = &self.absolutely_positioned_box.contents.style;
+                let size = replaced_used_size.unwrap();
+                let fragments = replaced.make_fragments(style, size.clone());
+                (size, fragments)
             },
             Err(non_replaced) => {
+                // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+                // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+                let inline_size = inline_size.auto_is(|| {
+                    let available_size = match inline_anchor {
+                        Anchor::Start(start) => cbis - start - pb.inline_sum() - margin.inline_sum(),
+                        Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
+                    };
+                    self.absolutely_positioned_box
+                        .contents
+                        .content_sizes
+                        .shrink_to_fit(available_size)
+                });
+
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
                     block_size,
@@ -330,24 +346,28 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     "Mixed writing modes are not supported yet"
                 );
                 let dummy_tree_rank = 0;
-                non_replaced.layout(
+                let independent_layout = non_replaced.layout(
                     layout_context,
                     &containing_block_for_children,
                     dummy_tree_rank,
                     &mut absolutely_positioned_fragments,
-                )
+                );
+
+                let size = Vec2 {
+                    inline: inline_size,
+                    block: block_size.auto_is(|| independent_layout.content_block_size),
+                };
+                (size, independent_layout.fragments)
             },
         };
 
         let inline_start = match inline_anchor {
             Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-            Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - inline_size,
+            Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - size.inline,
         };
-
-        let block_size = block_size.auto_is(|| independent_layout.content_block_size);
         let block_start = match block_anchor {
             Anchor::Start(start) => start + pb.block_start + margin.block_start,
-            Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - block_size,
+            Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
         };
 
         let content_rect = Rect {
@@ -355,16 +375,13 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 inline: inline_start,
                 block: block_start,
             },
-            size: Vec2 {
-                inline: inline_size,
-                block: block_size,
-            },
+            size,
         };
 
         AbsolutelyPositionedFragment::in_positioned_containing_block(
             layout_context,
             &absolutely_positioned_fragments,
-            &mut independent_layout.fragments,
+            &mut fragments,
             &content_rect.size,
             &padding,
             style,
@@ -372,7 +389,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
 
         Fragment::Box(BoxFragment {
             style: style.clone(),
-            children: independent_layout.fragments,
+            children: fragments,
             content_rect,
             padding,
             border,
