@@ -70,14 +70,15 @@ struct PartialInlineBoxFragment<'box_tree> {
 struct InlineFormattingContextState<'box_tree, 'a> {
     absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
     containing_block: &'a ContainingBlock<'a>,
-    line_boxes: LinesBoxes,
+    lines: Lines,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
-struct LinesBoxes {
-    boxes: Vec<Fragment>,
+struct Lines {
+    // One anonymous fragment per line
+    fragments: Vec<Fragment>,
     next_line_block_position: Length,
 }
 
@@ -201,8 +202,8 @@ impl InlineFormattingContext {
             absolutely_positioned_fragments,
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
-            line_boxes: LinesBoxes {
-                boxes: Vec::new(),
+            lines: Lines {
+                fragments: Vec::new(),
                 next_line_block_position: Length::zero(),
             },
             inline_position: Length::zero(),
@@ -233,7 +234,7 @@ impl InlineFormattingContext {
                                         DisplayOutside::Inline => ifc.inline_position,
                                         DisplayOutside::Block => Length::zero(),
                                     },
-                                    block: ifc.line_boxes.next_line_block_position,
+                                    block: ifc.lines.next_line_block_position,
                                 },
                                 Display::Contents => {
                                     panic!("display:contents does not generate an abspos box")
@@ -259,11 +260,11 @@ impl InlineFormattingContext {
                 );
                 ifc.current_nesting_level = partial.parent_nesting_level
             } else {
-                ifc.line_boxes
+                ifc.lines
                     .finish_line(&mut ifc.current_nesting_level, containing_block);
                 return FlowLayout {
-                    fragments: ifc.line_boxes.boxes,
-                    content_block_size: ifc.line_boxes.next_line_block_position,
+                    fragments: ifc.lines.fragments,
+                    content_block_size: ifc.lines.next_line_block_position,
                     collapsible_margins_in_children: CollapsedBlockMargins::zero(),
                 };
             }
@@ -271,7 +272,7 @@ impl InlineFormattingContext {
     }
 }
 
-impl LinesBoxes {
+impl Lines {
     fn finish_line(
         &mut self,
         top_nesting_level: &mut InlineNestingLevelState,
@@ -289,7 +290,7 @@ impl LinesBoxes {
             ),
         };
         self.next_line_block_position += size.block;
-        self.boxes.push(Fragment::Anonymous(AnonymousFragment {
+        self.fragments.push(Fragment::Anonymous(AnonymousFragment {
             children: std::mem::take(&mut top_nesting_level.fragments_so_far),
             rect: Rect { start_corner, size },
             mode: containing_block.style.writing_mode,
@@ -638,8 +639,7 @@ impl TextRun {
                     partial.parent_nesting_level.inline_start = Length::zero();
                     nesting_level = &mut partial.parent_nesting_level;
                 }
-                ifc.line_boxes
-                    .finish_line(nesting_level, ifc.containing_block);
+                ifc.lines.finish_line(nesting_level, ifc.containing_block);
                 ifc.inline_position = Length::zero();
             }
         }
