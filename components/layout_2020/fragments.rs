@@ -56,7 +56,7 @@ pub(crate) struct AnonymousFragment {
 
 pub(crate) struct TextFragment {
     pub parent_style: ServoArc<ComputedValues>,
-    pub content_rect: Rect<Length>,
+    pub rect: Rect<Length>,
     pub ascent: Length,
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
@@ -64,7 +64,7 @@ pub(crate) struct TextFragment {
 
 pub(crate) struct ImageFragment {
     pub style: ServoArc<ComputedValues>,
-    pub content_rect: Rect<Length>,
+    pub rect: Rect<Length>,
     pub image_key: ImageKey,
 }
 

@@ -53,7 +53,7 @@ impl Fragment {
             Fragment::Text(t) => {
                 is_contentful.0 = true;
                 let rect = t
-                    .content_rect
+                    .rect
                     .to_physical(t.parent_style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
                 let mut baseline_origin = rect.top_left.clone();
@@ -79,7 +79,7 @@ impl Fragment {
                 use style::computed_values::image_rendering::T as ImageRendering;
                 is_contentful.0 = true;
                 let rect = i
-                    .content_rect
+                    .rect
                     .to_physical(i.style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
                 let common = CommonItemProperties {

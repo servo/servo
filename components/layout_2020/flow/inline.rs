@@ -601,7 +601,7 @@ impl TextRun {
                 LineHeight::Number(n) => font_size * n.0,
                 LineHeight::Length(l) => l.0,
             };
-            let content_rect = Rect {
+            let rect = Rect {
                 start_corner: Vec2 {
                     block: Length::zero(),
                     inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
@@ -619,7 +619,7 @@ impl TextRun {
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
                     parent_style: self.parent_style.clone(),
-                    content_rect,
+                    rect,
                     ascent: font_ascent.into(),
                     font_key,
                     glyphs,
