@@ -31,10 +31,7 @@ pub(crate) struct AbsolutelyPositionedFragment<'box_> {
     pub(crate) tree_rank: usize,
 
     pub(crate) inline_start: AbsoluteBoxOffsets<LengthPercentage>,
-    inline_size: LengthPercentageOrAuto,
-
     pub(crate) block_start: AbsoluteBoxOffsets<LengthPercentage>,
-    block_size: LengthPercentageOrAuto,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -79,10 +76,6 @@ impl AbsolutelyPositionedBox {
     ) -> AbsolutelyPositionedFragment {
         let style = &self.contents.style;
         let box_offsets = style.box_offsets();
-        let box_size = style.box_size();
-
-        let inline_size = box_size.inline;
-        let block_size = box_size.block;
 
         fn absolute_box_offsets(
             initial_static_start: Length,
@@ -114,9 +107,7 @@ impl AbsolutelyPositionedBox {
             absolutely_positioned_box: self,
             tree_rank,
             inline_start,
-            inline_size,
             block_start,
-            block_size,
         }
     }
 }
@@ -162,6 +153,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
 
+        let box_size = style.box_size();
         let padding = style.padding().percentages_relative_to(cbis);
         let border = style.border_width();
         let computed_margin = style.margin().percentages_relative_to(cbis);
@@ -260,7 +252,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 }
             },
             self.inline_start,
-            self.inline_size,
+            box_size.inline,
         );
 
         let (block_anchor, block_size, margin_block_start, margin_block_end) = solve_axis(
@@ -270,7 +262,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin.block_end,
             |margins| (margins / 2., margins / 2.),
             self.block_start,
-            self.block_size,
+            box_size.block,
         );
 
         let margin = Sides {
