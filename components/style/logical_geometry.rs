@@ -206,6 +206,20 @@ impl WritingMode {
         self.intersects(WritingMode::UPRIGHT)
     }
 
+    /// https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+    ///
+    /// | Return  | line-left is… | line-right is… |
+    /// |---------|---------------|----------------|
+    /// | `true`  | inline-start  | inline-end     |
+    /// | `false` | inline-end    | inline-start   |
+    #[inline]
+    pub fn line_left_is_inline_start(&self) -> bool {
+        // https://drafts.csswg.org/css-writing-modes/#inline-start
+        // “For boxes with a used direction value of ltr, this means the line-left side.
+        //  For boxes with a used direction value of rtl, this means the line-right side.”
+        self.is_bidi_ltr()
+    }
+
     #[inline]
     pub fn inline_start_physical_side(&self) -> PhysicalSide {
         match (self.is_vertical(), self.is_inline_tb(), self.is_bidi_ltr()) {

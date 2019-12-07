@@ -18,6 +18,7 @@ use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::specified::text::TextAlignKeyword;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -260,8 +261,11 @@ impl InlineFormattingContext {
                 );
                 ifc.current_nesting_level = partial.parent_nesting_level
             } else {
-                ifc.lines
-                    .finish_line(&mut ifc.current_nesting_level, containing_block);
+                ifc.lines.finish_line(
+                    &mut ifc.current_nesting_level,
+                    containing_block,
+                    ifc.inline_position,
+                );
                 return FlowLayout {
                     fragments: ifc.lines.fragments,
                     content_block_size: ifc.lines.next_line_block_position,
@@ -277,21 +281,62 @@ impl Lines {
         &mut self,
         top_nesting_level: &mut InlineNestingLevelState,
         containing_block: &ContainingBlock,
+        line_content_inline_size: Length,
     ) {
+        let mut line_contents = std::mem::take(&mut top_nesting_level.fragments_so_far);
+        let line_block_size = std::mem::replace(
+            &mut top_nesting_level.max_block_size_of_fragments_so_far,
+            Length::zero(),
+        );
+        enum TextAlign {
+            Start,
+            Center,
+            End,
+        }
+        let line_left_is_inline_start = containing_block
+            .style
+            .writing_mode
+            .line_left_is_inline_start();
+        let text_align = match containing_block.style.clone_text_align() {
+            TextAlignKeyword::Start => TextAlign::Start,
+            TextAlignKeyword::Center => TextAlign::Center,
+            TextAlignKeyword::End => TextAlign::End,
+            TextAlignKeyword::Left => {
+                if line_left_is_inline_start {
+                    TextAlign::Start
+                } else {
+                    TextAlign::End
+                }
+            },
+            TextAlignKeyword::Right => {
+                if line_left_is_inline_start {
+                    TextAlign::End
+                } else {
+                    TextAlign::Start
+                }
+            },
+        };
+        let move_by = match text_align {
+            TextAlign::Start => Length::zero(),
+            TextAlign::Center => (containing_block.inline_size - line_content_inline_size) / 2.,
+            TextAlign::End => containing_block.inline_size - line_content_inline_size,
+        };
+        if move_by > Length::zero() {
+            for fragment in &mut line_contents {
+                fragment.position_mut().inline += move_by;
+            }
+        }
         let start_corner = Vec2 {
             inline: Length::zero(),
             block: self.next_line_block_position,
         };
         let size = Vec2 {
             inline: containing_block.inline_size,
-            block: std::mem::replace(
-                &mut top_nesting_level.max_block_size_of_fragments_so_far,
-                Length::zero(),
-            ),
+            block: line_block_size,
         };
         self.next_line_block_position += size.block;
         self.fragments.push(Fragment::Anonymous(AnonymousFragment {
-            children: std::mem::take(&mut top_nesting_level.fragments_so_far),
+            children: line_contents,
             rect: Rect { start_corner, size },
             mode: containing_block.style.writing_mode,
         }))
@@ -639,7 +684,8 @@ impl TextRun {
                     partial.parent_nesting_level.inline_start = Length::zero();
                     nesting_level = &mut partial.parent_nesting_level;
                 }
-                ifc.lines.finish_line(nesting_level, ifc.containing_block);
+                ifc.lines
+                    .finish_line(nesting_level, ifc.containing_block, ifc.inline_position);
                 ifc.inline_position = Length::zero();
             }
         }

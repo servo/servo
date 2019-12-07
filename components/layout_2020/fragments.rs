@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::flow_relative::{Rect, Sides};
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
@@ -66,6 +66,17 @@ pub(crate) struct ImageFragment {
     pub style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
     pub image_key: ImageKey,
+}
+
+impl Fragment {
+    pub fn position_mut(&mut self) -> &mut Vec2<Length> {
+        match self {
+            Fragment::Box(f) => &mut f.content_rect.start_corner,
+            Fragment::Anonymous(f) => &mut f.rect.start_corner,
+            Fragment::Text(f) => &mut f.rect.start_corner,
+            Fragment::Image(f) => &mut f.rect.start_corner,
+        }
+    }
 }
 
 impl AnonymousFragment {
