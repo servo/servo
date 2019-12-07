@@ -521,144 +521,20 @@ fn layout_in_flow_replaced_block_level<'a>(
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
+    let size = replaced.used_size(containing_block, style);
+
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);
     let border = style.border_width();
     let computed_margin = style.margin().percentages_relative_to(cbis);
     let pb = &padding + &border;
-    let mode = style.writing_mode;
-    // FIXME(nox): We shouldn't pretend we always have a fully known intrinsic size.
-    let intrinsic_size = replaced.intrinsic_size.size_to_flow_relative(mode);
-    // FIXME(nox): This can divide by zero.
-    let intrinsic_ratio = intrinsic_size.inline.px() / intrinsic_size.block.px();
-
-    let box_size = style.box_size().percentages_relative_to(containing_block);
-    let min_box_size = style
-        .min_box_size()
-        .percentages_relative_to(containing_block)
-        .auto_is(Length::zero);
-    let max_box_size = style
-        .max_box_size()
-        .percentages_relative_to(containing_block);
-
-    let clamp = |inline_size: Length, block_size: Length| {
-        (
-            inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline),
-            block_size.clamp_between_extremums(min_box_size.block, max_box_size.block),
-        )
-    };
-    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let (inline_size, block_size) = match (box_size.inline, box_size.block) {
-        (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::LengthPercentage(block)) => {
-            clamp(inline, block)
-        },
-        (LengthOrAuto::LengthPercentage(inline), LengthOrAuto::Auto) => {
-            clamp(inline, inline / intrinsic_ratio)
-        },
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(block)) => {
-            clamp(block * intrinsic_ratio, block)
-        },
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-            enum Violation {
-                None,
-                Below(Length),
-                Above(Length),
-            }
-            let violation = |size, min_size, mut max_size: Option<Length>| {
-                if let Some(max) = max_size.as_mut() {
-                    max.max_assign(min_size);
-                }
-                if size < min_size {
-                    return Violation::Below(min_size);
-                }
-                match max_size {
-                    Some(max_size) if size > max_size => Violation::Above(max_size),
-                    _ => Violation::None,
-                }
-            };
-            match (
-                violation(
-                    intrinsic_size.inline,
-                    min_box_size.inline,
-                    max_box_size.inline,
-                ),
-                violation(intrinsic_size.block, min_box_size.block, max_box_size.block),
-            ) {
-                // Row 1.
-                (Violation::None, Violation::None) => (intrinsic_size.inline, intrinsic_size.block),
-                // Row 2.
-                (Violation::Above(max_inline_size), Violation::None) => {
-                    let block_size = (max_inline_size / intrinsic_ratio).max(min_box_size.block);
-                    (max_inline_size, block_size)
-                },
-                // Row 3.
-                (Violation::Below(min_inline_size), Violation::None) => {
-                    let block_size =
-                        (min_inline_size / intrinsic_ratio).clamp_below_max(max_box_size.block);
-                    (min_inline_size, block_size)
-                },
-                // Row 4.
-                (Violation::None, Violation::Above(max_block_size)) => {
-                    let inline_size = (max_block_size * intrinsic_ratio).max(min_box_size.inline);
-                    (inline_size, max_block_size)
-                },
-                // Row 5.
-                (Violation::None, Violation::Below(min_block_size)) => {
-                    let inline_size =
-                        (min_block_size * intrinsic_ratio).clamp_below_max(max_box_size.inline);
-                    (inline_size, min_block_size)
-                },
-                // Rows 6-7.
-                (Violation::Above(max_inline_size), Violation::Above(max_block_size)) => {
-                    if max_inline_size.px() / intrinsic_size.inline.px() <=
-                        max_block_size.px() / intrinsic_size.block.px()
-                    {
-                        // Row 6.
-                        let block_size =
-                            (max_inline_size / intrinsic_ratio).max(min_box_size.block);
-                        (max_inline_size, block_size)
-                    } else {
-                        // Row 7.
-                        let inline_size =
-                            (max_block_size * intrinsic_ratio).max(min_box_size.inline);
-                        (inline_size, max_block_size)
-                    }
-                },
-                // Rows 8-9.
-                (Violation::Below(min_inline_size), Violation::Below(min_block_size)) => {
-                    if min_inline_size.px() / intrinsic_size.inline.px() <=
-                        min_block_size.px() / intrinsic_size.block.px()
-                    {
-                        // Row 8.
-                        let inline_size =
-                            (min_block_size * intrinsic_ratio).clamp_below_max(max_box_size.inline);
-                        (inline_size, min_block_size)
-                    } else {
-                        // Row 9.
-                        let block_size =
-                            (min_inline_size / intrinsic_ratio).clamp_below_max(max_box_size.block);
-                        (min_inline_size, block_size)
-                    }
-                },
-                // Row 10.
-                (Violation::Below(min_inline_size), Violation::Above(max_block_size)) => {
-                    (min_inline_size, max_block_size)
-                },
-                // Row 11.
-                (Violation::Above(max_inline_size), Violation::Below(min_block_size)) => {
-                    (max_inline_size, min_block_size)
-                },
-            }
-        },
-    };
 
     let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
         containing_block,
         pb.inline_sum(),
         computed_margin.inline_start,
         computed_margin.inline_end,
-        inline_size,
+        size.inline,
     );
     let margin = Sides {
         inline_start: margin_inline_start,
@@ -666,15 +542,11 @@ fn layout_in_flow_replaced_block_level<'a>(
         block_start: computed_margin.block_start.auto_is(Length::zero),
         block_end: computed_margin.block_end.auto_is(Length::zero),
     };
-    let size = Vec2 {
-        block: block_size,
-        inline: inline_size,
-    };
     let fragments = replaced.make_fragments(style, size.clone());
     let relative_adjustement = relative_adjustement(
         style,
-        inline_size,
-        LengthOrAuto::LengthPercentage(block_size),
+        size.inline,
+        LengthOrAuto::LengthPercentage(size.block),
     );
     let content_rect = Rect {
         start_corner: Vec2 {
