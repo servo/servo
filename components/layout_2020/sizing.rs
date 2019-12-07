@@ -107,17 +107,37 @@ impl BoxContentSizes {
         &self,
         style: &ComputedValues,
     ) -> (ContentSizes, Percentage) {
-        // FIXME: account for 'min-width', 'max-width', 'box-sizing'
-
+        // FIXME: account for 'box-sizing'
         let inline_size = style.box_size().inline;
+        let min_inline_size = style
+            .min_box_size()
+            .inline
+            .percentage_relative_to(Length::zero())
+            .auto_is(Length::zero);
+        let max_inline_size = style
+            .max_box_size()
+            .inline
+            .to_option()
+            .and_then(|lp| lp.as_length());
+        let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
+
         // Percentages for 'width' are treated as 'auto'
         let inline_size = inline_size.map(|lp| lp.as_length());
         // The (inner) min/max-content are only used for 'auto'
         let mut outer = match inline_size.non_auto().flatten() {
-            None => self.expect_inline().clone(),
-            Some(length) => ContentSizes {
-                min_content: length,
-                max_content: length,
+            None => {
+                let inner = self.expect_inline().clone();
+                ContentSizes {
+                    min_content: clamp(inner.min_content),
+                    max_content: clamp(inner.max_content),
+                }
+            },
+            Some(length) => {
+                let length = clamp(length);
+                ContentSizes {
+                    min_content: length,
+                    max_content: length,
+                }
             },
         };
 
