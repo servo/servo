@@ -151,7 +151,7 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-replace
-    fn Replace(&self, token: DOMString, new_token: DOMString) -> ErrorResult {
+    fn Replace(&self, token: DOMString, new_token: DOMString) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
             return Err(Error::Syntax);
@@ -164,6 +164,7 @@ impl DOMTokenListMethods for DOMTokenList {
         let token = Atom::from(token);
         let new_token = Atom::from(new_token);
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
+        let mut result = false;
         if let Some(pos) = atoms.iter().position(|atom| *atom == token) {
             if !atoms.contains(&new_token) {
                 atoms[pos] = new_token;
@@ -173,8 +174,9 @@ impl DOMTokenListMethods for DOMTokenList {
             // Step 5.
             self.element
                 .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+            result = true;
         }
-        Ok(())
+        Ok(result)
     }
 
     // check-tidy: no specs after this line
