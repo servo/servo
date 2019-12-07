@@ -69,6 +69,8 @@ use crate::dom::radionodelist::RadioNodeList;
 use std::collections::HashMap;
 use time::{now, Duration, Tm};
 
+// use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
@@ -334,10 +336,20 @@ impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // Step 1
+        #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
         enum SourcedNameSource {
             Id,
             Name,
             Past(Duration),
+        }
+
+        impl SourcedNameSource {
+            fn is_past(&self) -> bool {
+                match self {
+                    SourcedNameSource::Past(..) => true,
+                    _ => false,
+                }
+            }
         }
 
         struct SourcedName {
@@ -403,15 +415,30 @@ impl HTMLFormElementMethods for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(now()-val.1), // calculate difference now()-val.1 to find age
+                source: SourcedNameSource::Past(now() - val.1), // calculate difference now()-val.1 to find age
             };
             sourcedNamesVec.push(entry);
         }
 
         // Step 5
-        // TODO need to sort as per spec. This is a partially implemented function.
-        // Kindly guide us on how to refine this function further.
-        sourcedNamesVec.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+        // TODO need to sort as per spec. Kindly guide us how to sort by tree order of the element entry of each tuple.
+        // Following gives error as CompareDocumentPosition return u16 and not Ordering.
+        // sourcedNamesVec.sort_by(|a, b|
+        //     a.element.upcast::<Node>().CompareDocumentPosition(b.element.upcast::<Node>())
+        // );
+
+        // The remaining part where sorting is to be done by putting entries whose source is id first,
+        // then entries whose source is name, and finally entries whose source is past,
+        // and sorting entries with the same element and source by their age, oldest first.
+        // can be done as follows:
+
+        sourcedNamesVec.sort_by(|a, b| {
+            if a.source.is_past() && b.source.is_past() {
+                b.source.cmp(&a.source)
+            } else {
+                a.source.cmp(&b.source)
+            }
+        });
 
         // Step 6
         sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
