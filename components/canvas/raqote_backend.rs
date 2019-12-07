@@ -243,15 +243,19 @@ impl GenericDrawTarget for raqote::DrawTarget {
         dt.get_data_mut().copy_from_slice(s);
         raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
+    // TODO(pylbrecht)
+    // unused code?
     fn create_gradient_stops(
         &self,
         gradient_stops: Vec<GradientStop>,
         _extend_mode: ExtendMode,
     ) -> GradientStops {
-        let stops = gradient_stops
+        let mut stops = gradient_stops
             .into_iter()
             .map(|item| item.as_raqote().clone())
-            .collect();
+            .collect::<Vec<raqote::GradientStop>>();
+        // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
+        stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
         GradientStops::Raqote(stops)
     }
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
@@ -730,7 +734,10 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                 rgba.blue,
             ))),
             LinearGradient(style) => {
-                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                let mut stops: Vec<raqote::GradientStop> =
+                    style.stops.into_iter().map(|s| s.to_raqote()).collect();
+                // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
+                stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
                 let mut gradient = raqote::Gradient { stops };
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let end = Point2D::new(style.x1 as f32, style.y1 as f32);
