@@ -363,7 +363,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
                         source: SourcedNameSource::Id,
                     };
                     sourcedNamesVec.push(entry);
-                } else if child.has_attribute(&local_name!("name")) {
+                }
+                if child.has_attribute(&local_name!("name")) {
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("name")),
                         element: DomRoot::from_ref(&*child),
@@ -384,7 +385,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
                         source: SourcedNameSource::Id,
                     };
                     sourcedNamesVec.push(entry);
-                } else if child.has_attribute(&local_name!("name")) {
+                }
+                if child.has_attribute(&local_name!("name")) {
                     let entry = SourcedName {
                         name: child.get_string_attribute(&local_name!("name")),
                         element: DomRoot::from_ref(&*child),
@@ -394,6 +396,28 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 }
             }
         }
+
+        // Step 4
+        let past_names_map = self.past_names_map.borrow();
+        for (key, val) in past_names_map.iter() {
+            let entry = SourcedName {
+                name: key.clone(),
+                element: DomRoot::from_ref(&*val.0),
+                source: SourcedNameSource::Past(now()-val.1), // calculate difference now()-val.1 to find age
+            };
+            sourcedNamesVec.push(entry);
+        }
+
+        // Step 5
+        // TODO need to sort as per spec. This is a partially implemented function.
+        // Kindly guide us on how to refine this function further.
+        sourcedNamesVec.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+
+        // Step 6
+        sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
+
+        // Step 7
+        // Q1. Unable to clearly understand. It seems to contradict with step 4.
 
         // Step 8
         let mut namesVec: Vec<DOMString> = Vec::new();
