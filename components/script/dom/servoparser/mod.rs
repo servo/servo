@@ -774,6 +774,8 @@ impl FetchResponseListener for ParserContext {
 
         self.parser = Some(Trusted::new(&*parser));
 
+        self.submit_resource_timing();
+
         match content_type {
             Some(ref mime) if mime.type_() == mime::IMAGE => {
                 self.is_synthesized_document = true;
