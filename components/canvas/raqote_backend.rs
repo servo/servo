@@ -776,6 +776,11 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
             },
             Surface(ref surface) => {
                 let data = &surface.surface_data[..];
+                let extend = if surface.repeat_x || surface.repeat_y {
+                    raqote::ExtendMode::Repeat
+                } else {
+                    raqote::ExtendMode::Pad
+                };
                 Some(raqote::Source::Image(
                     raqote::Image {
                         data: unsafe {
@@ -784,7 +789,7 @@ impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
                         width: surface.surface_size.width as i32,
                         height: surface.surface_size.height as i32,
                     },
-                    raqote::ExtendMode::Repeat, // TODO: repeat-x, repeat-y ?
+                    extend,
                     raqote::FilterMode::Bilinear,
                     raqote::Transform::identity(),
                 ))
