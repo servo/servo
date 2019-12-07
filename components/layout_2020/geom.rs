@@ -4,7 +4,8 @@
 
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
-use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode};
+use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection};
+use style::logical_geometry::{PhysicalCorner, WritingMode};
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;

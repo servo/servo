@@ -324,11 +324,15 @@ impl BlockLevelBox {
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 absolutely_positioned_fragments.push(box_.layout(Vec2::zero(), tree_rank));
-                Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
+                Fragment::Anonymous(AnonymousFragment::no_op(
+                    containing_block.style.writing_mode,
+                ))
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // TODO
-                Fragment::Anonymous(AnonymousFragment::no_op(containing_block.mode))
+                Fragment::Anonymous(AnonymousFragment::no_op(
+                    containing_block.style.writing_mode,
+                ))
             },
         }
     }
@@ -413,11 +417,11 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     let containing_block_for_children = ContainingBlock {
         inline_size,
         block_size,
-        mode: style.writing_mode,
+        style,
     };
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
     assert_eq!(
-        containing_block.mode, containing_block_for_children.mode,
+        containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
         "Mixed writing modes are not supported yet"
     );
 
@@ -494,7 +498,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             &mut flow_layout.fragments,
             &content_rect.size,
             &padding,
-            containing_block_for_children.mode,
+            style,
         )
     }
     BoxFragment {

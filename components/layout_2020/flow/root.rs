@@ -20,7 +20,7 @@ use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
-use style::logical_geometry::WritingMode;
+use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
@@ -98,6 +98,7 @@ impl BoxTreeRoot {
         layout_context: &LayoutContext,
         viewport: geom::Size<CSSPixel>,
     ) -> FragmentTreeRoot {
+        let style = ComputedValues::initial_values();
         let initial_containing_block_size = Vec2 {
             inline: Length::new(viewport.width),
             block: Length::new(viewport.height),
@@ -108,7 +109,7 @@ impl BoxTreeRoot {
             block_size: LengthOrAuto::LengthPercentage(initial_containing_block_size.block),
             // FIXME: use the document’s mode:
             // https://drafts.csswg.org/css-writing-modes/#principal-flow
-            mode: WritingMode::empty(),
+            style,
         };
         let dummy_tree_rank = 0;
         let mut absolutely_positioned_fragments = vec![];
@@ -121,7 +122,7 @@ impl BoxTreeRoot {
 
         let initial_containing_block = DefiniteContainingBlock {
             size: initial_containing_block_size,
-            mode: initial_containing_block.mode,
+            style,
         };
         independent_layout.fragments.par_extend(
             absolutely_positioned_fragments

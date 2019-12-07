@@ -69,7 +69,7 @@ struct PartialInlineBoxFragment<'box_tree> {
 
 struct InlineFormattingContextState<'box_tree, 'a> {
     absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
-    containing_block: &'a ContainingBlock,
+    containing_block: &'a ContainingBlock<'a>,
     line_boxes: LinesBoxes,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
@@ -292,7 +292,7 @@ impl LinesBoxes {
         self.boxes.push(Fragment::Anonymous(AnonymousFragment {
             children: std::mem::take(&mut top_nesting_level.fragments_so_far),
             rect: Rect { start_corner, size },
-            mode: containing_block.mode,
+            mode: containing_block.style.writing_mode,
         }))
     }
 }
@@ -446,10 +446,11 @@ fn layout_atomic<'box_tree>(
             let containing_block_for_children = ContainingBlock {
                 inline_size,
                 block_size,
-                mode: atomic.style.writing_mode,
+                style: &atomic.style,
             };
             assert_eq!(
-                ifc.containing_block.mode, containing_block_for_children.mode,
+                ifc.containing_block.style.writing_mode,
+                containing_block_for_children.style.writing_mode,
                 "Mixed writing modes are not supported yet"
             );
             // FIXME is this correct?
