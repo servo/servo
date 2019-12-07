@@ -30,16 +30,25 @@ pub(crate) struct AbsolutelyPositionedFragment<'box_> {
     /// static positions when going up the tree.
     pub(crate) tree_rank: usize,
 
-    pub(crate) inline_start: AbsoluteBoxOffsets<LengthPercentage>,
-    pub(crate) block_start: AbsoluteBoxOffsets<LengthPercentage>,
+    inline_start: AbsoluteBoxOffsets,
+    block_start: AbsoluteBoxOffsets,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum AbsoluteBoxOffsets<NonStatic> {
-    StaticStart { start: Length },
-    Start { start: NonStatic },
-    End { end: NonStatic },
-    Both { start: NonStatic, end: NonStatic },
+pub(crate) enum AbsoluteBoxOffsets {
+    StaticStart {
+        start: Length,
+    },
+    Start {
+        start: LengthPercentage,
+    },
+    End {
+        end: LengthPercentage,
+    },
+    Both {
+        start: LengthPercentage,
+        end: LengthPercentage,
+    },
 }
 
 impl AbsolutelyPositionedBox {
@@ -81,7 +90,7 @@ impl AbsolutelyPositionedBox {
             initial_static_start: Length,
             start: LengthPercentageOrAuto,
             end: LengthPercentageOrAuto,
-        ) -> AbsoluteBoxOffsets<LengthPercentage> {
+        ) -> AbsoluteBoxOffsets {
             match (start.non_auto(), end.non_auto()) {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
                     start: initial_static_start,
@@ -170,7 +179,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin_start: LengthOrAuto,
             computed_margin_end: LengthOrAuto,
             solve_margins: impl FnOnce(Length) -> (Length, Length),
-            box_offsets: AbsoluteBoxOffsets<LengthPercentage>,
+            box_offsets: AbsoluteBoxOffsets,
             size: LengthPercentageOrAuto,
         ) -> (Anchor, LengthOrAuto, Length, Length) {
             let size = size.percentage_relative_to(containing_size);
