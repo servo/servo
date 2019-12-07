@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::ContainingBlock;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection};
 use style::logical_geometry::{PhysicalCorner, WritingMode};
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
+use style::values::generics::length::MaxSize;
 use style::Zero;
 use style_traits::CSSPixel;
 
@@ -147,6 +149,39 @@ impl flow_relative::Vec2<LengthOrAuto> {
         flow_relative::Vec2 {
             inline: self.inline.auto_is(&f),
             block: self.block.auto_is(&f),
+        }
+    }
+}
+
+impl flow_relative::Vec2<LengthPercentageOrAuto> {
+    pub fn percentages_relative_to(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> flow_relative::Vec2<LengthOrAuto> {
+        flow_relative::Vec2 {
+            inline: self
+                .inline
+                .percentage_relative_to(containing_block.inline_size),
+            block: self
+                .block
+                .maybe_percentage_relative_to(containing_block.block_size.non_auto()),
+        }
+    }
+}
+
+impl flow_relative::Vec2<MaxSize<LengthPercentage>> {
+    pub fn percentages_relative_to(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> flow_relative::Vec2<Option<Length>> {
+        flow_relative::Vec2 {
+            inline: self
+                .inline
+                .to_option()
+                .map(|lp| lp.percentage_relative_to(containing_block.inline_size)),
+            block: self.block.to_option().and_then(|olp| {
+                olp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
+            }),
         }
     }
 }

@@ -21,8 +21,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
-use style::values::generics::length::MaxSize;
+use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 
 mod construct;
@@ -365,10 +364,14 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     let pb = &padding + &border;
     let pb_inline_sum = pb.inline_sum();
 
-    let box_size = percent_resolved_box_size(style.box_size(), containing_block);
-    let max_box_size = percent_resolved_max_box_size(style.max_box_size(), containing_block);
-    let min_box_size =
-        percent_resolved_box_size(style.min_box_size(), containing_block).auto_is(Length::zero);
+    let box_size = style.box_size().percentages_relative_to(containing_block);
+    let max_box_size = style
+        .max_box_size()
+        .percentages_relative_to(containing_block);
+    let min_box_size = style
+        .min_box_size()
+        .percentages_relative_to(containing_block)
+        .auto_is(Length::zero);
 
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
     let solve_inline_margins = |inline_size| {
@@ -529,10 +532,14 @@ fn layout_in_flow_replaced_block_level<'a>(
     // FIXME(nox): This can divide by zero.
     let intrinsic_ratio = intrinsic_size.inline.px() / intrinsic_size.block.px();
 
-    let box_size = percent_resolved_box_size(style.box_size(), containing_block);
-    let min_box_size =
-        percent_resolved_box_size(style.min_box_size(), containing_block).auto_is(Length::zero);
-    let max_box_size = percent_resolved_max_box_size(style.max_box_size(), containing_block);
+    let box_size = style.box_size().percentages_relative_to(containing_block);
+    let min_box_size = style
+        .min_box_size()
+        .percentages_relative_to(containing_block)
+        .auto_is(Length::zero);
+    let max_box_size = style
+        .max_box_size()
+        .percentages_relative_to(containing_block);
 
     let clamp = |inline_size: Length, block_size: Length| {
         (
@@ -699,39 +706,5 @@ fn solve_inline_margins_for_in_flow_block_level(
         (LengthOrAuto::Auto, LengthOrAuto::Auto) => (inline_margins / 2., inline_margins / 2.),
         (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (inline_margins - end, end),
         (LengthOrAuto::LengthPercentage(start), _) => (start, inline_margins - start),
-    }
-}
-
-fn percent_resolved_box_size(
-    box_size: Vec2<LengthPercentageOrAuto>,
-    containing_block: &ContainingBlock,
-) -> Vec2<LengthOrAuto> {
-    Vec2 {
-        inline: box_size
-            .inline
-            .percentage_relative_to(containing_block.inline_size),
-        block: box_size
-            .block
-            .maybe_percentage_relative_to(containing_block.block_size.non_auto()),
-    }
-}
-
-fn percent_resolved_max_box_size(
-    max_box_size: Vec2<MaxSize<LengthPercentage>>,
-    containing_block: &ContainingBlock,
-) -> Vec2<Option<Length>> {
-    Vec2 {
-        inline: match max_box_size.inline {
-            MaxSize::LengthPercentage(max_inline_size) => {
-                Some(max_inline_size.percentage_relative_to(containing_block.inline_size))
-            },
-            MaxSize::None => None,
-        },
-        block: match max_box_size.block {
-            MaxSize::LengthPercentage(max_block_size) => {
-                max_block_size.maybe_percentage_relative_to(containing_block.block_size.non_auto())
-            },
-            MaxSize::None => None,
-        },
     }
 }
