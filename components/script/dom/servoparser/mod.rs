@@ -913,7 +913,7 @@ impl FetchResponseListener for ParserContext {
         document
             .global()
             .performance()
-            .queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 }
 
