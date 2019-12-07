@@ -30,8 +30,7 @@ pub(crate) struct AbsolutelyPositionedFragment<'box_> {
     /// static positions when going up the tree.
     pub(crate) tree_rank: usize,
 
-    inline_start: AbsoluteBoxOffsets,
-    block_start: AbsoluteBoxOffsets,
+    box_offsets: Vec2<AbsoluteBoxOffsets>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -83,9 +82,6 @@ impl AbsolutelyPositionedBox {
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> AbsolutelyPositionedFragment {
-        let style = &self.contents.style;
-        let box_offsets = style.box_offsets();
-
         fn absolute_box_offsets(
             initial_static_start: Length,
             start: LengthPercentageOrAuto,
@@ -101,22 +97,22 @@ impl AbsolutelyPositionedBox {
             }
         }
 
-        let inline_start = absolute_box_offsets(
-            initial_start_corner.inline,
-            box_offsets.inline_start,
-            box_offsets.inline_end,
-        );
-        let block_start = absolute_box_offsets(
-            initial_start_corner.block,
-            box_offsets.block_start,
-            box_offsets.block_end,
-        );
-
+        let box_offsets = self.contents.style.box_offsets();
         AbsolutelyPositionedFragment {
             absolutely_positioned_box: self,
             tree_rank,
-            inline_start,
-            block_start,
+            box_offsets: Vec2 {
+                inline: absolute_box_offsets(
+                    initial_start_corner.inline,
+                    box_offsets.inline_start,
+                    box_offsets.inline_end,
+                ),
+                block: absolute_box_offsets(
+                    initial_start_corner.block,
+                    box_offsets.block_start,
+                    box_offsets.block_end,
+                ),
+            },
         }
     }
 }
@@ -260,7 +256,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     (Length::zero(), margins)
                 }
             },
-            self.inline_start,
+            self.box_offsets.inline,
             box_size.inline,
         );
 
@@ -270,7 +266,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             computed_margin.block_start,
             computed_margin.block_end,
             |margins| (margins / 2., margins / 2.),
-            self.block_start,
+            self.box_offsets.block,
             box_size.block,
         );
 
@@ -400,11 +396,11 @@ pub(crate) fn adjust_static_positions(
 
         abspos_fragment.tree_rank = tree_rank_in_parent;
 
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.inline_start {
+        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.inline {
             *start += child_fragment_rect.start_corner.inline;
         }
 
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.block_start {
+        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.block {
             *start += child_fragment_rect.start_corner.block;
         }
     }
