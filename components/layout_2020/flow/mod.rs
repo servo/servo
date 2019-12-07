@@ -521,7 +521,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
-    let size = replaced.used_size(containing_block, style);
+    let size = replaced.used_size_as_if_inline_element(containing_block, style);
 
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);

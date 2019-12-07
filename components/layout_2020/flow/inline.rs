@@ -465,7 +465,7 @@ fn layout_atomic<'box_tree>(
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
-            let size = replaced.used_size(ifc.containing_block, &atomic.style);
+            let size = replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment {

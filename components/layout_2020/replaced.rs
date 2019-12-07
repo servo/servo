@@ -123,9 +123,12 @@ impl ReplacedContent {
         }
     }
 
-    // https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
-    // https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
-    pub fn used_size(
+    /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
+    /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+    ///
+    /// Also used in other cases, for example
+    /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
+    pub fn used_size_as_if_inline_element(
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
