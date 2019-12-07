@@ -657,14 +657,14 @@ impl CSSPixelLength {
 
     /// Return the containing pixel value.
     #[inline]
-    pub fn px(&self) -> CSSFloat {
+    pub fn px(self) -> CSSFloat {
         self.0
     }
 
     /// Return the length with app_unit i32 type.
     #[inline]
-    pub fn to_i32_au(&self) -> i32 {
-        Au::from(*self).0
+    pub fn to_i32_au(self) -> i32 {
+        Au::from(self).0
     }
 
     /// Return the absolute value of this length.
@@ -692,8 +692,28 @@ impl CSSPixelLength {
     }
 
     /// Sets `self` to the maximum between `self` and `other`.
+    #[inline]
     pub fn max_assign(&mut self, other: Self) {
         *self = self.max(other);
+    }
+
+    /// Clamp the value to a lower bound and an optional upper bound.
+    ///
+    /// Can be used for example with `min-width` and `max-width`.
+    #[inline]
+    pub fn clamp_between_extremums(self, min_size: Self, max_size: Option<Self>) -> Self {
+        self.clamp_below_max(max_size).max(min_size)
+    }
+
+    /// Clamp the value to an optional upper bound.
+    ///
+    /// Can be used for example with `max-width`.
+    #[inline]
+    pub fn clamp_below_max(self, max_size: Option<Self>) -> Self {
+        match max_size {
+            None => self,
+            Some(max_size) => self.min(max_size),
+        }
     }
 }
 

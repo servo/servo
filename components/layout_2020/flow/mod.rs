@@ -411,7 +411,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let mut block_size = box_size.block;
     if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
-        *block_size = clamp_between_extremums(*block_size, min_box_size.block, max_box_size.block);
+        *block_size = block_size.clamp_between_extremums(min_box_size.block, max_box_size.block);
     }
 
     let containing_block_for_children = ContainingBlock {
@@ -475,11 +475,9 @@ fn layout_in_flow_non_replaced_block_level<'a>(
                 .collapsed_through;
     let relative_adjustement = relative_adjustement(style, inline_size, block_size);
     let block_size = block_size.auto_is(|| {
-        clamp_between_extremums(
-            flow_layout.content_block_size,
-            min_box_size.block,
-            max_box_size.block,
-        )
+        flow_layout
+            .content_block_size
+            .clamp_between_extremums(min_box_size.block, max_box_size.block)
     });
     let content_rect = Rect {
         start_corner: Vec2 {
@@ -536,10 +534,10 @@ fn layout_in_flow_replaced_block_level<'a>(
         percent_resolved_box_size(style.min_box_size(), containing_block).auto_is(Length::zero);
     let max_box_size = percent_resolved_max_box_size(style.max_box_size(), containing_block);
 
-    let clamp = |inline_size, block_size| {
+    let clamp = |inline_size: Length, block_size: Length| {
         (
-            clamp_between_extremums(inline_size, min_box_size.inline, max_box_size.inline),
-            clamp_between_extremums(block_size, min_box_size.block, max_box_size.block),
+            inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline),
+            block_size.clamp_between_extremums(min_box_size.block, max_box_size.block),
         )
     };
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -590,7 +588,7 @@ fn layout_in_flow_replaced_block_level<'a>(
                 // Row 3.
                 (Violation::Below(min_inline_size), Violation::None) => {
                     let block_size =
-                        clamp_below_max(min_inline_size / intrinsic_ratio, max_box_size.block);
+                        (min_inline_size / intrinsic_ratio).clamp_below_max(max_box_size.block);
                     (min_inline_size, block_size)
                 },
                 // Row 4.
@@ -601,7 +599,7 @@ fn layout_in_flow_replaced_block_level<'a>(
                 // Row 5.
                 (Violation::None, Violation::Below(min_block_size)) => {
                     let inline_size =
-                        clamp_below_max(min_block_size * intrinsic_ratio, max_box_size.inline);
+                        (min_block_size * intrinsic_ratio).clamp_below_max(max_box_size.inline);
                     (inline_size, min_block_size)
                 },
                 // Rows 6-7.
@@ -627,12 +625,12 @@ fn layout_in_flow_replaced_block_level<'a>(
                     {
                         // Row 8.
                         let inline_size =
-                            clamp_below_max(min_block_size * intrinsic_ratio, max_box_size.inline);
+                            (min_block_size * intrinsic_ratio).clamp_below_max(max_box_size.inline);
                         (inline_size, min_block_size)
                     } else {
                         // Row 9.
                         let block_size =
-                            clamp_below_max(min_inline_size / intrinsic_ratio, max_box_size.block);
+                            (min_inline_size / intrinsic_ratio).clamp_below_max(max_box_size.block);
                         (min_inline_size, block_size)
                     }
                 },
@@ -702,14 +700,6 @@ fn solve_inline_margins_for_in_flow_block_level(
         (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (inline_margins - end, end),
         (LengthOrAuto::LengthPercentage(start), _) => (start, inline_margins - start),
     }
-}
-
-fn clamp_between_extremums(size: Length, min_size: Length, max_size: Option<Length>) -> Length {
-    clamp_below_max(size, max_size).max(min_size)
-}
-
-fn clamp_below_max(size: Length, max_size: Option<Length>) -> Length {
-    max_size.map_or(size, |max_size| size.min(max_size))
 }
 
 fn percent_resolved_box_size(
