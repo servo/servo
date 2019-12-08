@@ -78,16 +78,18 @@ impl GPUAdapterMethods for GPUAdapter {
     fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InCompartment) -> Rc<Promise> {
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
         let sender = response_async(&promise, self);
-        let desc = wgpu::DeviceDescriptor {
-            extensions: wgpu::Extensions {
+        let desc = wgpu::instance::DeviceDescriptor {
+            extensions: wgpu::instance::Extensions {
                 anisotropic_filtering: descriptor.extensions.anisotropicFiltering,
             },
-            limits: wgpu::Limits {
+            limits: wgpu::instance::Limits {
                 max_bind_groups: descriptor.limits.maxBindGroups,
             },
         };
         if let Some(window) = self.global().downcast::<Window>() {
-            let id = window.Navigator().create_device_id();
+            let id = window
+                .Navigator()
+                .create_device_id(self.adapter.0.backend());
             match window.webgpu_channel() {
                 Some(thread) => thread
                     .0

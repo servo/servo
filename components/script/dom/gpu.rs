@@ -117,11 +117,13 @@ impl GPUMethods for GPU {
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
-            Some(GPUPowerPreference::Low_power) => wgpu::PowerPreference::LowPower,
-            Some(GPUPowerPreference::High_performance) => wgpu::PowerPreference::HighPerformance,
-            None => wgpu::PowerPreference::Default,
+            Some(GPUPowerPreference::Low_power) => wgpu::instance::PowerPreference::LowPower,
+            Some(GPUPowerPreference::High_performance) => {
+                wgpu::instance::PowerPreference::HighPerformance
+            },
+            None => wgpu::instance::PowerPreference::Default,
         };
-        let id = self.global().as_window().Navigator().create_adapter_id();
+        let ids = self.global().as_window().Navigator().create_adapter_ids();
 
         match self.wgpu_channel() {
             Some(channel) => {
@@ -129,8 +131,8 @@ impl GPUMethods for GPU {
                     .0
                     .send(WebGPURequest::RequestAdapter(
                         sender,
-                        wgpu::RequestAdapterOptions { power_preference },
-                        id,
+                        wgpu::instance::RequestAdapterOptions { power_preference },
+                        ids,
                     ))
                     .unwrap();
             },
@@ -146,7 +148,7 @@ impl AsyncWGPUListener for GPU {
             WebGPUResponse::RequestAdapter(name, adapter) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
-                    DOMString::from(name),
+                    DOMString::from(format!("{} ({:?})", name, adapter.0.backend())),
                     Heap::default(),
                     adapter,
                 );

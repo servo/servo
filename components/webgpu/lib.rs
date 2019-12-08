@@ -7,17 +7,17 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 #[macro_use]
-pub extern crate wgpu_native as wgpu;
+pub extern crate wgpu_core as wgpu;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_config::pref;
-use wgpu::{adapter_get_info, adapter_request_device};
+use smallvec::SmallVec;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
     RequestAdapter(String, WebGPUAdapter),
-    RequestDevice(WebGPUDevice, wgpu::DeviceDescriptor),
+    RequestDevice(WebGPUDevice, wgpu::instance::DeviceDescriptor),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -26,14 +26,14 @@ pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 pub enum WebGPURequest {
     RequestAdapter(
         IpcSender<WebGPUResponseResult>,
-        wgpu::RequestAdapterOptions,
-        wgpu::AdapterId,
+        wgpu::instance::RequestAdapterOptions,
+        SmallVec<[wgpu::id::AdapterId; 4]>,
     ),
     RequestDevice(
         IpcSender<WebGPUResponseResult>,
         WebGPUAdapter,
-        wgpu::DeviceDescriptor,
-        wgpu::DeviceId,
+        wgpu::instance::DeviceDescriptor,
+        wgpu::id::DeviceId,
     ),
     Exit(IpcSender<()>),
 }
@@ -78,8 +78,9 @@ impl WebGPU {
 
 struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
-    global: wgpu::Global,
+    global: wgpu::hub::Global<()>,
     adapters: Vec<WebGPUAdapter>,
+    devices: Vec<WebGPUDevice>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
 }
@@ -88,8 +89,9 @@ impl WGPU {
     fn new(receiver: IpcReceiver<WebGPURequest>) -> Self {
         WGPU {
             receiver,
-            global: wgpu::Global::new("webgpu-native"),
+            global: wgpu::hub::Global::new("wgpu-core"),
             adapters: Vec::new(),
+            devices: Vec::new(),
             _invalid_adapters: Vec::new(),
         }
     }
@@ -101,8 +103,11 @@ impl WGPU {
     fn run(mut self) {
         while let Ok(msg) = self.receiver.recv() {
             match msg {
-                WebGPURequest::RequestAdapter(sender, options, id) => {
-                    let adapter_id = match wgpu::request_adapter(&self.global, &options, &[id]) {
+                WebGPURequest::RequestAdapter(sender, options, ids) => {
+                    let adapter_id = match self.global.pick_adapter(
+                        &options,
+                        wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
+                    ) {
                         Some(id) => id,
                         None => {
                             if let Err(e) =
@@ -118,8 +123,8 @@ impl WGPU {
                     };
                     let adapter = WebGPUAdapter(adapter_id);
                     self.adapters.push(adapter);
-                    let info =
-                        gfx_select!(adapter_id => adapter_get_info(&self.global, adapter_id));
+                    let global = &self.global;
+                    let info = gfx_select!(adapter_id => global.adapter_get_info(adapter_id));
                     if let Err(e) =
                         sender.send(Ok(WebGPUResponse::RequestAdapter(info.name, adapter)))
                     {
@@ -130,8 +135,14 @@ impl WGPU {
                     }
                 },
                 WebGPURequest::RequestDevice(sender, adapter, descriptor, id) => {
-                    let _output = gfx_select!(id => adapter_request_device(&self.global, adapter.0, &descriptor, id));
+                    let global = &self.global;
+                    let id = gfx_select!(id => global.adapter_request_device(
+                        adapter.0,
+                        &descriptor,
+                        id
+                    ));
                     let device = WebGPUDevice(id);
+                    self.devices.push(device);
                     if let Err(e) =
                         sender.send(Ok(WebGPUResponse::RequestDevice(device, descriptor)))
                     {
@@ -168,5 +179,5 @@ macro_rules! webgpu_resource {
     };
 }
 
-webgpu_resource!(WebGPUAdapter, wgpu::AdapterId);
-webgpu_resource!(WebGPUDevice, wgpu::DeviceId);
+webgpu_resource!(WebGPUAdapter, wgpu::id::AdapterId);
+webgpu_resource!(WebGPUDevice, wgpu::id::DeviceId);
