@@ -454,10 +454,11 @@ impl ToCss for Display {
     where
         W: fmt::Write,
     {
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         debug_assert_ne!(
             self.inside(),
             DisplayInside::Flow,
-            "`flow` never appears in `display` computed value"
+            "`flow` fears in `display` computed value"
         );
         let outside = self.outside();
         let inside = match self.inside() {
