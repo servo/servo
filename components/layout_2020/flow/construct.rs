@@ -393,7 +393,7 @@ where
                     style.clone(),
                     display_inside,
                     contents,
-                    ContentSizesRequest::inline_if(style.inline_size_is_auto()),
+                    ContentSizesRequest::inline_if(!style.inline_size_is_length()),
                 ),
             ))
         };
@@ -590,7 +590,7 @@ where
                     &style,
                     ContentSizesRequest::inline_if(
                         max_assign_in_flow_outer_content_sizes_to.is_some() &&
-                            style.inline_size_is_auto(),
+                            !style.inline_size_is_length(),
                     ),
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
@@ -607,7 +607,7 @@ where
             } => {
                 let content_sizes = ContentSizesRequest::inline_if(
                     max_assign_in_flow_outer_content_sizes_to.is_some() &&
-                        style.inline_size_is_auto(),
+                        !style.inline_size_is_length(),
                 );
                 let contents = IndependentFormattingContext::construct(
                     context,

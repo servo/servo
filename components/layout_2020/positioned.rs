@@ -60,7 +60,7 @@ impl AbsolutelyPositionedBox {
         // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
         let content_sizes = ContentSizesRequest::inline_if(
             // If inline-size is non-auto, that value is used without shrink-to-fit
-            style.inline_size_is_auto() &&
+            !style.inline_size_is_length() &&
             // If it is, then the only case where shrink-to-fit is *not* used is
             // if both offsets are non-auto, leaving inline-size as the only variable
             // in the constraint equation.
