@@ -208,7 +208,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             padding_border_sum: Length,
             computed_margin_start: LengthOrAuto,
             computed_margin_end: LengthOrAuto,
-            solve_margins: impl FnOnce(Length) -> (Length, Length),
+            avoid_negative_margin_start: bool,
             box_offsets: AbsoluteBoxOffsets,
             size: LengthOrAuto,
         ) -> (Anchor, LengthOrAuto, Length, Length) {
@@ -243,9 +243,13 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                         let margins = containing_size - start - end - padding_border_sum - s;
                         match (computed_margin_start, computed_margin_end) {
                             (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-                                let (s, e) = solve_margins(margins);
-                                margin_start = s;
-                                margin_end = e;
+                                if avoid_negative_margin_start && margins < Length::zero() {
+                                    margin_start = Length::zero();
+                                    margin_end = margins;
+                                } else {
+                                    margin_start = margins / 2.;
+                                    margin_end = margins / 2.;
+                                }
                             },
                             (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
                                 margin_start = margins - end;
@@ -289,13 +293,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             pb.inline_sum(),
             computed_margin.inline_start,
             computed_margin.inline_end,
-            |margins| {
-                if margins.px() >= 0. {
-                    (margins / 2., margins / 2.)
-                } else {
-                    (Length::zero(), margins)
-                }
-            },
+            /* avoid_negative_margin_start */ true,
             self.box_offsets.inline,
             size.inline,
         );
@@ -305,7 +303,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             pb.block_sum(),
             computed_margin.block_start,
             computed_margin.block_end,
-            |margins| (margins / 2., margins / 2.),
+            /* avoid_negative_margin_start */ false,
             self.box_offsets.block,
             size.block,
         );
