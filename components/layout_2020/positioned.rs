@@ -186,7 +186,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         let computed_margin = style.margin().percentages_relative_to(cbis);
         let pb = &padding + &border;
 
-        let (inline_anchor, inline_size, margin_inline_start, margin_inline_end) = solve_axis(
+        let inline_axis = solve_axis(
             cbis,
             pb.inline_sum(),
             computed_margin.inline_start,
@@ -196,7 +196,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             size.inline,
         );
 
-        let (block_anchor, block_size, margin_block_start, margin_block_end) = solve_axis(
+        let block_axis = solve_axis(
             cbis,
             pb.block_sum(),
             computed_margin.block_start,
@@ -207,10 +207,10 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         );
 
         let margin = Sides {
-            inline_start: margin_inline_start,
-            inline_end: margin_inline_end,
-            block_start: margin_block_start,
-            block_end: margin_block_end,
+            inline_start: inline_axis.margin_start,
+            inline_end: inline_axis.margin_end,
+            block_start: block_axis.margin_start,
+            block_end: block_axis.margin_end,
         };
 
         let mut absolutely_positioned_fragments = Vec::new();
@@ -226,8 +226,8 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             Err(non_replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                let inline_size = inline_size.auto_is(|| {
-                    let available_size = match inline_anchor {
+                let inline_size = inline_axis.size.auto_is(|| {
+                    let available_size = match inline_axis.anchor {
                         Anchor::Start(start) => {
                             cbis - start - pb.inline_sum() - margin.inline_sum()
                         },
@@ -241,7 +241,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
 
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
-                    block_size,
+                    block_size: block_axis.size,
                     style,
                 };
                 // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -260,17 +260,19 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
 
                 let size = Vec2 {
                     inline: inline_size,
-                    block: block_size.auto_is(|| independent_layout.content_block_size),
+                    block: block_axis
+                        .size
+                        .auto_is(|| independent_layout.content_block_size),
                 };
                 (size, independent_layout.fragments)
             },
         };
 
-        let inline_start = match inline_anchor {
+        let inline_start = match inline_axis.anchor {
             Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
             Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - size.inline,
         };
-        let block_start = match block_anchor {
+        let block_start = match block_axis.anchor {
             Anchor::Start(start) => start + pb.block_start + margin.block_start,
             Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
         };
@@ -309,6 +311,13 @@ enum Anchor {
     End(Length),
 }
 
+struct AxisResult {
+    anchor: Anchor,
+    size: LengthOrAuto,
+    margin_start: Length,
+    margin_end: Length,
+}
+
 /// This unifies some of the parts in common in:
 ///
 /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
@@ -328,26 +337,26 @@ fn solve_axis(
     avoid_negative_margin_start: bool,
     box_offsets: AbsoluteBoxOffsets,
     size: LengthOrAuto,
-) -> (Anchor, LengthOrAuto, Length, Length) {
+) -> AxisResult {
     match box_offsets {
-        AbsoluteBoxOffsets::StaticStart { start } => (
-            Anchor::Start(start),
+        AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
+            anchor: Anchor::Start(start),
             size,
-            computed_margin_start.auto_is(Length::zero),
-            computed_margin_end.auto_is(Length::zero),
-        ),
-        AbsoluteBoxOffsets::Start { start } => (
-            Anchor::Start(start.percentage_relative_to(containing_size)),
+            margin_start: computed_margin_start.auto_is(Length::zero),
+            margin_end: computed_margin_end.auto_is(Length::zero),
+        },
+        AbsoluteBoxOffsets::Start { start } => AxisResult {
+            anchor: Anchor::Start(start.percentage_relative_to(containing_size)),
             size,
-            computed_margin_start.auto_is(Length::zero),
-            computed_margin_end.auto_is(Length::zero),
-        ),
-        AbsoluteBoxOffsets::End { end } => (
-            Anchor::End(end.percentage_relative_to(containing_size)),
+            margin_start: computed_margin_start.auto_is(Length::zero),
+            margin_end: computed_margin_end.auto_is(Length::zero),
+        },
+        AbsoluteBoxOffsets::End { end } => AxisResult {
+            anchor: Anchor::End(end.percentage_relative_to(containing_size)),
             size,
-            computed_margin_start.auto_is(Length::zero),
-            computed_margin_end.auto_is(Length::zero),
-        ),
+            margin_start: computed_margin_start.auto_is(Length::zero),
+            margin_end: computed_margin_end.auto_is(Length::zero),
+        },
         AbsoluteBoxOffsets::Both { start, end } => {
             let start = start.percentage_relative_to(containing_size);
             let end = end.percentage_relative_to(containing_size);
@@ -391,12 +400,12 @@ fn solve_axis(
                 used_size =
                     containing_size - start - end - padding_border_sum - margin_start - margin_end
             };
-            (
-                Anchor::Start(start),
-                LengthOrAuto::LengthPercentage(used_size),
+            AxisResult {
+                anchor: Anchor::Start(start),
+                size: LengthOrAuto::LengthPercentage(used_size),
                 margin_start,
                 margin_end,
-            )
+            }
         },
     }
 }
