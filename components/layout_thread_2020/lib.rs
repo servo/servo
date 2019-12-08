@@ -568,6 +568,7 @@ impl LayoutThread {
                 snapshot_map: snapshot_map,
             },
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            use_rayon: STYLE_THREAD_POOL.pool().is_some(),
         }
     }
 

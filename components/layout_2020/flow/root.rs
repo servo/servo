@@ -12,7 +12,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
-use crate::positioned::AbsolutelyPositionedBox;
+use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
@@ -118,11 +118,18 @@ impl BoxTreeRoot {
             &mut absolutely_positioned_fragments,
         );
 
-        independent_layout.fragments.par_extend(
-            absolutely_positioned_fragments
-                .par_iter()
-                .map(|a| a.layout(layout_context, &initial_containing_block)),
-        );
+        let map =
+            |a: &AbsolutelyPositionedFragment| a.layout(layout_context, &initial_containing_block);
+        if layout_context.use_rayon {
+            independent_layout
+                .fragments
+                .par_extend(absolutely_positioned_fragments.par_iter().map(map))
+        } else {
+            independent_layout
+                .fragments
+                .extend(absolutely_positioned_fragments.iter().map(map))
+        }
+
         FragmentTreeRoot(independent_layout.fragments)
     }
 }
