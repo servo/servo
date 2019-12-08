@@ -235,11 +235,12 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     let start = start.percentage_relative_to(containing_size);
                     let end = end.percentage_relative_to(containing_size);
 
-                    let mut margin_start = computed_margin_start.auto_is(Length::zero);
-                    let mut margin_end = computed_margin_end.auto_is(Length::zero);
-
-                    let size = if let LengthOrAuto::LengthPercentage(size) = size {
-                        let margins = containing_size - start - end - padding_border_sum - size;
+                    let margin_start;
+                    let margin_end;
+                    let used_size;
+                    if let LengthOrAuto::LengthPercentage(s) = size {
+                        used_size = s;
+                        let margins = containing_size - start - end - padding_border_sum - s;
                         match (computed_margin_start, computed_margin_end) {
                             (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
                                 let (s, e) = solve_margins(margins);
@@ -248,19 +249,25 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                             },
                             (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
                                 margin_start = margins - end;
+                                margin_end = end;
                             },
                             (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
+                                margin_start = start;
                                 margin_end = margins - start;
                             },
                             (
-                                LengthOrAuto::LengthPercentage(_),
-                                LengthOrAuto::LengthPercentage(_),
-                            ) => {},
+                                LengthOrAuto::LengthPercentage(start),
+                                LengthOrAuto::LengthPercentage(end),
+                            ) => {
+                                margin_start = start;
+                                margin_end = end;
+                            },
                         }
-                        size
                     } else {
+                        margin_start = computed_margin_start.auto_is(Length::zero);
+                        margin_end = computed_margin_end.auto_is(Length::zero);
                         // FIXME(nox): What happens if that is negative?
-                        containing_size -
+                        used_size = containing_size -
                             start -
                             end -
                             padding_border_sum -
@@ -269,7 +276,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     };
                     (
                         Anchor::Start(start),
-                        LengthOrAuto::LengthPercentage(size),
+                        LengthOrAuto::LengthPercentage(used_size),
                         margin_start,
                         margin_end,
                     )
