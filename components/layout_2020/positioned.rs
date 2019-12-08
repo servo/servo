@@ -170,7 +170,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     block: LengthOrAuto::LengthPercentage(u.block),
                 };
                 replaced_used_size = Some(u);
-            }
+            },
             Err(_non_replaced) => {
                 let box_size = style.box_size();
                 size = Vec2 {
@@ -178,115 +178,13 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                     block: box_size.block.percentage_relative_to(cbbs),
                 };
                 replaced_used_size = None;
-            }
+            },
         }
-
 
         let padding = style.padding().percentages_relative_to(cbis);
         let border = style.border_width();
         let computed_margin = style.margin().percentages_relative_to(cbis);
         let pb = &padding + &border;
-
-        enum Anchor {
-            Start(Length),
-            End(Length),
-        }
-
-        /// This unifies both:
-        ///
-        /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-        /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-        ///
-        /// … and:
-        ///
-        /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-        /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-        ///
-        /// In the replaced case, `size` is never `Auto`.
-        fn solve_axis(
-            containing_size: Length,
-            padding_border_sum: Length,
-            computed_margin_start: LengthOrAuto,
-            computed_margin_end: LengthOrAuto,
-            avoid_negative_margin_start: bool,
-            box_offsets: AbsoluteBoxOffsets,
-            size: LengthOrAuto,
-        ) -> (Anchor, LengthOrAuto, Length, Length) {
-            match box_offsets {
-                AbsoluteBoxOffsets::StaticStart { start } => (
-                    Anchor::Start(start),
-                    size,
-                    computed_margin_start.auto_is(Length::zero),
-                    computed_margin_end.auto_is(Length::zero),
-                ),
-                AbsoluteBoxOffsets::Start { start } => (
-                    Anchor::Start(start.percentage_relative_to(containing_size)),
-                    size,
-                    computed_margin_start.auto_is(Length::zero),
-                    computed_margin_end.auto_is(Length::zero),
-                ),
-                AbsoluteBoxOffsets::End { end } => (
-                    Anchor::End(end.percentage_relative_to(containing_size)),
-                    size,
-                    computed_margin_start.auto_is(Length::zero),
-                    computed_margin_end.auto_is(Length::zero),
-                ),
-                AbsoluteBoxOffsets::Both { start, end } => {
-                    let start = start.percentage_relative_to(containing_size);
-                    let end = end.percentage_relative_to(containing_size);
-
-                    let margin_start;
-                    let margin_end;
-                    let used_size;
-                    if let LengthOrAuto::LengthPercentage(s) = size {
-                        used_size = s;
-                        let margins = containing_size - start - end - padding_border_sum - s;
-                        match (computed_margin_start, computed_margin_end) {
-                            (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-                                if avoid_negative_margin_start && margins < Length::zero() {
-                                    margin_start = Length::zero();
-                                    margin_end = margins;
-                                } else {
-                                    margin_start = margins / 2.;
-                                    margin_end = margins / 2.;
-                                }
-                            },
-                            (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
-                                margin_start = margins - end;
-                                margin_end = end;
-                            },
-                            (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
-                                margin_start = start;
-                                margin_end = margins - start;
-                            },
-                            (
-                                LengthOrAuto::LengthPercentage(start),
-                                LengthOrAuto::LengthPercentage(end),
-                            ) => {
-                                margin_start = start;
-                                margin_end = end;
-                            },
-                        }
-                    } else {
-                        margin_start = computed_margin_start.auto_is(Length::zero);
-                        margin_end = computed_margin_end.auto_is(Length::zero);
-                        // FIXME(nox): What happens if that is negative?
-                        used_size = containing_size -
-                            start -
-                            end -
-                            padding_border_sum -
-                            margin_start -
-                            margin_end
-                    };
-                    (
-                        Anchor::Start(start),
-                        LengthOrAuto::LengthPercentage(used_size),
-                        margin_start,
-                        margin_end,
-                    )
-                },
-            }
-        }
 
         let (inline_anchor, inline_size, margin_inline_start, margin_inline_end) = solve_axis(
             cbis,
@@ -330,7 +228,9 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
                 let inline_size = inline_size.auto_is(|| {
                     let available_size = match inline_anchor {
-                        Anchor::Start(start) => cbis - start - pb.inline_sum() - margin.inline_sum(),
+                        Anchor::Start(start) => {
+                            cbis - start - pb.inline_sum() - margin.inline_sum()
+                        },
                         Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
                     };
                     self.absolutely_positioned_box
@@ -401,6 +301,103 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             margin,
             block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
         })
+    }
+}
+
+enum Anchor {
+    Start(Length),
+    End(Length),
+}
+
+/// This unifies some of the parts in common in:
+///
+/// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+/// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+///
+/// … and:
+///
+/// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+/// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+///
+/// In the replaced case, `size` is never `Auto`.
+fn solve_axis(
+    containing_size: Length,
+    padding_border_sum: Length,
+    computed_margin_start: LengthOrAuto,
+    computed_margin_end: LengthOrAuto,
+    avoid_negative_margin_start: bool,
+    box_offsets: AbsoluteBoxOffsets,
+    size: LengthOrAuto,
+) -> (Anchor, LengthOrAuto, Length, Length) {
+    match box_offsets {
+        AbsoluteBoxOffsets::StaticStart { start } => (
+            Anchor::Start(start),
+            size,
+            computed_margin_start.auto_is(Length::zero),
+            computed_margin_end.auto_is(Length::zero),
+        ),
+        AbsoluteBoxOffsets::Start { start } => (
+            Anchor::Start(start.percentage_relative_to(containing_size)),
+            size,
+            computed_margin_start.auto_is(Length::zero),
+            computed_margin_end.auto_is(Length::zero),
+        ),
+        AbsoluteBoxOffsets::End { end } => (
+            Anchor::End(end.percentage_relative_to(containing_size)),
+            size,
+            computed_margin_start.auto_is(Length::zero),
+            computed_margin_end.auto_is(Length::zero),
+        ),
+        AbsoluteBoxOffsets::Both { start, end } => {
+            let start = start.percentage_relative_to(containing_size);
+            let end = end.percentage_relative_to(containing_size);
+
+            let margin_start;
+            let margin_end;
+            let used_size;
+            if let LengthOrAuto::LengthPercentage(s) = size {
+                used_size = s;
+                let margins = containing_size - start - end - padding_border_sum - s;
+                match (computed_margin_start, computed_margin_end) {
+                    (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
+                        if avoid_negative_margin_start && margins < Length::zero() {
+                            margin_start = Length::zero();
+                            margin_end = margins;
+                        } else {
+                            margin_start = margins / 2.;
+                            margin_end = margins / 2.;
+                        }
+                    },
+                    (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
+                        margin_start = margins - end;
+                        margin_end = end;
+                    },
+                    (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
+                        margin_start = start;
+                        margin_end = margins - start;
+                    },
+                    (
+                        LengthOrAuto::LengthPercentage(start),
+                        LengthOrAuto::LengthPercentage(end),
+                    ) => {
+                        margin_start = start;
+                        margin_end = end;
+                    },
+                }
+            } else {
+                margin_start = computed_margin_start.auto_is(Length::zero);
+                margin_end = computed_margin_end.auto_is(Length::zero);
+                // FIXME(nox): What happens if that is negative?
+                used_size =
+                    containing_size - start - end - padding_border_sum - margin_start - margin_end
+            };
+            (
+                Anchor::Start(start),
+                LengthOrAuto::LengthPercentage(used_size),
+                margin_start,
+                margin_end,
+            )
+        },
     }
 }
 
