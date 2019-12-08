@@ -46,7 +46,7 @@ use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -1085,6 +1085,27 @@ impl GlobalScope {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
+            } else if self.is::<Window>() {
+                if let Some(ref chan) = self.devtools_chan {
+                    let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
+                        self.pipeline_id.clone(),
+                        PageError {
+                            type_: "PageError".to_string(),
+                            errorMessage: error_info.message.clone(),
+                            sourceName: error_info.filename.clone(),
+                            lineText: "".to_string(), //TODO
+                            lineNumber: error_info.lineno,
+                            columnNumber: error_info.column,
+                            category: "script".to_string(),
+                            timeStamp: 0, //TODO
+                            error: true,
+                            warning: false,
+                            exception: true,
+                            strict: false,
+                            private: false,
+                        },
+                    ));
+                }
             }
         }
     }

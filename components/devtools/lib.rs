@@ -36,7 +36,7 @@ use crate::protocol::JsonPacketStream;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
@@ -46,7 +46,6 @@ use std::collections::HashMap;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use time::precise_time_ns;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
@@ -86,6 +85,14 @@ struct ConsoleMsg {
     filename: String,
     lineNumber: usize,
     columnNumber: usize,
+}
+
+#[derive(Serialize)]
+struct PageErrorMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    pageError: PageError,
 }
 
 #[derive(Serialize)]
@@ -141,7 +148,7 @@ fn run_server(
     receiver: Receiver<DevtoolsControlMsg>,
     port: u16,
 ) {
-    let listener = TcpListener::bind(&("127.0.0.1", port)).unwrap();
+    let listener = TcpListener::bind(&("0.0.0.0", port)).unwrap();
 
     let mut registry = ActorRegistry::new();
 
@@ -241,6 +248,7 @@ fn run_server(
                 script_chan: script_sender.clone(),
                 pipeline: pipeline,
                 streams: RefCell::new(Vec::new()),
+                cached_events: RefCell::new(Vec::new()),
             };
 
             let emulation = EmulationActor::new(actors.new_name("emulation"));
@@ -317,6 +325,22 @@ fn run_server(
         actors.register(Box::new(thread));
     }
 
+    fn handle_page_error(
+        actors: Arc<Mutex<ActorRegistry>>,
+        id: PipelineId,
+        page_error: PageError,
+        actor_pipelines: &HashMap<PipelineId, String>,
+    ) {
+        let console_actor_name =
+            match find_console_actor(actors.clone(), id, None, &HashMap::new(), actor_pipelines) {
+                Some(name) => name,
+                None => return,
+            };
+        let actors = actors.lock().unwrap();
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+        console_actor.handle_page_error(page_error);
+    }
+
     fn handle_console_message(
         actors: Arc<Mutex<ActorRegistry>>,
         id: PipelineId,
@@ -337,28 +361,7 @@ fn run_server(
         };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        let msg = ConsoleAPICall {
-            from: console_actor.name.clone(),
-            type_: "consoleAPICall".to_owned(),
-            message: ConsoleMsg {
-                level: match console_message.logLevel {
-                    LogLevel::Debug => "debug",
-                    LogLevel::Info => "info",
-                    LogLevel::Warn => "warn",
-                    LogLevel::Error => "error",
-                    _ => "log",
-                }
-                .to_owned(),
-                timeStamp: precise_time_ns(),
-                arguments: vec![console_message.message],
-                filename: console_message.filename,
-                lineNumber: console_message.lineNumber,
-                columnNumber: console_message.columnNumber,
-            },
-        };
-        for stream in &mut *console_actor.streams.borrow_mut() {
-            stream.write_json_packet(&msg);
-        }
+        console_actor.handle_console_api(console_message);
     }
 
     fn find_console_actor(
@@ -586,6 +589,10 @@ fn run_server(
                 &actor_pipelines,
                 &actor_workers,
             ),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
+                id,
+                page_error,
+            )) => handle_page_error(actors.clone(), id, page_error, &actor_pipelines),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
                 id,
                 css_error,

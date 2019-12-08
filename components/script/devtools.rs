@@ -18,9 +18,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::window::Window;
 use crate::script_thread::Documents;
-use devtools_traits::TimelineMarkerType;
-use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
-use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
+use devtools_traits::{AutoMargins, ComputedNodeLayout, TimelineMarkerType};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
@@ -180,50 +178,6 @@ fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
         bottom: margin.margin_bottom.is_auto(),
         left: margin.margin_left.is_auto(),
     }
-}
-
-pub fn handle_get_cached_messages(
-    _pipeline_id: PipelineId,
-    message_types: CachedConsoleMessageTypes,
-    reply: IpcSender<Vec<CachedConsoleMessage>>,
-) {
-    // TODO: check the messageTypes against a global Cache for console messages and page exceptions
-    let mut messages = Vec::new();
-    if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) {
-        // TODO: make script error reporter pass all reported errors
-        //      to devtools and cache them for returning here.
-        let msg = PageError {
-            type_: "PageError".to_owned(),
-            errorMessage: "page error test".to_owned(),
-            sourceName: String::new(),
-            lineText: String::new(),
-            lineNumber: 0,
-            columnNumber: 0,
-            category: String::new(),
-            timeStamp: 0,
-            error: false,
-            warning: false,
-            exception: false,
-            strict: false,
-            private: false,
-        };
-        messages.push(CachedConsoleMessage::PageError(msg));
-    }
-    if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) {
-        // TODO: do for real
-        let msg = ConsoleAPI {
-            type_: "ConsoleAPI".to_owned(),
-            level: "error".to_owned(),
-            filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
-            lineNumber: 0,
-            functionName: String::new(),
-            timeStamp: 0,
-            private: false,
-            arguments: vec!["console error test".to_owned()],
-        };
-        messages.push(CachedConsoleMessage::ConsoleAPI(msg));
-    }
-    reply.send(messages).unwrap();
 }
 
 pub fn handle_modify_attribute(

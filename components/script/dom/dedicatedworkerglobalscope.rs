@@ -476,9 +476,6 @@ impl DedicatedWorkerGlobalScope {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
                     devtools::handle_evaluate_js(self.upcast(), string, sender)
                 },
-                DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) => {
-                    devtools::handle_get_cached_messages(pipe_id, message_types, sender)
-                },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
                 },
