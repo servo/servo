@@ -25,6 +25,7 @@ use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::net::TcpStream;
 use time::{self, Duration, Tm};
+//use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
@@ -356,5 +357,5 @@ impl PreciseTime {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct WorkerId(pub u32);
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct WorkerId(pub String);

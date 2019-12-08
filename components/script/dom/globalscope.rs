@@ -80,6 +80,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
+use uuid::Uuid;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -94,7 +95,7 @@ impl Drop for AutoCloseWorker {
 pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
-    next_worker_id: Cell<WorkerId>,
+    next_worker_id: WorkerId,
 
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
@@ -347,7 +348,7 @@ impl GlobalScope {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            next_worker_id: Cell::new(WorkerId(0)),
+            next_worker_id: WorkerId(Uuid::new_v4().to_string()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -928,9 +929,7 @@ impl GlobalScope {
 
     /// Get next worker id.
     pub fn get_next_worker_id(&self) -> WorkerId {
-        let worker_id = self.next_worker_id.get();
-        let WorkerId(id_num) = worker_id;
-        self.next_worker_id.set(WorkerId(id_num + 1));
+        let worker_id = self.next_worker_id.clone();
         worker_id
     }
 
