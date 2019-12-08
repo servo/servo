@@ -69,7 +69,7 @@ use crate::dom::radionodelist::RadioNodeList;
 use std::collections::HashMap;
 use time::{now, Duration, Tm};
 
-// use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -421,22 +421,38 @@ impl HTMLFormElementMethods for HTMLFormElement {
         }
 
         // Step 5
-        // TODO need to sort as per spec. Kindly guide us how to sort by tree order of the element entry of each tuple.
-        // Following gives error as CompareDocumentPosition return u16 and not Ordering.
-        // sourcedNamesVec.sort_by(|a, b|
-        //     a.element.upcast::<Node>().CompareDocumentPosition(b.element.upcast::<Node>())
-        // );
-
-        // The remaining part where sorting is to be done by putting entries whose source is id first,
+        // TODO need to sort as per spec.
+        // if a.CompareDocumentPosition(b) returns 0 that means a=b in which case
+        // the remaining part where sorting is to be done by putting entries whose source is id first,
         // then entries whose source is name, and finally entries whose source is past,
         // and sorting entries with the same element and source by their age, oldest first.
-        // can be done as follows:
+
+        // if a.CompareDocumentPosition(b) has set NodeConstants::DOCUMENT_POSITION_FOLLOWING
+        // (this can be checked by bitwise operations) then b would follow a in tree order and
+        // Ordering::Less should be returned in the closure else Ordering::Greater
 
         sourcedNamesVec.sort_by(|a, b| {
-            if a.source.is_past() && b.source.is_past() {
-                b.source.cmp(&a.source)
+            if a.element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
+                0
+            {
+                if a.source.is_past() && b.source.is_past() {
+                    b.source.cmp(&a.source)
+                } else {
+                    a.source.cmp(&b.source)
+                }
             } else {
-                a.source.cmp(&b.source)
+                if a.element
+                    .upcast::<Node>()
+                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                }
             }
         });
 
