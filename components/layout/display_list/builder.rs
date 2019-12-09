@@ -606,9 +606,15 @@ impl Fragment {
                 true
             },
             // FIXME: In the future, if #15144 is fixed we can remove this case. See #18510.
-            SpecificFragmentInfo::TruncatedFragment(ref mut info) => info
-                .full
-                .collect_stacking_contexts_for_blocklike_fragment(state),
+            SpecificFragmentInfo::TruncatedFragment(ref mut info) => {
+                let _ = info
+                    .full
+                    .collect_stacking_contexts_for_blocklike_fragment(state);
+                // To ensure the caller updates this fragment's stacking context
+                // appropriately based on the un-truncated fragment's status,
+                // we don't pass on the result of collecting stacking contexts.
+                false
+            },
             _ => false,
         }
     }
