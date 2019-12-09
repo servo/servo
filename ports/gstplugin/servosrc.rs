@@ -17,6 +17,7 @@ use glib::glib_object_impl;
 use glib::glib_object_subclass;
 use glib::object::Cast;
 use glib::object::Object;
+use glib::object::ObjectType;
 use glib::subclass::object::ObjectClassSubclassExt;
 use glib::subclass::object::ObjectImpl;
 use glib::subclass::object::ObjectImplExt;
@@ -32,12 +33,15 @@ use gstreamer::gst_loggable_error;
 use gstreamer::subclass::element::ElementClassSubclassExt;
 use gstreamer::subclass::element::ElementImpl;
 use gstreamer::subclass::ElementInstanceStruct;
-use gstreamer::BufferRef;
+use gstreamer::Buffer;
+use gstreamer::BufferPool;
+use gstreamer::BufferPoolExt;
+use gstreamer::BufferPoolExtManual;
 use gstreamer::Caps;
 use gstreamer::CoreError;
+use gstreamer::Element;
 use gstreamer::ErrorMessage;
 use gstreamer::FlowError;
-use gstreamer::FlowSuccess;
 use gstreamer::Format;
 use gstreamer::LoggableError;
 use gstreamer::PadDirection;
@@ -93,6 +97,7 @@ pub struct ServoSrc {
     swap_chain: SwapChain,
     url: Mutex<Option<String>>,
     info: Mutex<Option<VideoInfo>>,
+    buffer_pool: Mutex<Option<BufferPool>>,
 }
 
 struct ServoSrcGfx {
@@ -431,11 +436,13 @@ impl ObjectSubclass for ServoSrc {
         let swap_chain = ackr.recv().expect("Failed to get swap chain");
         let info = Mutex::new(None);
         let url = Mutex::new(None);
+        let buffer_pool = Mutex::new(None);
         Self {
             sender,
             swap_chain,
             info,
             url,
+            buffer_pool,
         }
     }
 
@@ -498,15 +505,56 @@ thread_local! {
     static GL: RefCell<Option<Rc<Gl>>> = RefCell::new(None);
 }
 impl BaseSrcImpl for ServoSrc {
-    fn set_caps(&self, _src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
+    fn set_caps(&self, src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
+        // Save the video info for later use
         let info = VideoInfo::from_caps(outcaps)
             .ok_or_else(|| gst_loggable_error!(CATEGORY, "Failed to get video info"))?;
         *self.info.lock().unwrap() = Some(info);
+
+        // Get the downstream GL context
+        let mut gst_gl_context = std::ptr::null_mut();
+        let el = src.upcast_ref::<Element>();
+        unsafe {
+            gstreamer_gl_sys::gst_gl_query_local_gl_context(
+                el.as_ptr(),
+                gstreamer_sys::GST_PAD_SRC,
+                &mut gst_gl_context,
+            );
+        }
+        if gst_gl_context.is_null() {
+            return Err(gst_loggable_error!(CATEGORY, "Failed to get GL context"));
+        }
+
+        // Create a new buffer pool for GL memory
+        let gst_gl_buffer_pool =
+            unsafe { gstreamer_gl_sys::gst_gl_buffer_pool_new(gst_gl_context) };
+        if gst_gl_buffer_pool.is_null() {
+            return Err(gst_loggable_error!(
+                CATEGORY,
+                "Failed to create buffer pool"
+            ));
+        }
+        let pool = unsafe { BufferPool::from_glib_borrow(gst_gl_buffer_pool) };
+
+        // Configure the buffer pool with the negotiated caps
+        let mut config = pool.get_config();
+        let (_, size, min_buffers, max_buffers) = config.get_params().unwrap_or((None, 0, 0, 1024));
+        config.set_params(Some(outcaps), size, min_buffers, max_buffers);
+        pool.set_config(config)
+            .map_err(|_| gst_loggable_error!(CATEGORY, "Failed to update config"))?;
+
+        // Save the buffer pool for later use
+        *self.buffer_pool.lock().expect("Poisoned lock") = Some(pool);
+
         Ok(())
     }
 
     fn get_size(&self, _src: &BaseSrc) -> Option<u64> {
         u64::try_from(self.info.lock().ok()?.as_ref()?.size()).ok()
+    }
+
+    fn is_seekable(&self, _: &BaseSrc) -> bool {
+        false
     }
 
     fn start(&self, _src: &BaseSrc) -> Result<(), ErrorMessage> {
@@ -528,13 +576,20 @@ impl BaseSrcImpl for ServoSrc {
         Ok(())
     }
 
-    fn fill(
-        &self,
-        src: &BaseSrc,
-        _offset: u64,
-        _length: u32,
-        buffer: &mut BufferRef,
-    ) -> Result<FlowSuccess, FlowError> {
+    fn create(&self, src: &BaseSrc, _offset: u64, _length: u32) -> Result<Buffer, FlowError> {
+        // Get the buffer pool
+        let pool_guard = self.buffer_pool.lock().unwrap();
+        let pool = pool_guard.as_ref().ok_or(FlowError::NotNegotiated)?;
+
+        // Activate the pool if necessary
+        if !pool.is_active() {
+            pool.set_active(true).map_err(|_| FlowError::Error)?;
+        }
+
+        // Get a buffer to fill
+        let buffer = pool.acquire_buffer(None)?;
+
+        // Get the GL memory from the buffer
         let memory = buffer.get_all_memory().ok_or_else(|| {
             gst_element_error!(src, CoreError::Failed, ["Failed to get memory"]);
             FlowError::Error
@@ -549,6 +604,7 @@ impl BaseSrcImpl for ServoSrc {
             FlowError::Error
         })?;
 
+        // Get the data out of the memory
         let gl_context = unsafe { GLContext::from_glib_borrow(gl_memory.mem.context) };
         let draw_texture_id = gl_memory.tex_id;
         let draw_texture_target = unsafe { gst_gl_texture_target_to_gl(gl_memory.tex_target) };
@@ -710,6 +766,6 @@ impl BaseSrcImpl for ServoSrc {
         })?;
 
         let _ = self.sender.send(ServoSrcMsg::Heartbeat);
-        Ok(FlowSuccess::Ok)
+        Ok(buffer)
     }
 }
