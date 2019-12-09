@@ -98,7 +98,6 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void OnServoHistoryChanged(bool, bool);
   virtual void OnServoShutdownComplete();
   virtual void OnServoTitleChanged(winrt::hstring);
-  virtual void OnServoAlert(winrt::hstring);
   virtual void OnServoURLChanged(winrt::hstring);
   virtual void Flush();
   virtual void MakeCurrent();
@@ -108,6 +107,11 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void OnServoMediaSessionMetadata(winrt::hstring, winrt::hstring,
                                            winrt::hstring);
   virtual void OnServoMediaSessionPlaybackStateChange(int);
+  virtual void OnServoPromptAlert(winrt::hstring, bool);
+  virtual servo::Servo::PromptResult OnServoPromptOkCancel(winrt::hstring, bool);
+  virtual servo::Servo::PromptResult OnServoPromptYesNo(winrt::hstring, bool);
+  virtual std::optional<hstring> OnServoPromptInput(winrt::hstring,
+                                                    winrt::hstring, bool);
 
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
@@ -121,8 +125,18 @@ private:
   winrt::event<Windows::Foundation::EventHandler<int>>
       mOnMediaSessionPlaybackStateChangeEvent;
 
+  CRITICAL_SECTION mDialogLock;
+  CONDITION_VARIABLE mDialogCondVar;
+
+  std::tuple<Windows::UI::Xaml::Controls::ContentDialogResult,
+             std::optional<hstring>>
+  PromptSync(hstring title, hstring message, hstring primaryButton,
+             std::optional<hstring> secondaryButton,
+             std::optional<hstring> input);
+
   float mDPI = 1;
   hstring mInitialURL = DEFAULT_URL;
+  hstring mCurrentUrl = L"";
   bool mTransient = false;
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();

@@ -7,7 +7,7 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
-use servo::embedder_traits::{EmbedderMsg, FilterPattern};
+use servo::embedder_traits::{EmbedderMsg, FilterPattern, PromptDefinition};
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -24,7 +24,7 @@ use std::mem;
 use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
-use tinyfiledialogs::{self, MessageBoxIcon};
+use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
@@ -299,23 +299,59 @@ where
                 EmbedderMsg::ResizeTo(size) => {
                     self.window.set_inner_size(size);
                 },
-                EmbedderMsg::Alert(message, sender) => {
-                    if !opts::get().headless {
-                        let _ = thread::Builder::new()
+                EmbedderMsg::Prompt(definition, _origin) => {
+                    let res = if opts::get().headless {
+                        match definition {
+                            PromptDefinition::Alert(_message, sender) => {
+                                sender.send(())
+                            }
+                            PromptDefinition::YesNo(_message, sender) => {
+                                sender.send(true)
+                            }
+                            PromptDefinition::OkCancel(_message, sender) => {
+                                sender.send(true)
+                            }
+                            PromptDefinition::Input(_message, default, sender) => {
+                                sender.send(Some(default.to_owned()))
+                            }
+                        }
+                    } else {
+                        thread::Builder::new()
                             .name("display alert dialog".to_owned())
                             .spawn(move || {
-                                tinyfiledialogs::message_box_ok(
-                                    "Alert!",
-                                    &message,
-                                    MessageBoxIcon::Warning,
-                                );
+                                match definition {
+                                    PromptDefinition::Alert(message, sender) => {
+                                        tinyfiledialogs::message_box_ok(
+                                            "Alert!",
+                                            &message,
+                                            MessageBoxIcon::Warning,
+                                        );
+                                        sender.send(())
+                                    }
+                                    PromptDefinition::YesNo(message, sender) => {
+                                        let result = tinyfiledialogs::message_box_yes_no(
+                                            "", &message, MessageBoxIcon::Warning, YesNo::No,
+                                        );
+                                        sender.send(result == YesNo::Yes)
+                                    }
+                                    PromptDefinition::OkCancel(message, sender) => {
+                                        let result = tinyfiledialogs::message_box_ok_cancel(
+                                            "", &message, MessageBoxIcon::Warning, OkCancel::Cancel,
+                                        );
+                                        sender.send(result == OkCancel::Ok)
+                                    }
+                                    PromptDefinition::Input(message, default, sender) => {
+                                        let result = tinyfiledialogs::input_box("", &message, &default);
+                                        sender.send(result)
+                                    }
+                                }
                             })
                             .unwrap()
                             .join()
-                            .expect("Thread spawning failed");
-                    }
-                    if let Err(e) = sender.send(()) {
-                        let reason = format!("Failed to send Alert response: {}", e);
+                            .expect("Thread spawning failed")
+                    };
+                    if let Err(e) = res {
+                        let reason = format!("Failed to send Prompt response: {}", e);
                         self.event_queue
                             .push(WindowEvent::SendError(browser_id, reason));
                     }

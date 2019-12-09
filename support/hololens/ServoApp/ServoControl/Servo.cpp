@@ -13,10 +13,6 @@ void on_history_changed(bool back, bool forward) {
 
 void on_shutdown_complete() { sServo->Delegate().OnServoShutdownComplete(); }
 
-void on_alert(const char *message) {
-  sServo->Delegate().OnServoAlert(char2hstring(message));
-}
-
 void on_title_changed(const char *title) {
   sServo->Delegate().OnServoTitleChanged(char2hstring(title));
 }
@@ -67,6 +63,30 @@ void on_media_session_playback_state_change(
   return sServo->Delegate().OnServoMediaSessionPlaybackStateChange(state);
 }
 
+void prompt_alert(const char *message, bool trusted) {
+  sServo->Delegate().OnServoPromptAlert(char2hstring(message), trusted);
+}
+
+Servo::PromptResult prompt_ok_cancel(const char *message, bool trusted) {
+  return sServo->Delegate().OnServoPromptOkCancel(char2hstring(message),
+                                                  trusted);
+}
+
+Servo::PromptResult prompt_yes_no(const char *message, bool trusted) {
+  return sServo->Delegate().OnServoPromptYesNo(char2hstring(message), trusted);
+}
+
+const char *prompt_input(const char *message, const char *default,
+                         bool trusted) {
+  auto input = sServo->Delegate().OnServoPromptInput(
+      char2hstring(message), char2hstring(default), trusted);
+  if (input.has_value()) {
+    return *hstring2char(*input);
+  } else {
+    return nullptr;
+  }
+}
+
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
@@ -109,7 +129,6 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   capi::CHostCallbacks c;
   c.flush = &flush;
   c.make_current = &make_current;
-  c.on_alert = &on_alert;
   c.on_load_started = &on_load_started;
   c.on_load_ended = &on_load_ended;
   c.on_title_changed = &on_title_changed;
@@ -124,6 +143,10 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   c.on_media_session_metadata = &on_media_session_metadata;
   c.on_media_session_playback_state_change =
       &on_media_session_playback_state_change;
+  c.prompt_alert = &prompt_alert;
+  c.prompt_ok_cancel = &prompt_ok_cancel;
+  c.prompt_yes_no = &prompt_yes_no;
+  c.prompt_input = &prompt_input;
 
   capi::register_panic_handler(&on_panic);
 

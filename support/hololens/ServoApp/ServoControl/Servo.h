@@ -19,29 +19,7 @@ extern "C" {
 hstring char2hstring(const char *);
 std::unique_ptr<char *> hstring2char(hstring);
 
-class ServoDelegate {
-public:
-  // Called from any thread
-  virtual void WakeUp() = 0;
-  // Called from GL thread
-  virtual void OnServoLoadStarted() = 0;
-  virtual void OnServoLoadEnded() = 0;
-  virtual void OnServoHistoryChanged(bool, bool) = 0;
-  virtual void OnServoShutdownComplete() = 0;
-  virtual void OnServoTitleChanged(hstring) = 0;
-  virtual void OnServoAlert(hstring) = 0;
-  virtual void OnServoURLChanged(hstring) = 0;
-  virtual bool OnServoAllowNavigation(hstring) = 0;
-  virtual void OnServoAnimatingChanged(bool) = 0;
-  virtual void OnServoIMEStateChanged(bool) = 0;
-  virtual void Flush() = 0;
-  virtual void MakeCurrent() = 0;
-  virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
-  virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
-
-protected:
-  virtual ~ServoDelegate(){};
-};
+class ServoDelegate;
 
 class Servo {
 public:
@@ -50,6 +28,7 @@ public:
   ServoDelegate &Delegate() { return mDelegate; }
 
   typedef capi::CMouseButton MouseButton;
+  typedef capi::CPromptResult PromptResult;
   typedef capi::CMediaSessionActionType MediaSessionActionType;
   typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
 
@@ -98,6 +77,33 @@ private:
   ServoDelegate &mDelegate;
   GLsizei mWindowWidth;
   GLsizei mWindowHeight;
+};
+
+class ServoDelegate {
+public:
+	// Called from any thread
+	virtual void WakeUp() = 0;
+	// Called from GL thread
+	virtual void OnServoLoadStarted() = 0;
+	virtual void OnServoLoadEnded() = 0;
+	virtual void OnServoHistoryChanged(bool, bool) = 0;
+	virtual void OnServoShutdownComplete() = 0;
+	virtual void OnServoTitleChanged(hstring) = 0;
+	virtual void OnServoURLChanged(hstring) = 0;
+	virtual bool OnServoAllowNavigation(hstring) = 0;
+	virtual void OnServoAnimatingChanged(bool) = 0;
+	virtual void OnServoIMEStateChanged(bool) = 0;
+	virtual void Flush() = 0;
+	virtual void MakeCurrent() = 0;
+	virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
+	virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
+	virtual void OnServoPromptAlert(hstring, bool) = 0;
+	virtual Servo::PromptResult OnServoPromptOkCancel(hstring, bool) = 0;
+	virtual Servo::PromptResult OnServoPromptYesNo(hstring, bool) = 0;
+	virtual std::optional<hstring> OnServoPromptInput(hstring, hstring, bool) = 0;
+
+protected:
+	virtual ~ServoDelegate(){};
 };
 
 // This is sad. We need a static pointer to Servo because we use function

@@ -55,8 +55,8 @@
   // user prompts
   void alert(DOMString message);
   void alert();
-  //boolean confirm(optional DOMString message = "");
-  //DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
+  boolean confirm(optional DOMString message = "");
+  DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   //void print();
   //any showModalDialog(DOMString url, optional any argument);
 

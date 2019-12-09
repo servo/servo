@@ -6,6 +6,7 @@
 using namespace std::placeholders;
 using namespace winrt::Windows::Graphics::Display;
 using namespace winrt::Windows::UI::Xaml;
+using namespace winrt::Windows::UI::Popups;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::System;
@@ -69,6 +70,8 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   Panel().SizeChanged(std::bind(&ServoControl::OnSurfaceResized, this, _1, _2));
   InitializeConditionVariable(&mGLCondVar);
   InitializeCriticalSection(&mGLLock);
+  InitializeConditionVariable(&mDialogCondVar);
+  InitializeCriticalSection(&mDialogLock);
   CreateRenderSurface();
   StartRenderLoop();
 }
@@ -285,7 +288,7 @@ void ServoControl::TryLoadUri(hstring input) {
     RunOnGLThread([=] {
       if (!mServo->LoadUri(input)) {
         RunOnUIThread([=] {
-          Windows::UI::Popups::MessageDialog msg{L"URI not valid"};
+          MessageDialog msg{L"URI not valid"};
           msg.ShowAsync();
         });
       }
@@ -389,20 +392,15 @@ void ServoControl::OnServoShutdownComplete() {
   LeaveCriticalSection(&mGLLock);
 }
 
-void ServoControl::OnServoAlert(hstring message) {
-  // FIXME: make this sync
-  RunOnUIThread([=] {
-    Windows::UI::Popups::MessageDialog msg{message};
-    msg.ShowAsync();
-  });
-}
-
 void ServoControl::OnServoTitleChanged(hstring title) {
   RunOnUIThread([=] { mOnTitleChangedEvent(*this, title); });
 }
 
 void ServoControl::OnServoURLChanged(hstring url) {
-  RunOnUIThread([=] { mOnURLChangedEvent(*this, url); });
+  RunOnUIThread([=] {
+    mCurrentUrl = url;
+    mOnURLChangedEvent(*this, url);
+  });
 }
 
 void ServoControl::Flush() {
@@ -446,6 +444,111 @@ void ServoControl::OnServoMediaSessionMetadata(hstring title, hstring artist,
 
 void ServoControl::OnServoMediaSessionPlaybackStateChange(int state) {
   RunOnUIThread([=] { mOnMediaSessionPlaybackStateChangeEvent(*this, state); });
+}
+
+std::tuple<Controls::ContentDialogResult, std::optional<hstring>>
+ServoControl::PromptSync(hstring title, hstring message, hstring primaryButton,
+                         std::optional<hstring> secondaryButton,
+                         std::optional<hstring> input) {
+
+  bool showing = true;
+  Controls::ContentDialogResult retButton = Controls::ContentDialogResult::None;
+  std::optional<hstring> retString = {};
+
+  EnterCriticalSection(&mDialogLock);
+
+  Dispatcher().RunAsync(CoreDispatcherPriority::High, [&] {
+    auto dialog = Controls::ContentDialog();
+    dialog.IsPrimaryButtonEnabled(true);
+    dialog.PrimaryButtonText(primaryButton);
+
+    if (secondaryButton.has_value()) {
+      dialog.IsPrimaryButtonEnabled(true);
+      dialog.SecondaryButtonText(*secondaryButton);
+    } else {
+      dialog.IsPrimaryButtonEnabled(false);
+    }
+
+    auto titleBlock = Controls::TextBlock();
+    titleBlock.Text(title);
+
+    auto messageBlock = Controls::TextBlock();
+    messageBlock.TextWrapping(TextWrapping::Wrap);
+    messageBlock.Text(message);
+    Controls::StackPanel stack = Controls::StackPanel();
+    stack.Children().Append(titleBlock);
+    stack.Children().Append(messageBlock);
+
+    dialog.Content(stack);
+
+    auto textbox = Controls::TextBox();
+    textbox.KeyDown([=](auto sender, auto args) {
+      if (args.Key() == Windows::System::VirtualKey::Enter) {
+        dialog.Hide();
+      }
+    });
+    if (input.has_value()) {
+      textbox.Text(*input);
+      stack.Children().Append(textbox);
+    }
+
+    dialog.Closed([&, textbox](Controls::ContentDialog d, auto closed) {
+      EnterCriticalSection(&mDialogLock);
+      retButton = closed.Result();
+      showing = false;
+      if (retButton == Controls::ContentDialogResult::Primary &&
+          input.has_value()) {
+        retString = hstring(textbox.Text());
+      }
+      LeaveCriticalSection(&mDialogLock);
+      WakeConditionVariable(&mDialogCondVar);
+    });
+    dialog.ShowAsync();
+  });
+
+  while (showing) {
+    SleepConditionVariableCS(&mDialogCondVar, &mDialogLock, INFINITE);
+  }
+  LeaveCriticalSection(&mDialogLock);
+
+  return {retButton, retString};
+}
+
+void ServoControl::OnServoPromptAlert(winrt::hstring message, bool trusted) {
+  auto title = trusted ? L"" : mCurrentUrl + L" says:";
+  PromptSync(title, message, L"OK", {}, {});
+}
+
+servo::Servo::PromptResult ServoControl::OnServoPromptOkCancel(winrt::hstring message, bool trusted) {
+  auto title = trusted ? L"" : mCurrentUrl + L" says:";
+  auto [button, string] = PromptSync(title, message, L"OK", L"Cancel", {});
+  if (button == Controls::ContentDialogResult::Primary) {
+    return servo::Servo::PromptResult::Primary;
+  } else if (button == Controls::ContentDialogResult::Secondary) {
+    return servo::Servo::PromptResult::Secondary;
+  } else {
+    return servo::Servo::PromptResult::Dismissed;
+  }
+}
+
+servo::Servo::PromptResult ServoControl::OnServoPromptYesNo(winrt::hstring message, bool trusted) {
+  auto title = trusted ? L"" : mCurrentUrl + L" says:";
+  auto [button, string] = PromptSync(title, message, L"Yes", L"No", {});
+  if (button == Controls::ContentDialogResult::Primary) {
+    return servo::Servo::PromptResult::Primary;
+  } else if (button == Controls::ContentDialogResult::Secondary) {
+    return servo::Servo::PromptResult::Secondary;
+  } else {
+    return servo::Servo::PromptResult::Dismissed;
+  }
+}
+
+std::optional<hstring> ServoControl::OnServoPromptInput(winrt::hstring message,
+                                                        winrt::hstring default,
+                                                        bool trusted) {
+  auto title = trusted ? L"" : mCurrentUrl + L" says:";
+  auto [button, string] = PromptSync(title, message, L"Ok", L"Cancel", default);
+  return string;
 }
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {
