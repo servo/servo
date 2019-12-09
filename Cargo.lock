@@ -1146,6 +1146,7 @@ dependencies = [
  "serde",
  "servo_url",
  "time",
+ "uuid",
 ]
 
 [[package]]
@@ -3142,6 +3143,7 @@ dependencies = [
  "thin-slice",
  "time",
  "url",
+ "uuid",
  "void",
  "webrender_api",
  "xml5ever",

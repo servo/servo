@@ -26,7 +26,7 @@ use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use crossbeam_channel::{unbounded, Sender};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
@@ -36,6 +36,7 @@ use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -100,7 +101,7 @@ impl Worker {
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let worker_id = global.get_next_worker_id();
+        let worker_id = WorkerId(Uuid::new_v4());
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
             let title = format!("Worker for {}", worker_url);

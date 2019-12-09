@@ -58,6 +58,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::precise_time_ns;
+use uuid::Uuid;
 
 pub fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -71,7 +72,7 @@ pub fn prepare_workerscope_init(
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
         scheduler_chan: global.scheduler_chan().clone(),
-        worker_id: global.get_next_worker_id(),
+        worker_id: WorkerId(Uuid::new_v4()),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         is_headless: global.is_headless(),
