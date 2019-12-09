@@ -107,6 +107,37 @@ impl EmbedderReceiver {
 }
 
 #[derive(Deserialize, Serialize)]
+pub enum PromptDefinition {
+    /// Show a message.
+    Alert(String, IpcSender<()>),
+    /// Ask a Ok/Cancel question.
+    OkCancel(String, IpcSender<PromptResult>),
+    /// Ask a Yes/No question.
+    YesNo(String, IpcSender<PromptResult>),
+    /// Ask the user to enter text.
+    Input(String, String, IpcSender<Option<String>>),
+}
+
+#[derive(Deserialize, PartialEq, Serialize)]
+pub enum PromptOrigin {
+    /// Prompt is triggered from content (window.prompt/alert/confirm/…).
+    /// Prompt message is unknown.
+    Untrusted,
+    /// Prompt is triggered from Servo (ask for permission, show error,…).
+    Trusted,
+}
+
+#[derive(Deserialize, PartialEq, Serialize)]
+pub enum PromptResult {
+    /// Prompt was closed by clicking on the primary button (ok/yes)
+    Primary,
+    /// Prompt was closed by clicking on the secondary button (cancel/no)
+    Secondary,
+    /// Prompt was dismissed
+    Dismissed,
+}
+
+#[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
@@ -116,8 +147,8 @@ pub enum EmbedderMsg {
     MoveTo(DeviceIntPoint),
     /// Resize the window to size
     ResizeTo(DeviceIntSize),
-    // Show an alert message.
-    Alert(String, IpcSender<()>),
+    /// Show dialog to user
+    Prompt(PromptDefinition, PromptOrigin),
     /// Wether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
@@ -174,7 +205,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::Alert(..) => write!(f, "Alert"),
+            EmbedderMsg::Prompt(..) => write!(f, "Prompt"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
