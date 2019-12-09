@@ -17,7 +17,7 @@
 //! is non-trivial. This module encapsulates those details and presents an
 //! easy-to-use API for the parser.
 
-use crate::parser::{Combinator, Component, SelectorImpl};
+use crate::parser::{Combinator, Component, NonTSPseudoClass, SelectorImpl};
 use crate::sink::Push;
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
@@ -322,9 +322,13 @@ where
             Component::NthLastOfType(..) |
             Component::FirstOfType |
             Component::LastOfType |
-            Component::OnlyOfType |
-            Component::NonTSPseudoClass(..) => {
+            Component::OnlyOfType => {
                 specificity.class_like_selectors += 1;
+            }
+            Component::NonTSPseudoClass(ref pseudo) => {
+                if !pseudo.has_zero_specificity() {
+                    specificity.class_like_selectors += 1;
+                }
             },
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |

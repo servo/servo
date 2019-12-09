@@ -233,6 +233,9 @@ impl NonTSPseudoClass {
                       // across all the elements involved and the latter is already
                       // checked for by our caching precondtions.
                       NonTSPseudoClass::MozIsHTML |
+                      // We prevent style sharing for NAC.
+                      NonTSPseudoClass::MozNativeAnonymous |
+                      NonTSPseudoClass::MozNativeAnonymousNoSpecificity |
                       // :-moz-placeholder is parsed but never matches.
                       NonTSPseudoClass::MozPlaceholder |
                       // :-moz-locale-dir and :-moz-window-inactive depend only on
@@ -274,6 +277,11 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
             *self,
             NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
         )
+    }
+
+    #[inline]
+    fn has_zero_specificity(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::MozNativeAnonymousNoSpecificity)
     }
 }
 
