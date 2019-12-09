@@ -104,13 +104,22 @@ def _process_exec(args):
             if process.returncode:
                 print('"%s" failed with error code %d:' % ('" "'.join(args), process.returncode))
 
+                if sys.version_info >= (3, 0):
+                    stdout = sys.stdout.buffer
+                else:
+                    stdout = sys.stdout
+
                 print('Output:')
                 out.seek(0)
-                shutil.copyfileobj(out, sys.stdout)
+                stdout.flush()
+                shutil.copyfileobj(out, stdout)
+                stdout.flush()
 
                 print('Error:')
                 err.seek(0)
-                shutil.copyfileobj(err, sys.stdout)
+                stdout.flush()
+                shutil.copyfileobj(err, stdout)
+                stdout.flush()
 
                 sys.exit(1)
 
