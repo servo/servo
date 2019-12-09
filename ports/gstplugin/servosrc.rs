@@ -92,7 +92,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use std::thread;
 
-pub struct ServoSrc {
+pub struct ServoGstSrc {
     sender: Sender<ServoSrcMsg>,
     swap_chain: SwapChain,
     url: Mutex<Option<String>>,
@@ -420,8 +420,8 @@ const CAPS: &str = "video/x-raw(memory:GLMemory),
   height=[1,2147483647],
   framerate=[0/1,2147483647/1]";
 
-impl ObjectSubclass for ServoSrc {
-    const NAME: &'static str = "ServoSrc";
+impl ObjectSubclass for ServoGstSrc {
+    const NAME: &'static str = "ServoGstSrc";
     // gstreamer-gl doesn't have support for GLBaseSrc yet
     // https://gitlab.freedesktop.org/gstreamer/gstreamer-rs/issues/219
     type ParentType = BaseSrc;
@@ -464,7 +464,7 @@ impl ObjectSubclass for ServoSrc {
     glib_object_subclass!();
 }
 
-impl ObjectImpl for ServoSrc {
+impl ObjectImpl for ServoGstSrc {
     glib_object_impl!();
 
     fn constructed(&self, obj: &glib::Object) {
@@ -499,12 +499,12 @@ impl ObjectImpl for ServoSrc {
     }
 }
 
-impl ElementImpl for ServoSrc {}
+impl ElementImpl for ServoGstSrc {}
 
 thread_local! {
     static GL: RefCell<Option<Rc<Gl>>> = RefCell::new(None);
 }
-impl BaseSrcImpl for ServoSrc {
+impl BaseSrcImpl for ServoGstSrc {
     fn set_caps(&self, src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
         // Save the video info for later use
         let info = VideoInfo::from_caps(outcaps)
