@@ -258,7 +258,7 @@ def gstreamer_root(target, env, topdir=None):
             return env.get(gst_env)
         elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
             return gst_default_path
-    elif sys.platform == "linux2":
+    elif is_linux():
         return path.join(topdir, "support", "linux", "gstreamer", "gst")
     return None
 
@@ -580,7 +580,7 @@ class CommandBase(object):
         if "x86_64" not in effective_target or "android" in effective_target:
             # We don't build gstreamer for non-x86_64 / android yet
             return False
-        if sys.platform == "linux2" or is_windows():
+        if is_linux() or is_windows():
             if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
                 return True
             else:
@@ -690,7 +690,7 @@ install them, let us know by filing a bug!")
             extra_lib = [libpath] + extra_lib
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
-        if sys.platform == "linux2":
+        if is_linux():
             distrib, version, _ = distro.linux_distribution()
             distrib = six.ensure_str(distrib)
             version = six.ensure_str(version)
