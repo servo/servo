@@ -357,7 +357,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 9
-        let mut form_data = match self.get_form_dataset(Some(submitter)) {
+        let mut form_data = match self.get_form_dataset(Some(submitter), Some(encoding)) {
             Some(form_data) => form_data,
             None => return,
         };
@@ -645,8 +645,14 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
+    /// terminology note:  "form data set" = "entry list"
     /// Steps range from 3 to 5
-    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    /// 5.x substeps are mostly handled inside element-specific methods
+    fn get_unclean_dataset(
+        &self,
+        submitter: Option<FormSubmitter>,
+        encoding: Option<&'static Encoding>,
+    ) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
         for child in controls.iter() {
@@ -668,7 +674,7 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
 
-                        data_set.append(&mut input.form_datums(submitter));
+                        data_set.append(&mut input.form_datums(submitter, encoding));
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -705,7 +711,11 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Option<Vec<FormDatum>> {
+    pub fn get_form_dataset(
+        &self,
+        submitter: Option<FormSubmitter>,
+        encoding: Option<&'static Encoding>,
+    ) -> Option<Vec<FormDatum>> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4
             let mut buf = "".to_owned();
@@ -746,7 +756,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let mut ret = self.get_unclean_dataset(submitter);
+        let mut ret = self.get_unclean_dataset(submitter, encoding);
         for datum in &mut ret {
             match &*datum.ty {
                 "file" | "textarea" => (), // TODO
