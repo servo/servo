@@ -29,7 +29,7 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::service_fn_ok;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use net::connector::create_ssl_connector_builder;
+use net::connector::{create_tls_config, ALPN_H2_H1};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -87,11 +87,11 @@ fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
 ) -> FetchContext {
-    let ssl_connector =
-        create_ssl_connector_builder(&resources::read_string(Resource::SSLCertificates));
+    let certs = resources::read_string(Resource::SSLCertificates);
+    let tls_config = create_tls_config(&certs, ALPN_H2_H1);
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
     FetchContext {
-        state: Arc::new(HttpState::new(ssl_connector)),
+        state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(sender),
@@ -187,16 +187,16 @@ where
     let url = ServoUrl::parse(&url_string).unwrap();
 
     let server = listener.incoming().map_err(|_| ()).for_each(move |sock| {
-        let mut ssl_builder = SslAcceptor::mozilla_modern(SslMethod::tls()).unwrap();
-        ssl_builder
+        let mut tls_server_config = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
+        tls_server_config
             .set_certificate_file(&cert_path, SslFiletype::PEM)
             .unwrap();
-        ssl_builder
+        tls_server_config
             .set_private_key_file(&key_path, SslFiletype::PEM)
             .unwrap();
 
         let handler = handler.clone();
-        ssl_builder
+        tls_server_config
             .build()
             .accept_async(sock)
             .map_err(|_| ())
