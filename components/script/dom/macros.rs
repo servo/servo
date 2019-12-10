@@ -446,6 +446,7 @@ macro_rules! global_event_handlers(
         event_handler!(emptied, GetOnemptied, SetOnemptied);
         event_handler!(ended, GetOnended, SetOnended);
         error_event_handler!(error, GetOnerror, SetOnerror);
+        event_handler!(formdata, GetOnformdata, SetOnformdata);
         event_handler!(input, GetOninput, SetOninput);
         event_handler!(invalid, GetOninvalid, SetOninvalid);
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
