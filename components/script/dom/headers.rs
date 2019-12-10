@@ -14,9 +14,8 @@ use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
-use mime::{self, Mime};
+use net_traits::request::is_cors_safelisted_request_header;
 use std::cell::Cell;
-use std::result::Result;
 use std::str::{self, FromStr};
 
 #[dom_struct]
@@ -28,7 +27,7 @@ pub struct Headers {
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -88,6 +87,9 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 7
+        // FIXME: this is NOT what WHATWG says to do when appending
+        // another copy of an existing header. HyperHeaders
+        // might not expose the information we need to do it right.
         let mut combined_value: Vec<u8> = vec![];
         if let Some(v) = self
             .header_list
@@ -301,35 +303,6 @@ impl Iterable for Headers {
     }
 }
 
-fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
-    let value_string = if let Ok(s) = str::from_utf8(value) {
-        s
-    } else {
-        return false;
-    };
-    let value_mime_result: Result<Mime, _> = value_string.parse();
-    match value_mime_result {
-        Err(_) => false,
-        Ok(value_mime) => match (value_mime.type_(), value_mime.subtype()) {
-            (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
-            (mime::MULTIPART, mime::FORM_DATA) |
-            (mime::TEXT, mime::PLAIN) => true,
-            _ => false,
-        },
-    }
-}
-
-// TODO: "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
-// ... once parsed, the value should not be failure.
-// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
-fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
-    match name {
-        "accept" | "accept-language" | "content-language" => true,
-        "content-type" => is_cors_safelisted_request_content_type(value),
-        _ => false,
-    }
-}
-
 // https://fetch.spec.whatwg.org/#forbidden-response-header-name
 fn is_forbidden_response_header(name: &str) -> bool {
     match name {
@@ -394,11 +367,18 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [2] https://tools.ietf.org/html/rfc7230#section-3.2
 // [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
+//
+// As of December 2019 WHATWG, isn't even using grammar productions for value;
+// https://fetch.spec.whatg.org/#concept-header-value just says not to have
+// newlines, nulls, or leading/trailing whitespace.
 fn validate_name_and_value(name: ByteString, value: ByteString) -> Fallible<(String, Vec<u8>)> {
     let valid_name = validate_name(name)?;
+
+    // this is probably out of date
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
     }
+
     Ok((valid_name, value.into()))
 }
 
