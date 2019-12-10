@@ -627,7 +627,7 @@ install them, let us know by filing a bug!")
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
-        if sys.platform == "win32" and type(env['PATH']) == unicode:
+        if sys.platform == "win32" and type(env['PATH']) == six.text_type:
             # On win32, the virtualenv's activate_this.py script sometimes ends up
             # turning os.environ['PATH'] into a unicode string.  This doesn't work
             # for passing env vars in to a process, so we force it back to ascii.

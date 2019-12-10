@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import functools
 import os
 
 from WebIDL import IDLExternalInterface, IDLSequenceType, IDLWrapperType, WebIDLError
@@ -15,7 +16,7 @@ class Configuration:
     def __init__(self, filename, parseData):
         # Read the configuration file.
         glbl = {}
-        execfile(filename, glbl)
+        exec(compile(open(filename).read(), filename, 'exec'), glbl)
         config = glbl['DOMInterfaces']
 
         # Build descriptors for all the interfaces we have in the parse data.
@@ -62,7 +63,8 @@ class Configuration:
                           c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
-        self.descriptors.sort(lambda x, y: cmp(x.name, y.name))
+        cmp = lambda x, y: (x > y) - (x < y)
+        self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
     def getInterface(self, ifname):
         return self.interfaces[ifname]

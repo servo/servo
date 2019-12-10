@@ -69,7 +69,7 @@ def transform_report_for_test(report):
     while remaining:
         (name, value) = remaining.pop()
         transformed[name] = '%s %s' % (value['amount'], value['unit'])
-        remaining += map(lambda (k, v): (name + '/' + k, v), list(value['children'].items()))
+        remaining += map(lambda k_v: (name + '/' + k_v[0], k_v[1]), list(value['children'].items()))
     return transformed
 
 
