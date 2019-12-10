@@ -60,8 +60,12 @@ async_test(t => {
   };
   submitter1.click();
   // We actually submit the form in order to check which 'click()' submits it.
-  iframe.onload = t.step_func_done(() => {
+  iframe.onload = t.step_func(() => {
+    // The initial about:blank load event can be fired before the form navigation occurs.
+    // See https://github.com/whatwg/html/issues/490 for more information.
+    if(iframe.contentWindow.location.href == "about:blank") { return; }
     assert_not_equals(iframe.contentWindow.location.search.indexOf('n=i'), -1);
+    t.done();
   });
 }, "If form's firing submission events is true, then return; 'submit' event");
 
@@ -127,9 +131,13 @@ async_test(t => {
   // Request to load '/common/dummy.xhtml', and immediately submit the form to
   // the same frame. If the form submission is aborted, the first request
   // will be completed.
-  iframe.onload = t.step_func_done(() => {
+  // This may be complicated by loads of the initial about:blank;
+  // we need to ignore them and only look at a load that isn't about:blank.
+  iframe.onload = t.step_func(() => {
+    if(iframe.contentWindow.location=="about:blank") { return; }
     wasLoaded = true;
     assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
+    t.done();
   });
   iframe.src = '/common/dummy.xhtml';
   assert_false(wasLoaded, 'Make sure the first loading is ongoing.');
