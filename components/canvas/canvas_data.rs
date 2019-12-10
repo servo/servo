@@ -358,7 +358,15 @@ pub enum Pattern<'a> {
     #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Pattern, PhantomData<&'a ()>),
     #[cfg(feature = "canvas2d-raqote")]
-    Raqote(raqote::Source<'a>),
+    Raqote(raqote::Source<'a>, Option<Repetition>),
+}
+
+#[derive(Clone)]
+pub enum Repetition {
+    Repeat,
+    RepeatX,
+    RepeatY,
+    NoRepeat,
 }
 
 pub enum DrawSurfaceOptions {
