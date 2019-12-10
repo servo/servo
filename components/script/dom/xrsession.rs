@@ -540,6 +540,19 @@ impl XRSessionMethods for XRSession {
     fn End(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);
+        if self.ended.get() && self.end_promises.borrow().is_empty() {
+            // If the session has completely ended and all end promises have been resolved,
+            // don't queue up more end promises
+            //
+            // We need to check for end_promises being empty because `ended` is set
+            // before everything has been completely shut down, and we do not want to
+            // prematurely resolve the promise then
+            //
+            // However, if end_promises is empty, then all end() promises have already resolved,
+            // so the session has completely shut down and we should not queue up more promises
+            p.resolve_native(&());
+            return p;
+        }
         self.end_promises.borrow_mut().push(p.clone());
         // This is duplicated in event_callback since this should
         // happen ASAP for end() but can happen later if the device
