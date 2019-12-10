@@ -27,20 +27,21 @@ pub mod wrapper;
 pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
 use crate::geom::flow_relative::Vec2;
-use crate::style_ext::{ComputedValuesExt, Direction, Position, WritingMode};
+use crate::style_ext::ComputedValuesExt;
+use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 
-struct ContainingBlock {
+struct ContainingBlock<'a> {
     inline_size: Length,
     block_size: LengthOrAuto,
-    mode: (WritingMode, Direction),
+    style: &'a ComputedValues,
 }
 
-struct DefiniteContainingBlock {
+struct DefiniteContainingBlock<'a> {
     size: Vec2<Length>,
-    mode: (WritingMode, Direction),
+    style: &'a ComputedValues,
 }
 
 /// https://drafts.csswg.org/css2/visuren.html#relative-positioning

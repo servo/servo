@@ -45,7 +45,7 @@ impl ReplacedContent {
                 .map(|image_key| {
                     Fragment::Image(ImageFragment {
                         style: style.clone(),
-                        content_rect: flow_relative::Rect {
+                        rect: flow_relative::Rect {
                             start_corner: flow_relative::Vec2::zero(),
                             size,
                         },

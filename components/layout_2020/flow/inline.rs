@@ -18,6 +18,7 @@ use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::specified::text::TextAlignKeyword;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -69,15 +70,16 @@ struct PartialInlineBoxFragment<'box_tree> {
 
 struct InlineFormattingContextState<'box_tree, 'a> {
     absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
-    containing_block: &'a ContainingBlock,
-    line_boxes: LinesBoxes,
+    containing_block: &'a ContainingBlock<'a>,
+    lines: Lines,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
-struct LinesBoxes {
-    boxes: Vec<Fragment>,
+struct Lines {
+    // One anonymous fragment per line
+    fragments: Vec<Fragment>,
     next_line_block_position: Length,
 }
 
@@ -201,8 +203,8 @@ impl InlineFormattingContext {
             absolutely_positioned_fragments,
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
-            line_boxes: LinesBoxes {
-                boxes: Vec::new(),
+            lines: Lines {
+                fragments: Vec::new(),
                 next_line_block_position: Length::zero(),
             },
             inline_position: Length::zero(),
@@ -233,7 +235,7 @@ impl InlineFormattingContext {
                                         DisplayOutside::Inline => ifc.inline_position,
                                         DisplayOutside::Block => Length::zero(),
                                     },
-                                    block: ifc.line_boxes.next_line_block_position,
+                                    block: ifc.lines.next_line_block_position,
                                 },
                                 Display::Contents => {
                                     panic!("display:contents does not generate an abspos box")
@@ -259,11 +261,14 @@ impl InlineFormattingContext {
                 );
                 ifc.current_nesting_level = partial.parent_nesting_level
             } else {
-                ifc.line_boxes
-                    .finish_line(&mut ifc.current_nesting_level, containing_block);
+                ifc.lines.finish_line(
+                    &mut ifc.current_nesting_level,
+                    containing_block,
+                    ifc.inline_position,
+                );
                 return FlowLayout {
-                    fragments: ifc.line_boxes.boxes,
-                    content_block_size: ifc.line_boxes.next_line_block_position,
+                    fragments: ifc.lines.fragments,
+                    content_block_size: ifc.lines.next_line_block_position,
                     collapsible_margins_in_children: CollapsedBlockMargins::zero(),
                 };
             }
@@ -271,28 +276,69 @@ impl InlineFormattingContext {
     }
 }
 
-impl LinesBoxes {
+impl Lines {
     fn finish_line(
         &mut self,
         top_nesting_level: &mut InlineNestingLevelState,
         containing_block: &ContainingBlock,
+        line_content_inline_size: Length,
     ) {
+        let mut line_contents = std::mem::take(&mut top_nesting_level.fragments_so_far);
+        let line_block_size = std::mem::replace(
+            &mut top_nesting_level.max_block_size_of_fragments_so_far,
+            Length::zero(),
+        );
+        enum TextAlign {
+            Start,
+            Center,
+            End,
+        }
+        let line_left_is_inline_start = containing_block
+            .style
+            .writing_mode
+            .line_left_is_inline_start();
+        let text_align = match containing_block.style.clone_text_align() {
+            TextAlignKeyword::Start => TextAlign::Start,
+            TextAlignKeyword::Center => TextAlign::Center,
+            TextAlignKeyword::End => TextAlign::End,
+            TextAlignKeyword::Left => {
+                if line_left_is_inline_start {
+                    TextAlign::Start
+                } else {
+                    TextAlign::End
+                }
+            },
+            TextAlignKeyword::Right => {
+                if line_left_is_inline_start {
+                    TextAlign::End
+                } else {
+                    TextAlign::Start
+                }
+            },
+        };
+        let move_by = match text_align {
+            TextAlign::Start => Length::zero(),
+            TextAlign::Center => (containing_block.inline_size - line_content_inline_size) / 2.,
+            TextAlign::End => containing_block.inline_size - line_content_inline_size,
+        };
+        if move_by > Length::zero() {
+            for fragment in &mut line_contents {
+                fragment.position_mut().inline += move_by;
+            }
+        }
         let start_corner = Vec2 {
             inline: Length::zero(),
             block: self.next_line_block_position,
         };
         let size = Vec2 {
             inline: containing_block.inline_size,
-            block: std::mem::replace(
-                &mut top_nesting_level.max_block_size_of_fragments_so_far,
-                Length::zero(),
-            ),
+            block: line_block_size,
         };
         self.next_line_block_position += size.block;
-        self.boxes.push(Fragment::Anonymous(AnonymousFragment {
-            children: std::mem::take(&mut top_nesting_level.fragments_so_far),
+        self.fragments.push(Fragment::Anonymous(AnonymousFragment {
+            children: line_contents,
             rect: Rect { start_corner, size },
-            mode: containing_block.mode,
+            mode: containing_block.style.writing_mode,
         }))
     }
 }
@@ -446,10 +492,11 @@ fn layout_atomic<'box_tree>(
             let containing_block_for_children = ContainingBlock {
                 inline_size,
                 block_size,
-                mode: atomic.style.writing_mode(),
+                style: &atomic.style,
             };
             assert_eq!(
-                ifc.containing_block.mode, containing_block_for_children.mode,
+                ifc.containing_block.style.writing_mode,
+                containing_block_for_children.style.writing_mode,
                 "Mixed writing modes are not supported yet"
             );
             // FIXME is this correct?
@@ -599,7 +646,7 @@ impl TextRun {
                 LineHeight::Number(n) => font_size * n.0,
                 LineHeight::Length(l) => l.0,
             };
-            let content_rect = Rect {
+            let rect = Rect {
                 start_corner: Vec2 {
                     block: Length::zero(),
                     inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
@@ -617,7 +664,7 @@ impl TextRun {
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
                     parent_style: self.parent_style.clone(),
-                    content_rect,
+                    rect,
                     ascent: font_ascent.into(),
                     font_key,
                     glyphs,
@@ -637,8 +684,8 @@ impl TextRun {
                     partial.parent_nesting_level.inline_start = Length::zero();
                     nesting_level = &mut partial.parent_nesting_level;
                 }
-                ifc.line_boxes
-                    .finish_line(nesting_level, ifc.containing_block);
+                ifc.lines
+                    .finish_line(nesting_level, ifc.containing_block, ifc.inline_position);
                 ifc.inline_position = Length::zero();
             }
         }

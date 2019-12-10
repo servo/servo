@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::flow_relative::{Rect, Sides};
-use crate::style_ext::{Direction, WritingMode};
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
@@ -51,12 +51,12 @@ pub(crate) struct CollapsedMargin {
 pub(crate) struct AnonymousFragment {
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
-    pub mode: (WritingMode, Direction),
+    pub mode: WritingMode,
 }
 
 pub(crate) struct TextFragment {
     pub parent_style: ServoArc<ComputedValues>,
-    pub content_rect: Rect<Length>,
+    pub rect: Rect<Length>,
     pub ascent: Length,
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
@@ -64,12 +64,23 @@ pub(crate) struct TextFragment {
 
 pub(crate) struct ImageFragment {
     pub style: ServoArc<ComputedValues>,
-    pub content_rect: Rect<Length>,
+    pub rect: Rect<Length>,
     pub image_key: ImageKey,
 }
 
+impl Fragment {
+    pub fn position_mut(&mut self) -> &mut Vec2<Length> {
+        match self {
+            Fragment::Box(f) => &mut f.content_rect.start_corner,
+            Fragment::Anonymous(f) => &mut f.rect.start_corner,
+            Fragment::Text(f) => &mut f.rect.start_corner,
+            Fragment::Image(f) => &mut f.rect.start_corner,
+        }
+    }
+}
+
 impl AnonymousFragment {
-    pub fn no_op(mode: (WritingMode, Direction)) -> Self {
+    pub fn no_op(mode: WritingMode) -> Self {
         Self {
             children: vec![],
             rect: Rect::zero(),

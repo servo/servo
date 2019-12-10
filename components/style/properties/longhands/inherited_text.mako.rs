@@ -156,7 +156,6 @@ ${helpers.predefined_type(
     "TextAlign",
     "computed::TextAlign::Start",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align",
     servo_restyle_damage = "reflow",

@@ -8,7 +8,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
-use crate::style_ext::{ComputedValuesExt, Direction, DisplayInside, WritingMode};
+use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
@@ -128,7 +128,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         fragments: &mut Vec<Fragment>,
         content_rect_size: &Vec2<Length>,
         padding: &Sides<Length>,
-        mode: (WritingMode, Direction),
+        style: &ComputedValues,
     ) {
         if absolute.is_empty() {
             return;
@@ -141,7 +141,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
         .inflate(&padding);
         let containing_block = DefiniteContainingBlock {
             size: padding_rect.size.clone(),
-            mode,
+            style,
         };
         fragments.push(Fragment::Anonymous(AnonymousFragment {
             children: absolute
@@ -149,7 +149,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 .map(|a| a.layout(layout_context, &containing_block))
                 .collect(),
             rect: padding_rect,
-            mode,
+            mode: style.writing_mode,
         }))
     }
 
@@ -324,11 +324,12 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
                     block_size,
-                    mode: style.writing_mode(),
+                    style,
                 };
                 // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                 assert_eq!(
-                    containing_block.mode, containing_block_for_children.mode,
+                    containing_block.style.writing_mode,
+                    containing_block_for_children.style.writing_mode,
                     "Mixed writing modes are not supported yet"
                 );
                 let dummy_tree_rank = 0;
@@ -369,7 +370,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             &mut independent_layout.fragments,
             &content_rect.size,
             &padding,
-            style.writing_mode(),
+            style,
         );
 
         Fragment::Box(BoxFragment {

@@ -173,6 +173,11 @@ impl WritingMode {
         self.intersects(WritingMode::VERTICAL)
     }
 
+    #[inline]
+    pub fn is_horizontal(&self) -> bool {
+        !self.is_vertical()
+    }
+
     /// Assuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
@@ -199,6 +204,20 @@ impl WritingMode {
     #[inline]
     pub fn is_upright(&self) -> bool {
         self.intersects(WritingMode::UPRIGHT)
+    }
+
+    /// https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+    ///
+    /// | Return  | line-left is… | line-right is… |
+    /// |---------|---------------|----------------|
+    /// | `true`  | inline-start  | inline-end     |
+    /// | `false` | inline-end    | inline-start   |
+    #[inline]
+    pub fn line_left_is_inline_start(&self) -> bool {
+        // https://drafts.csswg.org/css-writing-modes/#inline-start
+        // “For boxes with a used direction value of ltr, this means the line-left side.
+        //  For boxes with a used direction value of rtl, this means the line-right side.”
+        self.is_bidi_ltr()
     }
 
     #[inline]
