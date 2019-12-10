@@ -75,6 +75,7 @@ extern crate thin_slice;
 extern crate time;
 #[cfg(feature = "url")]
 extern crate url;
+#[cfg(feature = "servo")]
 extern crate uuid;
 extern crate void;
 #[cfg(feature = "webrender_api")]
@@ -91,6 +92,7 @@ use std::mem::size_of;
 use std::ops::Range;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
+#[cfg(feature = "servo")]
 use uuid::Uuid;
 use void::Void;
 
@@ -822,7 +824,7 @@ macro_rules! malloc_size_of_is_0(
     );
 );
 
-malloc_size_of_is_0!(bool, char, str, Uuid);
+malloc_size_of_is_0!(bool, char, str);
 malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 malloc_size_of_is_0!(i8, i16, i32, i64, i128, isize);
 malloc_size_of_is_0!(f32, f64);
@@ -841,6 +843,9 @@ malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
 
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(csp::Destination);
+
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(Uuid);
 
 #[cfg(feature = "url")]
 impl MallocSizeOf for url::Host {
