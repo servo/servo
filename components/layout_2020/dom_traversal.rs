@@ -17,7 +17,6 @@ use std::sync::Arc;
 use style::dom::TNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::computed::Length;
 
 #[derive(Clone, Copy)]
 pub enum WhichPseudoElement {
@@ -299,7 +298,10 @@ impl Drop for BoxSlot<'_> {
 pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<String>;
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<Length>)>;
+
+    /// Returns the image if it’s loaded, and its size in image pixels
+    /// adjusted for `image_density`.
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<f64>)>;
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
@@ -328,7 +330,7 @@ where
         }
     }
 
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<Length>)> {
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<f64>)> {
         let node = self.to_threadsafe();
         let (resource, metadata) = node.image_data()?;
         let (width, height) = resource
@@ -336,14 +338,14 @@ where
             .map(|image| (image.width, image.height))
             .or_else(|| metadata.map(|metadata| (metadata.width, metadata.height)))
             .unwrap_or((0, 0));
-        let (mut width, mut height) = (width as f32, height as f32);
+        let (mut width, mut height) = (width as f64, height as f64);
         if let Some(density) = node.image_density().filter(|density| *density != 1.) {
-            width = (width as f64 / density) as f32;
-            height = (height as f64 / density) as f32;
+            width = width / density;
+            height = height / density;
         }
         let size = Vec2 {
-            x: Length::new(width),
-            y: Length::new(height),
+            x: width,
+            y: height,
         };
         Some((resource, size))
     }

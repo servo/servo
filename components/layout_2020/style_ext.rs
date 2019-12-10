@@ -40,7 +40,7 @@ pub(crate) enum DisplayInside {
 }
 
 pub(crate) trait ComputedValuesExt {
-    fn inline_size_is_auto(&self) -> bool;
+    fn inline_size_is_length(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
@@ -52,14 +52,14 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
-    fn inline_size_is_auto(&self) -> bool {
+    fn inline_size_is_length(&self) -> bool {
         let position = self.get_position();
         let size = if self.writing_mode.is_horizontal() {
             position.width
         } else {
             position.height
         };
-        size == Size::Auto
+        matches!(size, Size::LengthPercentage(lp) if lp.0.as_length().is_some())
     }
 
     fn inline_box_offsets_are_both_non_auto(&self) -> bool {

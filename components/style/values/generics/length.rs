@@ -207,6 +207,15 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     pub fn none() -> Self {
         MaxSize::None
     }
+
+    /// Convert
+    #[cfg(not(feature = "gecko"))]
+    pub fn to_option(self) -> Option<LengthPercentage> {
+        match self {
+            Self::LengthPercentage(lp) => Some(lp),
+            Self::None => None,
+        }
+    }
 }
 
 /// A generic `<length>` | `<number>` value for the `-moz-tab-size` property.

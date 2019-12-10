@@ -33,7 +33,7 @@ impl FloatBox {
         display_inside: DisplayInside,
         contents: Contents<impl NodeExt<'dom>>,
     ) -> Self {
-        let content_sizes = ContentSizesRequest::inline_if(style.inline_size_is_auto());
+        let content_sizes = ContentSizesRequest::inline_if(!style.inline_size_is_length());
         Self {
             contents: IndependentFormattingContext::construct(
                 context,

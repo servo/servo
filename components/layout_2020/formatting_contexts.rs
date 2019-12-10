@@ -29,6 +29,8 @@ pub(crate) struct IndependentFormattingContext {
 
 pub(crate) struct IndependentLayout {
     pub fragments: Vec<Fragment>,
+
+    /// https://drafts.csswg.org/css2/visudet.html#root-height
     pub content_block_size: Length,
 }
 
@@ -57,31 +59,30 @@ impl IndependentFormattingContext {
         contents: Contents<impl NodeExt<'dom>>,
         content_sizes: ContentSizesRequest,
     ) -> Self {
-        use self::IndependentFormattingContextContents as Contents;
-        let (contents, content_sizes) = match contents.try_into() {
+        match contents.try_into() {
             Ok(non_replaced) => match display_inside {
                 DisplayInside::Flow | DisplayInside::FlowRoot => {
-                    let (bfc, box_content_sizes) = BlockFormattingContext::construct(
+                    let (bfc, content_sizes) = BlockFormattingContext::construct(
                         context,
                         &style,
                         non_replaced,
                         content_sizes,
                     );
-                    (Contents::Flow(bfc), box_content_sizes)
+                    Self {
+                        style,
+                        content_sizes,
+                        contents: IndependentFormattingContextContents::Flow(bfc),
+                    }
                 },
             },
             Err(replaced) => {
-                // The `content_sizes` field is not used by layout code:
-                (
-                    Contents::Replaced(replaced),
-                    BoxContentSizes::NoneWereRequested,
-                )
+                let content_sizes = content_sizes.compute(|| replaced.inline_content_sizes(&style));
+                Self {
+                    style,
+                    content_sizes,
+                    contents: IndependentFormattingContextContents::Replaced(replaced),
+                }
             },
-        };
-        Self {
-            style,
-            contents,
-            content_sizes,
         }
     }
 

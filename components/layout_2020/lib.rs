@@ -44,6 +44,16 @@ struct DefiniteContainingBlock<'a> {
     style: &'a ComputedValues,
 }
 
+impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
+    fn from(definite: &DefiniteContainingBlock<'a>) -> Self {
+        ContainingBlock {
+            inline_size: definite.size.inline,
+            block_size: LengthOrAuto::LengthPercentage(definite.size.block),
+            style: definite.style,
+        }
+    }
+}
+
 /// https://drafts.csswg.org/css2/visuren.html#relative-positioning
 fn relative_adjustement(
     style: &ComputedValues,
