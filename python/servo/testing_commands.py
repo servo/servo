@@ -776,7 +776,7 @@ class MachCommands(CommandBase):
 def setup_clangfmt(env):
     cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
     try:
-        version = check_output([cmd, "--version"], env=env).rstrip()
+        version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
         print(version)
         if not version.startswith("clang-format version {}.".format(CLANGFMT_VERSION)):
             print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
@@ -785,7 +785,7 @@ def setup_clangfmt(env):
         print("clang-format not installed. Skipping CPP formatting.")
         return False, None, None
     gitcmd = ['git', 'ls-files']
-    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS).splitlines()
+    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS, universal_newlines=True).splitlines()
     filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
     return True, cmd, filtered
 
