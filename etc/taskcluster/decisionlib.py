@@ -172,8 +172,7 @@ class Task:
         self.treeherder_required = True
         return self
 
-    def with_treeherder(self, category, symbol=None):
-        symbol = symbol or self.name
+    def with_treeherder(self, category, symbol):
         assert len(symbol) <= 25, symbol
         self.name = "%s: %s" % (category, self.name)
 
