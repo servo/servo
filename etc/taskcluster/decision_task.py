@@ -585,7 +585,7 @@ def update_wpt():
     return (
         linux_task("WPT update")
         .with_treeherder("Linux x64", "WPT update")
-        .with_dockerfile(dockerfile_path("run"))
+        .with_dockerfile(dockerfile_path("wpt-update"))
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
