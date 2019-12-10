@@ -55,7 +55,7 @@ impl FormData {
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
-            return match opt_form.get_form_dataset(None) {
+            return match opt_form.get_form_dataset(None, None) {
                 Some(form_datums) => Ok(FormData::new(Some(form_datums), global)),
                 None => Err(Error::InvalidState),
             };

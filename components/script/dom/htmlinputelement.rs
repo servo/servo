@@ -49,6 +49,7 @@ use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits,
 use caseless::compatibility_caseless_match_str;
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
+use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use msg::constellation_msg::InputMethodType;
 use net_traits::blob_url_store::get_blob_origin;
@@ -929,14 +930,18 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    /// Steps range from 3.1 to 3.7 (specific to HTMLInputElement)
-    pub fn form_datums(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    /// Steps range from 5.1 to 5.10 (specific to HTMLInputElement)
+    pub fn form_datums(
+        &self,
+        submitter: Option<FormSubmitter>,
+        encoding: Option<&'static Encoding>,
+    ) -> Vec<FormDatum> {
         // 3.1: disabled state check is in get_unclean_dataset
 
-        // Step 3.2
+        // Step 5.2
         let ty = self.Type();
 
-        // Step 3.4
+        // Step 5.4
         let name = self.Name();
         let is_submitter = match submitter {
             Some(FormSubmitter::InputElement(s)) => self == s,
@@ -944,12 +949,12 @@ impl HTMLInputElement {
         };
 
         match self.input_type() {
-            // Step 3.1: it's a button but it is not submitter.
+            // Step 5.1: it's a button but it is not submitter.
             InputType::Submit | InputType::Button | InputType::Reset if !is_submitter => {
                 return vec![];
             },
 
-            // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
+            // Step 5.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
             InputType::Radio | InputType::Checkbox => {
                 if !self.Checked() || name.is_empty() {
                     return vec![];
@@ -959,7 +964,7 @@ impl HTMLInputElement {
             InputType::File => {
                 let mut datums = vec![];
 
-                // Step 3.2-3.7
+                // Step 5.2-5.7
                 let name = self.Name();
 
                 match self.GetFiles() {
@@ -988,7 +993,21 @@ impl HTMLInputElement {
 
             InputType::Image => return vec![], // Unimplemented
 
-            // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
+            // Step 5.10: it's a hidden field named _charset_
+            InputType::Hidden => {
+                if name == "_charset_" {
+                    return vec![FormDatum {
+                        ty: ty.clone(),
+                        name: name,
+                        value: FormDatumValue::String(match encoding {
+                            None => DOMString::from("UTF-8"),
+                            Some(enc) => DOMString::from(enc.name()),
+                        }),
+                    }];
+                }
+            },
+
+            // Step 5.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => {
                 if name.is_empty() {
                     return vec![];
@@ -996,7 +1015,7 @@ impl HTMLInputElement {
             },
         }
 
-        // Step 3.9
+        // Step 5.12
         vec![FormDatum {
             ty: ty.clone(),
             name: name,
