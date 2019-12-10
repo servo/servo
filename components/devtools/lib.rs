@@ -307,7 +307,7 @@ fn run_server(
             let worker = WorkerActor {
                 name: actors.new_name("worker"),
                 console: console.name(),
-                id: id.clone(),
+                id: id,
             };
             actor_workers.insert((pipeline, id), worker.name.clone());
             actors.register(Box::new(worker));

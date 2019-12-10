@@ -98,9 +98,8 @@ impl ServiceWorkerManager {
                     title: title,
                     url: scope_things.script_url.clone(),
                 };
-                let worker_id = scope_things.worker_id.clone();
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (scope_things.init.pipeline_id, Some(worker_id)),
+                    (scope_things.init.pipeline_id, Some(scope_things.worker_id)),
                     devtools_sender,
                     page_info,
                 ));
