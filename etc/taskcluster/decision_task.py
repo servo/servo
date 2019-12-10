@@ -205,6 +205,7 @@ def linux_tidy_unit():
         .with_treeherder("Linux x64", "Tidy+Unit")
         .with_script("""
             ./mach test-tidy --no-progress --all
+            python3 ./mach test-tidy --no-progress --all --no-wpt
             python3 ./mach build --dev
             python3 ./mach test-unit
             python3 ./mach package --dev
