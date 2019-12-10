@@ -241,18 +241,28 @@ promise_test(async t => {
 }, 'Element.animate() does NOT trigger a style change event');
 
 // Tests on pseudo-elements
+// Some tests occur twice (on pseudo-elements with and without content)
+// in order to test both code paths for tree-abiding pseudo-elements in blink.
 
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
+  getComputedStyle(div,"::before").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::before'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation');
 }, 'animate() with pseudoElement parameter creates an Animation object');
 
 test(t => {
   const div = createDiv(t);
+  const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_class_string(anim, 'Animation', 'The returned object is an Animation');
+}, 'animate() with pseudoElement parameter without content creates an Animation object');
+
+test(t => {
+  const div = createDiv(t);
   div.classList.add('pseudo');
   div.style.display = 'list-item';
+  getComputedStyle(div,"::marker").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::marker'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::marker');
 }, 'animate() with pseudoElement parameter  creates an Animation object for ::marker');
@@ -268,31 +278,45 @@ test(t => {
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
+  getComputedStyle(div,"::before").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
   assert_equals(anim.effect.pseudoElement, '::before',
-                'The returned Animation targets to the correct selector');
+                'The returned Animation targets the correct selector');
 }, 'animate() with pseudoElement an Animation object targeting ' +
-   'to the correct pseudo-element');
+   'the correct pseudo-element');
+
+test(t => {
+  const div = createDiv(t);
+  const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
+  assert_equals(anim.effect.pseudoElement, '::before',
+                'The returned Animation targets the correct selector');
+}, 'animate() with pseudoElement without content creates an Animation object targeting ' +
+   'the correct pseudo-element');
 
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
   div.style.display = 'list-item';
+  getComputedStyle(div,"::marker").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::marker'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
   assert_equals(anim.effect.pseudoElement, '::marker',
-                'The returned Animation targets to the correct selector');
+                'The returned Animation targets the correct selector');
 }, 'animate() with pseudoElement an Animation object targeting ' +
-   'to the correct pseudo-element for ::marker');
+   'the correct pseudo-element for ::marker');
 
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
   div.textContent = 'foo';
   const anim = div.animate(null, {pseudoElement: '::first-line'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
   assert_equals(anim.effect.pseudoElement, '::first-line',
-                'The returned Animation targets to the correct selector');
+                'The returned Animation targets the correct selector');
 }, 'animate() with pseudoElement an Animation object targeting ' +
-   'to the correct pseudo-element for ::first-line');
+   'the correct pseudo-element for ::first-line');
 
 </script>
 </body>

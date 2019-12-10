@@ -216,7 +216,9 @@
          * This function simulates a user setting a permission into a particular state as described
          * in {@link https://w3c.github.io/permissions/#set-permission-command}
          *
-         * @param {String} name - the name of the permission
+         * @param {Object} descriptor - a [PermissionDescriptor]{@link
+         *                              https://w3c.github.io/permissions/#dictdef-permissiondescriptor}
+         *                              object
          * @param {String} state - the state of the permission
          * @param {boolean} one_realm - Optional. Whether the permission applies to only one realm
          *
@@ -226,12 +228,10 @@
          * @returns {Promise} fulfilled after the permission is set, or rejected if setting the
          *                    permission fails
          */
-        set_permission: function(name, state, one_realm) {
+        set_permission: function(descriptor, state, one_realm) {
             let permission_params = {
-              descriptor: {
-                name: name
-              },
-              state: state,
+              descriptor,
+              state,
               oneRealm: one_realm,
             };
             return window.test_driver_internal.set_permission(permission_params);

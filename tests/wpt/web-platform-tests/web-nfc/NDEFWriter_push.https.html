@@ -124,7 +124,7 @@ promise_test(async t => {
 }, "Test that promise is rejected with SyntaxError if NDEFMessageSource contains\
  invalid records.");
 
- promise_test(async t => {
+promise_test(async t => {
   if (window.testRunner) {
     // Deny nfc permissions for Chromium testrunner.
     window.testRunner.setPermission('nfc', 'denied',
@@ -133,6 +133,18 @@ promise_test(async t => {
   const writer = new NDEFWriter();
   await promise_rejects(t, 'NotAllowedError', writer.push(test_text_data));
 }, 'NDEFWriter.push should fail if user permission is not granted.');
+
+// We do not provide NFC mock here to simulate that there has no available
+// implementation for NFC Mojo interface.
+promise_test(async t => {
+  if (window.testRunner) {
+    // Deny nfc permissions for Chromium testrunner.
+    window.testRunner.setPermission('nfc', 'granted',
+                                    location.origin, location.origin);
+  }
+  const writer = new NDEFWriter();
+  await promise_rejects(t, 'NotSupportedError', writer.push(test_text_data));
+}, 'NDEFWriter.push should fail if no implementation for NFC Mojo interface is available.');
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
@@ -206,14 +218,6 @@ promise_test(async t => {
   await promise_rejects(
     t, 'NotSupportedError', writer.push(new ArrayBuffer(32 * 1024 + 1)));
 }, "Reject promise with NotSupportedError if NFC message size exceeds 32KB.");
-
-promise_test(async t => {
-  const writer = new NDEFWriter();
-  const message = createMessage([createTextRecord(test_text_data)]);
-  message.url = '%00/invalid/ path';
-  await promise_rejects(t, 'SyntaxError', writer.push(message));
-}, "Reject promise with SyntaxError if WebNFC Id cannot be created from \
-provided URL.");
 
 promise_test(async t => {
   const writer = new NDEFWriter();

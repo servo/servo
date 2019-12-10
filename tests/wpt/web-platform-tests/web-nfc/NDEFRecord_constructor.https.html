@@ -18,6 +18,12 @@
 
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(
+          createRecord('empty', test_text_data, test_record_id)),
+        'id does not apply for empty record type.');
+  }, 'NDEFRecord constructor with empty record type and id');
+
+  test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(
           createRecord('empty', test_text_data, test_record_id, 'text/plain')),
         'mediaType does not apply for empty record type.');
     assert_throws(new TypeError, () => new NDEFRecord(

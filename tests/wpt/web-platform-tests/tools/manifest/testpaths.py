@@ -33,6 +33,8 @@ def create_parser():
     parser.add_argument(
         "-p", "--path", type=abs_path, help="Path to manifest file.")
     parser.add_argument(
+        "--src-root", type=abs_path, default=None, help="Path to root of sourcetree.")
+    parser.add_argument(
         "--tests-root", type=abs_path, default=wpt_root, help="Path to root of tests.")
     parser.add_argument(
         "--no-update", dest="update", action="store_false", default=True,
@@ -55,25 +57,35 @@ def create_parser():
     return parser
 
 
-def get_path_id_map(manifest_file, test_ids):
-    # type: (Manifest, Iterable[Text]) -> Dict[Text, List[Text]]
+def get_path_id_map(src_root, tests_root, manifest_file, test_ids):
+    # type: (Text, Text, Manifest, Iterable[Text]) -> Dict[Text, List[Text]]
     test_ids = set(test_ids)
     path_id_map = defaultdict(list)  # type: Dict[Text, List[Text]]
+
+    compute_rel_path = src_root != tests_root
 
     for item_type, path, tests in manifest_file:
         for test in tests:
             if test.id in test_ids:
-                path_id_map[path].append(test.id)
+                if compute_rel_path:
+                    rel_path = os.path.relpath(os.path.join(tests_root, path),
+                                               src_root)
+                else:
+                    rel_path = path
+                path_id_map[rel_path].append(test.id)
     return path_id_map
 
 
-def run(**kwargs):
-    # type: (**Any) -> None
+def get_paths(**kwargs):
+    # type: (**Any) -> Dict[Text, List[Text]]
     tests_root = kwargs["tests_root"]
     assert tests_root is not None
     path = kwargs["path"]
     if path is None:
         path = os.path.join(kwargs["tests_root"], "MANIFEST.json")
+    src_root = kwargs["src_root"]
+    if src_root is None:
+        src_root = tests_root
 
     manifest_file = load_and_update(tests_root,
                                     path,
@@ -82,11 +94,21 @@ def run(**kwargs):
                                     rebuild=kwargs["rebuild"],
                                     cache_root=kwargs["cache_root"])
 
-    path_id_map = get_path_id_map(manifest_file, kwargs["test_ids"])
-    if kwargs["json"]:
+    return get_path_id_map(src_root, tests_root, manifest_file, kwargs["test_ids"])
+
+
+def write_output(path_id_map, as_json):
+    # type: (Dict[Text, List[Text]], bool) -> None
+    if as_json:
         print(json.dumps(path_id_map))
     else:
         for path, test_ids in sorted(iteritems(path_id_map)):
             print(path)
             for test_id in sorted(test_ids):
                 print("  " + test_id)
+
+
+def run(**kwargs):
+    # type: (**Any) -> None
+    path_id_map = get_paths(**kwargs)
+    write_output(path_id_map, as_json=kwargs["json"])

@@ -36,20 +36,6 @@ promise_test(async t => {
 }, "Test that NDEFReader.scan rejects if signal is not an AbortSignal.");
 
 promise_test(async t => {
-  await waitSyntaxErrorPromise(t, {id: "www.a.com"});
-}, "Test that NDEFReader.scan rejects if NDEFScanOptions.id is missing \
-components.");
-
-promise_test(async t => {
-  await waitSyntaxErrorPromise(t, {id: "invalid"});
-}, "Test that NDEFReader.scan rejects if NDEFScanOptions.id is invalid.");
-
-promise_test(async t => {
-  await waitSyntaxErrorPromise(t, {id: "http://a.com"});
-}, "Test that NDEFReader.scan rejects if NDEFScanOptions.id has wrong \
-protocol.");
-
-promise_test(async t => {
   if (window.testRunner) {
     // Deny nfc permissions for Chromium testrunner.
     window.testRunner.setPermission('nfc', 'denied',
@@ -58,6 +44,23 @@ promise_test(async t => {
   const reader = new NDEFReader();
   await promise_rejects(t, 'NotAllowedError', reader.scan());
 }, "NDEFReader.scan should fail if user permission is not granted.");
+
+// We do not provide NFC mock here to simulate that there has no available
+// implementation for NFC Mojo interface.
+promise_test(async t => {
+  if (window.testRunner) {
+    window.testRunner.setPermission('nfc', 'granted',
+                                    location.origin, location.origin);
+  }
+  const reader = new NDEFReader();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("error").then(event => {
+    assert_true(event instanceof ErrorEvent);
+  });
+  await promise_rejects(t, 'NotSupportedError', reader.scan());
+  await promise;
+}, "Test that an error event happens if no implementation for NFC Mojo interface \
+is available.");
 
 nfc_test(async (t, mockNFC) => {
   mockNFC.setHWStatus(NFCHWStatus.DISABLED);
@@ -93,56 +96,11 @@ nfc_test(async (t, mockNFC) => {
     assert_true(event instanceof NDEFReadingEvent);
     controller.abort();
   });
-  await reader.scan({signal : controller.signal, url: "https://a.com"});
+  await reader.scan({signal : controller.signal});
 
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   await promise;
-}, "Test that NDEFReader.scan succeeds if NDEFScanOptions.url is valid URL.");
-
-nfc_test(async (t, mockNFC) => {
-  const reader = new NDEFReader();
-  const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  const promise = readerWatcher.wait_for("reading").then(event => {
-    assert_true(event instanceof NDEFReadingEvent);
-    controller.abort();
-  });
-  await reader.scan({signal : controller.signal, url: "https://a.com/*"});
-
-  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
-  await promise;
-}, "Test that NDEFReader.scan succeeds if NDEFScanOptions.url is valid URL \
-with '*' wildcard character in path.");
-
-nfc_test(async (t, mockNFC) => {
-  const reader = new NDEFReader();
-  const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  const promise = readerWatcher.wait_for("reading").then(event => {
-    assert_true(event instanceof NDEFReadingEvent);
-    controller.abort();
-  });
-  await reader.scan({signal : controller.signal, url: "https://a.com/*/bar"});
-
-  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
-  await promise;
-}, "Test that NDEFReader.scan succeeds if NDEFScanOptions.url is valid URL \
-with '*' wildcard character in the beginning of path component followed by \
-subpath.");
-
-nfc_test(async (t, mockNFC) => {
-  const reader = new NDEFReader();
-  const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  const promise = readerWatcher.wait_for("reading").then(event => {
-    assert_true(event instanceof NDEFReadingEvent);
-    controller.abort();
-  });
-  await reader.scan({signal : controller.signal, url: ""});
-
-  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
-  await promise;
-}, "Test that NDEFReader.scan succeeds if NDEFScanOptions.url is empty.");
+}, "Test that NDEFReader.scan matches any ids if NDEFScanOptions.id is undefined.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();

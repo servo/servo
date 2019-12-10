@@ -82,6 +82,8 @@ components:
 
   browser-chrome: {}
 
+  browser-servo: {}
+
   tox-python2:
     env:
       TOXENV: py27
@@ -163,6 +165,11 @@ tasks:
                 channel: stable
               use:
                 - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: servo
+                channel: nightly
+              use:
                 - trigger-push
 
           do:

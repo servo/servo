@@ -21,7 +21,7 @@
         text = await response.text();
         assert_header_equals(text, expected, "Appcache resource");
       } catch (e) {
-        t.step_func(e => {
+        t.step(e => {
           if (e instanceof AssertionError) {
             throw e;
           }

@@ -130,6 +130,7 @@ class ExecutorException(Exception):
 class TimedRunner(object):
     def __init__(self, logger, func, protocol, url, timeout, extra_timeout):
         self.func = func
+        self.logger = logger
         self.result = None
         self.protocol = protocol
         self.url = url
@@ -149,7 +150,8 @@ class TimedRunner(object):
 
         # Add twice the timeout multiplier since the called function is expected to
         # wait at least self.timeout + self.extra_timeout and this gives some leeway
-        finished = self.result_flag.wait(self.timeout + 2 * self.extra_timeout)
+        timeout = self.timeout + 2 * self.extra_timeout if self.timeout else None
+        finished = self.result_flag.wait(timeout)
         if self.result is None:
             if finished:
                 # flag is True unless we timeout; this *shouldn't* happen, but
@@ -781,7 +783,7 @@ class SetPermissionAction(object):
         state = permission_params["state"]
         one_realm = permission_params.get("oneRealm", False)
         self.logger.debug("Setting permission %s to %s, oneRealm=%s" % (name, state, one_realm))
-        self.protocol.set_permission.set_permission(name, state, one_realm)
+        self.protocol.set_permission.set_permission(descriptor, state, one_realm)
 
 class AddVirtualAuthenticatorAction(object):
     def __init__(self, logger, protocol):

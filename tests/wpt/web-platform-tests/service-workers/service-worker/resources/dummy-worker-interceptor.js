@@ -11,10 +11,11 @@ self.onfetch = event => {
 
   // Request handler for a synthesized response.
   if (url.indexOf('synthesized') != -1) {
+    let script_headers = new Headers({ "Content-Type": "text/javascript" });
     if (destination === 'worker')
-      event.respondWith(new Response(dedicated_worker_script));
+      event.respondWith(new Response(dedicated_worker_script, { 'headers': script_headers }));
     else if (destination === 'sharedworker')
-      event.respondWith(new Response(shared_worker_script));
+      event.respondWith(new Response(shared_worker_script, { 'headers': script_headers }));
     else
       event.respondWith(new Response('Unexpected request! ' + destination));
     return;

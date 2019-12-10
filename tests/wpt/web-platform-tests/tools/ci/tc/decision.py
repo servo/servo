@@ -121,24 +121,35 @@ def get_fetch_rev(event):
     is_pr, _ = get_triggers(event)
     if is_pr:
         # Try to get the actual rev so that all non-decision tasks are pinned to that
-        ref = "refs/pull/%s/merge" % event["pull_request"]["number"]
-        try:
-            output = subprocess.check_output(["git", "ls-remote", "origin", ref])
-        except subprocess.CalledProcessError:
-            import traceback
-            logger.error(traceback.format_exc())
-            logger.error("Failed to get merge commit sha1")
-            return ref, None
-        if not output:
-            logger.error("Failed to get merge commit")
-            return ref, None
-        return ref, output.split()[0]
+        rv = ["refs/pull/%s/merge" % event["pull_request"]["number"]]
+        # For every PR GitHub maintains a 'head' branch with commits from the
+        # PR, and a 'merge' branch containing a merge commit between the base
+        # branch and the PR.
+        for ref_type in ["head", "merge"]:
+            ref = "refs/pull/%s/%s" % (event["pull_request"]["number"], ref_type)
+            sha = None
+            try:
+                output = subprocess.check_output(["git", "ls-remote", "origin", ref])
+            except subprocess.CalledProcessError:
+                import traceback
+                logger.error(traceback.format_exc())
+                logger.error("Failed to get commit sha1 for %s" % ref)
+            else:
+                if not output:
+                    logger.error("Failed to get commit for %s" % ref)
+                else:
+                    sha = output.split()[0]
+            rv.append(sha)
+        rv = tuple(rv)
     else:
-        return event["ref"], event["after"]
+        # For a branch push we have a ref and a head but no merge SHA
+        rv = (event["ref"], event["after"], None)
+    assert len(rv) == 3
+    return rv
 
 
 def build_full_command(event, task):
-    fetch_ref, fetch_sha = get_fetch_rev(event)
+    fetch_ref, head_sha, merge_sha = get_fetch_rev(event)
     cmd_args = {
         "task_name": task["name"],
         "repo_url": event["repository"]["clone_url"],
@@ -149,8 +160,11 @@ def build_full_command(event, task):
 
     options = task.get("options", {})
     options_args = []
-    if fetch_sha is not None:
-        options_args.append("--rev=%s" % fetch_sha)
+    options_args.append("--ref=%s" % fetch_ref)
+    if head_sha is not None:
+        options_args.append("--head-rev=%s" % head_sha)
+    if merge_sha is not None:
+        options_args.append("--merge-rev=%s" % merge_sha)
     if options.get("oom-killer"):
         options_args.append("--oom-killer")
     if options.get("xvfb"):
@@ -162,8 +176,6 @@ def build_full_command(event, task):
     # Check out the expected SHA unless it is overridden (e.g. to base_head).
     if options.get("checkout"):
         options_args.append("--checkout=%s" % options["checkout"])
-    else:
-        options_args.append("--checkout=%s" % fetch_sha)
     for browser in options.get("browser", []):
         options_args.append("--browser=%s" % browser)
     if options.get("channel"):
@@ -182,7 +194,7 @@ def build_full_command(event, task):
 
     return ["/bin/bash",
             "--login",
-            "-c",
+            "-xc",
             """
 ~/start.sh \
   %(repo_url)s \

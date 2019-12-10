@@ -13,12 +13,12 @@
 <script>
 const property = 'margin-left';
 
-function test_length_percent_equals(value, expected) {
+function test_length_percent_equals(value, expected, titleExtra) {
   const reference = document.getElementById('reference');
   reference.style[property] = '';
   reference.style[property] = expected;
   const computed = getComputedStyle(reference)[property];
-  test_computed_value(property, value, computed);
+  test_computed_value(property, value, computed, titleExtra);
 }
 
 // Identity tests
@@ -60,10 +60,10 @@ test_length_percent_equals('max(20px, 10%)', '40px');
 test_length_percent_equals('max(1em, 10%)', '40px');
 
 document.getElementById('container').style.width = '100px';
-test_length_percent_equals('min(20px, 10%)', '10px');
-test_length_percent_equals('min(1em, 10%)', '10px');
-test_length_percent_equals('max(20px, 10%)', '20px');
-test_length_percent_equals('max(1em, 10%)', '20px');
+test_length_percent_equals('min(20px, 10%)', '10px', 'width=100px');
+test_length_percent_equals('min(1em, 10%)', '10px', 'width=100px');
+test_length_percent_equals('max(20px, 10%)', '20px', 'width=100px');
+test_length_percent_equals('max(1em, 10%)', '20px', 'width=100px');
 document.getElementById('container').style.width = '400px';
 
 // Comparisons between different mixings

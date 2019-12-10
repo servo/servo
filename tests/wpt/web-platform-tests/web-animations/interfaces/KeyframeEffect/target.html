@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>KeyframeEffect.target</title>
+<title>KeyframeEffect.target and .pseudoElement</title>
 <link rel="help"
   href="https://drafts.csswg.org/web-animations/#dom-keyframeeffect-target">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<style>
+  .before::before {content: 'foo'; display: inline-block;}
+  .after::after {content: 'bar'; display: inline-block;}
+  .pseudoa::before, .pseudoc::before {margin-left: 10px;}
+  .pseudob::before, .pseudoc::after {margin-left: 20px;}
+</style>
 <body>
 <div id="log"></div>
 <script>
@@ -104,6 +110,152 @@ promise_test(async t => {
   // style.
   await waitForNextFrame();
 }, 'Target element can be set to a foreign element');
+
+// Pseudo-element tests
+// (testing target and pseudoElement in these cases)
+// Since blink uses separate code paths for handling pseudo-element styles
+// depending on whether content is set (putting the pseudo-element in the layout),
+// we run tests on both cases.
+for (const hasContent of [true, false]){
+  test(t => {
+    const d = createDiv(t);
+    d.classList.add('pseudoa');
+    if (hasContent) {
+      d.classList.add('before');
+      getComputedStyle(d,"::before").content; // Sync style
+    }
+
+    const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+    const anim = new Animation(effect, document.timeline);
+    anim.play();
+
+    anim.currentTime = 50 * MS_PER_SEC;
+    assert_equals(getComputedStyle(d, '::before').marginLeft, '10px',
+                  'Value at 50% progress before setting new target');
+    effect.target = d;
+    effect.pseudoElement = '::before';
+
+    assert_equals(effect.target, d, "Target element is set correctly");
+    assert_equals(effect.pseudoElement, '::before', "Target pseudo-element set correctly");
+    assert_equals(getComputedStyle(d, '::before').marginLeft, '50px',
+                  'Value at 50% progress after setting new target');
+  }, "Change target from null to " + (hasContent ? "an existing" : "a non-existing") +
+     " pseudoElement setting target first.");
+
+  test(t => {
+    const d = createDiv(t);
+    d.classList.add('pseudoa');
+    if (hasContent) {
+      d.classList.add('before');
+      getComputedStyle(d,"::before").content; // Sync style
+    }
+
+    const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+    const anim = new Animation(effect, document.timeline);
+    anim.play();
+
+    anim.currentTime = 50 * MS_PER_SEC;
+    assert_equals(getComputedStyle(d, '::before').marginLeft, '10px',
+                  'Value at 50% progress before setting new target');
+    effect.pseudoElement = '::before';
+    effect.target = d;
+
+    assert_equals(effect.target, d, "Target element is set correctly");
+    assert_equals(effect.pseudoElement, '::before', "Target pseudo-element set correctly");
+    assert_equals(getComputedStyle(d, '::before').marginLeft, '50px',
+                  'Value at 50% progress after setting new target');
+  }, "Change target from null to " + (hasContent ? "an existing" : "a non-existing") +
+     " pseudoElement setting pseudoElement first.");
+
+  test(t => {
+    const d = createDiv(t);
+    d.classList.add('pseudoa');
+    if (hasContent) {
+      d.classList.add('before');
+      getComputedStyle(d,"::before").content; // Sync style
+    }
+    const anim = d.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});
+
+    anim.currentTime = 50 * MS_PER_SEC;
+    anim.effect.pseudoElement = null;
+    assert_equals(anim.effect.target, d,
+                  "Animation targets specified element (target element)");
+    assert_equals(anim.effect.pseudoElement, null,
+                  "Animation targets specified element (null pseudo-selector)");
+    assert_equals(getComputedStyle(d, '::before').marginLeft, '10px',
+                  'Value of 1st element (currently not targeted) after ' +
+                  'changing the effect target');
+    assert_equals(getComputedStyle(d).marginLeft, '50px',
+                  'Value of 2nd element (currently targeted) after ' +
+                  'changing the effect target');
+  }, "Change target from " + (hasContent ? "an existing" : "a non-existing") + " pseudo-element to the originating element.");
+
+  for (const prevHasContent of [true, false]) {
+    test(t => {
+      const a = createDiv(t);
+      a.classList.add('pseudoa');
+      const b = createDiv(t);
+      b.classList.add('pseudob');
+      if (prevHasContent) {
+        a.classList.add('before');
+        getComputedStyle(a,"::before").content; // Sync style
+      }
+      if (hasContent) {
+        b.classList.add('before');
+        getComputedStyle(b,"::before").content; // Sync style
+      }
+
+      const anim = a.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});
+
+      anim.currentTime = 50 * MS_PER_SEC;
+      anim.effect.target = b;
+      assert_equals(anim.effect.target, b,
+                    "Animation targets specified pseudo-element (target element)");
+      assert_equals(anim.effect.pseudoElement, '::before',
+                    "Animation targets specified pseudo-element (pseudo-selector)");
+      assert_equals(getComputedStyle(a, '::before').marginLeft, '10px',
+                    'Value of 1st element (currently not targeted) after ' +
+                    'changing the effect target');
+      assert_equals(getComputedStyle(b, '::before').marginLeft, '50px',
+                    'Value of 2nd element (currently targeted) after ' +
+                    'changing the effect target');
+    }, "Change target from " + (prevHasContent ? "an existing" : "a non-existing") +
+        " to a different " + (hasContent ? "existing" : "non-existing") +
+        " pseudo-element by setting target.");
+
+    test(t => {
+      const d = createDiv(t);
+      d.classList.add('pseudoc');
+      if (prevHasContent) {
+        d.classList.add('before');
+        getComputedStyle(d,"::before").content; // Sync style
+      }
+      if (hasContent) {
+        d.classList.add('after');
+        getComputedStyle(d,"::after").content; // Sync style
+      }
+
+      const anim = d.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});
+
+      anim.currentTime = 50 * MS_PER_SEC;
+      anim.effect.pseudoElement = '::after';
+      assert_equals(anim.effect.target, d,
+                    "Animation targets specified pseudo-element (target element)");
+      assert_equals(anim.effect.pseudoElement, '::after',
+                    "Animation targets specified pseudo-element (pseudo-selector)");
+      assert_equals(getComputedStyle(d, '::before').marginLeft, '10px',
+                    'Value of 1st element (currently not targeted) after ' +
+                    'changing the effect target');
+      assert_equals(getComputedStyle(d, '::after').marginLeft, '50px',
+                    'Value of 2nd element (currently targeted) after ' +
+                    'changing the effect target');
+    }, "Change target from " + (prevHasContent ? "an existing" : "a non-existing") +
+        " to a different " + (hasContent ? "existing" : "non-existing") +
+        " pseudo-element by setting pseudoElement.");
+  }
+}
+
+
 
 </script>
 </body>

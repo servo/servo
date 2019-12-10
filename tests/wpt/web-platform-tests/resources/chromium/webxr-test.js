@@ -216,7 +216,7 @@ class MockRuntime {
     this.pose_ = null;
     this.next_frame_id_ = 0;
     this.bounds_ = null;
-    this.send_pose_reset_ = false;
+    this.send_mojo_space_reset_ = false;
 
     this.service_ = service;
 
@@ -370,7 +370,7 @@ class MockRuntime {
   }
 
   simulateResetPose() {
-    this.send_pose_reset_ = true;
+    this.send_mojo_space_reset_ = true;
   }
 
   simulateInputSourceConnection(fakeInputSourceInit) {
@@ -514,22 +514,22 @@ class MockRuntime {
 
   // XRFrameDataProvider implementation.
   getFrameData() {
+    let mojo_space_reset = this.send_mojo_space_reset_;
+    this.send_mojo_space_reset_ = false;
     if (this.pose_) {
       this.pose_.poseIndex++;
-      this.pose_.poseReset = this.send_pose_reset_;
-      this.send_pose_reset_ = false;
 
-      // Setting the input_state to null tests a slightly different path than
-      // the browser tests where if the last input source is removed, the device
-      // code always sends up an empty array, but it's also valid mojom to send
-      // up a null array.
-      if (this.input_sources_.length > 0) {
-        this.pose_.inputState = [];
-        for (let i = 0; i < this.input_sources_.length; i++) {
-          this.pose_.inputState.push(this.input_sources_[i].getInputSourceState());
-        }
-      } else {
-        this.pose_.inputState = null;
+    }
+
+    // Setting the input_state to null tests a slightly different path than
+    // the browser tests where if the last input source is removed, the device
+    // code always sends up an empty array, but it's also valid mojom to send
+    // up a null array.
+    let input_state = null;
+    if (this.input_sources_.length > 0) {
+      input_state = [];
+      for (let i = 0; i < this.input_sources_.length; i++) {
+        input_state.push(this.input_sources_[i].getInputSourceState());
       }
     }
 
@@ -542,6 +542,8 @@ class MockRuntime {
     return Promise.resolve({
       frameData: {
         pose: this.pose_,
+        mojoSpaceReset: mojo_space_reset,
+        inputState: input_state,
         timeDelta: {
           microseconds: now,
         },

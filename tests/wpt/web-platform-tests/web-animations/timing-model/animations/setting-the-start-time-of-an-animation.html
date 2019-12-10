@@ -266,5 +266,36 @@ promise_test(async t => {
   assert_time_equals_literal(parseInt(anim.currentTime.toPrecision(5), 10), 50 * MS_PER_SEC);
 }, 'Setting the start time of a playing animation applies a pending playback rate');
 
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+  assert_equals(anim.playState, 'running');
+
+  // Setting the start time updates the finished state. The hold time is not
+  // constrained by the effect end time.
+  anim.startTime = -200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'finished');
+
+  assert_times_equal(anim.currentTime,
+                     document.timeline.currentTime + 200 * MS_PER_SEC);
+}, 'Setting the start time on a running animation updates the play state');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+
+  // Setting the start time updates the finished state. The hold time is not
+  // constrained by the normal range of the animation time.
+  anim.currentTime = 100 * MS_PER_SEC;
+  assert_equals(anim.playState, 'finished');
+  anim.playbackRate = -1;
+  assert_equals(anim.playState, 'running');
+  anim.startTime = -200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'finished');
+  assert_times_equal(anim.currentTime,
+                     -document.timeline.currentTime - 200 * MS_PER_SEC);
+}, 'Setting the start time on a reverse running animation updates the play '
+   + 'state');
+
 </script>
 </body>

@@ -119,12 +119,6 @@
     }
     test(assertArrayEqualsNumeric, "assert_array_equals with first param 1");
 
-    function basicAssertObjectEquals()
-    {
-        assert_object_equals([1, 2, [1, 2]], { 0: 1, 1: 2, 2: { 0: 1, 1: 2} }, "array is equal to object")
-    }
-    test(basicAssertObjectEquals, "basic assert_object_equals test");
-
     function basicAssertArrayApproxEquals()
     {
         assert_array_approx_equals([10, 11], [11, 10], 1, "[10, 11] is approximately (+/- 1) [11, 10]")
@@ -412,12 +406,6 @@
     {
       "status_string": "PASS",
       "name": "basic assert_less_than test",
-      "message": null,
-      "properties": {}
-    },
-    {
-      "status_string": "PASS",
-      "name": "basic assert_object_equals test",
       "message": null,
       "properties": {}
     },

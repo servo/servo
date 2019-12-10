@@ -561,14 +561,17 @@ class TestRunnerManager(threading.Thread):
             self.logger.info("Run %d/%d" % (self.run_count, self.rerun))
             self.send_message("reset")
         self.run_count += 1
-        # Factor of 3 on the extra timeout here is based on allowing the executor
-        # at least test.timeout + 2 * extra_timeout to complete,
-        # which in turn is based on having several layers of timeout inside the executor
-        wait_timeout = (self.state.test.timeout * self.executor_kwargs['timeout_multiplier'] +
-                        3 * self.executor_cls.extra_timeout)
-        self.timer = threading.Timer(wait_timeout, self._timeout)
+        if self.debug_info is None:
+            # Factor of 3 on the extra timeout here is based on allowing the executor
+            # at least test.timeout + 2 * extra_timeout to complete,
+            # which in turn is based on having several layers of timeout inside the executor
+            wait_timeout = (self.state.test.timeout * self.executor_kwargs['timeout_multiplier'] +
+                            3 * self.executor_cls.extra_timeout)
+            self.timer = threading.Timer(wait_timeout, self._timeout)
+
         self.send_message("run_test", self.state.test)
-        self.timer.start()
+        if self.timer:
+            self.timer.start()
 
     def _timeout(self):
         self.logger.info("Got timeout in harness")
