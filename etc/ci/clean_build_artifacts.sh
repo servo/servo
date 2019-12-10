@@ -9,4 +9,4 @@ set -o nounset
 set -o pipefail
 
 rm -rf target/
-rm -rf python/_virtualenv/
+rm -rf python/_virtualenv*/
