@@ -8,7 +8,6 @@ use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCatego
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
-use std::sync::Arc;
 
 #[derive(JSTraceable)]
 pub struct FileReadingTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
@@ -46,7 +45,7 @@ pub enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Arc<Vec<u8>>),
+    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>),
 }
 
 impl FileReadingTask {
