@@ -11,6 +11,9 @@ RUN \
         make \
         cmake \
         #
+        # Fontconfig
+        gperf \
+        #
         # ANGLE
         xorg-dev \
         #
