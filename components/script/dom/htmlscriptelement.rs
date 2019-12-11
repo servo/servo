@@ -582,6 +582,7 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         url.clone(),
                         Destination::Script,
+                        integrity_metadata.to_owned(),
                     );
 
                     if !r#async && was_parser_inserted {

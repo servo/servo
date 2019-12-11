@@ -1095,6 +1095,7 @@ pub fn fetch_external_module_script(
     owner: ModuleOwner,
     url: ServoUrl,
     destination: Destination,
+    integrity_metadata: String,
 ) -> Rc<Promise> {
     // Step 1.
     fetch_single_module_script(
@@ -1103,6 +1104,7 @@ pub fn fetch_external_module_script(
         destination,
         Referrer::Client,
         ParserMetadata::NotParserInserted,
+        integrity_metadata,
         None,
         true,
     )
@@ -1115,6 +1117,7 @@ pub fn fetch_single_module_script(
     destination: Destination,
     referrer: Referrer,
     parser_metadata: ParserMetadata,
+    integrity_metadata: String,
     parent_url: Option<ServoUrl>,
     top_level_module_fetch: bool,
 ) -> Rc<Promise> {
@@ -1209,6 +1212,7 @@ pub fn fetch_single_module_script(
         .origin(global.origin().immutable().clone())
         .referrer(Some(referrer))
         .parser_metadata(parser_metadata)
+        .integrity_metadata(integrity_metadata.clone())
         .mode(mode);
 
     let context = Arc::new(Mutex::new(ModuleContext {
@@ -1395,6 +1399,7 @@ fn fetch_module_descendants(
                         destination.clone(),
                         Referrer::Client,
                         ParserMetadata::NotParserInserted,
+                        "".to_owned(),
                         Some(module_tree.url.clone()),
                         false,
                     )
