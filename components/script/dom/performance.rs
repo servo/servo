@@ -96,10 +96,10 @@ impl PerformanceEntryList {
         entry_type: Option<DOMString>,
     ) {
         self.entries.retain(|e| {
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+            name.as_ref().map_or(true, |name_| *e.name() != *name_) &&
                 entry_type
                     .as_ref()
-                    .map_or(true, |type_| *e.entry_type() == *type_)
+                    .map_or(true, |type_| *e.entry_type() != *type_)
         });
     }
 
