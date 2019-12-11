@@ -231,7 +231,7 @@ impl CompiledEventListener {
                             let should_cancel = value.is_boolean() && value.to_boolean() == false;
 
                             if should_cancel {
-                                // spec says to set the cancelled flag directly
+                                // FIXME: spec says to set the cancelled flag directly
                                 // here, not just to prevent default;
                                 // can that ever make a difference?
                                 event.PreventDefault();
