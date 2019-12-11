@@ -227,14 +227,13 @@ impl CompiledEventListener {
                             rooted!(in(*cx) let value = value);
                             let value = value.handle();
 
-                            //Step 4
-                            let should_cancel = match event.type_() {
-                                atom!("mouseover") => {
-                                    value.is_boolean() && value.to_boolean() == true
-                                },
-                                _ => value.is_boolean() && value.to_boolean() == false,
-                            };
+                            //Step 5
+                            let should_cancel = value.is_boolean() && value.to_boolean() == false;
+
                             if should_cancel {
+                                // spec says to set the cancelled flag directly
+                                // here, not just to prevent default;
+                                // can that ever make a difference?
                                 event.PreventDefault();
                             }
                         }
