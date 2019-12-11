@@ -36,7 +36,7 @@ def wpt_path(*args):
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_MANIFEST_PATH = wpt_path("include.ini")
 # regex source https://stackoverflow.com/questions/6883049/
-URL_REGEX = re.compile('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+URL_REGEX = re.compile(b'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
@@ -64,7 +64,7 @@ config = {
     "check_ext": {}
 }
 
-COMMENTS = ["// ", "# ", " *", "/* "]
+COMMENTS = [b"// ", b"# ", b" *", b"/* "]
 
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
@@ -78,40 +78,40 @@ FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
 SPEC_BASE_PATH = "components/script/dom/"
 
 WEBIDL_STANDARDS = [
-    "//www.khronos.org/registry/webgl/extensions",
-    "//www.khronos.org/registry/webgl/specs",
-    "//developer.mozilla.org/en-US/docs/Web/API",
-    "//dev.w3.org/2006/webapi",
-    "//dev.w3.org/csswg",
-    "//dev.w3.org/fxtf",
-    "//dvcs.w3.org/hg",
-    "//dom.spec.whatwg.org",
-    "//drafts.csswg.org",
-    "//drafts.css-houdini.org",
-    "//drafts.fxtf.org",
-    "//encoding.spec.whatwg.org",
-    "//fetch.spec.whatwg.org",
-    "//html.spec.whatwg.org",
-    "//url.spec.whatwg.org",
-    "//xhr.spec.whatwg.org",
-    "//w3c.github.io",
-    "//heycam.github.io/webidl",
-    "//webbluetoothcg.github.io/web-bluetooth/",
-    "//svgwg.org/svg2-draft",
-    "//wicg.github.io",
-    "//webaudio.github.io",
-    "//immersive-web.github.io/",
-    "//github.com/immersive-web/webxr-test-api/",
-    "//gpuweb.github.io",
+    b"//www.khronos.org/registry/webgl/extensions",
+    b"//www.khronos.org/registry/webgl/specs",
+    b"//developer.mozilla.org/en-US/docs/Web/API",
+    b"//dev.w3.org/2006/webapi",
+    b"//dev.w3.org/csswg",
+    b"//dev.w3.org/fxtf",
+    b"//dvcs.w3.org/hg",
+    b"//dom.spec.whatwg.org",
+    b"//drafts.csswg.org",
+    b"//drafts.css-houdini.org",
+    b"//drafts.fxtf.org",
+    b"//encoding.spec.whatwg.org",
+    b"//fetch.spec.whatwg.org",
+    b"//html.spec.whatwg.org",
+    b"//url.spec.whatwg.org",
+    b"//xhr.spec.whatwg.org",
+    b"//w3c.github.io",
+    b"//heycam.github.io/webidl",
+    b"//webbluetoothcg.github.io/web-bluetooth/",
+    b"//svgwg.org/svg2-draft",
+    b"//wicg.github.io",
+    b"//webaudio.github.io",
+    b"//immersive-web.github.io/",
+    b"//github.com/immersive-web/webxr-test-api/",
+    b"//gpuweb.github.io",
     # Not a URL
-    "// This interface is entirely internal to Servo, and should not be" +
-    " accessible to\n// web pages."
+    b"// This interface is entirely internal to Servo, and should not be" +
+    b" accessible to\n// web pages."
 ]
 
 
 def is_iter_empty(iterator):
     try:
-        obj = iterator.next()
+        obj = next(iterator)
         return True, itertools.chain((obj,), iterator)
     except StopIteration:
         return False, iterator
@@ -163,9 +163,9 @@ class FileList(object):
 
     def _git_changed_files(self):
         args = ["git", "log", "-n1", "--merges", "--format=%H"]
-        last_merge = subprocess.check_output(args).strip()
+        last_merge = subprocess.check_output(args, universal_newlines=True).strip()
         args = ["git", "diff", "--name-only", last_merge, self.directory]
-        file_list = normilize_paths(subprocess.check_output(args).splitlines())
+        file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
 
         for f in file_list:
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
@@ -179,7 +179,7 @@ class FileList(object):
                 yield os.path.join(root, rel_path)
 
     def __iter__(self):
-        return self
+        return self.generator
 
     def next(self):
         return next(self.generator)
@@ -200,7 +200,7 @@ def filter_files(start_dir, only_changed_files, progress):
     # always yield Cargo.lock so that the correctness of transitive dependacies is checked
     yield "./Cargo.lock"
 
-    for file_name in file_iter:
+    for file_name in iter(file_iter):
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
             continue
@@ -212,7 +212,7 @@ def filter_files(start_dir, only_changed_files, progress):
 def uncomment(line):
     for c in COMMENTS:
         if line.startswith(c):
-            if line.endswith("*/"):
+            if line.endswith(b"*/"):
                 return line[len(c):(len(line) - 3)].strip()
             return line[len(c):].strip()
 
@@ -227,15 +227,15 @@ def check_license(file_name, lines):
        config["skip-check-licenses"]:
         raise StopIteration
 
-    if lines[0].startswith("#!") and lines[1].strip():
+    if lines[0].startswith(b"#!") and lines[1].strip():
         yield (1, "missing blank line after shebang")
 
     blank_lines = 0
-    max_blank_lines = 2 if lines[0].startswith("#!") else 1
+    max_blank_lines = 2 if lines[0].startswith(b"#!") else 1
     license_block = []
 
     for l in lines:
-        l = l.rstrip('\n')
+        l = l.rstrip(b'\n')
         if not l.strip():
             blank_lines += 1
             if blank_lines >= max_blank_lines:
@@ -245,7 +245,7 @@ def check_license(file_name, lines):
         if line is not None:
             license_block.append(line)
 
-    header = " ".join(license_block)
+    header = (b" ".join(license_block)).decode("utf-8")
     valid_license = OLD_MPL in header or MPL in header or is_apache_licensed(header)
     acknowledged_bad_license = "xfail-license" in header
     if not (valid_license or acknowledged_bad_license):
@@ -254,9 +254,9 @@ def check_license(file_name, lines):
 
 def check_modeline(file_name, lines):
     for idx, line in enumerate(lines[:5]):
-        if re.search('^.*[ \t](vi:|vim:|ex:)[ \t]', line):
+        if re.search(b'^.*[ \t](vi:|vim:|ex:)[ \t]', line):
             yield (idx + 1, "vi modeline present")
-        elif re.search('-\*-.*-\*-', line, re.IGNORECASE):
+        elif re.search(b'-\*-.*-\*-', line, re.IGNORECASE):
             yield (idx + 1, "emacs file variables present")
 
 
@@ -267,7 +267,7 @@ def check_length(file_name, idx, line):
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.rstrip('\n')) > max_length and not is_unsplittable(file_name, line):
+    if len(line.rstrip(b'\n')) > max_length and not is_unsplittable(file_name, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
@@ -279,38 +279,38 @@ def is_unsplittable(file_name, line):
     return (
         contains_url(line) or
         file_name.endswith(".rs") and
-        line.startswith("use ") and
-        "{" not in line
+        line.startswith(b"use ") and
+        b"{" not in line
     )
 
 
 def check_whatwg_specific_url(idx, line):
-    match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
 def check_whatwg_single_page_url(idx, line):
-    match = re.search(r"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
 def check_whitespace(idx, line):
-    if line[-1] == "\n":
+    if line.endswith(b"\n"):
         line = line[:-1]
     else:
         yield (idx + 1, "no newline at EOF")
 
-    if line.endswith(" "):
+    if line.endswith(b" "):
         yield (idx + 1, "trailing whitespace")
 
-    if "\t" in line:
+    if b"\t" in line:
         yield (idx + 1, "tab on line")
 
-    if "\r" in line:
+    if b"\r" in line:
         yield (idx + 1, "CR on line")
 
 
@@ -339,7 +339,7 @@ def check_flake8(file_name, contents):
     output = ""
     try:
         args = ["flake8", "--ignore=" + ",".join(ignore), file_name]
-        subprocess.check_output(args)
+        subprocess.check_output(args, universal_newlines=True)
     except subprocess.CalledProcessError as e:
         output = e.output
     for error in output.splitlines():
@@ -360,7 +360,7 @@ def check_lock(file_name, contents):
     # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
 
-    content = toml.loads(contents)
+    content = toml.loads(contents.decode("utf-8"))
 
     packages_by_name = {}
     for package in content.get("package", []):
@@ -431,7 +431,7 @@ def check_toml(file_name, lines):
     if not file_name.endswith("Cargo.toml"):
         raise StopIteration
     ok_licensed = False
-    for idx, line in enumerate(lines):
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if idx == 0 and "[workspace]" in line:
             raise StopIteration
         line_without_comment, _, _ = line.partition("#")
@@ -447,7 +447,7 @@ def check_shell(file_name, lines):
     if not file_name.endswith(".sh"):
         raise StopIteration
 
-    shebang = "#!/usr/bin/env bash"
+    shebang = b"#!/usr/bin/env bash"
     required_options = {"set -o errexit", "set -o nounset", "set -o pipefail"}
 
     did_shebang_check = False
@@ -459,10 +459,10 @@ def check_shell(file_name, lines):
     if lines[0].rstrip() != shebang:
         yield (1, 'script does not have shebang "{}"'.format(shebang))
 
-    for idx in range(1, len(lines)):
-        stripped = lines[idx].rstrip()
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines[1:])):
+        stripped = line.rstrip()
         # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
-        if lines[idx].startswith("#") or stripped == "":
+        if line.startswith("#") or stripped == "":
             continue
 
         if not did_shebang_check:
@@ -548,7 +548,7 @@ def check_rust(file_name, lines):
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
 
-    for idx, original_line in enumerate(lines):
+    for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         # simplify the analysis
         line = original_line.strip()
         indent = len(original_line) - len(line)
@@ -661,7 +661,7 @@ def check_rust(file_name, lines):
             match = re.search(r"#!\[feature\((.*)\)\]", line)
 
             if match:
-                features = map(lambda w: w.strip(), match.group(1).split(','))
+                features = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 sorted_features = sorted(features)
                 if sorted_features != features and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
@@ -683,7 +683,7 @@ def check_rust(file_name, lines):
             # strip /(pub )?mod/ from the left and ";" from the right
             mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
 
-            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1]:
+            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
@@ -703,7 +703,7 @@ def check_rust(file_name, lines):
             # match the derivable traits filtering out macro expansions
             match = re.search(r"#\[derive\(([a-zA-Z, ]*)", line)
             if match:
-                derives = map(lambda w: w.strip(), match.group(1).split(','))
+                derives = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 # sort, compare and report
                 sorted_derives = sorted(derives)
                 if sorted_derives != derives and check_alphabetical_order:
@@ -870,7 +870,7 @@ def check_spec(file_name, lines):
     in_impl = False
     pattern = "impl {}Methods for {} {{".format(file_name, file_name)
 
-    for idx, line in enumerate(lines):
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if "// check-tidy: no specs after this line" in line:
             break
         if not patt.match(line):
@@ -878,7 +878,7 @@ def check_spec(file_name, lines):
                 in_impl = True
             if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
                 for up_idx in range(1, idx + 1):
-                    up_line = lines[idx - up_idx]
+                    up_line = lines[idx - up_idx].decode("utf-8")
                     if link_patt.match(up_line):
                         # Comment with spec link exists
                         break
@@ -1023,7 +1023,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     for filename in files_to_check:
         if not os.path.exists(filename):
             continue
-        with open(filename, "r") as f:
+        with open(filename, "rb") as f:
             contents = f.read()
             if not contents.strip():
                 yield filename, 0, "file is empty"

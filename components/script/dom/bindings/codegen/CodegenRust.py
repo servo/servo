@@ -3943,8 +3943,8 @@ class CGMemberJITInfo(CGThing):
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
                 aliasSet=aliasSet,
-                returnType=reduce(CGMemberJITInfo.getSingleReturnType, returnTypes,
-                                  ""),
+                returnType=functools.reduce(CGMemberJITInfo.getSingleReturnType, returnTypes,
+                                            ""),
                 isInfallible=toStringBool(infallible),
                 isMovable=toStringBool(movable),
                 # FIXME(nox): https://github.com/servo/servo/issues/10991
@@ -4131,8 +4131,8 @@ class CGMemberJITInfo(CGThing):
             if u.hasNullableType:
                 # Might be null or not
                 return "JSVAL_TYPE_UNKNOWN"
-            return reduce(CGMemberJITInfo.getSingleReturnType,
-                          u.flatMemberTypes, "")
+            return functools.reduce(CGMemberJITInfo.getSingleReturnType,
+                                    u.flatMemberTypes, "")
         if t.isDictionary():
             return "JSVAL_TYPE_OBJECT"
         if t.isDate():
@@ -4202,8 +4202,8 @@ class CGMemberJITInfo(CGThing):
         if t.isUnion():
             u = t.unroll()
             type = "JSJitInfo::Null as i32" if u.hasNullableType else ""
-            return reduce(CGMemberJITInfo.getSingleArgType,
-                          u.flatMemberTypes, type)
+            return functools.reduce(CGMemberJITInfo.getSingleArgType,
+                                    u.flatMemberTypes, type)
         if t.isDictionary():
             return "JSJitInfo_ArgType::Object as i32"
         if t.isDate():
@@ -5858,7 +5858,7 @@ class CGInterfaceTrait(CGThing):
         def contains_unsafe_arg(arguments):
             if not arguments or len(arguments) == 0:
                 return False
-            return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
+            return functools.reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
 
         methods = []
         for name, arguments, rettype in members():

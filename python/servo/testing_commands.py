@@ -700,20 +700,20 @@ class MachCommands(CommandBase):
             width_col4 = max([len(str(x)) for x in result['Difference(%)']])
 
             for p, q, r, s in zip(['Test'], ['First Run'], ['Second Run'], ['Difference(%)']):
-                print ("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
-                       s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
-                       + "-------------------------------------------------------------------------")
+                print("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
+                      s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
+                      + "-------------------------------------------------------------------------")
 
             for a1, b1, c1, d1 in zip(result['Test'], result['Prev_Time'], result['Cur_Time'], result['Difference(%)']):
                 if d1 > 0:
-                    print ("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
                 elif d1 < 0:
-                    print ("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
                 else:
-                    print ("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
-                           str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
+                    print("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
+                          str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
     def jquery_test_runner(self, cmd, release, dev):
         self.ensure_bootstrapped()
@@ -776,7 +776,7 @@ class MachCommands(CommandBase):
 def setup_clangfmt(env):
     cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
     try:
-        version = check_output([cmd, "--version"], env=env).rstrip()
+        version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
         print(version)
         if not version.startswith("clang-format version {}.".format(CLANGFMT_VERSION)):
             print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
@@ -785,7 +785,7 @@ def setup_clangfmt(env):
         print("clang-format not installed. Skipping CPP formatting.")
         return False, None, None
     gitcmd = ['git', 'ls-files']
-    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS).splitlines()
+    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS, universal_newlines=True).splitlines()
     filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
     return True, cmd, filtered
 

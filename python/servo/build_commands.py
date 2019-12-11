@@ -635,7 +635,7 @@ class MachCommands(CommandBase):
         opts = ["-Ztimings=info"] + opts
 
         if very_verbose:
-            print (["Calling", "cargo", "build"] + opts)
+            print(["Calling", "cargo", "build"] + opts)
             for key in env:
                 print((key, env[key]))
 

@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+from __future__ import print_function
+
 import sys
 import os
 from os import path
@@ -12,6 +14,7 @@ import datetime
 import argparse
 import platform
 import subprocess
+import six
 
 TOP_DIR = path.join("..", "..")
 GUARD_TIME = 10
@@ -133,7 +136,7 @@ def execute(base_dir, build_target, renderer, page, profile, trial, layout_threa
     log_dir = path.join(base_dir, "logs_l" + str(layout_thread_count),
                         "trial_" + str(trial))
     if os.path.exists(log_dir):
-        print "Log directory already exists: " + log_dir
+        print("Log directory already exists: " + log_dir)
         sys.exit(1)
     os.makedirs(log_dir)
 
@@ -142,16 +145,16 @@ def execute(base_dir, build_target, renderer, page, profile, trial, layout_threa
 
     # Execute
     start_energy_reader()
-    print 'sleep ' + str(GUARD_TIME)
+    print('sleep ' + str(GUARD_TIME))
     time.sleep(GUARD_TIME)
     time_start = time.time()
     energy_start = read_energy()
-    print cmd
+    print(cmd)
     os.system(cmd)
     energy_end = read_energy()
     time_end = time.time()
     stop_energy_reader()
-    print 'sleep ' + str(GUARD_TIME)
+    print('sleep ' + str(GUARD_TIME))
     time.sleep(GUARD_TIME)
 
     uj = energy_end - energy_start
@@ -172,11 +175,11 @@ def execute(base_dir, build_target, renderer, page, profile, trial, layout_threa
         f.write("\nPower (W): " + str(watts))
 
 
-def characterize(build_target, base_dir, (min_layout_threads, max_layout_threads), renderer, page, profile, trials):
+def characterize(build_target, base_dir, layout_threads_limits, renderer, page, profile, trials):
     """Run all configurations and capture results.
     """
-    for layout_thread_count in xrange(min_layout_threads, max_layout_threads + 1):
-        for trial in xrange(1, trials + 1):
+    for layout_thread_count in six.moves.xrange(layout_threads_limits[0], layout_threads_limits[1] + 1):
+        for trial in six.moves.xrange(1, trials + 1):
             execute(base_dir, build_target, renderer, page, profile, trial, layout_thread_count)
 
 
@@ -250,7 +253,7 @@ def main():
         trials = args.trials
 
     if os.path.exists(output_dir):
-        print "Output directory already exists: " + output_dir
+        print("Output directory already exists: " + output_dir)
         sys.exit(1)
     os.makedirs(output_dir)
 

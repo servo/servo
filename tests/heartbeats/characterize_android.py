@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+from __future__ import print_function
+
 import sys
 import os
 from os import path
@@ -43,15 +45,15 @@ def execute(base_dir, renderer, page, profile, trial, layout_thread_count):
     log_dir = path.join(base_dir, "logs_l" + str(layout_thread_count),
                         "trial_" + str(trial))
     if os.path.exists(log_dir):
-        print "Log directory already exists: " + log_dir
+        print("Log directory already exists: " + log_dir)
         sys.exit(1)
     os.makedirs(log_dir)
 
     # Execute
     cmd = get_command(layout_thread_count, renderer, page, profile)
-    print cmd
+    print(cmd)
     os.system(cmd)
-    print 'sleep ' + str(GUARD_TIME)
+    print('sleep ' + str(GUARD_TIME))
     time.sleep(GUARD_TIME)
 
     # Write a file that describes this execution
@@ -109,7 +111,7 @@ def main():
         profile = args.profile
 
     if os.path.exists(output_dir):
-        print "Output directory already exists: " + output_dir
+        print("Output directory already exists: " + output_dir)
         sys.exit(1)
     os.makedirs(output_dir)
 
