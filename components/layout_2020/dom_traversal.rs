@@ -14,7 +14,7 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use std::marker::PhantomData as marker;
 use std::sync::Arc;
-use style::dom::TNode;
+use style::dom::{OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -307,6 +307,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn parent_node(self) -> Option<Self>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
+    fn as_opaque(self) -> OpaqueNode;
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
@@ -364,6 +365,10 @@ where
 
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
         self.to_threadsafe().style(context.shared_context())
+    }
+
+    fn as_opaque(self) -> OpaqueNode {
+        self.opaque()
     }
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement> {
