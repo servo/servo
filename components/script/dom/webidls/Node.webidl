@@ -29,6 +29,9 @@ interface Node : EventTarget {
   readonly attribute USVString baseURI;
 
   [Pure]
+  readonly attribute boolean isConnected;
+
+  [Pure]
   readonly attribute Document? ownerDocument;
 
   [Pure]

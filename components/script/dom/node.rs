@@ -2296,6 +2296,11 @@ impl NodeMethods for Node {
         USVString(String::from(self.owner_doc().base_url().as_str()))
     }
 
+    // https://dom.spec.whatwg.org/#dom-node-isconnected
+    fn IsConnected(&self) -> bool {
+        return self.is_connected();
+    }
+
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(&self) -> Option<DomRoot<Document>> {
         match self.type_id() {
