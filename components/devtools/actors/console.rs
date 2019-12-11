@@ -39,9 +39,7 @@ impl EncodableConsoleMessage for CachedConsoleMessage {
 }
 
 #[derive(Serialize)]
-struct StartedListenersTraits {
-    customNetworkRequest: bool,
-}
+struct StartedListenersTraits;
 
 #[derive(Serialize)]
 struct StartedListenersReply {
@@ -309,13 +307,15 @@ impl Actor for ConsoleActor {
 
             "startListeners" => {
                 //TODO: actually implement listener filters that support starting/stopping
+                let listeners = msg.get("listeners").unwrap().as_array().unwrap().to_owned();
                 let msg = StartedListenersReply {
                     from: self.name(),
                     nativeConsoleAPI: true,
-                    startedListeners: vec!["PageError".to_owned(), "ConsoleAPI".to_owned()],
-                    traits: StartedListenersTraits {
-                        customNetworkRequest: true,
-                    },
+                    startedListeners: listeners
+                        .into_iter()
+                        .map(|s| s.as_str().unwrap().to_owned())
+                        .collect(),
+                    traits: StartedListenersTraits,
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

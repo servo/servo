@@ -8,19 +8,26 @@ use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
-struct GetStyleSheetsReply {
+struct ListWorkersReply {
     from: String,
-    styleSheets: Vec<u32>, // TODO: real JSON structure.
+    workers: Vec<u32>, // TODO: use proper JSON structure.
 }
 
-pub struct StyleSheetsActor {
-    pub name: String,
+pub struct ProcessActor {
+    name: String,
 }
 
-impl Actor for StyleSheetsActor {
+impl ProcessActor {
+    pub fn new(name: String) -> Self {
+        Self { name }
+    }
+}
+
+impl Actor for ProcessActor {
     fn name(&self) -> String {
         self.name.clone()
     }
+
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -29,22 +36,16 @@ impl Actor for StyleSheetsActor {
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            "getStyleSheets" => {
-                let msg = GetStyleSheetsReply {
+            "listWorkers" => {
+                let reply = ListWorkersReply {
                     from: self.name(),
-                    styleSheets: vec![],
+                    workers: vec![],
                 };
-                stream.write_json_packet(&msg);
+                stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
             _ => ActorMessageStatus::Ignored,
         })
-    }
-}
-
-impl StyleSheetsActor {
-    pub fn new(name: String) -> StyleSheetsActor {
-        StyleSheetsActor { name: name }
     }
 }

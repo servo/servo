@@ -15,7 +15,18 @@ use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
-struct BrowsingContextTraits;
+struct BrowsingContextTraits {
+    isBrowsingContext: bool,
+}
+
+#[derive(Serialize)]
+struct AttachedTraits {
+    reconfigure: bool,
+    frames: bool,
+    logInPage: bool,
+    canRewind: bool,
+    watchpoints: bool,
+}
 
 #[derive(Serialize)]
 struct BrowsingContextAttachedReply {
@@ -25,7 +36,7 @@ struct BrowsingContextAttachedReply {
     threadActor: String,
     cacheDisabled: bool,
     javascriptEnabled: bool,
-    traits: BrowsingContextTraits,
+    traits: AttachedTraits,
 }
 
 #[derive(Serialize)]
@@ -71,6 +82,7 @@ pub struct BrowsingContextActorMsg {
     title: String,
     url: String,
     outerWindowID: u32,
+    browsingContextId: u32,
     consoleActor: String,
     emulationActor: String,
     inspectorActor: String,
@@ -78,6 +90,20 @@ pub struct BrowsingContextActorMsg {
     profilerActor: String,
     performanceActor: String,
     styleSheetsActor: String,
+    traits: BrowsingContextTraits,
+    // Part of the official protocol, but not yet implemented.
+    /*storageActor: String,
+    memoryActor: String,
+    framerateActor: String,
+    reflowActor: String,
+    cssPropertiesActor: String,
+    animationsActor: String,
+    webExtensionInspectedWindowActor: String,
+    accessibilityActor: String,
+    screenshotActor: String,
+    changesActor: String,
+    webSocketActor: String,
+    manifestActor: String,*/
 }
 
 pub struct BrowsingContextActor {
@@ -127,11 +153,17 @@ impl Actor for BrowsingContextActor {
             "attach" => {
                 let msg = BrowsingContextAttachedReply {
                     from: self.name(),
-                    type_: "targetAttached".to_owned(),
+                    type_: "tabAttached".to_owned(),
                     threadActor: self.thread.clone(),
                     cacheDisabled: false,
                     javascriptEnabled: true,
-                    traits: BrowsingContextTraits,
+                    traits: AttachedTraits {
+                        reconfigure: false,
+                        frames: false,
+                        logInPage: false,
+                        canRewind: false,
+                        watchpoints: false,
+                    },
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor
@@ -166,7 +198,12 @@ impl Actor for BrowsingContextActor {
             "listFrames" => {
                 let msg = ListFramesReply {
                     from: self.name(),
-                    frames: vec![],
+                    frames: vec![FrameMsg {
+                        id: 0, //FIXME should match outerwindow id
+                        parentID: 0,
+                        url: self.url.clone(),
+                        title: self.title.clone(),
+                    }],
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -190,9 +227,13 @@ impl BrowsingContextActor {
     pub fn encodable(&self) -> BrowsingContextActorMsg {
         BrowsingContextActorMsg {
             actor: self.name(),
+            traits: BrowsingContextTraits {
+                isBrowsingContext: true,
+            },
             title: self.title.clone(),
             url: self.url.clone(),
-            outerWindowID: 0, //FIXME: this should probably be the pipeline id
+            browsingContextId: 0, //FIXME should come from constellation
+            outerWindowID: 0,     //FIXME: this should probably be the pipeline id
             consoleActor: self.console.clone(),
             emulationActor: self.emulation.clone(),
             inspectorActor: self.inspector.clone(),
