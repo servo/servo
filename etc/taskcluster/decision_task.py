@@ -213,7 +213,7 @@ def linux_tidy_unit():
             python3 ./mach build --dev --features layout-2020
             python3 ./mach build --dev --libsimpleservo
             python3 ./mach build --dev -p servo-gst-plugin
-            ./mach test-tidy --no-progress --self-test
+            python3 ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
             ./etc/taskcluster/mock.py

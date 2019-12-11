@@ -447,8 +447,8 @@ def check_shell(file_name, lines):
     if not file_name.endswith(".sh"):
         raise StopIteration
 
-    shebang = b"#!/usr/bin/env bash"
-    required_options = {"set -o errexit", "set -o nounset", "set -o pipefail"}
+    shebang = "#!/usr/bin/env bash"
+    required_options = ["set -o errexit", "set -o nounset", "set -o pipefail"]
 
     did_shebang_check = False
 
@@ -456,7 +456,7 @@ def check_shell(file_name, lines):
         yield (0, 'script is an empty file')
         return
 
-    if lines[0].rstrip() != shebang:
+    if lines[0].rstrip() != shebang.encode("utf-8"):
         yield (1, 'script does not have shebang "{}"'.format(shebang))
 
     for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines[1:])):
@@ -506,7 +506,7 @@ def check_manifest_dirs(config_file, print_text=True):
         return
 
     # Load configs from include.ini
-    with open(config_file) as content:
+    with open(config_file, "rb") as content:
         conf_file = content.read()
         lines = conf_file.splitlines(True)
 
@@ -808,7 +808,7 @@ def check_yaml(file_name, contents):
         line = e.problem_mark.line + 1 if hasattr(e, 'problem_mark') else None
         yield (line, e)
     except KeyError as e:
-        yield (None, "Duplicated Key ({})".format(e.message))
+        yield (None, "Duplicated Key ({})".format(e.args[0]))
     except voluptuous.MultipleInvalid as e:
         yield (None, str(e))
 
@@ -844,11 +844,11 @@ def check_json(filename, contents):
     try:
         json.loads(contents, object_pairs_hook=check_json_requirements(filename))
     except ValueError as e:
-        match = re.search(r"line (\d+) ", e.message)
+        match = re.search(r"line (\d+) ", e.args[0])
         line_no = match and match.group(1)
-        yield (line_no, e.message)
+        yield (line_no, e.args[0])
     except KeyError as e:
-        yield (None, e.message)
+        yield (None, e.args[0])
 
 
 def check_spec(file_name, lines):
