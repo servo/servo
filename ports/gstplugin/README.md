@@ -23,7 +23,7 @@ cp target/release/libgstservoplugin.* target/gstplugins
 To run locally:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servosrc \
+  gst-launch-1.0 servowebsrc \
     ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
     ! glimagesink rotate-method=vertical-flip
@@ -32,7 +32,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 To stream over the network:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servosrc \
+  gst-launch-1.0 servowebsrc \
     ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
@@ -46,7 +46,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servosrc \
+  gst-launch-1.0 servowebsrc \
     ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
@@ -76,7 +76,7 @@ LD_LIBRARY_PATH=$PWD/support/linux/gstreamer/gst/lib \
 First try:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-inspect-1.0 servosrc
+  gst-inspect-1.0 servowebsrc
 ```
 
 If that doesn't work, try:
@@ -125,7 +125,7 @@ GST_PLUGIN_PATH=$PWD/target/gstplugins/:$PWD/support/linux/gstreamer/gst/lib \
 GST_PLUGIN_SCANNER=$PWD/support/linux/gstreamer/gst/libexec/gstreamer-1.0/gst-plugin-scanner \
 LD_LIBRARY_PATH=$PWD/support/linux/gstreamer/gst/lib \
 LD_PRELOAD=$PWD/target/gstplugins/libgstservoplugin.so \
-  gst-launch-1.0 servosrc \
+  gst-launch-1.0 servowebsrc \
     ! queue \
     ! videoflip video-direction=vert \
     ! ximagesink
