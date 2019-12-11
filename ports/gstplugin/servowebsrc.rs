@@ -92,15 +92,15 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use std::thread;
 
-pub struct ServoGstSrc {
-    sender: Sender<ServoSrcMsg>,
+pub struct ServoWebSrc {
+    sender: Sender<ServoWebSrcMsg>,
     swap_chain: SwapChain,
     url: Mutex<Option<String>>,
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
 }
 
-struct ServoSrcGfx {
+struct ServoWebSrcGfx {
     device: Device,
     context: Context,
     gl: Rc<Gl>,
@@ -108,7 +108,7 @@ struct ServoSrcGfx {
     draw_fbo: GLuint,
 }
 
-impl Drop for ServoSrcGfx {
+impl Drop for ServoWebSrcGfx {
     fn drop(&mut self) {
         self.gl.delete_framebuffers(&[self.read_fbo, self.draw_fbo]);
         let _ = self.device.destroy_context(&mut self.context);
@@ -116,11 +116,11 @@ impl Drop for ServoSrcGfx {
 }
 
 thread_local! {
-    static GFX_CACHE: RefCell<HashMap<GLContext, ServoSrcGfx>> = RefCell::new(HashMap::new());
+    static GFX_CACHE: RefCell<HashMap<GLContext, ServoWebSrcGfx>> = RefCell::new(HashMap::new());
 }
 
 #[derive(Debug)]
-enum ServoSrcMsg {
+enum ServoWebSrcMsg {
     Start(ServoUrl),
     GetSwapChain(Sender<SwapChain>),
     Resize(Size2D<i32, DevicePixel>),
@@ -132,16 +132,16 @@ const DEFAULT_URL: &'static str =
     "https://rawcdn.githack.com/mrdoob/three.js/r105/examples/webgl_animation_cloth.html";
 
 struct ServoThread {
-    receiver: Receiver<ServoSrcMsg>,
+    receiver: Receiver<ServoWebSrcMsg>,
     swap_chain: SwapChain,
-    gfx: Rc<RefCell<ServoSrcGfx>>,
-    servo: Servo<ServoSrcWindow>,
+    gfx: Rc<RefCell<ServoWebSrcGfx>>,
+    servo: Servo<ServoWebSrcWindow>,
 }
 
 impl ServoThread {
-    fn new(receiver: Receiver<ServoSrcMsg>) -> Self {
-        let embedder = Box::new(ServoSrcEmbedder);
-        let window = Rc::new(ServoSrcWindow::new());
+    fn new(receiver: Receiver<ServoWebSrcMsg>) -> Self {
+        let embedder = Box::new(ServoWebSrcEmbedder);
+        let window = Rc::new(ServoWebSrcWindow::new());
         let swap_chain = window.swap_chain.clone();
         let gfx = window.gfx.clone();
         let servo = Servo::new(embedder, window);
@@ -157,13 +157,13 @@ impl ServoThread {
         while let Ok(msg) = self.receiver.recv() {
             debug!("Servo thread handling message {:?}", msg);
             match msg {
-                ServoSrcMsg::Start(url) => self.new_browser(url),
-                ServoSrcMsg::GetSwapChain(sender) => sender
+                ServoWebSrcMsg::Start(url) => self.new_browser(url),
+                ServoWebSrcMsg::GetSwapChain(sender) => sender
                     .send(self.swap_chain.clone())
                     .expect("Failed to send swap chain"),
-                ServoSrcMsg::Resize(size) => self.resize(size),
-                ServoSrcMsg::Heartbeat => self.servo.handle_events(vec![]),
-                ServoSrcMsg::Stop => break,
+                ServoWebSrcMsg::Resize(size) => self.resize(size),
+                ServoWebSrcMsg::Heartbeat => self.servo.handle_events(vec![]),
+                ServoWebSrcMsg::Stop => break,
             }
         }
         self.servo.handle_events(vec![WindowEvent::Quit]);
@@ -215,29 +215,29 @@ impl Drop for ServoThread {
     }
 }
 
-struct ServoSrcEmbedder;
+struct ServoWebSrcEmbedder;
 
-impl EmbedderMethods for ServoSrcEmbedder {
+impl EmbedderMethods for ServoWebSrcEmbedder {
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        Box::new(ServoSrcEmbedder)
+        Box::new(ServoWebSrcEmbedder)
     }
 }
 
-impl EventLoopWaker for ServoSrcEmbedder {
+impl EventLoopWaker for ServoWebSrcEmbedder {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(ServoSrcEmbedder)
+        Box::new(ServoWebSrcEmbedder)
     }
 
     fn wake(&self) {}
 }
 
-struct ServoSrcWindow {
+struct ServoWebSrcWindow {
     swap_chain: SwapChain,
-    gfx: Rc<RefCell<ServoSrcGfx>>,
+    gfx: Rc<RefCell<ServoWebSrcGfx>>,
     gl: Rc<dyn gleam::gl::Gl>,
 }
 
-impl ServoSrcWindow {
+impl ServoWebSrcWindow {
     fn new() -> Self {
         let version = surfman::GLVersion { major: 4, minor: 3 };
         let flags = surfman::ContextAttributeFlags::empty();
@@ -304,7 +304,7 @@ impl ServoSrcWindow {
 
         device.make_no_context_current().unwrap();
 
-        let gfx = Rc::new(RefCell::new(ServoSrcGfx {
+        let gfx = Rc::new(RefCell::new(ServoWebSrcGfx {
             device,
             context,
             gl,
@@ -320,7 +320,7 @@ impl ServoSrcWindow {
     }
 }
 
-impl WindowMethods for ServoSrcWindow {
+impl WindowMethods for ServoWebSrcWindow {
     fn present(&self) {
         debug!("EMBEDDER present");
         let mut gfx = self.gfx.borrow_mut();
@@ -420,8 +420,8 @@ const CAPS: &str = "video/x-raw(memory:GLMemory),
   height=[1,2147483647],
   framerate=[0/1,2147483647/1]";
 
-impl ObjectSubclass for ServoGstSrc {
-    const NAME: &'static str = "ServoGstSrc";
+impl ObjectSubclass for ServoWebSrc {
+    const NAME: &'static str = "ServoWebSrc";
     // gstreamer-gl doesn't have support for GLBaseSrc yet
     // https://gitlab.freedesktop.org/gstreamer/gstreamer-rs/issues/219
     type ParentType = BaseSrc;
@@ -432,7 +432,7 @@ impl ObjectSubclass for ServoGstSrc {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         thread::spawn(move || ServoThread::new(receiver).run());
         let (acks, ackr) = crossbeam_channel::bounded(1);
-        let _ = sender.send(ServoSrcMsg::GetSwapChain(acks));
+        let _ = sender.send(ServoWebSrcMsg::GetSwapChain(acks));
         let swap_chain = ackr.recv().expect("Failed to get swap chain");
         let info = Mutex::new(None);
         let url = Mutex::new(None);
@@ -464,7 +464,7 @@ impl ObjectSubclass for ServoGstSrc {
     glib_object_subclass!();
 }
 
-impl ObjectImpl for ServoGstSrc {
+impl ObjectImpl for ServoWebSrc {
     glib_object_impl!();
 
     fn constructed(&self, obj: &glib::Object) {
@@ -499,12 +499,12 @@ impl ObjectImpl for ServoGstSrc {
     }
 }
 
-impl ElementImpl for ServoGstSrc {}
+impl ElementImpl for ServoWebSrc {}
 
 thread_local! {
     static GL: RefCell<Option<Rc<Gl>>> = RefCell::new(None);
 }
-impl BaseSrcImpl for ServoGstSrc {
+impl BaseSrcImpl for ServoWebSrc {
     fn set_caps(&self, src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
         // Save the video info for later use
         let info = VideoInfo::from_caps(outcaps)
@@ -566,13 +566,13 @@ impl BaseSrcImpl for ServoGstSrc {
         let url = guard.as_ref().map(|s| &**s).unwrap_or(DEFAULT_URL);
         let url = ServoUrl::parse(url)
             .map_err(|_| gst_error_msg!(ResourceError::Settings, ["Failed to parse url"]))?;
-        let _ = self.sender.send(ServoSrcMsg::Start(url));
+        let _ = self.sender.send(ServoWebSrcMsg::Start(url));
         Ok(())
     }
 
     fn stop(&self, _src: &BaseSrc) -> Result<(), ErrorMessage> {
         info!("Stopping");
-        let _ = self.sender.send(ServoSrcMsg::Stop);
+        let _ = self.sender.send(ServoWebSrcMsg::Stop);
         Ok(())
     }
 
@@ -636,7 +636,7 @@ impl BaseSrcImpl for ServoGstSrc {
                 }));
                 let draw_fbo = gl.gen_framebuffers(1)[0];
                 let read_fbo = gl.gen_framebuffers(1)[0];
-                ServoSrcGfx {
+                ServoWebSrcGfx {
                     device,
                     context,
                     gl,
@@ -675,7 +675,7 @@ impl BaseSrcImpl for ServoGstSrc {
                 if size != surface_size {
                     // If we're being asked to fill frames that are a different size than servo is providing,
                     // ask it to change size.
-                    let _ = self.sender.send(ServoSrcMsg::Resize(size));
+                    let _ = self.sender.send(ServoWebSrcMsg::Resize(size));
                 }
 
                 let surface_texture = gfx
@@ -765,7 +765,7 @@ impl BaseSrcImpl for ServoGstSrc {
             FlowError::Error
         })?;
 
-        let _ = self.sender.send(ServoSrcMsg::Heartbeat);
+        let _ = self.sender.send(ServoWebSrcMsg::Heartbeat);
         Ok(buffer)
     }
 }

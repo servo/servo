@@ -4,11 +4,11 @@
 
 use glib::subclass::types::ObjectSubclass;
 use gstreamer::gst_plugin_define;
-use servosrc::ServoGstSrc;
+use servowebsrc::ServoWebSrc;
 
 mod logging;
 mod resources;
-mod servosrc;
+mod servowebsrc;
 
 gst_plugin_define!(
     servoplugin,
@@ -33,8 +33,8 @@ fn plugin_init(plugin: &gstreamer::Plugin) -> Result<(), glib::BoolError> {
     log::debug!("Registering plugin");
     gstreamer::Element::register(
         Some(plugin),
-        "servosrc",
+        "servowebsrc",
         gstreamer::Rank::None,
-        ServoGstSrc::get_type(),
+        ServoWebSrc::get_type(),
     )
 }
