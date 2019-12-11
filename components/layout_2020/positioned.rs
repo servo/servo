@@ -139,11 +139,14 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             size: padding_rect.size.clone(),
             style,
         };
+        let map = |a: &AbsolutelyPositionedFragment| a.layout(layout_context, &containing_block);
+        let children = if layout_context.use_rayon {
+            absolute.par_iter().map(map).collect()
+        } else {
+            absolute.iter().map(map).collect()
+        };
         fragments.push(Fragment::Anonymous(AnonymousFragment {
-            children: absolute
-                .par_iter()
-                .map(|a| a.layout(layout_context, &containing_block))
-                .collect(),
+            children,
             rect: padding_rect,
             mode: style.writing_mode,
         }))

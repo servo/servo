@@ -568,6 +568,7 @@ impl LayoutThread {
                 snapshot_map: snapshot_map,
             },
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            use_rayon: STYLE_THREAD_POOL.pool().is_some(),
         }
     }
 
@@ -1076,14 +1077,18 @@ impl LayoutThread {
         };
 
         let rayon_pool = STYLE_THREAD_POOL.pool();
-        let rayon_pool = rayon_pool.as_ref().unwrap();
+        let rayon_pool = rayon_pool.as_ref();
 
         let box_tree = if token.should_traverse() {
-            driver::traverse_dom(&traversal, token, Some(rayon_pool));
+            driver::traverse_dom(&traversal, token, rayon_pool);
 
             let root_node = document.root_element().unwrap().as_node();
-            let box_tree =
-                rayon_pool.install(|| BoxTreeRoot::construct(traversal.context(), root_node));
+            let build_box_tree = || BoxTreeRoot::construct(traversal.context(), root_node);
+            let box_tree = if let Some(pool) = rayon_pool {
+                pool.install(build_box_tree)
+            } else {
+                build_box_tree()
+            };
             Some(box_tree)
         } else {
             None
@@ -1096,8 +1101,12 @@ impl LayoutThread {
                 self.viewport_size.width.to_f32_px(),
                 self.viewport_size.height.to_f32_px(),
             );
-            let fragment_tree =
-                rayon_pool.install(|| box_tree.layout(&layout_context, viewport_size));
+            let run_layout = || box_tree.layout(&layout_context, viewport_size);
+            let fragment_tree = if let Some(pool) = rayon_pool {
+                pool.install(run_layout)
+            } else {
+                run_layout()
+            };
             *self.box_tree_root.borrow_mut() = Some(box_tree);
             *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }

@@ -11,6 +11,7 @@ use style::context::SharedStyleContext;
 
 pub struct LayoutContext<'a> {
     pub id: PipelineId,
+    pub use_rayon: bool,
     pub style_context: SharedStyleContext<'a>,
     pub font_cache_thread: Mutex<FontCacheThread>,
 }

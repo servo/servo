@@ -168,12 +168,11 @@ impl BlockContainer {
             builder.end_ongoing_inline_formatting_context();
         }
 
-        type Intermediate<Node> = IntermediateBlockLevelBox<Node>;
-        struct Target {
+        struct Accumulator {
             contains_floats: ContainsFloats,
             outer_content_sizes_of_children: ContentSizes,
         }
-        impl Default for Target {
+        impl Default for Accumulator {
             fn default() -> Self {
                 Self {
                     contains_floats: ContainsFloats::No,
@@ -181,37 +180,46 @@ impl BlockContainer {
                 }
             }
         }
-        let mut target = Target {
+        let mut acc = Accumulator {
             contains_floats: builder.contains_floats,
             outer_content_sizes_of_children: ContentSizes::zero(),
         };
-        let iter = builder.block_level_boxes.into_par_iter();
-        let iter = iter.mapfold_reduce_into(
-            &mut target,
-            |target, (intermediate, box_slot): (Intermediate<_>, BoxSlot<'_>)| {
+        let mapfold =
+            |acc: &mut Accumulator,
+             (intermediate, box_slot): (IntermediateBlockLevelBox<_>, BoxSlot<'_>)| {
                 let (block_level_box, box_contains_floats) = intermediate.finish(
                     context,
-                    content_sizes
-                        .if_requests_inline(|| &mut target.outer_content_sizes_of_children),
+                    content_sizes.if_requests_inline(|| &mut acc.outer_content_sizes_of_children),
                 );
-                target.contains_floats |= box_contains_floats;
+                acc.contains_floats |= box_contains_floats;
                 box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
                 block_level_box
-            },
-            |left, right| {
-                left.contains_floats |= right.contains_floats;
-                if content_sizes.requests_inline() {
-                    left.outer_content_sizes_of_children
-                        .max_assign(&right.outer_content_sizes_of_children)
-                }
-            },
-        );
-        let container = BlockContainer::BlockLevelBoxes(iter.collect());
+            };
+        let block_level_boxes = if context.use_rayon {
+            builder
+                .block_level_boxes
+                .into_par_iter()
+                .mapfold_reduce_into(&mut acc, mapfold, |left, right| {
+                    left.contains_floats |= right.contains_floats;
+                    if content_sizes.requests_inline() {
+                        left.outer_content_sizes_of_children
+                            .max_assign(&right.outer_content_sizes_of_children)
+                    }
+                })
+                .collect()
+        } else {
+            builder
+                .block_level_boxes
+                .into_iter()
+                .map(|x| mapfold(&mut acc, x))
+                .collect()
+        };
+        let container = BlockContainer::BlockLevelBoxes(block_level_boxes);
 
-        let Target {
+        let Accumulator {
             contains_floats,
             outer_content_sizes_of_children,
-        } = target;
+        } = acc;
         let content_sizes = content_sizes.compute(|| outer_content_sizes_of_children);
         (container, contains_floats, content_sizes)
     }

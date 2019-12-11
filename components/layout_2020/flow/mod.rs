@@ -135,7 +135,7 @@ fn layout_block_level_children<'a>(
     containing_block: &ContainingBlock,
     tree_rank: usize,
     absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
-    float_context: Option<&mut FloatContext>,
+    mut float_context: Option<&mut FloatContext>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
     fn place_block_level_fragment(fragment: &mut Fragment, placement_state: &mut PlacementState) {
@@ -203,7 +203,7 @@ fn layout_block_level_children<'a>(
         current_block_direction_position: Length::zero(),
     };
     let mut fragments: Vec<_>;
-    if let Some(float_context) = float_context {
+    if float_context.is_some() || !layout_context.use_rayon {
         // Because floats are involved, we do layout for this block formatting context
         // in tree order without parallelism. This enables mutable access
         // to a `FloatContext` that tracks every float encountered so far (again in tree order).
@@ -216,7 +216,7 @@ fn layout_block_level_children<'a>(
                     containing_block,
                     tree_rank,
                     absolutely_positioned_fragments,
-                    Some(float_context),
+                    float_context.as_mut().map(|c| &mut **c),
                 );
                 place_block_level_fragment(&mut fragment, &mut placement_state);
                 fragment
