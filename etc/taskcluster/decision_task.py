@@ -438,7 +438,7 @@ def windows_arm64():
         .with_treeherder("Windows arm64", "UWP-Dev")
         .with_script(
             "python mach build --dev --target=aarch64-uwp-windows-msvc",
-            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
+            "%PYTHON3% mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
         .with_artifacts(appx_artifact(debug=True))
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
@@ -451,7 +451,7 @@ def windows_uwp_x64():
         .with_treeherder("Windows x64", "UWP-Dev")
         .with_script(
             "python mach build --dev --target=x86_64-uwp-windows-msvc",
-            "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
+            "%PYTHON3% mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
             "python mach test-tidy --force-cpp --no-wpt",
         )
         .with_artifacts(appx_artifact(debug=True))
@@ -489,7 +489,7 @@ def windows_unit(cached=True):
             "mach build --dev",
             "mach test-unit",
             "mach smoketest --angle",
-            "mach package --dev",
+            "%PYTHON3% mach package --dev",
             "mach build --dev --libsimpleservo",
             # We're getting link errors on windows, due to the x11 feature being
             # enabled on gstreamer-gl. https://github.com/servo/media/pull/304/
