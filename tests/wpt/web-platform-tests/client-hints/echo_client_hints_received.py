@@ -22,3 +22,5 @@ def main(request, response):
             response.headers.set("ect-received", request.headers.get("ect"))
     if "Sec-CH-Lang" in request.headers:
             response.headers.set("lang-received", request.headers.get("Sec-CH-Lang"))
+    if "sec-ch-ua-mobile" in request.headers:
+        response.headers.set("mobile-received", request.headers.get("sec-ch-ua-mobile"))

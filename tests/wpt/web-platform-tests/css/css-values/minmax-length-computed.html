@@ -13,12 +13,12 @@
 <script>
 const property = 'letter-spacing';
 
-function test_length_equals(value, expected) {
+function test_length_equals(value, expected, titleExtra) {
   const reference = document.getElementById('reference');
   reference.style[property] = '';
   reference.style[property] = expected;
   const computed = getComputedStyle(reference)[property];
-  test_computed_value(property, value, computed);
+  test_computed_value(property, value, computed, titleExtra);
 }
 
 // Identity tests
@@ -96,8 +96,8 @@ test_length_equals('max(15px, 1em)', '20px');
 test_length_equals('max(25px, 1em)', '25px');
 
 document.getElementById('container').style.fontSize = '10px';
-test_length_equals('min(15px, 1em)', '10px');
-test_length_equals('max(15px, 2em)', '20px');
+test_length_equals('min(15px, 1em)', '10px', 'fontSize=10px');
+test_length_equals('max(15px, 2em)', '20px', 'fontSize=10px');
 
 document.getElementById('container').style.fontSize = '20px';
 

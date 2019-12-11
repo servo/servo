@@ -26,7 +26,6 @@
   test(() => {
     const event = new NDEFReadingEvent('type', {serialNumber: '', message: null});
     assert_equals(0, event.message.records.length, 'no records');
-    assert_equals(0, event.message.url.length, 'empty url');
   }, 'NDEFReadingEvent constructor with null message');
 
   test(() => {

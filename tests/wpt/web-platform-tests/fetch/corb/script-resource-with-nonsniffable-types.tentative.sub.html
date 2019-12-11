@@ -58,14 +58,13 @@ function test(mime_type, is_blocking_expected) {
 // of confirmation sniffing.
 protected_mime_types = [
   "application/gzip",
+  "application/pdf",
   "application/x-gzip",
   "application/x-protobuf",
   "application/zip",
   "multipart/byteranges",
+  "text/csv",
   "text/event-stream",
-  // TODO(lukasza): https://crbug.com/944162: Add application/pdf and
-  // text/csv to the list of content types tested here (after
-  // kMimeHandlerViewInCrossProcessFrame gets enabled by default).
 ]
 protected_mime_types.forEach(function(type) {
     test(type, true /* is_blocking_expected */);

@@ -9,6 +9,8 @@ async_test(function(t) {
   worker.onmessage = t.step_func_done(function(e) {
     assert_equals(e.data, "Pass");
   });
+  // TODO(mkwst): Revisit this after https://github.com/whatwg/html/issues/3255.
+  worker.onerror = t.unreached_func("Worker should load.");
   worker.postMessage("start");
 });
 </script>

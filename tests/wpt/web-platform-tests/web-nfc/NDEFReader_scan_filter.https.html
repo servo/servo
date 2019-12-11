@@ -62,12 +62,11 @@ const multiScanOptionsTests =
       message: createMessage([createRecord('w3.org:xyz', test_buffer_data)])
     },
     {
-      desc: "Test that the url of NDEFScanOptions filters relevant data" +
+      desc: "Test that the id of NDEFScanOptions filters relevant data" +
             " sources correctly.",
-      scanOptions: {id: `${location.origin}/custom/path`},
-      unmatchedScanOptions: {id: `${location.origin}/custom/invalid`},
-      message: {url: `${location.origin}/custom/path/update`,
-          records: [createTextRecord(test_text_data)]}
+      scanOptions: {id: test_record_id},
+      unmatchedScanOptions: {id: 'non_sense_id'},
+      message: {records: [createTextRecord(test_text_data)]}
     },
     {
       desc: "Test that the mediaType of NDEFScanOptions filters relevant data" +
@@ -131,12 +130,10 @@ const multiMessagesTests =
     },
     {
       desc: "Test that filtering 'text' record from different messages" +
-            " correctly with NDEFScanOptions' url set.",
-      scanOptions: {id: `${location.origin}/custom/path`},
-      message: {url: `${location.origin}/custom/path/update`,
-          records: [createTextRecord(test_text_data)]},
-      unmatchedMessage: {url: `${location.origin}/custom/invalid`,
-          records: [createUrlRecord(test_url_data)]}
+            " correctly with NDEFScanOptions' id set.",
+      scanOptions: {id: test_record_id},
+      message: {records: [createTextRecord(test_text_data)]},
+      unmatchedMessage: {records: [createRecord('url', test_url_data, 'random_record_id')]}
     },
     {
       desc: "Test that filtering 'mime' record from different messages" +

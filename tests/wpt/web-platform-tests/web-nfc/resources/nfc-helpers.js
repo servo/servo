@@ -157,9 +157,6 @@ function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
 // NDEFWriter.onreading() EventHandler and another that is provided to mock NFC
 // service.
 function assertWebNDEFMessagesEqual(message, expectedMessage) {
-  if (expectedMessage.url)
-    assert_equals(message.url, expectedMessage.url);
-
   assert_equals(message.records.length, expectedMessage.records.length);
 
   for(let i in message.records) {

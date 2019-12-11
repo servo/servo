@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <header>
+    <title>allow/sandbox attr changed after document creation, before response</title>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script>
+        let lastCallbackId = 0;
+        const callbacks = {};
+
+        function postMessageToFrame(frame, cb) {
+          var id = ++lastCallbackId;
+          callbacks[id] = cb;
+          frame.contentWindow.postMessage({id:id}, '*');
+          step_timeout(() => {
+            if (id in callbacks) {
+              callbacks[id]('timeout');
+              delete callbacks[id];
+            }
+          }, 1000);
+        }
+
+        window.onmessage = function(e) {
+          const message = e.data;
+          const id = message['id'];
+          const callback = callbacks[id];
+          delete callbacks[id];
+          callback(message.result);
+        };
+        // @param {string} url
+        // @param {Function} iframe_pre_nav_callback - a callback with signature (iframe) => () which gets
+        //                                            triggered before setting src attribute.
+        // @param {Function} iframe_post_nav_callback - a callback with signature (iframe) => () which gets
+        //                                             triggered after setting src attribute but before commit
+        //                                             of navigation.
+        // @param {Function} result_handler - a callback that handles the result posted back from iframe.
+        // @param {string} test_name
+        function timing_test(url,
+          iframe_pre_nav_callback,
+          iframe_post_nav_callback,
+          result_handler, test_name) {
+          async_test((t) => {
+            const iframe = document.createElement('iframe');
+            document.body.appendChild(iframe);
+            iframe_pre_nav_callback(iframe);
+            iframe.src = url;
+            iframe_post_nav_callback(iframe);
+            iframe.onload = t.step_func(() => {
+              postMessageToFrame(iframe, t.step_func_done(result_handler));
+            });
+          }, test_name);
+        }
+
+        const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+        const same_origin = path;
+        const cross_origin = "https://{{domains[www1]}}:{{ports[https][0]}}" + path;
+
+        const cameraUrl = 'feature-policy-frame-policy-timing-iframe-camera.https.sub.html';
+        function disallowCamera(iframe) { iframe.allow = "camera 'none'"; }
+        function allowCamera(iframe) { iframe.allow = 'camera *'; }
+        function verifyCamera(result) { assert_equals(result, 'NotAllowedError'); }
+        timing_test(same_origin + cameraUrl, disallowCamera, allowCamera, verifyCamera, 'allow attr timing test same origin');
+        timing_test(cross_origin + cameraUrl, disallowCamera, allowCamera, verifyCamera, 'allow attr timing test diff origin');
+        </script>
+  </header>
+  <body>
+    <div id="log"></div>
+  </body>
+</html>

@@ -10,13 +10,9 @@
  *                                 or an array of permitted computed value.
  *                                 If omitted, defaults to specified.
  */
-function test_computed_value(property, specified, computed) {
+function test_computed_value(property, specified, computed, titleExtra) {
   if (!computed)
     computed = specified;
-
-  let computedDesc = "'" + computed + "'";
-  if (Array.isArray(computed))
-    computedDesc = '[' + computed.map(e => "'" + e + "'").join(' or ') + ']';
 
   test(() => {
     const target = document.getElementById('target');
@@ -37,17 +33,12 @@ function test_computed_value(property, specified, computed) {
       assert_equals(getComputedStyle(target)[property], readValue,
                     'computed value should round-trip');
     }
-  }, "Property " + property + " value '" + specified + "' computes to " +
-     computedDesc);
+  }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
-function test_pseudo_computed_value(pseudo, property, specified, computed) {
+function test_pseudo_computed_value(pseudo, property, specified, computed, titleExtra) {
   if (!computed)
     computed = specified;
-
-  let computedDesc = "'" + computed + "'";
-  if (Array.isArray(computed))
-    computedDesc = '[' + computed.map(e => "'" + e + "'").join(' or ') + ']';
 
   test(() => {
     assert_true(/^::\w+$/.test(pseudo), pseudo + " doesn't seem to be a pseudo-element");
@@ -78,6 +69,5 @@ function test_pseudo_computed_value(pseudo, property, specified, computed) {
     } finally {
       document.documentElement.removeChild(styleElement);
     }
-  }, "Property " + property + " value '" + specified + "' computes to " +
-     computedDesc + " in " + pseudo);
+  }, `Property ${property} value '${specified}' in ${pseudo}${titleExtra ? ' ' + titleExtra : ''}`);
 }

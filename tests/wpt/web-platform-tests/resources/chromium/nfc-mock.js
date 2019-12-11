@@ -15,7 +15,6 @@ function toMojoNDEFPushTarget(target) {
 // and mojom.NDEFMessage structure, so that watch function can be tested.
 function toMojoNDEFMessage(message) {
   let ndefMessage = new device.mojom.NDEFMessage();
-  ndefMessage.url = message.url;
   ndefMessage.data = [];
   for (let record of message.records) {
     ndefMessage.data.push(toMojoNDEFRecord(record));
@@ -112,49 +111,29 @@ function assertNDEFReaderOptionsEqual(provided, received) {
 
 // Checks whether NDEFReaderOptions are matched with given message.
 function matchesWatchOptions(message, options) {
-  // Filter by Web NFC id.
-  if (!matchesWebNfcId(message.url, options.id)) return false;
-
-  // Matches any record / media type.
-  if ((options.mediaType == null || options.mediaType === '') &&
-      options.recordType == null) {
+  // A message with no records is to notify that the tag is already formatted to
+  // support NDEF but does not contain a message yet. We always dispatch it for
+  // all options.
+  if (message.records.length == 0)
     return true;
-  }
 
-  // Filter by mediaType and recordType.
   for (let record of message.records) {
-    if (options.mediaType != null && options.mediaType !== ""
-        && options.mediaType !== record.mediaType) {
-      return false;
+    if (options.id != null && options.id !== record.id) {
+      continue;
     }
     if (options.recordType != null &&
         options.recordType !== record.recordType) {
-      return false;
+      continue;
     }
+    if (options.mediaType !== '' && options.mediaType !== record.mediaType) {
+      continue;
+    }
+
+    // Found one record matches, means the message matches.
+    return true;
   }
 
-  return true;
-}
-
-// Web NFC id match algorithm.
-// https://w3c.github.io/web-nfc/#url-pattern-match-algorithm
-function matchesWebNfcId(id, pattern) {
-  if (id != null && id !== "" && pattern != null && pattern !== "") {
-    const id_url = new URL(id);
-    const pattern_url = new URL(pattern);
-
-    if (id_url.protocol !== pattern_url.protocol) return false;
-    if (!id_url.host.endsWith("." + pattern_url.host)
-        && id_url.host !== pattern_url.host) {
-      return false;
-    }
-    if (pattern_url.pathname === "/*") return true;
-    if (id_url.pathname.startsWith(pattern_url.pathname)) return true;
-
-    return false;
-  }
-
-  return true;
+  return false;
 }
 
 function createNDEFError(type) {

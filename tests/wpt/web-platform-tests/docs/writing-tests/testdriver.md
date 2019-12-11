@@ -101,7 +101,7 @@ Usage: `test_driver.click(element)`
 This function causes a click to occur on the target element (an
 `Element` object), potentially scrolling the document to make it
 possible to click it. It returns a `Promise` that resolves after the
-click has occured or rejects if the element cannot be clicked (for
+click has occurred or rejects if the element cannot be clicked (for
 example, it is obscured by an element on top of it).
 
 Note that if the element to be clicked does not have a unique ID, the

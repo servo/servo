@@ -248,7 +248,7 @@ When used for expectation data, manifests have the following format:
    base test URL, in which case the fuzziness applies to any
    comparison with that URL, or takes the form lhs url, comparison,
    rhs url, in which case the fuzziness only applies for any
-   comparison involving that specifc pair of URLs. Some illustrative
+   comparison involving that specific pair of URLs. Some illustrative
    examples are given below.
 
  * Variables ``debug``, ``os``, ``version``, ``processor`` and

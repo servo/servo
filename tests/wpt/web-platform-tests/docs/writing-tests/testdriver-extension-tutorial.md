@@ -92,8 +92,8 @@ The main thing here is the `postMessage` argument. The first argument is an obje
  - `action`: the name of the testdriver command this defines (in this case, `set_window_rect`)
  - any other things you want to pass to the next point of execution (in this case, the x, y coordinates and the width and height)
 
-<!-- The pending promise needs to be there as it is resolved when the window recieves a completion message from the executor. -->
-The pending promise is out of scope of this function and is resolved when the window recieves a completion message from the executor.
+<!-- The pending promise needs to be there as it is resolved when the window receives a completion message from the executor. -->
+The pending promise is out of scope of this function and is resolved when the window receives a completion message from the executor.
 This happens here in the same file:
 
 ```javascript

@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <title>Reference for reverse running animation</title>
 <style>
-  #box {
-    background: blue;
-    height: 40px;
-    width: 40px;
-    transform: translateX(100px);
-    will-change: transform;
+  #notes {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+  body {
+    backgrond: white;
   }
 </style>
 <body>
-  <div id="box"></div>
-  <p>This test reverses the animation shortly after the box starts moving. If
-     the box doesn't move back to its original position, the test has failed.
+  <p id="notes">
+    This test reverses the animation shortly after the box starts moving. If
+    any blue pixels are visible the test has failed.
   </p>
 </body>

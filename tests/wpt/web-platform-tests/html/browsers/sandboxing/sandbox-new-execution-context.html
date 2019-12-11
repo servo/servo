@@ -11,29 +11,28 @@
   <body>
     <h1>Reuse of iframe about:blank document execution context in sandbox="allow-scripts" iframe</h1>
     <script type="text/javascript">
-      var t = async_test("iframe with sandbox should load with new execution context")
+      async_test(t => {
+        let iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
 
-      let iframe = document.createElement("iframe");
-      iframe.src = './sandbox-new-execution-context-iframe.html';
-      document.body.appendChild(iframe);
-      iframe.sandbox = "allow-scripts";
+        let iframeAboutBlankDocument = iframe.contentDocument;
+        assert_equals(iframeAboutBlankDocument.URL, "about:blank");
 
-      let iframeAboutBlankDocument = iframe.contentDocument;
-      assert_equals(iframeAboutBlankDocument.URL, "about:blank");
+        iframe.sandbox = "allow-scripts";
+        iframe.src = './sandbox-new-execution-context-iframe.html';
 
-      iframe.onload = t.step_func_done(() => {
-        assert_equals(iframe.contentDocument, null,
-          "New document in sandboxed iframe should have opaque origin");
+        iframe.onload = t.step_func_done(() => {
+          assert_equals(iframe.contentDocument, null,
+            "New document in sandboxed iframe should have opaque origin");
 
-        assert_equals(iframeAboutBlankDocument.__proto__.changeFromSandboxedIframe, undefined,
-          "Sandboxed iframe contents should not have been able to mess with type system of about:blank document");
+          assert_equals(iframeAboutBlankDocument.__proto__.changeFromSandboxedIframe, undefined,
+            "Sandboxed iframe contents should not have been able to mess with type system of about:blank document");
 
-        let iframeAboutBlankContents = iframeAboutBlankDocument.querySelectorAll('body');
-        assert_equals(iframeAboutBlankContents[0].tagName, "BODY",
-          "about:blank document's contents should still be accessible");
-
-        t.done();
-      });
+          let iframeAboutBlankContents = iframeAboutBlankDocument.querySelectorAll('body');
+          assert_equals(iframeAboutBlankContents[0].tagName, "BODY",
+            "about:blank document's contents should still be accessible");
+        });
+      },"iframe with sandbox should load with new execution context");
     </script>
     <div id="log"></div>
   </body>

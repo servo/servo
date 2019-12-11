@@ -712,6 +712,20 @@ class ChromeAndroid(ChromeAndroidBase):
         return "com.android.chrome"
 
 
+#TODO(aluo): This is largely copied from the AndroidWebView implementation.
+#            Tests are not running for weblayer yet (crbug/1019521), this
+#            initial implementation will help to reproduce and debug any issues.
+class AndroidWeblayer(ChromeAndroidBase):
+    """Weblayer-specific interface for Android."""
+
+    product = "android_weblayer"
+    # TODO(aluo): replace this with weblayer version after tests are working.
+    requirements = "requirements_android_webview.txt"
+
+    def find_binary(self, venv_path=None, channel=None):
+        return "org.chromium.weblayer.shell"
+
+
 class AndroidWebview(ChromeAndroidBase):
     """Webview-specific interface for Android.
 
@@ -1108,7 +1122,7 @@ class Servo(Browser):
 
         _, _, decompress = self.platform_components()
 
-        resp = self._get(dest, channel)
+        resp = self._get(channel)
         decompress(resp.raw, dest=dest)
         path = find_executable("servo", os.path.join(dest, "servo"))
         st = os.stat(path)

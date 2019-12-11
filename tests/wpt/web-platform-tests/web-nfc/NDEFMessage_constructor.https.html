@@ -13,7 +13,6 @@
 
   test(() => {
     const message = new NDEFMessage(null);
-    assert_equals(message.url.length, 0, 'empty url');
     assert_equals(message.records.length, 0, 'empty records');
   }, 'NDEFMessage constructor with null init dict');
 

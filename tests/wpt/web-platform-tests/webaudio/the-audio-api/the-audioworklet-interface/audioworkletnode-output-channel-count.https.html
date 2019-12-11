@@ -13,7 +13,7 @@
       const audit = Audit.createTaskRunner();
       const context = new AudioContext();
 
-      (async function () {
+      setup(async function () {
         await context.audioWorklet.addModule(
             'processors/channel-count-processor.js');
 
@@ -76,7 +76,7 @@
             });
 
         audit.run();
-      })();
+      });
     </script>
   </body>
 </html>

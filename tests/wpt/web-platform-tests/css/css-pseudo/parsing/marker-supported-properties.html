@@ -31,6 +31,9 @@ test_pseudo_computed_value("::marker", "font-variant-numeric", "slashed-zero");
 test_pseudo_computed_value("::marker", "font-variant-position", "sub");
 test_pseudo_computed_value("::marker", "font-weight", "900");
 
+// ::marker supports `white-space`
+test_pseudo_computed_value("::marker", "white-space", "nowrap");
+
 // ::marker supports `color`
 test_pseudo_computed_value("::marker", "color", "rgb(0, 100, 200)");
 
