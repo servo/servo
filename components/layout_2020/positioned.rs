@@ -21,9 +21,15 @@ pub(crate) struct AbsolutelyPositionedBox {
     pub contents: IndependentFormattingContext,
 }
 
+#[derive(Default)]
+pub(crate) struct PositioningContext<'box_tree> {
+    /// With `position: absolute`
+    pub abspos: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+}
+
 #[derive(Debug)]
-pub(crate) struct AbsolutelyPositionedFragment<'box_> {
-    absolutely_positioned_box: &'box_ AbsolutelyPositionedBox,
+pub(crate) struct CollectedAbsolutelyPositionedBox<'box_tree> {
+    absolutely_positioned_box: &'box_tree AbsolutelyPositionedBox,
 
     /// The rank of the child from which this absolutely positioned fragment
     /// came from, when doing the layout of a block container. Used to compute
@@ -81,7 +87,7 @@ impl AbsolutelyPositionedBox {
         &'a self,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
-    ) -> AbsolutelyPositionedFragment {
+    ) -> CollectedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
             initial_static_start: Length,
             start: LengthPercentageOrAuto,
@@ -98,7 +104,7 @@ impl AbsolutelyPositionedBox {
         }
 
         let box_offsets = self.contents.style.box_offsets();
-        AbsolutelyPositionedFragment {
+        CollectedAbsolutelyPositionedBox {
             absolutely_positioned_box: self,
             tree_rank,
             box_offsets: Vec2 {
@@ -117,16 +123,25 @@ impl AbsolutelyPositionedBox {
     }
 }
 
-impl<'a> AbsolutelyPositionedFragment<'a> {
-    pub(crate) fn in_positioned_containing_block(
+impl PositioningContext<'_> {
+    /// Unlike `Vec::append`, this takes ownership of the other value.
+    pub(crate) fn append(&mut self, mut other: Self) {
+        if self.abspos.is_empty() {
+            self.abspos = other.abspos
+        } else {
+            self.abspos.append(&mut other.abspos)
+        }
+    }
+
+    pub(crate) fn layout_abspos(
+        self,
         layout_context: &LayoutContext,
-        absolute: &[Self],
         fragments: &mut Vec<Fragment>,
         content_rect_size: &Vec2<Length>,
         padding: &Sides<Length>,
         style: &ComputedValues,
     ) {
-        if absolute.is_empty() {
+        if self.abspos.is_empty() {
             return;
         }
         let padding_rect = Rect {
@@ -139,11 +154,12 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             size: padding_rect.size.clone(),
             style,
         };
-        let map = |a: &AbsolutelyPositionedFragment| a.layout(layout_context, &containing_block);
+        let map =
+            |a: &CollectedAbsolutelyPositionedBox| a.layout(layout_context, &containing_block);
         let children = if layout_context.use_rayon {
-            absolute.par_iter().map(map).collect()
+            self.abspos.par_iter().map(map).collect()
         } else {
-            absolute.iter().map(map).collect()
+            self.abspos.iter().map(map).collect()
         };
         fragments.push(Fragment::Anonymous(AnonymousFragment {
             children,
@@ -151,7 +167,9 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             mode: style.writing_mode,
         }))
     }
+}
 
+impl CollectedAbsolutelyPositionedBox<'_> {
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -216,7 +234,7 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             block_end: block_axis.margin_end,
         };
 
-        let mut absolutely_positioned_fragments = Vec::new();
+        let mut positioning_context = PositioningContext { abspos: Vec::new() };
         let (size, mut fragments) = match self.absolutely_positioned_box.contents.as_replaced() {
             Ok(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
@@ -256,9 +274,9 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
                 let dummy_tree_rank = 0;
                 let independent_layout = non_replaced.layout(
                     layout_context,
+                    &mut positioning_context,
                     &containing_block_for_children,
                     dummy_tree_rank,
-                    &mut absolutely_positioned_fragments,
                 );
 
                 let size = Vec2 {
@@ -288,9 +306,8 @@ impl<'a> AbsolutelyPositionedFragment<'a> {
             size,
         };
 
-        AbsolutelyPositionedFragment::in_positioned_containing_block(
+        positioning_context.layout_abspos(
             layout_context,
-            &absolutely_positioned_fragments,
             &mut fragments,
             &content_rect.size,
             &padding,
@@ -414,8 +431,8 @@ fn solve_axis(
 }
 
 pub(crate) fn adjust_static_positions(
-    absolutely_positioned_fragments: &mut [AbsolutelyPositionedFragment],
-    child_fragments: &mut [Fragment],
+    absolutely_positioned_fragments: &mut [CollectedAbsolutelyPositionedBox],
+    child_fragments: &[Fragment],
     tree_rank_in_parent: usize,
 ) {
     for abspos_fragment in absolutely_positioned_fragments {
