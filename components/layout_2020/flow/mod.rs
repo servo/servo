@@ -11,7 +11,6 @@ use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::fragments::{CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::adjust_static_positions;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::ComputedValuesExt;
@@ -194,7 +193,6 @@ fn layout_block_level_children<'a>(
         current_block_direction_position: Length,
     }
 
-    let abspos_so_far = positioning_context.abspos.len();
     let mut placement_state = PlacementState {
         next_in_flow_margin_collapses_with_parent_start_margin:
             collapsible_with_parent_start_margin.0,
@@ -202,54 +200,50 @@ fn layout_block_level_children<'a>(
         current_margin: CollapsedMargin::zero(),
         current_block_direction_position: Length::zero(),
     };
-    let mut fragments: Vec<_>;
-    if float_context.is_some() || !layout_context.use_rayon {
-        // Because floats are involved, we do layout for this block formatting context
-        // in tree order without parallelism. This enables mutable access
-        // to a `FloatContext` that tracks every float encountered so far (again in tree order).
-        fragments = child_boxes
-            .iter()
-            .enumerate()
-            .map(|(tree_rank, box_)| {
-                let mut fragment = box_.layout(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    tree_rank,
-                    float_context.as_mut().map(|c| &mut **c),
-                );
-                place_block_level_fragment(&mut fragment, &mut placement_state);
-                fragment
-            })
-            .collect()
-    } else {
-        fragments = child_boxes
-            .par_iter()
-            .enumerate()
-            .mapfold_reduce_into(
-                positioning_context,
-                |positioning_context, (tree_rank, box_)| {
-                    box_.layout(
+    let fragments = positioning_context.adjust_static_positions(tree_rank, |positioning_context| {
+        if float_context.is_some() || !layout_context.use_rayon {
+            // Because floats are involved, we do layout for this block formatting context
+            // in tree order without parallelism. This enables mutable access
+            // to a `FloatContext` that tracks every float encountered so far (again in tree order).
+            child_boxes
+                .iter()
+                .enumerate()
+                .map(|(tree_rank, box_)| {
+                    let mut fragment = box_.layout(
                         layout_context,
                         positioning_context,
                         containing_block,
                         tree_rank,
-                        /* float_context = */ None,
-                    )
-                },
-                |left, right| left.append(right),
-            )
-            .collect();
-        for fragment in &mut fragments {
-            place_block_level_fragment(fragment, &mut placement_state)
+                        float_context.as_mut().map(|c| &mut **c),
+                    );
+                    place_block_level_fragment(&mut fragment, &mut placement_state);
+                    fragment
+                })
+                .collect()
+        } else {
+            let mut fragments = child_boxes
+                .par_iter()
+                .enumerate()
+                .mapfold_reduce_into(
+                    positioning_context,
+                    |positioning_context, (tree_rank, box_)| {
+                        box_.layout(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            tree_rank,
+                            /* float_context = */ None,
+                        )
+                    },
+                    |left, right| left.append(right),
+                )
+                .collect();
+            for fragment in &mut fragments {
+                place_block_level_fragment(fragment, &mut placement_state)
+            }
+            fragments
         }
-    }
-
-    adjust_static_positions(
-        &mut positioning_context.abspos[abspos_so_far..],
-        &mut fragments,
-        tree_rank,
-    );
+    });
 
     FlowLayout {
         fragments,

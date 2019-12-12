@@ -133,6 +133,21 @@ impl PositioningContext<'_> {
         }
     }
 
+    pub(crate) fn adjust_static_positions(
+        &mut self,
+        tree_rank_in_parent: usize,
+        f: impl FnOnce(&mut Self) -> Vec<Fragment>,
+    ) -> Vec<Fragment> {
+        let abspos_so_far = self.abspos.len();
+        let fragments = f(self);
+        adjust_static_positions(
+            &mut self.abspos[abspos_so_far..],
+            &fragments,
+            tree_rank_in_parent,
+        );
+        fragments
+    }
+
     pub(crate) fn layout_abspos(
         self,
         layout_context: &LayoutContext,
@@ -430,7 +445,7 @@ fn solve_axis(
     }
 }
 
-pub(crate) fn adjust_static_positions(
+fn adjust_static_positions(
     absolutely_positioned_fragments: &mut [CollectedAbsolutelyPositionedBox],
     child_fragments: &[Fragment],
     tree_rank_in_parent: usize,
