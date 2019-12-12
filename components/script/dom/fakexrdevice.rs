@@ -50,48 +50,27 @@ impl FakeXRDevice {
     }
 }
 
-pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
-    if views.len() != 2 {
-        return Err(Error::NotSupported);
-    }
-
-    let (left, right) = match (views[0].eye, views[1].eye) {
-        (XREye::Left, XREye::Right) => (&views[0], &views[1]),
-        (XREye::Right, XREye::Left) => (&views[1], &views[0]),
-        _ => return Err(Error::NotSupported),
-    };
-
-    if left.projectionMatrix.len() != 16 ||
-        right.projectionMatrix.len() != 16 ||
-        left.viewOffset.position.len() != 3 ||
-        right.viewOffset.position.len() != 3
-    {
+pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
+    if view.projectionMatrix.len() != 16 || view.viewOffset.position.len() != 3 {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
 
-    let mut proj_l = [0.; 16];
-    let mut proj_r = [0.; 16];
-    let v: Vec<_> = left.projectionMatrix.iter().map(|x| **x).collect();
-    proj_l.copy_from_slice(&v);
-    let proj_l = Transform3D::from_array(proj_l);
-    let v: Vec<_> = right.projectionMatrix.iter().map(|x| **x).collect();
-    proj_r.copy_from_slice(&v);
-    let proj_r = Transform3D::from_array(proj_r);
+    let mut proj = [0.; 16];
+    let v: Vec<_> = view.projectionMatrix.iter().map(|x| **x).collect();
+    proj.copy_from_slice(&v);
+    let projection = Transform3D::from_array(proj);
 
     // spec defines offsets as origins, but mock API expects the inverse transform
-    let offset_l = get_origin(&left.viewOffset)?.inverse();
-    let offset_r = get_origin(&right.viewOffset)?.inverse();
+    let transform = get_origin(&view.viewOffset)?.inverse();
 
-    let size_l = Size2D::new(views[0].resolution.width, views[0].resolution.height);
-    let size_r = Size2D::new(views[1].resolution.width, views[1].resolution.height);
+    let size = Size2D::new(view.resolution.width, view.resolution.height);
+    let origin = match view.eye {
+        XREye::Right => Point2D::new(size.width, 0),
+        _ => Point2D::new(0, 0),
+    };
+    let viewport = Rect::new(origin, size);
 
-    let origin_l = Point2D::new(0, 0);
-    let origin_r = Point2D::new(size_l.width, 0);
-
-    let viewport_l = Rect::new(origin_l, size_l);
-    let viewport_r = Rect::new(origin_r, size_r);
-
-    let fov_l = if let Some(ref fov) = left.fieldOfView {
+    let fov = if let Some(ref fov) = view.fieldOfView {
         Some((
             fov.leftDegrees.to_radians(),
             fov.rightDegrees.to_radians(),
@@ -102,30 +81,26 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
         None
     };
 
-    let fov_r = if let Some(ref fov) = right.fieldOfView {
-        Some((
-            fov.leftDegrees.to_radians(),
-            fov.rightDegrees.to_radians(),
-            fov.upDegrees.to_radians(),
-            fov.downDegrees.to_radians(),
-        ))
-    } else {
-        None
-    };
-
-    let left = MockViewInit {
-        projection: proj_l,
-        transform: offset_l,
-        viewport: viewport_l,
-        fov: fov_l,
-    };
-    let right = MockViewInit {
-        projection: proj_r,
-        transform: offset_r,
-        viewport: viewport_r,
-        fov: fov_r,
-    };
-    Ok(MockViewsInit::Stereo(left, right))
+    Ok(MockViewInit {
+        projection,
+        transform,
+        viewport,
+        fov,
+    })
+}
+pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
+    match views.len() {
+        1 => Ok(MockViewsInit::Mono(view(&views[0])?)),
+        2 => {
+            let (left, right) = match (views[0].eye, views[1].eye) {
+                (XREye::Left, XREye::Right) => (&views[0], &views[1]),
+                (XREye::Right, XREye::Left) => (&views[1], &views[0]),
+                _ => return Err(Error::NotSupported),
+            };
+            Ok(MockViewsInit::Stereo(view(left)?, view(right)?))
+        },
+        _ => Err(Error::NotSupported),
+    }
 }
 
 pub fn get_origin<T, U>(
