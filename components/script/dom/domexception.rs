@@ -149,6 +149,11 @@ impl DOMException {
             DOMExceptionBinding::Wrap,
         ))
     }
+
+    // not an IDL stringifier, used internally
+    pub fn stringifier(&self) -> DOMString {
+        DOMString::from(format!("{}: {}", self.name, self.message))
+    }
 }
 
 impl DOMExceptionMethods for DOMException {
@@ -168,10 +173,5 @@ impl DOMExceptionMethods for DOMException {
     // https://heycam.github.io/webidl/#error-names
     fn Message(&self) -> DOMString {
         self.message.clone()
-    }
-
-    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.tostring
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(format!("{}: {}", self.name, self.message))
     }
 }

@@ -47,6 +47,4 @@ interface DOMException {
 
   // A custom message set by the thrower.
   readonly attribute DOMString message;
-
-  stringifier;
 };
