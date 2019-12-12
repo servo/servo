@@ -13,6 +13,7 @@ path = "lib.rs"
 [dependencies]
 crossbeam-channel = "0.3"
 devtools_traits = {path = "../devtools_traits"}
+embedder_traits = {path = "../embedder_traits"}
 headers = "0.2"
 http = "0.1"
 hyper = "0.12"
