@@ -164,7 +164,13 @@ class Test(object):
         self.environment = {"protocol": protocol, "prefs": self.prefs}
 
     def __eq__(self, other):
+        if not isinstance(other, Test):
+            return False
         return self.id == other.id
+
+    # Python 2 does not have this delegation, while Python 3 does.
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def update_metadata(self, metadata=None):
         if metadata is None:

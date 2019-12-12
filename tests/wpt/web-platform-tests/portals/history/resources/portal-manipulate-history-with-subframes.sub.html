@@ -37,10 +37,10 @@
     frameHistoryLength =
         await messageFrameAndAwaitResponse(iframe, 'reportHistoryLength');
     assert(
-        history.length == 2, 'History length changed when iframe src set');
+        history.length == 1, 'History length unchanged when iframe src set');
     assert(
-        frameHistoryLength == 2,
-        'History length in iframe changed when iframe src set');
+        frameHistoryLength == 1,
+        'History length in iframe unchanged when iframe src set');
   }
 
   function testIFrameSrcInPortal() {
@@ -66,10 +66,10 @@
     let frameHistoryLength =
         await messageFrameAndAwaitResponse(iframe, 'reportHistoryLength');
     assert(
-        history.length == 2, 'History length changed when iframe navigates');
+        history.length == 1, 'History length unchanged when iframe navigates');
     assert(
-        frameHistoryLength == 2,
-        'History length in iframe changed when iframe navigates');
+        frameHistoryLength == 1,
+        'History length in iframe unchanged when iframe navigates');
   }
 
   function testIFrameNavInPortal() {

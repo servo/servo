@@ -253,3 +253,14 @@ promise_test(() => {
     assert_array_equals(writable.events, [], 'writable should not be aborted');
   });
 }, 'preventAbort should work');
+
+test(() => {
+  const rs = new ReadableStream();
+  const readable = new ReadableStream();
+  const writable = new WritableStream();
+  assert_throws(new TypeError(), () => rs.pipeThrough({readable, writable}, {
+    get preventAbort() {
+      writable.getWriter();
+    }
+  }), 'pipeThrough should throw');
+}, 'pipeThrough() should throw if an option getter grabs a writer');

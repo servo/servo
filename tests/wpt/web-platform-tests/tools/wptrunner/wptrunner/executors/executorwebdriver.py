@@ -31,6 +31,10 @@ import webdriver as client
 here = os.path.join(os.path.split(__file__)[0])
 
 
+class WebDriverCallbackHandler(CallbackHandler):
+    unimplemented_exc = (NotImplementedError, client.UnknownCommandException)
+
+
 class WebDriverBaseProtocolPart(BaseProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -376,7 +380,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
                                                            parent_window,
                                                            timeout=5*self.timeout_multiplier)
         self.protocol.base.set_window(test_window)
-        handler = CallbackHandler(self.logger, protocol, test_window)
+        handler = WebDriverCallbackHandler(self.logger, protocol, test_window)
         protocol.webdriver.url = url
 
         if not self.supports_eager_pageload:

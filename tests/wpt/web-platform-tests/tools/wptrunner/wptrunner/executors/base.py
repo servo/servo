@@ -148,7 +148,7 @@ class TimedRunner(object):
         executor = threading.Thread(target=self.run_func)
         executor.start()
 
-        # Add twice the timeout multiplier since the called function is expected to
+        # Add twice the extra timeout since the called function is expected to
         # wait at least self.timeout + self.extra_timeout and this gives some leeway
         timeout = self.timeout + 2 * self.extra_timeout if self.timeout else None
         finished = self.result_flag.wait(timeout)
@@ -654,6 +654,8 @@ class CallbackHandler(object):
     WebDriver. Things that are more different to WebDriver may need to create a
     fully custom implementation."""
 
+    unimplemented_exc = (NotImplementedError,)
+
     def __init__(self, logger, protocol, test_window):
         self.protocol = protocol
         self.test_window = test_window
@@ -700,6 +702,9 @@ class CallbackHandler(object):
             raise ValueError("Unknown action %s" % action)
         try:
             result = action_handler(payload)
+        except self.unimplemented_exc:
+            self.logger.warning("Action %s not implemented" % action)
+            self._send_message("complete", "error", "Action %s not implemented" % action)
         except Exception:
             self.logger.warning("Action %s failed" % action)
             self.logger.warning(traceback.format_exc())

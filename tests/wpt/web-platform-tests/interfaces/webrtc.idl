@@ -8,7 +8,6 @@ dictionary RTCConfiguration {
   RTCIceTransportPolicy iceTransportPolicy;
   RTCBundlePolicy bundlePolicy;
   RTCRtcpMuxPolicy rtcpMuxPolicy;
-  DOMString peerIdentity;
   sequence<RTCCertificate> certificates;
   [EnforceRange] octet iceCandidatePoolSize = 0;
 };
@@ -296,11 +295,9 @@ dictionary RTCRtpParameters {
 dictionary RTCRtpSendParameters : RTCRtpParameters {
   required DOMString transactionId;
   required sequence<RTCRtpEncodingParameters> encodings;
-  RTCDegradationPreference degradationPreference = "balanced";
 };
 
 dictionary RTCRtpReceiveParameters : RTCRtpParameters {
-  required sequence<RTCRtpDecodingParameters> encodings;
 };
 
 dictionary RTCRtpCodingParameters {
@@ -313,12 +310,6 @@ dictionary RTCRtpEncodingParameters : RTCRtpCodingParameters {
   boolean active = true;
   unsigned long maxBitrate;
   double scaleResolutionDownBy;
-};
-
-enum RTCDegradationPreference {
-  "maintain-framerate",
-  "maintain-resolution",
-  "balanced"
 };
 
 dictionary RTCRtcpParameters {
@@ -615,14 +606,6 @@ enum RTCErrorDetailType {
   "data-channel-failure",
   "dtls-failure",
   "fingerprint-failure",
-  "idp-bad-script-failure",
-  "idp-execution-failure",
-  "idp-load-failure",
-  "idp-need-login",
-  "idp-timeout",
-  "idp-tls-failure",
-  "idp-token-expired",
-  "idp-token-invalid",
   "sctp-failure",
   "sdp-syntax-error",
   "hardware-encoder-not-available",

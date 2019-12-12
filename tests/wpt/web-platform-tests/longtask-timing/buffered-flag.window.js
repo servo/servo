@@ -8,7 +8,7 @@ async_test(t => {
                     return;
                 assert_equals(entry.entryType, 'longtask');
                 assert_equals(entry.name, 'self');
-                assert_greater_than(longtask.duration, 50);
+                assert_greater_than(entry.duration, 50);
                 longtaskObserved = true;
             });
             assert_true(longtaskObserved, 'Did not observe buffered longtask.');

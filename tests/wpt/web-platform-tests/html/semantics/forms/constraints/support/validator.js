@@ -1,16 +1,23 @@
 var validator = {
+
   test_tooLong: function(ctl, data) {
     var self = this;
-    test(function () {
-       self.pre_check(ctl, "tooLong");
+    test(function() {
+      self.pre_check(ctl, 'tooLong');
       self.set_conditions(ctl, data.conditions);
-      if (data.dirty)
-        self.set_dirty(ctl);
-
-      if (data.expected)
-        assert_true(ctl.validity.tooLong, "The validity.tooLong should be true.");
-      else
-        assert_false(ctl.validity.tooLong, "The validity.tooLong should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.dirty)
+          self.set_dirty(ctl);
+        if (data.expected)
+          assert_true(
+              ctl.validity.tooLong,
+              'The validity.tooLong should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.tooLong,
+              'The validity.tooLong should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -19,13 +26,19 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "tooShort");
       self.set_conditions(ctl, data.conditions);
-      if (data.dirty)
-        self.set_dirty(ctl);
-
-      if (data.expected)
-        assert_true(ctl.validity.tooShort, "The validity.tooShort should be true.");
-      else
-        assert_false(ctl.validity.tooShort, "The validity.tooShort should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.dirty)
+          self.set_dirty(ctl);
+        if (data.expected)
+          assert_true(
+              ctl.validity.tooShort,
+              'The validity.tooShort should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.tooShort,
+              'The validity.tooShort should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -34,11 +47,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "patternMismatch");
       self.set_conditions(ctl, data.conditions);
-
-      if (data.expected)
-        assert_true(ctl.validity.patternMismatch, "The validity.patternMismatch should be true.");
-      else
-        assert_false(ctl.validity.patternMismatch, "The validity.patternMismatch should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.patternMismatch,
+              'The validity.patternMismatch should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.patternMismatch,
+              'The validity.patternMismatch should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -47,10 +66,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "valueMissing");
       self.set_conditions(ctl, data.conditions);
-      if (data.expected)
-        assert_true(ctl.validity.valueMissing, "The validity.valueMissing should be true.");
-      else
-        assert_false(ctl.validity.valueMissing, "The validity.valueMissing should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.valueMissing,
+              'The validity.valueMissing should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.valueMissing,
+              'The validity.valueMissing should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -59,11 +85,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "typeMismatch");
       self.set_conditions(ctl, data.conditions);
-
-      if (data.expected)
-        assert_true(ctl.validity.typeMismatch, "The validity.typeMismatch should be true.");
-      else
-        assert_false(ctl.validity.typeMismatch, "The validity.typeMismatch should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.typeMismatch,
+              'The validity.typeMismatch should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.typeMismatch,
+              'The validity.typeMismatch should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -72,11 +104,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "rangeOverflow");
       self.set_conditions(ctl, data.conditions);
-
-      if (data.expected)
-        assert_true(ctl.validity.rangeOverflow, "The validity.rangeOverflow should be true.");
-      else
-        assert_false(ctl.validity.rangeOverflow, "The validity.rangeOverflow should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.rangeOverflow,
+              'The validity.rangeOverflow should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.rangeOverflow,
+              'The validity.rangeOverflow should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -85,10 +123,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "rangeUnderflow");
       self.set_conditions(ctl, data.conditions);
-      if (data.expected)
-        assert_true(ctl.validity.rangeUnderflow, "The validity.rangeUnderflow should be true.");
-      else
-        assert_false(ctl.validity.rangeUnderflow, "The validity.rangeUnderflow should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.rangeUnderflow,
+              'The validity.rangeUnderflow should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.rangeUnderflow,
+              'The validity.rangeUnderflow should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -97,11 +142,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "stepMismatch");
       self.set_conditions(ctl, data.conditions);
-
-      if (data.expected)
-        assert_true(ctl.validity.stepMismatch, "The validity.stepMismatch should be true.");
-      else
-        assert_false(ctl.validity.stepMismatch, "The validity.stepMismatch should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.stepMismatch,
+              'The validity.stepMismatch should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.stepMismatch,
+              'The validity.stepMismatch should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -110,11 +161,17 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "badInput");
       self.set_conditions(ctl, data.conditions);
-
-      if (data.expected)
-        assert_true(ctl.validity.badInput, "The validity.badInput should be true.");
-      else
-        assert_false(ctl.validity.badInput, "The validity.badInput should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected)
+          assert_true(
+              ctl.validity.badInput,
+              'The validity.badInput should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.badInput,
+              'The validity.badInput should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -123,29 +180,45 @@ var validator = {
     test(function () {
       self.pre_check(ctl, "customError");
       ctl.setCustomValidity(data.conditions.message);
-
-      if (data.expected) {
-        assert_true(ctl.validity.customError, "The validity.customError attribute should be true.");
-        assert_equals(ctl.validationMessage, data.conditions.message,
-                      "The validationMessage attribute should be '" + data.conditions.message + "'.");
-      } else {
-        assert_false(ctl.validity.customError, "The validity.customError attribute should be false.");
-        assert_equals(ctl.validationMessage, "", "The validationMessage attribute must be empty.");
-      }
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.expected) {
+          assert_true(
+              ctl.validity.customError,
+              'The validity.customError attribute should be true' + condStr);
+          assert_equals(
+              ctl.validationMessage, data.conditions.message,
+              'The validationMessage attribute should be \'' +
+                  data.conditions.message + '\'' + condStr);
+        } else {
+          assert_false(
+              ctl.validity.customError,
+              'The validity.customError attribute should be false' + condStr);
+          assert_equals(
+              ctl.validationMessage, '',
+              'The validationMessage attribute must be empty' + condStr);
+        }
+      });
     }, data.name);
   },
 
-  test_isValid: function (ctl, data) {
+  test_isValid: function(ctl, data) {
     var self = this;
     test(function () {
       self.set_conditions(ctl, data.conditions);
-      if (data.dirty)
-        self.set_dirty(ctl);
-
-      if (data.expected)
-        assert_true(ctl.validity.valid, "The validity.valid should be true.");
-      else
-        assert_false(ctl.validity.valid, "The validity.valid should be false.");
+      self.iterate_over(ctl, data).forEach(function(val) {
+        const {ctl, data, condStr} = val;
+        if (data.dirty)
+          self.set_dirty(ctl);
+        if (data.expected)
+          assert_true(
+              ctl.validity.valid,
+              'The validity.valid should be true' + condStr);
+        else
+          assert_false(
+              ctl.validity.valid,
+              'The validity.valid should be false' + condStr);
+      });
     }, data.name);
   },
 
@@ -166,7 +239,7 @@ var validator = {
     }, data.name);
   },
 
-  test_checkValidity: function (ctl, data) {
+  test_checkValidity: function(ctl, data) {
     var self = this;
     test(function () {
       var eventFired = false;
@@ -210,7 +283,7 @@ var validator = {
     }, data.name + " (in a form)");
   },
 
-  test_reportValidity: function (ctl, data) {
+  test_reportValidity: function(ctl, data) {
     var self = this;
     test(function () {
       var eventFired = false;
@@ -255,13 +328,13 @@ var validator = {
     }, data.name + " (in a form)");
   },
 
-  test_support_type: function (ctl, typ, testName) {
+  test_support_type: function(ctl, typ, testName) {
     test(function () {
       assert_equals(ctl.type, typ, "The " + typ + " type should be supported.");
     }, testName);
   },
 
-  set_conditions: function (ctl, obj) {
+  set_conditions: function(ctl, obj) {
     [
       "checked",
       "disabled",
@@ -322,7 +395,28 @@ var validator = {
     }
   },
 
-  run_test: function (testee, method) {
+  iterate_over: function(ctl, data) {
+    // Iterate over normal, disabled, readonly, and both.
+    var ctlDisabled = ctl.cloneNode(true);
+    ctlDisabled.disabled = true;
+    var ctlReadonly = ctl.cloneNode(true);
+    ctlReadonly.readonly = true;
+    var ctlBoth = ctl.cloneNode(true);
+    ctlBoth.disabled = true;
+    ctlBoth.readonly = true;
+    return [
+      {ctl: ctl, data: data, condStr: '.'},
+      {ctl: ctlDisabled, data: data, condStr: ', when control is disabled.'},
+      {ctl: ctlReadonly, data: data, condStr: ', when control is readonly.'},
+      {
+        ctl: ctlBoth,
+        data: data,
+        condStr: ', when control is disabled & readonly.'
+      },
+    ]
+  },
+
+  run_test: function(testee, method) {
     var testMethod = "test_" + method;
     if (typeof this[testMethod] !== "function") {
       return false;
@@ -363,7 +457,7 @@ var validator = {
         prefix = "[" + testee[i].tag + "] ";
 
         if (testElements[i].tag === "select") {
-          ele.add(new Option("test1", ""));
+          ele.add(new Option('test1', ''));  // Placeholder
           ele.add(new Option("test2", 1));
         }
 

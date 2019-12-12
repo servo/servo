@@ -69,7 +69,10 @@
         {conditions: {step: "", value: "-.8"}, expected: true, name: "[target] The step attribute is not set and the value attribute is a floating number"},
         {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attribute is empty string"},
         {conditions: {step: 2 * 1 * 1, value: "2"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 1 * 1, value: "3"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2 * 1 * 1, value: "3"}, expected: true, name: "[target] The value must mismatch the step"},
+        {conditions: {step: 0.003, value: "3.6"}, expected: false, name: "[target] No step mismatch when step is a floating number and value is its integral multiple"},
+        {conditions: {step: 1e-12, value: "-12345678.9"}, expected: false, name: "[target] No step mismatch when step is a floating number in exponent format and value is its integral multiple"},
+        {conditions: {step: 3e-15, value: "17"}, expected: true, name: "[target] Step mismatch when step is a very small floating number and value is not its integral multiple"},
       ]
     }
   ];

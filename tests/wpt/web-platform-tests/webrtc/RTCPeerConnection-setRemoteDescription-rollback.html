@@ -538,4 +538,17 @@
 
   }, "rollback of a remote offer with stream changes");
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc2.addTransceiver('audio');
+    const offer = await pc2.createOffer();
+    await pc1.setRemoteDescription(offer);
+    const [transceiver] = pc1.getTransceivers();
+    pc1.setRemoteDescription({type:'rollback'});
+    pc1.removeTrack(transceiver.sender);
+  }, 'removeTrack() with a sender being rolled back does not crash or throw');
+
 </script>

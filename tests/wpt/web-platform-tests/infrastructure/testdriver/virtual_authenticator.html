@@ -24,7 +24,7 @@ let credential = {
   isResidentCredential: false,
 };
 
-let authenticator_id;
+let authenticator_id = null;
 
 promise_test(async t => {
   authenticator_id = await test_driver.add_virtual_authenticator({
