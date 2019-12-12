@@ -10,10 +10,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiPose, ApiRigidTransform, ApiViewerPose, XRSession};
+use crate::dom::xrsession::{cast_transform, ApiPose, ApiViewerPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Vector3D};
+use euclid::RigidTransform3D;
 use webxr_api::Frame;
 
 #[dom_struct]
@@ -96,7 +96,6 @@ impl XRReferenceSpace {
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
     pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> Option<ApiViewerPose> {
-        let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform?);
         // all math is in column-vector notation
         // we use the following equation to verify correctness here:
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
@@ -105,20 +104,22 @@ impl XRReferenceSpace {
                 // get_viewer_pose(eye_level) = get_pose(eye_level).inverse() * get_pose(viewer_space)
                 //                            = I * viewer_pose
                 //                            = viewer_pose
+                let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform?);
 
                 // we get viewer poses in eye-level space by default
                 Some(viewer_pose)
             },
             XRReferenceSpaceType::Local_floor => {
-                // XXXManishearth support getting floor info from stage parameters
-
                 // get_viewer_pose(floor_level) = get_pose(floor_level).inverse() * get_pose(viewer_space)
-                //                            = Translate(-2).inverse() * viewer_pose
-                //                            = Translate(2) * viewer_pose
+                //                            = floor_to_native.inverse() * viewer_pose
+                //                            = native_to_floor * viewer_pose
+                let viewer_pose = base_pose.transform?;
+                let native_to_floor = self
+                    .upcast::<XRSpace>()
+                    .session()
+                    .with_session(|s| s.floor_transform())?;
 
-                // assume approximate user height of 2 meters
-                let floor_to_eye: ApiRigidTransform = Vector3D::new(0., 2., 0.).into();
-                Some(floor_to_eye.pre_transform(&viewer_pose))
+                Some(cast_transform(native_to_floor.pre_transform(&viewer_pose)))
             },
             XRReferenceSpaceType::Viewer => {
                 // This reference space follows the viewer around, so the viewer is
@@ -155,11 +156,11 @@ impl XRReferenceSpace {
                 Some(RigidTransform3D::identity())
             },
             XRReferenceSpaceType::Local_floor => {
-                // XXXManishearth support getting floor info from stage parameters
-
-                // Assume approximate height of 2m
-                // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
-                Some(Vector3D::new(0., -2., 0.).into())
+                let native_to_floor = self
+                    .upcast::<XRSpace>()
+                    .session()
+                    .with_session(|s| s.floor_transform())?;
+                Some(cast_transform(native_to_floor.inverse()))
             },
             XRReferenceSpaceType::Viewer => base_pose.transform.map(cast_transform),
             _ => unimplemented!(),
