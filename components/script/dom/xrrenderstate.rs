@@ -17,7 +17,7 @@ pub struct XRRenderState {
     reflector_: Reflector,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
-    inline_vertical_fov: Cell<f64>,
+    inline_vertical_fov: Cell<Option<f64>>,
     layer: MutNullableDom<XRWebGLLayer>,
 }
 
@@ -25,7 +25,7 @@ impl XRRenderState {
     pub fn new_inherited(
         depth_near: f64,
         depth_far: f64,
-        inline_vertical_fov: f64,
+        inline_vertical_fov: Option<f64>,
         layer: Option<&XRWebGLLayer>,
     ) -> XRRenderState {
         XRRenderState {
@@ -41,7 +41,7 @@ impl XRRenderState {
         global: &GlobalScope,
         depth_near: f64,
         depth_far: f64,
-        inline_vertical_fov: f64,
+        inline_vertical_fov: Option<f64>,
         layer: Option<&XRWebGLLayer>,
     ) -> DomRoot<XRRenderState> {
         reflect_dom_object(
@@ -73,7 +73,8 @@ impl XRRenderState {
         self.depth_far.set(depth)
     }
     pub fn set_inline_vertical_fov(&self, fov: f64) {
-        self.inline_vertical_fov.set(fov)
+        debug_assert!(self.inline_vertical_fov.get().is_some());
+        self.inline_vertical_fov.set(Some(fov))
     }
     pub fn set_layer(&self, layer: Option<&XRWebGLLayer>) {
         self.layer.set(layer)
@@ -92,8 +93,8 @@ impl XRRenderStateMethods for XRRenderState {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-inlineverticalfieldofview
-    fn InlineVerticalFieldOfView(&self) -> Finite<f64> {
-        Finite::wrap(self.inline_vertical_fov.get())
+    fn GetInlineVerticalFieldOfView(&self) -> Option<Finite<f64>> {
+        self.inline_vertical_fov.get().map(Finite::wrap)
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer

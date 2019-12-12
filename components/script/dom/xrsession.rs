@@ -117,7 +117,12 @@ impl XRSession {
 
     pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
         use std::f64::consts::FRAC_PI_2;
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, FRAC_PI_2, None);
+        let ivfov = if mode == XRSessionMode::Inline {
+            Some(FRAC_PI_2)
+        } else {
+            None
+        };
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
@@ -379,7 +384,10 @@ impl XRSession {
         let near = *render_state.DepthNear() as f32;
         let far = *render_state.DepthFar() as f32;
         clip_planes.update(near, far);
-        let top = *render_state.InlineVerticalFieldOfView() / 2.;
+        let top = *render_state
+            .GetInlineVerticalFieldOfView()
+            .expect("IVFOV should be non null for inline sessions") /
+            2.;
         let top = near * top.tan() as f32;
         let bottom = top;
         let left = top * size.width as f32 / size.height as f32;
@@ -454,7 +462,7 @@ impl XRSessionMethods for XRSession {
         }
 
         // Step 4:
-        if init.inlineVerticalFieldOfView.is_some() {
+        if init.inlineVerticalFieldOfView.is_some() && self.is_immersive() {
             return Err(Error::InvalidState);
         }
 
