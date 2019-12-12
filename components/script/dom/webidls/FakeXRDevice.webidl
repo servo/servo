@@ -13,8 +13,11 @@ interface FakeXRDevice {
   // // behaves as if device was disconnected
   // Promise<void> disconnect();
 
-  // Sets the origin of the viewer
   [Throws] void setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
+  void clearViewerOrigin();
+
+  [Throws] void setFloorOrigin(FakeXRRigidTransformInit origin);
+  void clearFloorOrigin();
 
   // // Simulates devices focusing and blurring sessions.
   // void simulateVisibilityChange(XRVisibilityState);

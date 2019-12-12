@@ -77,7 +77,11 @@ impl XRFrameMethods for XRFrame {
             return Err(Error::InvalidState);
         }
 
-        let pose = reference.get_viewer_pose(&self.data);
+        let pose = if let Some(pose) = reference.get_viewer_pose(&self.data) {
+            pose
+        } else {
+            return Ok(None);
+        };
         Ok(Some(XRViewerPose::new(&self.global(), &self.session, pose)))
     }
 

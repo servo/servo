@@ -80,8 +80,8 @@ impl XRReferenceSpace {
     ///
     /// This is equivalent to `get_pose(self).inverse() * get_pose(viewerSpace)` (in column vector notation),
     /// however we specialize it to be efficient
-    pub fn get_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
-        let pose = self.get_unoffset_viewer_pose(base_pose);
+    pub fn get_viewer_pose(&self, base_pose: &Frame) -> Option<ApiViewerPose> {
+        let pose = self.get_unoffset_viewer_pose(base_pose)?;
         // in column-vector notation,
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
         //                        = (get_unoffset_pose(space) * offset).inverse() * get_pose(viewer_space)
@@ -89,14 +89,14 @@ impl XRReferenceSpace {
         //                        = offset.inverse() * get_unoffset_viewer_pose(space)
         let offset = self.offset.transform();
         let inverse = offset.inverse();
-        inverse.pre_transform(&pose)
+        Some(inverse.pre_transform(&pose))
     }
 
     /// Gets pose of the viewer with respect to this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> ApiViewerPose {
-        let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform);
+    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> Option<ApiViewerPose> {
+        let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform?);
         // all math is in column-vector notation
         // we use the following equation to verify correctness here:
         // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
@@ -107,7 +107,7 @@ impl XRReferenceSpace {
                 //                            = viewer_pose
 
                 // we get viewer poses in eye-level space by default
-                viewer_pose
+                Some(viewer_pose)
             },
             XRReferenceSpaceType::Local_floor => {
                 // XXXManishearth support getting floor info from stage parameters
@@ -118,12 +118,12 @@ impl XRReferenceSpace {
 
                 // assume approximate user height of 2 meters
                 let floor_to_eye: ApiRigidTransform = Vector3D::new(0., 2., 0.).into();
-                floor_to_eye.pre_transform(&viewer_pose)
+                Some(floor_to_eye.pre_transform(&viewer_pose))
             },
             XRReferenceSpaceType::Viewer => {
                 // This reference space follows the viewer around, so the viewer is
                 // always at an identity transform with respect to it
-                RigidTransform3D::identity()
+                Some(RigidTransform3D::identity())
             },
             _ => unimplemented!(),
         }
@@ -134,34 +134,34 @@ impl XRReferenceSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &Frame) -> ApiPose {
-        let pose = self.get_unoffset_pose(base_pose);
+    pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+        let pose = self.get_unoffset_pose(base_pose)?;
         let offset = self.offset.transform();
         // pose is a transform from the unoffset space to native space,
         // offset is a transform from offset space to unoffset space,
         // we want a transform from unoffset space to native space,
         // which is pose * offset in column vector notation
-        pose.pre_transform(&offset)
+        Some(pose.pre_transform(&offset))
     }
 
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_pose(&self, base_pose: &Frame) -> ApiPose {
+    pub fn get_unoffset_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         match self.ty {
             XRReferenceSpaceType::Local => {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
                 // for most devices is (0, 0, 0)
-                RigidTransform3D::identity()
+                Some(RigidTransform3D::identity())
             },
             XRReferenceSpaceType::Local_floor => {
                 // XXXManishearth support getting floor info from stage parameters
 
                 // Assume approximate height of 2m
                 // the floor-level space is 2m below the eye-level space, which is (0, 0, 0)
-                Vector3D::new(0., -2., 0.).into()
+                Some(Vector3D::new(0., -2., 0.).into())
             },
-            XRReferenceSpaceType::Viewer => cast_transform(base_pose.transform),
+            XRReferenceSpaceType::Viewer => base_pose.transform.map(cast_transform),
             _ => unimplemented!(),
         }
     }

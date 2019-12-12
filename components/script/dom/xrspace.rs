@@ -68,7 +68,7 @@ impl XRSpace {
     /// with other spaces
     pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
-            Some(reference.get_pose(base_pose))
+            reference.get_pose(base_pose)
         } else if let Some(source) = self.input_source.get() {
             // XXXManishearth we should be able to request frame information
             // for inputs when necessary instead of always loading it

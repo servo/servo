@@ -134,7 +134,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setviewerorigin
     fn SetViewerOrigin(
         &self,
         origin: &FakeXRRigidTransformInit,
@@ -142,7 +142,25 @@ impl FakeXRDeviceMethods for FakeXRDevice {
     ) -> Fallible<()> {
         let _ = self
             .sender
-            .send(MockDeviceMsg::SetViewerOrigin(get_origin(origin)?));
+            .send(MockDeviceMsg::SetViewerOrigin(Some(get_origin(origin)?)));
+        Ok(())
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearviewerorigin
+    fn ClearViewerOrigin(&self) {
+        let _ = self.sender.send(MockDeviceMsg::SetViewerOrigin(None));
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearfloororigin
+    fn ClearFloorOrigin(&self) {
+        let _ = self.sender.send(MockDeviceMsg::SetFloorOrigin(None));
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setfloororigin
+    fn SetFloorOrigin(&self, origin: &FakeXRRigidTransformInit) -> Fallible<()> {
+        let _ = self
+            .sender
+            .send(MockDeviceMsg::SetFloorOrigin(Some(get_origin(origin)?)));
         Ok(())
     }
 
