@@ -5455,9 +5455,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7181de6635bb36d9502e4cb8883a46431821b3d61a4159eb6e824e48932f20f4"
+checksum = "10248da202c1c8d8798783bbc4ba08e81ff225c6e2a394d64748d2a62acb198c"
 dependencies = [
  "bitflags",
  "cgl 0.3.2",
