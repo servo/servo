@@ -38,23 +38,23 @@ impl BlockFormattingContext {
     }
 }
 
-enum IntermediateBlockLevelBox<Node> {
-    SameFormattingContextBlock {
-        style: Arc<ComputedValues>,
-        contents: IntermediateBlockContainer<Node>,
-    },
+struct BlockLevelJob<'dom, Node> {
+    box_slot: BoxSlot<'dom>,
+    style: Arc<ComputedValues>,
+    kind: BlockLevelCreator<Node>,
+}
+
+enum BlockLevelCreator<Node> {
+    SameFormattingContextBlock(IntermediateBlockContainer<Node>),
     Independent {
-        style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<Node>,
     },
     OutOfFlowAbsolutelyPositionedBox {
-        style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<Node>,
     },
     OutOfFlowFloatBox {
-        style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents<Node>,
     },
@@ -69,7 +69,7 @@ enum IntermediateBlockLevelBox<Node> {
 /// Deferring allows using rayon’s `into_par_iter`.
 enum IntermediateBlockContainer<Node> {
     InlineFormattingContext(InlineFormattingContext),
-    Deferred { contents: NonReplacedContents<Node> },
+    Deferred(NonReplacedContents<Node>),
 }
 
 /// A builder for a block container.
@@ -81,9 +81,9 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
 
     block_container_style: &'style Arc<ComputedValues>,
 
-    /// The list of block-level boxes of the final block container.
+    /// The list of block-level boxes to be built for the final block container.
     ///
-    /// Contains all the complete block level boxes we found traversing the tree
+    /// Contains all the block-level jobs we found traversing the tree
     /// so far, if this is empty at the end of the traversal and the ongoing
     /// inline formatting context is not empty, the block container establishes
     /// an inline formatting context (see end of `build`).
@@ -94,7 +94,7 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
     /// doesn't have a next sibling, we either reached the end of the container
     /// root or there are ongoing inline-level boxes
     /// (see `handle_block_level_element`).
-    block_level_boxes: Vec<(IntermediateBlockLevelBox<Node>, BoxSlot<'dom>)>,
+    block_level_boxes: Vec<BlockLevelJob<'dom, Node>>,
 
     /// The ongoing inline formatting context of the builder.
     ///
@@ -176,17 +176,14 @@ impl BlockContainer {
             contains_floats: builder.contains_floats,
             outer_content_sizes_of_children: ContentSizes::zero(),
         };
-        let mapfold =
-            |acc: &mut Accumulator,
-             (intermediate, box_slot): (IntermediateBlockLevelBox<_>, BoxSlot<'_>)| {
-                let (block_level_box, box_contains_floats) = intermediate.finish(
-                    context,
-                    content_sizes.if_requests_inline(|| &mut acc.outer_content_sizes_of_children),
-                );
-                acc.contains_floats |= box_contains_floats;
-                box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
-                block_level_box
-            };
+        let mapfold = |acc: &mut Accumulator, creator: BlockLevelJob<'dom, _>| {
+            let (block_level_box, box_contains_floats) = creator.finish(
+                context,
+                content_sizes.if_requests_inline(|| &mut acc.outer_content_sizes_of_children),
+            );
+            acc.contains_floats |= box_contains_floats;
+            block_level_box
+        };
         let block_level_boxes = if context.use_rayon {
             builder
                 .block_level_boxes
@@ -459,28 +456,29 @@ where
         // context needs to be ended.
         self.end_ongoing_inline_formatting_context();
 
-        let intermediate_box = match contents.try_into() {
+        let kind = match contents.try_into() {
             Ok(contents) => match display_inside {
-                DisplayInside::Flow => IntermediateBlockLevelBox::SameFormattingContextBlock {
-                    style,
-                    contents: IntermediateBlockContainer::Deferred { contents },
-                },
-                _ => IntermediateBlockLevelBox::Independent {
-                    style,
+                DisplayInside::Flow => BlockLevelCreator::SameFormattingContextBlock(
+                    IntermediateBlockContainer::Deferred(contents),
+                ),
+                _ => BlockLevelCreator::Independent {
                     display_inside,
                     contents: contents.into(),
                 },
             },
             Err(contents) => {
                 let contents = Contents::Replaced(contents);
-                IntermediateBlockLevelBox::Independent {
-                    style,
+                BlockLevelCreator::Independent {
                     display_inside,
                     contents,
                 }
             },
         };
-        self.block_level_boxes.push((intermediate_box, box_slot))
+        self.block_level_boxes.push(BlockLevelJob {
+            box_slot,
+            style,
+            kind,
+        });
     }
 
     fn handle_absolutely_positioned_element(
@@ -491,12 +489,15 @@ where
         box_slot: BoxSlot<'dom>,
     ) {
         if !self.has_ongoing_inline_formatting_context() {
-            let box_ = IntermediateBlockLevelBox::OutOfFlowAbsolutelyPositionedBox {
-                style,
+            let kind = BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
                 contents,
                 display_inside,
             };
-            self.block_level_boxes.push((box_, box_slot));
+            self.block_level_boxes.push(BlockLevelJob {
+                box_slot,
+                style,
+                kind,
+            });
         } else {
             let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
                 AbsolutelyPositionedBox::construct(self.context, style, display_inside, contents),
@@ -516,12 +517,15 @@ where
         self.contains_floats = ContainsFloats::Yes;
 
         if !self.has_ongoing_inline_formatting_context() {
-            let box_ = IntermediateBlockLevelBox::OutOfFlowFloatBox {
-                style,
+            let kind = BlockLevelCreator::OutOfFlowFloatBox {
                 contents,
                 display_inside,
             };
-            self.block_level_boxes.push((box_, box_slot));
+            self.block_level_boxes.push(BlockLevelJob {
+                box_slot,
+                style,
+                kind,
+            });
         } else {
             let box_ = Arc::new(InlineLevelBox::OutOfFlowFloatBox(FloatBox::construct(
                 self.context,
@@ -557,13 +561,17 @@ where
                 )
         });
 
-        let box_ = IntermediateBlockLevelBox::SameFormattingContextBlock {
-            style: anonymous_style.clone(),
-            contents: IntermediateBlockContainer::InlineFormattingContext(std::mem::take(
+        let kind = BlockLevelCreator::SameFormattingContextBlock(
+            IntermediateBlockContainer::InlineFormattingContext(std::mem::take(
                 &mut self.ongoing_inline_formatting_context,
             )),
-        };
-        self.block_level_boxes.push((box_, BoxSlot::dummy()))
+        );
+        self.block_level_boxes.push(BlockLevelJob {
+            // FIXME(nox): We should be storing this somewhere.
+            box_slot: BoxSlot::dummy(),
+            style: anonymous_style.clone(),
+            kind,
+        });
     }
 
     fn current_inline_level_boxes(&mut self) -> &mut Vec<Arc<InlineLevelBox>> {
@@ -582,7 +590,7 @@ where
     }
 }
 
-impl<'dom, Node> IntermediateBlockLevelBox<Node>
+impl<'dom, Node> BlockLevelJob<'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -591,8 +599,9 @@ where
         context: &LayoutContext,
         max_assign_in_flow_outer_content_sizes_to: Option<&mut ContentSizes>,
     ) -> (Arc<BlockLevelBox>, ContainsFloats) {
-        match self {
-            IntermediateBlockLevelBox::SameFormattingContextBlock { style, contents } => {
+        let style = self.style;
+        let (block_level_box, contains_floats) = match self.kind {
+            BlockLevelCreator::SameFormattingContextBlock(contents) => {
                 let (contents, contains_floats, box_content_sizes) = contents.finish(
                     context,
                     &style,
@@ -608,8 +617,7 @@ where
                     Arc::new(BlockLevelBox::SameFormattingContextBlock { contents, style });
                 (block_level_box, contains_floats)
             },
-            IntermediateBlockLevelBox::Independent {
-                style,
+            BlockLevelCreator::Independent {
                 display_inside,
                 contents,
             } => {
@@ -632,8 +640,7 @@ where
                     ContainsFloats::No,
                 )
             },
-            IntermediateBlockLevelBox::OutOfFlowAbsolutelyPositionedBox {
-                style,
+            BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
                 display_inside,
                 contents,
             } => {
@@ -642,8 +649,7 @@ where
                 ));
                 (block_level_box, ContainsFloats::No)
             },
-            IntermediateBlockLevelBox::OutOfFlowFloatBox {
-                style,
+            BlockLevelCreator::OutOfFlowFloatBox {
                 display_inside,
                 contents,
             } => {
@@ -652,7 +658,10 @@ where
                 ));
                 (block_level_box, ContainsFloats::Yes)
             },
-        }
+        };
+        self.box_slot
+            .set(LayoutBox::BlockLevel(block_level_box.clone()));
+        (block_level_box, contains_floats)
     }
 }
 
@@ -667,7 +676,7 @@ where
         content_sizes: ContentSizesRequest,
     ) -> (BlockContainer, ContainsFloats, BoxContentSizes) {
         match self {
-            IntermediateBlockContainer::Deferred { contents } => {
+            IntermediateBlockContainer::Deferred(contents) => {
                 BlockContainer::construct(context, style, contents, content_sizes)
             },
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
