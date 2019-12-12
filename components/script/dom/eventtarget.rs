@@ -553,8 +553,8 @@ impl EventTarget {
             // Step 3.7
             unsafe {
                 let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
-                // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false);
+                // FIXME(#13152): this might not be timed correctly
+                report_pending_exception(*cx, true);
             }
             return None;
         }

@@ -775,21 +775,25 @@ impl VirtualMethods for HTMLElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        use crate::dom::macros::ELEMENT_EVENT_HANDLERS;
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                let evtarget = self.upcast::<EventTarget>();
-                let source_line = 1; //TODO(#9604) get current JS execution line
-                evtarget.set_event_handler_uncompiled(
-                    window_from_node(self).get_url(),
-                    source_line,
-                    &name[2..],
-                    // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-                    DOMString::from(&**attr.value()),
-                );
+                if ELEMENT_EVENT_HANDLERS.contains(name) {
+                    let evtarget = self.upcast::<EventTarget>();
+                    let source_line = 1; //TODO(#9604) get current JS execution line
+                    evtarget.set_event_handler_uncompiled(
+                        window_from_node(self).get_url(),
+                        source_line,
+                        &name[2..],
+                        // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
+                        DOMString::from(&**attr.value()),
+                    );
+                    // No need to call supertype mutation checks; we're done
+                }
             },
             _ => {},
         }
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
     }
 
     fn bind_to_tree(&self, context: &BindContext) {

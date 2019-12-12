@@ -183,48 +183,27 @@ impl VirtualMethods for HTMLBodyElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        let do_super_mutate = match (attr.local_name(), mutation) {
+        use crate::dom::macros::BODY_FRAMESET_EVENT_HANDLERS;
+        match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                let window = window_from_node(self);
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
-                match name {
-                    &local_name!("onfocus") |
-                    &local_name!("onload") |
-                    &local_name!("onscroll") |
-                    &local_name!("onafterprint") |
-                    &local_name!("onbeforeprint") |
-                    &local_name!("onbeforeunload") |
-                    &local_name!("onhashchange") |
-                    &local_name!("onlanguagechange") |
-                    &local_name!("onmessage") |
-                    &local_name!("onoffline") |
-                    &local_name!("ononline") |
-                    &local_name!("onpagehide") |
-                    &local_name!("onpageshow") |
-                    &local_name!("onpopstate") |
-                    &local_name!("onstorage") |
-                    &local_name!("onresize") |
-                    &local_name!("onunload") |
-                    &local_name!("onerror") => {
-                        let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                        let source_line = 1; //TODO(#9604) obtain current JS execution line
-                        evtarget.set_event_handler_uncompiled(
-                            window.get_url(),
-                            source_line,
-                            &name[2..],
-                            DOMString::from((**attr.value()).to_owned()),
-                        );
-                        false
-                    },
-                    _ => true, // HTMLElement::attribute_mutated will take care of this.
+                if BODY_FRAMESET_EVENT_HANDLERS.contains(name) {
+                    let window = window_from_node(self);
+                    let evtarget = window.upcast::<EventTarget>(); // forwarded event
+                    let source_line = 1; //TODO(#9604) obtain current JS execution line
+                    evtarget.set_event_handler_uncompiled(
+                        window.get_url(),
+                        source_line,
+                        &name[2..],
+                        DOMString::from((**attr.value()).to_owned()),
+                    );
+                    // No need to call supertype mutation checks; we're done
+                    return;
                 }
             },
-            _ => true,
+            _ => (),
         };
-
-        if do_super_mutate {
-            self.super_type().unwrap().attribute_mutated(attr, mutation);
-        }
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
     }
 }

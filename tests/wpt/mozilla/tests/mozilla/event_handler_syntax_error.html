@@ -9,15 +9,25 @@
 <body>
   <a id="a" onclick="{">link</a>
   <script>
+  setup({ allow_uncaught_exception: true });
   test(function() {
-    var a = document.getElementById("a");
-    assert_equals(a.onclick, null, "invalid onclick attribute");
+    try {
+      var a = document.getElementById("a");
+      assert_equals(a.onclick, null, "invalid onclick attribute");
 
-    document.body.setAttribute("onx", "{");
-    document.body.setAttribute("ony", "}");
+      document.body.setAttribute("onclick", "{");
+      document.body.setAttribute("onx", "{");
+      document.body.setAttribute("ony", "}");
 
-    assert_equals(document.body.getAttribute("onx"), "{");
-    assert_equals(document.body.getAttribute("ony"), "}");
+      assert_equals(document.body.getAttribute("onclick"),"{");
+      assert_equals(document.onclick, null);
+
+      assert_equals(document.body.getAttribute("onx"), "{");
+      assert_equals(document.body.getAttribute("ony"), "}");
+    }
+    catch(e) {
+      assert_unreached("Saw an exception, not just an ErrorEvent");
+    }
   });
   </script>
 </body>
