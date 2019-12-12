@@ -10,8 +10,9 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use servo_arc::Arc;
+use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
@@ -21,10 +22,8 @@ pub(crate) struct AbsolutelyPositionedBox {
     pub contents: IndependentFormattingContext,
 }
 
-#[derive(Default)]
 pub(crate) struct PositioningContext<'box_tree> {
-    /// With `position: absolute`
-    pub abspos: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+    boxes: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
 }
 
 #[derive(Debug)]
@@ -83,8 +82,8 @@ impl AbsolutelyPositionedBox {
         }
     }
 
-    pub(crate) fn layout<'a>(
-        &'a self,
+    pub(crate) fn layout(
+        &self,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> CollectedAbsolutelyPositionedBox {
@@ -123,14 +122,45 @@ impl AbsolutelyPositionedBox {
     }
 }
 
-impl PositioningContext<'_> {
-    /// Unlike `Vec::append`, this takes ownership of the other value.
-    pub(crate) fn append(&mut self, mut other: Self) {
-        if self.abspos.is_empty() {
-            self.abspos = other.abspos
-        } else {
-            self.abspos.append(&mut other.abspos)
+impl<'box_tree> PositioningContext<'box_tree> {
+    pub(crate) fn new() -> Self {
+        Self {
+            boxes: Vec::new(),
         }
+    }
+
+    pub(crate) fn for_maybe_position_relative(
+        &mut self,
+        layout_context: &LayoutContext,
+        style: &ComputedValues,
+        f: impl FnOnce(&mut Self) -> BoxFragment,
+    ) -> BoxFragment {
+        if style.clone_position() == Position::Relative {
+            Self::for_positioned(layout_context, f)
+        } else {
+            f(self)
+        }
+    }
+
+    fn for_positioned(
+        layout_context: &LayoutContext,
+        f: impl FnOnce(&mut Self) -> BoxFragment,
+    ) -> BoxFragment {
+        let mut new = Self::new();
+        let mut positioned_box_fragment = f(&mut new);
+        new.layout_in_positioned_ancestor(layout_context, &mut positioned_box_fragment);
+        positioned_box_fragment
+    }
+
+    pub(crate) fn push(&mut self, box_: CollectedAbsolutelyPositionedBox<'box_tree>) {
+        self.boxes.push(box_)
+    }
+
+    pub(crate) fn append(&mut self, other: Self) {
+        vec_append_owned(
+            &mut self.boxes,
+            other.boxes,
+        );
     }
 
     pub(crate) fn adjust_static_positions(
@@ -138,58 +168,97 @@ impl PositioningContext<'_> {
         tree_rank_in_parent: usize,
         f: impl FnOnce(&mut Self) -> Vec<Fragment>,
     ) -> Vec<Fragment> {
-        let abspos_so_far = self.abspos.len();
+        let so_far = self.boxes.len();
+
         let fragments = f(self);
+
         adjust_static_positions(
-            &mut self.abspos[abspos_so_far..],
+            &mut self.boxes[so_far..],
             &fragments,
             tree_rank_in_parent,
         );
         fragments
     }
 
-    pub(crate) fn layout_abspos(
-        self,
+    pub(crate) fn layout_in_initial_containing_block(
+        &mut self,
         layout_context: &LayoutContext,
+        initial_containing_block: &DefiniteContainingBlock,
         fragments: &mut Vec<Fragment>,
-        content_rect_size: &Vec2<Length>,
-        padding: &Sides<Length>,
-        style: &ComputedValues,
     ) {
-        if self.abspos.is_empty() {
-            return;
+        CollectedAbsolutelyPositionedBox::layout_many(
+            layout_context,
+            &self.boxes,
+            fragments,
+            initial_containing_block,
+        )
+    }
+
+    fn layout_in_positioned_ancestor(
+        &mut self,
+        layout_context: &LayoutContext,
+        positioned_box_fragment: &mut BoxFragment,
+    ) {
+        if !self.boxes.is_empty() {
+            let padding_rect = Rect {
+                size: positioned_box_fragment.content_rect.size.clone(),
+                // Ignore the content rect’s position in its own containing block:
+                start_corner: Vec2::zero(),
+            }
+            .inflate(&positioned_box_fragment.padding);
+            let containing_block = DefiniteContainingBlock {
+                size: padding_rect.size.clone(),
+                style: &positioned_box_fragment.style,
+            };
+            let mut children = Vec::new();
+            CollectedAbsolutelyPositionedBox::layout_many(
+                layout_context,
+                &self.boxes,
+                &mut children,
+                &containing_block,
+            );
+            positioned_box_fragment
+                .children
+                .push(Fragment::Anonymous(AnonymousFragment {
+                    children,
+                    rect: padding_rect,
+                    mode: positioned_box_fragment.style.writing_mode,
+                }))
         }
-        let padding_rect = Rect {
-            size: content_rect_size.clone(),
-            // Ignore the content rect’s position in its own containing block:
-            start_corner: Vec2::zero(),
-        }
-        .inflate(&padding);
-        let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size.clone(),
-            style,
-        };
-        let map =
-            |a: &CollectedAbsolutelyPositionedBox| a.layout(layout_context, &containing_block);
-        let children = if layout_context.use_rayon {
-            self.abspos.par_iter().map(map).collect()
-        } else {
-            self.abspos.iter().map(map).collect()
-        };
-        fragments.push(Fragment::Anonymous(AnonymousFragment {
-            children,
-            rect: padding_rect,
-            mode: style.writing_mode,
-        }))
     }
 }
 
-impl CollectedAbsolutelyPositionedBox<'_> {
+impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
+    pub(crate) fn layout_many(
+        layout_context: &LayoutContext,
+        boxes: &[Self],
+        fragments: &mut Vec<Fragment>,
+        containing_block: &DefiniteContainingBlock,
+    ) {
+        if layout_context.use_rayon {
+            fragments.par_extend(boxes.par_iter().map(
+                |box_| {
+                    Fragment::Box(box_.layout(
+                        layout_context,
+                        containing_block,
+                    ))
+                }
+            ))
+        } else {
+            fragments.extend(boxes.iter().map(|box_| {
+                Fragment::Box(box_.layout(
+                    layout_context,
+                    containing_block,
+                ))
+            }))
+        }
+    }
+
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
         containing_block: &DefiniteContainingBlock,
-    ) -> Fragment {
+    ) -> BoxFragment {
         let style = &self.absolutely_positioned_box.contents.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
@@ -249,94 +318,88 @@ impl CollectedAbsolutelyPositionedBox<'_> {
             block_end: block_axis.margin_end,
         };
 
-        let mut positioning_context = PositioningContext { abspos: Vec::new() };
-        let (size, mut fragments) = match self.absolutely_positioned_box.contents.as_replaced() {
-            Ok(replaced) => {
-                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let style = &self.absolutely_positioned_box.contents.style;
-                let size = replaced_used_size.unwrap();
-                let fragments = replaced.make_fragments(style, size.clone());
-                (size, fragments)
-            },
-            Err(non_replaced) => {
-                // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-                // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                let inline_size = inline_axis.size.auto_is(|| {
-                    let available_size = match inline_axis.anchor {
-                        Anchor::Start(start) => {
-                            cbis - start - pb.inline_sum() - margin.inline_sum()
-                        },
-                        Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
+        PositioningContext::for_positioned(layout_context, |positioning_context| {
+            let size;
+            let fragments;
+            match self.absolutely_positioned_box.contents.as_replaced() {
+                Ok(replaced) => {
+                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                    let style = &self.absolutely_positioned_box.contents.style;
+                    size = replaced_used_size.unwrap();
+                    fragments = replaced.make_fragments(style, size.clone());
+                },
+                Err(non_replaced) => {
+                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+                    let inline_size = inline_axis.size.auto_is(|| {
+                        let available_size = match inline_axis.anchor {
+                            Anchor::Start(start) => {
+                                cbis - start - pb.inline_sum() - margin.inline_sum()
+                            },
+                            Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
+                        };
+                        self.absolutely_positioned_box
+                            .contents
+                            .content_sizes
+                            .shrink_to_fit(available_size)
+                    });
+
+                    let containing_block_for_children = ContainingBlock {
+                        inline_size,
+                        block_size: block_axis.size,
+                        style,
                     };
-                    self.absolutely_positioned_box
-                        .contents
-                        .content_sizes
-                        .shrink_to_fit(available_size)
-                });
+                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                    assert_eq!(
+                        containing_block.style.writing_mode,
+                        containing_block_for_children.style.writing_mode,
+                        "Mixed writing modes are not supported yet"
+                    );
+                    let dummy_tree_rank = 0;
+                    let independent_layout = non_replaced.layout(
+                        layout_context,
+                        positioning_context,
+                        &containing_block_for_children,
+                        dummy_tree_rank,
+                    );
 
-                let containing_block_for_children = ContainingBlock {
-                    inline_size,
-                    block_size: block_axis.size,
-                    style,
-                };
-                // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                assert_eq!(
-                    containing_block.style.writing_mode,
-                    containing_block_for_children.style.writing_mode,
-                    "Mixed writing modes are not supported yet"
-                );
-                let dummy_tree_rank = 0;
-                let independent_layout = non_replaced.layout(
-                    layout_context,
-                    &mut positioning_context,
-                    &containing_block_for_children,
-                    dummy_tree_rank,
-                );
+                    size = Vec2 {
+                        inline: inline_size,
+                        block: block_axis
+                            .size
+                            .auto_is(|| independent_layout.content_block_size),
+                    };
+                    fragments = independent_layout.fragments
+                },
+            };
 
-                let size = Vec2 {
-                    inline: inline_size,
-                    block: block_axis
-                        .size
-                        .auto_is(|| independent_layout.content_block_size),
-                };
-                (size, independent_layout.fragments)
-            },
-        };
+            let inline_start = match inline_axis.anchor {
+                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
+                Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - size.inline,
+            };
+            let block_start = match block_axis.anchor {
+                Anchor::Start(start) => start + pb.block_start + margin.block_start,
+                Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
+            };
 
-        let inline_start = match inline_axis.anchor {
-            Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-            Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - size.inline,
-        };
-        let block_start = match block_axis.anchor {
-            Anchor::Start(start) => start + pb.block_start + margin.block_start,
-            Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
-        };
+            let content_rect = Rect {
+                start_corner: Vec2 {
+                    inline: inline_start,
+                    block: block_start,
+                },
+                size,
+            };
 
-        let content_rect = Rect {
-            start_corner: Vec2 {
-                inline: inline_start,
-                block: block_start,
-            },
-            size,
-        };
-
-        positioning_context.layout_abspos(
-            layout_context,
-            &mut fragments,
-            &content_rect.size,
-            &padding,
-            style,
-        );
-
-        Fragment::Box(BoxFragment {
-            style: style.clone(),
-            children: fragments,
-            content_rect,
-            padding,
-            border,
-            margin,
-            block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            BoxFragment {
+                style: style.clone(),
+                children: fragments,
+                content_rect,
+                padding,
+                border,
+                margin,
+                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            }
         })
     }
 }
@@ -466,5 +529,13 @@ fn adjust_static_positions(
         if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.block {
             *start += child_fragment_rect.start_corner.block;
         }
+    }
+}
+
+fn vec_append_owned<T>(a: &mut Vec<T>, mut b: Vec<T>) {
+    if a.is_empty() {
+        *a = b
+    } else {
+        a.append(&mut b)
     }
 }

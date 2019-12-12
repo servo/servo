@@ -18,7 +18,6 @@ use crate::{relative_adjustement, ContainingBlock};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
-use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
@@ -235,8 +234,8 @@ fn layout_block_level_children<'a>(
                             /* float_context = */ None,
                         )
                     },
-                    Default::default,
-                    |left, right| left.append(right),
+                    PositioningContext::new,
+                    PositioningContext::append,
                 )
                 .collect();
             for fragment in &mut fragments {
@@ -317,9 +316,7 @@ impl BlockLevelBox {
                 )),
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                positioning_context
-                    .abspos
-                    .push(box_.layout(Vec2::zero(), tree_rank));
+                positioning_context.push(box_.layout(Vec2::zero(), tree_rank));
                 Fragment::Anonymous(AnonymousFragment::no_op(
                     containing_block.style.writing_mode,
                 ))
@@ -433,80 +430,70 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         min_box_size.block == Length::zero() &&
         pb.block_end == Length::zero() &&
         block_level_kind == BlockLevelKind::SameFormattingContextBlock;
-    let mut nested_positioning_context = PositioningContext { abspos: Vec::new() };
-    let mut flow_layout = layout_contents(
-        if style.get_box().position == Position::Relative {
-            &mut nested_positioning_context
-        } else {
-            positioning_context
-        },
-        &containing_block_for_children,
-        this_start_margin_can_collapse_with_children,
-    );
-    let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
-    if this_start_margin_can_collapse_with_children.0 {
-        block_margins_collapsed_with_children
-            .start
-            .adjoin_assign(&flow_layout.collapsible_margins_in_children.start);
-        if flow_layout
-            .collapsible_margins_in_children
-            .collapsed_through
-        {
+
+    positioning_context.for_maybe_position_relative(layout_context, style, |positioning_context| {
+        let mut flow_layout = layout_contents(
+            positioning_context,
+            &containing_block_for_children,
+            this_start_margin_can_collapse_with_children,
+        );
+        let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+        if this_start_margin_can_collapse_with_children.0 {
             block_margins_collapsed_with_children
                 .start
-                .adjoin_assign(&std::mem::replace(
-                    &mut flow_layout.collapsible_margins_in_children.end,
-                    CollapsedMargin::zero(),
-                ));
-        }
-    }
-    if this_end_margin_can_collapse_with_children {
-        block_margins_collapsed_with_children
-            .end
-            .adjoin_assign(&flow_layout.collapsible_margins_in_children.end);
-    } else {
-        flow_layout.content_block_size += flow_layout.collapsible_margins_in_children.end.solve();
-    }
-    block_margins_collapsed_with_children.collapsed_through =
-        this_start_margin_can_collapse_with_children.0 &&
-            this_end_margin_can_collapse_with_children &&
-            flow_layout
+                .adjoin_assign(&flow_layout.collapsible_margins_in_children.start);
+            if flow_layout
                 .collapsible_margins_in_children
-                .collapsed_through;
-    let relative_adjustement = relative_adjustement(style, inline_size, block_size);
-    let block_size = block_size.auto_is(|| {
-        flow_layout
-            .content_block_size
-            .clamp_between_extremums(min_box_size.block, max_box_size.block)
-    });
-    let content_rect = Rect {
-        start_corner: Vec2 {
-            block: pb.block_start + relative_adjustement.block,
-            inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
-        },
-        size: Vec2 {
-            block: block_size,
-            inline: inline_size,
-        },
-    };
-    if style.get_box().position == Position::Relative {
-        nested_positioning_context.layout_abspos(
-            layout_context,
-            &mut flow_layout.fragments,
-            &content_rect.size,
-            &padding,
-            style,
-        )
-    }
-    BoxFragment {
-        style: style.clone(),
-        children: flow_layout.fragments,
-        content_rect,
-        padding,
-        border,
-        margin,
-        block_margins_collapsed_with_children,
-    }
+                .collapsed_through
+            {
+                block_margins_collapsed_with_children
+                    .start
+                    .adjoin_assign(&std::mem::replace(
+                        &mut flow_layout.collapsible_margins_in_children.end,
+                        CollapsedMargin::zero(),
+                    ));
+            }
+        }
+        if this_end_margin_can_collapse_with_children {
+            block_margins_collapsed_with_children
+                .end
+                .adjoin_assign(&flow_layout.collapsible_margins_in_children.end);
+        } else {
+            flow_layout.content_block_size +=
+                flow_layout.collapsible_margins_in_children.end.solve();
+        }
+        block_margins_collapsed_with_children.collapsed_through =
+            this_start_margin_can_collapse_with_children.0 &&
+                this_end_margin_can_collapse_with_children &&
+                flow_layout
+                    .collapsible_margins_in_children
+                    .collapsed_through;
+        let relative_adjustement = relative_adjustement(style, inline_size, block_size);
+        let block_size = block_size.auto_is(|| {
+            flow_layout
+                .content_block_size
+                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+        });
+        let content_rect = Rect {
+            start_corner: Vec2 {
+                block: pb.block_start + relative_adjustement.block,
+                inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
+            },
+            size: Vec2 {
+                block: block_size,
+                inline: inline_size,
+            },
+        };
+        BoxFragment {
+            style: style.clone(),
+            children: flow_layout.fragments,
+            content_rect,
+            padding,
+            border,
+            margin,
+            block_margins_collapsed_with_children,
+        }
+    })
 }
 
 /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
