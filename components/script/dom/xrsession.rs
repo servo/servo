@@ -43,6 +43,7 @@ use dom_struct::dom_struct;
 use euclid::{Rect, RigidTransform3D, Transform3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::mem;
@@ -72,7 +73,7 @@ pub struct XRSession {
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
-    raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
+    raf_sender: DomRefCell<Option<IpcSender<Frame>>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
@@ -300,7 +301,7 @@ impl XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
-    fn raf_callback(&self, (time, mut frame): (f64, Frame)) {
+    fn raf_callback(&self, mut frame: Frame) {
         debug!("WebXR RAF callback");
 
         // Step 1
@@ -333,6 +334,8 @@ impl XRSession {
 
         // Step 4-5
         let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+        let start = self.global().as_window().get_navigation_start();
+        let time = (frame.time_ns - start).to_ms();
 
         let frame = XRFrame::new(&self.global(), self, frame);
         // Step 6,7
