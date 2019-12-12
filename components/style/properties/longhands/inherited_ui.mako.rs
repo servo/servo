@@ -26,6 +26,7 @@ ${helpers.single_keyword(
     animation_value_type="discrete",
     extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
     spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty",
+    gecko_enum_prefix="StylePointerEvents",
 )}
 
 ${helpers.single_keyword(
