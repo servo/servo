@@ -25,14 +25,12 @@ use euclid::RigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
-use std::cell::Cell;
 use std::rc::Rc;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 #[dom_struct]
 pub struct XRTest {
     reflector: Reflector,
-    session_started: Cell<bool>,
     devices_connected: DomRefCell<Vec<Dom<FakeXRDevice>>>,
 }
 
@@ -40,7 +38,6 @@ impl XRTest {
     pub fn new_inherited() -> XRTest {
         XRTest {
             reflector: Reflector::new(),
-            session_started: Cell::new(false),
             devices_connected: DomRefCell::new(vec![]),
         }
     }
@@ -75,11 +72,6 @@ impl XRTestMethods for XRTest {
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-
-        if !init.supportsImmersive || self.session_started.get() {
-            p.reject_native(&());
-            return p;
-        }
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(&o) {
@@ -120,8 +112,6 @@ impl XRTestMethods for XRTest {
             supports_unbounded: init.supportsUnbounded,
             floor_origin,
         };
-
-        self.session_started.set(true);
 
         let global = self.global();
         let window = global.as_window();

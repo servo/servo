@@ -42,6 +42,7 @@ pub struct XR {
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
     active_immersive_session: MutNullableDom<XRSession>,
+    active_inline_sessions: DomRefCell<Vec<Dom<XRSession>>>,
     test: MutNullableDom<XRTest>,
 }
 
@@ -53,6 +54,7 @@ impl XR {
             gamepads: DomRefCell::new(Vec::new()),
             pending_immersive_session: Cell::new(false),
             active_immersive_session: Default::default(),
+            active_inline_sessions: DomRefCell::new(Vec::new()),
             test: Default::default(),
         }
     }
@@ -86,7 +88,9 @@ impl XR {
                 self.active_immersive_session.set(None);
             }
         }
-        // XXXManishearth when we support inline sessions we should remove them too
+        self.active_inline_sessions
+            .borrow_mut()
+            .retain(|sess| Dom::from_ref(&**sess) != Dom::from_ref(session));
     }
 }
 
@@ -163,12 +167,14 @@ impl XRMethods for XR {
             return promise;
         }
 
-        if self.pending_or_active_session() {
-            promise.reject_error(Error::InvalidState);
-            return promise;
-        }
+        if mode != XRSessionMode::Inline {
+            if self.pending_or_active_session() {
+                promise.reject_error(Error::InvalidState);
+                return promise;
+            }
 
-        self.set_pending();
+            self.set_pending();
+        }
 
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
@@ -193,7 +199,7 @@ impl XRMethods for XR {
                 };
                 let _ = task_source.queue_with_canceller(
                     task!(request_session: move || {
-                        this.root().session_obtained(message, trusted.root());
+                        this.root().session_obtained(message, trusted.root(), mode);
                     }),
                     &canceller,
                 );
@@ -211,7 +217,12 @@ impl XRMethods for XR {
 }
 
 impl XR {
-    fn session_obtained(&self, response: Result<Session, XRError>, promise: Rc<Promise>) {
+    fn session_obtained(
+        &self,
+        response: Result<Session, XRError>,
+        promise: Rc<Promise>,
+        mode: XRSessionMode,
+    ) {
         let session = match response {
             Ok(session) => session,
             Err(_) => {
@@ -220,8 +231,14 @@ impl XR {
             },
         };
 
-        let session = XRSession::new(&self.global(), session);
-        self.set_active_immersive_session(&session);
+        let session = XRSession::new(&self.global(), session, mode);
+        if mode == XRSessionMode::Inline {
+            self.active_inline_sessions
+                .borrow_mut()
+                .push(Dom::from_ref(&*session));
+        } else {
+            self.set_active_immersive_session(&session);
+        }
         promise.resolve_native(&session);
     }
 

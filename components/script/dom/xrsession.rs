@@ -8,6 +8,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -39,7 +40,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
+use euclid::{Rect, RigidTransform3D, Transform3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -47,8 +48,8 @@ use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
-    self, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind, Session,
-    Visibility,
+    self, util, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind,
+    Session, View, Viewer, Visibility,
 };
 
 #[dom_struct]
@@ -56,6 +57,7 @@ pub struct XRSession {
     eventtarget: EventTarget,
     base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
+    mode: XRSessionMode,
     visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
@@ -63,6 +65,8 @@ pub struct XRSession {
     frame_requested: Cell<bool>,
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
+    /// Cached projection matrix for inline sessions
+    inline_projection_matrix: DomRefCell<Transform3D<f32, Viewer, Display>>,
 
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
@@ -85,17 +89,20 @@ impl XRSession {
         session: Session,
         render_state: &XRRenderState,
         input_sources: &XRInputSourceArray,
+        mode: XRSessionMode,
     ) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
             base_layer: Default::default(),
             blend_mode: session.environment_blend_mode().into(),
+            mode,
             visibility_state: Cell::new(XRVisibilityState::Visible),
             viewer_space: Default::default(),
             session: DomRefCell::new(session),
             frame_requested: Cell::new(false),
             pending_render_state: MutNullableDom::new(None),
             active_render_state: MutDom::new(render_state),
+            inline_projection_matrix: Default::default(),
 
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
@@ -107,14 +114,16 @@ impl XRSession {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: Session) -> DomRoot<XRSession> {
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, None);
+    pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
+        use std::f64::consts::FRAC_PI_2;
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, FRAC_PI_2, None);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
                 session,
                 &render_state,
                 &input_sources,
+                mode,
             )),
             global,
             XRSessionBinding::Wrap,
@@ -132,6 +141,10 @@ impl XRSession {
 
     pub fn is_ended(&self) -> bool {
         self.ended.get()
+    }
+
+    pub fn is_immersive(&self) -> bool {
+        self.mode != XRSessionMode::Inline
     }
 
     fn setup_raf_loop(&self) {
@@ -298,9 +311,12 @@ impl XRSession {
             self.active_render_state.set(&pending);
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
-            // XXXManishearth handle inline sessions and composition disabled flag
-            let swap_chain_id = pending.GetBaseLayer().map(|layer| layer.swap_chain_id());
-            self.session.borrow_mut().set_swap_chain(swap_chain_id);
+            if self.is_immersive() {
+                let swap_chain_id = pending.GetBaseLayer().map(|layer| layer.swap_chain_id());
+                self.session.borrow_mut().set_swap_chain(swap_chain_id);
+            } else {
+                self.update_inline_projection_matrix()
+            }
         }
 
         for event in frame.events.drain(..) {
@@ -333,8 +349,10 @@ impl XRSession {
         self.outside_raf.set(true);
 
         frame.set_active(false);
-        base_layer.swap_buffers();
-        self.session.borrow_mut().render_animation_frame();
+        if self.is_immersive() {
+            base_layer.swap_buffers();
+            self.session.borrow_mut().render_animation_frame();
+        }
         self.request_new_xr_frame();
 
         // If the canvas element is attached to the DOM, it is now dirty,
@@ -344,6 +362,44 @@ impl XRSession {
             .Canvas()
             .upcast::<Node>()
             .dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    fn update_inline_projection_matrix(&self) {
+        debug_assert!(!self.is_immersive());
+        let render_state = self.active_render_state.get();
+        let size = if let Some(base) = render_state.GetBaseLayer() {
+            base.size()
+        } else {
+            return;
+        };
+        let mut clip_planes = util::ClipPlanes::default();
+        let near = *render_state.DepthNear() as f32;
+        let far = *render_state.DepthFar() as f32;
+        clip_planes.update(near, far);
+        let top = *render_state.InlineVerticalFieldOfView() / 2.;
+        let top = near * top.tan() as f32;
+        let bottom = top;
+        let left = top * size.width as f32 / size.height as f32;
+        let right = left;
+        let matrix = util::frustum_to_projection_matrix(left, right, top, bottom, clip_planes);
+        *self.inline_projection_matrix.borrow_mut() = matrix;
+    }
+
+    /// Constructs a View suitable for inline sessions using the inlineVerticalFieldOfView and canvas size
+    pub fn inline_view(&self) -> View<Viewer> {
+        debug_assert!(!self.is_immersive());
+        let size = self
+            .active_render_state
+            .get()
+            .GetBaseLayer()
+            .expect("Must never construct views when base layer is not set")
+            .size();
+        View {
+            // Inline views have no offset
+            transform: RigidTransform3D::identity(),
+            projection: *self.inline_projection_matrix.borrow(),
+            viewport: Rect::from_size(size.to_i32()),
+        }
     }
 }
 
@@ -394,9 +450,10 @@ impl XRSessionMethods for XRSession {
             }
         }
 
-        // XXXManishearth step 4:
-        // If newState’s inlineVerticalFieldOfView is set and session is an
-        // immersive session, throw an InvalidStateError and abort these steps.
+        // Step 4:
+        if init.inlineVerticalFieldOfView.is_some() {
+            return Err(Error::InvalidState);
+        }
 
         let pending = self
             .pending_render_state
@@ -407,6 +464,9 @@ impl XRSessionMethods for XRSession {
         if let Some(far) = init.depthFar {
             pending.set_depth_far(*far);
         }
+        if let Some(fov) = init.inlineVerticalFieldOfView {
+            pending.set_inline_vertical_fov(*fov);
+        }
         if let Some(ref layer) = init.baseLayer {
             pending.set_layer(Some(&layer))
         }
@@ -416,7 +476,6 @@ impl XRSessionMethods for XRSession {
                 .borrow_mut()
                 .update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
         }
-        // XXXManishearth handle inlineVerticalFieldOfView
         Ok(())
     }
 
@@ -481,6 +540,19 @@ impl XRSessionMethods for XRSession {
     fn End(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);
+        if self.ended.get() && self.end_promises.borrow().is_empty() {
+            // If the session has completely ended and all end promises have been resolved,
+            // don't queue up more end promises
+            //
+            // We need to check for end_promises being empty because `ended` is set
+            // before everything has been completely shut down, and we do not want to
+            // prematurely resolve the promise then
+            //
+            // However, if end_promises is empty, then all end() promises have already resolved,
+            // so the session has completely shut down and we should not queue up more promises
+            p.resolve_native(&());
+            return p;
+        }
         self.end_promises.borrow_mut().push(p.clone());
         // This is duplicated in event_callback since this should
         // happen ASAP for end() but can happen later if the device

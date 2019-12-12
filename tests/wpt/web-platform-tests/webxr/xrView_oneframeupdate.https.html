@@ -76,7 +76,7 @@ let testFunction = function(session, fakeDeviceController, t) {
         counter++;
       }
 
-      session.requestAnimationFrame(onFrame);
+      session.requestAnimationFrame(t.step_func(onFrame));
   }));
 };
 
