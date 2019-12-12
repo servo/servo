@@ -248,6 +248,23 @@ def bootstrap_command_only(topdir):
 
     context = DummyContext()
     context.topdir = topdir
+
+    # Taken from command_base.py#CommandBase, which we can't depend on during bootstrapping.
+    config_path = os.path.join(context.topdir, ".servobuild")
+    if os.path.exists(config_path):
+        import toml
+        with open(config_path) as f:
+            config = toml.loads(f.read())
+    else:
+        config = {}
+
+    # Handle missing/default items
+    config.setdefault("tools", {})
+    default_cache_dir = os.environ.get("SERVO_CACHE_DIR",
+                                       os.path.join(context.topdir, ".servo"))
+    config["tools"].setdefault("cache-dir", default_cache_dir)
+    context.sharedir = os.path.join(context.topdir, os.path.expanduser(config["tools"]["cache-dir"]))
+
     force = False
     if len(sys.argv) == 3 and sys.argv[2] == "-f":
         force = True
