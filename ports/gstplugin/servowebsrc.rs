@@ -55,8 +55,10 @@ use gstreamer_base::BaseSrcExt;
 use gstreamer_gl::GLContext;
 use gstreamer_gl::GLContextExt;
 use gstreamer_gl::GLContextExtManual;
+use gstreamer_gl_sys::gst_gl_context_thread_add;
 use gstreamer_gl_sys::gst_gl_texture_target_to_gl;
 use gstreamer_gl_sys::gst_is_gl_memory;
+use gstreamer_gl_sys::GstGLContext;
 use gstreamer_gl_sys::GstGLMemory;
 use gstreamer_video::VideoInfo;
 
@@ -89,6 +91,7 @@ use surfman_chains_api::SwapChainAPI;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -523,9 +526,6 @@ impl ObjectImpl for ServoWebSrc {
 
 impl ElementImpl for ServoWebSrc {}
 
-thread_local! {
-    static GL: RefCell<Option<Rc<Gl>>> = RefCell::new(None);
-}
 impl BaseSrcImpl for ServoWebSrc {
     fn set_caps(&self, src: &BaseSrc, outcaps: &Caps) -> Result<(), LoggableError> {
         // Save the video info for later use
@@ -655,8 +655,48 @@ impl BaseSrcImpl for ServoWebSrc {
             FlowError::Error
         })?;
 
+        // Fill the buffer on the GL thread
+        let result = Err(FlowError::Error);
+        let mut task = RunOnGLThread {
+            servo_web_src: self,
+            src,
+            gl_memory,
+            result,
+        };
+        let data = &mut task as *mut RunOnGLThread as *mut c_void;
+        unsafe { gst_gl_context_thread_add(gl_memory.mem.context, Some(fill_on_gl_thread), data) };
+        task.result?;
+
+        // Wake up Servo
+        let _ = self.sender.send(ServoWebSrcMsg::Heartbeat);
+        Ok(buffer)
+    }
+}
+
+struct RunOnGLThread<'a> {
+    servo_web_src: &'a ServoWebSrc,
+    src: &'a BaseSrc,
+    gl_memory: &'a GstGLMemory,
+    result: Result<(), FlowError>,
+}
+
+unsafe extern "C" fn fill_on_gl_thread(context: *mut GstGLContext, data: *mut c_void) {
+    let task = &mut *(data as *mut RunOnGLThread);
+    let gl_context = GLContext::from_glib_borrow(context);
+    task.result = task
+        .servo_web_src
+        .fill_gl_memory(task.src, gl_context, task.gl_memory);
+}
+
+impl ServoWebSrc {
+    // Runs on the GL thread
+    fn fill_gl_memory(
+        &self,
+        src: &BaseSrc,
+        gl_context: GLContext,
+        gl_memory: &GstGLMemory,
+    ) -> Result<(), FlowError> {
         // Get the data out of the memory
-        let gl_context = unsafe { GLContext::from_glib_borrow(gl_memory.mem.context) };
         let draw_texture_id = gl_memory.tex_id;
         let draw_texture_target = unsafe { gst_gl_texture_target_to_gl(gl_memory.tex_target) };
         let height = gl_memory.info.height;
@@ -816,7 +856,6 @@ impl BaseSrcImpl for ServoWebSrc {
             FlowError::Error
         })?;
 
-        let _ = self.sender.send(ServoWebSrcMsg::Heartbeat);
-        Ok(buffer)
+        Ok(())
     }
 }
