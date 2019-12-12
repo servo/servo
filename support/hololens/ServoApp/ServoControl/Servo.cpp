@@ -119,7 +119,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
 
   // Example Call when *pfilters[] is used:
   // o.vslogger_mod_list = pfilters; // servo log modules
-  // o.vslogger_mod_size = sizeof(pfilters) / sizeof(pfilters[0]) -1; //
+  // o.vslogger_mod_size = sizeof(pfilters) / sizeof(pfilters[0]); //
   // Important: Number of modules in pfilters
   o.vslogger_mod_list = NULL;
   o.vslogger_mod_size = 0;
