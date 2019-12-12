@@ -206,9 +206,8 @@ dependencies = [
 
 [[package]]
 name = "backtrace"
-version = "0.3.38"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "690a62be8920ccf773ee00ef0968649b0e724cda8bd5b12286302b4ae955fdf5"
+version = "0.3.40"
+source = "git+https://github.com/MeFisto94/backtrace-rs?branch=fix-strtab-freeing-crash#91a0aa4a5d649151878cddd883b92ba7057ca41c"
 dependencies = [
  "backtrace-sys",
  "cfg-if",
@@ -218,9 +217,8 @@ dependencies = [
 
 [[package]]
 name = "backtrace-sys"
-version = "0.1.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66d56ac8dabd07f6aacdaf633f4b8262f5b3601a810a0dcddffd5c22c69daa0"
+version = "0.1.32"
+source = "git+https://github.com/MeFisto94/backtrace-rs?branch=fix-strtab-freeing-crash#91a0aa4a5d649151878cddd883b92ba7057ca41c"
 dependencies = [
  "cc",
  "libc",
