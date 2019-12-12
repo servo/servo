@@ -172,14 +172,6 @@ impl BlockContainer {
             contains_floats: ContainsFloats,
             outer_content_sizes_of_children: ContentSizes,
         }
-        impl Default for Accumulator {
-            fn default() -> Self {
-                Self {
-                    contains_floats: ContainsFloats::No,
-                    outer_content_sizes_of_children: ContentSizes::zero(),
-                }
-            }
-        }
         let mut acc = Accumulator {
             contains_floats: builder.contains_floats,
             outer_content_sizes_of_children: ContentSizes::zero(),
@@ -199,13 +191,21 @@ impl BlockContainer {
             builder
                 .block_level_boxes
                 .into_par_iter()
-                .mapfold_reduce_into(&mut acc, mapfold, |left, right| {
-                    left.contains_floats |= right.contains_floats;
-                    if content_sizes.requests_inline() {
-                        left.outer_content_sizes_of_children
-                            .max_assign(&right.outer_content_sizes_of_children)
-                    }
-                })
+                .mapfold_reduce_into(
+                    &mut acc,
+                    mapfold,
+                    || Accumulator {
+                        contains_floats: ContainsFloats::No,
+                        outer_content_sizes_of_children: ContentSizes::zero(),
+                    },
+                    |left, right| {
+                        left.contains_floats |= right.contains_floats;
+                        if content_sizes.requests_inline() {
+                            left.outer_content_sizes_of_children
+                                .max_assign(&right.outer_content_sizes_of_children)
+                        }
+                    },
+                )
                 .collect()
         } else {
             builder

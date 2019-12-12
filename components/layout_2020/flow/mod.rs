@@ -235,6 +235,7 @@ fn layout_block_level_children<'a>(
                             /* float_context = */ None,
                         )
                     },
+                    Default::default,
                     |left, right| left.append(right),
                 )
                 .collect();
