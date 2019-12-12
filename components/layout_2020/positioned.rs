@@ -10,7 +10,8 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelExtend};
+use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
@@ -23,7 +24,8 @@ pub(crate) struct AbsolutelyPositionedBox {
 }
 
 pub(crate) struct PositioningContext<'box_tree> {
-    boxes: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+    for_nearest_positioned_ancestor: Option<Vec<CollectedAbsolutelyPositionedBox<'box_tree>>>,
+    for_initial_containing_block: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
 }
 
 #[derive(Debug)]
@@ -123,10 +125,26 @@ impl AbsolutelyPositionedBox {
 }
 
 impl<'box_tree> PositioningContext<'box_tree> {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new_for_initial_containing_block() -> Self {
         Self {
-            boxes: Vec::new(),
+            for_nearest_positioned_ancestor: None,
+            for_initial_containing_block: Vec::new(),
         }
+    }
+
+    pub(crate) fn new_for_rayon(has_positioned_ancestor: bool) -> Self {
+        Self {
+            for_nearest_positioned_ancestor: if has_positioned_ancestor {
+                Some(Vec::new())
+            } else {
+                None
+            },
+            for_initial_containing_block: Vec::new(),
+        }
+    }
+
+    pub(crate) fn has_positioned_ancestor(&self) -> bool {
+        self.for_nearest_positioned_ancestor.is_some()
     }
 
     pub(crate) fn for_maybe_position_relative(
@@ -136,7 +154,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
         f: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         if style.clone_position() == Position::Relative {
-            Self::for_positioned(layout_context, f)
+            Self::for_positioned(layout_context, &mut self.for_initial_containing_block, f)
         } else {
             f(self)
         }
@@ -144,23 +162,48 @@ impl<'box_tree> PositioningContext<'box_tree> {
 
     fn for_positioned(
         layout_context: &LayoutContext,
+        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
         f: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
-        let mut new = Self::new();
+        let mut new = Self {
+            for_nearest_positioned_ancestor: Some(Vec::new()),
+            for_initial_containing_block: std::mem::take(for_initial_containing_block),
+        };
         let mut positioned_box_fragment = f(&mut new);
         new.layout_in_positioned_ancestor(layout_context, &mut positioned_box_fragment);
+        *for_initial_containing_block = new.for_initial_containing_block;
         positioned_box_fragment
     }
 
     pub(crate) fn push(&mut self, box_: CollectedAbsolutelyPositionedBox<'box_tree>) {
-        self.boxes.push(box_)
+        if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
+            match box_
+                .absolutely_positioned_box
+                .contents
+                .style
+                .clone_position()
+            {
+                Position::Fixed => {}, // fall through
+                Position::Absolute => return nearest.push(box_),
+                Position::Static | Position::Relative => unreachable!(),
+            }
+        }
+        self.for_initial_containing_block.push(box_)
     }
 
     pub(crate) fn append(&mut self, other: Self) {
         vec_append_owned(
-            &mut self.boxes,
-            other.boxes,
+            &mut self.for_initial_containing_block,
+            other.for_initial_containing_block,
         );
+        match (
+            self.for_nearest_positioned_ancestor.as_mut(),
+            other.for_nearest_positioned_ancestor,
+        ) {
+            (Some(a), Some(b)) => vec_append_owned(a, b),
+            (None, None) => {},
+            _ => unreachable!(),
+        }
     }
 
     pub(crate) fn adjust_static_positions(
@@ -168,15 +211,26 @@ impl<'box_tree> PositioningContext<'box_tree> {
         tree_rank_in_parent: usize,
         f: impl FnOnce(&mut Self) -> Vec<Fragment>,
     ) -> Vec<Fragment> {
-        let so_far = self.boxes.len();
+        let for_icb_so_far = self.for_initial_containing_block.len();
+        let for_nearest_so_far = self
+            .for_nearest_positioned_ancestor
+            .as_ref()
+            .map(|v| v.len());
 
         let fragments = f(self);
 
         adjust_static_positions(
-            &mut self.boxes[so_far..],
+            &mut self.for_initial_containing_block[for_icb_so_far..],
             &fragments,
             tree_rank_in_parent,
         );
+        if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
+            adjust_static_positions(
+                &mut nearest[for_nearest_so_far.unwrap()..],
+                &fragments,
+                tree_rank_in_parent,
+            );
+        }
         fragments
     }
 
@@ -186,12 +240,19 @@ impl<'box_tree> PositioningContext<'box_tree> {
         initial_containing_block: &DefiniteContainingBlock,
         fragments: &mut Vec<Fragment>,
     ) {
-        CollectedAbsolutelyPositionedBox::layout_many(
-            layout_context,
-            &self.boxes,
-            fragments,
-            initial_containing_block,
-        )
+        debug_assert!(self.for_nearest_positioned_ancestor.is_none());
+
+        // Loop because it’s possible that we discover (the static position of)
+        // more absolutely-positioned boxes while doing layout for others.
+        while !self.for_initial_containing_block.is_empty() {
+            CollectedAbsolutelyPositionedBox::layout_many(
+                layout_context,
+                &std::mem::take(&mut self.for_initial_containing_block),
+                fragments,
+                &mut self.for_initial_containing_block,
+                initial_containing_block,
+            )
+        }
     }
 
     fn layout_in_positioned_ancestor(
@@ -199,7 +260,8 @@ impl<'box_tree> PositioningContext<'box_tree> {
         layout_context: &LayoutContext,
         positioned_box_fragment: &mut BoxFragment,
     ) {
-        if !self.boxes.is_empty() {
+        let for_here = self.for_nearest_positioned_ancestor.take().unwrap();
+        if !for_here.is_empty() {
             let padding_rect = Rect {
                 size: positioned_box_fragment.content_rect.size.clone(),
                 // Ignore the content rect’s position in its own containing block:
@@ -213,8 +275,9 @@ impl<'box_tree> PositioningContext<'box_tree> {
             let mut children = Vec::new();
             CollectedAbsolutelyPositionedBox::layout_many(
                 layout_context,
-                &self.boxes,
+                &for_here,
                 &mut children,
+                &mut self.for_initial_containing_block,
                 &containing_block,
             );
             positioned_box_fragment
@@ -233,21 +296,27 @@ impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
         layout_context: &LayoutContext,
         boxes: &[Self],
         fragments: &mut Vec<Fragment>,
+        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
-            fragments.par_extend(boxes.par_iter().map(
-                |box_| {
+            fragments.par_extend(boxes.par_iter().mapfold_reduce_into(
+                for_initial_containing_block,
+                |for_initial_containing_block, box_| {
                     Fragment::Box(box_.layout(
                         layout_context,
+                        for_initial_containing_block,
                         containing_block,
                     ))
-                }
+                },
+                Vec::new,
+                vec_append_owned,
             ))
         } else {
             fragments.extend(boxes.iter().map(|box_| {
                 Fragment::Box(box_.layout(
                     layout_context,
+                    for_initial_containing_block,
                     containing_block,
                 ))
             }))
@@ -257,6 +326,7 @@ impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
+        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
         let style = &self.absolutely_positioned_box.contents.style;
@@ -318,7 +388,8 @@ impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
             block_end: block_axis.margin_end,
         };
 
-        PositioningContext::for_positioned(layout_context, |positioning_context| {
+        let for_icb = for_initial_containing_block;
+        PositioningContext::for_positioned(layout_context, for_icb, |positioning_context| {
             let size;
             let fragments;
             match self.absolutely_positioned_box.contents.as_replaced() {

@@ -110,7 +110,7 @@ impl BoxTreeRoot {
         };
 
         let dummy_tree_rank = 0;
-        let mut positioning_context = PositioningContext::new();
+        let mut positioning_context = PositioningContext::new_for_initial_containing_block();
         let mut independent_layout = self.0.layout(
             layout_context,
             &mut positioning_context,

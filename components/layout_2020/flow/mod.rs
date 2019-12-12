@@ -220,6 +220,7 @@ fn layout_block_level_children<'a>(
                 })
                 .collect()
         } else {
+            let has_positioned_ancestor = positioning_context.has_positioned_ancestor();
             let mut fragments = child_boxes
                 .par_iter()
                 .enumerate()
@@ -234,7 +235,7 @@ fn layout_block_level_children<'a>(
                             /* float_context = */ None,
                         )
                     },
-                    PositioningContext::new,
+                    || PositioningContext::new_for_rayon(has_positioned_ancestor),
                     PositioningContext::append,
                 )
                 .collect();
