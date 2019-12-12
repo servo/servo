@@ -559,6 +559,10 @@ impl HTMLScriptElement {
                         "{} is a module script. It should be fixed after #23545 landed.",
                         url.clone()
                     );
+                    self.global().issue_page_warning(&format!(
+                        "Module scripts are not supported; {} will not be executed.",
+                        url.clone()
+                    ));
                 },
             }
         } else {
@@ -577,6 +581,9 @@ impl HTMLScriptElement {
                 warn!(
                     "{} is a module script. It should be fixed after #23545 landed.",
                     base_url.clone()
+                );
+                self.global().issue_page_warning(
+                    "Module scripts are not supported; ignoring inline module script.",
                 );
                 return;
             }

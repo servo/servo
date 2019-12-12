@@ -970,6 +970,29 @@ impl GlobalScope {
         self.devtools_chan.as_ref()
     }
 
+    pub fn issue_page_warning(&self, warning: &str) {
+        if let Some(ref chan) = self.devtools_chan {
+            let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
+                self.pipeline_id.clone(),
+                PageError {
+                    type_: "PageError".to_string(),
+                    errorMessage: warning.to_string(),
+                    sourceName: self.get_url().to_string(),
+                    lineText: "".to_string(),
+                    lineNumber: 0,
+                    columnNumber: 0,
+                    category: "script".to_string(),
+                    timeStamp: 0, //TODO
+                    error: false,
+                    warning: true,
+                    exception: true,
+                    strict: false,
+                    private: false,
+                },
+            ));
+        }
+    }
+
     /// Get a sender to the memory profiler thread.
     pub fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
         &self.mem_profiler_chan
