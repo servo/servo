@@ -21,6 +21,21 @@ pub struct CompositionEvent {
 }
 
 impl CompositionEvent {
+    pub fn new_inherited() -> CompositionEvent {
+        CompositionEvent {
+            uievent: UIEvent::new_inherited(),
+            data: DOMString::new(),
+        }
+    }
+
+    pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
+        reflect_dom_object(
+            Box::new(CompositionEvent::new_inherited()),
+            window,
+            CompositionEventBinding::Wrap,
+        )
+    }
+
     pub fn new(
         window: &Window,
         type_: DOMString,
