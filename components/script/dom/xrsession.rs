@@ -43,8 +43,10 @@ use dom_struct::dom_struct;
 use euclid::{Rect, RigidTransform3D, Transform3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
+use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
@@ -72,7 +74,7 @@ pub struct XRSession {
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
-    raf_sender: DomRefCell<Option<IpcSender<(f64, Frame)>>>,
+    raf_sender: DomRefCell<Option<IpcSender<Frame>>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
@@ -115,8 +117,12 @@ impl XRSession {
     }
 
     pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
-        use std::f64::consts::FRAC_PI_2;
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, FRAC_PI_2, None);
+        let ivfov = if mode == XRSessionMode::Inline {
+            Some(FRAC_PI_2)
+        } else {
+            None
+        };
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
@@ -300,7 +306,7 @@ impl XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
-    fn raf_callback(&self, (time, mut frame): (f64, Frame)) {
+    fn raf_callback(&self, mut frame: Frame) {
         debug!("WebXR RAF callback");
 
         // Step 1
@@ -333,6 +339,8 @@ impl XRSession {
 
         // Step 4-5
         let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+        let start = self.global().as_window().get_navigation_start();
+        let time = (frame.time_ns - start).to_ms();
 
         let frame = XRFrame::new(&self.global(), self, frame);
         // Step 6,7
@@ -376,7 +384,10 @@ impl XRSession {
         let near = *render_state.DepthNear() as f32;
         let far = *render_state.DepthFar() as f32;
         clip_planes.update(near, far);
-        let top = *render_state.InlineVerticalFieldOfView() / 2.;
+        let top = *render_state
+            .GetInlineVerticalFieldOfView()
+            .expect("IVFOV should be non null for inline sessions") /
+            2.;
         let top = near * top.tan() as f32;
         let bottom = top;
         let left = top * size.width as f32 / size.height as f32;
@@ -451,7 +462,7 @@ impl XRSessionMethods for XRSession {
         }
 
         // Step 4:
-        if init.inlineVerticalFieldOfView.is_some() {
+        if init.inlineVerticalFieldOfView.is_some() && self.is_immersive() {
             return Err(Error::InvalidState);
         }
 
@@ -459,13 +470,33 @@ impl XRSessionMethods for XRSession {
             .pending_render_state
             .or_init(|| self.active_render_state.get().clone_object());
         if let Some(near) = init.depthNear {
-            pending.set_depth_near(*near);
+            let mut near = *near;
+            // Step 8 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            if near < 0. {
+                near = 0.;
+            }
+            pending.set_depth_near(near);
         }
         if let Some(far) = init.depthFar {
+            // Step 9 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            // currently the maximum is infinity, so we do nothing
             pending.set_depth_far(*far);
         }
         if let Some(fov) = init.inlineVerticalFieldOfView {
-            pending.set_inline_vertical_fov(*fov);
+            let mut fov = *fov;
+            // Step 10 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            if fov < 0. {
+                fov = 0.0001;
+            } else if fov > PI {
+                fov = PI - 0.0001;
+            }
+            pending.set_inline_vertical_fov(fov);
         }
         if let Some(ref layer) = init.baseLayer {
             pending.set_layer(Some(&layer))

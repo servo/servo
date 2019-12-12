@@ -11,11 +11,10 @@
         return navigator.xr.test.simulateDeviceConnection(VALID_NON_IMMERSIVE_DEVICE)
           .then( (controller) => new Promise((resolve) => {
             navigator.xr.test.simulateUserActivation( () => {
-              resolve(promise_rejects(
-                t,
-                new TypeError(),
-                navigator.xr.requestSession()
-              ))
+              t.step_func(() => {
+                assert_throws(new TypeError(), () => navigator.xr.requestSession())
+              })
+              resolve()
             });
           }));
       });

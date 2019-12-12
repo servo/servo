@@ -21,7 +21,6 @@ use crate::dom::promise::Promise;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
@@ -75,26 +74,26 @@ impl XRTestMethods for XRTest {
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(&o) {
-                Ok(origin) => origin,
+                Ok(origin) => Some(origin),
                 Err(e) => {
                     p.reject_error(e);
                     return p;
                 },
             }
         } else {
-            RigidTransform3D::identity()
+            None
         };
 
         let floor_origin = if let Some(ref o) = init.floorOrigin {
             match get_origin(&o) {
-                Ok(origin) => origin,
+                Ok(origin) => Some(origin),
                 Err(e) => {
                     p.reject_error(e);
                     return p;
                 },
             }
         } else {
-            RigidTransform3D::identity()
+            None
         };
 
         let views = match get_views(&init.views) {

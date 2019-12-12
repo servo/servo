@@ -20,7 +20,7 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Point2D, Rect, Size2D};
 use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::{Viewport, Views};
@@ -211,11 +211,13 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         let views = self.session.with_session(|s| s.views().clone());
 
         let viewport = match (view.Eye(), views) {
+            (XREye::None, Views::Inline) => {
+                let origin = Point2D::new(0, 0);
+                Rect::new(origin, self.size().cast())
+            },
             (XREye::None, Views::Mono(view)) => view.viewport,
             (XREye::Left, Views::Stereo(view, _)) => view.viewport,
             (XREye::Right, Views::Stereo(_, view)) => view.viewport,
-            // The spec doesn't really say what to do in this case
-            // https://github.com/immersive-web/webxr/issues/769
             _ => return None,
         };
 

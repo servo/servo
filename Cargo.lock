@@ -6389,7 +6389,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#29f4f1f28695553c45d6c020172048c0035c49ed"
+source = "git+https://github.com/servo/webxr#b79870164f518d90268aaaac1fb83059b83dceda"
 dependencies = [
  "bindgen",
  "euclid",
@@ -6401,6 +6401,7 @@ dependencies = [
  "serde",
  "surfman",
  "surfman-chains",
+ "time",
  "webxr-api",
  "winapi",
  "wio",
@@ -6409,7 +6410,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#29f4f1f28695553c45d6c020172048c0035c49ed"
+source = "git+https://github.com/servo/webxr#b79870164f518d90268aaaac1fb83059b83dceda"
 dependencies = [
  "euclid",
  "ipc-channel",
