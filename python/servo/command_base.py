@@ -112,7 +112,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         temp_file = '{}.temp~'.format(dest_archive)
         with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0o644), 'wb') as out_file:
             if dest_archive.endswith('.zip'):
-                with zipfile.ZipFile(out_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
                         arcname = entry
                         if prepend_path is not None:
