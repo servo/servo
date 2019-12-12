@@ -43,6 +43,8 @@ dictionary FakeXRViewInit {
   required FakeXRRigidTransformInit viewOffset;
   // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
   required FakeXRDeviceResolution resolution;
+
+  FakeXRFieldOfViewInit fieldOfView;
 };
 
 // https://immersive-web.github.io/webxr/#xrviewport
@@ -58,4 +60,11 @@ dictionary FakeXRBoundsPoint {
 dictionary FakeXRRigidTransformInit {
     required sequence<float> position;
     required sequence<float> orientation;
+};
+
+dictionary FakeXRFieldOfViewInit {
+  required float upDegrees;
+  required float downDegrees;
+  required float leftDegrees;
+  required float rightDegrees;
 };

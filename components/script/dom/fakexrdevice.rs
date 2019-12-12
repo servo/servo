@@ -20,7 +20,7 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::rc::Rc;
-use webxr_api::{MockDeviceMsg, View, Views};
+use webxr_api::{MockDeviceMsg, MockViewInit, MockViewsInit};
 
 #[dom_struct]
 pub struct FakeXRDevice {
@@ -50,7 +50,7 @@ impl FakeXRDevice {
     }
 }
 
-pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
+pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
     if views.len() != 2 {
         return Err(Error::NotSupported);
     }
@@ -91,17 +91,41 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<Views> {
     let viewport_l = Rect::new(origin_l, size_l);
     let viewport_r = Rect::new(origin_r, size_r);
 
-    let left = View {
+    let fov_l = if let Some(ref fov) = left.fieldOfView {
+        Some((
+            fov.leftDegrees.to_radians(),
+            fov.rightDegrees.to_radians(),
+            fov.upDegrees.to_radians(),
+            fov.downDegrees.to_radians(),
+        ))
+    } else {
+        None
+    };
+
+    let fov_r = if let Some(ref fov) = right.fieldOfView {
+        Some((
+            fov.leftDegrees.to_radians(),
+            fov.rightDegrees.to_radians(),
+            fov.upDegrees.to_radians(),
+            fov.downDegrees.to_radians(),
+        ))
+    } else {
+        None
+    };
+
+    let left = MockViewInit {
         projection: proj_l,
         transform: offset_l,
         viewport: viewport_l,
+        fov: fov_l,
     };
-    let right = View {
+    let right = MockViewInit {
         projection: proj_r,
         transform: offset_r,
         viewport: viewport_r,
+        fov: fov_r,
     };
-    Ok(Views::Stereo(left, right))
+    Ok(MockViewsInit::Stereo(left, right))
 }
 
 pub fn get_origin<T, U>(
