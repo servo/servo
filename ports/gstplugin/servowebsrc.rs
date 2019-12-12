@@ -43,6 +43,7 @@ use gstreamer::Element;
 use gstreamer::ErrorMessage;
 use gstreamer::FlowError;
 use gstreamer::Format;
+use gstreamer::Fraction;
 use gstreamer::LoggableError;
 use gstreamer::PadDirection;
 use gstreamer::PadPresence;
@@ -89,8 +90,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
 pub struct ServoWebSrc {
     sender: Sender<ServoWebSrcMsg>,
@@ -98,6 +103,14 @@ pub struct ServoWebSrc {
     url: Mutex<Option<String>>,
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
+    // When did the plugin get created?
+    start: Instant,
+    // How long should each frame last?
+    // TODO: make these AtomicU128s once that's stable
+    frame_duration_micros: AtomicU64,
+    // When should the next frame be displayed?
+    // (in microseconds, elapsed time since the start)
+    next_frame_micros: AtomicU64,
 }
 
 struct ServoWebSrcGfx {
@@ -130,6 +143,9 @@ enum ServoWebSrcMsg {
 
 const DEFAULT_URL: &'static str =
     "https://rawcdn.githack.com/mrdoob/three.js/r105/examples/webgl_animation_cloth.html";
+
+// Default framerate is 60fps
+const DEFAULT_FRAME_DURATION: Duration = Duration::from_micros(16_667);
 
 struct ServoThread {
     receiver: Receiver<ServoWebSrcMsg>,
@@ -437,12 +453,18 @@ impl ObjectSubclass for ServoWebSrc {
         let info = Mutex::new(None);
         let url = Mutex::new(None);
         let buffer_pool = Mutex::new(None);
+        let start = Instant::now();
+        let frame_duration_micros = AtomicU64::new(DEFAULT_FRAME_DURATION.as_micros() as u64);
+        let next_frame_micros = AtomicU64::new(0);
         Self {
             sender,
             swap_chain,
             info,
             url,
             buffer_pool,
+            start,
+            frame_duration_micros,
+            next_frame_micros,
         }
     }
 
@@ -511,6 +533,18 @@ impl BaseSrcImpl for ServoWebSrc {
             .ok_or_else(|| gst_loggable_error!(CATEGORY, "Failed to get video info"))?;
         *self.info.lock().unwrap() = Some(info);
 
+        // Save the framerate if it is set
+        let framerate = outcaps
+            .get_structure(0)
+            .and_then(|cap| cap.get::<Fraction>("framerate"));
+        if let Some(framerate) = framerate {
+            let frame_duration_micros =
+                1_000_000 * *framerate.denom() as u64 / *framerate.numer() as u64;
+            debug!("Setting frame duration to {}micros", frame_duration_micros);
+            self.frame_duration_micros
+                .store(frame_duration_micros, Ordering::SeqCst);
+        }
+
         // Get the downstream GL context
         let mut gst_gl_context = std::ptr::null_mut();
         let el = src.upcast_ref::<Element>();
@@ -577,6 +611,23 @@ impl BaseSrcImpl for ServoWebSrc {
     }
 
     fn create(&self, src: &BaseSrc, _offset: u64, _length: u32) -> Result<Buffer, FlowError> {
+        // We block waiting for the next frame to be needed.
+        // TODO: Once get_times is in BaseSrcImpl, we can use that instead.
+        // It's been merged but not yet published.
+        // https://github.com/servo/servo/issues/25234
+        let elapsed_micros = self.start.elapsed().as_micros() as u64;
+        let frame_duration_micros = self.frame_duration_micros.load(Ordering::SeqCst);
+        let next_frame_micros = self
+            .next_frame_micros
+            .fetch_add(frame_duration_micros, Ordering::SeqCst);
+        if elapsed_micros < next_frame_micros {
+            // Delay by at most a second
+            let delay = 1_000_000.min(next_frame_micros - elapsed_micros);
+            debug!("Waiting for {}micros", delay);
+            thread::sleep(Duration::from_micros(delay));
+            debug!("Done waiting");
+        }
+
         // Get the buffer pool
         let pool_guard = self.buffer_pool.lock().unwrap();
         let pool = pool_guard.as_ref().ok_or(FlowError::NotNegotiated)?;

@@ -24,7 +24,6 @@ To run locally:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servowebsrc \
-    ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
     ! glimagesink rotate-method=vertical-flip
 ```
@@ -33,7 +32,6 @@ To stream over the network:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servowebsrc \
-    ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
     ! gldownload \
@@ -47,7 +45,6 @@ To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 servowebsrc \
-    ! videorate \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
     ! gldownload \
@@ -126,7 +123,6 @@ GST_PLUGIN_SCANNER=$PWD/support/linux/gstreamer/gst/libexec/gstreamer-1.0/gst-pl
 LD_LIBRARY_PATH=$PWD/support/linux/gstreamer/gst/lib \
 LD_PRELOAD=$PWD/target/gstplugins/libgstservoplugin.so \
   gst-launch-1.0 servowebsrc \
-    ! queue \
     ! videoflip video-direction=vert \
     ! ximagesink
 ```
