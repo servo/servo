@@ -60,9 +60,10 @@ pub(crate) enum AbsoluteBoxOffsets {
 impl AbsolutelyPositionedBox {
     pub fn construct<'dom>(
         context: &LayoutContext,
+        node: impl NodeExt<'dom>,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
-        contents: Contents<impl NodeExt<'dom>>,
+        contents: Contents,
     ) -> Self {
         // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
         let content_sizes = ContentSizesRequest::inline_if(
@@ -76,6 +77,7 @@ impl AbsolutelyPositionedBox {
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
+                node,
                 style,
                 display_inside,
                 contents,

@@ -54,9 +54,10 @@ enum NonReplacedIFCKind<'a> {
 impl IndependentFormattingContext {
     pub fn construct<'dom>(
         context: &LayoutContext,
+        node: impl NodeExt<'dom>,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
-        contents: Contents<impl NodeExt<'dom>>,
+        contents: Contents,
         content_sizes: ContentSizesRequest,
     ) -> Self {
         match contents.try_into() {
@@ -64,6 +65,7 @@ impl IndependentFormattingContext {
                 DisplayInside::Flow | DisplayInside::FlowRoot => {
                     let (bfc, content_sizes) = BlockFormattingContext::construct(
                         context,
+                        node,
                         &style,
                         non_replaced,
                         content_sizes,

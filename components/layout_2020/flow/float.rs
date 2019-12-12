@@ -29,14 +29,16 @@ impl FloatContext {
 impl FloatBox {
     pub fn construct<'dom>(
         context: &LayoutContext,
+        node: impl NodeExt<'dom>,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
-        contents: Contents<impl NodeExt<'dom>>,
+        contents: Contents,
     ) -> Self {
         let content_sizes = ContentSizesRequest::inline_if(!style.inline_size_is_length());
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
+                node,
                 style,
                 display_inside,
                 contents,

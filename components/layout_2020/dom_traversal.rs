@@ -24,9 +24,9 @@ pub enum WhichPseudoElement {
     After,
 }
 
-pub(super) enum Contents<Node> {
+pub(super) enum Contents {
     /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
-    OfElement(Node),
+    OfElement,
 
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
@@ -37,8 +37,8 @@ pub(super) enum Contents<Node> {
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
-pub(super) enum NonReplacedContents<Node> {
-    OfElement(Node),
+pub(super) enum NonReplacedContents {
+    OfElement,
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
@@ -56,9 +56,10 @@ where
     /// Or pseudo-element
     fn handle_element(
         &mut self,
+        node: Node,
         style: &ServoArc<ComputedValues>,
         display: DisplayGeneratingBox,
-        contents: Contents<Node>,
+        contents: Contents,
         box_slot: BoxSlot<'dom>,
     );
 }
@@ -108,9 +109,10 @@ fn traverse_element<'dom, Node>(
         },
         Display::GeneratingBox(display) => {
             handler.handle_element(
+                element,
                 &style,
                 display,
-                replaced.map_or(Contents::OfElement(element), Contents::Replaced),
+                replaced.map_or(Contents::OfElement, Contents::Replaced),
                 element.element_box_slot(),
             );
         },
@@ -131,19 +133,20 @@ fn traverse_pseudo_element<'dom, Node>(
             Display::Contents => {
                 element.unset_pseudo_element_box(which);
                 let items = generate_pseudo_element_content(&style, element, context);
-                traverse_pseudo_element_contents(&style, context, handler, items);
+                traverse_pseudo_element_contents(element, &style, context, handler, items);
             },
             Display::GeneratingBox(display) => {
                 let items = generate_pseudo_element_content(&style, element, context);
                 let contents = Contents::OfPseudoElement(items);
                 let box_slot = element.pseudo_element_box_slot(which);
-                handler.handle_element(&style, display, contents, box_slot);
+                handler.handle_element(element, &style, display, contents, box_slot);
             },
         }
     }
 }
 
 fn traverse_pseudo_element_contents<'dom, Node>(
+    node: Node,
     pseudo_element_style: &ServoArc<ComputedValues>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
@@ -176,6 +179,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                         Display::GeneratingBox(display_inline)
                 );
                 handler.handle_element(
+                    node,
                     item_style,
                     display_inline,
                     Contents::Replaced(contents),
@@ -187,51 +191,51 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     }
 }
 
-impl<Node> Contents<Node> {
+impl Contents {
     /// Returns true iff the `try_from` impl below would return `Err(_)`
     pub fn is_replaced(&self) -> bool {
         match self {
-            Contents::OfElement(_) | Contents::OfPseudoElement(_) => false,
+            Contents::OfElement | Contents::OfPseudoElement(_) => false,
             Contents::Replaced(_) => true,
         }
     }
 }
 
-impl<Node> std::convert::TryFrom<Contents<Node>> for NonReplacedContents<Node> {
+impl std::convert::TryFrom<Contents> for NonReplacedContents {
     type Error = ReplacedContent;
 
-    fn try_from(contents: Contents<Node>) -> Result<Self, Self::Error> {
+    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
         match contents {
-            Contents::OfElement(node) => Ok(NonReplacedContents::OfElement(node)),
+            Contents::OfElement => Ok(NonReplacedContents::OfElement),
             Contents::OfPseudoElement(items) => Ok(NonReplacedContents::OfPseudoElement(items)),
             Contents::Replaced(replaced) => Err(replaced),
         }
     }
 }
 
-impl<Node> std::convert::From<NonReplacedContents<Node>> for Contents<Node> {
-    fn from(contents: NonReplacedContents<Node>) -> Self {
+impl From<NonReplacedContents> for Contents {
+    fn from(contents: NonReplacedContents) -> Self {
         match contents {
-            NonReplacedContents::OfElement(node) => Contents::OfElement(node),
+            NonReplacedContents::OfElement => Contents::OfElement,
             NonReplacedContents::OfPseudoElement(items) => Contents::OfPseudoElement(items),
         }
     }
 }
 
-impl<'dom, Node> NonReplacedContents<Node>
-where
-    Node: NodeExt<'dom>,
-{
-    pub(crate) fn traverse(
+impl NonReplacedContents {
+    pub(crate) fn traverse<'dom, Node>(
         self,
-        inherited_style: &ServoArc<ComputedValues>,
         context: &LayoutContext,
+        node: Node,
+        inherited_style: &ServoArc<ComputedValues>,
         handler: &mut impl TraversalHandler<'dom, Node>,
-    ) {
+    ) where
+        Node: NodeExt<'dom>,
+    {
         match self {
-            NonReplacedContents::OfElement(node) => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
             NonReplacedContents::OfPseudoElement(items) => {
-                traverse_pseudo_element_contents(inherited_style, context, handler, items)
+                traverse_pseudo_element_contents(node, inherited_style, context, handler, items)
             },
         }
     }
