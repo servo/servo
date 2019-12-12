@@ -756,7 +756,8 @@ class MachCommands(CommandBase):
     def clean(self, manifest_path=None, params=[], verbose=False):
         self.ensure_bootstrapped()
 
-        virtualenv_path = path.join(self.get_top_dir(), 'python', '_virtualenv')
+        virtualenv_fname = '_virtualenv%d.%d' % (sys.version_info[0], sys.version_info[1])
+        virtualenv_path = path.join(self.get_top_dir(), 'python', virtualenv_fname)
         if path.exists(virtualenv_path):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
