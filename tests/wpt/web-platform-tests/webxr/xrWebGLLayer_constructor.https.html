@@ -31,12 +31,14 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
         navigator.xr.test.simulateUserActivation(() => {
           navigator.xr.requestSession('immersive-vr')
           .then((session) => {
-            try {
-              let webglLayerIncompatible = new XRWebGLLayer(session, gl);
-              assert_unreached("XRWebGLLayer should fail when created with a context that is not XRCompatible")
-            } catch (err) {
-              assert_equals(err.name, "InvalidStateError");
-            }
+            t.step_func(() => {
+              try {
+                let webglLayerIncompatible = new XRWebGLLayer(session, gl);
+                assert_unreached("XRWebGLLayer should fail when created with a context that is not XRCompatible")
+              } catch (err) {
+                assert_equals(err.name, "InvalidStateError");
+              }
+            })
 
             gl.makeXRCompatible();
 

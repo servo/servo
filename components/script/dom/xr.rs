@@ -162,12 +162,12 @@ impl XRMethods for XR {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_compartment(&self.global(), comp);
 
-        if !ScriptThread::is_user_interacting() {
-            promise.reject_error(Error::Security);
-            return promise;
-        }
-
         if mode != XRSessionMode::Inline {
+            if !ScriptThread::is_user_interacting() {
+                promise.reject_error(Error::Security);
+                return promise;
+            }
+
             if self.pending_or_active_session() {
                 promise.reject_error(Error::InvalidState);
                 return promise;
