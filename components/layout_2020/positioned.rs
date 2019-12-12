@@ -447,7 +447,7 @@ impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
 
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                Anchor::End(end) => cbbs - end - pb.inline_end - margin.inline_end - size.inline,
+                Anchor::End(end) => cbis - end - pb.inline_end - margin.inline_end - size.inline,
             };
             let block_start = match block_axis.anchor {
                 Anchor::Start(start) => start + pb.block_start + margin.block_start,
