@@ -46,6 +46,7 @@ use ipc_channel::router::ROUTER;
 use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
+use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
@@ -116,7 +117,6 @@ impl XRSession {
     }
 
     pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
-        use std::f64::consts::FRAC_PI_2;
         let ivfov = if mode == XRSessionMode::Inline {
             Some(FRAC_PI_2)
         } else {
@@ -470,13 +470,33 @@ impl XRSessionMethods for XRSession {
             .pending_render_state
             .or_init(|| self.active_render_state.get().clone_object());
         if let Some(near) = init.depthNear {
-            pending.set_depth_near(*near);
+            let mut near = *near;
+            // Step 8 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            if near < 0. {
+                near = 0.;
+            }
+            pending.set_depth_near(near);
         }
         if let Some(far) = init.depthFar {
+            // Step 9 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            // currently the maximum is infinity, so we do nothing
             pending.set_depth_far(*far);
         }
         if let Some(fov) = init.inlineVerticalFieldOfView {
-            pending.set_inline_vertical_fov(*fov);
+            let mut fov = *fov;
+            // Step 10 from #apply-the-pending-render-state
+            // this may need to be changed if backends wish to impose
+            // further constraints
+            if fov < 0. {
+                fov = 0.0001;
+            } else if fov > PI {
+                fov = PI - 0.0001;
+            }
+            pending.set_inline_vertical_fov(fov);
         }
         if let Some(ref layer) = init.baseLayer {
             pending.set_layer(Some(&layer))
