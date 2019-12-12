@@ -188,3 +188,13 @@ for (const preventCancel of [true, false]) {
 
   }, `an undefined rejection from write should cause pipeTo() to reject when preventCancel is ${preventCancel}`);
 }
+
+promise_test(t => {
+  const rs = new ReadableStream();
+  const ws = new WritableStream();
+  return promise_rejects(t, new TypeError(), rs.pipeTo(ws, {
+    get preventAbort() {
+      ws.getWriter();
+    }
+  }), 'pipeTo should reject');
+}, 'pipeTo() should reject if an option getter grabs a writer');

@@ -3,6 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Feature Policy (https://w3c.github.io/webappsec-feature-policy/)
 
+[Exposed=Window]
 interface FeaturePolicy {
   boolean allowsFeature(DOMString feature, optional DOMString origin);
   sequence<DOMString> features();
@@ -17,6 +18,7 @@ partial interface Document {
 partial interface HTMLIFrameElement {
     [SameObject] readonly attribute FeaturePolicy featurePolicy;
 };
+
 [Exposed=Window]
 interface FeaturePolicyViolationReportBody : ReportBody {
   readonly attribute DOMString featureId;

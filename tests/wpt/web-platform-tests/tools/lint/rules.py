@@ -199,11 +199,6 @@ class MultipleTestharnessReport(Rule):
     description = "More than one `<script src='/resources/testharnessreport.js'>`"
 
 
-class PresentTestharnessCSS(Rule):
-    name = "PRESENT-TESTHARNESSCSS"
-    description = "Explicit link to testharness.css present"
-
-
 class VariantMissing(Rule):
     name = "VARIANT-MISSING"
     description = collapse("""

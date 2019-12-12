@@ -9,7 +9,8 @@ import subprocess
 import sys
 
 browser_specific_args = {
-    "firefox": ["--install-browser"]
+    "firefox": ["--install-browser"],
+    "servo": ["--install-browser", "--processes=12"]
 }
 
 
@@ -66,6 +67,10 @@ def main(product, commit_range, wpt_args):
         "--verify-log-full"
     ]
     wpt_args += browser_specific_args.get(product, [])
+
+    # Hack to run servo with one process only for wdspec
+    if product == "servo" and "--test-type=wdspec" in wpt_args:
+        wpt_args = [item for item in wpt_args if not item.startswith("--processes")]
 
     command = ["python", "./wpt", "run"] + wpt_args + [product]
 

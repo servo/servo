@@ -29,8 +29,8 @@ Test authors are encouraged to use the builder API to generate the sequence of a
 API can be accessed via the `new test_driver.Actions()` object, and actions are defined in [testdriver-actions.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-actions.js)
 
 The `actions.send()` function causes the sequence of actions to be sent to the browser. It is based on the [WebDriver API](https://w3c.github.io/webdriver/#actions).
-The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
-resolves after the actions have been sent or rejects if an error was thrown.
+The action can be a keyboard action, a pointer action or a pause. It returns a promise that
+resolves after the actions have been sent, or rejects if an error was thrown.
 
 
 Example:
@@ -49,7 +49,7 @@ let actions = new test_driver.Actions()
 actions.send();
 ```
 
-Calling into `send()` is going to dispatch the action sequence (via `test_driver.action_sequence`) and also returns a `Promise` which should be handled however is appropriate in the test. The other functions in the `Actions()` object are going to modify the state of the object by adding a new action in the sequence and return the same object. So the functions can be easily chained as shown in the example above. Here is a list of helper functions in the `Actions` class:
+Calling into `send()` is going to dispatch the action sequence (via `test_driver.action_sequence`) and also returns a promise which should be handled however is appropriate in the test. The other functions in the `Actions()` object are going to modify the state of the object by adding a new action in the sequence and returning the same object. So the functions can be easily chained, as shown in the example above. Here is a list of helper functions in the `Actions` class:
 
 ```
 pointerDown: Create a pointerDown event for the current default pointer source
@@ -68,19 +68,19 @@ addKeyboard: Add a new key input source with the given name
 ### bless
 
 Usage: `test_driver.bless(intent, action)`
- * `intent`: a string describing the motivation for this invocation
- * `action`: an optional function
+ * _intent_: a string describing the motivation for this invocation
+ * _action_: an optional function
 
 This function simulates [activation][activation], allowing tests to
 perform privileged operations that require user interaction. For
-example, sandboxed iframes with the
+example, sandboxed iframes with
 `allow-top-navigation-by-user-activation` may only navigate their
-parent's browsing context under these circumstances. The `intent`
+parent's browsing context under these circumstances. The _intent_
 string is presented to human operators when the test is not run in
 automation.
 
 This method returns a promise which is resolved with the result of
-invoking the `action` function. If no such function is provided, the
+invoking the _action_ function. If no such function is provided, the
 promise is resolved with the value `undefined`.
 
 Example:
@@ -96,11 +96,11 @@ test_driver.bless('initiate media playback', function () {
 ### click
 
 Usage: `test_driver.click(element)`
- * `element`: a DOM Element object
+ * _element_: a DOM Element object
 
 This function causes a click to occur on the target element (an
 `Element` object), potentially scrolling the document to make it
-possible to click it. It returns a `Promise` that resolves after the
+possible to click it. It returns a promise that resolves after the
 click has occurred or rejects if the element cannot be clicked (for
 example, it is obscured by an element on top of it).
 
@@ -111,16 +111,16 @@ being called and the promise settling.
 ### send_keys
 
 Usage: `test_driver.send_keys(element, keys)`
- * `element`: a DOM Element object
- * `keys`: string to send to the element
+ * _element_: a DOM Element object
+ * _keys_: string to send to the element
 
-This function causes the string `keys` to be send to the target
+This function causes the string _keys_ to be sent to the target
 element (an `Element` object), potentially scrolling the document to
-make it possible to send keys. It returns a `Promise` that resolves
-after the keys have been send or rejects if the keys cannot be sent
+make it possible to send keys. It returns a promise that resolves
+after the keys have been sent, or rejects if the keys cannot be sent
 to the element.
 
-Note that if the element that's keys need to be send to does not have
+Note that if the element that the keys need to be sent to does not have
 a unique ID, the document must not have any DOM mutations made
 between the function being called and the promise settling.
 
@@ -128,3 +128,27 @@ To send special keys, one must send the respective key's codepoint. Since this u
 For example, to send the tab key you would send "\uE004".
 
 [activation]: https://html.spec.whatwg.org/multipage/interaction.html#activation
+
+### set_permission
+
+Usage: `test_driver.set_permission(descriptor, state, one_realm)`
+ * _descriptor_: a
+   [PermissionDescriptor](https://w3c.github.io/permissions/#dictdef-permissiondescriptor)
+   or derived object
+ * _state_: a
+   [PermissionState](https://w3c.github.io/permissions/#enumdef-permissionstate)
+   value
+ * _one_realm_: a boolean that indicates whether the permission settings
+   apply to only one realm
+
+This function causes permission requests and queries for the status of a
+certain permission type (e.g. "push", or "background-fetch") to always
+return _state_. It returns a promise that resolves after the permission has
+been set to be overridden with _state_.
+
+Example:
+
+``` js
+await test_driver.set_permission({ name: "background-fetch" }, "denied");
+await test_driver.set_permission({ name: "push", userVisibleOnly: true }, "granted", true);
+```

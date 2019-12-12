@@ -193,7 +193,7 @@ interface XRWebGLLayer {
   readonly attribute boolean antialias;
   readonly attribute boolean ignoreDepthValues;
 
-  [SameObject] readonly attribute WebGLFramebuffer framebuffer;
+  [SameObject] readonly attribute WebGLFramebuffer? framebuffer;
   readonly attribute unsigned long framebufferWidth;
   readonly attribute unsigned long framebufferHeight;
 

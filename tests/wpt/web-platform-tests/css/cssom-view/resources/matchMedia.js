@@ -51,7 +51,9 @@ var getWindow = mql => {
 
 var waitForChangesReported = () => {
     return new Promise(resolve => {
-        step_timeout(resolve, 75);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+        });
     });
 };
 

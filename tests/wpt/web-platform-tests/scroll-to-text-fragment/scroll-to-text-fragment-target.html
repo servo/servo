@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Navigating to a text fragment anchor</title>
+<script src="stash.js"></script>
 <script>
 function isInView(element) {
   let rect = element.getBoundingClientRect();
@@ -8,8 +9,6 @@ function isInView(element) {
 }
 
 function checkScroll() {
-  let bc = new BroadcastChannel('scroll-to-text-fragment');
-
   let position = 'unknown';
   if (window.scrollY == 0)
     position = 'top';
@@ -30,9 +29,10 @@ function checkScroll() {
   else if (isInView(document.getElementById('horizontal-scroll')) && window.scrollX > 0)
     position = 'horizontal-scroll';
 
-  bc.postMessage({ scrollPosition: position, href: window.location.href });
-  bc.close();
-  window.close();
+  let results = { scrollPosition: position, href: window.location.href };
+
+  let key = (new URL(document.location)).searchParams.get("key");
+  stashResults(key, results);
 }
 </script>
 <style>

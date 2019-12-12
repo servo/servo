@@ -484,10 +484,6 @@ def check_parsed(repo_root, path, f):
             if len(testharnessreport_nodes) > 1:
                 errors.append(rules.MultipleTestharnessReport.error(path))
 
-        testharnesscss_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}link[@href='/resources/testharness.css']")
-        if testharnesscss_nodes:
-            errors.append(rules.PresentTestharnessCSS.error(path))
-
         for element in source_file.variant_nodes:
             if "content" not in element.attrib:
                 errors.append(rules.VariantMissing.error(path))

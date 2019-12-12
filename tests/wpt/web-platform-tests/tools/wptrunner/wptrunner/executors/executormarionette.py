@@ -31,7 +31,10 @@ from .protocol import (ActionSequenceProtocolPart,
                        ClickProtocolPart,
                        SendKeysProtocolPart,
                        TestDriverProtocolPart,
-                       CoverageProtocolPart)
+                       CoverageProtocolPart,
+                       GenerateTestReportProtocolPart,
+                       VirtualAuthenticatorProtocolPart,
+                       SetPermissionProtocolPart)
 from ..testrunner import Stop
 from ..webdriver_server import GeckoDriverServer
 
@@ -481,6 +484,44 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
                 # This usually happens if the process crashed
                 pass
 
+class MarionetteGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def generate_test_report(self, config):
+        raise NotImplementedError("generate_test_report not yet implemented")
+
+class MarionetteVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def add_virtual_authenticator(self, config):
+        raise NotImplementedError("add_virtual_authenticator not yet implemented")
+
+    def remove_virtual_authenticator(self, authenticator_id):
+        raise NotImplementedError("remove_virtual_authenticator not yet implemented")
+
+    def add_credential(self, authenticator_id, credential):
+        raise NotImplementedError("add_credential not yet implemented")
+
+    def get_credentials(self, authenticator_id):
+        raise NotImplementedError("get_credentials not yet implemented")
+
+    def remove_credential(self, authenticator_id, credential_id):
+        raise NotImplementedError("remove_credential not yet implemented")
+
+    def remove_all_credentials(self, authenticator_id):
+        raise NotImplementedError("remove_all_credentials not yet implemented")
+
+    def set_user_verified(self, authenticator_id, uv):
+        raise NotImplementedError("set_user_verified not yet implemented")
+
+class MarionetteSetPermissionProtocolPart(SetPermissionProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def set_permission(self, name, state, one_realm):
+        raise NotImplementedError("set_permission not yet implemented")
 
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
@@ -493,7 +534,10 @@ class MarionetteProtocol(Protocol):
                   MarionetteActionSequenceProtocolPart,
                   MarionetteTestDriverProtocolPart,
                   MarionetteAssertsProtocolPart,
-                  MarionetteCoverageProtocolPart]
+                  MarionetteCoverageProtocolPart,
+                  MarionetteGenerateTestReportProtocolPart,
+                  MarionetteVirtualAuthenticatorProtocolPart,
+                  MarionetteSetPermissionProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()

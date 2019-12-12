@@ -19,7 +19,7 @@
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testHistoryPushStateInPortal');
     assertInitialHistoryState();
-  }, 'history.pushState navigates independently in a portal');
+  }, 'history.pushState navigates independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
@@ -31,7 +31,7 @@
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testLocationAssignInPortal');
     assertInitialHistoryState();
-  }, 'location.assign navigates independently in a portal');
+  }, 'location.assign navigates independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
@@ -43,12 +43,12 @@
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testSetLocationHrefInPortal');
     assertInitialHistoryState();
-  }, 'Setting location.href navigates independently in a portal');
+  }, 'Setting location.href navigates independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testSyntheticAnchorClickInPortal');
     assertInitialHistoryState();
-  }, 'Synthetic anchor click navigates independently in a portal');
+  }, 'Synthetic anchor click navigates independently with replacement in a portal');
 </script>
 </body>

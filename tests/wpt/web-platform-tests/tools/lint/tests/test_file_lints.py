@@ -410,29 +410,6 @@ def test_missing_testdriver_vendor():
             ]
 
 
-def test_present_testharnesscss():
-    code = b"""
-<html xmlns="http://www.w3.org/1999/xhtml">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css"/>
-</html>
-"""
-    error_map = check_with_files(code)
-
-    for (filename, (errors, kind)) in error_map.items():
-        check_errors(errors)
-
-        if kind in ["web-lax", "web-strict"]:
-            assert errors == [
-                ("PRESENT-TESTHARNESSCSS", "Explicit link to testharness.css present", filename, None),
-            ]
-        elif kind == "python":
-            assert errors == [
-                ("PARSE-FAILED", "Unable to parse file", filename, 2),
-            ]
-
-
 def test_testharness_path():
     code = b"""\
 <html xmlns="http://www.w3.org/1999/xhtml">

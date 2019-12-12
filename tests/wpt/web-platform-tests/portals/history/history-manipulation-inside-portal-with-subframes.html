@@ -19,24 +19,24 @@
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testIFrameSrcInPortal');
     assertInitialHistoryState();
-  }, 'Setting iframe src navigates independently in a portal');
+  }, 'Setting iframe src navigates independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testCrossSiteIFrameSrcInPortal');
     assertInitialHistoryState();
-  }, 'Setting cross site iframe src navigates independently in a portal');
+  }, 'Setting cross site iframe src navigates independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testIFrameNavInPortal');
     assertInitialHistoryState();
-  }, 'iframe navigates itself independently in a portal');
+  }, 'iframe navigates itself independently with replacement in a portal');
 
   promise_test(async () => {
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testCrossSiteIFrameNavInPortal');
     assertInitialHistoryState();
-  }, 'Cross site iframe navigates itself independently in a portal');
+  }, 'Cross site iframe navigates itself independently with replacement in a portal');
 </script>
 </body>

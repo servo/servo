@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: harjgam/web-platform-tests:0.33
+    image: harjgam/web-platform-tests:0.34
     maxRunTime: 7200
     artifacts:
       public/results:

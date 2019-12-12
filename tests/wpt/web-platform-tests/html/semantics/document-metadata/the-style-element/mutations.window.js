@@ -37,3 +37,12 @@ test(t => {
   comment.remove();
   assert_not_equals(sheet, style.sheet);
 }, "Mutating the style element: removing a Comment node");
+
+test(t => {
+  const style = document.body.appendChild(document.createElement("style"));
+  const sheet = style.sheet;
+  t.add_cleanup(() => style.remove());
+  assert_not_equals(sheet, null);
+  style.appendChild(new DocumentFragment());
+  assert_equals(sheet, style.sheet);
+}, "Mutating the style element: inserting an empty DocumentFragment node");

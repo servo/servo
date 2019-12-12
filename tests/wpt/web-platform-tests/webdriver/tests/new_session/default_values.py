@@ -44,12 +44,3 @@ def test_ignore_non_spec_fields_in_capabilities(new_session, add_browser_capabil
     }})
     value = assert_success(response)
     assert value["capabilities"]["pageLoadStrategy"] == "normal"
-
-
-def test_valid_but_unmatchable_key(new_session, add_browser_capabilities):
-    response, _ = new_session({"capabilities": {"firstMatch": [
-        add_browser_capabilities({"pageLoadStrategy": "eager", "foo:unmatchable": True}),
-        {"pageLoadStrategy": "none"},
-    ]}})
-    value = assert_success(response)
-    assert value["capabilities"]["pageLoadStrategy"] == "none"

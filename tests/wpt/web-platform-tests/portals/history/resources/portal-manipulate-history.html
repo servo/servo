@@ -8,7 +8,7 @@
 
     history.pushState('teststate', null, null);
 
-    assert(history.length == 2, 'History length changed');
+    assert(history.length == 1, 'History length unchanged');
     assert(history.state == 'teststate', 'Update state');
   }
 
@@ -27,7 +27,7 @@
     let initialLocation = location.href;
     location.assign('#test');
 
-    assert(history.length == 2, 'History length changed');
+    assert(history.length == 1, 'History length unchanged');
     assert(location.href != initialLocation, 'Update location');
   }
 
@@ -45,7 +45,7 @@
     let initialLocation = location.href;
     location.href = '#test';
 
-    assert(history.length == 2, 'History length changed');
+    assert(history.length == 1, 'History length unchanged');
     assert(location.href != initialLocation, 'Update location');
   }
 
@@ -59,7 +59,7 @@
 
     anchor.click();
 
-    assert(history.length == 2, 'History length changed');
+    assert(history.length == 1, 'History length unchanged');
     assert(location.href != initialLocation, 'Update location');
   }
 </script>
