@@ -574,9 +574,19 @@ macro_rules! window_event_handlers {
     };
 }
 
+macro_rules! make_array {
+    ($($name:ident, $get:ident, $set:ident, $event_macro:ident;)+) => {
+        &[$(stringify!($name)),+]
+    };
+}
+
+pub static GLOBAL_EVENT_HANDLERS: &[&str] =  global_event_handlers_list!(make_array);
+pub static WINDOW_EVENT_HANDLERS: &[&str] =  window_event_handlers_list!(make_array);
+pub static WINDOW_DELEGATE_EVENT_HANDLERS: &[&str] =  window_event_handlers_list!(make_array, ForwardToWindow);
+
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
 // see webidls/EventHandler.webidl
-// As more methods get added, just update them here.
+// As more methods get added, just update them here and in DOCUMENT_AND_ELEMENT_EVENT_HANDLERS
 macro_rules! document_and_element_event_handlers(
     () => (
         event_handler!(cut, GetOncut, SetOncut);
@@ -584,6 +594,8 @@ macro_rules! document_and_element_event_handlers(
         event_handler!(paste, GetOnpaste, SetOnpaste);
     )
 );
+
+pub static DOCUMENT_AND_ELEMENT_EVENT_HANDLERS: &[&str] = &["cut", "copy", "paste"];
 
 #[macro_export]
 macro_rules! rooted_vec {
