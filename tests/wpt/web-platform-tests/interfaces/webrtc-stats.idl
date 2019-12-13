@@ -220,11 +220,6 @@ dictionary RTCPeerConnectionStats : RTCStats {
             unsigned long dataChannelsAccepted;
 };
 
-dictionary RTCMediaStreamStats : RTCStats {
-             DOMString           streamIdentifier;
-             sequence<DOMString> trackIds;
-};
-
 dictionary RTCRtpTransceiverStats {
     DOMString senderId;
     DOMString receiverId;
@@ -301,7 +296,6 @@ dictionary RTCSctpTransportStats : RTCStats {
 
 dictionary RTCIceCandidateStats : RTCStats {
              DOMString                transportId;
-             RTCNetworkType           networkType;
              DOMString?               address;
              long                     port;
              DOMString                protocol;
@@ -309,16 +303,6 @@ dictionary RTCIceCandidateStats : RTCStats {
              long                     priority;
              DOMString                url;
              DOMString                relayProtocol;
-};
-
-enum RTCNetworkType {
-    "bluetooth",
-    "cellular",
-    "ethernet",
-    "wifi",
-    "wimax",
-    "vpn",
-    "unknown"
 };
 
 dictionary RTCIceCandidatePairStats : RTCStats {
@@ -372,10 +356,14 @@ dictionary RTCIceServerStats : RTCStats {
            DOMString url;
            long port;
            DOMString protocol;
-           RTCNetworkType networkType;
            unsigned long totalRequestsSent;
            unsigned long totalResponsesReceived;
            double totalRoundTripTime;
+};
+
+dictionary RTCMediaStreamStats : RTCStats {
+  DOMString streamIdentifier;
+  sequence<DOMString> trackIds;
 };
 
 dictionary RTCReceiverVideoTrackAttachmentStats : RTCVideoReceiverStats {};

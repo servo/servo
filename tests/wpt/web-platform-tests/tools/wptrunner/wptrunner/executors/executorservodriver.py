@@ -76,6 +76,9 @@ class ServoBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         pass
 
+    def load(self, url):
+        pass
+
 
 class ServoWebDriverProtocol(Protocol):
     implements = [ServoBaseProtocolPart]

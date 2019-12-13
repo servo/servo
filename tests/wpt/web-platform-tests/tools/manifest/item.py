@@ -329,6 +329,17 @@ class VisualTest(URLManifestItem):
     item_type = "visual"
 
 
+class CrashTest(URLManifestItem):
+    __slots__ = ()
+
+    item_type = "crashtest"
+
+    @property
+    def timeout(self):
+        # type: () -> Optional[Text]
+        return None
+
+
 class WebDriverSpecTest(URLManifestItem):
     __slots__ = ()
 

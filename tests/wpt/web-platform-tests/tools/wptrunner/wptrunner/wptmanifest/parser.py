@@ -15,6 +15,7 @@
 from __future__ import unicode_literals
 
 from six import binary_type, text_type, BytesIO
+from six.moves import xrange
 
 from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,
                    ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
@@ -541,7 +542,7 @@ class Parser(object):
             raise
 
     def consume(self):
-        self.token = self.token_generator.next()
+        self.token = next(self.token_generator)
 
     def expect(self, type, value=None):
         if self.token[0] != type:

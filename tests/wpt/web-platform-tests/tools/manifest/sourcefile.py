@@ -34,7 +34,7 @@ import html5lib
 
 from . import XMLParser
 from .item import (ManifestItem, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest,
-                   SupportFile, ConformanceCheckerTest, VisualTest)
+                   SupportFile, CrashTest, ConformanceCheckerTest, VisualTest)
 from .utils import ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"
@@ -407,6 +407,11 @@ class SourceFile(object):
         """Check if the file name matches the conditions for the file to
         be a reference file (not a reftest)"""
         return "/reference/" in self.url or bool(reference_file_re.search(self.name))
+
+    @property
+    def name_is_crashtest(self):
+        # type: () -> bool
+        return self.type_flag == "crash" or "crashtests" in self.dir_path.split(os.path.sep)
 
     @property
     def markup_type(self):
@@ -814,6 +819,15 @@ class SourceFile(object):
         elif self.name_is_visual:
             rv = VisualTest.item_type, [
                 VisualTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url
+                )]
+
+        elif self.name_is_crashtest:
+            rv = CrashTest.item_type, [
+                CrashTest(
                     self.tests_root,
                     self.rel_path,
                     self.url_base,

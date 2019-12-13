@@ -147,6 +147,13 @@ class BaseProtocolPart(ProtocolPart):
                        context."""
         pass
 
+    @abstractmethod
+    def load(self, url):
+        """Load a url in the current browsing context
+
+        :param url: The url to load"""
+        pass
+
 
 class TestharnessProtocolPart(ProtocolPart):
     """Protocol part required to run testharness tests."""

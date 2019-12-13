@@ -8,6 +8,7 @@ import urlparse
 import uuid
 
 from .base import (CallbackHandler,
+                   CrashtestExecutor,
                    RefTestExecutor,
                    RefTestImplementation,
                    TestharnessExecutor,
@@ -57,6 +58,9 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
 
     def set_window(self, handle):
         self.webdriver.window_handle = handle
+
+    def load(self, url):
+        self.webdriver.url = url
 
     def wait(self):
         while True:
@@ -449,8 +453,8 @@ class WebDriverRefTestExecutor(RefTestExecutor):
         self.close_after_done = close_after_done
         self.has_window = False
 
-        with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
-            self.wait_script = f.read()
+        with open(os.path.join(here, "test-wait.js")) as f:
+            self.wait_script = f.read() % {"classname": "reftest-wait"}
 
     def reset(self):
         self.implementation.reset()
@@ -487,15 +491,55 @@ class WebDriverRefTestExecutor(RefTestExecutor):
                             self.extra_timeout).run()
 
     def _screenshot(self, protocol, url, timeout):
-        webdriver = protocol.webdriver
-        webdriver.url = url
+        self.protocol.base.load(url)
 
-        webdriver.execute_async_script(self.wait_script)
+        self.protocol.base.execute_script(self.wait_script, True)
 
-        screenshot = webdriver.screenshot()
+        screenshot = self.protocol.webdriver.screenshot()
 
         # strip off the data:img/png, part of the url
         if screenshot.startswith("data:image/png;base64,"):
             screenshot = screenshot.split(",", 1)[1]
 
         return screenshot
+
+
+class WebDriverCrashtestExecutor(CrashtestExecutor):
+    def __init__(self, browser, server_config, timeout_multiplier=1,
+                 screenshot_cache=None, close_after_done=True,
+                 debug_info=None, capabilities=None, **kwargs):
+        """WebDriver-based executor for reftests"""
+        CrashtestExecutor.__init__(self,
+                                   browser,
+                                   server_config,
+                                   screenshot_cache=screenshot_cache,
+                                   timeout_multiplier=timeout_multiplier,
+                                   debug_info=debug_info)
+        self.protocol = WebDriverProtocol(self, browser,
+                                          capabilities=capabilities)
+
+        with open(os.path.join(here, "test-wait.js")) as f:
+            self.wait_script = f.read() % {"classname": "test-wait"}
+
+    def do_test(self, test):
+        timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
+                   else None)
+
+        success, data = WebDriverRun(self.logger,
+                                     self.do_crashtest,
+                                     self.protocol,
+                                     self.test_url(test),
+                                     timeout,
+                                     self.extra_timeout).run()
+
+        if success:
+            return self.convert_result(test, data)
+
+        return (test.result_cls(**data), [])
+
+    def do_crashtest(self, protocol, url, timeout):
+        protocol.base.load(url)
+        protocol.base.execute_script(self.wait_script, asynchronous=True)
+
+        return {"status": "PASS",
+                "message": None}

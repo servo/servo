@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<head>
+  <title>Test that below-viewport invisible images that are not marked
+         loading=lazy still load, and block the window load event</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <img id="expected" src='resources/image.png?1'>
+  <div style="height:10000px;"></div>
+  <img id="visibility_hidden" style="visibility:hidden;" src='resources/image.png?2'>
+  <img id="display_none" style="display:none;" src='resources/image.png?3'>
+  <img id="attribute_hidden" hidden src='resources/image.png?4'>
+  <img id="js_hidden" src='resources/image.png?5'>.
+  <script>
+    document.getElementById("js_hidden").style = 'display:none;';
+  </script>
+</body>
+
+<!--
+Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
+-->
+
+<script>
+  const expected = document.getElementById("expected");
+  const visibility_hidden_element = document.getElementById("visibility_hidden");
+  const display_none_element = document.getElementById("display_none");
+  const attribute_hidden_element = document.getElementById("attribute_hidden");
+  const js_hidden_element = document.getElementById("js_hidden");
+
+  let has_window_loaded = false;
+
+  async_test(function(t) {
+    window.addEventListener("load", t.step_func(function() {
+      has_window_loaded = true;
+    }));
+
+    let image_fully_loaded_promise = (element) => {
+      return new Promise(resolve => {
+        element.addEventListener("load",
+          t.step_func(() => {
+            assert_true(is_image_fully_loaded(element, expected));
+            assert_false(has_window_loaded);
+            resolve();
+        }));
+      });
+    }
+    Promise.all([image_fully_loaded_promise(visibility_hidden_element),
+      image_fully_loaded_promise(display_none_element),
+      image_fully_loaded_promise(attribute_hidden_element),
+      image_fully_loaded_promise(js_hidden_element)]).then(() => {
+        t.done();
+    });
+  }, "Test that below-viewport invisible images that are not marked " +
+     "loading=lazy still load, and block the window load event");
+</script>
+

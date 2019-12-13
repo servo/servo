@@ -23,7 +23,8 @@ from .base import (get_free_port,
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
                                             MarionetteRefTestExecutor,  # noqa: F401
-                                            MarionetteWdspecExecutor)  # noqa: F401
+                                            MarionetteWdspecExecutor,  # noqa: F401
+                                            MarionetteCrashtestExecutor)  # noqa: F401
 
 
 here = os.path.join(os.path.split(__file__)[0])
@@ -31,7 +32,8 @@ here = os.path.join(os.path.split(__file__)[0])
 __wptrunner__ = {"product": "firefox",
                  "check_args": "check_args",
                  "browser": "FirefoxBrowser",
-                 "executor": {"testharness": "MarionetteTestharnessExecutor",
+                 "executor": {"crashtest": "MarionetteCrashtestExecutor",
+                              "testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutor",
                               "wdspec": "MarionetteWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
