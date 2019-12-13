@@ -137,6 +137,7 @@ impl NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => Some(NonTSPseudoClass::$name),)*
+                    "-moz-full-screen" => Some(NonTSPseudoClass::Fullscreen),
                     _ => None,
                 }
             }
@@ -169,16 +170,9 @@ impl NonTSPseudoClass {
     }
 
     /// Returns whether the pseudo-class is enabled in content sheets.
+    #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        match *self {
-            // For pseudo-classes with pref, the availability in content
-            // depends on the pref.
-            NonTSPseudoClass::Fullscreen => static_prefs::pref!("full-screen-api.unprefix.enabled"),
-            // Otherwise, a pseudo-class is enabled in content when it
-            // doesn't have any enabled flag.
-            _ => !self
-                .has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-        }
+        !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 
     /// Get the state flag associated with a pseudo-class, if any.

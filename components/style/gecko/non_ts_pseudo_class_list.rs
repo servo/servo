@@ -48,8 +48,7 @@ macro_rules! apply_non_ts_list {
                 ("indeterminate", Indeterminate, indeterminate, IN_INDETERMINATE_STATE, _),
                 ("-moz-devtools-highlighted", MozDevtoolsHighlighted, mozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, mozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
-                ("fullscreen", Fullscreen, fullscreen, IN_FULLSCREEN_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-full-screen", MozFullScreen, mozFullScreen, IN_FULLSCREEN_STATE, _),
+                ("fullscreen", Fullscreen, fullscreen, IN_FULLSCREEN_STATE, _),
                 // TODO(emilio): This is inconsistently named (the capital R).
                 ("-moz-focusring", MozFocusRing, mozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
