@@ -10,7 +10,7 @@ ${helpers.predefined_type(
     "cursor",
     "Cursor",
     "computed::Cursor::auto()",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     initial_specified_value="specified::Cursor::auto()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ui/#cursor",
@@ -22,7 +22,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "pointer-events",
     "auto none",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     animation_value_type="discrete",
     extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
     spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty",

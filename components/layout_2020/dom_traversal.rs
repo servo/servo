@@ -14,7 +14,7 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use std::marker::PhantomData as marker;
 use std::sync::Arc;
-use style::dom::TNode;
+use style::dom::{OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -24,9 +24,9 @@ pub enum WhichPseudoElement {
     After,
 }
 
-pub(super) enum Contents<Node> {
+pub(super) enum Contents {
     /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
-    OfElement(Node),
+    OfElement,
 
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
@@ -37,8 +37,8 @@ pub(super) enum Contents<Node> {
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
-pub(super) enum NonReplacedContents<Node> {
-    OfElement(Node),
+pub(super) enum NonReplacedContents {
+    OfElement,
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
@@ -51,14 +51,15 @@ pub(super) trait TraversalHandler<'dom, Node>
 where
     Node: 'dom,
 {
-    fn handle_text(&mut self, text: String, parent_style: &ServoArc<ComputedValues>);
+    fn handle_text(&mut self, node: Node, text: String, parent_style: &ServoArc<ComputedValues>);
 
     /// Or pseudo-element
     fn handle_element(
         &mut self,
+        node: Node,
         style: &ServoArc<ComputedValues>,
         display: DisplayGeneratingBox,
-        contents: Contents<Node>,
+        contents: Contents,
         box_slot: BoxSlot<'dom>,
     );
 }
@@ -75,7 +76,7 @@ fn traverse_children_of<'dom, Node>(
     let mut next = parent_element.first_child();
     while let Some(child) = next {
         if let Some(contents) = child.as_text() {
-            handler.handle_text(contents, &child.style(context));
+            handler.handle_text(child, contents, &child.style(context));
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
@@ -108,9 +109,10 @@ fn traverse_element<'dom, Node>(
         },
         Display::GeneratingBox(display) => {
             handler.handle_element(
+                element,
                 &style,
                 display,
-                replaced.map_or(Contents::OfElement(element), Contents::Replaced),
+                replaced.map_or(Contents::OfElement, Contents::Replaced),
                 element.element_box_slot(),
             );
         },
@@ -131,19 +133,20 @@ fn traverse_pseudo_element<'dom, Node>(
             Display::Contents => {
                 element.unset_pseudo_element_box(which);
                 let items = generate_pseudo_element_content(&style, element, context);
-                traverse_pseudo_element_contents(&style, context, handler, items);
+                traverse_pseudo_element_contents(element, &style, context, handler, items);
             },
             Display::GeneratingBox(display) => {
                 let items = generate_pseudo_element_content(&style, element, context);
                 let contents = Contents::OfPseudoElement(items);
                 let box_slot = element.pseudo_element_box_slot(which);
-                handler.handle_element(&style, display, contents, box_slot);
+                handler.handle_element(element, &style, display, contents, box_slot);
             },
         }
     }
 }
 
 fn traverse_pseudo_element_contents<'dom, Node>(
+    node: Node,
     pseudo_element_style: &ServoArc<ComputedValues>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
@@ -154,7 +157,9 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     let mut anonymous_style = None;
     for item in items {
         match item {
-            PseudoElementContentItem::Text(text) => handler.handle_text(text, pseudo_element_style),
+            PseudoElementContentItem::Text(text) => {
+                handler.handle_text(node, text, pseudo_element_style)
+            },
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
                     context
@@ -176,6 +181,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                         Display::GeneratingBox(display_inline)
                 );
                 handler.handle_element(
+                    node,
                     item_style,
                     display_inline,
                     Contents::Replaced(contents),
@@ -187,51 +193,51 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     }
 }
 
-impl<Node> Contents<Node> {
+impl Contents {
     /// Returns true iff the `try_from` impl below would return `Err(_)`
     pub fn is_replaced(&self) -> bool {
         match self {
-            Contents::OfElement(_) | Contents::OfPseudoElement(_) => false,
+            Contents::OfElement | Contents::OfPseudoElement(_) => false,
             Contents::Replaced(_) => true,
         }
     }
 }
 
-impl<Node> std::convert::TryFrom<Contents<Node>> for NonReplacedContents<Node> {
+impl std::convert::TryFrom<Contents> for NonReplacedContents {
     type Error = ReplacedContent;
 
-    fn try_from(contents: Contents<Node>) -> Result<Self, Self::Error> {
+    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
         match contents {
-            Contents::OfElement(node) => Ok(NonReplacedContents::OfElement(node)),
+            Contents::OfElement => Ok(NonReplacedContents::OfElement),
             Contents::OfPseudoElement(items) => Ok(NonReplacedContents::OfPseudoElement(items)),
             Contents::Replaced(replaced) => Err(replaced),
         }
     }
 }
 
-impl<Node> std::convert::From<NonReplacedContents<Node>> for Contents<Node> {
-    fn from(contents: NonReplacedContents<Node>) -> Self {
+impl From<NonReplacedContents> for Contents {
+    fn from(contents: NonReplacedContents) -> Self {
         match contents {
-            NonReplacedContents::OfElement(node) => Contents::OfElement(node),
+            NonReplacedContents::OfElement => Contents::OfElement,
             NonReplacedContents::OfPseudoElement(items) => Contents::OfPseudoElement(items),
         }
     }
 }
 
-impl<'dom, Node> NonReplacedContents<Node>
-where
-    Node: NodeExt<'dom>,
-{
-    pub(crate) fn traverse(
+impl NonReplacedContents {
+    pub(crate) fn traverse<'dom, Node>(
         self,
-        inherited_style: &ServoArc<ComputedValues>,
         context: &LayoutContext,
+        node: Node,
+        inherited_style: &ServoArc<ComputedValues>,
         handler: &mut impl TraversalHandler<'dom, Node>,
-    ) {
+    ) where
+        Node: NodeExt<'dom>,
+    {
         match self {
-            NonReplacedContents::OfElement(node) => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
             NonReplacedContents::OfPseudoElement(items) => {
-                traverse_pseudo_element_contents(inherited_style, context, handler, items)
+                traverse_pseudo_element_contents(node, inherited_style, context, handler, items)
             },
         }
     }
@@ -307,6 +313,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
     fn parent_node(self) -> Option<Self>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
+    fn as_opaque(self) -> OpaqueNode;
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
@@ -364,6 +371,10 @@ where
 
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
         self.to_threadsafe().style(context.shared_context())
+    }
+
+    fn as_opaque(self) -> OpaqueNode {
+        self.opaque()
     }
 
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement> {

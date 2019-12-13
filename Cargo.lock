@@ -2721,6 +2721,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "cssparser",
+ "embedder_traits",
  "euclid",
  "gfx",
  "gfx_traits",

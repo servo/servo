@@ -13,12 +13,14 @@ use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
+    pub tag: OpaqueNode,
     pub style: Arc<ComputedValues>,
 
     /// If it was requested during construction
@@ -54,9 +56,10 @@ enum NonReplacedIFCKind<'a> {
 impl IndependentFormattingContext {
     pub fn construct<'dom>(
         context: &LayoutContext,
+        node: impl NodeExt<'dom>,
         style: Arc<ComputedValues>,
         display_inside: DisplayInside,
-        contents: Contents<impl NodeExt<'dom>>,
+        contents: Contents,
         content_sizes: ContentSizesRequest,
     ) -> Self {
         match contents.try_into() {
@@ -64,11 +67,13 @@ impl IndependentFormattingContext {
                 DisplayInside::Flow | DisplayInside::FlowRoot => {
                     let (bfc, content_sizes) = BlockFormattingContext::construct(
                         context,
+                        node,
                         &style,
                         non_replaced,
                         content_sizes,
                     );
                     Self {
+                        tag: node.as_opaque(),
                         style,
                         content_sizes,
                         contents: IndependentFormattingContextContents::Flow(bfc),
@@ -78,6 +83,7 @@ impl IndependentFormattingContext {
             Err(replaced) => {
                 let content_sizes = content_sizes.compute(|| replaced.inline_content_sizes(&style));
                 Self {
+                    tag: node.as_opaque(),
                     style,
                     content_sizes,
                     contents: IndependentFormattingContextContents::Replaced(replaced),
