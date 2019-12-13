@@ -269,31 +269,43 @@ impl BlockLevelBox {
     ) -> Fragment {
         match self {
             BlockLevelBox::SameFormattingContextBlock { style, contents } => {
-                Fragment::Box(layout_in_flow_non_replaced_block_level(
+                Fragment::Box(positioning_context.for_maybe_position_relative(
                     layout_context,
-                    positioning_context,
-                    containing_block,
                     style,
-                    BlockLevelKind::SameFormattingContextBlock(contents),
-                    tree_rank,
-                    float_context,
+                    |positioning_context| {
+                        layout_in_flow_non_replaced_block_level(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            style,
+                            BlockLevelKind::SameFormattingContextBlock(contents),
+                            tree_rank,
+                            float_context,
+                        )
+                    },
                 ))
             },
-            BlockLevelBox::Independent(contents) => match contents.as_replaced() {
-                Ok(replaced) => Fragment::Box(layout_in_flow_replaced_block_level(
-                    containing_block,
-                    &contents.style,
-                    replaced,
-                )),
-                Err(non_replaced) => Fragment::Box(layout_in_flow_non_replaced_block_level(
+            BlockLevelBox::Independent(contents) => {
+                Fragment::Box(positioning_context.for_maybe_position_relative(
                     layout_context,
-                    positioning_context,
-                    containing_block,
                     &contents.style,
-                    BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced),
-                    tree_rank,
-                    float_context,
-                )),
+                    |positioning_context| match contents.as_replaced() {
+                        Ok(replaced) => layout_in_flow_replaced_block_level(
+                            containing_block,
+                            &contents.style,
+                            replaced,
+                        ),
+                        Err(non_replaced) => layout_in_flow_non_replaced_block_level(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            &contents.style,
+                            BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced),
+                            tree_rank,
+                            float_context,
+                        ),
+                    },
+                ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 positioning_context.push(box_.layout(Vec2::zero(), tree_rank));
@@ -302,6 +314,7 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
+                // FIXME: call for_maybe_position_relative here
                 // TODO
                 Fragment::Anonymous(AnonymousFragment::no_op(
                     containing_block.style.writing_mode,
@@ -400,89 +413,86 @@ fn layout_in_flow_non_replaced_block_level<'a>(
 
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
 
-    positioning_context.for_maybe_position_relative(layout_context, style, |positioning_context| {
-        let fragments;
-        let mut content_block_size;
-        match block_level_kind {
-            BlockLevelKind::SameFormattingContextBlock(contents) => {
-                let this_start_margin_can_collapse_with_children = pb.block_start == Length::zero();
-                let this_end_margin_can_collapse_with_children = pb.block_end == Length::zero() &&
-                    block_size == LengthOrAuto::Auto &&
-                    min_box_size.block == Length::zero();
+    let fragments;
+    let mut content_block_size;
+    match block_level_kind {
+        BlockLevelKind::SameFormattingContextBlock(contents) => {
+            let this_start_margin_can_collapse_with_children = pb.block_start == Length::zero();
+            let this_end_margin_can_collapse_with_children = pb.block_end == Length::zero() &&
+                block_size == LengthOrAuto::Auto &&
+                min_box_size.block == Length::zero();
 
-                let flow_layout = contents.layout(
-                    layout_context,
-                    positioning_context,
-                    &containing_block_for_children,
-                    tree_rank,
-                    float_context,
-                    CollapsibleWithParentStartMargin(this_start_margin_can_collapse_with_children),
-                );
-                fragments = flow_layout.fragments;
-                content_block_size = flow_layout.content_block_size;
-                let mut collapsible_margins_in_children =
-                    flow_layout.collapsible_margins_in_children;
+            let flow_layout = contents.layout(
+                layout_context,
+                positioning_context,
+                &containing_block_for_children,
+                tree_rank,
+                float_context,
+                CollapsibleWithParentStartMargin(this_start_margin_can_collapse_with_children),
+            );
+            fragments = flow_layout.fragments;
+            content_block_size = flow_layout.content_block_size;
+            let mut collapsible_margins_in_children = flow_layout.collapsible_margins_in_children;
 
-                if this_start_margin_can_collapse_with_children {
+            if this_start_margin_can_collapse_with_children {
+                block_margins_collapsed_with_children
+                    .start
+                    .adjoin_assign(&collapsible_margins_in_children.start);
+                if collapsible_margins_in_children.collapsed_through {
                     block_margins_collapsed_with_children
                         .start
-                        .adjoin_assign(&collapsible_margins_in_children.start);
-                    if collapsible_margins_in_children.collapsed_through {
-                        block_margins_collapsed_with_children.start.adjoin_assign(
-                            &std::mem::replace(
-                                &mut collapsible_margins_in_children.end,
-                                CollapsedMargin::zero(),
-                            ),
-                        );
-                    }
+                        .adjoin_assign(&std::mem::replace(
+                            &mut collapsible_margins_in_children.end,
+                            CollapsedMargin::zero(),
+                        ));
                 }
-                if this_end_margin_can_collapse_with_children {
-                    block_margins_collapsed_with_children
-                        .end
-                        .adjoin_assign(&collapsible_margins_in_children.end);
-                } else {
-                    content_block_size += collapsible_margins_in_children.end.solve();
-                }
-                block_margins_collapsed_with_children.collapsed_through =
-                    this_start_margin_can_collapse_with_children &&
-                        this_end_margin_can_collapse_with_children &&
-                        collapsible_margins_in_children.collapsed_through;
-            },
-            BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced) => {
-                let independent_layout = non_replaced.layout(
-                    layout_context,
-                    positioning_context,
-                    &containing_block_for_children,
-                    tree_rank,
-                );
-                fragments = independent_layout.fragments;
-                content_block_size = independent_layout.content_block_size;
-            },
-        };
-        let relative_adjustement = relative_adjustement(style, inline_size, block_size);
-        let block_size = block_size.auto_is(|| {
-            content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
-        });
-        let content_rect = Rect {
-            start_corner: Vec2 {
-                block: pb.block_start + relative_adjustement.block,
-                inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
-            },
-            size: Vec2 {
-                block: block_size,
-                inline: inline_size,
-            },
-        };
-        BoxFragment {
-            style: style.clone(),
-            children: fragments,
-            content_rect,
-            padding,
-            border,
-            margin,
-            block_margins_collapsed_with_children,
-        }
-    })
+            }
+            if this_end_margin_can_collapse_with_children {
+                block_margins_collapsed_with_children
+                    .end
+                    .adjoin_assign(&collapsible_margins_in_children.end);
+            } else {
+                content_block_size += collapsible_margins_in_children.end.solve();
+            }
+            block_margins_collapsed_with_children.collapsed_through =
+                this_start_margin_can_collapse_with_children &&
+                    this_end_margin_can_collapse_with_children &&
+                    collapsible_margins_in_children.collapsed_through;
+        },
+        BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced) => {
+            let independent_layout = non_replaced.layout(
+                layout_context,
+                positioning_context,
+                &containing_block_for_children,
+                tree_rank,
+            );
+            fragments = independent_layout.fragments;
+            content_block_size = independent_layout.content_block_size;
+        },
+    };
+    let relative_adjustement = relative_adjustement(style, inline_size, block_size);
+    let block_size = block_size.auto_is(|| {
+        content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
+    });
+    let content_rect = Rect {
+        start_corner: Vec2 {
+            block: pb.block_start + relative_adjustement.block,
+            inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
+        },
+        size: Vec2 {
+            block: block_size,
+            inline: inline_size,
+        },
+    };
+    BoxFragment {
+        style: style.clone(),
+        children: fragments,
+        content_rect,
+        padding,
+        border,
+        margin,
+        block_margins_collapsed_with_children,
+    }
 }
 
 /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
