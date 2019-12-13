@@ -4,9 +4,11 @@
 
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
+use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D};
 use gfx::text::glyph::GlyphStore;
 use std::sync::Arc;
+use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length};
 use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};
 
@@ -58,11 +60,12 @@ impl Fragment {
                     .translate(&containing_block.top_left);
                 let mut baseline_origin = rect.top_left.clone();
                 baseline_origin.y += t.ascent;
+                let cursor = cursor(&t.parent_style, Cursor::Text);
                 let common = CommonItemProperties {
                     clip_rect: rect.clone().into(),
                     clip_id: wr::ClipId::root(builder.pipeline_id),
                     spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
-                    hit_info: None,
+                    hit_info: cursor.map(|cursor| (t.tag.0 as u64, cursor as u16)),
                     // TODO(gw): Make use of the WR backface visibility functionality.
                     flags: PrimitiveFlags::default(),
                 };
@@ -119,11 +122,12 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left)
             .into();
+        let cursor = cursor(&self.style, Cursor::Default);
         let common = CommonItemProperties {
             clip_rect: border_rect,
             clip_id: wr::ClipId::root(builder.pipeline_id),
             spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
-            hit_info: None,
+            hit_info: cursor.map(|cursor| (self.tag.0 as u64, cursor as u16)),
             // TODO(gw): Make use of the WR backface visibility functionality.
             flags: PrimitiveFlags::default(),
         };
@@ -147,7 +151,7 @@ impl BoxFragment {
         let background_color = self
             .style
             .resolve_color(self.style.clone_background_color());
-        if background_color.alpha > 0 {
+        if background_color.alpha > 0 || common.hit_info.is_some() {
             builder.wr.push_rect(common, rgba(background_color))
         }
     }
@@ -227,4 +231,52 @@ fn glyphs(glyph_runs: &[Arc<GlyphStore>], mut origin: Vec2<Length>) -> Vec<wr::G
         }
     }
     glyphs
+}
+
+fn cursor(values: &ComputedValues, default: Cursor) -> Option<Cursor> {
+    use style::computed_values::pointer_events::T as PointerEvents;
+    use style::values::specified::ui::CursorKind;
+
+    let inherited_ui = values.get_inherited_ui();
+    if inherited_ui.pointer_events == PointerEvents::None {
+        return None;
+    }
+    Some(match inherited_ui.cursor.keyword {
+        CursorKind::Auto => default,
+        CursorKind::None => Cursor::None,
+        CursorKind::Default => Cursor::Default,
+        CursorKind::Pointer => Cursor::Pointer,
+        CursorKind::ContextMenu => Cursor::ContextMenu,
+        CursorKind::Help => Cursor::Help,
+        CursorKind::Progress => Cursor::Progress,
+        CursorKind::Wait => Cursor::Wait,
+        CursorKind::Cell => Cursor::Cell,
+        CursorKind::Crosshair => Cursor::Crosshair,
+        CursorKind::Text => Cursor::Text,
+        CursorKind::VerticalText => Cursor::VerticalText,
+        CursorKind::Alias => Cursor::Alias,
+        CursorKind::Copy => Cursor::Copy,
+        CursorKind::Move => Cursor::Move,
+        CursorKind::NoDrop => Cursor::NoDrop,
+        CursorKind::NotAllowed => Cursor::NotAllowed,
+        CursorKind::Grab => Cursor::Grab,
+        CursorKind::Grabbing => Cursor::Grabbing,
+        CursorKind::EResize => Cursor::EResize,
+        CursorKind::NResize => Cursor::NResize,
+        CursorKind::NeResize => Cursor::NeResize,
+        CursorKind::NwResize => Cursor::NwResize,
+        CursorKind::SResize => Cursor::SResize,
+        CursorKind::SeResize => Cursor::SeResize,
+        CursorKind::SwResize => Cursor::SwResize,
+        CursorKind::WResize => Cursor::WResize,
+        CursorKind::EwResize => Cursor::EwResize,
+        CursorKind::NsResize => Cursor::NsResize,
+        CursorKind::NeswResize => Cursor::NeswResize,
+        CursorKind::NwseResize => Cursor::NwseResize,
+        CursorKind::ColResize => Cursor::ColResize,
+        CursorKind::RowResize => Cursor::RowResize,
+        CursorKind::AllScroll => Cursor::AllScroll,
+        CursorKind::ZoomIn => Cursor::ZoomIn,
+        CursorKind::ZoomOut => Cursor::ZoomOut,
+    })
 }
