@@ -16,6 +16,7 @@ use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::specified::text::TextAlignKeyword;
@@ -38,6 +39,7 @@ pub(crate) enum InlineLevelBox {
 
 #[derive(Debug)]
 pub(crate) struct InlineBox {
+    pub tag: OpaqueNode,
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
     pub last_fragment: bool,
@@ -47,6 +49,7 @@ pub(crate) struct InlineBox {
 /// https://www.w3.org/TR/css-display-3/#css-text-run
 #[derive(Debug)]
 pub(crate) struct TextRun {
+    pub tag: OpaqueNode,
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
 }
@@ -59,6 +62,7 @@ struct InlineNestingLevelState<'box_tree> {
 }
 
 struct PartialInlineBoxFragment<'box_tree> {
+    tag: OpaqueNode,
     style: Arc<ComputedValues>,
     start_corner: Vec2<Length>,
     padding: Sides<Length>,
@@ -371,6 +375,7 @@ impl InlineBox {
             start_corner += &relative_adjustement(&style, ifc.containing_block)
         }
         PartialInlineBoxFragment {
+            tag: self.tag,
             style,
             start_corner,
             padding,
@@ -398,6 +403,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         at_line_break: bool,
     ) {
         let mut fragment = BoxFragment {
+            tag: self.tag,
             style: self.style.clone(),
             children: std::mem::take(&mut nesting_level.fragments_so_far),
             content_rect: Rect {
@@ -465,6 +471,7 @@ fn layout_atomic<'box_tree>(
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment {
+                tag: atomic.tag,
                 style: atomic.style.clone(),
                 children: fragments,
                 content_rect,
@@ -539,6 +546,7 @@ fn layout_atomic<'box_tree>(
                 },
             };
             BoxFragment {
+                tag: atomic.tag,
                 style: atomic.style.clone(),
                 children: independent_layout.fragments,
                 content_rect,
@@ -685,6 +693,7 @@ impl TextRun {
             ifc.current_nesting_level
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
+                    tag: self.tag,
                     parent_style: self.parent_style.clone(),
                     rect,
                     ascent: font_ascent.into(),

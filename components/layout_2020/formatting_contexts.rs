@@ -13,12 +13,14 @@ use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
+    pub tag: OpaqueNode,
     pub style: Arc<ComputedValues>,
 
     /// If it was requested during construction
@@ -71,6 +73,7 @@ impl IndependentFormattingContext {
                         content_sizes,
                     );
                     Self {
+                        tag: node.as_opaque(),
                         style,
                         content_sizes,
                         contents: IndependentFormattingContextContents::Flow(bfc),
@@ -80,6 +83,7 @@ impl IndependentFormattingContext {
             Err(replaced) => {
                 let content_sizes = content_sizes.compute(|| replaced.inline_content_sizes(&style));
                 Self {
+                    tag: node.as_opaque(),
                     style,
                     content_sizes,
                     contents: IndependentFormattingContextContents::Replaced(replaced),

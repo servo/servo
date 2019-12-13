@@ -6,6 +6,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
+use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
@@ -20,6 +21,7 @@ pub(crate) enum Fragment {
 }
 
 pub(crate) struct BoxFragment {
+    pub tag: OpaqueNode,
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -55,6 +57,7 @@ pub(crate) struct AnonymousFragment {
 }
 
 pub(crate) struct TextFragment {
+    pub tag: OpaqueNode,
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
     pub ascent: Length,

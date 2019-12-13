@@ -51,7 +51,7 @@ pub(super) trait TraversalHandler<'dom, Node>
 where
     Node: 'dom,
 {
-    fn handle_text(&mut self, text: String, parent_style: &ServoArc<ComputedValues>);
+    fn handle_text(&mut self, node: Node, text: String, parent_style: &ServoArc<ComputedValues>);
 
     /// Or pseudo-element
     fn handle_element(
@@ -76,7 +76,7 @@ fn traverse_children_of<'dom, Node>(
     let mut next = parent_element.first_child();
     while let Some(child) = next {
         if let Some(contents) = child.as_text() {
-            handler.handle_text(contents, &child.style(context));
+            handler.handle_text(child, contents, &child.style(context));
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
@@ -157,7 +157,9 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     let mut anonymous_style = None;
     for item in items {
         match item {
-            PseudoElementContentItem::Text(text) => handler.handle_text(text, pseudo_element_style),
+            PseudoElementContentItem::Text(text) => {
+                handler.handle_text(node, text, pseudo_element_style)
+            },
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
                     context

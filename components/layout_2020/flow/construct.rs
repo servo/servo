@@ -273,7 +273,7 @@ where
         }
     }
 
-    fn handle_text(&mut self, input: String, parent_style: &Arc<ComputedValues>) {
+    fn handle_text(&mut self, node: Node, input: String, parent_style: &Arc<ComputedValues>) {
         let (leading_whitespace, mut input) = self.handle_leading_whitespace(&input);
         if leading_whitespace || !input.is_empty() {
             // This text node should be pushed either to the next ongoing
@@ -330,6 +330,7 @@ where
             if let Some(text) = new_text_run_contents {
                 let parent_style = parent_style.clone();
                 inlines.push(Arc::new(InlineLevelBox::TextRun(TextRun {
+                    tag: node.as_opaque(),
                     parent_style,
                     text,
                 })))
@@ -389,6 +390,7 @@ where
             // Whatever happened before, all we need to do before recurring
             // is to remember this ongoing inline level box.
             self.ongoing_inline_boxes_stack.push(InlineBox {
+                tag: node.as_opaque(),
                 style: style.clone(),
                 first_fragment: true,
                 last_fragment: false,
@@ -444,6 +446,7 @@ where
                 .rev()
                 .map(|ongoing| {
                     let fragmented = InlineBox {
+                        tag: ongoing.tag,
                         style: ongoing.style.clone(),
                         first_fragment: ongoing.first_fragment,
                         // The fragmented boxes before the block level element
@@ -648,8 +651,11 @@ where
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
                     to.max_assign(&box_content_sizes.outer_inline(&style))
                 }
-                let block_level_box =
-                    Arc::new(BlockLevelBox::SameFormattingContextBlock { contents, style });
+                let block_level_box = Arc::new(BlockLevelBox::SameFormattingContextBlock {
+                    tag: node.as_opaque(),
+                    contents,
+                    style,
+                });
                 (block_level_box, contains_floats)
             },
             BlockLevelCreator::Independent {

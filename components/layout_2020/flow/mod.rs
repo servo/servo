@@ -18,6 +18,7 @@ use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
@@ -44,6 +45,7 @@ pub(crate) enum BlockContainer {
 #[derive(Debug)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
+        tag: OpaqueNode,
         style: Arc<ComputedValues>,
         contents: BlockContainer,
     },
@@ -268,24 +270,27 @@ impl BlockLevelBox {
         float_context: Option<&mut FloatContext>,
     ) -> Fragment {
         match self {
-            BlockLevelBox::SameFormattingContextBlock { style, contents } => {
-                Fragment::Box(positioning_context.for_maybe_position_relative(
-                    layout_context,
-                    containing_block,
-                    style,
-                    |positioning_context| {
-                        layout_in_flow_non_replaced_block_level(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            style,
-                            NonReplacedContents::SameFormattingContextBlock(contents),
-                            tree_rank,
-                            float_context,
-                        )
-                    },
-                ))
-            },
+            BlockLevelBox::SameFormattingContextBlock {
+                tag,
+                style,
+                contents,
+            } => Fragment::Box(positioning_context.for_maybe_position_relative(
+                layout_context,
+                containing_block,
+                style,
+                |positioning_context| {
+                    layout_in_flow_non_replaced_block_level(
+                        layout_context,
+                        positioning_context,
+                        containing_block,
+                        *tag,
+                        style,
+                        NonReplacedContents::SameFormattingContextBlock(contents),
+                        tree_rank,
+                        float_context,
+                    )
+                },
+            )),
             BlockLevelBox::Independent(contents) => {
                 Fragment::Box(positioning_context.for_maybe_position_relative(
                     layout_context,
@@ -294,6 +299,7 @@ impl BlockLevelBox {
                     |positioning_context| match contents.as_replaced() {
                         Ok(replaced) => layout_in_flow_replaced_block_level(
                             containing_block,
+                            contents.tag,
                             &contents.style,
                             replaced,
                         ),
@@ -301,6 +307,7 @@ impl BlockLevelBox {
                             layout_context,
                             positioning_context,
                             containing_block,
+                            contents.tag,
                             &contents.style,
                             NonReplacedContents::EstablishesAnIndependentFormattingContext(
                                 non_replaced,
@@ -339,6 +346,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext<'a>,
     containing_block: &ContainingBlock,
+    tag: OpaqueNode,
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents<'a>,
     tree_rank: usize,
@@ -488,6 +496,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         },
     };
     BoxFragment {
+        tag,
         style: style.clone(),
         children: fragments,
         content_rect,
@@ -503,6 +512,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
 /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
 fn layout_in_flow_replaced_block_level<'a>(
     containing_block: &ContainingBlock,
+    tag: OpaqueNode,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
@@ -536,6 +546,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         size,
     };
     BoxFragment {
+        tag,
         style: style.clone(),
         children: fragments,
         content_rect,

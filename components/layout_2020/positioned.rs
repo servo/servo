@@ -471,6 +471,7 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
             };
 
             BoxFragment {
+                tag: self.absolutely_positioned_box.contents.tag,
                 style: style.clone(),
                 children: fragments,
                 content_rect,

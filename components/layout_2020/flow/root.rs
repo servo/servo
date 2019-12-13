@@ -66,7 +66,13 @@ fn construct_for_root_element<'dom>(
         (
             ContainsFloats::No,
             vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox::construct(context, root_element, style, display_inside, contents),
+                AbsolutelyPositionedBox::construct(
+                    context,
+                    root_element,
+                    style,
+                    display_inside,
+                    contents,
+                ),
             ))],
         )
     } else if box_style.float.is_floating() {
