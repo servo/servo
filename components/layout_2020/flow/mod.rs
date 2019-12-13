@@ -279,7 +279,7 @@ impl BlockLevelBox {
                             positioning_context,
                             containing_block,
                             style,
-                            BlockLevelKind::SameFormattingContextBlock(contents),
+                            NonReplacedContents::SameFormattingContextBlock(contents),
                             tree_rank,
                             float_context,
                         )
@@ -302,7 +302,9 @@ impl BlockLevelBox {
                             positioning_context,
                             containing_block,
                             &contents.style,
-                            BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced),
+                            NonReplacedContents::EstablishesAnIndependentFormattingContext(
+                                non_replaced,
+                            ),
                             tree_rank,
                             float_context,
                         ),
@@ -326,7 +328,7 @@ impl BlockLevelBox {
     }
 }
 
-enum BlockLevelKind<'a> {
+enum NonReplacedContents<'a> {
     SameFormattingContextBlock(&'a BlockContainer),
     EstablishesAnIndependentFormattingContext(NonReplacedIFC<'a>),
 }
@@ -338,7 +340,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     positioning_context: &mut PositioningContext<'a>,
     containing_block: &ContainingBlock,
     style: &Arc<ComputedValues>,
-    block_level_kind: BlockLevelKind<'a>,
+    block_level_kind: NonReplacedContents<'a>,
     tree_rank: usize,
     float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {
@@ -418,7 +420,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     let fragments;
     let mut content_block_size;
     match block_level_kind {
-        BlockLevelKind::SameFormattingContextBlock(contents) => {
+        NonReplacedContents::SameFormattingContextBlock(contents) => {
             let this_start_margin_can_collapse_with_children = pb.block_start == Length::zero();
             let this_end_margin_can_collapse_with_children = pb.block_end == Length::zero() &&
                 block_size == LengthOrAuto::Auto &&
@@ -461,7 +463,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
                     this_end_margin_can_collapse_with_children &&
                     collapsible_margins_in_children.collapsed_through;
         },
-        BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced) => {
+        NonReplacedContents::EstablishesAnIndependentFormattingContext(non_replaced) => {
             let independent_layout = non_replaced.layout(
                 layout_context,
                 positioning_context,
