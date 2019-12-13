@@ -4219,9 +4219,9 @@ dependencies = [
 
 [[package]]
 name = "rayon_croissant"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b725e815f3aa08718063883a75003336889debafe2f8fa67fbe91563ddc4efa"
+checksum = "3e4aafda434bd10fec689858e2b1d713d0b784b1e60df3761ac8fa727d7e8e27"
 dependencies = [
  "moite_moite",
  "rayon",

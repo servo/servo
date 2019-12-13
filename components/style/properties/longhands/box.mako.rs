@@ -55,6 +55,9 @@ impl computed_value::T {
     pub fn is_absolutely_positioned(self) -> bool {
         matches!(self, Self::Absolute | Self::Fixed)
     }
+    pub fn is_relative(self) -> bool {
+        self == Self::Relative
+    }
 }
 </%helpers:single_keyword>
 

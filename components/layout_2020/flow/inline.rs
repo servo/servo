@@ -9,10 +9,10 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
+use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
-use crate::{relative_adjustement, ContainingBlock};
+use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
@@ -68,9 +68,9 @@ struct PartialInlineBoxFragment<'box_tree> {
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
-struct InlineFormattingContextState<'box_tree, 'a> {
-    absolutely_positioned_fragments: &'a mut Vec<AbsolutelyPositionedFragment<'box_tree>>,
-    containing_block: &'a ContainingBlock<'a>,
+struct InlineFormattingContextState<'box_tree, 'a, 'b> {
+    positioning_context: &'a mut PositioningContext<'box_tree>,
+    containing_block: &'b ContainingBlock<'b>,
     lines: Lines,
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
@@ -195,12 +195,12 @@ impl InlineFormattingContext {
     pub(super) fn layout<'a>(
         &'a self,
         layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext<'a>,
         containing_block: &ContainingBlock,
         tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
-            absolutely_positioned_fragments,
+            positioning_context,
             containing_block,
             partial_inline_boxes_stack: Vec::new(),
             lines: Lines {
@@ -244,7 +244,7 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        ifc.absolutely_positioned_fragments
+                        ifc.positioning_context
                             .push(box_.layout(initial_start_corner, tree_rank));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
@@ -346,7 +346,7 @@ impl Lines {
 impl InlineBox {
     fn start_layout<'box_tree>(
         &'box_tree self,
-        ifc: &mut InlineFormattingContextState<'box_tree, '_>,
+        ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
     ) -> PartialInlineBoxFragment<'box_tree> {
         let style = self.style.clone();
         let cbis = ifc.containing_block.inline_size;
@@ -367,11 +367,9 @@ impl InlineBox {
             block: padding.block_start + border.block_start + margin.block_start,
             inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
         };
-        start_corner += &relative_adjustement(
-            &style,
-            ifc.containing_block.inline_size,
-            ifc.containing_block.block_size,
-        );
+        if style.clone_position().is_relative() {
+            start_corner += &relative_adjustement(&style, ifc.containing_block)
+        }
         PartialInlineBoxFragment {
             style,
             start_corner,
@@ -440,7 +438,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 
 fn layout_atomic<'box_tree>(
     layout_context: &LayoutContext,
-    ifc: &mut InlineFormattingContextState<'box_tree, '_>,
+    ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
     atomic: &'box_tree IndependentFormattingContext,
 ) {
     let cbis = ifc.containing_block.inline_size;
@@ -457,11 +455,9 @@ fn layout_atomic<'box_tree>(
         block: pbm.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
-    start_corner += &relative_adjustement(
-        &atomic.style,
-        ifc.containing_block.inline_size,
-        ifc.containing_block.block_size,
-    );
+    if atomic.style.clone_position().is_relative() {
+        start_corner += &relative_adjustement(&atomic.style, ifc.containing_block)
+    }
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
@@ -521,9 +517,9 @@ fn layout_atomic<'box_tree>(
             // FIXME: Do we need to call `adjust_static_positions` somewhere near here?
             let independent_layout = non_replaced.layout(
                 layout_context,
+                ifc.positioning_context,
                 &containing_block_for_children,
                 dummy_tree_rank,
-                ifc.absolutely_positioned_fragments,
             );
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin

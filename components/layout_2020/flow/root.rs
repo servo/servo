@@ -12,12 +12,12 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
-use crate::positioned::{AbsolutelyPositionedBox, AbsolutelyPositionedFragment};
+use crate::positioned::AbsolutelyPositionedBox;
+use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::DefiniteContainingBlock;
-use rayon::iter::{IntoParallelRefIterator, ParallelExtend, ParallelIterator};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -110,25 +110,19 @@ impl BoxTreeRoot {
         };
 
         let dummy_tree_rank = 0;
-        let mut absolutely_positioned_fragments = vec![];
+        let mut positioning_context = PositioningContext::new_for_initial_containing_block();
         let mut independent_layout = self.0.layout(
             layout_context,
+            &mut positioning_context,
             &(&initial_containing_block).into(),
             dummy_tree_rank,
-            &mut absolutely_positioned_fragments,
         );
 
-        let map =
-            |a: &AbsolutelyPositionedFragment| a.layout(layout_context, &initial_containing_block);
-        if layout_context.use_rayon {
-            independent_layout
-                .fragments
-                .par_extend(absolutely_positioned_fragments.par_iter().map(map))
-        } else {
-            independent_layout
-                .fragments
-                .extend(absolutely_positioned_fragments.iter().map(map))
-        }
+        positioning_context.layout_in_initial_containing_block(
+            layout_context,
+            &initial_containing_block,
+            &mut independent_layout.fragments,
+        );
 
         FragmentTreeRoot(independent_layout.fragments)
     }

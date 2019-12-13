@@ -193,6 +193,29 @@
     }
 </%helpers:shorthand>
 
+<%helpers:shorthand name="background"
+                    engines="servo-2020"
+                    sub_properties="background-color"
+                    spec="https://drafts.csswg.org/css-backgrounds/#the-background">
+    use crate::values::specified::Color;
+    use crate::parser::Parse;
+
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        Ok(expanded! {
+            background_color: Color::parse(context, input)?
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.background_color.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
+
 <%helpers:shorthand name="background-position"
                     engines="gecko servo-2013"
                     flags="SHORTHAND_IN_GETCS"

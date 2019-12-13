@@ -6,7 +6,7 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
-use crate::positioned::AbsolutelyPositionedFragment;
+use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{BoxContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayInside;
@@ -101,16 +101,16 @@ impl<'a> NonReplacedIFC<'a> {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext<'a>,
         containing_block: &ContainingBlock,
         tree_rank: usize,
-        absolutely_positioned_fragments: &mut Vec<AbsolutelyPositionedFragment<'a>>,
     ) -> IndependentLayout {
         match &self.0 {
             NonReplacedIFCKind::Flow(bfc) => bfc.layout(
                 layout_context,
+                positioning_context,
                 containing_block,
                 tree_rank,
-                absolutely_positioned_fragments,
             ),
         }
     }
