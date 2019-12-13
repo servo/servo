@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref CATEGORY: DebugCategory =
-        DebugCategory::new("servosrc", DebugColorFlags::empty(), Some("Servo"));
+        DebugCategory::new("servowebsrc", DebugColorFlags::empty(), Some("Servo"));
 }
 
 pub static LOGGER: ServoSrcLogger = ServoSrcLogger;
