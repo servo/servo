@@ -3685,7 +3685,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(
-            &self.window,
+            &self,
             name.clone(),
             value,
             name,
@@ -3705,7 +3705,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
-            &self.window,
+            &self,
             local_name,
             value,
             qualified_name,

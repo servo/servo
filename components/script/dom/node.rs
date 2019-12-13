@@ -5,7 +5,9 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use crate::document_loader::DocumentLoader;
+use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -1764,6 +1766,7 @@ impl Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
             NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
+            NodeTypeId::Attr => unreachable!(),
         }
 
         // Step 6.
@@ -1833,6 +1836,7 @@ impl Node {
                 },
                 NodeTypeId::CharacterData(_) => (),
                 NodeTypeId::Document(_) => unreachable!(),
+                NodeTypeId::Attr => unreachable!(),
             }
         }
         Ok(())
@@ -2108,6 +2112,19 @@ impl Node {
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
+            NodeTypeId::Attr => {
+                let attr = node.downcast::<Attr>().unwrap();
+                let attr = Attr::new(
+                    &document,
+                    attr.local_name().clone(),
+                    attr.value().clone(),
+                    attr.name().clone(),
+                    attr.namespace().clone(),
+                    attr.prefix().cloned(),
+                    None,
+                );
+                DomRoot::upcast::<Node>(attr)
+            },
             NodeTypeId::DocumentFragment(_) => {
                 let doc_fragment = DocumentFragment::new(&document);
                 DomRoot::upcast::<Node>(doc_fragment)
@@ -2235,6 +2252,12 @@ impl Node {
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         match node.type_id() {
             NodeTypeId::Element(_) => node.downcast::<Element>().unwrap().locate_namespace(prefix),
+            NodeTypeId::Attr => node
+                .downcast::<Attr>()
+                .unwrap()
+                .GetOwnerElement()
+                .as_ref()
+                .map_or(ns!(), |elem| elem.locate_namespace(prefix)),
             NodeTypeId::Document(_) => node
                 .downcast::<Document>()
                 .unwrap()
@@ -2254,6 +2277,7 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(&self) -> u16 {
         match self.type_id() {
+            NodeTypeId::Attr => NodeConstants::ATTRIBUTE_NODE,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                 NodeConstants::TEXT_NODE
             },
@@ -2274,6 +2298,7 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-nodename
     fn NodeName(&self) -> DOMString {
         match self.type_id() {
+            NodeTypeId::Attr => self.downcast::<Attr>().unwrap().qualified_name(),
             NodeTypeId::Element(..) => self.downcast::<Element>().unwrap().TagName(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                 DOMString::from("#text")
@@ -2304,11 +2329,8 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(&self) -> Option<DomRoot<Document>> {
         match self.type_id() {
-            NodeTypeId::CharacterData(..) |
-            NodeTypeId::Element(..) |
-            NodeTypeId::DocumentType |
-            NodeTypeId::DocumentFragment(_) => Some(self.owner_doc()),
             NodeTypeId::Document(_) => None,
+            _ => Some(self.owner_doc()),
         }
     }
 
@@ -2378,13 +2400,27 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(&self) -> Option<DOMString> {
-        self.downcast::<CharacterData>().map(CharacterData::Data)
+        match self.type_id() {
+            NodeTypeId::Attr => Some(self.downcast::<Attr>().unwrap().Value()),
+            NodeTypeId::CharacterData(_) => {
+                self.downcast::<CharacterData>().map(CharacterData::Data)
+            },
+            _ => None,
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(&self, val: Option<DOMString>) {
-        if let Some(character_data) = self.downcast::<CharacterData>() {
-            character_data.SetData(val.unwrap_or_default());
+        match self.type_id() {
+            NodeTypeId::Attr => {
+                let attr = self.downcast::<Attr>().unwrap();
+                attr.SetValue(val.unwrap_or_default());
+            },
+            NodeTypeId::CharacterData(_) => {
+                let character_data = self.downcast::<CharacterData>().unwrap();
+                character_data.SetData(val.unwrap_or_default());
+            },
+            _ => {},
         }
     }
 
@@ -2396,6 +2432,7 @@ impl NodeMethods for Node {
                     Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No));
                 Some(content)
             },
+            NodeTypeId::Attr => Some(self.downcast::<Attr>().unwrap().Value()),
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
                 Some(characterdata.Data())
@@ -2418,6 +2455,10 @@ impl NodeMethods for Node {
 
                 // Step 3.
                 Node::replace_all(node.as_deref(), self);
+            },
+            NodeTypeId::Attr => {
+                let attr = self.downcast::<Attr>().unwrap();
+                attr.SetValue(value);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -2517,6 +2558,7 @@ impl NodeMethods for Node {
                 },
                 NodeTypeId::CharacterData(..) => (),
                 NodeTypeId::Document(_) => unreachable!(),
+                NodeTypeId::Attr => unreachable!(),
             }
         }
 
@@ -2573,6 +2615,7 @@ impl NodeMethods for Node {
             prev: previous_sibling.as_deref(),
             next: reference_child,
         };
+
         MutationObserver::queue_a_mutation_record(&self, mutation);
 
         // Step 15.
@@ -2661,6 +2704,13 @@ impl NodeMethods for Node {
             let other_characterdata = other.downcast::<CharacterData>().unwrap();
             *characterdata.data() == *other_characterdata.data()
         }
+        fn is_equal_attr(node: &Node, other: &Node) -> bool {
+            let attr = node.downcast::<Attr>().unwrap();
+            let other_attr = other.downcast::<Attr>().unwrap();
+            (*attr.namespace() == *other_attr.namespace()) &&
+                (attr.local_name() == other_attr.local_name()) &&
+                (**attr.value() == **other_attr.value())
+        }
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
@@ -2673,6 +2723,7 @@ impl NodeMethods for Node {
                 })
             })
         }
+
         fn is_equal_node(this: &Node, node: &Node) -> bool {
             // Step 2.
             if this.NodeType() != node.NodeType() {
@@ -2696,6 +2747,8 @@ impl NodeMethods for Node {
                 }
                 // Step 4.
                 NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
+                NodeTypeId::Attr if !is_equal_attr(this, node) => return false,
+
                 _ => (),
             }
 
@@ -2732,65 +2785,154 @@ impl NodeMethods for Node {
             return 0;
         }
 
-        // FIXME(emilio): This will eventually need to handle attribute nodes.
+        // step 2
+        let mut node1 = Some(other);
+        let mut node2 = Some(self);
 
-        let mut self_and_ancestors = self
-            .inclusive_ancestors(ShadowIncluding::No)
-            .collect::<SmallVec<[_; 20]>>();
-        let mut other_and_ancestors = other
-            .inclusive_ancestors(ShadowIncluding::No)
-            .collect::<SmallVec<[_; 20]>>();
+        // step 3
+        let mut attr1: Option<&Attr> = None;
+        let mut attr2: Option<&Attr> = None;
 
-        if self_and_ancestors.last() != other_and_ancestors.last() {
-            let random = as_uintptr(self_and_ancestors.last().unwrap()) <
-                as_uintptr(other_and_ancestors.last().unwrap());
-            let random = if random {
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING
-            } else {
-                NodeConstants::DOCUMENT_POSITION_PRECEDING
-            };
-
-            // Disconnected.
-            return random +
-                NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
-        }
-
-        let mut parent = self_and_ancestors.pop().unwrap();
-        other_and_ancestors.pop().unwrap();
-
-        let mut current_position = cmp::min(self_and_ancestors.len(), other_and_ancestors.len());
-
-        while current_position > 0 {
-            current_position -= 1;
-            let child_1 = self_and_ancestors.pop().unwrap();
-            let child_2 = other_and_ancestors.pop().unwrap();
-
-            if child_1 != child_2 {
-                let is_before = parent.children().position(|c| c == child_1).unwrap() <
-                    parent.children().position(|c| c == child_2).unwrap();
-                // If I am before, `other` is following, and the other way
-                // around.
-                return if is_before {
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                } else {
-                    NodeConstants::DOCUMENT_POSITION_PRECEDING
-                };
+        // step 4: spec says to operate on node1 here,
+        // node1 is definitely Some(other) going into this step
+        // The compiler doesn't know the lifetime of attr1.GetOwnerElement
+        // is guaranteed by the lifetime of attr1, so we hold it explicitly
+        let attr1owner;
+        if let Some(ref a) = other.downcast::<Attr>() {
+            attr1 = Some(a);
+            attr1owner = a.GetOwnerElement();
+            node1 = match attr1owner {
+                Some(ref e) => Some(&e.upcast()),
+                None => None,
             }
-
-            parent = child_1;
         }
 
-        // We hit the end of one of the parent chains, so one node needs to be
-        // contained in the other.
-        //
-        // If we're the container, return that `other` is contained by us.
-        return if self_and_ancestors.len() < other_and_ancestors.len() {
-            NodeConstants::DOCUMENT_POSITION_FOLLOWING +
-                NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
-        } else {
-            NodeConstants::DOCUMENT_POSITION_PRECEDING + NodeConstants::DOCUMENT_POSITION_CONTAINS
-        };
+        // step 5.1: spec says to operate on node2 here,
+        // node2 is definitely just Some(self) going into this step
+        let attr2owner;
+        if let Some(ref a) = self.downcast::<Attr>() {
+            attr2 = Some(a);
+            attr2owner = a.GetOwnerElement();
+            node2 = match attr2owner {
+                Some(ref e) => Some(&*e.upcast()),
+                None => None,
+            }
+        }
+
+        // Step 5.2
+        // This substep seems lacking in test coverage.
+        // We hit this when comparing two attributes that have the
+        // same owner element.
+        if let Some(node2) = node2 {
+            if Some(node2) == node1 {
+                match (attr1, attr2) {
+                    (Some(a1), Some(a2)) => {
+                        let attrs = node2.downcast::<Element>().unwrap().attrs();
+                        // go through the attrs in order to see if self
+                        // or other is first; spec is clear that we
+                        // want value-equality, not reference-equality
+                        for attr in attrs.iter() {
+                            if (*attr.namespace() == *a1.namespace()) &&
+                                (attr.local_name() == a1.local_name()) &&
+                                (**attr.value() == **a1.value())
+                            {
+                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                    NodeConstants::DOCUMENT_POSITION_PRECEDING;
+                            }
+                            if (*attr.namespace() == *a2.namespace()) &&
+                                (attr.local_name() == a2.local_name()) &&
+                                (**attr.value() == **a2.value())
+                            {
+                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                    NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+                            }
+                        }
+                        // both attrs have node2 as their owner element, so
+                        // we can't have left the loop without seeing them
+                        unreachable!();
+                    },
+                    (_, _) => {},
+                }
+            }
+        }
+
+        // Step 6
+        match (node1, node2) {
+            (None, _) => {
+                // node1 is null
+                return NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+            },
+            (_, None) => {
+                // node2 is null
+                return NodeConstants::DOCUMENT_POSITION_PRECEDING +
+                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+            },
+            (Some(node1), Some(node2)) => {
+                // still step 6, testing if node1 and 2 share a root
+                let mut self_and_ancestors = node2
+                    .inclusive_ancestors(ShadowIncluding::No)
+                    .collect::<SmallVec<[_; 20]>>();
+                let mut other_and_ancestors = node1
+                    .inclusive_ancestors(ShadowIncluding::No)
+                    .collect::<SmallVec<[_; 20]>>();
+
+                if self_and_ancestors.last() != other_and_ancestors.last() {
+                    let random = as_uintptr(self_and_ancestors.last().unwrap()) <
+                        as_uintptr(other_and_ancestors.last().unwrap());
+                    let random = if random {
+                        NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                    } else {
+                        NodeConstants::DOCUMENT_POSITION_PRECEDING
+                    };
+
+                    // Disconnected.
+                    return random +
+                        NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                        NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                }
+                // steps 7-10
+                let mut parent = self_and_ancestors.pop().unwrap();
+                other_and_ancestors.pop().unwrap();
+
+                let mut current_position =
+                    cmp::min(self_and_ancestors.len(), other_and_ancestors.len());
+
+                while current_position > 0 {
+                    current_position -= 1;
+                    let child_1 = self_and_ancestors.pop().unwrap();
+                    let child_2 = other_and_ancestors.pop().unwrap();
+
+                    if child_1 != child_2 {
+                        let is_before = parent.children().position(|c| c == child_1).unwrap() <
+                            parent.children().position(|c| c == child_2).unwrap();
+                        // If I am before, `other` is following, and the other way
+                        // around.
+                        return if is_before {
+                            NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                        } else {
+                            NodeConstants::DOCUMENT_POSITION_PRECEDING
+                        };
+                    }
+
+                    parent = child_1;
+                }
+
+                // We hit the end of one of the parent chains, so one node needs to be
+                // contained in the other.
+                //
+                // If we're the container, return that `other` is contained by us.
+                return if self_and_ancestors.len() < other_and_ancestors.len() {
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+                        NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
+                } else {
+                    NodeConstants::DOCUMENT_POSITION_PRECEDING +
+                        NodeConstants::DOCUMENT_POSITION_CONTAINS
+                };
+            },
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-contains
@@ -2819,6 +2961,11 @@ impl NodeMethods for Node {
                 .GetDocumentElement()
                 .and_then(|element| element.lookup_prefix(namespace)),
             NodeTypeId::DocumentType | NodeTypeId::DocumentFragment(_) => None,
+            NodeTypeId::Attr => self
+                .downcast::<Attr>()
+                .unwrap()
+                .GetOwnerElement()
+                .and_then(|element| element.lookup_prefix(namespace)),
             _ => self
                 .GetParentElement()
                 .and_then(|element| element.lookup_prefix(namespace)),

@@ -253,6 +253,7 @@ impl<'a> Serialize for &'a Node {
 
                     NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
                     NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
+                    NodeTypeId::Attr => panic!("Attr shouldn't appear here"),
                 },
             }
         }

@@ -1336,9 +1336,8 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
     ) {
-        let window = window_from_node(self);
         let attr = Attr::new(
-            &window,
+            &self.node.owner_doc(),
             local_name,
             value,
             name,
