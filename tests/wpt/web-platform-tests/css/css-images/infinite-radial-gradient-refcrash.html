@@ -1,0 +1,13 @@
+<!doctype html>
+<title>CSS Images Test: repeating-radial-gradient with huge size crashes Chrome</title>
+<link rel="help" href="https://crbug.com/1009307">
+<link rel="match" href="infinite-radial-gradient-crash-ref.html">
+<style>
+  #crash {
+    background-image: repeating-radial-gradient(closest-corner circle at 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999%, green, green);
+    width: 300px;
+    height: 300px;
+  }
+</style>
+<p>You should see a 300x300px green square below and no crash.</p>
+<div id="crash"></div>

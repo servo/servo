@@ -123,6 +123,8 @@ def test_verify_payload():
       'wpt-chrome-dev-reftest-5',
       'wpt-firefox-nightly-wdspec-1',
       'wpt-chrome-dev-wdspec-1',
+      'wpt-firefox-nightly-crashtest-1',
+      'wpt-chrome-dev-crashtest-1',
       'lint'}),
     ("pr_event.json", True, {".taskcluster.yml",".travis.yml","tools/ci/start.sh"},
      {'lint',
@@ -166,6 +168,7 @@ def test_verify_payload():
       'wpt-chrome-stable-testharness-8',
       'wpt-chrome-stable-testharness-9',
       'wpt-chrome-stable-wdspec-1',
+      'wpt-chrome-stable-crashtest-1',
       'wpt-firefox-stable-reftest-1',
       'wpt-firefox-stable-reftest-2',
       'wpt-firefox-stable-reftest-3',
@@ -188,6 +191,7 @@ def test_verify_payload():
       'wpt-firefox-stable-testharness-8',
       'wpt-firefox-stable-testharness-9',
       'wpt-firefox-stable-wdspec-1',
+      'wpt-firefox-stable-crashtest-1',
       'wpt-webkitgtk_minibrowser-nightly-reftest-1',
       'wpt-webkitgtk_minibrowser-nightly-reftest-2',
       'wpt-webkitgtk_minibrowser-nightly-reftest-3',
@@ -209,7 +213,8 @@ def test_verify_payload():
       'wpt-webkitgtk_minibrowser-nightly-testharness-7',
       'wpt-webkitgtk_minibrowser-nightly-testharness-8',
       'wpt-webkitgtk_minibrowser-nightly-testharness-9',
-      'wpt-webkitgtk_minibrowser-nightly-wdspec-1'})
+      'wpt-webkitgtk_minibrowser-nightly-wdspec-1',
+      'wpt-webkitgtk_minibrowser-nightly-crashtest-1'})
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):

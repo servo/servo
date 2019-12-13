@@ -15,6 +15,7 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    general-guidelines
    ahem
    assumptions
+   crashtest
    css-metadata
    css-user-styles
    file-names
@@ -62,6 +63,11 @@ expectations:
 * [testharness.js](testharness) tests should be used (where possible!) for
   testing everything else. They are built with the testharness.js unit testing
   framework, and consist of assertions written in JavaScript.
+
+* [Crashtests](crashtest) tests are used to check that the browser is
+  able to load a given document without crashing or experiencing other
+  low-level issues (asserts, leaks, etc.). They pass if the load
+  completes without error.
 
 * [wdspec](wdspec) tests are written in Python using
   [pytest](https://docs.pytest.org/en/latest/) and test [the WebDriver browser

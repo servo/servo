@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<base id="base" href="invalid:">
+<svg id="svg">
+  <pattern id="pat" xlink:href="#pat"/>
+</svg>
+<script>
+  async_test(t => {
+    onload = t.step_func_done(() => {
+      let pattern = document.getElementById("pat");
+      base.href = "";
+      document.body.insertBefore(document.getElementById("svg").cloneNode(true),
+                                 document.body.firstChild);
+      document.body.offsetTop;
+      pattern.setAttribute("clip-rule", "evenodd");
+      document.body.offsetTop;
+      pattern.setAttribute("width", "0");
+      document.getElementById("svg").setAttribute("systemLanguage", "x-nonexistent");
+      document.body.offsetTop;
+    });
+  });
+</script>

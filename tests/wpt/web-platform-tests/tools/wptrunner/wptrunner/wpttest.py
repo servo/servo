@@ -6,7 +6,7 @@ from collections import defaultdict
 from .wptmanifest.parser import atoms
 
 atom_reset = atoms["Reset"]
-enabled_tests = {"testharness", "reftest", "wdspec"}
+enabled_tests = {"testharness", "reftest", "wdspec", "crashtest"}
 
 
 class Result(object):
@@ -69,6 +69,12 @@ class WdspecResult(Result):
 class WdspecSubtestResult(SubtestResult):
     default_expected = "PASS"
     statuses = {"PASS", "FAIL", "ERROR"}
+
+
+class CrashtestResult(Result):
+    default_expected = "PASS"
+    statuses = {"PASS", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT",
+                "CRASH"}
 
 
 def get_run_info(metadata_root, product, **kwargs):
@@ -546,7 +552,6 @@ class ReftestTest(Test):
 
 
 class WdspecTest(Test):
-
     result_cls = WdspecResult
     subtest_result_cls = WdspecSubtestResult
     test_type = "wdspec"
@@ -555,10 +560,16 @@ class WdspecTest(Test):
     long_timeout = 180  # 3 minutes
 
 
+class CrashTest(Test):
+    result_cls = CrashtestResult
+    test_type = "crashtest"
+
+
 manifest_test_cls = {"reftest": ReftestTest,
                      "testharness": TestharnessTest,
                      "manual": ManualTest,
-                     "wdspec": WdspecTest}
+                     "wdspec": WdspecTest,
+                     "crashtest": CrashTest}
 
 
 def from_manifest(manifest_file, manifest_test, inherit_metadata, test_metadata):

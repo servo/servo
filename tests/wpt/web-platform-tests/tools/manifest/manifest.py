@@ -6,7 +6,7 @@ from six import iteritems, iterkeys, itervalues, string_types, binary_type, text
 
 from . import vcs
 from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, RefTestNode,
-                   SupportFile, TestharnessTest, VisualTest, WebDriverSpecTest)
+                   SupportFile, TestharnessTest, VisualTest, WebDriverSpecTest, CrashTest)
 from .log import get_logger
 from .sourcefile import SourceFile
 from .utils import from_os_path, to_os_path
@@ -50,6 +50,7 @@ class ManifestVersionMismatch(ManifestError):
 item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
                 "reftest_node": RefTestNode,
+                "crashtest": CrashTest,
                 "manual": ManualTest,
                 "wdspec": WebDriverSpecTest,
                 "conformancechecker": ConformanceCheckerTest,

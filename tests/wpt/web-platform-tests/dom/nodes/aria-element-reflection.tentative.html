@@ -278,6 +278,12 @@
 
     input1.removeAttribute("aria-labelledby");
     assert_equals(input1.ariaLabelledByElements, null);
+
+    input1.setAttribute("aria-labelledby", "nameElement addressElement");
+    assert_array_equals(input1.ariaLabelledByElements, [nameElement, addressElement]);
+
+    input1.ariaLabelledByElements = null;
+    assert_false(input1.hasAttribute("aria-labelledby", "Nullifying the IDL attribute should remove the content attribute."));
   }, "aria-labelledby.");
   </script>
 
@@ -305,6 +311,12 @@
 
     link2.removeAttribute("aria-controls");
     assert_equals(link2.ariaControlsElements, null);
+
+    link2.ariaControlsElements = [panel1, panel2];
+    assert_equals(link2.getAttribute("aria-controls"), "panel1 panel2");
+
+    link2.ariaControlsElements = null;
+    assert_false(link2.hasAttribute("aria-controls", "Nullifying the IDL attribute should remove the content attribute."));
   }, "aria-controls.");
   </script>
 
@@ -327,6 +339,12 @@
 
     describedLink.removeAttribute("aria-describedby");
     assert_equals(describedLink.ariaDescribedByElements, null);
+
+    describedLink.ariaDescribedByElements = [description1, description2];
+    assert_equals(describedLink.getAttribute("aria-describedby"), "description1 description2");
+
+    describedLink.ariaDescribedByElements = null;
+    assert_false(describedLink.hasAttribute("aria-describedby", "Nullifying the IDL attribute should remove the content attribute."));
   }, "aria-describedby.");
   </script>
 
@@ -353,6 +371,12 @@
 
     titleHeading.removeAttribute("aria-flowto");
     assert_equals(titleHeading.ariaFlowToElements, null);
+
+    titleHeading.ariaFlowToElements = [article1, article2];
+    assert_equals(titleHeading.getAttribute("aria-flowto"), "article1 article2");
+
+    titleHeading.ariaFlowToElements = null;
+    assert_false(titleHeading.hasAttribute("aria-flowto", "Nullifying the IDL attribute should remove the content attribute."));
   }, "aria-flowto.");
   </script>
 
@@ -378,6 +402,12 @@
 
     listItemOwner.setAttribute("aria-owns", "child1");
     assert_array_equals(listItemOwner.ariaOwnsElements, [child1]);
+
+    listItemOwner.ariaOwnsElements = [child1, child2];
+    assert_equals(listItemOwner.getAttribute("aria-owns"), "child1 child2");
+
+    listItemOwner.ariaOwnsElements = null;
+    assert_false(listItemOwner.hasAttribute("aria-owns", "Nullifying the IDL attribute should remove the content attribute."));
   }, "aria-owns.");
   </script>
 
@@ -477,6 +507,7 @@
   </script>
 
   <div id="sameScopeContainer">
+    <div id="labeledby" aria-labeledby="headingLabel1 headingLabel2">Misspelling</div>
     <div id="headingLabel1">Wonderful</div>
     <div id="headingLabel2">Fantastic</div>
 
@@ -490,6 +521,8 @@
       const headingLabel1 = document.getElementById("headingLabel1")
       const headingLabel2 = document.getElementById("headingLabel2")
       shadowRoot.appendChild(headingElement);
+
+      assert_array_equals(labeledby.ariaLabelledByElements, [headingLabel1, headingLabel2], "aria-labeled by is supported by IDL getter.");
 
       // Explicitly set elements are in a lighter shadow DOM, so that's ok.
       headingElement.ariaLabelledByElements = [headingLabel1, headingLabel2];

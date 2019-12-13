@@ -100,7 +100,7 @@ interface RTCPeerConnection : EventTarget  {
   readonly attribute boolean? canTrickleIceCandidates;
   void restartIce();
   RTCConfiguration getConfiguration();
-  void setConfiguration(RTCConfiguration configuration);
+  void setConfiguration(optional RTCConfiguration configuration = {});
   void close();
   attribute EventHandler onnegotiationneeded;
   attribute EventHandler onicecandidate;

@@ -144,6 +144,10 @@ promise_test(async t => {
     assert_equals(calls, 2, "dispatchEvent");
 }, "removeListener doesn't remove listener added with addEventListener (capture)");
 
+// See:
+//   * https://github.com/whatwg/dom/issues/746
+//   * https://bugzilla.mozilla.org/show_bug.cgi?id=1492446
+//   * https://bugs.chromium.org/p/chromium/issues/detail?id=949432
 promise_test(async t => {
     const mql = await createMQL(t);
 
@@ -164,5 +168,5 @@ promise_test(async t => {
     calls = [];
     mql.dispatchEvent(new Event("change"));
     assert_array_equals(calls, ["addEventListener", "addListener"], "dispatchEvent");
-}, "listeners are called in order they were added, ignoring capture parameter");
+}, "capturing event listener fires before non-capturing listener at target");
 </script>

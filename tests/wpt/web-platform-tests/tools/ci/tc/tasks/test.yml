@@ -26,6 +26,11 @@ components:
     vars:
       test-type: wdspec
 
+  wpt-crashtest:
+    chunks: 1
+    vars:
+      test-type: crashtest
+
   run-options:
     options:
       xvfb: true
@@ -115,6 +120,8 @@ tasks:
             suite: reftest
         - vars:
             suite: wdspec
+        - vars:
+            suite: crashtest
       do:
         $map:
           for:

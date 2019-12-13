@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<head>
+  <title>Test that lazily loaded below the viewport invisible
+         images are not loaded</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <div style="height:10000px;"></div>
+  <img id="visibility_hidden" style="visibility:hidden;" src='resources/image.png?1' loading="lazy">
+  <img id="display_none" style="display:none;" src='resources/image.png?2' loading="lazy">
+  <img id="attribute_hidden" hidden src='resources/image.png?3' loading="lazy">
+  <img id="js_hidden" src='resources/image.png?4' loading="lazy">
+  <script>
+    document.getElementById("js_hidden").style = 'display:none;';
+  </script>
+</body>
+
+<!--
+Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
+-->
+
+<script>
+  const visibility_hidden_element = document.getElementById("visibility_hidden");
+  const display_none_element = document.getElementById("display_none");
+  const attribute_hidden_element = document.getElementById("attribute_hidden");
+  const js_hidden_element = document.getElementById("js_hidden");
+
+  async_test(function(t) {
+    visibility_hidden_element.onload = e => {
+      t.step(function() {
+        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
+      });
+    };
+    display_none_element.onload = e => {
+      t.step(function() {
+        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
+      });
+    };
+    attribute_hidden_element.onload = e => {
+      t.step(function() {
+        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
+      });
+    };
+    js_hidden_element.onload = e => {
+      t.step(function() {
+        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
+      });
+    };
+    window.addEventListener("load", t.step_func(function() {
+      visibility_hidden_element.scrollIntoView();
+      display_none_element.scrollIntoView();
+      attribute_hidden_element.scrollIntoView();
+      js_hidden_element.scrollIntoView();
+    }));
+
+    t.step_timeout(function() { t.done(); }, 2000);
+  }, "Test that lazily loaded below the viewport invisible images " +
+     "are not loaded");
+</script>
+

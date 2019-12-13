@@ -1,8 +1,4 @@
-import pytest
-import sys
 import unittest
-
-from six.moves import cStringIO as StringIO
 
 from .. import parser
 
@@ -10,14 +6,12 @@ from .. import parser
 # use test_serializer for the majority of cases
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="wptmanifest.parser doesn't support py3")
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.parser = parser.Parser()
 
     def parse(self, input_str):
-        return self.parser.parse(StringIO(input_str))
+        return self.parser.parse(input_str)
 
     def compare(self, input_text, expected):
         actual = self.parse(input_text)
@@ -32,7 +26,7 @@ class TestExpression(unittest.TestCase):
 
     def test_expr_0(self):
         self.compare(
-            """
+            b"""
 key:
   if x == 1 : value""",
             ["DataNode", None,
@@ -49,7 +43,7 @@ key:
 
     def test_expr_1(self):
         self.compare(
-            """
+            b"""
 key:
   if not x and y : value""",
             ["DataNode", None,
@@ -69,7 +63,7 @@ key:
 
     def test_expr_2(self):
         self.compare(
-            """
+            b"""
 key:
   if x == 1 : [value1, value2]""",
             ["DataNode", None,
@@ -88,7 +82,7 @@ key:
 
     def test_expr_3(self):
         self.compare(
-            """
+            b"""
 key:
   if x == 1: 'if b: value'""",
             ["DataNode", None,
@@ -105,15 +99,15 @@ key:
 
     def test_atom_0(self):
         with self.assertRaises(parser.ParseError):
-            self.parse("key: @Unknown")
+            self.parse(b"key: @Unknown")
 
     def test_atom_1(self):
         with self.assertRaises(parser.ParseError):
-            self.parse("key: @true")
+            self.parse(b"key: @true")
 
     def test_if_1(self):
         with self.assertRaises(parser.ParseError):
-            self.parse("key: if foo")
+            self.parse(b"key: if foo")
 
 
 if __name__ == "__main__":
