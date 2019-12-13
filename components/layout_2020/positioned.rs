@@ -150,11 +150,17 @@ impl<'box_tree> PositioningContext<'box_tree> {
     pub(crate) fn for_maybe_position_relative(
         &mut self,
         layout_context: &LayoutContext,
+        containing_block: &ContainingBlock,
         style: &ComputedValues,
         f: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         if style.clone_position() == Position::Relative {
-            Self::for_positioned(layout_context, &mut self.for_initial_containing_block, f)
+            let mut fragment =
+                // Establing a containing block for absolutely positioned descendants
+                Self::for_positioned(layout_context, &mut self.for_initial_containing_block, f);
+
+            fragment.content_rect.start_corner += &relative_adjustement(style, containing_block);
+            fragment
         } else {
             f(self)
         }
@@ -608,5 +614,29 @@ fn vec_append_owned<T>(a: &mut Vec<T>, mut b: Vec<T>) {
         *a = b
     } else {
         a.append(&mut b)
+    }
+}
+
+/// https://drafts.csswg.org/css2/visuren.html#relative-positioning
+pub(crate) fn relative_adjustement(
+    style: &ComputedValues,
+    containing_block: &ContainingBlock,
+) -> Vec2<Length> {
+    let cbis = containing_block.inline_size;
+    let cbbs = containing_block.block_size.auto_is(Length::zero);
+    let box_offsets = style.box_offsets().map_inline_and_block_axes(
+        |v| v.percentage_relative_to(cbis),
+        |v| v.percentage_relative_to(cbbs),
+    );
+    fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
+        match (start, end) {
+            (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero(),
+            (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => -end,
+            (LengthOrAuto::LengthPercentage(start), _) => start,
+        }
+    }
+    Vec2 {
+        inline: adjust(box_offsets.inline_start, box_offsets.inline_end),
+        block: adjust(box_offsets.block_start, box_offsets.block_end),
     }
 }

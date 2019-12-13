@@ -9,10 +9,10 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
-use crate::{relative_adjustement, ContainingBlock};
+use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
@@ -367,11 +367,9 @@ impl InlineBox {
             block: padding.block_start + border.block_start + margin.block_start,
             inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
         };
-        start_corner += &relative_adjustement(
-            &style,
-            ifc.containing_block.inline_size,
-            ifc.containing_block.block_size,
-        );
+        if style.clone_position().is_relative() {
+            start_corner += &relative_adjustement(&style, ifc.containing_block)
+        }
         PartialInlineBoxFragment {
             style,
             start_corner,
@@ -457,11 +455,9 @@ fn layout_atomic<'box_tree>(
         block: pbm.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
-    start_corner += &relative_adjustement(
-        &atomic.style,
-        ifc.containing_block.inline_size,
-        ifc.containing_block.block_size,
-    );
+    if atomic.style.clone_position().is_relative() {
+        start_corner += &relative_adjustement(&atomic.style, ifc.containing_block)
+    }
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {

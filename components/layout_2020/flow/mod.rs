@@ -14,7 +14,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::ComputedValuesExt;
-use crate::{relative_adjustement, ContainingBlock};
+use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -271,6 +271,7 @@ impl BlockLevelBox {
             BlockLevelBox::SameFormattingContextBlock { style, contents } => {
                 Fragment::Box(positioning_context.for_maybe_position_relative(
                     layout_context,
+                    containing_block,
                     style,
                     |positioning_context| {
                         layout_in_flow_non_replaced_block_level(
@@ -288,6 +289,7 @@ impl BlockLevelBox {
             BlockLevelBox::Independent(contents) => {
                 Fragment::Box(positioning_context.for_maybe_position_relative(
                     layout_context,
+                    containing_block,
                     &contents.style,
                     |positioning_context| match contents.as_replaced() {
                         Ok(replaced) => layout_in_flow_replaced_block_level(
@@ -470,14 +472,13 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             content_block_size = independent_layout.content_block_size;
         },
     };
-    let relative_adjustement = relative_adjustement(style, inline_size, block_size);
     let block_size = block_size.auto_is(|| {
         content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
     });
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pb.block_start + relative_adjustement.block,
-            inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
+            block: pb.block_start,
+            inline: pb.inline_start,
         },
         size: Vec2 {
             block: block_size,
@@ -525,15 +526,10 @@ fn layout_in_flow_replaced_block_level<'a>(
         block_end: computed_margin.block_end.auto_is(Length::zero),
     };
     let fragments = replaced.make_fragments(style, size.clone());
-    let relative_adjustement = relative_adjustement(
-        style,
-        size.inline,
-        LengthOrAuto::LengthPercentage(size.block),
-    );
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pb.block_start + relative_adjustement.block,
-            inline: pb.inline_start + relative_adjustement.inline + margin.inline_start,
+            block: pb.block_start,
+            inline: pb.inline_start + margin.inline_start,
         },
         size,
     };

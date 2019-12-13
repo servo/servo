@@ -27,11 +27,8 @@ pub mod wrapper;
 pub use flow::{BoxTreeRoot, FragmentTreeRoot};
 
 use crate::geom::flow_relative::Vec2;
-use crate::style_ext::ComputedValuesExt;
-use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
-use style::Zero;
 
 struct ContainingBlock<'a> {
     inline_size: Length,
@@ -51,32 +48,5 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
             block_size: LengthOrAuto::LengthPercentage(definite.size.block),
             style: definite.style,
         }
-    }
-}
-
-/// https://drafts.csswg.org/css2/visuren.html#relative-positioning
-fn relative_adjustement(
-    style: &ComputedValues,
-    inline_size: Length,
-    block_size: LengthOrAuto,
-) -> Vec2<Length> {
-    if style.get_box().position != Position::Relative {
-        return Vec2::zero();
-    }
-    fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
-        match (start, end) {
-            (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero(),
-            (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => -end,
-            (LengthOrAuto::LengthPercentage(start), _) => start,
-        }
-    }
-    let block_size = block_size.auto_is(Length::zero);
-    let box_offsets = style.box_offsets().map_inline_and_block_axes(
-        |v| v.percentage_relative_to(inline_size),
-        |v| v.percentage_relative_to(block_size),
-    );
-    Vec2 {
-        inline: adjust(box_offsets.inline_start, box_offsets.inline_end),
-        block: adjust(box_offsets.block_start, box_offsets.block_end),
     }
 }
