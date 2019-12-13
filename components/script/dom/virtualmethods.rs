@@ -25,6 +25,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlfontelement::HTMLFontElement;
 use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlhrelement::HTMLHRElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -167,6 +168,9 @@ pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
             node.downcast::<HTMLBodyElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {
+            node.downcast::<HTMLFrameSetElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
             node.downcast::<HTMLButtonElement>().unwrap() as &dyn VirtualMethods
