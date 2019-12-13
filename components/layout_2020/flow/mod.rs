@@ -7,7 +7,7 @@
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::fragments::{CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
@@ -274,19 +274,9 @@ impl BlockLevelBox {
                     positioning_context,
                     containing_block,
                     style,
-                    BlockLevelKind::SameFormattingContextBlock,
-                    |positioning_context,
-                     containing_block,
-                     collapsible_with_parent_start_margin| {
-                        contents.layout(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            tree_rank,
-                            float_context,
-                            collapsible_with_parent_start_margin,
-                        )
-                    },
+                    BlockLevelKind::SameFormattingContextBlock(contents),
+                    tree_rank,
+                    float_context
                 ))
             },
             BlockLevelBox::Independent(contents) => match contents.as_replaced() {
@@ -300,20 +290,9 @@ impl BlockLevelBox {
                     positioning_context,
                     containing_block,
                     &contents.style,
-                    BlockLevelKind::EstablishesAnIndependentFormattingContext,
-                    |positioning_context, containing_block, _| {
-                        let independent_layout = non_replaced.layout(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            tree_rank,
-                        );
-                        FlowLayout {
-                            fragments: independent_layout.fragments,
-                            content_block_size: independent_layout.content_block_size,
-                            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
-                        }
-                    },
+                    BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced),
+                    tree_rank,
+                    float_context
                 )),
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
@@ -332,10 +311,9 @@ impl BlockLevelBox {
     }
 }
 
-#[derive(PartialEq)]
-enum BlockLevelKind {
-    SameFormattingContextBlock,
-    EstablishesAnIndependentFormattingContext,
+enum BlockLevelKind<'a> {
+    SameFormattingContextBlock(&'a BlockContainer),
+    EstablishesAnIndependentFormattingContext(NonReplacedIFC<'a>),
 }
 
 /// https://drafts.csswg.org/css2/visudet.html#blockwidth
@@ -345,12 +323,9 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     positioning_context: &mut PositioningContext<'a>,
     containing_block: &ContainingBlock,
     style: &Arc<ComputedValues>,
-    block_level_kind: BlockLevelKind,
-    layout_contents: impl FnOnce(
-        &mut PositioningContext<'a>,
-        &ContainingBlock,
-        CollapsibleWithParentStartMargin,
-    ) -> FlowLayout,
+    block_level_kind: BlockLevelKind<'a>,
+    tree_rank: usize,
+    float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {
     let cbis = containing_block.inline_size;
     let padding = style.padding().percentages_relative_to(cbis);
@@ -424,20 +399,38 @@ fn layout_in_flow_non_replaced_block_level<'a>(
     );
 
     let this_start_margin_can_collapse_with_children = CollapsibleWithParentStartMargin(
-        block_level_kind == BlockLevelKind::SameFormattingContextBlock &&
+        matches!(block_level_kind, BlockLevelKind::SameFormattingContextBlock(_)) &&
             pb.block_start == Length::zero(),
     );
     let this_end_margin_can_collapse_with_children = block_size == LengthOrAuto::Auto &&
         min_box_size.block == Length::zero() &&
         pb.block_end == Length::zero() &&
-        block_level_kind == BlockLevelKind::SameFormattingContextBlock;
+        matches!(block_level_kind, BlockLevelKind::SameFormattingContextBlock(_));
 
     positioning_context.for_maybe_position_relative(layout_context, style, |positioning_context| {
-        let mut flow_layout = layout_contents(
-            positioning_context,
-            &containing_block_for_children,
-            this_start_margin_can_collapse_with_children,
-        );
+        let mut flow_layout = match block_level_kind {
+            BlockLevelKind::SameFormattingContextBlock(contents) => contents.layout(
+                layout_context,
+                positioning_context,
+                &containing_block_for_children,
+                tree_rank,
+                float_context,
+                this_start_margin_can_collapse_with_children,
+            ),
+            BlockLevelKind::EstablishesAnIndependentFormattingContext(non_replaced) => {
+                let independent_layout = non_replaced.layout(
+                    layout_context,
+                    positioning_context,
+                    &containing_block_for_children,
+                    tree_rank,
+                );
+                FlowLayout {
+                    fragments: independent_layout.fragments,
+                    content_block_size: independent_layout.content_block_size,
+                    collapsible_margins_in_children: CollapsedBlockMargins::zero(),
+                }
+            }
+        };
         let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
         if this_start_margin_can_collapse_with_children.0 {
             block_margins_collapsed_with_children
