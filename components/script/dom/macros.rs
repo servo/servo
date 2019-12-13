@@ -580,9 +580,9 @@ macro_rules! make_array {
     };
 }
 
-pub static GLOBAL_EVENT_HANDLERS: &[&str] =  global_event_handlers_list!(make_array);
-pub static WINDOW_EVENT_HANDLERS: &[&str] =  window_event_handlers_list!(make_array);
-pub static WINDOW_DELEGATE_EVENT_HANDLERS: &[&str] =  window_event_handlers_list!(make_array, ForwardToWindow);
+static GLOBAL_EVENT_HANDLERS: &[&str] = global_event_handlers_list!(make_array);
+static WINDOW_DELEGATE_EVENT_HANDLERS: &[&str] =
+    window_event_handlers_list!(make_array, ForwardToWindow);
 
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
 // see webidls/EventHandler.webidl
@@ -595,7 +595,25 @@ macro_rules! document_and_element_event_handlers(
     )
 );
 
-pub static DOCUMENT_AND_ELEMENT_EVENT_HANDLERS: &[&str] = &["cut", "copy", "paste"];
+static DOCUMENT_AND_ELEMENT_EVENT_HANDLERS: &[&str] = &["cut", "copy", "paste"];
+
+// XXXManishearth ideally we can construct these maps at compile time using phf map and a proc macro
+use html5ever::LocalName;
+use std::collections::HashSet;
+lazy_static! {
+    pub static ref ELEMENT_EVENT_HANDLERS: HashSet<LocalName> = GLOBAL_EVENT_HANDLERS
+        .iter()
+        .chain(DOCUMENT_AND_ELEMENT_EVENT_HANDLERS.iter())
+        .copied()
+        .map(Into::into)
+        .collect();
+    pub static ref BODY_FRAMESET_EVENT_HANDLERS: HashSet<LocalName> =
+        WINDOW_DELEGATE_EVENT_HANDLERS
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect();
+}
 
 #[macro_export]
 macro_rules! rooted_vec {
