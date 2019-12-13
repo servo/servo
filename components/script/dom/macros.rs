@@ -490,15 +490,73 @@ macro_rules! global_event_handlers_list{
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#windoweventhandlers
+// see webidls/EventHandler.webidl
+// As more methods get added, just update them here.
+macro_rules! window_event_handlers_list(
+    ($macro:ident) => (
+        $macro![
+            afterprint, GetOnafterprint, SetOnafterprint, event_handler;
+            beforeprint, GetOnbeforeprint, SetOnbeforeprint, event_handler;
+            beforeunload, GetOnbeforeunload, SetOnbeforeunload, beforeunload_event_handler;
+            hashchange, GetOnhashchange, SetOnhashchange, event_handler;
+            languagechange, GetOnlanguagechange, SetOnlanguagechange, event_handler;
+            message, GetOnmessage, SetOnmessage, event_handler;
+            messageerror, GetOnmessageerror, SetOnmessageerror, event_handler;
+            offline, GetOnoffline, SetOnoffline, event_handler;
+            online, GetOnonline, SetOnonline, event_handler;
+            pagehide, GetOnpagehide, SetOnpagehide, event_handler;
+            pageshow, GetOnpageshow, SetOnpageshow, event_handler;
+            popstate, GetOnpopstate, SetOnpopstate, event_handler;
+            rejectionhandled, GetOnrejectionhandled, SetOnrejectionhandled, event_handler;
+            storage, GetOnstorage, SetOnstorage, event_handler;
+            unhandledrejection, GetOnunhandledrejection, SetOnunhandledrejection, event_handler;
+            unload, GetOnunload, SetOnunload, event_handler;
+            vrdisplayconnect, GetOnvrdisplayconnect, SetOnvrdisplayconnect, event_handler;
+            vrdisplaydisconnect, GetOnvrdisplaydisconnect, SetOnvrdisplaydisconnect, event_handler;
+            vrdisplayactivate, GetOnvrdisplayactivate, SetOnvrdisplayactivate, event_handler;
+            vrdisplaydeactivate, GetOnvrdisplaydeactivate, SetOnvrdisplaydeactivate, event_handler;
+            vrdisplayblur, GetOnvrdisplayblur, SetOnvrdisplayblur, event_handler;
+            vrdisplayfocus, GetOnvrdisplayfocus, SetOnvrdisplayfocus, event_handler;
+            vrdisplaypresentchange, GetOnvrdisplaypresentchange, SetOnvrdisplaypresentchange, event_handler;
+        ];
+    );
+    ($macro:ident, ForwardToWindow) => (
+        $macro![
+            afterprint, GetOnafterprint, SetOnafterprint, window_owned_event_handler;
+            beforeprint, GetOnbeforeprint, SetOnbeforeprint, window_owned_event_handler;
+            beforeunload, GetOnbeforeunload, SetOnbeforeunload, window_owned_beforeunload_event_handler;
+            hashchange, GetOnhashchange, SetOnhashchange, window_owned_event_handler;
+            languagechange, GetOnlanguagechange, SetOnlanguagechange, window_owned_event_handler;
+            message, GetOnmessage, SetOnmessage, window_owned_event_handler;
+            messageerror, GetOnmessageerror, SetOnmessageerror, window_owned_event_handler;
+            offline, GetOnoffline, SetOnoffline, window_owned_event_handler;
+            online, GetOnonline, SetOnonline, window_owned_event_handler;
+            pagehide, GetOnpagehide, SetOnpagehide, window_owned_event_handler;
+            pageshow, GetOnpageshow, SetOnpageshow, window_owned_event_handler;
+            popstate, GetOnpopstate, SetOnpopstate, window_owned_event_handler;
+            rejectionhandled, GetOnrejectionhandled, SetOnrejectionhandled, window_owned_event_handler;
+            storage, GetOnstorage, SetOnstorage, window_owned_event_handler;
+            unhandledrejection, GetOnunhandledrejection, SetOnunhandledrejection, window_owned_event_handler;
+            unload, GetOnunload, SetOnunload, window_owned_event_handler;
+            vrdisplayconnect, GetOnvrdisplayconnect, SetOnvrdisplayconnect, window_owned_event_handler;
+            vrdisplaydisconnect, GetOnvrdisplaydisconnect, SetOnvrdisplaydisconnect, window_owned_event_handler;
+            vrdisplayactivate, GetOnvrdisplayactivate, SetOnvrdisplayactivate, window_owned_event_handler;
+            vrdisplaydeactivate, GetOnvrdisplaydeactivate, SetOnvrdisplaydeactivate, window_owned_event_handler;
+            vrdisplayblur, GetOnvrdisplayblur, SetOnvrdisplayblur, window_owned_event_handler;
+            vrdisplayfocus, GetOnvrdisplayfocus, SetOnvrdisplayfocus, window_owned_event_handler;
+            vrdisplaypresentchange, GetOnvrdisplaypresentchange, SetOnvrdisplaypresentchange, window_owned_event_handler;
+        ];
+    );
+);
+
 macro_rules! run_event_handler {
     ($($name:ident, $get:ident, $set:ident, $event_macro:ident;)+) => {
         $($event_macro!($name, $get, $set);)+
     };
 }
-// https://html.spec.whatwg.org/multipage/#globaleventhandlers
-// see webidls/EventHandler.webidl
-// As more methods get added, just update them here.
-macro_rules! global_event_handlers{
+
+macro_rules! global_event_handlers {
     () => {
         global_event_handlers_list!(run_event_handler);
     };
@@ -507,75 +565,14 @@ macro_rules! global_event_handlers{
     };
 }
 
-
-// https://html.spec.whatwg.org/multipage/#windoweventhandlers
-// see webidls/EventHandler.webidl
-// As more methods get added, just update them here.
-macro_rules! window_event_handlers(
-    () => (
-        event_handler!(afterprint, GetOnafterprint, SetOnafterprint);
-        event_handler!(beforeprint, GetOnbeforeprint, SetOnbeforeprint);
-        beforeunload_event_handler!(beforeunload, GetOnbeforeunload,
-                                    SetOnbeforeunload);
-        event_handler!(hashchange, GetOnhashchange, SetOnhashchange);
-        event_handler!(languagechange, GetOnlanguagechange,
-                       SetOnlanguagechange);
-        event_handler!(message, GetOnmessage, SetOnmessage);
-        event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
-        event_handler!(offline, GetOnoffline, SetOnoffline);
-        event_handler!(online, GetOnonline, SetOnonline);
-        event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
-        event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
-        event_handler!(popstate, GetOnpopstate, SetOnpopstate);
-        event_handler!(rejectionhandled, GetOnrejectionhandled,
-                       SetOnrejectionhandled);
-        event_handler!(storage, GetOnstorage, SetOnstorage);
-        event_handler!(unhandledrejection, GetOnunhandledrejection,
-                       SetOnunhandledrejection);
-        event_handler!(unload, GetOnunload, SetOnunload);
-        event_handler!(vrdisplayconnect, GetOnvrdisplayconnect, SetOnvrdisplayconnect);
-        event_handler!(vrdisplaydisconnect, GetOnvrdisplaydisconnect, SetOnvrdisplaydisconnect);
-        event_handler!(vrdisplayactivate, GetOnvrdisplayactivate, SetOnvrdisplayactivate);
-        event_handler!(vrdisplaydeactivate, GetOnvrdisplaydeactivate, SetOnvrdisplaydeactivate);
-        event_handler!(vrdisplayblur, GetOnvrdisplayblur, SetOnvrdisplayblur);
-        event_handler!(vrdisplayfocus, GetOnvrdisplayfocus, SetOnvrdisplayfocus);
-        event_handler!(vrdisplaypresentchange, GetOnvrdisplaypresentchange, SetOnvrdisplaypresentchange);
-    );
-    (ForwardToWindow) => (
-        window_owned_event_handler!(afterprint, GetOnafterprint,
-                                    SetOnafterprint);
-        window_owned_event_handler!(beforeprint, GetOnbeforeprint,
-                                    SetOnbeforeprint);
-        window_owned_beforeunload_event_handler!(beforeunload,
-                                                 GetOnbeforeunload,
-                                                 SetOnbeforeunload);
-        window_owned_event_handler!(hashchange, GetOnhashchange,
-                                    SetOnhashchange);
-        window_owned_event_handler!(languagechange, GetOnlanguagechange,
-                                    SetOnlanguagechange);
-        window_owned_event_handler!(message, GetOnmessage, SetOnmessage);
-        window_owned_event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
-        window_owned_event_handler!(offline, GetOnoffline, SetOnoffline);
-        window_owned_event_handler!(online, GetOnonline, SetOnonline);
-        window_owned_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
-        window_owned_event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
-        window_owned_event_handler!(popstate, GetOnpopstate, SetOnpopstate);
-        window_owned_event_handler!(rejectionhandled, GetOnrejectionhandled,
-                                    SetOnrejectionhandled);
-        window_owned_event_handler!(storage, GetOnstorage, SetOnstorage);
-        window_owned_event_handler!(unhandledrejection, GetOnunhandledrejection,
-                                    SetOnunhandledrejection);
-        window_owned_event_handler!(unload, GetOnunload, SetOnunload);
-
-        window_owned_event_handler!(vrdisplayconnect, GetOnvrdisplayconnect, SetOnvrdisplayconnect);
-        window_owned_event_handler!(vrdisplaydisconnect, GetOnvrdisplaydisconnect, SetOnvrdisplaydisconnect);
-        window_owned_event_handler!(vrdisplayactivate, GetOnvrdisplayactivate, SetOnvrdisplayactivate);
-        window_owned_event_handler!(vrdisplaydeactivate, GetOnvrdisplaydeactivate, SetOnvrdisplaydeactivate);
-        window_owned_event_handler!(vrdisplayblur, GetOnvrdisplayblur, SetOnvrdisplayblur);
-        window_owned_event_handler!(vrdisplayfocus, GetOnvrdisplayfocus, SetOnvrdisplayfocus);
-        window_owned_event_handler!(vrdisplaypresentchange, GetOnvrdisplaypresentchange, SetOnvrdisplaypresentchange);
-    );
-);
+macro_rules! window_event_handlers {
+    () => {
+        window_event_handlers_list!(run_event_handler);
+    };
+    (ForwardToWindow) => {
+        window_event_handlers_list!(run_event_handler, ForwardToWindow);
+    };
+}
 
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
 // see webidls/EventHandler.webidl
