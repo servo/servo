@@ -24,12 +24,12 @@ pub(crate) struct AbsolutelyPositionedBox {
 }
 
 pub(crate) struct PositioningContext<'box_tree> {
-    for_nearest_positioned_ancestor: Option<Vec<CollectedAbsolutelyPositionedBox<'box_tree>>>,
-    for_initial_containing_block: Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+    for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox<'box_tree>>>,
+    for_initial_containing_block: Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct CollectedAbsolutelyPositionedBox<'box_tree> {
+pub(crate) struct HoistedAbsolutelyPositionedBox<'box_tree> {
     absolutely_positioned_box: &'box_tree AbsolutelyPositionedBox,
 
     /// The rank of the child from which this absolutely positioned fragment
@@ -88,7 +88,7 @@ impl AbsolutelyPositionedBox {
         &self,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
-    ) -> CollectedAbsolutelyPositionedBox {
+    ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
             initial_static_start: Length,
             start: LengthPercentageOrAuto,
@@ -105,7 +105,7 @@ impl AbsolutelyPositionedBox {
         }
 
         let box_offsets = self.contents.style.box_offsets();
-        CollectedAbsolutelyPositionedBox {
+        HoistedAbsolutelyPositionedBox {
             absolutely_positioned_box: self,
             tree_rank,
             box_offsets: Vec2 {
@@ -162,7 +162,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
 
     fn for_positioned(
         layout_context: &LayoutContext,
-        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
         f: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         let mut new = Self {
@@ -175,7 +175,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
         positioned_box_fragment
     }
 
-    pub(crate) fn push(&mut self, box_: CollectedAbsolutelyPositionedBox<'box_tree>) {
+    pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox<'box_tree>) {
         if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
             match box_
                 .absolutely_positioned_box
@@ -245,7 +245,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
         // Loop because it’s possible that we discover (the static position of)
         // more absolutely-positioned boxes while doing layout for others.
         while !self.for_initial_containing_block.is_empty() {
-            CollectedAbsolutelyPositionedBox::layout_many(
+            HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
                 &std::mem::take(&mut self.for_initial_containing_block),
                 fragments,
@@ -273,7 +273,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
                 style: &positioned_box_fragment.style,
             };
             let mut children = Vec::new();
-            CollectedAbsolutelyPositionedBox::layout_many(
+            HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
                 &for_here,
                 &mut children,
@@ -291,12 +291,12 @@ impl<'box_tree> PositioningContext<'box_tree> {
     }
 }
 
-impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
+impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         boxes: &[Self],
         fragments: &mut Vec<Fragment>,
-        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
@@ -326,7 +326,7 @@ impl<'box_tree> CollectedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
-        for_initial_containing_block: &mut Vec<CollectedAbsolutelyPositionedBox<'box_tree>>,
+        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
         let style = &self.absolutely_positioned_box.contents.style;
@@ -580,7 +580,7 @@ fn solve_axis(
 }
 
 fn adjust_static_positions(
-    absolutely_positioned_fragments: &mut [CollectedAbsolutelyPositionedBox],
+    absolutely_positioned_fragments: &mut [HoistedAbsolutelyPositionedBox],
     child_fragments: &[Fragment],
     tree_rank_in_parent: usize,
 ) {
