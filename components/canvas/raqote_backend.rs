@@ -251,9 +251,11 @@ impl canvas_data::Pattern<'_> {
                 Pattern::RadialGradient(pattern) => {
                     let centers_equal = pattern.center1 == pattern.center2;
                     let radii_equal = pattern.radius1 == pattern.radius2;
-                    centers_equal && radii_equal
+                    (centers_equal && radii_equal) || pattern.gradient.stops.is_empty()
                 },
-                Pattern::LinearGradient(pattern) => pattern.start == pattern.end,
+                Pattern::LinearGradient(pattern) => {
+                    (pattern.start == pattern.end) || pattern.gradient.stops.is_empty()
+                },
                 Pattern::Color(..) | Pattern::Surface(..) => false,
             },
         }
