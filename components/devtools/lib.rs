@@ -26,6 +26,8 @@ use crate::actors::framerate::FramerateActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use crate::actors::performance::PerformanceActor;
+use crate::actors::preference::PreferenceActor;
+use crate::actors::process::ProcessActor;
 use crate::actors::profiler::ProfilerActor;
 use crate::actors::root::RootActor;
 use crate::actors::stylesheets::StyleSheetsActor;
@@ -60,6 +62,8 @@ mod actors {
     pub mod network_event;
     pub mod object;
     pub mod performance;
+    pub mod preference;
+    pub mod process;
     pub mod profiler;
     pub mod root;
     pub mod stylesheets;
@@ -156,15 +160,23 @@ fn run_server(
 
     let device = DeviceActor::new(registry.new_name("device"));
 
+    let preference = PreferenceActor::new(registry.new_name("preference"));
+
+    let process = ProcessActor::new(registry.new_name("process"));
+
     let root = Box::new(RootActor {
         tabs: vec![],
         device: device.name(),
         performance: performance.name(),
+        preference: preference.name(),
+        process: process.name(),
     });
 
     registry.register(root);
     registry.register(Box::new(performance));
     registry.register(Box::new(device));
+    registry.register(Box::new(preference));
+    registry.register(Box::new(process));
     registry.find::<RootActor>("root");
 
     let actors = registry.create_shareable();

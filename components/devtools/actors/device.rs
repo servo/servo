@@ -41,7 +41,7 @@ impl Actor for DeviceActor {
                     from: self.name(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
-                        platformVersion: "63.0".to_string(),
+                        platformVersion: "71.0".to_string(),
                     },
                 };
                 stream.write_json_packet(&msg);
