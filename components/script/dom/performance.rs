@@ -96,10 +96,10 @@ impl PerformanceEntryList {
         entry_type: Option<DOMString>,
     ) {
         self.entries.retain(|e| {
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+            name.as_ref().map_or(true, |name_| *e.name() != *name_) &&
                 entry_type
                     .as_ref()
-                    .map_or(true, |type_| *e.entry_type() == *type_)
+                    .map_or(true, |type_| *e.entry_type() != *type_)
         });
     }
 
@@ -233,10 +233,10 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub fn queue_entry(&self, entry: &PerformanceEntry, add_to_performance_entries_buffer: bool) {
+    pub fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
-            return;
+            return None;
         }
 
         // Steps 1-3.
@@ -253,19 +253,18 @@ impl Performance {
         }
 
         // Step 4.
-        // If the "add to performance entry buffer flag" is set, add the
-        // new entry to the buffer.
-        if add_to_performance_entries_buffer {
-            self.buffer
-                .borrow_mut()
-                .entries
-                .push(DomRoot::from_ref(entry));
-        }
+        //add the new entry to the buffer.
+        self.buffer
+            .borrow_mut()
+            .entries
+            .push(DomRoot::from_ref(entry));
+
+        let entry_last_index = self.buffer.borrow_mut().entries.len() - 1;
 
         // Step 5.
         // If there is already a queued notification task, we just bail out.
         if self.pending_notification_observers_task.get() {
-            return;
+            return None;
         }
 
         // Step 6.
@@ -273,6 +272,8 @@ impl Performance {
         self.pending_notification_observers_task.set(true);
         let task_source = self.global().performance_timeline_task_source();
         task_source.queue_notification(&self.global());
+
+        Some(entry_last_index)
     }
 
     /// Observers notifications task.
@@ -321,7 +322,7 @@ impl Performance {
                 .borrow_mut()
                 .pop_front();
             if let Some(ref entry) = entry {
-                self.queue_entry(entry, true);
+                self.queue_entry(entry);
             } else {
                 break;
             }
@@ -369,6 +370,12 @@ impl Performance {
             .borrow_mut()
             .push_back(DomRoot::from_ref(entry));
         false
+    }
+
+    pub fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+        if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
+            *e = DomRoot::from_ref(entry);
+        }
     }
 }
 
@@ -438,10 +445,7 @@ impl PerformanceMethods for Performance {
         // Steps 2 to 6.
         let entry = PerformanceMark::new(&global, mark_name, self.now(), 0.);
         // Steps 7 and 8.
-        self.queue_entry(
-            &entry.upcast::<PerformanceEntry>(),
-            true, /* buffer performance entry */
-        );
+        self.queue_entry(&entry.upcast::<PerformanceEntry>());
 
         // Step 9.
         Ok(())
@@ -488,10 +492,7 @@ impl PerformanceMethods for Performance {
         );
 
         // Step 9 and 10.
-        self.queue_entry(
-            &entry.upcast::<PerformanceEntry>(),
-            true, /* buffer performance entry */
-        );
+        self.queue_entry(&entry.upcast::<PerformanceEntry>());
 
         // Step 11.
         Ok(())

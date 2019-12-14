@@ -3889,10 +3889,9 @@ impl ScriptThread {
                 metric_type,
                 metric_value,
             );
-            window.Performance().queue_entry(
-                &entry.upcast::<PerformanceEntry>(),
-                true, /* buffer performance entry */
-            );
+            window
+                .Performance()
+                .queue_entry(&entry.upcast::<PerformanceEntry>());
         }
     }
 
