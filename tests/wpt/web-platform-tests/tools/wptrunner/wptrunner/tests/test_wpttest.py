@@ -225,7 +225,7 @@ def test_metadata_fuzzy():
                                                 {"fuzzy": [[["/a/fuzzy.html", '/a/fuzzy-ref.html', '=='],
                                                             [[2, 3], [10, 15]]]]}]]}},
         "paths": {"a/fuzzy.html": ["0"*40, "reftest"]},
-        "version": 6,
+        "version": 7,
         "url_base": "/"}
     manifest = wptmanifest.Manifest.from_json(".", manifest_data)
     test_metadata = manifestexpected.static.compile(BytesIO(test_fuzzy),

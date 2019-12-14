@@ -40,12 +40,6 @@
                   assert_less_than_equal(newQuality.droppedVideoFrames, newQuality.totalVideoFrames,
                     "droppedVideoFrames is only a portion of totalVideoFrames");
 
-                  assert_greater_than_equal(newQuality.corruptedVideoFrames, 0, "corruptedVideoFrames >= 0");
-                  assert_greater_than_equal(newQuality.corruptedVideoFrames, previousQuality.corruptedVideoFrames,
-                    "corruptedVideoFrames increases monotonically");
-                  assert_less_than_equal(newQuality.corruptedVideoFrames, newQuality.totalVideoFrames,
-                    "corruptedVideoFrames is only a portion of totalVideoFrames");
-
                   previousQuality = newQuality;
                   timeUpdateCount++;
               }));

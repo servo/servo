@@ -21,6 +21,8 @@ jobs:
       with:
         fetch-depth: 50
     - name: Run website_build.sh
+      # Use a conditional step instead of a conditional job to work around #20700.
+      if: github.repository == 'web-platform-tests/wpt'
       uses: ./tools/docker/documentation
       env:
         DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

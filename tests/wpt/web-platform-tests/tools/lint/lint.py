@@ -392,6 +392,7 @@ regexps = [item() for item in  # type: ignore
             rules.MissingDepsRegexp,
             rules.SpecialPowersRegexp]]
 
+
 def check_regexp_line(repo_root, path, f):
     # type: (str, str, IO[bytes]) -> List[rules.Error]
     errors = []  # type: List[rules.Error]
@@ -404,6 +405,7 @@ def check_regexp_line(repo_root, path, f):
                 errors.append((regexp.name, regexp.description, path, i+1))
 
     return errors
+
 
 def check_parsed(repo_root, path, f):
     # type: (str, str, IO[bytes]) -> List[rules.Error]
@@ -474,6 +476,9 @@ def check_parsed(repo_root, path, f):
             errors.append(rules.InvalidTimeout.error(path, (timeout_value,)))
 
     if source_file.testharness_nodes:
+        test_type = source_file.manifest_items()[0]
+        if test_type not in ("testharness", "manual"):
+            errors.append(rules.TestharnessInOtherType.error(path, (test_type,)))
         if len(source_file.testharness_nodes) > 1:
             errors.append(rules.MultipleTestharness.error(path))
 

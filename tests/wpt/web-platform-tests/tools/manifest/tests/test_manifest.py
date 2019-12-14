@@ -115,7 +115,7 @@ def test_manifest_to_json_forwardslash():
         'paths': {
             'a/b': ('0000000000000000000000000000000000000000', 'testharness')
         },
-        'version': 6,
+        'version': 7,
         'url_base': '/',
         'items': {
             'testharness': {
@@ -137,7 +137,7 @@ def test_manifest_to_json_backslash():
         'paths': {
             'a/b': ('0000000000000000000000000000000000000000', 'testharness')
         },
-        'version': 6,
+        'version': 7,
         'url_base': '/',
         'items': {
             'testharness': {
@@ -152,7 +152,7 @@ def test_manifest_from_json_backslash():
         'paths': {
             'a\\b': ('0000000000000000000000000000000000000000', 'testharness')
         },
-        'version': 6,
+        'version': 7,
         'url_base': '/',
         'items': {
             'testharness': {
@@ -398,5 +398,5 @@ def test_update_from_json_modified():
         'paths': {'test1': ('1111111111111111111111111111111111111111',
                             'testharness')},
         'url_base': '/',
-        'version': 6
+        'version': 7
     }

@@ -1,4 +1,5 @@
 name: pr-preview-detect
+# This workflow triggers on deployment, which can never happen on a fork.
 on: deployment
 jobs:
   detect-deployment:

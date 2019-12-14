@@ -36,7 +36,7 @@ try:
 except ImportError:
     fast_json = json  # type: ignore
 
-CURRENT_VERSION = 6
+CURRENT_VERSION = 7
 
 
 class ManifestError(Exception):
@@ -471,14 +471,6 @@ class Manifest(object):
         self._path_hash = {to_os_path(k): v for k, v in iteritems(obj["paths"])}
 
         for test_type, type_paths in iteritems(obj["items"]):
-            # Drop "stub" items, which are no longer supported but may be
-            # present when doing an incremental manifest update.
-            # See https://github.com/web-platform-tests/rfcs/pull/27 for background.
-            #
-            # TODO(MANIFESTv7): remove this condition
-            if test_type == "stub":
-                continue
-
             if test_type not in item_classes:
                 raise ManifestError
 

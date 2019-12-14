@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function check(t, v) {
+  t.step(() => {
+    assert_equals(typeof v, "object");
+    assert_equals(v.rules[0].style.content, "\"…\"");
+    t.done();
+  });
+}
+const t1 = async_test("utf-8");
+const t2 = async_test("shift-jis");
+const t3 = async_test("windows-1252");
+const t4 = async_test("utf-7");
+</script>
+<script type="module" onerror="t1.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-8";
+check(t1, v);
+</script>
+<script type="module" onerror="t2.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=shift-jis";
+check(t2, v);
+</script>
+<script type="module" onerror="t3.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=windows-1252";
+check(t3, v);
+</script>
+<script type="module" onerror="t4.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-7";
+check(t4, v);
+</script>
