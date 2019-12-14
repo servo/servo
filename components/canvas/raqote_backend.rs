@@ -124,6 +124,17 @@ pub enum Pattern<'a> {
     Surface(SurfacePattern<'a>),
 }
 
+impl<'a> Pattern<'a> {
+    fn set_transform(&mut self, transform: Transform2D<f32>) {
+        match self {
+            Pattern::Surface(pattern) => pattern.set_transform(transform),
+            Pattern::LinearGradient(..) | Pattern::RadialGradient(..) | Pattern::Color(..) => {
+                warn!("transform not supported")
+            },
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct LinearGradientPattern {
     gradient: raqote::Gradient,
@@ -174,6 +185,7 @@ pub struct SurfacePattern<'a> {
     filter: raqote::FilterMode,
     extend: raqote::ExtendMode,
     repeat: Repetition,
+    transform: Transform2D<f32>,
 }
 
 impl<'a> SurfacePattern<'a> {
@@ -189,7 +201,11 @@ impl<'a> SurfacePattern<'a> {
             filter: filter,
             extend: extend,
             repeat: repeat,
+            transform: Transform2D::identity(),
         }
+    }
+    fn set_transform(&mut self, transform: Transform2D<f32>) {
+        self.transform = transform;
     }
 }
 
@@ -240,7 +256,7 @@ impl canvas_data::Pattern<'_> {
                     pattern.image,
                     pattern.extend,
                     pattern.filter,
-                    Transform2D::identity(),
+                    pattern.transform,
                 ),
             },
         }
@@ -426,6 +442,20 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 )
             },
         };
+
+        let mut pattern = Pattern::Surface(SurfacePattern::new(
+            image,
+            filter.to_raqote(),
+            Repetition::NoRepeat,
+        ));
+        let transform =
+            raqote::Transform::create_translation(-dest.origin.x as f32, -dest.origin.y as f32)
+                .post_scale(
+                    image.width as f32 / dest.size.width as f32,
+                    image.height as f32 / dest.size.height as f32,
+                );
+        pattern.set_transform(transform);
+
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
             dest.origin.x as f32,
@@ -433,11 +463,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
             dest.size.width as f32,
             dest.size.height as f32,
         );
-        let pattern = Pattern::Surface(SurfacePattern::new(
-            image,
-            filter.to_raqote(),
-            Repetition::NoRepeat,
-        ));
+
         GenericDrawTarget::fill(
             self,
             &Path::Raqote(pb.finish()),
