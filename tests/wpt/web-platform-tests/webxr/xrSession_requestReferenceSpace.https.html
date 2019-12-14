@@ -43,13 +43,13 @@
           })
         ]))
         .then(() => {
-          if (!session.immersive) {
+          if (session.mode == 'inline') {
             // Bounded reference spaces are not allowed in inline sessions.
             return promise_rejects(t, "NotSupportedError", session.requestReferenceSpace('bounded-floor'))
           }
         })
         .then(() => {
-          if (!session.immersive) {
+          if (session.mode == 'inline') {
             // Unbounded reference spaces are not allowed in inline sessions.
             return promise_rejects(t, "NotSupportedError", session.requestReferenceSpace('unbounded'))
           }

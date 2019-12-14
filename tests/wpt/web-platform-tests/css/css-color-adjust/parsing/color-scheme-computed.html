@@ -6,7 +6,6 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <div id="target"></div>
 <script>
-  test_computed_value("color-scheme", "", "normal");
   test_computed_value("color-scheme", "normal");
   test_computed_value("color-scheme", "light dark");
   test_computed_value("color-scheme", "dark light");
@@ -14,11 +13,10 @@
   test_computed_value("color-scheme", "only light");
   test_computed_value("color-scheme", "light light");
   test_computed_value("color-scheme", "light only");
+  test_computed_value("color-scheme", "none");
   // reserved and css-wide keywords.
   test_computed_value("color-scheme", "initial", "normal");
   test_computed_value("color-scheme", "inherit", "normal");
   test_computed_value("color-scheme", "unset", "normal");
   test_computed_value("color-scheme", "revert", "normal");
-  test_computed_value("color-scheme", "default", "normal");
-  test_computed_value("color-scheme", "none", "normal");
 </script>

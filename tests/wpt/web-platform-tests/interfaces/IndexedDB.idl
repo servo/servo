@@ -199,7 +199,7 @@ interface IDBTransaction : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
   readonly attribute IDBTransactionMode mode;
   [SameObject] readonly attribute IDBDatabase db;
-  readonly attribute DOMException error;
+  readonly attribute DOMException? error;
 
   IDBObjectStore objectStore(DOMString name);
   void commit();

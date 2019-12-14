@@ -177,8 +177,8 @@ tasks:
                 browser: servo
                 channel: nightly
               use:
+                - trigger-daily
                 - trigger-push
-
           do:
             - ${vars.browser}-${vars.channel}-${vars.suite}:
                 use:

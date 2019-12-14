@@ -30,6 +30,7 @@ class RecorderProcessor extends AudioWorkletProcessor {
         type: 'recordfinished',
         recordBuffer: this._recordBuffer
       });
+      this.port.close();
       return false;
     }
 

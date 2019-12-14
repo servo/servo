@@ -300,11 +300,12 @@ def setup_repository(args):
         if task_head != expected_head:
             if not is_pr:
                 try:
-                    run(["git", "fetch", "origin", "%s:task_head" % expected_head])
+                    run(["git", "fetch", "origin", expected_head])
+                    run(["git", "reset", "--hard", expected_head])
                 except subprocess.CalledProcessError:
                     print("CRITICAL: task_head points at %s, expected %s and "
                           "unable to fetch expected commit.\n"
-                          "This may be because the branch was updated" % (task_head, args.rev))
+                          "This may be because the branch was updated" % (task_head, expected_head))
                     sys.exit(1)
             else:
                 # Convert the refs/pulls/<id>/merge to refs/pulls/<id>/head
@@ -317,7 +318,7 @@ def setup_repository(args):
                     sys.exit(1)
                 if remote_head != args.head_rev:
                     print("CRITICAL: task_head points at %s, expected %s. "
-                          "This may be because the branch was updated" % (task_head, args.rev))
+                          "This may be because the branch was updated" % (task_head, expected_head))
                     sys.exit(1)
                 print("INFO: Merge commit changed from %s to %s due to base branch changes. "
                       "Running task anyway." % (expected_head, task_head))

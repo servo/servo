@@ -214,7 +214,30 @@ def test_verify_payload():
       'wpt-webkitgtk_minibrowser-nightly-testharness-8',
       'wpt-webkitgtk_minibrowser-nightly-testharness-9',
       'wpt-webkitgtk_minibrowser-nightly-wdspec-1',
-      'wpt-webkitgtk_minibrowser-nightly-crashtest-1'})
+      'wpt-webkitgtk_minibrowser-nightly-crashtest-1',
+      'wpt-servo-nightly-reftest-1',
+      'wpt-servo-nightly-reftest-2',
+      'wpt-servo-nightly-reftest-3',
+      'wpt-servo-nightly-reftest-4',
+      'wpt-servo-nightly-reftest-5',
+      'wpt-servo-nightly-testharness-1',
+      'wpt-servo-nightly-testharness-10',
+      'wpt-servo-nightly-testharness-11',
+      'wpt-servo-nightly-testharness-12',
+      'wpt-servo-nightly-testharness-13',
+      'wpt-servo-nightly-testharness-14',
+      'wpt-servo-nightly-testharness-15',
+      'wpt-servo-nightly-testharness-16',
+      'wpt-servo-nightly-testharness-2',
+      'wpt-servo-nightly-testharness-3',
+      'wpt-servo-nightly-testharness-4',
+      'wpt-servo-nightly-testharness-5',
+      'wpt-servo-nightly-testharness-6',
+      'wpt-servo-nightly-testharness-7',
+      'wpt-servo-nightly-testharness-8',
+      'wpt-servo-nightly-testharness-9',
+      'wpt-servo-nightly-wdspec-1',
+      'wpt-servo-nightly-crashtest-1',})
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):

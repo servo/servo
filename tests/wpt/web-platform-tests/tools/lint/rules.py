@@ -317,6 +317,11 @@ class BrokenMetadata(Rule):
     description = "Metadata comment is not formatted correctly"
 
 
+class TestharnessInOtherType(Rule):
+    name = "TESTHARNESS-IN-OTHER-TYPE"
+    description = "testharness.js included in a %s test"
+
+
 class Regexp(six.with_metaclass(abc.ABCMeta)):
     @abc.abstractproperty
     def pattern(self):
@@ -355,6 +360,7 @@ class TabsRegexp(Regexp):
     description = "Test-file line starts with one or more tab characters"
     to_fix = "use spaces to replace any tab characters at beginning of lines"
 
+
 class CRRegexp(Regexp):
     pattern = b"\r$"
     name = "CR AT EOL"
@@ -363,6 +369,7 @@ class CRRegexp(Regexp):
         reformat file so each line just has LF (U+000A) line ending (standard,
         cross-platform "Unix" line endings instead of, e.g., DOS line endings).
     """
+
 
 class SetTimeoutRegexp(Regexp):
     pattern = br"setTimeout\s*\("
@@ -373,6 +380,7 @@ class SetTimeoutRegexp(Regexp):
         replace all `setTimeout(...)` calls with `step_timeout(...)` calls
     """
 
+
 class W3CTestOrgRegexp(Regexp):
     pattern = br"w3c\-test\.org"
     name = "W3C-TEST.ORG"
@@ -382,15 +390,18 @@ class W3CTestOrgRegexp(Regexp):
         `{{host}}:{{ports[http][0]}}` or a generic hostname like `example.org`
     """
 
+
 class WebPlatformTestRegexp(Regexp):
     pattern = br"web\-platform\.test"
     name = "WEB-PLATFORM.TEST"
     description = "Internal web-platform.test domain used"
 
+
 class Webidl2Regexp(Regexp):
     pattern = br"webidl2\.js"
     name = "WEBIDL2.JS"
     description = "Legacy webidl2.js script used"
+
 
 class ConsoleRegexp(Regexp):
     pattern = br"console\.[a-zA-Z]+\s*\("
@@ -402,12 +413,14 @@ class ConsoleRegexp(Regexp):
         `assert_*` of some kind in place of it)
     """
 
+
 class GenerateTestsRegexp(Regexp):
     pattern = br"generate_tests\s*\("
     name = "GENERATE_TESTS"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "Test file line has a generate_tests call"
     to_fix = "remove the call and call `test()` a number of times instead"
+
 
 class PrintRegexp(Regexp):
     pattern = br"print(?:\s|\s*\()"
@@ -421,11 +434,13 @@ class PrintRegexp(Regexp):
         achieves the intended effect (e.g., a logging call)
     """
 
+
 class LayoutTestsRegexp(Regexp):
     pattern = br"(eventSender|testRunner|internals)\."
     name = "LAYOUTTESTS APIS"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "eventSender/testRunner/internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
+
 
 class MissingDepsRegexp(Regexp):
     pattern = br"[^\w]/gen/"
@@ -434,11 +449,13 @@ class MissingDepsRegexp(Regexp):
     description = "Chromium-specific content referenced"
     to_fix = "Reimplement the test to use well-documented testing interfaces"
 
+
 class SpecialPowersRegexp(Regexp):
     pattern = b"SpecialPowers"
     name = "SPECIALPOWERS API"
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "SpecialPowers used; this is gecko-specific and not supported in wpt"
+
 
 class TrailingWhitespaceRegexp(Regexp):
     name = "TRAILING WHITESPACE"

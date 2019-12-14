@@ -1,11 +1,5 @@
 {
  "items": {
-  "conformancechecker": {
-   "css/blockify_inline_element.html": []
-  },
-  "manual": {
-   "css/blockify_inline_element.html": []
-  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -7911,7 +7905,6 @@
    "css/block_replaced_content_ref.html": [
     []
    ],
-   "css/blockify_inline_element.html": [],
    "css/blockify_inline_element_ref.html": [
     []
    ],
@@ -11148,7 +11141,6 @@
      {}
     ]
    ],
-   "css/blockify_inline_element.html": [],
    "css/bug_1345483.html": [
     [
      "css/bug_1345483.html",
@@ -12600,12 +12592,6 @@
      {}
     ]
    ]
-  },
-  "visual": {
-   "css/blockify_inline_element.html": []
-  },
-  "wdspec": {
-   "css/blockify_inline_element.html": []
   }
  },
  "paths": {
@@ -19847,5 +19833,5 @@
   ]
  },
  "url_base": "/_mozilla/",
- "version": 6
+ "version": 7
 }

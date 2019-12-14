@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title> Async Clipboard raw write -> Async Clipboard raw read tests </title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function readWriteTest(rawInput) {
+  promise_test(async t => {
+    const blobInput = new Blob([rawInput], {type: 'chromium/x-test-format'});
+    const clipboardItem = new ClipboardItem(
+        {'chromium/x-test-format': blobInput}, {raw: true});
+
+    await navigator.clipboard.write([clipboardItem]);
+    // TODO(https://crbug.com/897289): Implement raw clipboard read.
+
+  }, 'Verify write and read clipboard given arbitrary raw input: ' + rawInput);
+}
+
+readWriteTest('Async Clipboard raw write -> Async Clipboard raw read tests');
+</script>
+<p>
+  Note: This is a manual test because it writes/reads to the shared system
+  clipboard and thus cannot be run async with other tests that might interact
+  with the clipboard.
+</p>

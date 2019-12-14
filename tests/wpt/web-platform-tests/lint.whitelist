@@ -711,3 +711,42 @@ AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
 AHEM SYSTEM FONT: infrastructure/assumptions/ahem-ref.html
 AHEM SYSTEM FONT: infrastructure/assumptions/ahem.html
 
+# Existing crashtests using testharness
+TESTHARNESS-IN-OTHER-TYPE: 2dcontext/wide-gamut-canvas/imagedata-no-color-settings-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats-clear/adjoining-float-new-fc-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats/floats-saturated-position-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/CSS2/linebox/video-needs-layout-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-animations/keyframes-remove-documentElement-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-break/break-before-with-no-fragmentation-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-multicol/abspos-in-multicol-with-spanner-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-multicol/extremely-tall-multicol-with-extremely-tall-child-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-multicol/with-custom-layout-on-same-element-crash.https.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-overflow/outline-with-opacity-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-overflow/shrink-to-fit-auto-overflow-relayout-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-position/position-absolute-in-inline-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-pseudo/first-letter-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-pseudo/first-line-first-letter-insert-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-shapes/shape-outside/supported-shapes/polygon/shape-outside-polygon-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-tables/visibility-collapse-colspan-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-tables/visibility-collapse-rowspan-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/overflow-wrap/overflow-wrap-break-word-long-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/overflow-wrap/overflow-wrap-break-word-white-space-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/text-indent/text-indent-long-line-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/nowrap-wbr-and-space-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-line-br-with-whitespace-child-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-with-whitespace-crash.html
+TESTHARNESS-IN-OTHER-TYPE: css/css-writing-modes/bidi-inline-fragment-crash.html
+TESTHARNESS-IN-OTHER-TYPE: dom/svg-insert-crash.html
+TESTHARNESS-IN-OTHER-TYPE: editing/run/first-letter-crossing-engine-boundary-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/embedded-content/the-object-element/block-object-with-ruby-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/forms/the-input-element/time-datalist-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/forms/the-input-element/type-change-file-to-text-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/interactive-elements/the-details-element/display-table-with-rt-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/interactive-elements/the-summary-element/display-table-with-rt-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/semantics/text-level-semantics/the-ruby-element/rt-without-ruby-crash.html
+TESTHARNESS-IN-OTHER-TYPE: portals/portals-no-frame-crash.html
+TESTHARNESS-IN-OTHER-TYPE: quirks/table-replaced-descendant-percentage-height-crash.html
+TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-circular-filter-reference-crash.html
+TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-clip-path-crash.html
+TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-defs-crash.html
+TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-crash.html

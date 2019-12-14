@@ -51,6 +51,12 @@ window.Audit = (function() {
     }, message);
   }
 
+  function _logException(message, exception) {
+    test(function() {
+      throw exception;
+    }, message);
+  }
+
   function _throwException(message) {
     throw new Error(message);
   }
@@ -1191,11 +1197,12 @@ window.Audit = (function() {
       // that wheel, but since it's been reinvented...  At least make sure that
       // an exception while running a task doesn't preclude us running all the
       // _other_ tasks for the test.
+      let testName = `Executing "${this.label}"`;
       try {
         this._taskFunction(this, this.should.bind(this));
+        _logPassed(testName);
       } catch (e) {
-        // Log the failure.
-        test(() => { throw e; }, `Executing "${this.label}"`);
+        _logException(testName, e);
         if (this.state != TaskState.FINISHED) {
           // We threw before calling done(), so do that manually to run our
           // other tasks.
