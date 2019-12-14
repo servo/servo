@@ -257,11 +257,6 @@ fn test_request_and_response_data_with_network_messages() {
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
     );
-    headers.typed_insert(Host::from(
-        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
-            .parse::<Authority>()
-            .unwrap(),
-    ));
 
     headers.insert(
         header::ACCEPT,
