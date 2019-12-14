@@ -464,6 +464,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                     draw_options.as_raqote(),
                 );
             },
+            raqote::BlendMode::Clear |
             raqote::BlendMode::SrcAtop |
             raqote::BlendMode::DstOut |
             raqote::BlendMode::Add |
