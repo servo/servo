@@ -124,6 +124,11 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
     },
 ];
 
+// An internal WebRender limit.
+//
+// See: https://github.com/servo/servo/issues/17230#issuecomment-564307277
+const MAX_GLYPHS_PER_TEXT_RUN: usize = 2000;
+
 pub struct InlineNodeBorderInfo {
     is_first_fragment_of_element: bool,
     is_last_fragment_of_element: bool,
@@ -2069,19 +2074,27 @@ impl Fragment {
         }
 
         // Text
-        let glyphs = convert_text_run_to_glyphs(
+        let mut glyphs = convert_text_run_to_glyphs(
             text_fragment.run.clone(),
             text_fragment.range,
             baseline_origin,
         );
-        if !glyphs.is_empty() {
-            let indexable_text = IndexableTextItem {
-                origin: stacking_relative_content_box.origin,
-                text_run: text_fragment.run.clone(),
-                range: text_fragment.range,
-                baseline_origin,
+
+        let indexable_text = IndexableTextItem {
+            origin: stacking_relative_content_box.origin,
+            text_run: text_fragment.run.clone(),
+            range: text_fragment.range,
+            baseline_origin,
+        };
+        state.indexable_text.insert(self.node, indexable_text);
+
+        // Process glyphs in chunks to avoid overflowing WebRender's internal limits (#17230).
+        while !glyphs.is_empty() {
+            let mut rest_of_glyphs = vec![];
+            if glyphs.len() > MAX_GLYPHS_PER_TEXT_RUN {
+                rest_of_glyphs = glyphs[MAX_GLYPHS_PER_TEXT_RUN..].to_vec();
+                glyphs.truncate(MAX_GLYPHS_PER_TEXT_RUN);
             };
-            state.indexable_text.insert(self.node, indexable_text);
 
             state.add_display_item(DisplayItem::Text(CommonDisplayItem::with_data(
                 base.clone(),
@@ -2094,6 +2107,8 @@ impl Fragment {
                 },
                 glyphs,
             )));
+
+            glyphs = rest_of_glyphs;
         }
 
         // TODO(#17715): emit text-emphasis marks here.
