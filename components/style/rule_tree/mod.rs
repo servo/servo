@@ -345,7 +345,7 @@ impl RuleTree {
             important_author.sort_by_key(|&(_, order)| -order);
         }
 
-        for (source, shadow_cascade_order) in important_author.drain() {
+        for (source, shadow_cascade_order) in important_author.drain(..) {
             current = current.ensure_child(
                 self.root.downgrade(),
                 source,
@@ -355,11 +355,11 @@ impl RuleTree {
             );
         }
 
-        for source in important_user.drain() {
+        for source in important_user.drain(..) {
             current = current.ensure_child(self.root.downgrade(), source, UserImportant);
         }
 
-        for source in important_ua.drain() {
+        for source in important_ua.drain(..) {
             current = current.ensure_child(self.root.downgrade(), source, UAImportant);
         }
 
@@ -378,7 +378,7 @@ impl RuleTree {
         guards: &StylesheetGuards,
     ) -> StrongRuleNode {
         self.insert_ordered_rules_with_important(
-            applicable_declarations.drain().map(|d| d.for_rule_tree()),
+            applicable_declarations.drain(..).map(|d| d.for_rule_tree()),
             guards,
         )
     }
@@ -556,7 +556,7 @@ impl RuleTree {
 
         // Now the rule is in the relevant place, push the children as
         // necessary.
-        let rule = self.insert_ordered_rules_from(current, children.drain().rev());
+        let rule = self.insert_ordered_rules_from(current, children.drain(..).rev());
         Some(rule)
     }
 
@@ -593,7 +593,7 @@ impl RuleTree {
         }
 
         let rule =
-            self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain().rev());
+            self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain(..).rev());
         rule
     }
 

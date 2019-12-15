@@ -142,7 +142,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         let iter = SelectorBuilderIter {
             current_simple_selectors: current.iter(),
             rest_of_simple_selectors: rest,
-            combinators: self.combinators.drain().rev(),
+            combinators: self.combinators.drain(..).rev(),
         };
 
         Arc::into_thin(Arc::from_header_and_iter(header, iter))
@@ -152,7 +152,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
 struct SelectorBuilderIter<'a, Impl: SelectorImpl> {
     current_simple_selectors: slice::Iter<'a, Component<Impl>>,
     rest_of_simple_selectors: &'a [Component<Impl>],
-    combinators: iter::Rev<smallvec::Drain<'a, (Combinator, usize)>>,
+    combinators: iter::Rev<smallvec::Drain<'a, [(Combinator, usize); 16]>>,
 }
 
 impl<'a, Impl: SelectorImpl> ExactSizeIterator for SelectorBuilderIter<'a, Impl> {

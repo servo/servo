@@ -39,7 +39,7 @@ serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.11", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "2.3.0"
-smallvec = "0.6"
+smallvec = "1.0"
 string_cache = { version = "0.8", optional = true }
 thin-slice = "0.1.0"
 time = { version = "0.1.17", optional = true }
