@@ -68,6 +68,7 @@ use crate::shared_lock::Locked;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::values::computed::font::GenericFontFamily;
+use crate::values::computed::Length;
 use crate::values::specified::length::FontBaseSize;
 use crate::CaseSensitivityExt;
 use app_units::Au;
@@ -929,7 +930,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         GeckoFontMetricsProvider::new()
     }
 
-    fn get_size(&self, font_name: &Atom, font_family: GenericFontFamily) -> Au {
+    fn get_size(&self, font_name: &Atom, font_family: GenericFontFamily) -> Length {
         let mut cache = self.font_size_cache.borrow_mut();
         if let Some(sizes) = cache.iter().find(|el| el.0 == *font_name) {
             return sizes.1.size_for_generic(font_family);
@@ -950,7 +951,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
             None => return Default::default(),
         };
 
-        let size = base_size.resolve(context);
+        let size = Au::from(base_size.resolve(context));
         let style = context.style();
 
         let (wm, font) = match base_size {
@@ -977,9 +978,9 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
             )
         };
         FontMetrics {
-            x_height: Some(Au(gecko_metrics.mXSize)),
+            x_height: Some(Au(gecko_metrics.mXSize).into()),
             zero_advance_measure: if gecko_metrics.mChSize >= 0 {
-                Some(Au(gecko_metrics.mChSize))
+                Some(Au(gecko_metrics.mChSize).into())
             } else {
                 None
             },
@@ -988,7 +989,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
 }
 
 impl structs::FontSizePrefs {
-    fn size_for_generic(&self, font_family: GenericFontFamily) -> Au {
+    fn size_for_generic(&self, font_family: GenericFontFamily) -> Length {
         Au(match font_family {
             GenericFontFamily::None => self.mDefaultVariableSize,
             GenericFontFamily::Serif => self.mDefaultSerifSize,
@@ -999,7 +1000,7 @@ impl structs::FontSizePrefs {
             GenericFontFamily::MozEmoji => unreachable!(
                 "Should never get here, since this doesn't (yet) appear on font family"
             ),
-        })
+        }).into()
     }
 }
 

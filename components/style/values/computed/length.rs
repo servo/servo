@@ -29,7 +29,7 @@ pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
-    type ComputedValue = CSSPixelLength;
+    type ComputedValue = Length;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {

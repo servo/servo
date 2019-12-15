@@ -743,6 +743,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     fn recompute_keyword_font_size_if_needed(&mut self) {
         use crate::values::computed::ToComputedValue;
         use crate::values::specified;
+        use app_units::Au;
 
         if !self.seen.contains(LonghandId::XLang) &&
            !self.seen.contains(LonghandId::FontFamily) {
@@ -759,7 +760,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 None => return,
             };
 
-            if font.gecko().mScriptUnconstrainedSize == new_size.size().0 {
+            if font.gecko().mScriptUnconstrainedSize == Au::from(new_size.size()).0 {
                 return;
             }
 

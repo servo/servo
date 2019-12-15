@@ -1134,7 +1134,7 @@ fn static_assert() {
     pub fn set_font_size(&mut self, v: FontSize) {
         use crate::values::specified::font::KeywordSize;
 
-        let size = v.size();
+        let size = Au::from(v.size());
         self.gecko.mScriptUnconstrainedSize = size.0;
 
         // These two may be changed from Cascade::fixup_font_stuff.

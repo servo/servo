@@ -5,8 +5,7 @@
 //! Specified types for legacy Gecko-only properties.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::length::CSSPixelLength;
-use crate::values::computed::{self, LengthPercentage};
+use crate::values::computed::{self, LengthPercentage, Length};
 use crate::values::generics::rect::Rect;
 use cssparser::{Parser, Token};
 use std::fmt;
@@ -24,7 +23,7 @@ fn parse_pixel_or_percent<'i, 't>(
             value, ref unit, ..
         } => {
             match_ignore_ascii_case! { unit,
-                "px" => Ok(LengthPercentage::new(CSSPixelLength::new(value), None)),
+                "px" => Ok(LengthPercentage::new(Length::new(value), None)),
                 _ => Err(()),
             }
         },

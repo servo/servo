@@ -77,7 +77,6 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        use crate::values::computed::Length as ComputedLength;
         use crate::values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => GenericLineHeight::Normal,
@@ -97,16 +96,8 @@ impl ToComputedValue for LineHeight {
                     LengthPercentage::Calc(ref calc) => {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
-                        let font_relative_length =
-                            FontRelativeLength::Em(computed_calc.percentage())
-                                .to_computed_value(context, FontBaseSize::CurrentStyle)
-                                .px();
-
-                        let absolute_length = computed_calc.unclamped_length().px();
-                        let pixel = computed_calc
-                            .clamping_mode
-                            .clamp(absolute_length + font_relative_length);
-                        ComputedLength::new(pixel)
+                        let base = context.style().get_font().clone_font_size().size();
+                        computed_calc.percentage_relative_to(base)
                     },
                 };
                 GenericLineHeight::Length(result.into())
