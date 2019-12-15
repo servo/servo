@@ -40,7 +40,7 @@ pub(crate) struct HoistedAbsolutelyPositionedBox<'box_tree> {
     box_offsets: Vec2<AbsoluteBoxOffsets>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum AbsoluteBoxOffsets {
     StaticStart {
         start: Length,
@@ -113,13 +113,13 @@ impl AbsolutelyPositionedBox {
             box_offsets: Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
-                    box_offsets.inline_start,
-                    box_offsets.inline_end,
+                    box_offsets.inline_start.clone(),
+                    box_offsets.inline_end.clone(),
                 ),
                 block: absolute_box_offsets(
                     initial_start_corner.block,
-                    box_offsets.block_start,
-                    box_offsets.block_end,
+                    box_offsets.block_start.clone(),
+                    box_offsets.block_end.clone(),
                 ),
             },
         }
@@ -372,20 +372,20 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
         let inline_axis = solve_axis(
             cbis,
             pb.inline_sum(),
-            computed_margin.inline_start,
-            computed_margin.inline_end,
+            computed_margin.inline_start.clone(),
+            computed_margin.inline_end.clone(),
             /* avoid_negative_margin_start */ true,
-            self.box_offsets.inline,
+            self.box_offsets.inline.clone(),
             size.inline,
         );
 
         let block_axis = solve_axis(
             cbis,
             pb.block_sum(),
-            computed_margin.block_start,
-            computed_margin.block_end,
+            computed_margin.block_start.clone(),
+            computed_margin.block_end.clone(),
             /* avoid_negative_margin_start */ false,
-            self.box_offsets.block,
+            self.box_offsets.block.clone(),
             size.block,
         );
 
