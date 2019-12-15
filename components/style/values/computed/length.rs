@@ -76,7 +76,7 @@ impl ToComputedValue for specified::Length {
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
 #[derive(
-    Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue,
+    Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue,
 )]
 #[repr(C)]
 pub struct LengthPercentage {
@@ -543,14 +543,14 @@ impl ToAnimatedValue for NonNegativeLengthPercentage {
 impl From<NonNegativeLength> for NonNegativeLengthPercentage {
     #[inline]
     fn from(length: NonNegativeLength) -> Self {
-        LengthPercentage::new(length.0, None).into()
+        NonNegative(LengthPercentage::new(length.0, None))
     }
 }
 
 impl From<LengthPercentage> for NonNegativeLengthPercentage {
     #[inline]
     fn from(lp: LengthPercentage) -> Self {
-        NonNegative::<LengthPercentage>(lp)
+        NonNegative(lp)
     }
 }
 
