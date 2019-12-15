@@ -1373,11 +1373,7 @@ impl ComputedTranslate {
                 LengthPercentage::zero(),
                 Length::zero(),
             ),
-            Translate::Translate(ref tx, ref ty, ref tz) => (
-                tx.clone(),
-                ty.clone(),
-                tz.clone(),
-            ),
+            Translate::Translate(ref tx, ref ty, ref tz) => (tx.clone(), ty.clone(), tz.clone()),
         }
     }
 }

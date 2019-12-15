@@ -390,11 +390,9 @@ impl Display {
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
             #[cfg(feature = "gecko")]
-            DisplayOutside::XUL => {
-                match self.inside() {
-                    DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
-                    _ => Display::Block,
-                }
+            DisplayOutside::XUL => match self.inside() {
+                DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
+                _ => Display::Block,
             },
             DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]

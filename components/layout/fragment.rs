@@ -2527,10 +2527,20 @@ impl Fragment {
                         {
                             continue;
                         }
-                        if !inline_context_node.style.logical_margin().inline_end.is_definitely_zero() {
+                        if !inline_context_node
+                            .style
+                            .logical_margin()
+                            .inline_end
+                            .is_definitely_zero()
+                        {
                             return false;
                         }
-                        if !inline_context_node.style.logical_padding().inline_end.is_definitely_zero() {
+                        if !inline_context_node
+                            .style
+                            .logical_padding()
+                            .inline_end
+                            .is_definitely_zero()
+                        {
                             return false;
                         }
                         if inline_context_node.style.logical_border_width().inline_end != Au(0) {
@@ -2549,10 +2559,20 @@ impl Fragment {
                         {
                             continue;
                         }
-                        if !inline_context_node.style.logical_margin().inline_start.is_definitely_zero() {
+                        if !inline_context_node
+                            .style
+                            .logical_margin()
+                            .inline_start
+                            .is_definitely_zero()
+                        {
                             return false;
                         }
-                        if !inline_context_node.style.logical_padding().inline_start.is_definitely_zero() {
+                        if !inline_context_node
+                            .style
+                            .logical_padding()
+                            .inline_start
+                            .is_definitely_zero()
+                        {
                             return false;
                         }
                         if inline_context_node

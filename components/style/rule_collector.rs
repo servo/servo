@@ -348,7 +348,6 @@ where
                 return;
             }
 
-
             let inner_shadow_host = inner_shadow.host();
             let outer_shadow = inner_shadow_host.containing_shadow();
             let part_rules = match outer_shadow {

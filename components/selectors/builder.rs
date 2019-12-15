@@ -324,7 +324,7 @@ where
             Component::LastOfType |
             Component::OnlyOfType => {
                 specificity.class_like_selectors += 1;
-            }
+            },
             Component::NonTSPseudoClass(ref pseudo) => {
                 if !pseudo.has_zero_specificity() {
                     specificity.class_like_selectors += 1;

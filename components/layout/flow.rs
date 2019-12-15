@@ -1113,12 +1113,11 @@ impl BaseFlow {
                 self.flags.set(
                     FlowFlags::INLINE_POSITION_IS_STATIC,
                     logical_position.inline_start.is_auto() &&
-                        logical_position.inline_end.is_auto()
+                        logical_position.inline_end.is_auto(),
                 );
                 self.flags.set(
                     FlowFlags::BLOCK_POSITION_IS_STATIC,
-                    logical_position.block_start.is_auto() &&
-                        logical_position.block_end.is_auto()
+                    logical_position.block_start.is_auto() && logical_position.block_end.is_auto(),
                 );
             }
         }

@@ -396,9 +396,11 @@ impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
 
         if may_match_in_no_namespace {
             if *local_name_lower == local_name!("id") {
-                self.flags.insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR)
+                self.flags
+                    .insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR)
             } else if *local_name_lower == local_name!("class") {
-                self.flags.insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR)
+                self.flags
+                    .insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR)
             }
         }
 

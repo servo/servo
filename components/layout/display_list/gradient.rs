@@ -91,7 +91,10 @@ fn convert_gradient_stops(
                 color,
                 position: None,
             }),
-            GradientItem::ComplexColorStop { color, ref position } => Some(ColorStop {
+            GradientItem::ComplexColorStop {
+                color,
+                ref position,
+            } => Some(ColorStop {
                 color,
                 position: Some(position.clone()),
             }),
@@ -125,7 +128,13 @@ fn convert_gradient_stops(
     //
     // FIXME(emilio): Once we know the offsets, it seems like converting the
     // positions to absolute at once then process that would be cheaper.
-    let mut last_stop_position = stop_items.first().unwrap().position.as_ref().unwrap().clone();
+    let mut last_stop_position = stop_items
+        .first()
+        .unwrap()
+        .position
+        .as_ref()
+        .unwrap()
+        .clone();
     for stop in stop_items.iter_mut().skip(1) {
         if let Some(ref pos) = stop.position {
             if position_to_offset(&last_stop_position, total_length) >
@@ -147,8 +156,10 @@ fn convert_gradient_stops(
                     // Initialize a new stop run.
                     // `unwrap()` here should never fail because this is the beginning of
                     // a stop run, which is always bounded by a length or percentage.
-                    let start_offset =
-                        position_to_offset(stop_items[i - 1].position.as_ref().unwrap(), total_length);
+                    let start_offset = position_to_offset(
+                        stop_items[i - 1].position.as_ref().unwrap(),
+                        total_length,
+                    );
                     // `unwrap()` here should never fail because this is the end of
                     // a stop run, which is always bounded by a length or percentage.
                     let (end_index, end_stop) = stop_items[(i + 1)..]
@@ -156,7 +167,8 @@ fn convert_gradient_stops(
                         .enumerate()
                         .find(|&(_, ref stop)| stop.position.is_some())
                         .unwrap();
-                    let end_offset = position_to_offset(end_stop.position.as_ref().unwrap(), total_length);
+                    let end_offset =
+                        position_to_offset(end_stop.position.as_ref().unwrap(), total_length);
                     stop_run = Some(StopRun {
                         start_offset,
                         end_offset,

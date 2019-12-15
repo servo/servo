@@ -592,8 +592,8 @@ impl RuleTree {
             last = node;
         }
 
-        let rule =
-            self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain(..).rev());
+        let rule = self
+            .insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain(..).rev());
         rule
     }
 

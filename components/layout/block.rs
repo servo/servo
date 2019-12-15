@@ -2548,8 +2548,16 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().inline_start.is_auto() &&
-            self.fragment.style().logical_position().inline_end.is_auto()
+            self.fragment
+                .style()
+                .logical_position()
+                .inline_start
+                .is_auto() &&
+            self.fragment
+                .style()
+                .logical_position()
+                .inline_end
+                .is_auto()
         {
             self.base.position.start.i = inline_position
         }
@@ -2560,7 +2568,11 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().block_start.is_auto() &&
+            self.fragment
+                .style()
+                .logical_position()
+                .block_start
+                .is_auto() &&
             self.fragment.style().logical_position().block_end.is_auto()
         {
             self.base.position.start.b = block_position
@@ -2848,11 +2860,8 @@ pub trait ISizeAndMarginsComputer {
         parent_flow_inline_size: Au,
         shared_context: &SharedStyleContext,
     ) -> MaybeAuto {
-        let inline_size = self.containing_block_inline_size(
-            block,
-            parent_flow_inline_size,
-            shared_context,
-        );
+        let inline_size =
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
 
         MaybeAuto::from_option(
             block

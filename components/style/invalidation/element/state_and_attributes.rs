@@ -204,7 +204,10 @@ where
         }
 
         if log_enabled!(::log::Level::Debug) {
-            debug!("Collecting changes for: {:?}, flags {:?}", element, attr_selector_flags);
+            debug!(
+                "Collecting changes for: {:?}, flags {:?}",
+                element, attr_selector_flags
+            );
             if !state_changes.is_empty() {
                 debug!(" > state: {:?}", state_changes);
             }
@@ -362,8 +365,8 @@ where
             }
         }
 
-        let should_examine_attribute_selector_map = self.snapshot.other_attr_changed() ||
-            map.flags.intersects(self.attr_selector_flags);
+        let should_examine_attribute_selector_map =
+            self.snapshot.other_attr_changed() || map.flags.intersects(self.attr_selector_flags);
 
         if should_examine_attribute_selector_map {
             self.collect_dependencies_in_map(&map.other_attribute_affecting_selectors)

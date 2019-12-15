@@ -867,14 +867,14 @@ pub trait TElement:
                                 break;
                             }
                             inner_shadow = shadow;
-                        }
+                        },
                         None => {
                             // TODO(emilio): Should probably distinguish with
                             // MatchesDocumentRules::{No,Yes,IfPart} or
                             // something so that we could skip some work.
                             doc_rules_apply = true;
                             break;
-                        }
+                        },
                     }
                 }
             }

@@ -101,7 +101,11 @@ impl FontRelativeLength {
     }
 
     /// Computes the font-relative length.
-    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> computed::Length {
+    pub fn to_computed_value(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> computed::Length {
         let (reference_size, length) = self.reference_font_size_and_length(context, base_size);
         reference_size * length
     }

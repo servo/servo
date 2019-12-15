@@ -7,8 +7,8 @@
 #![deny(missing_docs)]
 
 use crate::context::SharedStyleContext;
-use crate::Atom;
 use crate::values::computed::Length;
+use crate::Atom;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.

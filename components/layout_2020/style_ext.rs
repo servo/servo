@@ -180,7 +180,9 @@ impl From<stylo::Display> for Display {
 
 fn size_to_length(size: Size) -> LengthPercentageOrAuto {
     match size {
-        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(length.0.clone()),
+        Size::LengthPercentage(length) => {
+            LengthPercentageOrAuto::LengthPercentage(length.0.clone())
+        },
         Size::Auto => LengthPercentageOrAuto::Auto,
     }
 }

@@ -961,7 +961,8 @@ impl FontSize {
                 // others should reject negatives during parsing. But SMIL
                 // allows parsing negatives, and relies on us _not_ doing that
                 // clamping. That's so bonkers :(
-                calc.percentage_relative_to(base_size.resolve(context)).clamp_to_non_negative()
+                calc.percentage_relative_to(base_size.resolve(context))
+                    .clamp_to_non_negative()
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived

@@ -916,7 +916,6 @@ impl<T> LogicalMargin<T> {
     }
 }
 
-
 impl<T: Copy> LogicalMargin<T> {
     #[inline]
     pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
