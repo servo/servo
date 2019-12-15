@@ -14,9 +14,9 @@
   <img id="visibility_hidden" style="visibility:hidden;" src='resources/image.png?2'>
   <img id="display_none" style="display:none;" src='resources/image.png?3'>
   <img id="attribute_hidden" hidden src='resources/image.png?4'>
-  <img id="js_hidden" src='resources/image.png?5'>.
+  <img id="js_display_none" src='resources/image.png?5'>.
   <script>
-    document.getElementById("js_hidden").style = 'display:none;';
+    document.getElementById("js_display_none").style = 'display:none;';
   </script>
 </body>
 
@@ -29,7 +29,7 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
   const visibility_hidden_element = document.getElementById("visibility_hidden");
   const display_none_element = document.getElementById("display_none");
   const attribute_hidden_element = document.getElementById("attribute_hidden");
-  const js_hidden_element = document.getElementById("js_hidden");
+  const js_display_none_element = document.getElementById("js_display_none");
 
   let has_window_loaded = false;
 
@@ -51,7 +51,7 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
     Promise.all([image_fully_loaded_promise(visibility_hidden_element),
       image_fully_loaded_promise(display_none_element),
       image_fully_loaded_promise(attribute_hidden_element),
-      image_fully_loaded_promise(js_hidden_element)]).then(() => {
+      image_fully_loaded_promise(js_display_none_element)]).then(() => {
         t.done();
     });
   }, "Test that below-viewport invisible images that are not marked " +
