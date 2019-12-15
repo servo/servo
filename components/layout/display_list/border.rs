@@ -25,7 +25,7 @@ use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, NormalBorder}
 ///
 /// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
 fn corner_radius(
-    radius: BorderCornerRadius,
+    radius: &BorderCornerRadius,
     containing_size: UntypedSize2D<Au>,
 ) -> UntypedSize2D<Au> {
     let w = radius.0.width().to_used_value(containing_size.width);
@@ -91,13 +91,13 @@ pub fn radii(abs_bounds: Rect<Au>, border_style: &Border) -> BorderRadius {
     overlapping_radii(
         abs_bounds.size.to_layout(),
         BorderRadius {
-            top_left: corner_radius(border_style.border_top_left_radius, abs_bounds.size)
+            top_left: corner_radius(&border_style.border_top_left_radius, abs_bounds.size)
                 .to_layout(),
-            top_right: corner_radius(border_style.border_top_right_radius, abs_bounds.size)
+            top_right: corner_radius(&border_style.border_top_right_radius, abs_bounds.size)
                 .to_layout(),
-            bottom_right: corner_radius(border_style.border_bottom_right_radius, abs_bounds.size)
+            bottom_right: corner_radius(&border_style.border_bottom_right_radius, abs_bounds.size)
                 .to_layout(),
-            bottom_left: corner_radius(border_style.border_bottom_left_radius, abs_bounds.size)
+            bottom_left: corner_radius(&border_style.border_bottom_left_radius, abs_bounds.size)
                 .to_layout(),
         },
     )
@@ -161,7 +161,7 @@ pub fn image_outset(
 }
 
 fn side_image_width(
-    border_image_width: BorderImageSideWidth,
+    border_image_width: &BorderImageSideWidth,
     border_width: f32,
     total_length: Au,
 ) -> f32 {
@@ -178,10 +178,10 @@ pub fn image_width(
     border_area: UntypedSize2D<Au>,
 ) -> LayoutSideOffsets {
     LayoutSideOffsets::new(
-        side_image_width(width.0, border.top, border_area.height),
-        side_image_width(width.1, border.right, border_area.width),
-        side_image_width(width.2, border.bottom, border_area.height),
-        side_image_width(width.3, border.left, border_area.width),
+        side_image_width(&width.0, border.top, border_area.height),
+        side_image_width(&width.1, border.right, border_area.width),
+        side_image_width(&width.2, border.bottom, border_area.height),
+        side_image_width(&width.3, border.left, border_area.width),
     )
 }
 

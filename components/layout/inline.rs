@@ -1275,7 +1275,7 @@ impl InlineFlow {
             &mut line_metrics,
             &inline_metrics,
             style.get_box().display,
-            VerticalAlign::baseline(),
+            &VerticalAlign::baseline(),
             &mut largest_block_size_for_top_fragments,
             &mut largest_block_size_for_bottom_fragments,
         );
@@ -1296,7 +1296,7 @@ impl InlineFlow {
                     &mut line_metrics,
                     &inline_metrics,
                     node.style.get_box().display,
-                    node.style.get_box().vertical_align,
+                    &node.style.get_box().vertical_align,
                     &mut largest_block_size_for_top_fragments,
                     &mut largest_block_size_for_bottom_fragments,
                 );
@@ -1318,7 +1318,7 @@ impl InlineFlow {
             line_metrics: &mut LineMetrics,
             inline_metrics: &InlineMetrics,
             display_value: Display,
-            vertical_align_value: VerticalAlign,
+            vertical_align_value: &VerticalAlign,
             largest_block_size_for_top_fragments: &mut Au,
             largest_block_size_for_bottom_fragments: &mut Au,
         ) {

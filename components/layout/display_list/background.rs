@@ -47,7 +47,7 @@ pub fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 /// For a given area and an image compute how big the
 /// image should be displayed on the background.
 fn compute_background_image_size(
-    bg_size: BackgroundSize,
+    bg_size: &BackgroundSize,
     bounds_size: Size2D<Au>,
     intrinsic_size: Option<Size2D<Au>>,
 ) -> Size2D<Au> {
@@ -156,7 +156,7 @@ pub fn placement(
     let bg_position_x = get_cyclic(&bg.background_position_x.0, index);
     let bg_position_y = get_cyclic(&bg.background_position_y.0, index);
     let bg_repeat = get_cyclic(&bg.background_repeat.0, index);
-    let bg_size = *get_cyclic(&bg.background_size.0, index);
+    let bg_size = get_cyclic(&bg.background_size.0, index);
 
     let (clip_rect, clip_radii) = clip(
         bg_clip,

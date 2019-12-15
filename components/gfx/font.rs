@@ -131,7 +131,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
         FontDescriptor {
             template_descriptor: FontTemplateDescriptor::from(style),
             variant: style.font_variant_caps,
-            pt_size: style.font_size.size(),
+            pt_size: Au::from_f32_px(style.font_size.size().px()),
         }
     }
 }
