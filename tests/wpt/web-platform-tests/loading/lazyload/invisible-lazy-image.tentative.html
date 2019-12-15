@@ -1,20 +1,26 @@
 <!DOCTYPE html>
 <head>
-  <title>Test that lazily loaded below the viewport invisible
-         images are not loaded</title>
+  <title>Test behavior of in viewport invisible lazy images</title>
   <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
 </head>
 
 <body>
-  <div style="height:10000px;"></div>
-  <img id="visibility_hidden" style="visibility:hidden;" src='resources/image.png?1' loading="lazy">
-  <img id="display_none" style="display:none;" src='resources/image.png?2' loading="lazy">
-  <img id="attribute_hidden" hidden src='resources/image.png?3' loading="lazy">
-  <img id="js_hidden" src='resources/image.png?4' loading="lazy">
+  <img id="expected" src='resources/image.png?1'>
+  <img id="visibility_hidden" style="visibility:hidden;"
+       src='resources/image.png?2&pipe=trickle(d1)' loading='lazy'
+       onload="visibility_hidden_img.resolve();" onerror="visibility_hidden_img.reject();">
+  <img id="display_none" style="display:none;" src='resources/image.png?3&pipe=trickle(d1)'
+       loading='lazy'
+       onload="display_none_img.resolve();" onerror="display_none_img.reject();">
+  <img id="attribute_hidden" hidden src='resources/image.png?4&pipe=trickle(d1)' loading='lazy'
+       onload="attribute_hidden_img.resolve();" onerror="attribute_hidden_img.reject();">
+  <img id="js_display_none" src='resources/image.png?5&pipe=trickle(d1)' loading='lazy'
+       onload="js_display_none_img.resolve();" onerror="js_display_none_img.reject();">
   <script>
-    document.getElementById("js_hidden").style = 'display:none;';
+    document.getElementById("js_display_none").style = 'display:none;';
   </script>
 </body>
 
@@ -23,41 +29,39 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
 -->
 
 <script>
-  const visibility_hidden_element = document.getElementById("visibility_hidden");
-  const display_none_element = document.getElementById("display_none");
-  const attribute_hidden_element = document.getElementById("attribute_hidden");
-  const js_hidden_element = document.getElementById("js_hidden");
+  const expected = document.getElementById("expected");
+  const visibility_hidden_img = new ElementLoadPromise("visibility_hidden");
+  const display_none_img = new ElementLoadPromise("display_none");
+  const attribute_hidden_img = new ElementLoadPromise("attribute_hidden");
+  const js_display_none_img = new ElementLoadPromise("js_display_none");
+
+  let has_window_loaded = false;
 
   async_test(function(t) {
-    visibility_hidden_element.onload = e => {
-      t.step(function() {
-        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
-      });
-    };
-    display_none_element.onload = e => {
-      t.step(function() {
-        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
-      });
-    };
-    attribute_hidden_element.onload = e => {
-      t.step(function() {
-        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
-      });
-    };
-    js_hidden_element.onload = e => {
-      t.step(function() {
-        t.unreached_func("Invisible image with loading=lazy should be loaded lazily.");
-      });
-    };
     window.addEventListener("load", t.step_func(function() {
-      visibility_hidden_element.scrollIntoView();
-      display_none_element.scrollIntoView();
-      attribute_hidden_element.scrollIntoView();
-      js_hidden_element.scrollIntoView();
+      has_window_loaded = true;
     }));
 
-    t.step_timeout(function() { t.done(); }, 2000);
-  }, "Test that lazily loaded below the viewport invisible images " +
-     "are not loaded");
+    display_none_img.promise.then(
+      t.unreached_func("The lazy image with display:none should not load since it is hidden.")
+    ).catch(t.unreached_func("The error event should not fire for lazy images with display none."));
+
+    attribute_hidden_img.promise.then(
+      t.unreached_func("The lazy image with attribute hidden should not load since it is hidden.")
+    ).catch(t.unreached_func("The error event should not fire for lazy image with attribute hidden."));
+
+    js_display_none_img.promise.then(
+      t.unreached_func("The lazy image with display:none set by JS should not load since it is hidden.")
+    ).catch(t.unreached_func("The error event should not fire for lazy image with display none set by JS."));
+
+    visibility_hidden_img.promise.then(
+      t.step_func(function() {
+        assert_true(is_image_fully_loaded(visibility_hidden_img.element(),
+                                          expected));
+        assert_true(has_window_loaded);
+        t.step_timeout(function() { t.done(); }, 2000);
+      })
+    ).catch(t.unreached_func("The error event should not fire for lazy image with visibility hidden."));
+  }, "Test behavior of in viewport invisible lazy images");
 </script>
 
