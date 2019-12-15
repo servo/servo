@@ -354,14 +354,14 @@ impl Path {
     }
 }
 
-fn create_gradient_stops(gradient_stops: Vec<GradientStop>) -> GradientStops {
+fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote::GradientStop> {
     let mut stops = gradient_stops
         .into_iter()
-        .map(|item| item.as_raqote().clone())
+        .map(|item| item.to_raqote())
         .collect::<Vec<raqote::GradientStop>>();
     // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
     stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
-    GradientStops::Raqote(stops)
+    stops
 }
 
 impl GenericDrawTarget for raqote::DrawTarget {
@@ -396,12 +396,22 @@ impl GenericDrawTarget for raqote::DrawTarget {
         dt.get_data_mut().copy_from_slice(s);
         raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
+    // TODO(pylbrecht)
+    // Somehow a duplicate of `create_gradient_stops()` with different types.
+    // It feels cumbersome to convert GradientStop back and forth just to use
+    // `create_gradient_stops()`, so I'll leave this here for now.
     fn create_gradient_stops(
         &self,
         gradient_stops: Vec<GradientStop>,
         _extend_mode: ExtendMode,
     ) -> GradientStops {
-        create_gradient_stops(gradient_stops)
+        let mut stops = gradient_stops
+            .into_iter()
+            .map(|item| item.as_raqote().clone())
+            .collect::<Vec<raqote::GradientStop>>();
+        // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
+        stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+        GradientStops::Raqote(stops)
     }
 
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
@@ -887,12 +897,7 @@ impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
             LinearGradient(style) => {
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let end = Point2D::new(style.x1 as f32, style.y1 as f32);
-                let mut stops = style
-                    .stops
-                    .iter()
-                    .map(|s| s.to_raqote())
-                    .collect::<Vec<raqote::GradientStop>>();
-                stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+                let stops = create_gradient_stops(style.stops);
                 Some(Pattern::LinearGradient(LinearGradientPattern::new(
                     start, end, stops,
                 )))
@@ -900,12 +905,7 @@ impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
             RadialGradient(style) => {
                 let center1 = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let center2 = Point2D::new(style.x1 as f32, style.y1 as f32);
-                let mut stops = style
-                    .stops
-                    .iter()
-                    .map(|s| s.to_raqote())
-                    .collect::<Vec<raqote::GradientStop>>();
-                stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+                let stops = create_gradient_stops(style.stops);
                 Some(Pattern::RadialGradient(RadialGradientPattern::new(
                     center1,
                     style.r0 as f32,
