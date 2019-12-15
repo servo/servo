@@ -35,6 +35,12 @@ packages = [
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
 
+  # Just needs a WR update.
+  "derive_more",
+
+  # Lots of crates to update.
+  "smallvec",
+
   # https://github.com/servo/servo/issues/24421
   "proc-macro2",
   "quote",
