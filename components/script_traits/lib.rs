@@ -450,7 +450,7 @@ pub enum DocumentState {
 
 /// For a given pipeline, whether any animations are currently running
 /// and any animation callbacks are queued
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum AnimationState {
     /// Animations are active but no callbacks are queued
     AnimationsPresent,

@@ -30,7 +30,9 @@ use net_traits::image_cache::ImageCache;
 use net_traits::{IpcSend, ResourceThreads};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
+use script_traits::{
+    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan,
+};
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
@@ -81,7 +83,7 @@ pub struct Pipeline {
 
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
-    pub running_animations: bool,
+    pub animation_state: AnimationState,
 
     /// The child browsing contexts of this pipeline (these are iframes in the document).
     pub children: Vec<BrowsingContextId>,
@@ -377,7 +379,7 @@ impl Pipeline {
             compositor_proxy: compositor_proxy,
             url: load_data.url.clone(),
             children: vec![],
-            running_animations: false,
+            animation_state: AnimationState::NoAnimationsPresent,
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
