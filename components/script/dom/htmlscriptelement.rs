@@ -38,7 +38,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder};
 use net_traits::ReferrerPolicy;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -491,7 +491,18 @@ impl HTMLScriptElement {
         // Step 16.
         let cors_setting = cors_setting_for_element(element);
 
-        // TODO: Step 17: Module script credentials mode.
+        // Step 17.
+        let credentials_mode = match script_type {
+            ScriptType::Classic => None,
+            ScriptType::Module => Some(reflect_cross_origin_attribute(element).map_or(
+                CredentialsMode::CredentialsSameOrigin,
+                |attr| match &*attr {
+                    "use-credentials" => CredentialsMode::Include,
+                    "anonymous" => CredentialsMode::CredentialsSameOrigin,
+                    _ => CredentialsMode::CredentialsSameOrigin,
+                },
+            )),
+        };
 
         // TODO: Step 18: Nonce.
 
@@ -583,6 +594,7 @@ impl HTMLScriptElement {
                         url.clone(),
                         Destination::Script,
                         integrity_metadata.to_owned(),
+                        credentials_mode.unwrap(),
                     );
 
                     if !r#async && was_parser_inserted {
@@ -637,6 +649,7 @@ impl HTMLScriptElement {
                         text.clone(),
                         base_url.clone(),
                         self.id.clone(),
+                        credentials_mode.unwrap(),
                     );
                 },
             }

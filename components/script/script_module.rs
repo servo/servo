@@ -55,7 +55,8 @@ use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
 use js::rust::{Handle, HandleValue};
-use net_traits::request::{Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
+use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -856,6 +857,8 @@ struct ModuleContext {
     url: ServoUrl,
     /// Destination of current module context
     destination: Destination,
+    /// Credentials Mode of current module context
+    credentials_mode: CredentialsMode,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// Timing object for this resource
@@ -986,6 +989,7 @@ impl FetchResponseListener for ModuleContext {
                         &self.owner,
                         &module_tree,
                         self.destination.clone(),
+                        self.credentials_mode.clone(),
                     );
 
                     // Resolve the request of this module tree promise directly
@@ -1096,6 +1100,7 @@ pub fn fetch_external_module_script(
     url: ServoUrl,
     destination: Destination,
     integrity_metadata: String,
+    credentials_mode: CredentialsMode,
 ) -> Rc<Promise> {
     // Step 1.
     fetch_single_module_script(
@@ -1105,6 +1110,7 @@ pub fn fetch_external_module_script(
         Referrer::Client,
         ParserMetadata::NotParserInserted,
         integrity_metadata,
+        credentials_mode,
         None,
         true,
     )
@@ -1118,6 +1124,7 @@ pub fn fetch_single_module_script(
     referrer: Referrer,
     parser_metadata: ParserMetadata,
     integrity_metadata: String,
+    credentials_mode: CredentialsMode,
     parent_url: Option<ServoUrl>,
     top_level_module_fetch: bool,
 ) -> Rc<Promise> {
@@ -1213,6 +1220,7 @@ pub fn fetch_single_module_script(
         .referrer(Some(referrer))
         .parser_metadata(parser_metadata)
         .integrity_metadata(integrity_metadata.clone())
+        .credentials_mode(credentials_mode)
         .mode(mode);
 
     let context = Arc::new(Mutex::new(ModuleContext {
@@ -1221,6 +1229,7 @@ pub fn fetch_single_module_script(
         metadata: None,
         url: url.clone(),
         destination: destination.clone(),
+        credentials_mode: credentials_mode.clone(),
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
@@ -1254,6 +1263,7 @@ pub fn fetch_inline_module_script(
     module_script_text: DOMString,
     url: ServoUrl,
     script_id: ScriptId,
+    credentials_mode: CredentialsMode,
 ) {
     let global = owner.global();
 
@@ -1270,8 +1280,12 @@ pub fn fetch_inline_module_script(
         Ok(record) => {
             module_tree.set_record(record);
 
-            let descendant_results =
-                fetch_module_descendants_and_link(&owner, &module_tree, Destination::Script);
+            let descendant_results = fetch_module_descendants_and_link(
+                &owner,
+                &module_tree,
+                Destination::Script,
+                credentials_mode,
+            );
 
             global.set_inline_module_map(script_id, module_tree);
 
@@ -1295,8 +1309,10 @@ fn fetch_module_descendants_and_link(
     owner: &ModuleOwner,
     module_tree: &ModuleTree,
     destination: Destination,
+    credentials_mode: CredentialsMode,
 ) -> Option<Rc<Promise>> {
-    let descendant_results = fetch_module_descendants(owner, module_tree, destination);
+    let descendant_results =
+        fetch_module_descendants(owner, module_tree, destination, credentials_mode);
 
     match descendant_results {
         Ok(descendants) => {
@@ -1364,6 +1380,7 @@ fn fetch_module_descendants(
     owner: &ModuleOwner,
     module_tree: &ModuleTree,
     destination: Destination,
+    credentials_mode: CredentialsMode,
 ) -> Result<Vec<Rc<Promise>>, ModuleError> {
     debug!("Start to load dependencies of {}", module_tree.url.clone());
 
@@ -1400,6 +1417,7 @@ fn fetch_module_descendants(
                         Referrer::Client,
                         ParserMetadata::NotParserInserted,
                         "".to_owned(),
+                        credentials_mode.clone(),
                         Some(module_tree.url.clone()),
                         false,
                     )
