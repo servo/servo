@@ -125,7 +125,9 @@ impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
-            Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
+            Msg::ChangeRunningAnimationsState(_, state) => {
+                write!(f, "ChangeRunningAnimationsState({:?})", state)
+            },
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),

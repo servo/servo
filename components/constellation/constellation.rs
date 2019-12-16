@@ -3144,11 +3144,16 @@ where
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) {
-        self.compositor_proxy
-            .send(ToCompositorMsg::ChangeRunningAnimationsState(
-                pipeline_id,
-                animation_state,
-            ))
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            if pipeline.animation_state != animation_state {
+                pipeline.animation_state = animation_state;
+                self.compositor_proxy
+                    .send(ToCompositorMsg::ChangeRunningAnimationsState(
+                        pipeline_id,
+                        animation_state,
+                    ))
+            }
+        }
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
