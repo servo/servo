@@ -274,7 +274,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 .downcast::<HTMLElement>()
                 .map_or(false, |c| c.is_listed_element())
             {
-                if child.has_attribute(&local_name!("id")) ||
+                if (child.has_attribute(&local_name!("id")) &&
+                    child.get_string_attribute(&local_name!("id")) == name) ||
                     (child.has_attribute(&local_name!("name")) &&
                         child.get_string_attribute(&local_name!("name")) == name)
                 {
@@ -286,7 +287,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
         if candidates.len() == 0 {
             for child in controls.iter() {
                 if child.is::<HTMLImageElement>() {
-                    if child.has_attribute(&local_name!("id")) ||
+                    if (child.has_attribute(&local_name!("id")) &&
+                        child.get_string_attribute(&local_name!("id")) == name) ||
                         (child.has_attribute(&local_name!("name")) &&
                             child.get_string_attribute(&local_name!("name")) == name)
                     {
@@ -459,13 +461,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 6
         sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
 
-        // Step 7
-        // Q1. Unable to clearly understand. It seems to contradict with step 4.
-
-        // Step 8
+        // Step 7-8
         let mut namesVec: Vec<DOMString> = Vec::new();
         for elem in sourcedNamesVec.iter() {
-            namesVec.push(elem.name.clone());
+            if namesVec
+                .iter()
+                .find(|name| name.to_string() == elem.name.to_string())
+                .is_none()
+            {
+                namesVec.push(elem.name.clone());
+            }
         }
 
         return namesVec;
