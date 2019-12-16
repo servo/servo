@@ -64,6 +64,13 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 
+use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
+use crate::dom::radionodelist::RadioNodeList;
+use std::collections::HashMap;
+use time::{now, Duration, Tm};
+
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
@@ -76,6 +83,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
+    past_names_map: DomRefCell<HashMap<DOMString, (Dom<Element>, Tm)>>,
 }
 
 impl HTMLFormElement {
@@ -91,6 +99,7 @@ impl HTMLFormElement {
             elements: Default::default(),
             generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
+            past_names_map: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -252,6 +261,219 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         let elements = self.Elements();
         elements.IndexedGetter(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
+    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+        let mut candidates: Vec<DomRoot<Node>> = Vec::new();
+
+        let controls = self.controls.borrow();
+        // Step 1
+        for child in controls.iter() {
+            if child
+                .downcast::<HTMLElement>()
+                .map_or(false, |c| c.is_listed_element())
+            {
+                if (child.has_attribute(&local_name!("id")) &&
+                    child.get_string_attribute(&local_name!("id")) == name) ||
+                    (child.has_attribute(&local_name!("name")) &&
+                        child.get_string_attribute(&local_name!("name")) == name)
+                {
+                    candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
+                }
+            }
+        }
+        // Step 2
+        if candidates.len() == 0 {
+            for child in controls.iter() {
+                if child.is::<HTMLImageElement>() {
+                    if (child.has_attribute(&local_name!("id")) &&
+                        child.get_string_attribute(&local_name!("id")) == name) ||
+                        (child.has_attribute(&local_name!("name")) &&
+                            child.get_string_attribute(&local_name!("name")) == name)
+                    {
+                        candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
+                    }
+                }
+            }
+        }
+
+        let mut past_names_map = self.past_names_map.borrow_mut();
+
+        // Step 3
+        if candidates.len() == 0 {
+            if past_names_map.contains_key(&name) {
+                return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+                    &*past_names_map.get(&name).unwrap().0,
+                )));
+            }
+            return None;
+        }
+
+        // Step 4
+        if candidates.len() > 1 {
+            let window = window_from_node(self);
+
+            return Some(RadioNodeListOrElement::RadioNodeList(
+                RadioNodeList::new_simple_list(&window, candidates.into_iter()),
+            ));
+        }
+
+        // Step 5
+        let element_node = &candidates[0];
+        past_names_map.insert(
+            name,
+            (
+                Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+                now(),
+            ),
+        );
+
+        // Step 6
+        return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+            &*element_node.downcast::<Element>().unwrap(),
+        )));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // Step 1
+        #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+        enum SourcedNameSource {
+            Id,
+            Name,
+            Past(Duration),
+        }
+
+        impl SourcedNameSource {
+            fn is_past(&self) -> bool {
+                match self {
+                    SourcedNameSource::Past(..) => true,
+                    _ => false,
+                }
+            }
+        }
+
+        struct SourcedName {
+            name: DOMString,
+            element: DomRoot<Element>,
+            source: SourcedNameSource,
+        }
+
+        let mut sourcedNamesVec: Vec<SourcedName> = Vec::new();
+
+        let controls = self.controls.borrow();
+
+        // Step 2
+        for child in controls.iter() {
+            if child
+                .downcast::<HTMLElement>()
+                .map_or(false, |c| c.is_listed_element())
+            {
+                if child.has_attribute(&local_name!("id")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Id,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+                if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Name,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // Step 3
+        for child in controls.iter() {
+            if child.is::<HTMLImageElement>() {
+                if child.has_attribute(&local_name!("id")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Id,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+                if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Name,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // Step 4
+        let past_names_map = self.past_names_map.borrow();
+        for (key, val) in past_names_map.iter() {
+            let entry = SourcedName {
+                name: key.clone(),
+                element: DomRoot::from_ref(&*val.0),
+                source: SourcedNameSource::Past(now() - val.1), // calculate difference now()-val.1 to find age
+            };
+            sourcedNamesVec.push(entry);
+        }
+
+        // Step 5
+        // TODO need to sort as per spec.
+        // if a.CompareDocumentPosition(b) returns 0 that means a=b in which case
+        // the remaining part where sorting is to be done by putting entries whose source is id first,
+        // then entries whose source is name, and finally entries whose source is past,
+        // and sorting entries with the same element and source by their age, oldest first.
+
+        // if a.CompareDocumentPosition(b) has set NodeConstants::DOCUMENT_POSITION_FOLLOWING
+        // (this can be checked by bitwise operations) then b would follow a in tree order and
+        // Ordering::Less should be returned in the closure else Ordering::Greater
+
+        sourcedNamesVec.sort_by(|a, b| {
+            if a.element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
+                0
+            {
+                if a.source.is_past() && b.source.is_past() {
+                    b.source.cmp(&a.source)
+                } else {
+                    a.source.cmp(&b.source)
+                }
+            } else {
+                if a.element
+                    .upcast::<Node>()
+                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                }
+            }
+        });
+
+        // Step 6
+        sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
+
+        // Step 7-8
+        let mut namesVec: Vec<DOMString> = Vec::new();
+        for elem in sourcedNamesVec.iter() {
+            if namesVec
+                .iter()
+                .find(|name| name.to_string() == elem.name.to_string())
+                .is_none()
+            {
+                namesVec.push(elem.name.clone());
+            }
+        }
+
+        return namesVec;
     }
 }
 

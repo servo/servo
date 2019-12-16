@@ -145,12 +145,14 @@ use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
-use time::{Duration, Timespec};
+use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{WebGPU, WebGPUAdapter, WebGPUDevice};
 use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 use webxr_api::SwapChainId as WebXRSwapChainId;
+
+unsafe_no_jsmanaged_fields!(Tm);
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
