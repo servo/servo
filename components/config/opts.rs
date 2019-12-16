@@ -487,10 +487,10 @@ fn default_user_agent_string(agent: UserAgent) -> &'static str {
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 10.0; rv:63.0) Servo/1.0 Firefox/63.0";
 
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
