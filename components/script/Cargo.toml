@@ -110,7 +110,7 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"
-uuid = {version = "0.8", features = ["v4"]}
+uuid = {version = "0.8", features = ["v4", "serde"]}
 xml5ever = "0.16"
 webdriver = "0.40"
 webgpu = {path = "../webgpu"}

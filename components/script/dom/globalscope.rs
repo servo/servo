@@ -46,7 +46,7 @@ use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
-use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -94,7 +94,6 @@ impl Drop for AutoCloseWorker {
 pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
-    next_worker_id: Cell<WorkerId>,
 
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
@@ -347,7 +346,6 @@ impl GlobalScope {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            next_worker_id: Cell::new(WorkerId(0)),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -924,14 +922,6 @@ impl GlobalScope {
 
     pub fn crypto(&self) -> DomRoot<Crypto> {
         self.crypto.or_init(|| Crypto::new(self))
-    }
-
-    /// Get next worker id.
-    pub fn get_next_worker_id(&self) -> WorkerId {
-        let worker_id = self.next_worker_id.get();
-        let WorkerId(id_num) = worker_id;
-        self.next_worker_id.set(WorkerId(id_num + 1));
-        worker_id
     }
 
     pub fn live_devtools_updates(&self) -> bool {

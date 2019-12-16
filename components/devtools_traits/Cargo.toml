@@ -20,3 +20,4 @@ msg = {path = "../msg"}
 serde = "1.0"
 servo_url = {path = "../url"}
 time = "0.1"
+uuid = {version = "0.8", features = ["v4", "serde"]}
