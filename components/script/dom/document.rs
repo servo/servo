@@ -38,7 +38,6 @@ use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
 use crate::dom::cdatasection::CDATASection;
-use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -52,7 +51,6 @@ use crate::dom::element::CustomElementCreationMode;
 use crate::dom::element::{
     Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit,
 };
-use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
@@ -81,9 +79,7 @@ use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowInc
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
-use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::progressevent::ProgressEvent;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::servoparser::ServoParser;
@@ -97,7 +93,6 @@ use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
-use crate::dom::webglcontextevent::WebGLContextEvent;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
@@ -3814,15 +3809,11 @@ impl DocumentMethods for Document {
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
                 CompositionEvent::new_uninitialized(&self.window),
             )),
-            "closeevent" => Ok(DomRoot::upcast(CloseEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
             ))),
-            "errorevent" => Ok(DomRoot::upcast(ErrorEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
+            // FIXME(#25136): devicemotionevent, deviceorientationevent
+            // FIXME(#7529): dragevent
             "events" | "event" | "htmlevents" | "svgevents" => {
                 Ok(Event::new_uninitialized(&self.window.upcast()))
             },
@@ -3839,15 +3830,6 @@ impl DocumentMethods for Document {
             "mouseevent" | "mouseevents" => {
                 Ok(DomRoot::upcast(MouseEvent::new_uninitialized(&self.window)))
             },
-            "pagetransitionevent" => Ok(DomRoot::upcast(PageTransitionEvent::new_uninitialized(
-                &self.window,
-            ))),
-            "popstateevent" => Ok(DomRoot::upcast(PopStateEvent::new_uninitialized(
-                &self.window,
-            ))),
-            "progressevent" => Ok(DomRoot::upcast(ProgressEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 &self.window,
                 "".into(),
@@ -3859,9 +3841,6 @@ impl DocumentMethods for Document {
                 &TouchList::new(&self.window, &[]),
             ))),
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(&self.window))),
-            "webglcontextevent" => Ok(DomRoot::upcast(WebGLContextEvent::new_uninitialized(
-                &self.window,
-            ))),
             _ => Err(Error::NotSupported),
         }
     }

@@ -33,14 +33,6 @@ impl CloseEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
-        reflect_dom_object(
-            Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
-            global,
-            CloseEventBinding::Wrap,
-        )
-    }
-
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
