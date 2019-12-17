@@ -1478,9 +1478,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         true
     }
 
-    pub fn perform_updates(&mut self) -> bool {
+    pub fn perform_updates(&mut self) {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            return false;
+            return;
         }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
@@ -1504,7 +1504,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }
-        self.shutdown_state != ShutdownState::FinishedShuttingDown
+
+        let frame_duration: u64 = precise_time_ns() - self.last_composite_time;
+        let frame_min_duration: u64 = 1_000_000_000 / 60;
+        if frame_min_duration > frame_duration {
+            let sleep_time: u64 = frame_min_duration - frame_duration;
+            std::thread::sleep(std::time::Duration::from_nanos(sleep_time));
+        }
+        self.last_composite_time = precise_time_ns();
     }
 
     /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
