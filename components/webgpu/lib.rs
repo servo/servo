@@ -36,6 +36,20 @@ pub enum WebGPURequest {
         wgpu::id::DeviceId,
     ),
     Exit(IpcSender<()>),
+    CreateBuffer(
+        IpcSender<WebGPUBuffer>,
+        WebGPUDevice,
+        wgpu::id::BufferId,
+        wgpu::resource::BufferDescriptor,
+    ),
+    CreateBufferMapped(
+        IpcSender<(WebGPUBuffer, Vec<u8>)>,
+        WebGPUDevice,
+        wgpu::id::BufferId,
+        wgpu::resource::BufferDescriptor,
+    ),
+    UnmapBuffer(WebGPUBuffer),
+    DestroyBuffer(WebGPUBuffer),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -152,6 +166,47 @@ impl WGPU {
                         )
                     }
                 },
+                WebGPURequest::CreateBuffer(sender, device, id, descriptor) => {
+                    let global = &self.global;
+                    let _output =
+                        gfx_select!(id => global.device_create_buffer(device.0, &descriptor, id));
+                    let buffer = WebGPUBuffer(id);
+                    if let Err(e) = sender.send(buffer) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateBuffer ({})",
+                            e
+                        )
+                    }
+                },
+                WebGPURequest::CreateBufferMapped(sender, device, id, descriptor) => {
+                    let global = &self.global;
+                    let mut arr_buff_ptr: *mut u8 = std::ptr::null_mut();
+                    let buffer_size = descriptor.size as usize;
+
+                    let _output = gfx_select!(id =>
+                        global.device_create_buffer_mapped(device.0, &descriptor, &mut arr_buff_ptr, id));
+                    let buffer = WebGPUBuffer(id);
+
+                    let mut array_buffer = Vec::with_capacity(buffer_size);
+                    unsafe {
+                        array_buffer.set_len(buffer_size);
+                        std::ptr::copy(arr_buff_ptr, array_buffer.as_mut_ptr(), buffer_size);
+                    };
+                    if let Err(e) = sender.send((buffer, array_buffer)) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateBufferMapped ({})",
+                            e
+                        )
+                    }
+                },
+                WebGPURequest::UnmapBuffer(buffer) => {
+                    let global = &self.global;
+                    let _output = gfx_select!(buffer.0 => global.buffer_unmap(buffer.0));
+                },
+                WebGPURequest::DestroyBuffer(buffer) => {
+                    let global = &self.global;
+                    let _output = gfx_select!(buffer.0 => global.buffer_destroy(buffer.0));
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -181,3 +236,4 @@ macro_rules! webgpu_resource {
 
 webgpu_resource!(WebGPUAdapter, wgpu::id::AdapterId);
 webgpu_resource!(WebGPUDevice, wgpu::id::DeviceId);
+webgpu_resource!(WebGPUBuffer, wgpu::id::BufferId);

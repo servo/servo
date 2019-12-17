@@ -28,7 +28,7 @@ use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::rc::Rc;
 use webgpu::wgpu::{
-    id::{AdapterId, DeviceId},
+    id::{AdapterId, BufferId, DeviceId},
     Backend,
 };
 
@@ -83,6 +83,10 @@ impl Navigator {
 
     pub fn create_device_id(&self, backend: Backend) -> DeviceId {
         self.gpu_id_hub.borrow_mut().create_device_id(backend)
+    }
+
+    pub fn create_buffer_id(&self, backend: Backend) -> BufferId {
+        self.gpu_id_hub.borrow_mut().create_buffer_id(backend)
     }
 }
 

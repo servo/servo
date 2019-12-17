@@ -6443,7 +6443,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/wgpu#4fdb54d33a38632ee111465e4c8282dc95994aa8"
+source = "git+https://github.com/gfx-rs/wgpu#6b097ab77a33d012e06f128f47ce74440f692d9f"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6460,7 +6460,7 @@ dependencies = [
  "rendy-descriptor",
  "rendy-memory",
  "serde",
- "smallvec 0.6.10",
+ "smallvec 1.0.0",
  "vec_map",
 ]
 
