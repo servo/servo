@@ -76,7 +76,7 @@ impl Flow for TableColGroupFlow {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
             for _ in 0..fragment.column_span() {
-                self.inline_sizes.push(inline_size)
+                self.inline_sizes.push(inline_size.clone())
             }
         }
     }

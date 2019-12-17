@@ -715,7 +715,7 @@ pub trait MatchMethods: TElement {
                 .map_or(true, |s| s.get_font().clone_font_size() != new_font_size)
             {
                 debug_assert!(self.owner_doc_matches_for_testing(device));
-                device.set_root_font_size(new_font_size.size());
+                device.set_root_font_size(new_font_size.size().into());
                 // If the root font-size changed since last time, and something
                 // in the document did use rem units, ensure we recascade the
                 // entire tree.

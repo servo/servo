@@ -29,7 +29,7 @@ pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
-    type ComputedValue = CSSPixelLength;
+    type ComputedValue = Length;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -75,9 +75,7 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(
-    Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue,
-)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -543,14 +541,14 @@ impl ToAnimatedValue for NonNegativeLengthPercentage {
 impl From<NonNegativeLength> for NonNegativeLengthPercentage {
     #[inline]
     fn from(length: NonNegativeLength) -> Self {
-        LengthPercentage::new(length.0, None).into()
+        NonNegative(LengthPercentage::new(length.0, None))
     }
 }
 
 impl From<LengthPercentage> for NonNegativeLengthPercentage {
     #[inline]
     fn from(lp: LengthPercentage) -> Self {
-        NonNegative::<LengthPercentage>(lp)
+        NonNegative(lp)
     }
 }
 

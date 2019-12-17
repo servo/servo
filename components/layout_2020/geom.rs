@@ -175,13 +175,18 @@ impl flow_relative::Vec2<MaxSize<LengthPercentage>> {
         containing_block: &ContainingBlock,
     ) -> flow_relative::Vec2<Option<Length>> {
         flow_relative::Vec2 {
-            inline: self
-                .inline
-                .to_option()
-                .map(|lp| lp.percentage_relative_to(containing_block.inline_size)),
-            block: self.block.to_option().and_then(|olp| {
-                olp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
-            }),
+            inline: match self.inline {
+                MaxSize::None => None,
+                MaxSize::LengthPercentage(ref lp) => {
+                    Some(lp.percentage_relative_to(containing_block.inline_size))
+                },
+            },
+            block: match self.block {
+                MaxSize::None => None,
+                MaxSize::LengthPercentage(ref lp) => {
+                    lp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
+                },
+            },
         }
     }
 }

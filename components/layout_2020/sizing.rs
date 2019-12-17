@@ -7,6 +7,7 @@
 use crate::style_ext::ComputedValuesExt;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::generics::length::MaxSize;
 use style::Zero;
 
 /// Which min/max-content values should be computed during box construction
@@ -114,11 +115,10 @@ impl BoxContentSizes {
             .inline
             .percentage_relative_to(Length::zero())
             .auto_is(Length::zero);
-        let max_inline_size = style
-            .max_box_size()
-            .inline
-            .to_option()
-            .and_then(|lp| lp.as_length());
+        let max_inline_size = match style.max_box_size().inline {
+            MaxSize::None => None,
+            MaxSize::LengthPercentage(ref lp) => lp.as_length(),
+        };
         let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
 
         // Percentages for 'width' are treated as 'auto'

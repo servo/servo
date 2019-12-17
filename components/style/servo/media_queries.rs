@@ -10,8 +10,8 @@ use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use crate::media_queries::media_feature_expression::RangeOrOperator;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
-use crate::values::computed::font::FontSize;
 use crate::values::computed::CSSPixelLength;
+use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
@@ -68,7 +68,7 @@ impl Device {
             viewport_size,
             device_pixel_ratio,
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
+            root_font_size: AtomicIsize::new(Au::from_px(FONT_MEDIUM_PX).0 as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
             environment: CssEnvironment,

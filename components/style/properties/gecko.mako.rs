@@ -426,7 +426,7 @@ def set_gecko_property(ffi_name, expr):
 
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}.clone();
         self.gecko.mContextFlags =
             (self.gecko.mContextFlags & !CONTEXT_VALUE) |
             (other.gecko.mContextFlags & CONTEXT_VALUE);
@@ -442,7 +442,7 @@ def set_gecko_property(ffi_name, expr):
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
-        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name})
+        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name}.clone())
     }
 </%def>
 
@@ -563,7 +563,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}.${index} =
-            other.gecko.${gecko_ffi_name}.${index};
+            other.gecko.${gecko_ffi_name}.${index}.clone();
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -572,7 +572,7 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        self.gecko.${gecko_ffi_name}.${index}
+        self.gecko.${gecko_ffi_name}.${index}.clone()
     }
 </%def>
 
@@ -601,7 +601,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}.${corner} =
-            other.gecko.${gecko_ffi_name}.${corner};
+            other.gecko.${gecko_ffi_name}.${corner}.clone();
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -609,7 +609,7 @@ def set_gecko_property(ffi_name, expr):
     }
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        self.gecko.${gecko_ffi_name}.${corner}
+        self.gecko.${gecko_ffi_name}.${corner}.clone()
     }
 </%def>
 
@@ -1134,7 +1134,7 @@ fn static_assert() {
     pub fn set_font_size(&mut self, v: FontSize) {
         use crate::values::specified::font::KeywordSize;
 
-        let size = v.size();
+        let size = Au::from(v.size());
         self.gecko.mScriptUnconstrainedSize = size.0;
 
         // These two may be changed from Cascade::fixup_font_stuff.
@@ -1852,7 +1852,7 @@ fn static_assert() {
         for (layer, other) in self.gecko.${layers_field_name}.mLayers.iter_mut()
                                   .zip(other.gecko.${layers_field_name}.mLayers.iter())
                                   .take(count as usize) {
-            layer.${field_name} = other.${field_name};
+            layer.${field_name} = other.${field_name}.clone();
         }
         self.gecko.${layers_field_name}.${field_name}Count = count;
     }
@@ -2006,7 +2006,7 @@ fn static_assert() {
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
                                   .take(count as usize) {
-            layer.mPosition.${keyword} = other.mPosition.${keyword};
+            layer.mPosition.${keyword} = other.mPosition.${keyword}.clone();
         }
         self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count = count;
     }
@@ -2020,7 +2020,7 @@ fn static_assert() {
         longhands::${shorthand}_position_${orientation}::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count as usize)
-                .map(|position| position.mPosition.${keyword})
+                .map(|position| position.mPosition.${keyword}.clone())
                 .collect()
         )
     }
@@ -2054,7 +2054,7 @@ fn static_assert() {
 
     pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         longhands::${shorthand}_size::computed_value::List(
-            self.gecko.${image_layers_field}.mLayers.iter().map(|layer| layer.mSize).collect()
+            self.gecko.${image_layers_field}.mLayers.iter().map(|layer| layer.mSize.clone()).collect()
         )
     }
 

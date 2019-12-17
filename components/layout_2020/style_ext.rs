@@ -55,9 +55,9 @@ impl ComputedValuesExt for ComputedValues {
     fn inline_size_is_length(&self) -> bool {
         let position = self.get_position();
         let size = if self.writing_mode.is_horizontal() {
-            position.width
+            &position.width
         } else {
-            position.height
+            &position.height
         };
         matches!(size, Size::LengthPercentage(lp) if lp.0.as_length().is_some())
     }
@@ -65,21 +65,21 @@ impl ComputedValuesExt for ComputedValues {
     fn inline_box_offsets_are_both_non_auto(&self) -> bool {
         let position = self.get_position();
         let (a, b) = if self.writing_mode.is_horizontal() {
-            (position.left, position.right)
+            (&position.left, &position.right)
         } else {
-            (position.top, position.bottom)
+            (&position.top, &position.bottom)
         };
-        a != LengthPercentageOrAuto::Auto && b != LengthPercentageOrAuto::Auto
+        !a.is_auto() && !b.is_auto()
     }
 
     #[inline]
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
         let position = self.get_position();
         physical::Sides {
-            top: position.top,
-            left: position.left,
-            bottom: position.bottom,
-            right: position.right,
+            top: position.top.clone(),
+            left: position.left.clone(),
+            bottom: position.bottom.clone(),
+            right: position.right.clone(),
         }
         .to_flow_relative(self.writing_mode)
     }
@@ -88,8 +88,8 @@ impl ComputedValuesExt for ComputedValues {
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
         physical::Vec2 {
-            x: size_to_length(position.width),
-            y: size_to_length(position.height),
+            x: size_to_length(position.width.clone()),
+            y: size_to_length(position.height.clone()),
         }
         .size_to_flow_relative(self.writing_mode)
     }
@@ -98,8 +98,8 @@ impl ComputedValuesExt for ComputedValues {
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
         physical::Vec2 {
-            x: size_to_length(position.min_width),
-            y: size_to_length(position.min_height),
+            x: size_to_length(position.min_width.clone()),
+            y: size_to_length(position.min_height.clone()),
         }
         .size_to_flow_relative(self.writing_mode)
     }
@@ -112,8 +112,8 @@ impl ComputedValuesExt for ComputedValues {
         };
         let position = self.get_position();
         physical::Vec2 {
-            x: unwrap(position.max_width),
-            y: unwrap(position.max_height),
+            x: unwrap(position.max_width.clone()),
+            y: unwrap(position.max_height.clone()),
         }
         .size_to_flow_relative(self.writing_mode)
     }
@@ -122,10 +122,10 @@ impl ComputedValuesExt for ComputedValues {
     fn padding(&self) -> flow_relative::Sides<LengthPercentage> {
         let padding = self.get_padding();
         physical::Sides {
-            top: padding.padding_top.0,
-            left: padding.padding_left.0,
-            bottom: padding.padding_bottom.0,
-            right: padding.padding_right.0,
+            top: padding.padding_top.0.clone(),
+            left: padding.padding_left.0.clone(),
+            bottom: padding.padding_bottom.0.clone(),
+            right: padding.padding_right.0.clone(),
         }
         .to_flow_relative(self.writing_mode)
     }
@@ -144,10 +144,10 @@ impl ComputedValuesExt for ComputedValues {
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
         let margin = self.get_margin();
         physical::Sides {
-            top: margin.margin_top,
-            left: margin.margin_left,
-            bottom: margin.margin_bottom,
-            right: margin.margin_right,
+            top: margin.margin_top.clone(),
+            left: margin.margin_left.clone(),
+            bottom: margin.margin_bottom.clone(),
+            right: margin.margin_right.clone(),
         }
         .to_flow_relative(self.writing_mode)
     }
@@ -180,7 +180,9 @@ impl From<stylo::Display> for Display {
 
 fn size_to_length(size: Size) -> LengthPercentageOrAuto {
     match size {
-        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(length.0),
+        Size::LengthPercentage(length) => {
+            LengthPercentageOrAuto::LengthPercentage(length.0.clone())
+        },
         Size::Auto => LengthPercentageOrAuto::Auto,
     }
 }

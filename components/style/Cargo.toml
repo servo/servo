@@ -35,7 +35,7 @@ bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.27"
 crossbeam-channel = { version = "0.3", optional = true }
-derive_more = "0.13"
+derive_more = "0.99"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
 euclid = "0.20"
@@ -66,7 +66,7 @@ servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
 smallbitvec = "2.3.0"
-smallvec = "0.6.6"
+smallvec = "1.0"
 string_cache = { version = "0.8", optional = true }
 style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}

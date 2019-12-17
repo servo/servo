@@ -698,7 +698,7 @@ where
             }
         }
 
-        sibling_invalidations.extend(new_sibling_invalidations.drain());
+        sibling_invalidations.extend(new_sibling_invalidations.drain(..));
         invalidated_self
     }
 

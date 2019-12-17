@@ -1013,7 +1013,7 @@ impl Stylist {
             );
             if !declarations.is_empty() {
                 let rule_node = self.rule_tree.insert_ordered_rules_with_important(
-                    declarations.drain().map(|a| a.for_rule_tree()),
+                    declarations.drain(..).map(|a| a.for_rule_tree()),
                     guards,
                 );
                 if rule_node != *self.rule_tree.root() {
@@ -1889,16 +1889,31 @@ impl CascadeData {
         self.host_rules.as_ref().and_then(|d| d.rules(pseudo))
     }
 
+    /// Whether there's any host rule that could match in this scope.
+    pub fn any_host_rules(&self) -> bool {
+        self.host_rules.is_some()
+    }
+
     /// Returns the slotted rule map for a given pseudo-element.
     #[inline]
     pub fn slotted_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
         self.slotted_rules.as_ref().and_then(|d| d.rules(pseudo))
     }
 
+    /// Whether there's any ::slotted rule that could match in this scope.
+    pub fn any_slotted_rule(&self) -> bool {
+        self.slotted_rules.is_some()
+    }
+
     /// Returns the parts rule map for a given pseudo-element.
     #[inline]
     pub fn part_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&PartMap> {
         self.part_rules.as_ref().and_then(|d| d.rules(pseudo))
+    }
+
+    /// Whether there's any ::part rule that could match in this scope.
+    pub fn any_part_rule(&self) -> bool {
+        self.part_rules.is_some()
     }
 
     /// Collects all the applicable media query results into `results`.

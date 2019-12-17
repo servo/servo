@@ -80,6 +80,7 @@ pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
+pub use self::text::TextUnderlinePosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};

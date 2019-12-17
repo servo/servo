@@ -2029,7 +2029,7 @@ impl BlockFlow {
         // If `max-width` is set, then don't perform this speculation. We guess that the
         // page set `max-width` in order to avoid hitting floats. The search box on Google
         // SERPs falls into this category.
-        if self.fragment.style.max_inline_size() != MaxSize::None {
+        if !matches!(self.fragment.style.max_inline_size(), MaxSize::None) {
             return;
         }
 
@@ -2548,8 +2548,16 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().inline_start == LengthPercentageOrAuto::Auto &&
-            self.fragment.style().logical_position().inline_end == LengthPercentageOrAuto::Auto
+            self.fragment
+                .style()
+                .logical_position()
+                .inline_start
+                .is_auto() &&
+            self.fragment
+                .style()
+                .logical_position()
+                .inline_end
+                .is_auto()
         {
             self.base.position.start.i = inline_position
         }
@@ -2560,8 +2568,12 @@ impl Flow for BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
-            self.fragment.style().logical_position().block_start == LengthPercentageOrAuto::Auto &&
-            self.fragment.style().logical_position().block_end == LengthPercentageOrAuto::Auto
+            self.fragment
+                .style()
+                .logical_position()
+                .block_start
+                .is_auto() &&
+            self.fragment.style().logical_position().block_end.is_auto()
         {
             self.base.position.start.b = block_position
         }
@@ -2848,16 +2860,15 @@ pub trait ISizeAndMarginsComputer {
         parent_flow_inline_size: Au,
         shared_context: &SharedStyleContext,
     ) -> MaybeAuto {
+        let inline_size =
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
+
         MaybeAuto::from_option(
             block
                 .fragment()
                 .style()
                 .content_inline_size()
-                .to_used_value(self.containing_block_inline_size(
-                    block,
-                    parent_flow_inline_size,
-                    shared_context,
-                )),
+                .to_used_value(inline_size),
         )
     }
 

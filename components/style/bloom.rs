@@ -216,7 +216,7 @@ impl<E: TElement> StyleBloom<E> {
             self.filter.clear();
             self.pushed_hashes.clear();
         } else {
-            for hash in self.pushed_hashes.drain() {
+            for hash in self.pushed_hashes.drain(..) {
                 self.filter.remove_hash(hash);
             }
             debug_assert!(self.filter.is_zeroed());
@@ -233,7 +233,7 @@ impl<E: TElement> StyleBloom<E> {
             element = parent;
         }
 
-        for parent in parents_to_insert.drain().rev() {
+        for parent in parents_to_insert.drain(..).rev() {
             self.push(parent);
         }
     }
@@ -374,7 +374,7 @@ impl<E: TElement> StyleBloom<E> {
 
         // Now the parents match, so insert the stack of elements we have been
         // collecting so far.
-        for parent in parents_to_insert.drain().rev() {
+        for parent in parents_to_insert.drain(..).rev() {
             self.push(parent);
         }
 

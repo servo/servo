@@ -59,6 +59,7 @@ pub use self::rules_iterator::{AllRules, EffectiveRules};
 pub use self::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
 pub use self::style_rule::StyleRule;
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
+pub use self::stylesheet::{SanitizationData, SanitizationKind};
 pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;

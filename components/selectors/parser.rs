@@ -52,6 +52,9 @@ pub trait NonTSPseudoClass: Sized + ToCss {
     ///
     /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
     fn is_user_action_state(&self) -> bool;
+
+    /// Whether this pseudo-class has zero specificity.
+    fn has_zero_specificity(&self) -> bool;
 }
 
 /// Returns a Cow::Borrowed if `s` is already ASCII lowercase, and a
@@ -2335,6 +2338,11 @@ pub mod tests {
         #[inline]
         fn is_user_action_state(&self) -> bool {
             self.is_active_or_hover()
+        }
+
+        #[inline]
+        fn has_zero_specificity(&self) -> bool {
+            false
         }
     }
 

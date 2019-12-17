@@ -348,7 +348,8 @@ where
                 return;
             }
 
-            let outer_shadow = inner_shadow.host().containing_shadow();
+            let inner_shadow_host = inner_shadow.host();
+            let outer_shadow = inner_shadow_host.containing_shadow();
             let part_rules = match outer_shadow {
                 Some(shadow) => shadow
                     .style_data()
@@ -386,8 +387,6 @@ where
                 sort_rules_from(rules, start);
                 shadow_cascade_order.inc();
             }
-
-            let inner_shadow_host = inner_shadow.host();
 
             inner_shadow = match outer_shadow {
                 Some(s) => s,

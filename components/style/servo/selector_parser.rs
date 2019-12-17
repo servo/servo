@@ -309,6 +309,11 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
             NonTSPseudoClass::Active | NonTSPseudoClass::Hover | NonTSPseudoClass::Focus
         )
     }
+
+    #[inline]
+    fn has_zero_specificity(&self) -> bool {
+        false
+    }
 }
 
 impl ToCss for NonTSPseudoClass {

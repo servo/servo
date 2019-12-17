@@ -995,7 +995,7 @@ impl Fragment {
                     };
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                GradientKind::Radial(shape, center) => {
+                GradientKind::Radial(ref shape, ref center) => {
                     let (gradient, stops) = gradient::radial(
                         style,
                         placement.tile_size,
@@ -1238,7 +1238,7 @@ impl Fragment {
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
-                GradientKind::Radial(shape, center) => {
+                GradientKind::Radial(ref shape, ref center) => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
                         border_image_area,

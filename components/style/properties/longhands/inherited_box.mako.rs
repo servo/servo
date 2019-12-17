@@ -16,6 +16,7 @@ ${helpers.single_keyword(
     gecko_ffi_name="mVisible",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-box/#propdef-visibility",
+    gecko_enum_prefix="StyleVisibility",
 )}
 
 // CSS Writing Modes Level 3

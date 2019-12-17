@@ -1433,7 +1433,7 @@ fn report_css_errors(
     selectors: Option<&SelectorList<SelectorImpl>>,
     errors: &mut SmallParseErrorVec,
 ) {
-    for (error, slice, property) in errors.drain() {
+    for (error, slice, property) in errors.drain(..) {
         report_one_css_error(context, Some(block), selectors, error, slice, property)
     }
 }

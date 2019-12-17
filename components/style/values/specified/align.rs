@@ -691,11 +691,11 @@ fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, Pars
         "first" => {
             input.expect_ident_matching("baseline")?;
             Ok(AlignFlags::BASELINE)
-        }
+        },
         "last" => {
             input.expect_ident_matching("baseline")?;
             Ok(AlignFlags::LAST_BASELINE)
-        }
+        },
     }
 }
 
@@ -794,7 +794,7 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
                 .unwrap_or(AlignFlags::empty());
 
             return Ok(AlignFlags::LEGACY | flags)
-        }
+        },
         "left" => AlignFlags::LEFT,
         "right" => AlignFlags::RIGHT,
         "center" => AlignFlags::CENTER,

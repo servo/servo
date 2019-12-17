@@ -193,18 +193,18 @@ impl PseudoElement {
             % for pseudo in SIMPLE_PSEUDOS:
             "${pseudo.value[1:]}" => {
                 return Some(${pseudo_element_variant(pseudo)})
-            }
+            },
             % endfor
             // Alias some legacy prefixed pseudos to their standardized name at parse time:
             "-moz-selection" => {
                 return Some(PseudoElement::Selection);
-            }
+            },
             "-moz-placeholder" => {
                 return Some(PseudoElement::Placeholder);
-            }
+            },
             "-moz-list-bullet" | "-moz-list-number" => {
                 return Some(PseudoElement::Marker);
-            }
+            },
             _ => {
                 if starts_with_ignore_ascii_case(name, "-moz-tree-") {
                     return PseudoElement::tree_pseudo_element(name, Box::new([]))

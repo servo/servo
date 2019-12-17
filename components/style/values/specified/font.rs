@@ -20,7 +20,6 @@ use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
-use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -773,18 +772,18 @@ impl ToComputedValue for KeywordSize {
     type ComputedValue = NonNegativeLength;
     #[inline]
     fn to_computed_value(&self, _: &Context) -> NonNegativeLength {
+        let medium = Length::new(FONT_MEDIUM_PX as f32);
         // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-        match *self {
-            KeywordSize::XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
-            KeywordSize::XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-            KeywordSize::Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-            KeywordSize::Medium => Au::from_px(FONT_MEDIUM_PX),
-            KeywordSize::Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-            KeywordSize::XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-            KeywordSize::XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
-            KeywordSize::XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-        }
-        .into()
+        NonNegative(match *self {
+            KeywordSize::XXSmall => medium * 3.0 / 5.0,
+            KeywordSize::XSmall => medium * 3.0 / 4.0,
+            KeywordSize::Small => medium * 8.0 / 9.0,
+            KeywordSize::Medium => medium,
+            KeywordSize::Large => medium * 6.0 / 5.0,
+            KeywordSize::XLarge => medium * 3.0 / 2.0,
+            KeywordSize::XXLarge => medium * 2.0,
+            KeywordSize::XXXLarge => medium * 3.0,
+        })
     }
 
     #[inline]
@@ -799,7 +798,6 @@ impl ToComputedValue for KeywordSize {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
         use crate::context::QuirksMode;
-        use crate::values::specified::length::au_to_int_px;
 
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
@@ -850,22 +848,21 @@ impl ToComputedValue for KeywordSize {
             Atom::with(gecko_font.mLanguage.mRawPtr, |atom| {
                 cx.font_metrics_provider
                     .get_size(atom, gecko_font.mGenericID)
-                    .0
             })
         };
 
-        let base_size_px = au_to_int_px(base_size as f32);
+        let base_size_px = base_size.px().round() as i32;
         let html_size = self.html_size() as usize;
-        if base_size_px >= 9 && base_size_px <= 16 {
+        NonNegative(if base_size_px >= 9 && base_size_px <= 16 {
             let mapping = if cx.quirks_mode == QuirksMode::Quirks {
                 QUIRKS_FONT_SIZE_MAPPING
             } else {
                 FONT_SIZE_MAPPING
             };
-            Au::from_px(mapping[(base_size_px - 9) as usize][html_size]).into()
+            Length::new(mapping[(base_size_px - 9) as usize][html_size] as f32)
         } else {
-            Au(FONT_SIZE_FACTORS[html_size] * base_size / 100).into()
-        }
+            base_size * FONT_SIZE_FACTORS[html_size] as f32 / 100.0
+        })
     }
 
     #[inline]
@@ -927,7 +924,7 @@ impl FontSize {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
-                base_size.resolve(context).scale_by(pc.0).into()
+                base_size.resolve(context) * pc.0
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let parent = context.style().get_parent_font().clone_font_size();
@@ -964,7 +961,7 @@ impl FontSize {
                 // others should reject negatives during parsing. But SMIL
                 // allows parsing negatives, and relies on us _not_ doing that
                 // clamping. That's so bonkers :(
-                CSSPixelLength::from(calc.to_used_value(base_size.resolve(context)))
+                calc.percentage_relative_to(base_size.resolve(context))
                     .clamp_to_non_negative()
             },
             FontSize::Keyword(i) => {

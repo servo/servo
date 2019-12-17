@@ -180,7 +180,7 @@ fn top_down_dom<'a, 'scope, E, D>(
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
                 traverse_nodes(
-                    discovered_child_nodes.drain(),
+                    discovered_child_nodes.drain(..),
                     DispatchMode::NotTailCall,
                     recursion_ok,
                     root,
@@ -210,7 +210,7 @@ fn top_down_dom<'a, 'scope, E, D>(
     if !discovered_child_nodes.is_empty() {
         traversal_data.current_dom_depth += 1;
         traverse_nodes(
-            discovered_child_nodes.drain(),
+            discovered_child_nodes.drain(..),
             DispatchMode::TailCall,
             recursion_ok,
             root,

@@ -23,13 +23,13 @@ bench = []
 bitflags = "1.0"
 matches = "0.1"
 cssparser = "0.27"
-derive_more = "0.13"
+derive_more = "0.99"
 log = "0.4"
 fxhash = "0.2"
 phf = "0.8"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
-smallvec = "0.6"
+smallvec = "1.0"
 thin-slice = "0.1.0"
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }

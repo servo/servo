@@ -11,10 +11,9 @@ use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
-use crate::values::computed::font::FontSize;
+use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::{CustomIdent, KeyframesName};
-use app_units::Au;
-use app_units::AU_PER_PX;
+use app_units::{Au, AU_PER_PX};
 use cssparser::RGBA;
 use euclid::default::Size2D;
 use euclid::Scale;
@@ -87,7 +86,7 @@ impl Device {
             document,
             default_values: ComputedValues::default_values(doc),
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
+            root_font_size: AtomicIsize::new(Au::from_px(FONT_MEDIUM_PX as i32).0 as isize),
             body_text_color: AtomicUsize::new(prefs.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
