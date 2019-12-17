@@ -70,6 +70,18 @@
   }, 'NDEFRecord constructor with custom record ids');
 
   test(() => {
+    const record = new NDEFRecord(createRecord('empty'));
+    assert_equals(record.recordType, 'empty', 'recordType');
+    assert_equals(record.mediaType, null, 'mediaType');
+    assert_equals(record.id, null, 'id');
+    assert_equals(record.encoding, null, 'encoding');
+    assert_equals(record.lang, null, 'lang');
+    assert_equals(record.data, null, 'data');
+    assert_throws('NotSupportedError', () => record.toRecords(),
+        'Only smart-poster records and external type records could have embedded records.');
+  }, 'NDEFRecord constructor with empty record type');
+
+  test(() => {
     const record = new NDEFRecord(createTextRecord(test_text_data));
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
