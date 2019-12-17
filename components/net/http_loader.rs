@@ -24,11 +24,8 @@ use headers::{
 };
 use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
 use headers::{CacheControl, ContentEncoding, ContentLength};
-use headers::{
-    Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
-};
+use headers::{IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
 use http::header::{self, HeaderName, HeaderValue};
-use http::uri::Authority;
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
@@ -995,24 +992,7 @@ fn http_network_or_cache_fetch(
 
     // Step 5.16
     let current_url = http_request.current_url();
-    if let Ok(host) = format!(
-        "{}{}",
-        current_url.host_str().unwrap(),
-        current_url
-            .port()
-            .map(|v| format!(":{}", v))
-            .unwrap_or("".into())
-    )
-    .parse::<Authority>()
-    .map(Host::from)
-    {
-        http_request.headers.typed_insert(host);
-    } else {
-        // This error should only happen in cases where hyper and rust-url disagree
-        // about how to parse an authority.
-        // https://github.com/servo/servo/issues/24175
-        error!("Failed to parse {} as authority", current_url);
-    }
+    http_request.headers.remove(header::HOST);
 
     // unlike http_loader, we should not set the accept header
     // here, according to the fetch spec
@@ -1434,7 +1414,7 @@ fn http_network_fetch(
     };
 
     if log_enabled!(log::Level::Info) {
-        info!("response for {}", url);
+        info!("{:?} response for {}", res.version(), url);
         for header in res.headers().iter() {
             info!(" - {:?}", header);
         }

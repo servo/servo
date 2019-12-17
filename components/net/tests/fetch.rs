@@ -14,11 +14,8 @@ use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
 use headers::{AccessControlAllowMethods, AccessControlMaxAge, HeaderMapExt};
-use headers::{
-    CacheControl, ContentLength, ContentType, Expires, Host, LastModified, Pragma, UserAgent,
-};
+use headers::{CacheControl, ContentLength, ContentType, Expires, LastModified, Pragma, UserAgent};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use http::uri::Authority;
 use http::{Method, StatusCode};
 use hyper::body::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
@@ -1067,11 +1064,6 @@ fn test_fetch_with_devtools() {
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
     );
-    headers.typed_insert(Host::from(
-        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
-            .parse::<Authority>()
-            .unwrap(),
-    ));
 
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
 
