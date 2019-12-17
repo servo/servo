@@ -43,6 +43,9 @@ webgl-backtrace = false
 # that triggered it.
 dom-backtrace = false
 
+# Default to the “2020” implementation of CSS layout instead of the “2013” one.
+layout-2020 = false
+
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"
 

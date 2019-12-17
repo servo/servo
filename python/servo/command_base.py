@@ -324,6 +324,7 @@ class CommandBase(object):
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
+        self.config["build"].setdefault("layout-2020", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
@@ -850,6 +851,7 @@ install them, let us know by filing a bug!")
             ),
             CommandArgument('--with-raqote', default=None, action='store_true'),
             CommandArgument('--with-layout-2020', default=None, action='store_true'),
+            CommandArgument('--with-layout-2013', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
         ]
 
@@ -888,7 +890,8 @@ install them, let us know by filing a bug!")
         env=None, verbose=False,
         target=None, android=False, magicleap=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
-        with_frame_pointer=False, with_raqote=False, with_layout_2020=False, without_wgl=False,
+        with_frame_pointer=False, with_raqote=False, without_wgl=False,
+        with_layout_2020=False, with_layout_2013=False,
         uwp=False, media_stack=None,
     ):
         env = env or self.build_env()
@@ -928,7 +931,7 @@ install them, let us know by filing a bug!")
             features.append("canvas2d-raqote")
         elif "canvas2d-raqote" not in features:
             features.append("canvas2d-azure")
-        if with_layout_2020 and "layout-2013" not in features:
+        if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
             features.append("layout-2020")
         elif "layout-2020" not in features:
             features.append("layout-2013")
