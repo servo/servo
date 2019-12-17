@@ -7,10 +7,7 @@ use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::methods::{
-    is_cors_safelisted_method, is_cors_safelisted_request_header, main_fetch,
-};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target};
+use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::AuthCache;
@@ -38,6 +35,7 @@ use hyper_serde::Serde;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
+use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestBuilder, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};

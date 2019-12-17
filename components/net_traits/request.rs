@@ -7,6 +7,7 @@ use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
 use http::HeaderMap;
 use hyper::Method;
+use mime::Mime;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -467,5 +468,107 @@ impl Referrer {
             Referrer::NoReferrer | Referrer::Client => None,
             Referrer::ReferrerUrl(ref url) => Some(url),
         }
+    }
+}
+
+// https://fetch.spec.whatwg.org/#cors-unsafe-request-header-byte
+// TODO: values in the control-code range are being quietly stripped out by
+// HeaderMap and never reach this function to be loudly rejected!
+fn is_cors_unsafe_request_header_byte(value: &u8) -> bool {
+    match value {
+        0x00..=0x08 |
+        0x10..=0x19 |
+        0x22 |
+        0x28 |
+        0x29 |
+        0x3A |
+        0x3C |
+        0x3E |
+        0x3F |
+        0x40 |
+        0x5B |
+        0x5C |
+        0x5D |
+        0x7B |
+        0x7D |
+        0x7F => true,
+        _ => false,
+    }
+}
+
+// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+// subclause `accept`
+fn is_cors_safelisted_request_accept(value: &[u8]) -> bool {
+    !(value.iter().any(is_cors_unsafe_request_header_byte))
+}
+
+// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+// subclauses `accept-language`, `content-language`
+fn is_cors_safelisted_language(value: &[u8]) -> bool {
+    value.iter().all(|&x| match x {
+        0x30..=0x39 |
+        0x41..=0x5A |
+        0x61..=0x7A |
+        0x20 |
+        0x2A |
+        0x2C |
+        0x2D |
+        0x2E |
+        0x3B |
+        0x3D => true,
+        _ => false,
+    })
+}
+
+// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+// subclause `content-type`
+fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
+    // step 1
+    if value.iter().any(is_cors_unsafe_request_header_byte) {
+        return false;
+    }
+    // step 2
+    let value_string = if let Ok(s) = std::str::from_utf8(value) {
+        s
+    } else {
+        return false;
+    };
+    let value_mime_result: Result<Mime, _> = value_string.parse();
+    match value_mime_result {
+        Err(_) => false, // step 3
+        Ok(value_mime) => match (value_mime.type_(), value_mime.subtype()) {
+            (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
+            (mime::MULTIPART, mime::FORM_DATA) |
+            (mime::TEXT, mime::PLAIN) => true,
+            _ => false, // step 4
+        },
+    }
+}
+
+// TODO: "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
+// ... once parsed, the value should not be failure.
+// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
+    name: &N,
+    value: &V,
+) -> bool {
+    let name: &str = name.as_ref();
+    let value: &[u8] = value.as_ref();
+    if value.len() > 128 {
+        return false;
+    }
+    match name {
+        "accept" => is_cors_safelisted_request_accept(value),
+        "accept-language" | "content-language" => is_cors_safelisted_language(value),
+        "content-type" => is_cors_safelisted_request_content_type(value),
+        _ => false,
+    }
+}
+
+/// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
+pub fn is_cors_safelisted_method(m: &Method) -> bool {
+    match *m {
+        Method::GET | Method::HEAD | Method::POST => true,
+        _ => false,
     }
 }

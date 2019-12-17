@@ -12,15 +12,17 @@ use content_security_policy as csp;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
-use http::header::{self, HeaderMap, HeaderName, HeaderValue};
+use http::header::{self, HeaderMap, HeaderName};
 use hyper::Method;
 use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::RelativePos;
+use net_traits::request::{
+    is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
+};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
-use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::{ResourceAttribute, ResourceTimeValue};
@@ -790,31 +792,6 @@ fn scheme_fetch(
         },
 
         _ => Response::network_error(NetworkError::Internal("Unexpected scheme".into())),
-    }
-}
-
-/// <https://fetch.spec.whatwg.org/#cors-safelisted-request-header>
-pub fn is_cors_safelisted_request_header(name: &HeaderName, value: &HeaderValue) -> bool {
-    if name == header::CONTENT_TYPE {
-        if let Some(m) = value.to_str().ok().and_then(|s| s.parse::<Mime>().ok()) {
-            m.type_() == mime::TEXT && m.subtype() == mime::PLAIN ||
-                m.type_() == mime::APPLICATION && m.subtype() == mime::WWW_FORM_URLENCODED ||
-                m.type_() == mime::MULTIPART && m.subtype() == mime::FORM_DATA
-        } else {
-            false
-        }
-    } else {
-        name == header::ACCEPT ||
-            name == header::ACCEPT_LANGUAGE ||
-            name == header::CONTENT_LANGUAGE
-    }
-}
-
-/// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
-pub fn is_cors_safelisted_method(m: &Method) -> bool {
-    match *m {
-        Method::GET | Method::HEAD | Method::POST => true,
-        _ => false,
     }
 }
 
