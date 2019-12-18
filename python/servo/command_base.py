@@ -929,8 +929,8 @@ install them, let us know by filing a bug!")
             features.append("egl")
         if with_raqote and "canvas2d-azure" not in features:
             features.append("canvas2d-raqote")
-        elif "canvas2d-raqote" not in features:
-            features.append("canvas2d-azure")
+        elif "canvas2d-azure" not in features:
+            features.append("canvas2d-raqote")
         if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
             features.append("layout-2020")
         elif "layout-2020" not in features:

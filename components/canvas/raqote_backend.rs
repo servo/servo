@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::canvas_data;
 use crate::canvas_data::{
     Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
-    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, Pattern,
-    SourceSurface, StrokeOptions, SurfaceFormat,
+    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface,
+    StrokeOptions, SurfaceFormat,
 };
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
@@ -26,11 +27,26 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>> {
+    fn size_from_pattern(
+        &self,
+        rect: &Rect<f32>,
+        pattern: &canvas_data::Pattern,
+    ) -> Option<Size2D<f32>> {
         match pattern {
-            Pattern::Raqote(raqote::Source::Image(image, extend, ..)) => match extend {
-                raqote::ExtendMode::Repeat => Some(rect.size),
-                _ => Some(Size2D::new(image.width as f32, image.height as f32)),
+            canvas_data::Pattern::Raqote(Pattern::Surface(pattern)) => match pattern.repeat {
+                Repetition::RepeatX => Some(Size2D::new(
+                    rect.size.width as f32,
+                    pattern.image.height as f32,
+                )),
+                Repetition::RepeatY => Some(Size2D::new(
+                    pattern.image.width as f32,
+                    rect.size.height as f32,
+                )),
+                Repetition::Repeat => Some(rect.size),
+                Repetition::NoRepeat => Some(Size2D::new(
+                    pattern.image.width as f32,
+                    pattern.image.height as f32,
+                )),
             },
             _ => None,
         }
@@ -46,8 +62,8 @@ impl Backend for RaqoteBackend {
         state: &mut CanvasPaintState<'a>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
-        if let Some(source) = style.to_raqote_source() {
-            state.fill_style = Pattern::Raqote(source);
+        if let Some(pattern) = style.to_raqote_pattern() {
+            state.fill_style = canvas_data::Pattern::Raqote(pattern);
         }
     }
 
@@ -57,8 +73,8 @@ impl Backend for RaqoteBackend {
         state: &mut CanvasPaintState<'a>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
-        if let Some(pattern) = style.to_raqote_source() {
-            state.stroke_style = Pattern::Raqote(pattern)
+        if let Some(pattern) = style.to_raqote_pattern() {
+            state.stroke_style = canvas_data::Pattern::Raqote(pattern);
         }
     }
 
@@ -84,49 +100,180 @@ impl Backend for RaqoteBackend {
 
 impl<'a> CanvasPaintState<'a> {
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
-        let solid_src = raqote::SolidSource {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 255,
-        };
+        let pattern = Pattern::Color(255, 0, 0, 0);
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
-            fill_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
-            stroke_style: Pattern::Raqote(raqote::Source::Solid(solid_src)),
+            fill_style: canvas_data::Pattern::Raqote(pattern.clone()),
+            stroke_style: canvas_data::Pattern::Raqote(pattern),
             stroke_opts: StrokeOptions::Raqote(Default::default(), PhantomData),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: Color::Raqote(raqote::SolidSource {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            }),
+            shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0)),
         }
     }
 }
 
-impl Pattern<'_> {
-    pub fn is_zero_size_gradient(&self) -> bool {
-        match self {
-            Pattern::Raqote(p) => {
-                use raqote::Source::*;
+#[derive(Clone)]
+pub enum Pattern<'a> {
+    // argb
+    Color(u8, u8, u8, u8),
+    LinearGradient(LinearGradientPattern),
+    RadialGradient(RadialGradientPattern),
+    Surface(SurfacePattern<'a>),
+}
 
-                match p {
-                    LinearGradient(g, ..) |
-                    RadialGradient(g, ..) |
-                    TwoCircleRadialGradient(g, ..) => g.stops.is_empty(),
-                    _ => false,
-                }
+impl<'a> Pattern<'a> {
+    fn set_transform(&mut self, transform: Transform2D<f32>) {
+        match self {
+            Pattern::Surface(pattern) => pattern.set_transform(transform),
+            Pattern::LinearGradient(..) | Pattern::RadialGradient(..) | Pattern::Color(..) => {
+                warn!("transform not supported")
             },
         }
     }
-    pub fn as_raqote(&self) -> &raqote::Source {
+}
+
+#[derive(Clone)]
+pub struct LinearGradientPattern {
+    gradient: raqote::Gradient,
+    start: Point2D<f32>,
+    end: Point2D<f32>,
+}
+
+impl LinearGradientPattern {
+    fn new(start: Point2D<f32>, end: Point2D<f32>, stops: Vec<raqote::GradientStop>) -> Self {
+        LinearGradientPattern {
+            gradient: raqote::Gradient { stops: stops },
+            start: start,
+            end: end,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct RadialGradientPattern {
+    gradient: raqote::Gradient,
+    center1: Point2D<f32>,
+    radius1: f32,
+    center2: Point2D<f32>,
+    radius2: f32,
+}
+
+impl RadialGradientPattern {
+    fn new(
+        center1: Point2D<f32>,
+        radius1: f32,
+        center2: Point2D<f32>,
+        radius2: f32,
+        stops: Vec<raqote::GradientStop>,
+    ) -> Self {
+        RadialGradientPattern {
+            gradient: raqote::Gradient { stops: stops },
+            center1: center1,
+            radius1: radius1,
+            center2: center2,
+            radius2: radius2,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct SurfacePattern<'a> {
+    image: raqote::Image<'a>,
+    filter: raqote::FilterMode,
+    extend: raqote::ExtendMode,
+    repeat: Repetition,
+    transform: Transform2D<f32>,
+}
+
+impl<'a> SurfacePattern<'a> {
+    fn new(image: raqote::Image<'a>, filter: raqote::FilterMode, repeat: Repetition) -> Self {
+        let extend = match repeat {
+            Repetition::NoRepeat => raqote::ExtendMode::Pad,
+            Repetition::RepeatX | Repetition::RepeatY | Repetition::Repeat => {
+                raqote::ExtendMode::Repeat
+            },
+        };
+        SurfacePattern {
+            image: image,
+            filter: filter,
+            extend: extend,
+            repeat: repeat,
+            transform: Transform2D::identity(),
+        }
+    }
+    fn set_transform(&mut self, transform: Transform2D<f32>) {
+        self.transform = transform;
+    }
+}
+
+#[derive(Clone)]
+pub enum Repetition {
+    Repeat,
+    RepeatX,
+    RepeatY,
+    NoRepeat,
+}
+
+impl Repetition {
+    fn from_xy(repeat_x: bool, repeat_y: bool) -> Self {
+        if repeat_x && repeat_y {
+            Repetition::Repeat
+        } else if repeat_x {
+            Repetition::RepeatX
+        } else if repeat_y {
+            Repetition::RepeatY
+        } else {
+            Repetition::NoRepeat
+        }
+    }
+}
+
+impl canvas_data::Pattern<'_> {
+    pub fn source(&self) -> raqote::Source {
         match self {
-            Pattern::Raqote(p) => p,
+            canvas_data::Pattern::Raqote(pattern) => match pattern {
+                Pattern::Color(a, r, g, b) => raqote::Source::Solid(
+                    raqote::SolidSource::from_unpremultiplied_argb(*a, *r, *g, *b),
+                ),
+                Pattern::LinearGradient(pattern) => raqote::Source::new_linear_gradient(
+                    pattern.gradient.clone(),
+                    pattern.start,
+                    pattern.end,
+                    raqote::Spread::Pad,
+                ),
+                Pattern::RadialGradient(pattern) => raqote::Source::new_two_circle_radial_gradient(
+                    pattern.gradient.clone(),
+                    pattern.center1,
+                    pattern.radius1,
+                    pattern.center2,
+                    pattern.radius2,
+                    raqote::Spread::Pad,
+                ),
+                Pattern::Surface(pattern) => raqote::Source::Image(
+                    pattern.image,
+                    pattern.extend,
+                    pattern.filter,
+                    pattern.transform,
+                ),
+            },
+        }
+    }
+    pub fn is_zero_size_gradient(&self) -> bool {
+        match self {
+            canvas_data::Pattern::Raqote(pattern) => match pattern {
+                Pattern::RadialGradient(pattern) => {
+                    let centers_equal = pattern.center1 == pattern.center2;
+                    let radii_equal = pattern.radius1 == pattern.radius2;
+                    (centers_equal && radii_equal) || pattern.gradient.stops.is_empty()
+                },
+                Pattern::LinearGradient(pattern) => {
+                    (pattern.start == pattern.end) || pattern.gradient.stops.is_empty()
+                },
+                Pattern::Color(..) | Pattern::Surface(..) => false,
+            },
         }
     }
 }
@@ -187,8 +334,11 @@ impl Path {
         ))))
     }
 
-    pub fn contains_point(&self, x: f64, y: f64, _path_transform: &Transform2D<f32>) -> bool {
-        self.as_raqote().contains_point(0.1, x as f32, y as f32)
+    pub fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool {
+        self.as_raqote()
+            .clone()
+            .transform(path_transform)
+            .contains_point(0.1, x as f32, y as f32)
     }
 
     pub fn copy_to_builder(&self) -> Box<dyn GenericPathBuilder> {
@@ -204,6 +354,16 @@ impl Path {
     }
 }
 
+fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote::GradientStop> {
+    let mut stops = gradient_stops
+        .into_iter()
+        .map(|item| item.to_raqote())
+        .collect::<Vec<raqote::GradientStop>>();
+    // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
+    stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+    stops
+}
+
 impl GenericDrawTarget for raqote::DrawTarget {
     fn clear_rect(&mut self, rect: &Rect<f32>) {
         let mut pb = raqote::PathBuilder::new();
@@ -215,16 +375,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
         );
         let mut options = raqote::DrawOptions::new();
         options.blend_mode = raqote::BlendMode::Clear;
-        raqote::DrawTarget::fill(
+        let pattern = Pattern::Color(0, 0, 0, 0);
+        GenericDrawTarget::fill(
             self,
-            &pb.finish(),
-            &raqote::Source::Solid(raqote::SolidSource {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            }),
-            &options,
+            &Path::Raqote(pb.finish()),
+            canvas_data::Pattern::Raqote(pattern),
+            &DrawOptions::Raqote(options),
         );
     }
     #[allow(unsafe_code)]
@@ -240,17 +396,24 @@ impl GenericDrawTarget for raqote::DrawTarget {
         dt.get_data_mut().copy_from_slice(s);
         raqote::DrawTarget::copy_surface(self, &dt, source.to_box2d(), destination);
     }
+    // TODO(pylbrecht)
+    // Somehow a duplicate of `create_gradient_stops()` with different types.
+    // It feels cumbersome to convert GradientStop back and forth just to use
+    // `create_gradient_stops()`, so I'll leave this here for now.
     fn create_gradient_stops(
         &self,
         gradient_stops: Vec<GradientStop>,
         _extend_mode: ExtendMode,
     ) -> GradientStops {
-        let stops = gradient_stops
+        let mut stops = gradient_stops
             .into_iter()
             .map(|item| item.as_raqote().clone())
-            .collect();
+            .collect::<Vec<raqote::GradientStop>>();
+        // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
+        stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
         GradientStops::Raqote(stops)
     }
+
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(PathBuilder::new())
     }
@@ -275,28 +438,47 @@ impl GenericDrawTarget for raqote::DrawTarget {
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
-        _filter: Filter,
+        filter: Filter,
         draw_options: &DrawOptions,
     ) {
-        let v = surface.as_raqote();
+        let surface_data = surface.as_raqote();
         let image = raqote::Image {
             width: source.size.width as i32,
             height: source.size.height as i32,
             data: unsafe {
                 std::slice::from_raw_parts(
-                    v.as_ptr() as *const u32,
-                    v.len() * std::mem::size_of::<u8>(),
+                    surface_data.as_ptr() as *const u32,
+                    surface_data.len() / std::mem::size_of::<u32>(),
                 )
             },
         };
-        raqote::DrawTarget::draw_image_with_size_at(
-            self,
-            dest.size.width as f32,
-            dest.size.height as f32,
+
+        let mut pattern = Pattern::Surface(SurfacePattern::new(
+            image,
+            filter.to_raqote(),
+            Repetition::NoRepeat,
+        ));
+        let transform =
+            raqote::Transform::create_translation(-dest.origin.x as f32, -dest.origin.y as f32)
+                .post_scale(
+                    image.width as f32 / dest.size.width as f32,
+                    image.height as f32 / dest.size.height as f32,
+                );
+        pattern.set_transform(transform);
+
+        let mut pb = raqote::PathBuilder::new();
+        pb.rect(
             dest.origin.x as f32,
             dest.origin.y as f32,
-            &image,
-            draw_options.as_raqote(),
+            dest.size.width as f32,
+            dest.size.height as f32,
+        );
+
+        GenericDrawTarget::fill(
+            self,
+            &Path::Raqote(pb.finish()),
+            canvas_data::Pattern::Raqote(pattern),
+            draw_options,
         );
     }
     fn draw_surface_with_shadow(
@@ -310,17 +492,49 @@ impl GenericDrawTarget for raqote::DrawTarget {
     ) {
         warn!("no support for drawing shadows");
     }
-    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        self.fill(
-            path.as_raqote(),
-            pattern.as_raqote(),
-            draw_options.as_raqote(),
-        );
+    fn fill(&mut self, path: &Path, pattern: canvas_data::Pattern, draw_options: &DrawOptions) {
+        match draw_options.as_raqote().blend_mode {
+            raqote::BlendMode::Src => {
+                self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
+                self.fill(
+                    path.as_raqote(),
+                    &pattern.source(),
+                    draw_options.as_raqote(),
+                );
+            },
+            raqote::BlendMode::Clear |
+            raqote::BlendMode::SrcAtop |
+            raqote::BlendMode::DstOut |
+            raqote::BlendMode::Add |
+            raqote::BlendMode::Xor |
+            raqote::BlendMode::DstOver |
+            raqote::BlendMode::SrcOver => {
+                self.fill(
+                    path.as_raqote(),
+                    &pattern.source(),
+                    draw_options.as_raqote(),
+                );
+            },
+            raqote::BlendMode::SrcIn |
+            raqote::BlendMode::SrcOut |
+            raqote::BlendMode::DstIn |
+            raqote::BlendMode::DstAtop => {
+                let mut options = draw_options.as_raqote().clone();
+                self.push_layer_with_blend(1., options.blend_mode);
+                options.blend_mode = raqote::BlendMode::SrcOver;
+                self.fill(path.as_raqote(), &pattern.source(), &options);
+                self.pop_layer();
+            },
+            _ => warn!(
+                "unrecognized blend mode: {:?}",
+                draw_options.as_raqote().blend_mode
+            ),
+        }
     }
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: Pattern,
+        pattern: canvas_data::Pattern,
         draw_options: Option<&DrawOptions>,
     ) {
         let mut pb = raqote::PathBuilder::new();
@@ -336,7 +550,12 @@ impl GenericDrawTarget for raqote::DrawTarget {
             raqote::DrawOptions::new()
         };
 
-        raqote::DrawTarget::fill(self, &pb.finish(), pattern.as_raqote(), &draw_options);
+        GenericDrawTarget::fill(
+            self,
+            &Path::Raqote(pb.finish()),
+            pattern,
+            &DrawOptions::Raqote(draw_options),
+        );
     }
     fn get_format(&self) -> SurfaceFormat {
         SurfaceFormat::Raqote(())
@@ -362,13 +581,13 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn stroke(
         &mut self,
         path: &Path,
-        pattern: Pattern,
+        pattern: canvas_data::Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     ) {
         self.stroke(
             path.as_raqote(),
-            pattern.as_raqote(),
+            &pattern.source(),
             stroke_options.as_raqote(),
             draw_options.as_raqote(),
         );
@@ -377,7 +596,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
-        pattern: Pattern,
+        pattern: canvas_data::Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     ) {
@@ -393,7 +612,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
 
         self.stroke(
             &pb.finish(),
-            pattern.as_raqote(),
+            &pattern.source(),
             &stroke_options,
             draw_options.as_raqote(),
         );
@@ -401,7 +620,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: Pattern,
+        pattern: canvas_data::Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     ) {
@@ -415,7 +634,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
 
         self.stroke(
             &pb.finish(),
-            pattern.as_raqote(),
+            &pattern.source(),
             stroke_options.as_raqote(),
             draw_options.as_raqote(),
         );
@@ -443,6 +662,15 @@ impl GenericDrawTarget for raqote::DrawTarget {
     }
 }
 
+impl Filter {
+    fn to_raqote(&self) -> raqote::FilterMode {
+        match self {
+            Filter::Linear => raqote::FilterMode::Bilinear,
+            Filter::Point => raqote::FilterMode::Nearest,
+        }
+    }
+}
+
 struct PathBuilder(Option<raqote::PathBuilder>);
 
 impl PathBuilder {
@@ -456,10 +684,21 @@ impl GenericPathBuilder for PathBuilder {
         &mut self,
         origin: Point2D<f32>,
         radius: f32,
-        start_angle: f32,
-        end_angle: f32,
-        _anticlockwise: bool,
+        mut start_angle: f32,
+        mut end_angle: f32,
+        anticlockwise: bool,
     ) {
+        if (!anticlockwise && start_angle > end_angle + 2. * PI) ||
+            (anticlockwise && end_angle > start_angle + 2. * PI)
+        {
+            start_angle = start_angle % (2. * PI);
+            end_angle = end_angle % (2. * PI);
+        }
+
+        if (anticlockwise && end_angle > 0.) || (!anticlockwise && end_angle < 0.) {
+            end_angle = -end_angle;
+        }
+
         self.0
             .as_mut()
             .unwrap()
@@ -561,21 +800,18 @@ impl GenericPathBuilder for PathBuilder {
         }
     }
 
-    fn get_current_point(&mut self) -> Point2D<f32> {
+    fn get_current_point(&mut self) -> Option<Point2D<f32>> {
         let path = self.finish();
+        self.0 = Some(path.as_raqote().clone().into());
 
-        for op in path.as_raqote().ops.iter().rev() {
-            match op {
-                PathOp::MoveTo(point) | PathOp::LineTo(point) => {
-                    return Point2D::new(point.x, point.y)
-                },
-                PathOp::CubicTo(_, _, point) => return Point2D::new(point.x, point.y),
-                PathOp::QuadTo(_, point) => return Point2D::new(point.x, point.y),
-                PathOp::Close => {},
-            };
-        }
-        panic!("dead end");
+        path.as_raqote().ops.iter().last().and_then(|op| match op {
+            PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::CubicTo(_, _, point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::QuadTo(_, point) => Some(Point2D::new(point.x, point.y)),
+            PathOp::Close => None,
+        })
     }
+
     fn line_to(&mut self, point: Point2D<f32>) {
         self.0.as_mut().unwrap().line_to(point.x, point.y);
     }
@@ -625,8 +861,8 @@ impl ToRaqoteStyle for LineCapStyle {
     }
 }
 
-pub trait ToRaqoteSource<'a> {
-    fn to_raqote_source(self) -> Option<raqote::Source<'a>>;
+pub trait ToRaqotePattern<'a> {
+    fn to_raqote_pattern(self) -> Option<Pattern<'a>>;
 }
 
 pub trait ToRaqoteGradientStop {
@@ -646,58 +882,54 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
     }
 }
 
-impl<'a> ToRaqoteSource<'a> for FillOrStrokeStyle {
+impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
     #[allow(unsafe_code)]
-    fn to_raqote_source(self) -> Option<raqote::Source<'a>> {
+    fn to_raqote_pattern(self) -> Option<Pattern<'static>> {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
         match self {
-            Color(rgba) => Some(raqote::Source::Solid(raqote::SolidSource {
-                r: rgba.red,
-                g: rgba.green,
-                b: rgba.blue,
-                a: rgba.alpha,
-            })),
+            Color(color) => Some(Pattern::Color(
+                color.alpha,
+                color.red,
+                color.green,
+                color.blue,
+            )),
             LinearGradient(style) => {
-                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
-                let gradient = raqote::Gradient { stops };
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let end = Point2D::new(style.x1 as f32, style.y1 as f32);
-                Some(raqote::Source::new_linear_gradient(
-                    gradient,
-                    start,
-                    end,
-                    raqote::Spread::Pad,
-                ))
+                let stops = create_gradient_stops(style.stops);
+                Some(Pattern::LinearGradient(LinearGradientPattern::new(
+                    start, end, stops,
+                )))
             },
             RadialGradient(style) => {
-                let stops = style.stops.into_iter().map(|s| s.to_raqote()).collect();
-                let gradient = raqote::Gradient { stops };
                 let center1 = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let center2 = Point2D::new(style.x1 as f32, style.y1 as f32);
-                Some(raqote::Source::new_two_circle_radial_gradient(
-                    gradient,
+                let stops = create_gradient_stops(style.stops);
+                Some(Pattern::RadialGradient(RadialGradientPattern::new(
                     center1,
                     style.r0 as f32,
                     center2,
                     style.r1 as f32,
-                    raqote::Spread::Pad,
-                ))
+                    stops,
+                )))
             },
-            Surface(ref surface) => {
-                let data = &surface.surface_data[..];
-                Some(raqote::Source::Image(
-                    raqote::Image {
-                        data: unsafe {
-                            std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4)
-                        },
-                        width: surface.surface_size.width as i32,
-                        height: surface.surface_size.height as i32,
+            Surface(ref style) => {
+                let repeat = Repetition::from_xy(style.repeat_x, style.repeat_y);
+                let data = &style.surface_data[..];
+
+                let image = raqote::Image {
+                    width: style.surface_size.width as i32,
+                    height: style.surface_size.height as i32,
+                    data: unsafe {
+                        std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4)
                     },
-                    raqote::ExtendMode::Repeat, // TODO: repeat-x, repeat-y ?
-                    raqote::FilterMode::Bilinear,
-                    raqote::Transform::identity(),
-                ))
+                };
+                Some(Pattern::Surface(SurfacePattern::new(
+                    image,
+                    raqote::FilterMode::Nearest,
+                    repeat,
+                )))
             },
         }
     }
@@ -715,12 +947,7 @@ impl ToRaqoteStyle for RGBA {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
-        raqote::SolidSource {
-            r: self.red,
-            g: self.green,
-            b: self.blue,
-            a: self.alpha,
-        }
+        raqote::SolidSource::from_unpremultiplied_argb(self.alpha, self.red, self.green, self.blue)
     }
 }
 
