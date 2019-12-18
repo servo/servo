@@ -11,6 +11,17 @@ interface MessageEvent : Event {
   readonly attribute DOMString lastEventId;
   readonly attribute MessageEventSource? source;
   readonly attribute /*FrozenArray<MessagePort>*/any ports;
+
+  void initMessageEvent(
+    DOMString type,
+    optional boolean bubbles = false,
+    optional boolean cancelable = false,
+    optional any data = null,
+    optional DOMString origin = "",
+    optional DOMString lastEventId = "",
+    optional MessageEventSource? source = null,
+    optional sequence<MessagePort> ports = []
+  );
 };
 
 dictionary MessageEventInit : EventInit {

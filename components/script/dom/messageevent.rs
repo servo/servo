@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
@@ -56,10 +57,10 @@ pub struct MessageEvent {
     event: Event,
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
-    origin: DOMString,
-    source: Option<SrcObject>,
-    lastEventId: DOMString,
-    ports: Vec<DomRoot<MessagePort>>,
+    origin: DomRefCell<DOMString>,
+    source: DomRefCell<Option<SrcObject>>,
+    lastEventId: DomRefCell<DOMString>,
+    ports: DomRefCell<Vec<DomRoot<MessagePort>>>,
 }
 
 impl MessageEvent {
@@ -85,10 +86,10 @@ impl MessageEvent {
         let ev = Box::new(MessageEvent {
             event: Event::new_inherited(),
             data: Heap::default(),
-            source: source.map(|source| source.into()),
-            origin,
-            lastEventId,
-            ports,
+            source: DomRefCell::new(source.map(|source| source.into())),
+            origin: DomRefCell::new(origin),
+            lastEventId: DomRefCell::new(lastEventId),
+            ports: DomRefCell::new(ports),
         });
         let ev = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
         ev.data.set(data.get());
@@ -187,12 +188,12 @@ impl MessageEventMethods for MessageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
     fn Origin(&self) -> DOMString {
-        self.origin.clone()
+        self.origin.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-source
     fn GetSource(&self) -> Option<WindowProxyOrMessagePortOrServiceWorker> {
-        match &self.source {
+        match &*self.source.borrow() {
             Some(SrcObject::WindowProxy(i)) => Some(
                 WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(&*i)),
             ),
@@ -208,7 +209,7 @@ impl MessageEventMethods for MessageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid>
     fn LastEventId(&self) -> DOMString {
-        self.lastEventId.clone()
+        self.lastEventId.borrow().clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
@@ -218,6 +219,28 @@ impl MessageEventMethods for MessageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
     fn Ports(&self, cx: JSContext) -> JSVal {
-        message_ports_to_frozen_array(self.ports.as_slice(), cx)
+        message_ports_to_frozen_array(self.ports.borrow().as_slice(), cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-initmessageevent>
+    fn InitMessageEvent(
+        &self,
+        _cx: JSContext,
+        type_: DOMString,
+        bubbles: bool,
+        cancelable: bool,
+        data: HandleValue,
+        origin: DOMString,
+        lastEventId: DOMString,
+        source: Option<WindowProxyOrMessagePortOrServiceWorker>,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) {
+        self.data.set(data.get());
+        *self.origin.borrow_mut() = origin.clone();
+        *self.source.borrow_mut() = source.as_ref().map(|source| source.into());
+        *self.lastEventId.borrow_mut() = lastEventId.clone();
+        *self.ports.borrow_mut() = ports;
+        self.event
+            .init_event(Atom::from(type_), bubbles, cancelable);
     }
 }
