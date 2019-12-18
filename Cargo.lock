@@ -6409,7 +6409,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#b79870164f518d90268aaaac1fb83059b83dceda"
+source = "git+https://github.com/jdm/webxr?branch=srgb#00932392325eee98218888463f3478bab333dd4f"
 dependencies = [
  "bindgen",
  "euclid",
@@ -6430,7 +6430,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#b79870164f518d90268aaaac1fb83059b83dceda"
+source = "git+https://github.com/jdm/webxr?branch=srgb#00932392325eee98218888463f3478bab333dd4f"
 dependencies = [
  "euclid",
  "ipc-channel",
