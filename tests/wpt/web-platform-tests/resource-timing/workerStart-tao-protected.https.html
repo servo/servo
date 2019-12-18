@@ -24,9 +24,7 @@ let openee;
 promise_test(t => {
   return new Promise(resolve => {
     addEventListener("message", e => {
-      if (e.data == "installed") {
-        // Close window once we get an event that it was installed
-        openee.close();
+      if (e.data === 'installed') {
         performance.clearResourceTimings();
         resolve();
       }
@@ -59,6 +57,19 @@ promise_test(t => {
 
 // Add iframe to remote origin - page with TAO
 promise_test(t => {
+  let unregisterPromise = new Promise(resolve => {
+    addEventListener("message", e => {
+      if (e.data === "unregistered") {
+        resolve();
+      }
+    });
+  });
+  t.add_cleanup(async () => {
+    openee.postMessage("unregister", "*");
+    await unregisterPromise;
+    // Close the window.
+    openee.close();
+  });
   return new Promise((resolve, reject) => {
     const observer = new PerformanceObserver(list => {
       const entries = list.getEntries();

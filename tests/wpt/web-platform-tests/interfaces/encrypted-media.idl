@@ -25,8 +25,9 @@ dictionary MediaKeySystemConfiguration {
 };
 
 dictionary MediaKeySystemMediaCapability {
-             DOMString contentType = "";
-             DOMString robustness = "";
+   DOMString contentType = "";
+   DOMString? encryptionScheme = null;
+   DOMString robustness = "";
 };
 
 [Exposed=Window, SecureContext] interface MediaKeySystemAccess {

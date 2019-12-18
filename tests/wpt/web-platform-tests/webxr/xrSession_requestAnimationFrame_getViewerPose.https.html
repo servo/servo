@@ -37,7 +37,6 @@
         .then((referenceSpace) => new Promise((resolve, reject) => {
           let counter = 0;
           function onFrame(time, vrFrame) {
-            session.requestAnimationFrame(onFrame);
             if (counter == 0) {
               t.step( () => {
                 // Expecting to not get a pose since none has been supplied
@@ -48,6 +47,14 @@
                 // Check that pose does not update pose within the same frame.
                 assert_equals(vrFrame.getViewerPose(referenceSpace), null);
               });
+
+              // In order to avoid race conditions, after we've set the viewer
+              // pose, we queue up the next requestAnimationFrame. This should
+              // ensure that the next frame will be able to get the appropriate
+              // pose.
+              // Note that since the next frame will immediately resolve and end
+              // the test we only need to request a new frame once, here.
+              session.requestAnimationFrame(onFrame);
             } else {
               t.step( () => {
                 let pose = vrFrame.getViewerPose(referenceSpace);

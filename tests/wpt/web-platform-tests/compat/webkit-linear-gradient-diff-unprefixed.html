@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Compatibility Test: -webkit-linear-gradient() diff with linear-gradient()</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#css-gradients-webkit-linear-gradient">
+<link rel="match" href="webkit-linear-gradient-diff-unprefixed-ref.html">
+<style>
+  #square {
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<p>You should see a square, orange at the top, blue at the bottom.</p>
+<div id="square"></div>
+<script>
+  square.offsetTop;
+  square.style.backgroundImage = "-webkit-linear-gradient(bottom, orange, blue)";
+  square.offsetTop;
+  square.style.backgroundImage = "linear-gradient(to bottom, orange, blue)";
+</script>

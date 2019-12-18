@@ -54,10 +54,17 @@ async_test(t => {
   let pageLoaded = false;
   const bc = new BroadcastChannel(token());
   let finished = false;
+  let doneCheck = _ => {
+    if (finished && pageLoaded) {
+      t.done();
+    }
+  }
   bc.onmessage = t.step_func((event) => {
     pageLoaded = true;
     let payload = event.data;
     assert_equals(payload, "loaded");
+
+    doneCheck();
   });
 
   const bc2 = new BroadcastChannel(token());
@@ -65,15 +72,11 @@ async_test(t => {
     finished = true;
     let payload = event.data;
     assert_equals(payload, "loaded");
+
+    doneCheck();
   });
 
   const win = window.open(`resources/navigate-require-corp.sub.html?channelName=${bc.name}&to=navigate-none.sub.html?channelName=${bc2.name}`, "_blank", "noopener");
   assert_equals(win, null);
-
-  t.step_timeout(() => {
-    assert_true(pageLoaded);
-    assert_true(finished);
-    t.done();
-  }, 500);
 }, `"require-corp" top-level noopener popup: navigating to "none" should succeed`);
 </script>
