@@ -282,4 +282,13 @@
     let ev = new RTCDTMFToneChangeEvent('worngname', {});
   }, 'Tone change event with unexpected name should not crash');
 
+  test(t => {
+    const ev1 = new RTCDTMFToneChangeEvent('tonechange', {});
+    assert_equals(ev1.tone, '');
+
+    assert_equals(RTCDTMFToneChangeEvent.constructor.length, 1);
+    const ev2 = new RTCDTMFToneChangeEvent('tonechange');
+    assert_equals(ev2.tone, '');
+  }, 'Tone change event init optional parameters');
+
 </script>

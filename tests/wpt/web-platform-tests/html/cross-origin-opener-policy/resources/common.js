@@ -26,7 +26,7 @@ function coop_test(t, host, coop, channelName, hasOpener) {
 }
 
 function run_coop_tests(documentCOOPValueTitle, testArray) {
-  for (const test of tests) {
+  for (const test of testArray) {
     async_test(t => {
       coop_test(t, test[0], test[1],
                 `${documentCOOPValueTitle}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,

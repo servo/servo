@@ -24,38 +24,32 @@ let testFunction = function(session, fakeDeviceController, t) {
     session.requestReferenceSpace('bounded-floor')
       .then((referenceSpace) => {
           t.step(() => {
-            assert_unreached("Should not be able to get a bounded space until bounds set");
-          });
-        }).catch((err) => {
-          t.step(() => {
-            assert_equals(err.name, "NotSupportedError");
+              // A bounded space may be created if no bounds have been set but the system has the capability to support bounded-floor
+              // A lack of bounds is indicated by an empty boundsGeometry
+              assert_true(referenceSpace.boundsGeometry.length == 0);
           });
 
           function onFrame(time, xrFrame) {
-            // After setting the bounds explicitly, we should be able to get a
-            // reference space
-            session.requestReferenceSpace('bounded-floor')
-            .then((referenceSpace) => {
-              t.step(() => {
-                assert_equals(referenceSpace.boundsGeometry.length, VALID_BOUNDS.length);
-                for (i = 0; i < VALID_BOUNDS.length; ++i) {
-                  let valid_point = VALID_BOUNDS[i];
-                  let bounds_point = referenceSpace.boundsGeometry[i];
-                  assert_equals(valid_point.x, bounds_point.x);
-                  assert_equals(bounds_point.y, 0.0);
-                  assert_equals(valid_point.z, bounds_point.z);
-                  assert_equals(bounds_point.w, 1.0);
-                }
-              });
-
-              resolve();
+            // After the bounds have been explicitly set, they should be what we expect.
+            t.step(() => {
+              assert_equals(referenceSpace.boundsGeometry.length, VALID_BOUNDS.length);
+              for (i = 0; i < VALID_BOUNDS.length; ++i) {
+                let valid_point = VALID_BOUNDS[i];
+                let bounds_point = referenceSpace.boundsGeometry[i];
+                assert_equals(valid_point.x, bounds_point.x);
+                assert_equals(bounds_point.y, 0.0);
+                assert_equals(valid_point.z, bounds_point.z);
+                assert_equals(bounds_point.w, 1.0);
+              }
             });
+
+            resolve();
           }
 
           // Now set the bounds explicitly and check again on the next frame.
           fakeDeviceController.setBoundsGeometry(VALID_BOUNDS);
           session.requestAnimationFrame(onFrame);
-      });
+        });
     });
 };
 

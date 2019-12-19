@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2017 Benjamin Peterson
+# Copyright (c) 2010-2019 Benjamin Peterson
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ except ImportError:
 import six
 
 six_classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
     "Intended Audience :: Developers",
@@ -46,11 +47,12 @@ setup(name="six",
       version=six.__version__,
       author="Benjamin Peterson",
       author_email="benjamin@python.org",
-      url="http://pypi.python.org/pypi/six/",
+      url="https://github.com/benjaminp/six",
       tests_require=["pytest"],
       py_modules=["six"],
       description="Python 2 and 3 compatibility utilities",
       long_description=six_long_description,
       license="MIT",
-      classifiers=six_classifiers
+      classifiers=six_classifiers,
+      python_requires=">=2.6, !=3.0.*, !=3.1.*",
       )

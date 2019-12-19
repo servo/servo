@@ -8,7 +8,7 @@
 <script>
   "use strict";
   let nonce = "{{uuid()}}";
-  let expected = {"site": "cross-site", "user": "", "mode": "cors", "dest": ""};
+  let expected = {"site": "cross-site", "user": "", "mode": "cors", "dest": "empty"};
 
   testPrefetch(nonce, "Http upgrade", upgradeRedirectTo, expected);
 </script>

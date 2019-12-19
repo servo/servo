@@ -13,7 +13,7 @@ Python 3.  It is intended to support codebases that work on both Python 2 and 3
 without modification.  six consists of only one Python file, so it is painless
 to copy into a project.
 
-Six can be downloaded on `PyPi <https://pypi.python.org/pypi/six/>`_.  Its bug
+Six can be downloaded on `PyPI <https://pypi.org/project/six/>`_.  Its bug
 tracker and code hosting is on `GitHub <https://github.com/benjaminp/six>`_.
 
 The name, "six", comes from the fact that 2*3 equals 6.  Why not addition?
@@ -50,8 +50,9 @@ Six provides constants that may differ between Python versions.  Ones ending
 
 .. data:: class_types
 
-   Possible class types.  In Python 2, this encompasses old-style and new-style
-   classes.  In Python 3, this is just new-styles.
+   Possible class types.  In Python 2, this encompasses old-style
+   :data:`py2:types.ClassType` and new-style ``type`` classes.  In Python 3,
+   this is just ``type``.
 
 
 .. data:: integer_types
@@ -75,7 +76,9 @@ Six provides constants that may differ between Python versions.  Ones ending
 .. data:: binary_type
 
    Type for representing binary data.  This is :func:`py2:str` in Python 2 and
-   :func:`py3:bytes` in Python 3.
+   :func:`py3:bytes` in Python 3.  Python 2.6 and 2.7 include ``bytes`` as a
+   builtin alias of ``str``, so six’s version is only necessary for Python 2.5
+   compatibility.
 
 
 .. data:: MAXSIZE
@@ -371,7 +374,7 @@ string data in all Python versions.
 .. function:: b(data)
 
    A "fake" bytes literal.  *data* should always be a normal string literal.  In
-   Python 2, :func:`b` returns a 8-bit string.  In Python 3, *data* is encoded
+   Python 2, :func:`b` returns an 8-bit string.  In Python 3, *data* is encoded
    with the latin-1 encoding to bytes.
 
 
@@ -431,6 +434,24 @@ string data in all Python versions.
 
    Return an iterator over bytes in *buf* as integers.  This is equivalent to
    a bytes object iterator in Python 3.
+
+
+.. function:: ensure_binary(s, encoding='utf-8', errors='strict')
+
+   Coerce *s* to :data:`binary_type`. *encoding*, *errors* are the same as
+   :meth:`py3:str.encode`
+
+
+.. function:: ensure_str(s, encoding='utf-8', errors='strict')
+
+   Coerce *s* to ``str``. *encoding*, *errors* are the same as
+   :meth:`py3:str.encode`
+
+
+.. function:: ensure_text(s, encoding='utf-8', errors='strict')
+
+   Coerce *s* to :data:`text_type`. *encoding*, *errors* are the same as
+   :meth:`py3:str.encode`
 
 
 .. data:: StringIO
@@ -503,7 +524,7 @@ Python 2 or 3, write::
    from six.moves import html_parser
 
 Similarly, to get the function to reload modules, which was moved from the
-builtin module to the ``imp`` module, use::
+builtin module to the ``importlib`` module, use::
 
    from six.moves import reload_module
 
@@ -563,7 +584,11 @@ Supported renames:
 +------------------------------+-------------------------------------+---------------------------------------+
 | ``cStringIO``                | :func:`py2:cStringIO.StringIO`      | :class:`py3:io.StringIO`              |
 +------------------------------+-------------------------------------+---------------------------------------+
-| ``dbm_gnu``                  | :func:`py2:gdbm`                    | :class:`py3:dbm.gnu`                  |
+| ``collections_abc``          | :mod:`py2:collections`              | :mod:`py3:collections.abc` (3.3+)     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``dbm_gnu``                  | :mod:`py2:gdbm`                     | :mod:`py3:dbm.gnu`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``dbm_ndbm``                 | :mod:`py2:dbm`                      | :mod:`py3:dbm.ndbm`                   |
 +------------------------------+-------------------------------------+---------------------------------------+
 | ``_dummy_thread``            | :mod:`py2:dummy_thread`             | :mod:`py3:_dummy_thread`              |
 +------------------------------+-------------------------------------+---------------------------------------+

@@ -3,15 +3,16 @@
 <title>Canvas's ImageBitmapRenderingContext test</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#the-imagebitmap-rendering-context">
+ <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#the-imagebitmap-rendering-context">
 <script>
-var width = 10;
-var height = 10;
-
 test(function() {
-    var canvas = new OffscreenCanvas(60,60);
+    var width = 10;
+    var height = 10;
+    var canvas = new OffscreenCanvas(width, height);
     var ctx = canvas.getContext('bitmaprenderer');
     assert_true(ctx instanceof ImageBitmapRenderingContext);
-}, "Test that canvas.getContext('bitmaprenderer') returns an instance of ImageBitmapRenderingContext");
+    assert_true("canvas" in ctx);
+    assert_object_equals(canvas, ctx.canvas);
+}, "Test that canvas.getContext('bitmaprenderer') returns an instance of ImageBitmapRenderingContext and ctx.canvas on a ImageBitmapRenderingContext returns the original OffscreenCanvas");
 
 </script>

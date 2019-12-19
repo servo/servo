@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Color Adjust Test: remove meta tag</title>
+<meta id="dark" name="color-scheme" content="dark">
+<meta id="light" name="color-scheme" content="light">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust-1/#color-scheme-meta">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  assert_root_color_scheme("dark", "First meta applies.");
+  dark.remove();
+  assert_root_color_scheme("light", "Second meta applies after first one is removed.");
+  light.remove();
+  assert_root_color_scheme("normal", "Initial color-scheme with both meta elements removed.");
+</script>

@@ -15,7 +15,7 @@
 <div id="target"></div>
 </div>
 <script>
-assert_inherited('image-orientation', '0deg', 'from-image'); // none is 0deg
+assert_inherited('image-orientation', 'from-image', 'none');
 assert_inherited('image-rendering', 'auto', 'pixelated');
 assert_not_inherited('object-fit', 'fill', 'contain');
 assert_not_inherited('object-position', '50% 50%', '10px 20px');

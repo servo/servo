@@ -1,3 +1,5 @@
+from six import ensure_str, ensure_text
+
 from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
 from .parser import atoms, precedence
 
@@ -10,7 +12,7 @@ def escape(string, extras=""):
     rv = ""
     for c in string:
         if c in named_escapes:
-            rv += c.encode("unicode_escape")
+            rv += c.encode("unicode_escape").decode()
         elif c == "\\":
             rv += "\\\\"
         elif c < '\x20':
@@ -19,10 +21,7 @@ def escape(string, extras=""):
             rv += "\\" + c
         else:
             rv += c
-    if isinstance(rv, unicode):
-        return rv.encode("utf8")
-    else:
-        return rv
+    return ensure_str(rv)
 
 
 class ManifestSerializer(NodeVisitor):
@@ -74,10 +73,7 @@ class ManifestSerializer(NodeVisitor):
         return ["".join(rv)]
 
     def visit_ValueNode(self, node):
-        if not isinstance(node.data, (str, unicode)):
-            data = unicode(node.data)
-        else:
-            data = node.data
+        data = ensure_text(node.data)
         if ("#" in data or
             data.startswith("if ") or
             (isinstance(node.parent, ListNode) and

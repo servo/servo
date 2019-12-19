@@ -559,12 +559,12 @@ interface RTCDTMFSender : EventTarget {
 
 [Exposed=Window]
 interface RTCDTMFToneChangeEvent : Event {
-  constructor(DOMString type, RTCDTMFToneChangeEventInit eventInitDict);
+  constructor(DOMString type, optional RTCDTMFToneChangeEventInit eventInitDict = {});
   readonly attribute DOMString tone;
 };
 
 dictionary RTCDTMFToneChangeEventInit : EventInit {
-  required DOMString tone;
+  DOMString tone = "";
 };
 
 partial interface RTCPeerConnection {

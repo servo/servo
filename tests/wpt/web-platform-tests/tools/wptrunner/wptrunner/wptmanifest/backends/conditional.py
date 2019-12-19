@@ -1,4 +1,5 @@
 import operator
+from six import ensure_text, iteritems, iterkeys, text_type
 
 from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode, BinaryExpressionNode, VariableNode
 from ..parser import parse
@@ -42,9 +43,7 @@ class ConditionalValue(object):
         return self.condition_func(run_info)
 
     def set_value(self, value):
-        if type(value) not in (str, unicode):
-            value = unicode(value)
-        self.value = value
+        self.value = ensure_text(value)
 
     def value_as(self, type_func):
         """Get value and convert to a given type.
@@ -301,9 +300,9 @@ class ManifestItem(object):
         if isinstance(value, list):
             value_node = ListNode()
             for item in value:
-                value_node.append(ValueNode(unicode(item)))
+                value_node.append(ValueNode(text_type(item)))
         else:
-            value_node = ValueNode(unicode(value))
+            value_node = ValueNode(text_type(value))
         if condition is not None:
             if not isinstance(condition, ConditionalNode):
                 conditional_node = ConditionalNode()
@@ -369,17 +368,17 @@ class ManifestItem(object):
     def _flatten(self):
         rv = {}
         for node in [self, self.root]:
-            for name, value in node._data.iteritems():
+            for name, value in iteritems(node._data):
                 if name not in rv:
                     rv[name] = value
         return rv
 
     def iteritems(self):
-        for item in self._flatten().iteritems():
+        for item in iteritems(self._flatten()):
             yield item
 
     def iterkeys(self):
-        for item in self._flatten().iterkeys():
+        for item in iterkeys(self._flatten()):
             yield item
 
     def remove_value(self, key, value):

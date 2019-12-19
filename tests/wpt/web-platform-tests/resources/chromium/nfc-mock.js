@@ -351,6 +351,9 @@ var WebNFCTest = (() => {
 
     setIsNDEFTech(isNdef) {
       this.is_ndef_tech_ = isNdef;
+      if (!isNdef && this.watchers_.length != 0) {
+        this.client_.onError(device.mojom.NDEFErrorType.NOT_SUPPORTED);
+      }
     }
 
     setIsFormattedTag(isFormatted) {

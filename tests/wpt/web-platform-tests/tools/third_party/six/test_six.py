@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2017 Benjamin Peterson
+# Copyright (c) 2010-2019 Benjamin Peterson
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,9 @@ import operator
 import sys
 import types
 import unittest
+import abc
 
-import py
+import pytest
 
 import six
 
@@ -80,7 +81,7 @@ def test_MAXSIZE():
     except AttributeError:
         # Before Python 2.6.
         pass
-    py.test.raises(
+    pytest.raises(
         (ValueError, OverflowError),
         operator.mul, [None], six.MAXSIZE + 1)
 
@@ -112,7 +113,7 @@ except ImportError:
     except ImportError:
         have_gdbm = False
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._moved_attributes])
 def test_move_items(item_name):
     """Ensure that everything loads correctly."""
@@ -122,36 +123,36 @@ def test_move_items(item_name):
             __import__("six.moves." + item_name)
     except AttributeError:
         if item_name == "zip_longest" and sys.version_info < (2, 6):
-            py.test.skip("zip_longest only available on 2.6+")
+            pytest.skip("zip_longest only available on 2.6+")
     except ImportError:
         if item_name == "winreg" and not sys.platform.startswith("win"):
-            py.test.skip("Windows only module")
+            pytest.skip("Windows only module")
         if item_name.startswith("tkinter"):
             if not have_tkinter:
-                py.test.skip("requires tkinter")
+                pytest.skip("requires tkinter")
             if item_name == "tkinter_ttk" and sys.version_info[:2] <= (2, 6):
-                py.test.skip("ttk only available on 2.7+")
+                pytest.skip("ttk only available on 2.7+")
         if item_name.startswith("dbm_gnu") and not have_gdbm:
-            py.test.skip("requires gdbm")
+            pytest.skip("requires gdbm")
         raise
     if sys.version_info[:2] >= (2, 6):
         assert item_name in dir(six.moves)
 
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_parse_moved_attributes])
 def test_move_items_urllib_parse(item_name):
     """Ensure that everything loads correctly."""
     if item_name == "ParseResult" and sys.version_info < (2, 5):
-        py.test.skip("ParseResult is only found on 2.5+")
+        pytest.skip("ParseResult is only found on 2.5+")
     if item_name in ("parse_qs", "parse_qsl") and sys.version_info < (2, 6):
-        py.test.skip("parse_qs[l] is new in 2.6")
+        pytest.skip("parse_qs[l] is new in 2.6")
     if sys.version_info[:2] >= (2, 6):
         assert item_name in dir(six.moves.urllib.parse)
     getattr(six.moves.urllib.parse, item_name)
 
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_error_moved_attributes])
 def test_move_items_urllib_error(item_name):
     """Ensure that everything loads correctly."""
@@ -160,7 +161,7 @@ def test_move_items_urllib_error(item_name):
     getattr(six.moves.urllib.error, item_name)
 
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_request_moved_attributes])
 def test_move_items_urllib_request(item_name):
     """Ensure that everything loads correctly."""
@@ -169,7 +170,7 @@ def test_move_items_urllib_request(item_name):
     getattr(six.moves.urllib.request, item_name)
 
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_response_moved_attributes])
 def test_move_items_urllib_response(item_name):
     """Ensure that everything loads correctly."""
@@ -178,7 +179,7 @@ def test_move_items_urllib_response(item_name):
     getattr(six.moves.urllib.response, item_name)
 
 
-@py.test.mark.parametrize("item_name",
+@pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_robotparser_moved_attributes])
 def test_move_items_urllib_robotparser(item_name):
     """Ensure that everything loads correctly."""
@@ -243,7 +244,7 @@ def test_zip():
     assert six.advance_iterator(zip(range(2), range(2))) == (0, 0)
 
 
-@py.test.mark.skipif("sys.version_info < (2, 6)")
+@pytest.mark.skipif("sys.version_info < (2, 6)")
 def test_zip_longest():
     from six.moves import zip_longest
     it = zip_longest(range(2), range(1))
@@ -321,7 +322,7 @@ class TestCustomizedMoves:
 
 
     def test_empty_remove(self):
-        py.test.raises(AttributeError, six.remove_move, "eggs")
+        pytest.raises(AttributeError, six.remove_move, "eggs")
 
 
 def test_get_unbound_function():
@@ -337,7 +338,7 @@ def test_get_method_self():
             pass
     x = X()
     assert six.get_method_self(x.m) is x
-    py.test.raises(AttributeError, six.get_method_self, 42)
+    pytest.raises(AttributeError, six.get_method_self, 42)
 
 
 def test_get_method_function():
@@ -346,7 +347,7 @@ def test_get_method_function():
             pass
     x = X()
     assert six.get_method_function(x.m) is X.__dict__["m"]
-    py.test.raises(AttributeError, six.get_method_function, hasattr)
+    pytest.raises(AttributeError, six.get_method_function, hasattr)
 
 
 def test_get_function_closure():
@@ -364,7 +365,7 @@ def test_get_function_code():
         pass
     assert isinstance(six.get_function_code(f), types.CodeType)
     if not hasattr(sys, "pypy_version_info"):
-        py.test.raises(AttributeError, six.get_function_code, hasattr)
+        pytest.raises(AttributeError, six.get_function_code, hasattr)
 
 
 def test_get_function_defaults():
@@ -404,7 +405,7 @@ def test_dictionary_iterators(monkeypatch):
         it = meth(d)
         assert not isinstance(it, list)
         assert list(it) == list(getattr(d, name)())
-        py.test.raises(StopIteration, six.advance_iterator, it)
+        pytest.raises(StopIteration, six.advance_iterator, it)
         record = []
         def with_kw(*args, **kw):
             record.append(kw["kw"])
@@ -416,17 +417,9 @@ def test_dictionary_iterators(monkeypatch):
         monkeypatch.undo()
 
 
-@py.test.mark.skipif("sys.version_info[:2] < (2, 7)",
+@pytest.mark.skipif("sys.version_info[:2] < (2, 7)",
                 reason="view methods on dictionaries only available on 2.7+")
 def test_dictionary_views():
-    def stock_method_name(viewwhat):
-        """Given a method suffix like "keys" or "values", return the name
-        of the dict method that delivers those on the version of Python
-        we're running in."""
-        if six.PY3:
-            return viewwhat
-        return 'view' + viewwhat
-
     d = dict(zip(range(10), (range(11, 20))))
     for name in "keys", "values", "items":
         meth = getattr(six, "view" + name)
@@ -440,8 +433,8 @@ def test_advance_iterator():
     it = iter(l)
     assert six.next(it) == 1
     assert six.next(it) == 2
-    py.test.raises(StopIteration, six.next, it)
-    py.test.raises(StopIteration, six.next, it)
+    pytest.raises(StopIteration, six.next, it)
+    pytest.raises(StopIteration, six.next, it)
 
 
 def test_iterator():
@@ -489,7 +482,7 @@ def test_create_unbound_method():
     def f(self):
         return self
     u = six.create_unbound_method(f, X)
-    py.test.raises(TypeError, u)
+    pytest.raises(TypeError, u)
     if six.PY2:
         assert isinstance(u, types.MethodType)
     x = X()
@@ -537,13 +530,13 @@ def test_unichr():
 
 def test_int2byte():
     assert six.int2byte(3) == six.b("\x03")
-    py.test.raises(Exception, six.int2byte, 256)
+    pytest.raises(Exception, six.int2byte, 256)
 
 
 def test_byte2int():
     assert six.byte2int(six.b("\x03")) == 3
     assert six.byte2int(six.b("\x03\x04")) == 3
-    py.test.raises(IndexError, six.byte2int, six.b(""))
+    pytest.raises(IndexError, six.byte2int, six.b(""))
 
 
 def test_bytesindex():
@@ -554,7 +547,7 @@ def test_bytesiter():
     it = six.iterbytes(six.b("hi"))
     assert six.next(it) == ord("h")
     assert six.next(it) == ord("i")
-    py.test.raises(StopIteration, six.next, it)
+    pytest.raises(StopIteration, six.next, it)
 
 
 def test_StringIO():
@@ -689,7 +682,7 @@ def test_print_():
     assert out.flushed
 
 
-@py.test.mark.skipif("sys.version_info[:2] >= (2, 6)")
+@pytest.mark.skipif("sys.version_info[:2] >= (2, 6)")
 def test_print_encoding(monkeypatch):
     # Fool the type checking in print_.
     monkeypatch.setattr(six, "file", six.BytesIO, raising=False)
@@ -701,16 +694,16 @@ def test_print_encoding(monkeypatch):
     out = six.BytesIO()
     out.encoding = "ascii"
     out.errors = "strict"
-    py.test.raises(UnicodeEncodeError, six.print_, six.u("\u053c"), file=out)
+    pytest.raises(UnicodeEncodeError, six.print_, six.u("\u053c"), file=out)
     out.errors = "backslashreplace"
     six.print_(six.u("\u053c"), end="", file=out)
     assert out.getvalue() == six.b("\\u053c")
 
 
 def test_print_exceptions():
-    py.test.raises(TypeError, six.print_, x=3)
-    py.test.raises(TypeError, six.print_, end=3)
-    py.test.raises(TypeError, six.print_, sep=42)
+    pytest.raises(TypeError, six.print_, x=3)
+    pytest.raises(TypeError, six.print_, end=3)
+    pytest.raises(TypeError, six.print_, sep=42)
 
 
 def test_with_metaclass():
@@ -744,7 +737,54 @@ def test_with_metaclass():
     assert Y.__mro__ == (Y, X, object)
 
 
-@py.test.mark.skipif("sys.version_info[:2] < (3, 0)")
+@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
+def test_with_metaclass_typing():
+    try:
+        import typing
+    except ImportError:
+        pytest.skip("typing module required")
+    class Meta(type):
+        pass
+    if sys.version_info[:2] < (3, 7):
+        # Generics with custom metaclasses were broken on older versions.
+        class Meta(Meta, typing.GenericMeta):
+            pass
+    T = typing.TypeVar('T')
+    class G(six.with_metaclass(Meta, typing.Generic[T])):
+        pass
+    class GA(six.with_metaclass(abc.ABCMeta, typing.Generic[T])):
+        pass
+    assert isinstance(G, Meta)
+    assert isinstance(GA, abc.ABCMeta)
+    assert G[int] is not G[G[int]]
+    assert GA[int] is not GA[GA[int]]
+    assert G.__bases__ == (typing.Generic,)
+    assert G.__orig_bases__ == (typing.Generic[T],)
+
+
+@pytest.mark.skipif("sys.version_info[:2] < (3, 7)")
+def test_with_metaclass_pep_560():
+    class Meta(type):
+        pass
+    class A:
+        pass
+    class B:
+        pass
+    class Fake:
+        def __mro_entries__(self, bases):
+            return (A, B)
+    fake = Fake()
+    class G(six.with_metaclass(Meta, fake)):
+        pass
+    class GA(six.with_metaclass(abc.ABCMeta, fake)):
+        pass
+    assert isinstance(G, Meta)
+    assert isinstance(GA, abc.ABCMeta)
+    assert G.__bases__ == (A, B)
+    assert G.__orig_bases__ == (fake,)
+
+
+@pytest.mark.skipif("sys.version_info[:2] < (3, 0)")
 def test_with_metaclass_prepare():
     """Test that with_metaclass causes Meta.__prepare__ to be called with the correct arguments."""
 
@@ -857,7 +897,7 @@ def test_add_metaclass():
     assert MySlots.__slots__ == ["a", "b"]
     instance = MySlots()
     instance.a = "foo"
-    py.test.raises(AttributeError, setattr, instance, "c", "baz")
+    pytest.raises(AttributeError, setattr, instance, "c", "baz")
 
     # Test a class with string for slots.
     class MyStringSlots(object):
@@ -866,8 +906,8 @@ def test_add_metaclass():
     assert MyStringSlots.__slots__ == "ab"
     instance = MyStringSlots()
     instance.ab = "foo"
-    py.test.raises(AttributeError, setattr, instance, "a", "baz")
-    py.test.raises(AttributeError, setattr, instance, "b", "baz")
+    pytest.raises(AttributeError, setattr, instance, "a", "baz")
+    pytest.raises(AttributeError, setattr, instance, "b", "baz")
 
     class MySlotsWeakref(object):
         __slots__ = "__weakref__",
@@ -875,7 +915,27 @@ def test_add_metaclass():
     assert type(MySlotsWeakref) is Meta
 
 
-@py.test.mark.skipif("sys.version_info[:2] < (2, 7) or sys.version_info[:2] in ((3, 0), (3, 1))")
+@pytest.mark.skipif("sys.version_info[:2] < (3, 3)")
+def test_add_metaclass_nested():
+    # Regression test for https://github.com/benjaminp/six/issues/259
+    class Meta(type):
+        pass
+
+    class A:
+        class B: pass
+
+    expected = 'test_add_metaclass_nested.<locals>.A.B'
+
+    assert A.B.__qualname__ == expected
+
+    class A:
+        @six.add_metaclass(Meta)
+        class B: pass
+
+    assert A.B.__qualname__ == expected
+
+
+@pytest.mark.skipif("sys.version_info[:2] < (2, 7) or sys.version_info[:2] in ((3, 0), (3, 1))")
 def test_assertCountEqual():
     class TestAssertCountEqual(unittest.TestCase):
         def test(self):
@@ -887,7 +947,7 @@ def test_assertCountEqual():
     TestAssertCountEqual('test').test()
 
 
-@py.test.mark.skipif("sys.version_info[:2] < (2, 7)")
+@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
 def test_assertRegex():
     class TestAssertRegex(unittest.TestCase):
         def test(self):
@@ -899,7 +959,7 @@ def test_assertRegex():
     TestAssertRegex('test').test()
 
 
-@py.test.mark.skipif("sys.version_info[:2] < (2, 7)")
+@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
 def test_assertRaisesRegex():
     class TestAssertRaisesRegex(unittest.TestCase):
         def test(self):
@@ -932,3 +992,61 @@ def test_python_2_unicode_compatible():
         assert str(my_test) == six.u("hello")
 
     assert getattr(six.moves.builtins, 'bytes', str)(my_test) == six.b("hello")
+
+
+class EnsureTests:
+
+    # grinning face emoji
+    UNICODE_EMOJI = six.u("\U0001F600")
+    BINARY_EMOJI = b"\xf0\x9f\x98\x80"
+
+    def test_ensure_binary_raise_type_error(self):
+        with pytest.raises(TypeError):
+            six.ensure_str(8)
+
+    def test_errors_and_encoding(self):
+        six.ensure_binary(self.UNICODE_EMOJI, encoding='latin-1', errors='ignore')
+        with pytest.raises(UnicodeEncodeError):
+            six.ensure_binary(self.UNICODE_EMOJI, encoding='latin-1', errors='strict')
+
+    def test_ensure_binary_raise(self):
+        converted_unicode = six.ensure_binary(self.UNICODE_EMOJI, encoding='utf-8', errors='strict')
+        converted_binary = six.ensure_binary(self.BINARY_EMOJI, encoding="utf-8", errors='strict')
+        if six.PY2:
+            # PY2: unicode -> str
+            assert converted_unicode == self.BINARY_EMOJI and isinstance(converted_unicode, str)
+            # PY2: str -> str
+            assert converted_binary == self.BINARY_EMOJI and isinstance(converted_binary, str)
+        else:
+            # PY3: str -> bytes
+            assert converted_unicode == self.BINARY_EMOJI and isinstance(converted_unicode, bytes)
+            # PY3: bytes -> bytes
+            assert converted_binary == self.BINARY_EMOJI and isinstance(converted_binary, bytes)
+
+    def test_ensure_str(self):
+        converted_unicode = six.ensure_str(self.UNICODE_EMOJI, encoding='utf-8', errors='strict')
+        converted_binary = six.ensure_str(self.BINARY_EMOJI, encoding="utf-8", errors='strict')
+        if six.PY2:
+            # PY2: unicode -> str
+            assert converted_unicode == self.BINARY_EMOJI and isinstance(converted_unicode, str)
+            # PY2: str -> str
+            assert converted_binary == self.BINARY_EMOJI and isinstance(converted_binary, str)
+        else:
+            # PY3: str -> str
+            assert converted_unicode == self.UNICODE_EMOJI and isinstance(converted_unicode, str)
+            # PY3: bytes -> str
+            assert converted_binary == self.UNICODE_EMOJI and isinstance(converted_unicode, str)
+
+    def test_ensure_text(self):
+        converted_unicode = six.ensure_text(self.UNICODE_EMOJI, encoding='utf-8', errors='strict')
+        converted_binary = six.ensure_text(self.BINARY_EMOJI, encoding="utf-8", errors='strict')
+        if six.PY2:
+            # PY2: unicode -> unicode
+            assert converted_unicode == self.UNICODE_EMOJI and isinstance(converted_unicode, unicode)
+            # PY2: str -> unicode
+            assert converted_binary == self.UNICODE_EMOJI and isinstance(converted_unicode, unicode)
+        else:
+            # PY3: str -> str
+            assert converted_unicode == self.UNICODE_EMOJI and isinstance(converted_unicode, str)
+            # PY3: bytes -> str
+            assert converted_binary == self.UNICODE_EMOJI and isinstance(converted_unicode, str)
