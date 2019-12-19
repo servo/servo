@@ -75,9 +75,7 @@ impl AudioContext {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot create AudioContext outside of a pipeline");
+        let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id);
         let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();

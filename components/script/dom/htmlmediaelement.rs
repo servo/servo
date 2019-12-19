@@ -1340,9 +1340,7 @@ impl HTMLMediaElement {
 
         let audio_renderer = self.audio_renderer.borrow().as_ref().map(|r| r.clone());
 
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot create player outside of a pipeline");
+        let pipeline_id = window.pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let player = ServoMedia::get().unwrap().create_player(

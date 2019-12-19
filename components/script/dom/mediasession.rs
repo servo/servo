@@ -105,9 +105,7 @@ impl MediaSession {
     pub fn send_event(&self, event: MediaSessionEvent) {
         let global = self.global();
         let window = global.as_window();
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot send media session event outside of a pipeline");
+        let pipeline_id = window.pipeline_id();
         window.send_to_constellation(ScriptMsg::MediaSessionEvent(pipeline_id, event));
     }
 

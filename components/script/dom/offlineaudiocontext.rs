@@ -83,9 +83,7 @@ impl OfflineAudioContext {
         {
             return Err(Error::NotSupported);
         }
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot create audio context outside of a pipeline");
+        let pipeline_id = window.pipeline_id();
         let context =
             OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
         Ok(reflect_dom_object(

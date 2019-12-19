@@ -1987,7 +1987,7 @@ impl Window {
                             .task_canceller(TaskSourceName::DOMManipulation)
                             .wrap_task(task),
                     ),
-                    self.pipeline_id(),
+                    Some(self.pipeline_id()),
                     TaskSourceName::DOMManipulation,
                 ));
                 doc.set_url(load_data.url.clone());
@@ -2353,8 +2353,8 @@ impl Window {
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
     }
 
-    pub fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.upcast::<GlobalScope>().pipeline_id())
+    pub fn pipeline_id(&self) -> PipelineId {
+        self.upcast::<GlobalScope>().pipeline_id()
     }
 }
 
@@ -2485,7 +2485,7 @@ impl Window {
                     .task_canceller(TaskSourceName::DOMManipulation)
                     .wrap_task(task),
             ),
-            self.pipeline_id(),
+            Some(self.pipeline_id()),
             TaskSourceName::DOMManipulation,
         ));
     }
