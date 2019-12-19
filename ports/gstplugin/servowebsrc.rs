@@ -126,6 +126,7 @@ pub struct ServoWebSrc {
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
     gl_context: Mutex<Option<GLContext>>,
+    connection: Mutex<Option<Connection>>,
     // When did the plugin get created?
     start: Instant,
     // How long should each frame last?
@@ -156,9 +157,17 @@ thread_local! {
     static GFX_CACHE: RefCell<HashMap<GLContext, ServoWebSrcGfx>> = RefCell::new(HashMap::new());
 }
 
+struct ConnectionWhichImplementsDebug(Connection);
+
+impl std::fmt::Debug for ConnectionWhichImplementsDebug {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        "Connection".fmt(fmt)
+    }
+}
+
 #[derive(Debug)]
 enum ServoWebSrcMsg {
-    Start(GLVersion, ServoUrl),
+    Start(ConnectionWhichImplementsDebug, GLVersion, ServoUrl),
     GetSwapChain(Sender<SwapChain<Device>>),
     Resize(Size2D<i32, DevicePixel>),
     Heartbeat,
@@ -186,8 +195,8 @@ struct ServoThreadGfx {
 
 impl ServoThread {
     fn new(receiver: Receiver<ServoWebSrcMsg>) -> Self {
-        let (version, url) = match receiver.recv() {
-            Ok(ServoWebSrcMsg::Start(version, url)) => (version, url),
+        let (connection, version, url) = match receiver.recv() {
+            Ok(ServoWebSrcMsg::Start(connection, version, url)) => (connection.0, version, url),
             e => panic!("Failed to start ({:?})", e),
         };
         info!(
@@ -195,7 +204,7 @@ impl ServoThread {
             version.major, version.minor, url
         );
         let embedder = Box::new(ServoWebSrcEmbedder);
-        let window = Rc::new(ServoWebSrcWindow::new(version));
+        let window = Rc::new(ServoWebSrcWindow::new(connection, version));
         let swap_chain = window.swap_chain.clone();
         let gfx = window.gfx.clone();
         let mut servo = Servo::new(embedder, window);
@@ -289,13 +298,12 @@ struct ServoWebSrcWindow {
 }
 
 impl ServoWebSrcWindow {
-    fn new(version: GLVersion) -> Self {
+    fn new(connection: Connection, version: GLVersion) -> Self {
         let flags = ContextAttributeFlags::DEPTH |
             ContextAttributeFlags::STENCIL |
             ContextAttributeFlags::ALPHA;
         let attributes = ContextAttributes { version, flags };
 
-        let connection = Connection::new().expect("Failed to create connection");
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
@@ -330,7 +338,7 @@ impl ServoWebSrcWindow {
             .make_context_current(&mut context)
             .expect("Failed to make context current");
         debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
-        let access = SurfaceAccess::GPUCPU;
+        let access = SurfaceAccess::GPUOnly;
         let size = Size2D::new(512, 512);
         let surface_type = SurfaceType::Generic { size };
         let surface = device
@@ -489,6 +497,7 @@ impl ObjectSubclass for ServoWebSrc {
         let url = Mutex::new(None);
         let buffer_pool = Mutex::new(None);
         let gl_context = Mutex::new(None);
+        let connection = Mutex::new(None);
         let start = Instant::now();
         let frame_duration_micros = AtomicU64::new(DEFAULT_FRAME_DURATION.as_micros() as u64);
         let next_frame_micros = AtomicU64::new(0);
@@ -498,6 +507,7 @@ impl ObjectSubclass for ServoWebSrc {
             url,
             buffer_pool,
             gl_context,
+            connection,
             start,
             frame_duration_micros,
             next_frame_micros,
@@ -650,21 +660,33 @@ impl BaseSrcImpl for ServoWebSrc {
         }
         let gl_context = unsafe { GLContext::from_glib_borrow(gst_gl_context) };
         let gl_version = gl_context.get_gl_version();
-        let version = if cfg!(all(unix, not(target_os = "macos"))) {
-            // TODO this is just a workaround. Fix it!
-            GLVersion { major: 3, minor: 0 }
-        } else {
-            GLVersion {
-                major: gl_version.0 as u8,
-                minor: gl_version.1 as u8,
-            }
+        let version = GLVersion {
+            major: gl_version.0 as u8,
+            minor: gl_version.1 as u8,
         };
 
-        // Save the GL context for later use
+        // Get the surfman connection on the GL thread
+        let mut task = BootstrapSurfmanOnGLThread {
+            servo_web_src: self,
+            result: None,
+        };
+
+        let data = &mut task as *mut BootstrapSurfmanOnGLThread as *mut c_void;
+        unsafe {
+            gst_gl_context_thread_add(gst_gl_context, Some(bootstrap_surfman_on_gl_thread), data)
+        };
+        let connection = task.result.expect("Failed to get connection");
+
+        // Save the GL context and connection for later use
         *self.gl_context.lock().expect("Poisoned lock") = Some(gl_context);
+        *self.connection.lock().expect("Poisoned lock") = Some(connection.clone());
 
         // Inform servo we're starting
-        let _ = self.sender.send(ServoWebSrcMsg::Start(version, url));
+        let _ = self.sender.send(ServoWebSrcMsg::Start(
+            ConnectionWhichImplementsDebug(connection),
+            version,
+            url,
+        ));
         Ok(())
     }
 
@@ -723,14 +745,14 @@ impl BaseSrcImpl for ServoWebSrc {
 
         // Fill the buffer on the GL thread
         let result = Err(FlowError::Error);
-        let mut task = RunOnGLThread {
+        let mut task = FillOnGLThread {
             servo_web_src: self,
             src,
             gl_memory,
             result,
         };
 
-        let data = &mut task as *mut RunOnGLThread as *mut c_void;
+        let data = &mut task as *mut FillOnGLThread as *mut c_void;
         unsafe { gst_gl_context_thread_add(gl_memory.mem.context, Some(fill_on_gl_thread), data) };
         task.result?;
 
@@ -749,7 +771,32 @@ impl BaseSrcImpl for ServoWebSrc {
     }
 }
 
-struct RunOnGLThread<'a> {
+struct BootstrapSurfmanOnGLThread<'a> {
+    servo_web_src: &'a ServoWebSrc,
+    result: Option<Connection>,
+}
+
+unsafe extern "C" fn bootstrap_surfman_on_gl_thread(context: *mut GstGLContext, data: *mut c_void) {
+    let task = &mut *(data as *mut BootstrapSurfmanOnGLThread);
+    let gl_context = GLContext::from_glib_borrow(context);
+    task.result = task.servo_web_src.bootstrap_surfman(gl_context);
+}
+
+impl ServoWebSrc {
+    // Runs on the GL thread
+    fn bootstrap_surfman(&self, gl_context: GLContext) -> Option<Connection> {
+        gl_context
+            .activate(true)
+            .expect("Failed to activate GL context");
+        let native_connection =
+            NativeConnection::current().expect("Failed to bootstrap native connection");
+        let connection = unsafe { Connection::from_native_connection(native_connection) }
+            .expect("Failed to bootstrap surfman connection");
+        Some(connection)
+    }
+}
+
+struct FillOnGLThread<'a> {
     servo_web_src: &'a ServoWebSrc,
     src: &'a BaseSrc,
     gl_memory: &'a GstGLMemory,
@@ -757,7 +804,7 @@ struct RunOnGLThread<'a> {
 }
 
 unsafe extern "C" fn fill_on_gl_thread(context: *mut GstGLContext, data: *mut c_void) {
-    let task = &mut *(data as *mut RunOnGLThread);
+    let task = &mut *(data as *mut FillOnGLThread);
     let gl_context = GLContext::from_glib_borrow(context);
     task.result = task
         .servo_web_src
@@ -789,10 +836,8 @@ impl ServoWebSrc {
             let mut gfx_cache = gfx_cache.borrow_mut();
             let gfx = gfx_cache.entry(gl_context.clone()).or_insert_with(|| {
                 debug!("Bootstrapping surfman");
-                let native_connection =
-                    NativeConnection::current().expect("Failed to bootstrap native connection");
-                let connection = unsafe { Connection::from_native_connection(native_connection) }
-                    .expect("Failed to bootstrap surfman connection");
+                let connection_guard = self.connection.lock().unwrap();
+                let connection = connection_guard.as_ref().expect("Failed to get surfman");
                 let adapter = connection
                     .create_adapter()
                     .expect("Failed to bootstrap surfman adapter");
@@ -829,6 +874,9 @@ impl ServoWebSrc {
                 }
             });
 
+            gfx.device
+                .make_context_current(&gfx.context)
+                .expect("Failed to make surfman context current");
             debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
 
             // Save the current GL state
