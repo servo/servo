@@ -8,6 +8,7 @@
 'use strict';
 const test_desc = 'Requires a user gesture.';
 const expected = new DOMException(
+    'Failed to execute \'requestDevice\' on \'Bluetooth\': ' +
     'Must be handling a user gesture to show a permission request.',
     'SecurityError');
 

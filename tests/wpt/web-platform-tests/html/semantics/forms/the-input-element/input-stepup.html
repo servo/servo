@@ -1,27 +1,18 @@
 <!DOCTYPE HTML>
 <html>
- <head>
-  <title>Forms</title>
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
- </head>
- <body>
-  <p>
-    <h3>input_stepUp</h3>
-  </p>
+<title>Forms</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h3>input_stepUp</h3>
+<input type='number' id='input_number'> <br/>
+<input type="number" id="number_input" max="100" step="1" value="200">
+<input type="date" id="date_input"  max="2009-02-10" step="1" value="2010-02-10">
+<input type="datetime-local" id="dtl_input" max="2009-02-10T20:13" step="1" value="2010-02-10T20:13">
+<input type="month" id="month_input" max="2009-02" step="1" value="2010-02">
+<input type="time" id="time_input" max="19:13" step="60" value="20:13">
+<input type="week" id="week_input" max="2009-W02" step="1" value="2010-W02">
 
-  <hr>
-
-  <div id="log"></div>
-
-  <form method="post"
-      enctype="application/x-www-form-urlencoded"
-      action=""
-      name="input_form">
-  <p><input type='number' id='input_number'></p>
-  </form>
-
-  <script>
+<script>
 
     var input_number = document.getElementById("input_number");
     input_number.max = "30";
@@ -39,7 +30,19 @@
       });
     }
 
-  </script>
+    function testStepUpOverflow(id, value, type) {
+      test(function() {
+        var input = document.getElementById(id);
+        input.stepUp();
+        assert_equals(input.value, value, "value shouldn't change.");
+      }, "Calling stepUp() on input -" + type + "- where value > max should not modify value.");
+    }
 
- </body>
+    testStepUpOverflow("number_input", "200", "number");
+    testStepUpOverflow("date_input", "2010-02-10", "date");
+    testStepUpOverflow("dtl_input", "2010-02-10T20:13", "datetime-local");
+    testStepUpOverflow("month_input", "2010-02", "month");
+    testStepUpOverflow("time_input", "20:13", "time");
+    testStepUpOverflow("week_input", "2010-W02", "week");
+</script>
 </html>

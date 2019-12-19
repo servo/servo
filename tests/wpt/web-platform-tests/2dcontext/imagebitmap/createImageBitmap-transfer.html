@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
 <script src="common.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <div id=log></div>
 <script>
 let worker, continuations = {};
@@ -39,4 +40,14 @@ for (let { name, factory } of imageSourceTypes) {
         });
     }, `Transfer ImageBitmap created from ${name}`);
 }
+
+promise_test(async (t) => {
+  const url = get_host_info().REMOTE_ORIGIN + '/images/pattern.png';
+  const image = await makeMakeHTMLImage(url)();
+  const bitmap = await createImageBitmap(image);
+
+  assert_throws('DataCloneError',
+                () => worker.postMessage(bitmap, [bitmap]));
+}, 'Transferring a non-origin-clean ImageBitmap throws.');
+
 </script>

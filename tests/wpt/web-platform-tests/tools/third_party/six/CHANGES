@@ -3,6 +3,28 @@ Changelog for six
 
 This file lists the changes in each six version.
 
+1.13.0
+------
+
+- Issue #298, pull request #299: Add `six.moves.dbm_ndbm`.
+
+- Issue #155: Add `six.moves.collections_abc`, which aliases the `collections`
+  module on Python 2-3.2 and the `collections.abc` on Python 3.3 and greater.
+
+- Pull request #304: Re-add distutils fallback in `setup.py`.
+
+- Pull request #305: On Python 3.7, `with_metaclass` supports classes using PEP
+  560 features.
+
+1.12.0
+------
+
+- Issue #259, pull request #260: `six.add_metaclass` now preserves
+  `__qualname__` from the original class.
+
+- Pull request #204: Add `six.ensure_binary`, `six.ensure_text`, and
+  `six.ensure_str`.
+
 1.11.0
 ------
 

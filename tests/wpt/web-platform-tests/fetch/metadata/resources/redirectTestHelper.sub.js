@@ -79,6 +79,8 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       let expectation = { ...expectedResults };
       if (expectation['mode'] != '')
         expectation['mode'] = 'navigate';
+      if (expectation['dest'] == 'font')
+        expectation['dest'] = 'iframe';
       assert_header_equals(e.data, expectation, testNamePrefix + ' iframe');
       t.done();
     }));
@@ -97,6 +99,8 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       let expectation = { ...expectedResults };
       if (expectation['mode'] != '')
         expectation['mode'] = 'navigate';
+      if (expectation['dest'] == 'font')
+        expectation['dest'] = 'document';
       assert_header_equals(e.data, expectation, testNamePrefix + ' top level navigation');
       t.done();
     }));
@@ -111,6 +115,8 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
         let expectation = { ...expectedResults };
         if (expectation['mode'] != '')
           expectation['mode'] = 'navigate';
+        if (expectation['dest'] == 'font')
+          expectation['dest'] = 'embed';
         fetch('/fetch/metadata/resources/record-header.py?retrieve=true&file=' + key)
           .then(response => response.text())
           .then(t.step_func(text => assert_header_equals(text, expectation, testNamePrefix + ' embed')))
@@ -126,7 +132,7 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
     let expectation = { ...expectedResults };
     if (expectation['mode'] != '')
       expectation['mode'] = 'cors';
-    if (expectation['dest'] == '' && testNamePrefix != "Https downgrade")
+    if (expectation['dest'] == 'font')
       expectation['dest'] = 'empty';
     return fetch(urlHelperMethod('resources/echo-as-json.py?' + key))
       .then(r => r.json())
@@ -142,6 +148,8 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
         let expectation = { ...expectedResults };
         if (expectation['mode'] != '')
           expectation['mode'] = 'navigate';
+        if (expectation['dest'] == 'font')
+          expectation['dest'] = 'object';
         fetch('/fetch/metadata/resources/record-header.py?retrieve=true&file=' + key)
           .then(response => response.text())
           .then(t.step_func(text => assert_header_equals(text, expectation, testNamePrefix + ' object')))
@@ -182,6 +190,8 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
         let expectation = { ...expectedResults };
         if (expectation['mode'] != '')
           expectation['mode'] = 'no-cors';
+        if (expectation['dest'] == 'font')
+          expectation['dest'] = 'style';
         fetch('/fetch/metadata/resources/record-header.py?retrieve=true&file=' + key)
           .then(response => response.text())
           .then(t.step_func(text => assert_header_equals(text, expectation, testNamePrefix + ' stylesheet')))
@@ -202,9 +212,11 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
         let expectation = { ...expectedResults };
         if (expectation['mode'] != '')
           expectation['mode'] = 'cors';
+        if (expectation['dest'] == 'font')
+          expectation['dest'] = 'track';
         fetch('/fetch/metadata/resources/record-header.py?retrieve=true&file=' + key)
           .then(response => response.text())
-          .then(t.step_func(text => assert_header_equals(text, expectedResults, testNamePrefix + ' track')))
+          .then(t.step_func(text => assert_header_equals(text, expectation, testNamePrefix + ' track')))
           .then(resolve);
       });
       video.appendChild(el);

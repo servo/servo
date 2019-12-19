@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: selection and text-shadow in 4 directions (static variation)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="selection-text-shadow-016-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that text selectedness must affect multiple text shadows." name="assert">
+
+  <style>
+  div
+    {
+      color: blue;
+      font-size: 300%;
+      margin-left: 0.66667em;
+      margin-top: 1.5em;
+      text-shadow: red 0em -0.5em 0em, red -0.5em 0em 0em, red 0.5em 0em 0em, red 0em 0.5em 0em;
+    }
+
+  div::selection
+    {
+      color: green;
+      text-shadow: none;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if each glyph of "Selected Text" is green and not red.
+
+  <div id="test">Selected Text</div>

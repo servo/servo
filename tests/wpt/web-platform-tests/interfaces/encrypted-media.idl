@@ -25,8 +25,9 @@ dictionary MediaKeySystemConfiguration {
 };
 
 dictionary MediaKeySystemMediaCapability {
-             DOMString contentType = "";
-             DOMString robustness = "";
+   DOMString contentType = "";
+   DOMString? encryptionScheme = null;
+   DOMString robustness = "";
 };
 
 [Exposed=Window, SecureContext] interface MediaKeySystemAccess {
@@ -37,7 +38,8 @@ dictionary MediaKeySystemMediaCapability {
 
 enum MediaKeySessionType {
     "temporary",
-    "persistent-license"
+    "persistent-license",
+    "persistent-usage-record"
 };
 
 [Exposed=Window, SecureContext] interface MediaKeys {

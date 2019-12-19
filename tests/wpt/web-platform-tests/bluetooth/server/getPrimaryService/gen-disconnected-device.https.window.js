@@ -6,8 +6,9 @@
 const test_desc = 'getPrimaryService called before connecting. Reject with ' +
     'NetworkError.';
 const expected = new DOMException(
-    'GATT Server is disconnected. Cannot retrieve services. (Re)connect ' +
-        'first with `device.gatt.connect`.',
+    `Failed to execute 'getPrimaryService' on 'BluetoothRemoteGATTServer': ` +
+    `GATT Server is disconnected. Cannot retrieve services. (Re)connect ` +
+    `first with \`device.gatt.connect\`.`,
     'NetworkError');
 
 bluetooth_test(

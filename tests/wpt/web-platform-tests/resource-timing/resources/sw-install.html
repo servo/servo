@@ -1,31 +1,33 @@
 <!DOCTYPE html>
 <script>
-function service_worker_unregister(documentUrl) {
-  return navigator.serviceWorker.getRegistration(documentUrl)
-    .then(function(registration) {
-        if (registration)
-          return registration.unregister();
-      })
+async function service_worker_unregister(scope) {
+  var absoluteScope = (new URL(scope, window.location).href);
+  const registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration && registration.scope === absoluteScope)
+    return registration.unregister();
 }
 
-function service_worker_unregister_and_register(url, scope, options = {}) {
+async function service_worker_unregister_and_register(url, scope, options = {}) {
   if (!scope || scope.length == 0)
     return Promise.reject(new Error('tests must define a scope'));
 
   options.scope = scope;
-  return service_worker_unregister(scope)
-    .then(function() {
-        return navigator.serviceWorker.register(url, options);
-      })
+  await service_worker_unregister(scope);
+  return navigator.serviceWorker.register(url, options);
 }
 
-function wait_for_activation_event(worker) {
+function wait_for_state_activated(worker) {
+  if (worker.state === 'activated')
+    return Promise.resolve();
+
+  if (worker.state === 'redundant') {
+    return Promise.reject(new Error('worker is redundant'));
+  }
+
   return new Promise(function(resolve) {
-      worker.addEventListener('statechange', function(event) {
-          if (worker.state == 'activated')
-            resolve(true);
-          else if (worker.state == 'redundant')
-            resolve(false);
+      worker.addEventListener('statechange', function() {
+          if (worker.state === 'activated')
+            resolve();
         });
     });
 }
@@ -33,15 +35,20 @@ function wait_for_activation_event(worker) {
 (async () => {
   var script = '/resource-timing/resources/sw.js';
   var scope = '/resource-timing/resources/';
-  await service_worker_unregister_and_register(script, scope)
-    .then(function(registration) {
-        return wait_for_activation_event(registration.installing);
-    })
-    .then(function(did_install) {
-      if (window.opener) {
-        window.opener.postMessage("installed", "*");
-      }
-    })
+  const registration = await service_worker_unregister_and_register(script, scope);
+  await wait_for_state_activated(registration.installing);
+  const opener = window.opener;
+  if (!opener)
+    return;
+
+  opener.postMessage("installed", "*");
+  async function unregister(e) {
+    if (e.data === "unregister") {
+      await registration.unregister();
+      opener.postMessage("unregistered", "*");
+    }
+  }
+  window.addEventListener("message", e => unregister(e));
 })();
 
 </script>

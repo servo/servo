@@ -14,7 +14,7 @@
 
 from __future__ import unicode_literals
 
-from six import binary_type, text_type, BytesIO
+from six import binary_type, text_type, BytesIO, unichr
 from six.moves import xrange
 
 from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,

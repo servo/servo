@@ -19,9 +19,9 @@
 <div id="fontTest">Downgraded then upgraded font</div>
 <script>
   let nonce = "{{$id}}";
-  let expected = {"site": "cross-site", "user": "", "mode": "cors", "dest": ""};
+  let expected = {"site": "cross-site", "user": "", "mode": "cors", "dest": "font"};
 
-  // Validate various scenarios handle a request that redirects from https => http
+  // Validate various scenarios handle a request that redirects from https => http => https
   // correctly and avoids disclosure of any Sec- headers.
   RunCommonRedirectTests("Https downgrade-upgrade", MultipleRedirectTo, expected);
 
@@ -54,7 +54,7 @@
             "site": "cross-site",
             "user": undefined,
             "mode": "cors",
-            "dest": undefined
+            "dest": "image"
           }, "Https downgrade-upgrade image => No headers");
         });
   }, "Https downgrade-upgrade image => No headers");
@@ -66,7 +66,7 @@
     t.add_cleanup(_ => {
       header = null;
     });
-    assert_header_equals(header, {"site": "cross-site", "user": "", "mode": "no-cors", "dest": ""},
+    assert_header_equals(header, {"site": "cross-site", "user": "", "mode": "no-cors", "dest": "script"},
         "Https downgrade-upgrade script => No headers");
   }, "Https downgrade-upgrade script => No headers");
 </script>

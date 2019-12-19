@@ -76,4 +76,17 @@ test(function() {
         new DOMParser().parseFromString("", "text/foo-this-is-invalid");
     })
 }, "DOMParser throws on an invalid enum value")
+
+test(() => {
+   const doc = new DOMParser().parseFromString(`
+<html><body>
+<style>
+  @import url(/dummy.css)
+</style>
+<script>x = 8<\/script>
+</body></html>`, 'text/html');
+
+  assert_not_equals(doc.querySelector('script'), null, 'script must be found');
+  assert_equals(doc.x, undefined, 'script must not be executed');
+}, 'script is found synchronously even when there is a css import');
 </script>

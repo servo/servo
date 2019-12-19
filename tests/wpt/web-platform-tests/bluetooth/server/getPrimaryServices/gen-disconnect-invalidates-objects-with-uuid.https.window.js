@@ -7,6 +7,14 @@ const test_desc = 'Calls on services after we disconnect and connect again. ' +
     'Should reject with InvalidStateError.';
 let device, services;
 
+function createDOMException(func, uuid) {
+  return new DOMException(
+      `Failed to execute '${func}' on 'BluetoothRemoteGATTService': ` +
+      `Service with UUID ${uuid} is no longer valid. Remember to retrieve ` +
+      `the service again after reconnecting.`,
+      'InvalidStateError');
+}
+
 bluetooth_test(
     () => getHealthThermometerDevice(
               {filters: [{services: ['health_thermometer']}]})
@@ -19,22 +27,18 @@ bluetooth_test(
               .then(() => {
                 let promises = Promise.resolve();
                 for (let service of services) {
-                  let error = new DOMException(
-                      `Service with UUID ${
-                          service.uuid} is no longer valid. Remember ` +
-                          `to retrieve the service again after reconnecting.`,
-                      'InvalidStateError');
                   promises = promises.then(
                       () => assert_promise_rejects_with_message(
                           service.getCharacteristic('measurement_interval'),
-                          error));
+                          createDOMException('getCharacteristic', service.uuid)));
                   promises = promises.then(
                       () => assert_promise_rejects_with_message(
-                          service.getCharacteristics(), error));
+                          service.getCharacteristics(),
+                          createDOMException('getCharacteristics', service.uuid)));
                   promises = promises.then(
                       () => assert_promise_rejects_with_message(
                           service.getCharacteristics('measurement_interval'),
-                          error));
+                          createDOMException('getCharacteristics', service.uuid)));
                 }
                 return promises;
               }),

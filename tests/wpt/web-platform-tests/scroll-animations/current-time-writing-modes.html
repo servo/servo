@@ -4,7 +4,7 @@
 <link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-
+<script src="/web-animations/testcommon.js"></script>
 <script src="./resources/scrolltimeline-utils.js"></script>
 
 <body></body>
@@ -222,7 +222,7 @@ test(function() {
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -50;
-  assert_equals(
+  assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(50, 20, scrollerSize, scrollerSize),
       'Length-based timeline after the startScrollOffset point');
@@ -237,7 +237,7 @@ test(function() {
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.4 * scrollerSize);
-  assert_equals(
+  assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
           0.4 * scrollerSize, 0.2 * scrollerSize, scrollerSize, scrollerSize),
@@ -253,7 +253,7 @@ test(function() {
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize);
-  assert_equals(
+  assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
           0.2 * scrollerSize, 0.2 * scrollerSize - 5, scrollerSize,
@@ -303,7 +303,7 @@ test(function() {
       lengthScrollTimeline.currentTime, null,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 50 - scrollerSize;
-  assert_equals(
+  assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(
           scrollerSize - 50, 0, scrollerSize - 20, scrollerSize),
@@ -319,7 +319,7 @@ test(function() {
       percentageScrollTimeline.currentTime, null,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.4 * scrollerSize - scrollerSize;
-  assert_equals(
+  assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
           0.6 * scrollerSize, 0, 0.8 * scrollerSize, scrollerSize),
@@ -335,7 +335,7 @@ test(function() {
       calcScrollTimeline.currentTime, null,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize;
-  assert_equals(
+  assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
           0.8 * scrollerSize, 0, 0.8 * scrollerSize + 5, scrollerSize),
@@ -386,16 +386,16 @@ test(function() {
   let expectedCurrentTime = calculateCurrentTime(
       scroller.scrollLeft, 0, scrollerSize, scrollerSize);
 
-  assert_equals(
+  assert_times_equal(
     inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
     'Inclusive auto timeline at the endScrollOffset point');
-  assert_equals(
+  assert_times_equal(
     inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
     'Inclusive length-based timeline at the endScrollOffset point');
-  assert_equals(
+  assert_times_equal(
     inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
     'Inclusive percentage-based timeline at the endScrollOffset point');
-  assert_equals(
+  assert_times_equal(
     inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
     'Inclusive calc-based timeline at the endScrollOffset point');
 }, 'currentTime handles endScrollOffset (inclusive case) with direction: rtl correctly');

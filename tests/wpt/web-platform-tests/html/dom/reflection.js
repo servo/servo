@@ -685,9 +685,13 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                 domTests.push(data.keywords[i].toUpperCase());
                 idlTests.push(data.keywords[i].toUpperCase());
             }
-            if (data.keywords[i] != data.keywords[i].replace(/k/g, "\u212A")) {
+            if (data.keywords[i].indexOf("k") != -1) {
                 domTests.push(data.keywords[i].replace(/k/g, "\u212A"));
                 idlTests.push(data.keywords[i].replace(/k/g, "\u212A"));
+            }
+            if (data.keywords[i].indexOf("s") != -1) {
+                domTests.push(data.keywords[i].replace(/s/g, "\u017F"));
+                idlTests.push(data.keywords[i].replace(/s/g, "\u017F"));
             }
         }
 
