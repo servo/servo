@@ -1403,7 +1403,9 @@ impl Window {
         // We tear down the active document, which causes all the attached
         // nodes to dispose of their layout data. This messages the layout
         // thread, informing it that it can safely free the memory.
-        self.Document().upcast::<Node>().teardown();
+        self.Document()
+            .upcast::<Node>()
+            .teardown(self.layout_chan());
 
         // Tell the constellation to drop the sender to our message-port router, if there is any.
         self.upcast::<GlobalScope>().remove_message_ports_router();

@@ -67,6 +67,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use app_units::Au;
+use crossbeam_channel::Sender;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
@@ -209,7 +210,9 @@ impl NodeFlags {
 impl Drop for Node {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        self.style_and_layout_data.get().map(|d| self.dispose(d));
+        if let Some(data) = self.style_and_layout_data.get() {
+            self.dispose(data, ScriptThread::get_any_layout_chan().as_ref());
+        }
     }
 }
 
@@ -224,15 +227,16 @@ enum SuppressObserver {
 
 impl Node {
     /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
-    pub fn dispose(&self, data: OpaqueStyleAndLayoutData) {
+    pub(crate) fn dispose(
+        &self,
+        data: OpaqueStyleAndLayoutData,
+        layout_chan: Option<&Sender<Msg>>,
+    ) {
         debug_assert!(thread_state::get().is_script());
-        let win = window_from_node(self);
         self.style_and_layout_data.set(None);
-        if win
-            .layout_chan()
-            .send(Msg::ReapStyleAndLayoutData(data))
-            .is_err()
-        {
+        if layout_chan.map_or(false, |chan| {
+            chan.send(Msg::ReapStyleAndLayoutData(data)).is_err()
+        }) {
             warn!("layout thread unreachable - leaking layout data");
         }
     }
@@ -315,12 +319,16 @@ impl Node {
                 false,
             );
         }
+        let window = window_from_node(root);
+        let layout_chan = window.layout_chan();
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
             vtable_for(&&*node).unbind_from_tree(&context);
-            node.style_and_layout_data.get().map(|d| node.dispose(d));
+            if let Some(data) = node.style_and_layout_data.get() {
+                node.dispose(data, Some(layout_chan));
+            }
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
@@ -481,10 +489,12 @@ impl<'a> Iterator for QuerySelectorIterator {
 impl Node {
     impl_rare_data!(NodeRareData);
 
-    pub fn teardown(&self) {
-        self.style_and_layout_data.get().map(|d| self.dispose(d));
+    pub(crate) fn teardown(&self, layout_chan: &Sender<Msg>) {
+        if let Some(data) = self.style_and_layout_data.get() {
+            self.dispose(data, Some(layout_chan));
+        }
         for kid in self.children() {
-            kid.teardown();
+            kid.teardown(layout_chan);
         }
     }
 
