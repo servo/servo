@@ -26,14 +26,14 @@ use crate::dom::xrtest::XRTest;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self as ipc_crate, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::rc::Rc;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
-use webxr_api::{Error as XRError, Session, SessionMode};
+use webxr_api::{Error as XRError, Frame, Session, SessionMode};
 
 #[dom_struct]
 pub struct XR {
@@ -185,12 +185,15 @@ impl XRMethods for XR {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (frame_sender, frame_receiver) = ipc_crate::channel().unwrap();
+        let mut frame_receiver = Some(frame_receiver);
         ROUTER.add_route(
             receiver.to_opaque(),
             Box::new(move |message| {
                 // router doesn't know this is only called once
                 let trusted = trusted.take().unwrap();
                 let this = this.clone();
+                let frame_receiver = frame_receiver.take().unwrap();
                 let message: Result<Session, webxr_api::Error> = if let Ok(message) = message.to() {
                     message
                 } else {
@@ -199,13 +202,15 @@ impl XRMethods for XR {
                 };
                 let _ = task_source.queue_with_canceller(
                     task!(request_session: move || {
-                        this.root().session_obtained(message, trusted.root(), mode);
+                        this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
                     }),
                     &canceller,
                 );
             }),
         );
-        window.webxr_registry().request_session(mode.into(), sender);
+        window
+            .webxr_registry()
+            .request_session(mode.into(), sender, frame_sender);
 
         promise
     }
@@ -222,6 +227,7 @@ impl XR {
         response: Result<Session, XRError>,
         promise: Rc<Promise>,
         mode: XRSessionMode,
+        frame_receiver: IpcReceiver<Frame>,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -231,7 +237,7 @@ impl XR {
             },
         };
 
-        let session = XRSession::new(&self.global(), session, mode);
+        let session = XRSession::new(&self.global(), session, mode, frame_receiver);
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()
