@@ -44,7 +44,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -58,6 +58,7 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
 use js::rust::{HandleObject, HandleValue};
 use js::typedarray;
+use script_traits::serializable::BlobImpl;
 use script_traits::MsDuration;
 use servo_config::prefs;
 use std::borrow::ToOwned;
@@ -174,8 +175,7 @@ impl TestBindingMethods for TestBinding {
     fn InterfaceAttribute(&self) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -320,8 +320,7 @@ impl TestBindingMethods for TestBinding {
     fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -415,8 +414,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterface(&self) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
@@ -464,8 +462,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )]
     }
     fn ReceiveUnionIdentity(
@@ -530,8 +527,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         ))
     }
     fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {

@@ -16,12 +16,14 @@ use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoE
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
+use crate::dom::blob::Blob;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::file::File;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -61,10 +63,13 @@ use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{MessagePortId, MessagePortRouterId, PipelineId};
+use msg::constellation_msg::{BlobId, MessagePortId, MessagePortRouterId, PipelineId};
+use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
 use net_traits::image_cache::ImageCache;
-use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
-use profile_traits::{mem as profile_mem, time as profile_time};
+use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
+use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent,
@@ -76,10 +81,13 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::CString;
+use std::mem;
+use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
+use uuid::Uuid;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -97,6 +105,9 @@ pub struct GlobalScope {
 
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
+
+    /// The blobs managed by this global, if any.
+    blob_state: DomRefCell<BlobState>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -198,6 +209,36 @@ struct TimerListener {
     canceller: TaskCanceller,
     task_source: TimerTaskSource,
     context: Trusted<GlobalScope>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+/// A holder of a weak reference for a DOM blob or file.
+pub enum BlobTracker {
+    /// A weak ref to a DOM file.
+    File(WeakRef<File>),
+    /// A weak ref to a DOM blob.
+    Blob(WeakRef<Blob>),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+/// The info pertaining to a blob managed by this global.
+pub struct BlobInfo {
+    /// The weak ref to the corresponding DOM object.
+    tracker: BlobTracker,
+    /// The data and logic backing the DOM object.
+    blob_impl: BlobImpl,
+    /// Whether this blob has an outstanding URL,
+    /// <https://w3c.github.io/FileAPI/#url>.
+    has_url: bool,
+}
+
+/// State representing whether this global is currently managing blobs.
+#[derive(JSTraceable, MallocSizeOf)]
+pub enum BlobState {
+    /// A map of managed blobs.
+    Managed(HashMap<BlobId, BlobInfo>),
+    /// This global is not managing any blobs at this time.
+    UnManaged,
 }
 
 /// Data representing a message-port managed by this global.
@@ -344,6 +385,7 @@ impl GlobalScope {
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
+            blob_state: DomRefCell::new(BlobState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             pipeline_id,
@@ -441,6 +483,12 @@ impl GlobalScope {
         if should_start {
             self.start_message_port(&port_id);
         }
+    }
+
+    /// Clean-up DOM related resources
+    pub fn perform_a_dom_garbage_collection_checkpoint(&self) {
+        self.perform_a_message_port_garbage_collection_checkpoint();
+        self.perform_a_blob_garbage_collection_checkpoint();
     }
 
     /// Update our state to un-managed,
@@ -809,6 +857,400 @@ impl GlobalScope {
             };
         } else {
             panic!("track_message_port should have first switched the state to managed.");
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
+    /// defined at <https://w3c.github.io/FileAPI/#blob-section>.
+    /// Get the snapshot state and underlying bytes of the blob.
+    pub fn serialize_blob(&self, blob_id: &BlobId) -> BlobImpl {
+        // Note: we combine the snapshot state and underlying bytes into one call,
+        // which seems spec compliant.
+        // See https://w3c.github.io/FileAPI/#snapshot-state
+        let bytes = self
+            .get_blob_bytes(blob_id)
+            .expect("Could not read bytes from blob as part of serialization steps.");
+        let type_string = self.get_blob_type_string(blob_id);
+
+        // Note: the new BlobImpl is a clone, but with it's own BlobId.
+        BlobImpl::new_from_bytes(bytes, type_string)
+    }
+
+    fn track_blob_info(&self, blob_info: BlobInfo, blob_id: BlobId) {
+        let mut blob_state = self.blob_state.borrow_mut();
+
+        match &mut *blob_state {
+            BlobState::UnManaged => {
+                let mut blobs_map = HashMap::new();
+                blobs_map.insert(blob_id, blob_info);
+                *blob_state = BlobState::Managed(blobs_map);
+            },
+            BlobState::Managed(blobs_map) => {
+                blobs_map.insert(blob_id, blob_info);
+            },
+        }
+    }
+
+    /// Start tracking a blob
+    pub fn track_blob(&self, dom_blob: &DomRoot<Blob>, blob_impl: BlobImpl) {
+        let blob_id = blob_impl.blob_id();
+
+        let blob_info = BlobInfo {
+            blob_impl,
+            tracker: BlobTracker::Blob(WeakRef::new(dom_blob)),
+            has_url: false,
+        };
+
+        self.track_blob_info(blob_info, blob_id);
+    }
+
+    /// Start tracking a file
+    pub fn track_file(&self, file: &DomRoot<File>, blob_impl: BlobImpl) {
+        let blob_id = blob_impl.blob_id();
+
+        let blob_info = BlobInfo {
+            blob_impl,
+            tracker: BlobTracker::File(WeakRef::new(file)),
+            has_url: false,
+        };
+
+        self.track_blob_info(blob_info, blob_id);
+    }
+
+    /// Clean-up any file or blob that is unreachable from script,
+    /// unless it has an oustanding blob url.
+    /// <https://w3c.github.io/FileAPI/#lifeTime>
+    fn perform_a_blob_garbage_collection_checkpoint(&self) {
+        let mut blob_state = self.blob_state.borrow_mut();
+        if let BlobState::Managed(blobs_map) = &mut *blob_state {
+            blobs_map.retain(|_id, blob_info| {
+                let garbage_collected = match &blob_info.tracker {
+                    BlobTracker::File(weak) => weak.root().is_none(),
+                    BlobTracker::Blob(weak) => weak.root().is_none(),
+                };
+                if garbage_collected && !blob_info.has_url {
+                    if let BlobData::File(ref f) = blob_info.blob_impl.blob_data() {
+                        self.decrement_file_ref(f.get_id());
+                    }
+                    false
+                } else {
+                    true
+                }
+            });
+            if blobs_map.is_empty() {
+                *blob_state = BlobState::UnManaged;
+            }
+        }
+    }
+
+    /// Clean-up all file related resources on document unload.
+    /// <https://w3c.github.io/FileAPI/#lifeTime>
+    pub fn clean_up_all_file_resources(&self) {
+        let mut blob_state = self.blob_state.borrow_mut();
+        if let BlobState::Managed(blobs_map) = &mut *blob_state {
+            blobs_map.drain().for_each(|(_id, blob_info)| {
+                if let BlobData::File(ref f) = blob_info.blob_impl.blob_data() {
+                    self.decrement_file_ref(f.get_id());
+                }
+            });
+        }
+        *blob_state = BlobState::UnManaged;
+    }
+
+    fn decrement_file_ref(&self, id: Uuid) {
+        let origin = get_blob_origin(&self.get_url());
+
+        let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+
+        let msg = FileManagerThreadMsg::DecRef(id, origin, tx);
+        self.send_to_file_manager(msg);
+        let _ = rx.recv();
+    }
+
+    /// Get a slice to the inner data of a Blob,
+    /// In the case of a File-backed blob, this might incur synchronous read and caching.
+    pub fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
+        let parent = {
+            let blob_state = self.blob_state.borrow();
+            if let BlobState::Managed(blobs_map) = &*blob_state {
+                let blob_info = blobs_map
+                    .get(blob_id)
+                    .expect("get_blob_bytes for an unknown blob.");
+                match blob_info.blob_impl.blob_data() {
+                    BlobData::Sliced(ref parent, ref rel_pos) => {
+                        Some((parent.clone(), rel_pos.clone()))
+                    },
+                    _ => None,
+                }
+            } else {
+                panic!("get_blob_bytes called on a global not managing any blobs.");
+            }
+        };
+
+        match parent {
+            Some((parent_id, rel_pos)) => self.get_blob_bytes_non_sliced(&parent_id).map(|v| {
+                let range = rel_pos.to_abs_range(v.len());
+                v.index(range).to_vec()
+            }),
+            None => self.get_blob_bytes_non_sliced(blob_id),
+        }
+    }
+
+    /// Get bytes from a non-sliced blob
+    fn get_blob_bytes_non_sliced(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
+        let blob_state = self.blob_state.borrow();
+        if let BlobState::Managed(blobs_map) = &*blob_state {
+            let blob_info = blobs_map
+                .get(blob_id)
+                .expect("get_blob_bytes_non_sliced called for a unknown blob.");
+            match blob_info.blob_impl.blob_data() {
+                BlobData::File(ref f) => {
+                    let (buffer, is_new_buffer) = match f.get_cache() {
+                        Some(bytes) => (bytes, false),
+                        None => {
+                            let bytes = self.read_file(f.get_id())?;
+                            (bytes, true)
+                        },
+                    };
+
+                    // Cache
+                    if is_new_buffer {
+                        f.cache_bytes(buffer.clone());
+                    }
+
+                    Ok(buffer)
+                },
+                BlobData::Memory(ref s) => Ok(s.clone()),
+                BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
+            }
+        } else {
+            panic!("get_blob_bytes_non_sliced called on a global not managing any blobs.");
+        }
+    }
+
+    /// Get a copy of the type_string of a blob.
+    pub fn get_blob_type_string(&self, blob_id: &BlobId) -> String {
+        let blob_state = self.blob_state.borrow();
+        if let BlobState::Managed(blobs_map) = &*blob_state {
+            let blob_info = blobs_map
+                .get(blob_id)
+                .expect("get_blob_type_string called for a unknown blob.");
+            blob_info.blob_impl.type_string()
+        } else {
+            panic!("get_blob_type_string called on a global not managing any blobs.");
+        }
+    }
+
+    /// https://w3c.github.io/FileAPI/#dfn-size
+    pub fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
+        let blob_state = self.blob_state.borrow();
+        if let BlobState::Managed(blobs_map) = &*blob_state {
+            let parent = {
+                let blob_info = blobs_map
+                    .get(blob_id)
+                    .expect("get_blob_size called for a unknown blob.");
+                match blob_info.blob_impl.blob_data() {
+                    BlobData::Sliced(ref parent, ref rel_pos) => {
+                        Some((parent.clone(), rel_pos.clone()))
+                    },
+                    _ => None,
+                }
+            };
+            match parent {
+                Some((parent_id, rel_pos)) => {
+                    let parent_info = blobs_map
+                        .get(&parent_id)
+                        .expect("Parent of blob whose size is unknown.");
+                    let parent_size = match parent_info.blob_impl.blob_data() {
+                        BlobData::File(ref f) => f.get_size(),
+                        BlobData::Memory(ref v) => v.len() as u64,
+                        BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
+                    };
+                    rel_pos.to_abs_range(parent_size as usize).len() as u64
+                },
+                None => {
+                    let blob_info = blobs_map.get(blob_id).expect("Blob whose size is unknown.");
+                    match blob_info.blob_impl.blob_data() {
+                        BlobData::File(ref f) => f.get_size(),
+                        BlobData::Memory(ref v) => v.len() as u64,
+                        BlobData::Sliced(_, _) => panic!(
+                            "It was previously checked that this blob does not have a parent."
+                        ),
+                    }
+                },
+            }
+        } else {
+            panic!("get_blob_size called on a global not managing any blobs.");
+        }
+    }
+
+    pub fn get_blob_url_id(&self, blob_id: &BlobId) -> Uuid {
+        let mut blob_state = self.blob_state.borrow_mut();
+        if let BlobState::Managed(blobs_map) = &mut *blob_state {
+            let parent = {
+                let blob_info = blobs_map
+                    .get_mut(blob_id)
+                    .expect("get_blob_url_id called for a unknown blob.");
+
+                // Keep track of blobs with outstanding URLs.
+                blob_info.has_url = true;
+
+                match blob_info.blob_impl.blob_data() {
+                    BlobData::Sliced(ref parent, ref rel_pos) => {
+                        Some((parent.clone(), rel_pos.clone()))
+                    },
+                    _ => None,
+                }
+            };
+            match parent {
+                Some((parent_id, rel_pos)) => {
+                    let parent_file_id = {
+                        let parent_info = blobs_map
+                            .get_mut(&parent_id)
+                            .expect("Parent of blob whose url is requested is unknown.");
+                        self.promote(parent_info, /* set_valid is */ false)
+                    };
+                    let parent_size = self.get_blob_size(&parent_id);
+                    let blob_info = blobs_map
+                        .get_mut(blob_id)
+                        .expect("Blob whose url is requested is unknown.");
+                    self.create_sliced_url_id(blob_info, &parent_file_id, &rel_pos, parent_size)
+                },
+                None => {
+                    let blob_info = blobs_map
+                        .get_mut(blob_id)
+                        .expect("Blob whose url is requested is unknown.");
+                    self.promote(blob_info, /* set_valid is */ true)
+                },
+            }
+        } else {
+            panic!("get_blob_url_id called on a global not managing any blobs.");
+        }
+    }
+
+    /// Get a FileID representing sliced parent-blob content
+    fn create_sliced_url_id(
+        &self,
+        blob_info: &mut BlobInfo,
+        parent_file_id: &Uuid,
+        rel_pos: &RelativePos,
+        parent_len: u64,
+    ) -> Uuid {
+        let origin = get_blob_origin(&self.get_url());
+
+        let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+        let msg = FileManagerThreadMsg::AddSlicedURLEntry(
+            parent_file_id.clone(),
+            rel_pos.clone(),
+            tx,
+            origin.clone(),
+        );
+        self.send_to_file_manager(msg);
+        match rx.recv().expect("File manager thread is down.") {
+            Ok(new_id) => {
+                *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
+                    new_id.clone(),
+                    None,
+                    None,
+                    rel_pos.to_abs_range(parent_len as usize).len() as u64,
+                ));
+
+                // Return the indirect id reference
+                new_id
+            },
+            Err(_) => {
+                // Return dummy id
+                Uuid::new_v4()
+            },
+        }
+    }
+
+    /// Promote non-Slice blob:
+    /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
+    /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
+    /// Depending on set_valid, the returned FileID can be part of
+    /// valid or invalid Blob URL.
+    pub fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
+        let mut bytes = vec![];
+        let global_url = self.get_url();
+
+        match blob_info.blob_impl.blob_data_mut() {
+            BlobData::Sliced(_, _) => {
+                panic!("Sliced blobs should use create_sliced_url_id instead of promote.");
+            },
+            BlobData::File(ref f) => {
+                if set_valid {
+                    let origin = get_blob_origin(&global_url);
+                    let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+
+                    let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin.clone());
+                    self.send_to_file_manager(msg);
+
+                    match rx.recv().unwrap() {
+                        Ok(_) => return f.get_id(),
+                        // Return a dummy id on error
+                        Err(_) => return Uuid::new_v4(),
+                    }
+                } else {
+                    // no need to activate
+                    return f.get_id();
+                }
+            },
+            BlobData::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
+        };
+
+        let origin = get_blob_origin(&global_url);
+
+        let blob_buf = BlobBuf {
+            filename: None,
+            type_string: blob_info.blob_impl.type_string(),
+            size: bytes.len() as u64,
+            bytes: bytes.to_vec(),
+        };
+
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
+        self.send_to_file_manager(msg);
+
+        *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
+            id.clone(),
+            None,
+            Some(bytes.to_vec()),
+            bytes.len() as u64,
+        ));
+
+        id
+    }
+
+    fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
+        let resource_threads = self.resource_threads();
+        let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+    }
+
+    fn read_file(&self, id: Uuid) -> Result<Vec<u8>, ()> {
+        let resource_threads = self.resource_threads();
+        let (chan, recv) =
+            profile_ipc::channel(self.time_profiler_chan().clone()).map_err(|_| ())?;
+        let origin = get_blob_origin(&self.get_url());
+        let check_url_validity = false;
+        let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
+        let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+
+        let mut bytes = vec![];
+
+        loop {
+            match recv.recv().unwrap() {
+                Ok(ReadFileProgress::Meta(mut blob_buf)) => {
+                    bytes.append(&mut blob_buf.bytes);
+                },
+                Ok(ReadFileProgress::Partial(mut bytes_in)) => {
+                    bytes.append(&mut bytes_in);
+                },
+                Ok(ReadFileProgress::EOF) => {
+                    return Ok(bytes);
+                },
+                Err(_) => return Err(()),
+            }
         }
     }
 

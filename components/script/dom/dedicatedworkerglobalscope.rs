@@ -549,7 +549,7 @@ impl DedicatedWorkerGlobalScope {
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
             ))
-            .unwrap();
+            .expect("Sending to parent failed");
         Ok(())
     }
 }

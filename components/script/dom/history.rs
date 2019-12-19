@@ -119,6 +119,7 @@ impl History {
                 let data = StructuredSerializedData {
                     serialized: data,
                     ports: None,
+                    blobs: None,
                 };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());

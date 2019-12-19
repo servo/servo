@@ -1916,6 +1916,9 @@ impl Document {
             let msg = ScriptMsg::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+        // https://w3c.github.io/FileAPI/#lifeTime
+        global_scope.clean_up_all_file_resources();
+
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
     }

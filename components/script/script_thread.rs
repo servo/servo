@@ -1592,7 +1592,7 @@ impl ScriptThread {
 
             window
                 .upcast::<GlobalScope>()
-                .perform_a_message_port_garbage_collection_checkpoint();
+                .perform_a_dom_garbage_collection_checkpoint();
 
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {

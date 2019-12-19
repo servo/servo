@@ -9,7 +9,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::{normalize_type_string, Blob};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -24,6 +24,7 @@ use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
+use script_traits::serializable::BlobImpl;
 use std::cell::Ref;
 use std::ptr;
 use std::rc::Rc;
@@ -166,7 +167,10 @@ fn run_blob_data_algorithm(
     } else {
         "".to_string()
     };
-    let blob = Blob::new(root, BlobImpl::new_from_bytes(bytes), mime_string);
+    let blob = Blob::new(
+        root,
+        BlobImpl::new_from_bytes(bytes, normalize_type_string(&mime_string)),
+    );
     Ok(FetchedData::BlobData(blob))
 }
 
