@@ -110,7 +110,7 @@ impl ServiceWorkerRegistration {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: global.pipeline_id(),
         };
 
         let worker_id = WorkerId(Uuid::new_v4());
