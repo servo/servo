@@ -56,7 +56,7 @@ class MachCommands(CommandBase):
         return bootstrap.bootstrap(self.context, force=force, specific="salt")
 
     @Command('bootstrap-gstreamer',
-             description='Set up a local copy of the gstreamer libraries (linux only).',
+             description='Set up a local copy of the gstreamer libraries (linux and windows only).',
              category='bootstrap')
     @CommandArgument('--force', '-f',
                      action='store_true',

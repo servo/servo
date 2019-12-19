@@ -94,18 +94,41 @@ def install_salt_dependencies(context, force):
         print("Dependencies are already installed")
 
 
-def gstreamer(context, force=False):
+def gstreamer_linux(context, force=False):
     cur = os.curdir
     gstdir = os.path.join(cur, "support", "linux", "gstreamer")
     if not os.path.isdir(os.path.join(gstdir, "gst", "lib")):
         subprocess.check_call(["bash", "gstreamer.sh"], cwd=gstdir)
-        return True
-    return False
-
-
-def bootstrap_gstreamer(context, force=False):
-    if not gstreamer(context, force):
+    else:
         print("gstreamer is already set up")
+    return 0
+
+
+def gstreamer_windows(context, force=False):
+    dependencies = os.path.join(context.sharedir, "msvc-dependencies")
+    gstdir = os.path.join(dependencies, "gstreamer", "1.0")
+
+    if not os.path.exists(os.path.join(gstdir, "X86_64", "bin", "ffi-7.dll")):
+        # Please keep this up to date
+        gst_url1 = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi"
+        gst_url2 = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi"
+
+        for url in [gst_url1, gst_url2]:
+            filename = url[url.rfind("/") + 1:]
+            filepath = os.path.join(dependencies, filename)
+            if not os.path.isfile(filepath):
+                download_file("GStreamer", url, filepath)
+
+            print("Installing %s. Please confirm the UAC dialog and wait until the installation is complete."
+                  % filename)
+            subprocess.check_call(["msiexec", "/i", filepath, "TARGETDIR=" + dependencies, "ADDLOCAL=ALL", "/qb"])
+            os.remove(filepath)
+
+        # Restarting is required because installation sets the env var GSTREAMER_1_0_ROOT_X86_64,
+        # which other commands are looking for.
+        print("GStreamer has been installed sucessfully. Please restart this shell for the changes to take effect!")
+    else:
+        print("GStreamer is already set up")
     return 0
 
 
@@ -137,7 +160,7 @@ def linux(context, force=False):
     installed_something = install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
     if not check_gstreamer_lib():
-        installed_something |= gstreamer(context, force)
+        installed_something |= gstreamer_linux(context, force)
 
     if context.distro == "Ubuntu" and context.distro_version == "14.04":
         installed_something |= install_trusty_deps(force)
@@ -339,7 +362,11 @@ def windows_msvc(context, force=False):
 
 LINUX_SPECIFIC_BOOTSTRAPPERS = {
     "salt": salt,
-    "gstreamer": bootstrap_gstreamer,
+    "gstreamer": gstreamer_linux
+}
+
+WINDOWS_SPECIFIC_BOOTSTRAPPERS = {
+    "gstreamer": gstreamer_windows
 }
 
 
@@ -398,15 +425,25 @@ def bootstrap(context, force=False, specific=None):
 
     bootstrapper = None
     if "windows-msvc" in host_triple():
-        bootstrapper = windows_msvc
+        if specific is None:
+            bootstrapper = windows_msvc
+        else:
+            bootstrapper = WINDOWS_SPECIFIC_BOOTSTRAPPERS.get(specific)
     elif "linux-gnu" in host_triple():
         distrib, version = get_linux_distribution()
 
         context.distro = distrib
         context.distro_version = version
-        bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
 
-    if bootstrapper is None:
+        if specific is None:
+            bootstrapper = linux
+        else:
+            bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific)
+
+    if specific is not None and bootstrapper is None:
+        print("Couldn't find the bootstrap %s for the OS %s" % (specific, host_triple()))
+        return 1
+    elif bootstrapper is None:
         print('Bootstrap support is not yet available for your OS.')
         return 1
 
