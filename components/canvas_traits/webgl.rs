@@ -992,4 +992,11 @@ pub struct GLLimits {
     pub max_vertex_uniform_vectors: u32,
     pub max_client_wait_timeout_webgl: std::time::Duration,
     pub max_transform_feedback_separate_attribs: u32,
+    pub max_vertex_output_vectors: u32,
+    pub max_fragment_input_vectors: u32,
+    pub max_draw_buffers: u32,
+    pub max_color_attachments: u32,
+    pub max_uniform_buffer_bindings: u32,
+    pub min_program_texel_offset: u32,
+    pub max_program_texel_offset: u32,
 }
