@@ -1803,8 +1803,11 @@ impl ToCss for PropertyId {
 }
 
 /// The counted unknown property list which is used for css use counters.
+///
+/// FIXME: This should be just #[repr(u8)], but can't be because of ABI issues,
+/// see https://bugs.llvm.org/show_bug.cgi?id=44228.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
-#[repr(u8)]
+#[repr(u32)]
 pub enum CountedUnknownProperty {
     % for prop in data.counted_unknown_properties:
     /// ${prop.name}
