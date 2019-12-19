@@ -12,8 +12,6 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
-#[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
@@ -207,7 +205,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==
                     ListStylePosition::Outside &&
-                layout_parent_style.get_box().clone_display().inside() != DisplayInside::Inline
+                !layout_parent_style.get_box().clone_display().is_inline_flow()
         );
 
         if !blockify {
