@@ -962,7 +962,7 @@ pub struct WorkerScriptLoadOrigin {
     /// the referrer policy which is used
     pub referrer_policy: Option<ReferrerPolicy>,
     /// the pipeline id of the entity requesting the load
-    pub pipeline_id: Option<PipelineId>,
+    pub pipeline_id: PipelineId,
 }
 
 /// Errors from executing a paint worklet

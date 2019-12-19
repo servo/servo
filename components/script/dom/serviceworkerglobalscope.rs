@@ -289,7 +289,7 @@ impl ServiceWorkerGlobalScope {
                     .credentials_mode(CredentialsMode::Include)
                     .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
-                    .pipeline_id(pipeline_id)
+                    .pipeline_id(Some(pipeline_id))
                     .referrer(referrer)
                     .referrer_policy(referrer_policy)
                     .origin(origin);

@@ -320,24 +320,20 @@ impl DedicatedWorkerGlobalScope {
                     .credentials_mode(CredentialsMode::CredentialsSameOrigin)
                     .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
-                    .pipeline_id(pipeline_id)
+                    .pipeline_id(Some(pipeline_id))
                     .referrer(referrer)
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
                 let runtime = unsafe {
-                    if let Some(pipeline_id) = pipeline_id {
-                        let task_source = NetworkingTaskSource(
-                            Box::new(WorkerThreadWorkerChan {
-                                sender: own_sender.clone(),
-                                worker: worker.clone(),
-                            }),
-                            pipeline_id,
-                        );
-                        new_child_runtime(parent, Some(task_source))
-                    } else {
-                        new_child_runtime(parent, None)
-                    }
+                    let task_source = NetworkingTaskSource(
+                        Box::new(WorkerThreadWorkerChan {
+                            sender: own_sender.clone(),
+                            worker: worker.clone(),
+                        }),
+                        pipeline_id,
+                    );
+                    new_child_runtime(parent, Some(task_source))
                 };
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
@@ -375,7 +371,7 @@ impl DedicatedWorkerGlobalScope {
                             .send(CommonScriptMsg::Task(
                                 WorkerEvent,
                                 Box::new(SimpleWorkerErrorHandler::new(worker)),
-                                pipeline_id,
+                                Some(pipeline_id),
                                 TaskSourceName::DOMManipulation,
                             ))
                             .unwrap();

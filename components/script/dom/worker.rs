@@ -97,7 +97,7 @@ impl Worker {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: global.pipeline_id(),
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
