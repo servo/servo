@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStagePa
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -38,10 +38,7 @@ impl VRStageParameters {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
-        parameters: WebVRStageParameters,
-        global: &GlobalScope,
-    ) -> DomRoot<VRStageParameters> {
+    pub fn new(parameters: WebVRStageParameters, global: &Window) -> DomRoot<VRStageParameters> {
         let cx = global.get_cx();
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {

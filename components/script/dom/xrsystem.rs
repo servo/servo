@@ -364,7 +364,7 @@ impl XRSystem {
             existing.update_display(&display);
             existing
         } else {
-            let root = VRDisplay::new(&self.global(), display.clone());
+            let root = VRDisplay::new(&self.global().as_window(), display.clone());
             self.displays.borrow_mut().push(Dom::from_ref(&*root));
             root
         }
