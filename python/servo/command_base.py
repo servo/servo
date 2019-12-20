@@ -222,7 +222,7 @@ def append_to_path_env(string, env, name):
     env[name] = variable
 
 
-def set_osmesa_env(bin_path, env):
+def set_osmesa_env(bin_path, env, show_vars):
     """Set proper LD_LIBRARY_PATH and DRIVE for software rendering on Linux and OSX"""
     if is_linux():
         dep_path = find_dep_path_newest('osmesa-src', bin_path)
@@ -231,6 +231,9 @@ def set_osmesa_env(bin_path, env):
         osmesa_path = path.join(dep_path, "out", "lib", "gallium")
         append_to_path_env(osmesa_path, env, "LD_LIBRARY_PATH")
         env["GALLIUM_DRIVER"] = "softpipe"
+        if show_vars:
+            print("GALLIUM_DRIVER=" + env["GALLIUM_DRIVER"])
+            print("LD_LIBRARY_PATH=" + env["LD_LIBRARY_PATH"])
     elif is_macosx():
         osmesa_dep_path = find_dep_path_newest('osmesa-src', bin_path)
         if not osmesa_dep_path:
@@ -241,6 +244,9 @@ def set_osmesa_env(bin_path, env):
                                "out", "src", "mapi", "shared-glapi", ".libs")
         append_to_path_env(osmesa_path + ":" + glapi_path, env, "DYLD_LIBRARY_PATH")
         env["GALLIUM_DRIVER"] = "softpipe"
+        if show_vars:
+            print("GALLIUM_DRIVER=" + env["GALLIUM_DRIVER"])
+            print("DYLD_LIBRARY_PATH=" + env["DYLD_LIBRARY_PATH"])
     return env
 
 

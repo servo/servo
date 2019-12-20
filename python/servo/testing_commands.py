@@ -197,7 +197,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--submit', '-a', default=False, action="store_true",
                      help="submit the data to perfherder")
     def test_perf(self, base=None, date=None, submit=False):
-        self.set_software_rendering_env(True)
+        self.set_software_rendering_env(True, False)
 
         self.ensure_bootstrapped()
         env = self.build_env()
@@ -445,7 +445,7 @@ class MachCommands(CommandBase):
 
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
-        self.set_software_rendering_env(kwargs['release'])
+        self.set_software_rendering_env(kwargs['release'], kwargs['debugger'])
 
         # By default, Rayon selects the number of worker threads
         # based on the available CPU count. This doesn't work very
@@ -760,12 +760,12 @@ class MachCommands(CommandBase):
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
 
-    def set_software_rendering_env(self, use_release):
+    def set_software_rendering_env(self, use_release, show_vars):
         # On Linux and mac, find the OSMesa software rendering library and
         # add it to the dynamic linker search path.
         try:
             bin_path = self.get_binary_path(use_release, not use_release)
-            if not set_osmesa_env(bin_path, os.environ):
+            if not set_osmesa_env(bin_path, os.environ, show_vars):
                 print("Warning: Cannot set the path to OSMesa library.")
         except BuildNotFound:
             # This can occur when cross compiling (e.g. arm64), in which case
