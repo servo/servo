@@ -491,9 +491,9 @@ def windows_unit(cached=True):
             "mach smoketest --angle",
             "mach package --dev",
             "mach build --dev --libsimpleservo",
-            # We're getting link errors on windows, due to the x11 feature being
-            # enabled on gstreamer-gl. https://github.com/servo/media/pull/304/
-            "mach build --dev --media-stack=dummy -p servo-gst-plugin",
+            # The GStreamer plugin currently doesn't support Windows
+            # https://github.com/servo/servo/issues/25353
+            # "mach build --dev -p servo-gst-plugin",
 
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
