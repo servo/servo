@@ -28,9 +28,8 @@ function drawCanvas(canvasID, color) {
   var canvas = document.getElementById(canvasID);
   var context = canvas.getContext("2d", {alpha: true});
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.strokeStyle = color;
-  context.lineWidth = 4;
-  context.strokeRect(20, 20, 60, 60);
+  context.fillStyle = color;
+  context.fillRect(20, 20, 60, 60);
 };
 
 drawCanvas('box-green', 'green');

@@ -23,7 +23,6 @@ html, body { margin: 0; padding: 0; }
 registerPaint('geometry', class {
     paint(ctx, geom) {
         ctx.fillStyle = 'green';
-        ctx.beginPath();
         ctx.rect(0, 0, geom.width, geom.height);
         ctx.fill();
     }

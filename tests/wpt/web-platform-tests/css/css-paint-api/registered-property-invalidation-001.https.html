@@ -18,9 +18,8 @@
 registerPaint('geometry', class {
   static get inputProperties() { return ['--color']; }
   paint(ctx, geom, styleMap) {
-    ctx.strokeStyle = styleMap.get('--color').toString();
-    ctx.lineWidth = 4;
-    ctx.strokeRect(0, 0, geom.width, geom.height);
+    ctx.fillStyle = styleMap.get('--color').toString();
+    ctx.fillRect(0, 0, geom.width, geom.height);
   }
 });
 </script>

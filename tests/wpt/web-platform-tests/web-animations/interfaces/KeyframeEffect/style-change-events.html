@@ -121,6 +121,15 @@ const tests = {
       },
     });
   },
+  pseudoElement: MakeInEffectTest({
+    setup: elem => elem.animate(
+      {opacity: [0.5, 1]},
+      {duration: 100 * MS_PER_SEC, pseudoElement: '::before'}
+    ),
+    test: effect => {
+      effect.pseudoElement = null;
+    },
+  }),
   iterationComposite: UsePropertyTest(effect => {
     // Get iterationComposite
     effect.iterationComposite;

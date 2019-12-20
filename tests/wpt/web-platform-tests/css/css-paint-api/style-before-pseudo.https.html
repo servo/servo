@@ -45,15 +45,14 @@ registerPaint('geometry', class {
                 serialized = properties[i].toString() + ': [null]';
             serializedStrings.push(serialized);
         }
-        ctx.strokeStyle = 'green';
+        ctx.fillStyle = 'green';
         if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
-            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
         if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
-            ctx.strokeStyle = 'blue';
+            ctx.fillStyle = 'blue';
         if (serializedStrings[2] != "margin-left: [CSSUnitValue=2px]")
-            ctx.strokeStyle = 'yellow';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'yellow';
+        ctx.fillRect(0, 0, geom.width, geom.height);
     }
 });
 </script>

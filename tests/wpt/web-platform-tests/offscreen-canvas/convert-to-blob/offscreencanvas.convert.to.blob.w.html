@@ -40,12 +40,9 @@ function testConvertToBlobException1()
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     self.postMessage({offscreenCanvas}, [offscreenCanvas]);
     offscreenCanvas.convertToBlob().then(function() {
-        return false;
+        self.postMessage(false);
     }, function(e) {
-        if (e instanceof DOMException && e.name == "InvalidStateError")
-            return true;
-        else
-            return false;
+        self.postMessage(e instanceof DOMException && e.name == "InvalidStateError");
     });
 }
 
@@ -53,16 +50,30 @@ function testConvertToBlobException2()
 {
     var offscreenCanvas = new OffscreenCanvas(0, 0);
     offscreenCanvas.convertToBlob().then(function() {
-        return false;
+        self.postMessage(false);
     }, function(e) {
-        if (e instanceof DOMException && e.name == "IndexSizeError")
-            return true;
-        else
-            return false;
+        self.postMessage(e instanceof DOMException && e.name == "IndexSizeError");
+    });
+}
+
+function testConvertToBlobException3(bitmap)
+{
+    var offscreenCanvas = new OffscreenCanvas(10, 10);
+    var ctx = offscreenCanvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0);
+    offscreenCanvas.convertToBlob().then(function() {
+        self.postMessage(false);
+    }, function(e) {
+        self.postMessage(e instanceof DOMException && e.name == "SecurityError");
     });
 }
 
 self.onmessage = function(e) {
+    if (e.data instanceof ImageBitmap) {
+        testConvertToBlobException3(e.data);
+        return;
+    }
+
     switch(e.data) {
         case 'test1':
             testConvertToBlob("empty", "empty");
@@ -101,10 +112,10 @@ self.onmessage = function(e) {
             testConvertToBlob("image/webp", 0.2);
             break;
         case 'test13':
-            self.postMessage(testConvertToBlobException1());
+            testConvertToBlobException1();
             break;
         case 'test14':
-            self.postMessage(testConvertToBlobException2());
+            testConvertToBlobException2();
             break;
     }
 };
@@ -289,8 +300,10 @@ async_test(function(t) {
 async_test(function(t) {
     var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
-        if (msg.data == true || msg.data == false)
-            assert_true(msg.data);
+        if (msg.data instanceof Object)
+            return;
+        assert_true(msg.data);
+        t.done();
     }));
     worker.postMessage('test13');
 }, "Test that call convertToBlob on a detached OffscreenCanvas throws exception in a worker");
@@ -298,11 +311,27 @@ async_test(function(t) {
 async_test(function(t) {
     var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
-        if (msg.data == true || msg.data == false)
-            assert_true(msg.data);
+        assert_true(msg.data);
+        t.done();
     }));
     worker.postMessage('test14');
 }, "Test that call convertToBlob on a OffscreenCanvas with size 0 throws exception in a worker");
+
+async_test(function(t) {
+    var img = new Image();
+    img.src = "/images/green.png";
+    img.crossOrigin = "anonymous";
+    img.onload = t.step_func_done(() => {
+        createImageBitmap(img).then(t.step_func_done(bitmap => {
+            var worker = makeWorker(t);
+            worker.addEventListener('message', t.step_func_done(function(msg) {
+                assert_true(msg.data);
+                t.done();
+            }));
+            worker.postMessage(bitmap);
+        }));
+    });
+}, "Test that call convertToBlob on a OffscreenCanvas with tainted origin throws exception in a worker");
 
 </script>
 

@@ -41,13 +41,12 @@ registerPaint('geometry', class {
                 serialized = properties[i].toString() + ': [null]';
             serializedStrings.push(serialized);
         }
-        ctx.strokeStyle = 'green';
+        ctx.fillStyle = 'green';
         if (serializedStrings[0] != "color: [CSSStyleValue=rgb(255, 0, 0)]")
-            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
         if (serializedStrings[1] != "line-height: [CSSUnitValue=2px]")
-            ctx.strokeStyle = 'blue';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'blue';
+        ctx.fillRect(0, 0, geom.width, geom.height);
     }
 });
 </script>

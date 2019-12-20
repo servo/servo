@@ -186,7 +186,7 @@ nfc_test(async (t, mockNFC) => {
   promises.push(promise2);
   await reader2.scan();
 
-  mockNFC.setIsNDEFTech(false);
+  mockNFC.simulateNonNDEFTagDiscovered();
   await Promise.all(promises);
 }, "Test that NDEFReader.onerror should be fired if the NFC tag does not \
 expose NDEF technology.");

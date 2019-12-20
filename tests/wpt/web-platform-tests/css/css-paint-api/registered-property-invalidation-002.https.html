@@ -21,9 +21,8 @@ registerPaint('geometry', class {
   paint(ctx, geom, styleMap) {
     let value = styleMap.get('--length');
     let pass = value.value === 100 && value.unit === 'px';
-    ctx.strokeStyle = pass ? 'green' : 'red';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(0, 0, geom.width, geom.height);
+    ctx.fillStyle = pass ? 'green' : 'red';
+    ctx.fillRect(0, 0, geom.width, geom.height);
   }
 });
 </script>

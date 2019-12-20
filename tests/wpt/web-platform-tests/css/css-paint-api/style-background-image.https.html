@@ -41,17 +41,16 @@ registerPaint('geometry', class {
                 serialized = properties[i].toString() + ': [null]';
             serializedStrings.push(serialized);
         }
-        ctx.strokeStyle = 'green';
+        ctx.fillStyle = 'green';
         if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
-            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
         if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
-            ctx.strokeStyle = 'blue';
+            ctx.fillStyle = 'blue';
         if (serializedStrings[2] != "empty-cells: [CSSKeywordValue=show]")
-            ctx.strokeStyle = 'yellow';
+            ctx.fillStyle = 'yellow';
         if (serializedStrings[3] != "margin-left: [CSSUnitValue=2px]")
-            ctx.strokeStyle = 'cyan';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'cyan';
+        ctx.fillRect(0, 0, geom.width, geom.height);
     }
 });
 </script>
