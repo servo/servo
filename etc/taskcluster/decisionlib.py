@@ -71,7 +71,7 @@ class Config:
         # the merge parents rather that the actual sha of the merge commit. This ensures that tasks
         # can be reused if the tree is in an identical state. Otherwise, if the head commit is
         # not a merge, we can rely on the head commit sha for that purpose.
-        raw_commit = subprocess.check_output(["git", "cat-file", "commit", "HEAD"])
+        raw_commit = subprocess.check_output(["git", "cat-file", "commit", CONFIG.git_sha])
         parent_commits = [
             value.decode("utf8")
             for line in raw_commit.split(b"\n")
@@ -194,7 +194,7 @@ class Task:
 
         if CONFIG.treeherder_repository_name:
             assert CONFIG.git_sha
-            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repository_name, CONFIG.git_sha)
+            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repository_name, CONFIG.initial_git_sha)
             self.with_routes(
                 "tc-treeherder" + suffix,
                 "tc-treeherder-staging" + suffix,

@@ -10,7 +10,18 @@ from decisionlib import CONFIG, SHARED
 
 
 def main(task_for):
-    with decisionlib.make_repo_bundle():
+    decisionlib.Task.with_repo_bundle = lambda s, *args, **kwargs: s.with_repo(*args, *kwargs)
+    commits = [
+        "dcdf910a259005bbdd993089d12f9f7eca9a26db",
+        "1a31e495a19b364d98b2eae9c2718e098bfc0bde",
+    ]
+    CONFIG.initial_git_sha = CONFIG.git_sha
+    # with decisionlib.make_repo_bundle():
+    for CONFIG.git_sha in commits:
+        CONFIG.task_name_template = "Servo {}: %s".format(CONFIG.git_sha)
+        CONFIG.scopes_for_all_subtasks
+        if hasattr(CONFIG, "_task_id"):
+            del CONFIG._task_id
         tasks(task_for)
 
 
@@ -23,7 +34,7 @@ def tasks(task_for):
 
     # Work around a tc-github bug/limitation:
     # https://bugzilla.mozilla.org/show_bug.cgi?id=1548781#c4
-    if task_for.startswith("github"):
+    if task_for.startswith("github") and "statuses" not in CONFIG.routes_for_all_subtasks:
         # https://github.com/taskcluster/taskcluster/blob/21f257dc8/services/github/config.yml#L14
         CONFIG.routes_for_all_subtasks.append("statuses")
 
@@ -95,7 +106,7 @@ def tasks(task_for):
         # https://github.com/servo/servo/pull/22597#issuecomment-451518810
         CONFIG.git_sha_is_current_head()
 
-        linux_tidy_unit_untrusted()
+#        linux_tidy_unit_untrusted()
 
     elif task_for == "try-windows-ami":
         CONFIG.git_sha_is_current_head()
@@ -675,7 +686,7 @@ def macos_wpt():
 
 
 def linux_wpt():
-    linux_wpt_common(total_chunks=4, layout_2020=False)
+    linux_wpt_common(total_chunks=10, layout_2020=False)
 
 
 def linux_wpt_layout_2020():
@@ -787,12 +798,13 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             for word in script.split()
             if word.endswith(".log")
         ])
-        task.find_or_create("%s_%swpt_%s.%s" % (
-            platform.replace(" ", "_").lower(),
-            job_id_prefix.replace("-", "_"),
-            this_chunk,
-            CONFIG.task_id(),
-        ))
+        task.create()
+#        task.find_or_create("%s_%swpt_%s.%s" % (
+#            platform.replace(" ", "_").lower(),
+#            job_id_prefix.replace("-", "_"),
+#            this_chunk,
+#            CONFIG.task_id(),
+#        ))
 
 
 def daily_tasks_setup():
