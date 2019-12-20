@@ -1,5 +1,10 @@
 # A GStreamer plugin which runs servo
 
+## Supported platforms
+
+* MacOS + CGL
+* Linux + Wayland (currently no WebGL content)
+
 ## Build
 
 ```
@@ -67,8 +72,6 @@ LD_LIBRARY_PATH=$PWD/support/linux/gstreamer/gst/lib \
 ```
 
 ## Troubleshooting running the plugin
-
-*Currently x11 support is broken!*
 
 First try:
 ```
