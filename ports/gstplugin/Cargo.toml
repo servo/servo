@@ -30,7 +30,6 @@ lazy_static = "1.4"
 libservo = {path = "../../components/servo"}
 servo-media = {git = "https://github.com/servo/media"}
 sparkle = "0.1"
-# NOTE: the sm-angle-default feature only enables angle on windows, not other platforms!
 surfman = { git = "https://github.com/pcwalton/surfman", branch = "multi" }
 surfman-chains-api = "0.2"
 surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains", branch = "multi" }
