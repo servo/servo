@@ -56,15 +56,12 @@ use gstreamer_base::BaseSrcExt;
 use gstreamer_gl::GLContext;
 use gstreamer_gl::GLContextExt;
 use gstreamer_gl::GLContextExtManual;
+use gstreamer_gl::GLSyncMeta;
 use gstreamer_gl_sys::gst_gl_context_thread_add;
-use gstreamer_gl_sys::gst_gl_sync_meta_api_get_type;
-use gstreamer_gl_sys::gst_gl_sync_meta_set_sync_point;
 use gstreamer_gl_sys::gst_gl_texture_target_to_gl;
 use gstreamer_gl_sys::gst_is_gl_memory;
 use gstreamer_gl_sys::GstGLContext;
 use gstreamer_gl_sys::GstGLMemory;
-use gstreamer_gl_sys::GstGLSyncMeta;
-use gstreamer_sys::gst_buffer_get_meta;
 use gstreamer_video::VideoInfo;
 
 use log::debug;
@@ -757,12 +754,9 @@ impl BaseSrcImpl for ServoWebSrc {
         task.result?;
 
         // Put down a GL sync point if needed
-        let gst_buffer = buffer.to_glib_none();
-        let sync_meta_type = unsafe { gst_gl_sync_meta_api_get_type() };
-        let sync_meta =
-            unsafe { gst_buffer_get_meta(gst_buffer.0, sync_meta_type) } as *mut GstGLSyncMeta;
-        if !sync_meta.is_null() {
-            unsafe { gst_gl_sync_meta_set_sync_point(sync_meta, gl_memory.mem.context) };
+        if let Some(meta) = buffer.get_meta::<GLSyncMeta>() {
+            let gl_context = unsafe { GLContext::from_glib_borrow(gl_memory.mem.context) };
+            meta.set_sync_point(&gl_context);
         }
 
         // Wake up Servo
