@@ -15,9 +15,8 @@ var context = canvas.getContext("2d");
 // So in this ref test, we create a 200*200 canvas. We draw to a 220*220 area
 // and scale it to fit the 200*200 canvas.
 context.scale(200/220, 200/220);
-context.strokeStyle = 'green';
-context.lineWidth = 4;
-context.strokeRect(0, 0, 220, 220);
+context.fillStyle = 'green';
+context.fillRect(0, 0, 220, 220);
 </script>
 </body>
 </html>

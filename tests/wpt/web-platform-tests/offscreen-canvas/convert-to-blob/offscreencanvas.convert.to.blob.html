@@ -144,5 +144,22 @@ async_test(function(t) {
     }));
 }, "Test that call convertToBlob on a OffscreenCanvas with size 0 throws exception");
 
+async_test(function(t) {
+    var img = new Image();
+    img.src = "/images/green.png";
+    img.crossOrigin = "anonymous";
+    img.onload = t.step_func_done(() => {
+        var offscreenCanvas = new OffscreenCanvas(10, 10);
+        var ctx = offscreenCanvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        offscreenCanvas.convertToBlob().then(t.step_func_done(function() {
+            assert_false("convertToBlob didn't throw, but should");
+        }), t.step_func_done(function(e) {
+            assert_true(e instanceof DOMException);
+            assert_equals(e.name, "SecurityError");
+        }));
+    });
+}, "Test that call convertToBlob on a OffscreenCanvas with tainted origin throws exception");
+
 </script>
 

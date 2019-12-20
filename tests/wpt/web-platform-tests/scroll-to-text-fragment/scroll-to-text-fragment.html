@@ -202,7 +202,7 @@ let test_cases = [
   // Test text directive within shadow DOM
   {
     fragment: '#:~:text=shadow%20text',
-    expect_position: 'shadow-parent',
+    expect_position: 'shadow',
     description: 'Text directive should match text within shadow DOM'
   },
   // Test text directive within hidden and display none elements. These cases should not scroll into
@@ -236,6 +236,8 @@ for (const test_case of test_cases) {
 
     fetchResults(key, resolve, reject);
   }).then(data => {
+    // If the position is not 'top', the :target element should be the positioned element.
+    assert_true(data.scrollPosition == 'top' || data.target == data.scrollPosition);
     assert_equals(data.href.indexOf(':~:'), -1, 'Expected fragment directive to be stripped from the URL.');
     assert_equals(data.scrollPosition, test_case.expect_position,
                   `Expected ${test_case.fragment} (${test_case.description}) to scroll to ${test_case.expect_position}.`);

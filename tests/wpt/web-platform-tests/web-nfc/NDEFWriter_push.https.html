@@ -408,10 +408,19 @@ NDEFRecordInit.record's recordType is 'mime' and NDEFRecordInit.record's \
 mediaType is undefined.");
 
 nfc_test(async (t, mockNFC) => {
+  // Make sure the push will be pending in the mock.
+  mockNFC.setPendingPushCompleted(false);
+
   const writer = new NDEFWriter();
-  mockNFC.setIsNDEFTech(false);
-  await promise_rejects(t, 'NotSupportedError', writer.push(test_text_data));
-}, "NDEFWriter.push should fail when the NFC device does not expose \
+  const promise = writer.push(test_text_data);
+
+  // Just to make sure the push() request has already reached to the mock.
+  const reader = new NDEFReader();
+  await reader.scan();
+
+  mockNFC.simulateNonNDEFTagDiscovered();
+  await promise_rejects(t, 'NotSupportedError', promise);
+}, "NDEFWriter.push should fail when the NFC device coming up does not expose \
 NDEF technology.");
 
 nfc_test(async (t, mockNFC) => {

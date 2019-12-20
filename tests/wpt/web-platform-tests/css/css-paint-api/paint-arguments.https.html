@@ -35,9 +35,8 @@ registerPaint('box', class {
     static get contextOptions() { return {alpha: true}; }
     static get inputArguments() { return ['<color>']; }
     paint(ctx, geom, properties, args) {
-        ctx.strokeStyle = args[0].toString();
-        ctx.lineWidth = 4;
-        ctx.strokeRect(20, 20, 60, 60);
+        ctx.fillStyle = args[0].toString();
+        ctx.fillRect(20, 20, 60, 60);
     }
 });
 

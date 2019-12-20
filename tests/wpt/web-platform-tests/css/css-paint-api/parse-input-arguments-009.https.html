@@ -32,11 +32,10 @@ try {
 registerPaint('geometry', class {
     paint(ctx, geom) {
         if (testsPassed)
-            ctx.strokeStyle = 'green';
+            ctx.fillStyle = 'green';
         else
-            ctx.strokeStyle = 'red';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, geom.width, geom.height);
     }
 });
 </script>

@@ -41,9 +41,8 @@
             pass &= Array.from(styleMap).filter(e => e[0] == '--prop')[0][1].length == 4;
             pass &= Array.from(styleMap).filter(e => e[0] == '--prop')[0][1].every(isExpected);
 
-            ctx.strokeStyle = pass ? 'green' : 'red';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = pass ? 'green' : 'red';
+            ctx.fillRect(0, 0, geom.width, geom.height);
           }
         });`
 

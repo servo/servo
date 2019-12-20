@@ -23,9 +23,8 @@ registerPaint('geometry', class {
   static get inputProperties() { return ['--foo']; }
   paint(ctx, geom, properties) {
     let fooValue = parseFloat(properties.get('--foo').toString());
-    ctx.strokeStyle = 'green';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(0, 0, fooValue, fooValue);
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fooValue, fooValue);
   }
 });
 </script>

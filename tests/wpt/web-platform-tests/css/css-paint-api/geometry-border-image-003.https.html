@@ -24,11 +24,10 @@ html, body { margin: 0; padding: 0; }
 registerPaint('geometry', class {
     paint(ctx, geom) {
         if (geom.width == 80 && geom.height == 120)
-            ctx.strokeStyle = 'green';
+            ctx.fillStyle = 'green';
         else
-            ctx.strokeStyle = 'red';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, geom.width, geom.height);
     }
 });
 </script>

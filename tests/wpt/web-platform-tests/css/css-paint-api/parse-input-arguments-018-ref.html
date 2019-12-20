@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html>
 <body>
-<p>This test result should show a rect with black border, where the rect is
-filled with green on the lower right corner. The registerPaint('failureIndicator')
+<p>This test result should show a green rect. The registerPaint('failureIndicator')
 will be called twice and the inputArguments will return two different strings,
 which will throw an exception and the paint function with 'failureIndicator'
 should never be called. In other words, there should be no red painted in the result.</p>
-<canvas id ="canvas" width="100" height="100" style="border:1px solid black"></canvas>
+<canvas id ="canvas" width="100" height="100"></canvas>
 <script>
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext("2d");

@@ -9,11 +9,11 @@
 }
 
 #canvas-box-1 {
-  background-image: paint(box, rgb(50, 100, 150), 5px);
+  background-image: paint(box, rgb(50, 100, 150), 50px);
 }
 
 #canvas-box-2 {
-  background-image: paint(box, rgb(150, 100, 50), 10px);
+  background-image: paint(box, rgb(150, 100, 50), 100px);
 }
 
 #background {
@@ -35,9 +35,9 @@ registerPaint('box', class {
     static get contextOptions() { return {alpha: true}; }
     static get inputArguments() { return ['<color>', '<length>']; }
     paint(ctx, geom, properties, args) {
-        ctx.strokeStyle = args[0].toString();
-        ctx.lineWidth = args[1].toString();
-        ctx.strokeRect(40, 40, 120, 120);
+        ctx.fillStyle = args[0].toString();
+        let size = args[1].toString();
+        ctx.fillRect(40, 40, size, size);
     }
 });
 
