@@ -199,7 +199,7 @@ impl Transferable for MessagePort {
 
     /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
     fn transfer_receive(
-        owner: &DomRoot<GlobalScope>,
+        owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
@@ -249,7 +249,7 @@ impl Transferable for MessagePort {
         };
 
         let transferred_port =
-            MessagePort::new_transferred(&**owner, id.clone(), port_impl.entangled_port_id());
+            MessagePort::new_transferred(&*owner, id.clone(), port_impl.entangled_port_id());
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         return_object.set(transferred_port.reflector().rootable().get());

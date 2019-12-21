@@ -56,7 +56,7 @@ enum StructuredCloneTags {
 }
 
 unsafe fn read_blob(
-    owner: &DomRoot<GlobalScope>,
+    owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
     mut sc_holder: &mut StructuredDataHolder,
 ) -> *mut JSObject {
@@ -88,7 +88,7 @@ unsafe fn read_blob(
 }
 
 unsafe fn write_blob(
-    owner: &DomRoot<GlobalScope>,
+    owner: &GlobalScope,
     blob: DomRoot<Blob>,
     w: *mut JSStructuredCloneWriter,
     sc_holder: &mut StructuredDataHolder,

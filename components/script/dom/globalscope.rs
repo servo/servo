@@ -892,7 +892,7 @@ impl GlobalScope {
     }
 
     /// Start tracking a blob
-    pub fn track_blob(&self, dom_blob: &DomRoot<Blob>, blob_impl: BlobImpl) {
+    pub fn track_blob(&self, dom_blob: &Blob, blob_impl: BlobImpl) {
         let blob_id = blob_impl.blob_id();
 
         let blob_info = BlobInfo {
@@ -905,7 +905,7 @@ impl GlobalScope {
     }
 
     /// Start tracking a file
-    pub fn track_file(&self, file: &DomRoot<File>, blob_impl: BlobImpl) {
+    pub fn track_file(&self, file: &File, blob_impl: BlobImpl) {
         let blob_id = blob_impl.blob_id();
 
         let blob_info = BlobInfo {
