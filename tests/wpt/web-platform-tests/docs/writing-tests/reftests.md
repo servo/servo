@@ -54,45 +54,20 @@ single test, it is recommended to use the test name with a suffix of
 `-ref` as their filename; e.g., `test.html` would have `test-ref.html`
 as a reference.
 
-## Complex Pass Conditions
+## Multiple References
 
-Sometimes it is desirable for a file to match multiple references or,
-in rare cases, to allow it to match more than one possible reference.
+Sometimes, a test's pass condition cannot be captured in a single
+reference.
 
-References can have links to other references (through the same `link`
-element relation), and in this case for the test to pass the test must
-render identically (assuming a `match` relation) to the reference, and
-the reference must render identically to its reference (again,
-assuming a `match` relation). Note that this can continue indefinitely
-to require tests to match an arbitrary number of references; also that
-`match` is used here purely for explanatory reasons: both `match` and
-`mismatch` can be used (and mixed on one sequence of references). This
-can be thought of as an AND operator!
+If a test has multiple links, then the test passes if:
 
-Similarly, multiple references can be linked from a single file to
-implement alternates and allow multiple renderings. In this case, the
-file passes if it matches one of the references provided (and that
-reference likewise matches any references, etc.). This can be thought
-of as an OR operator!
+ * If there are any match references, at least one must match, and
+ * If there are any mismatch references, all must mismatch.
 
-These two techniques can be combined to build up arbitrarily complex
-pass conditions with boolean logic. For example, consider when:
-
- * `a.html` has `<link rel=match href=b.html>` and `<link rel=match
-href=c.html>`,
- * `b.html` has `<link rel=match href=b1.html>`, and
- * `c.html` has `<link rel=mismatch href=c1.html>`.
-
-Or, graphically:
-
-<img src="../_static/reftest_graph_example.svg"
-     alt="diagram of the above reftest graph as a directed graph">
-
-In this case, to pass we must either have `a.html`, `b.html` and
-`b1.html` all rendering identically, or `a.html` and `c.html`
-rendering identically with `c1.html` rendering differently. (These
-are, in terms of the graph, all the paths from the source nodes to
-leaf nodes.)
+ If you need multiple matches to succeed, these can be turned into
+ multiple tests (for example, by just having a reference be a test
+ itself!). If this seems like an unreasonable restriction, please file
+ a bug and let us know!
 
 ## Controlling When Comparison Occurs
 

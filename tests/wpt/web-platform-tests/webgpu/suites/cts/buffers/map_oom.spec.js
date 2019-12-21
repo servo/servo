@@ -27,7 +27,4 @@ g.test('createBufferMapped', async t => {
     t.device.createBufferMapped(getBufferDesc());
   });
 });
-g.test('createBufferAsync', async t => {
-  t.shouldReject('RangeError', t.device.createBufferMappedAsync(getBufferDesc()));
-});
 //# sourceMappingURL=map_oom.spec.js.map

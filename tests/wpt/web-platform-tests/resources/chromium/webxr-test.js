@@ -209,6 +209,12 @@ class MockRuntime {
     "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
     "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED };
 
+  static sessionModeToMojoMap = {
+    "inline": device.mojom.XRSessionMode.kInline,
+    "immersive-vr": device.mojom.XRSessionMode.kImmersiveVr,
+    "immersive-ar": device.mojom.XRSessionMode.kImmersiveAr,
+  };
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -225,16 +231,38 @@ class MockRuntime {
     this.input_sources_ = [];
     this.next_input_source_index_ = 1;
 
-    // Initialize DisplayInfo first to set the defaults, then override with
-    // anything from the deviceInit
-    if (fakeDeviceInit.supportsImmersive) {
-      this.displayInfo_ = this.getImmersiveDisplayInfo();
+    let supportedModes = [];
+    if (fakeDeviceInit.supportedModes) {
+      supportedModes = fakeDeviceInit.supportedModes.slice();
+      if(fakeDeviceInit.supportedModes.length === 0) {
+        supportedModes = ["inline"];
+      }
     } else {
-      this.displayInfo_ = this.getNonImmersiveDisplayInfo();
+      // Back-compat mode.
+      console.warn("Please use `supportedModes` to signal which modes are supported by this device.");
+      if(fakeDeviceInit.supportsImmersive == null) {
+        throw new TypeError("'supportsImmersive' must be set");
+      }
+
+      supportedModes = ["inline"];
+      if(fakeDeviceInit.supportsImmersive) {
+        supportedModes.push("immersive-vr");
+      }
     }
 
-    if (fakeDeviceInit.supportsEnvironmentIntegration) {
-      this.displayInfo_.capabilities.canProvideEnvironmentIntegration = true;
+    this.supportedModes_ = this._convertModesToEnum(supportedModes);
+
+    // Initialize DisplayInfo first to set the defaults, then override with
+    // anything from the deviceInit
+    if(this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveVr)
+    || this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
+      this.displayInfo_ = this.getImmersiveDisplayInfo();
+    } else if (this.supportedModes_.includes(device.mojom.XRSessionMode.kInline)) {
+      this.displayInfo_ = this.getNonImmersiveDisplayInfo();
+    } else {
+      // This should never happen!
+      console.error("Device has empty supported modes array!");
+      throw new InvalidStateError();
     }
 
     if (fakeDeviceInit.viewerOrigin != null) {
@@ -245,6 +273,10 @@ class MockRuntime {
       this.setFloorOrigin(fakeDeviceInit.floorOrigin);
     }
 
+    if (fakeDeviceInit.world) {
+      this.world_ = fakeDeviceInit.world;
+    }
+
     // This appropriately handles if the coordinates are null
     this.setBoundsGeometry(fakeDeviceInit.boundsCoordinates);
 
@@ -252,6 +284,17 @@ class MockRuntime {
 
     // Need to support webVR which doesn't have a notion of features
     this.setFeatures(fakeDeviceInit.supportedFeatures || []);
+  }
+
+  _convertModeToEnum(sessionMode) {
+    if(sessionMode in MockRuntime.sessionModeToMojoMap)
+      return MockRuntime.sessionModeToMojoMap[sessionMode];
+
+    throw new TypeError("Unrecognized value for XRSessionMode enum: " + sessionMode);
+  }
+
+  _convertModesToEnum(sessionModes) {
+    return sessionModes.map(mode => this._convertModeToEnum(mode));
   }
 
   // Test API methods.
@@ -632,13 +675,10 @@ class MockRuntime {
   }
 
   runtimeSupportsSession(options) {
-
-    let isInlineRequest = (options.mode === device.mojom.XRSessionMode.kInline);
     return Promise.resolve({
-      supportsSession:
-          isInlineRequest || this.displayInfo_.capabilities.canPresent
+      supportsSession: this.supportedModes_.includes(options.mode)
     });
-  };
+  }
 }
 
 class MockXRSessionMetricsRecorder {

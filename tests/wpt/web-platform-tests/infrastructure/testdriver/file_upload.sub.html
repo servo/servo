@@ -13,7 +13,7 @@ promise_test(() => {
   let form = document.getElementById("form");
   let input = document.getElementById("file_input");
   return test_driver
-    .send_keys(input, "{{fs_path(file_upload_data.txt)}}")
+    .send_keys(input, String.raw`{{fs_path(file_upload_data.txt)}}`)
     .then(() =>
       fetch("file_upload.py",
         {method: "POST",

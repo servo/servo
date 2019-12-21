@@ -1,4 +1,3 @@
-from copy import copy
 from inspect import isabstract
 from six import iteritems, with_metaclass
 from six.moves.urllib.parse import urljoin, urlparse
@@ -196,8 +195,10 @@ class TestharnessTest(URLManifestItem):
         return rv
 
 
-class RefTestBase(URLManifestItem):
+class RefTest(URLManifestItem):
     __slots__ = ("references",)
+
+    item_type = "reftest"
 
     def __init__(self,
                  tests_root,  # type: Text
@@ -207,7 +208,7 @@ class RefTestBase(URLManifestItem):
                  references=None,  # type: Optional[List[Tuple[Text, Text]]]
                  **extras  # type: Any
                  ):
-        super(RefTestBase, self).__init__(tests_root, path, url_base, url, **extras)
+        super(RefTest, self).__init__(tests_root, path, url_base, url, **extras)
         if references is None:
             self.references = []  # type: List[Tuple[Text, Text]]
         else:
@@ -266,7 +267,7 @@ class RefTestBase(URLManifestItem):
                   path,  # type: Text
                   obj  # type: Tuple[Text, List[Tuple[Text, Text]], Dict[Any, Any]]
                   ):
-        # type: (...) -> RefTestBase
+        # type: (...) -> RefTest
         tests_root = manifest.tests_root
         assert tests_root is not None
         path = to_os_path(path)
@@ -277,38 +278,6 @@ class RefTestBase(URLManifestItem):
                    url,
                    references,
                    **extras)
-
-    def to_RefTest(self):
-        # type: () -> RefTest
-        if type(self) == RefTest:
-            assert isinstance(self, RefTest)
-            return self
-        rv = copy(self)
-        rv.__class__ = RefTest
-        assert isinstance(rv, RefTest)
-        return rv
-
-    def to_RefTestNode(self):
-        # type: () -> RefTestNode
-        if type(self) == RefTestNode:
-            assert isinstance(self, RefTestNode)
-            return self
-        rv = copy(self)
-        rv.__class__ = RefTestNode
-        assert isinstance(rv, RefTestNode)
-        return rv
-
-
-class RefTestNode(RefTestBase):
-    __slots__ = ()
-
-    item_type = "reftest_node"
-
-
-class RefTest(RefTestBase):
-    __slots__ = ()
-
-    item_type = "reftest"
 
 
 class ManualTest(URLManifestItem):

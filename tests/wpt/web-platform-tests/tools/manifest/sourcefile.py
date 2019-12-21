@@ -33,7 +33,7 @@ except ImportError:
 import html5lib
 
 from . import XMLParser
-from .item import (ManifestItem, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest,
+from .item import (ManifestItem, ManualTest, WebDriverSpecTest, RefTest, TestharnessTest,
                    SupportFile, CrashTest, ConformanceCheckerTest, VisualTest)
 from .utils import ContextManagerBytesIO, cached_property
 
@@ -923,8 +923,8 @@ class SourceFile(object):
                 ))
 
         elif self.content_is_ref_node:
-            rv = RefTestNode.item_type, [
-                RefTestNode(
+            rv = RefTest.item_type, [
+                RefTest(
                     self.tests_root,
                     self.rel_path,
                     self.url_base,

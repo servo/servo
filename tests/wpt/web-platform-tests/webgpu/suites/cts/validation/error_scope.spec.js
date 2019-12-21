@@ -8,7 +8,7 @@ export const description = `
 error scope validation tests.
 `;
 import { getGPU } from '../../../framework/gpu/implementation.js';
-import { Fixture, TestGroup, rejectOnTimeout } from '../../../framework/index.js';
+import { Fixture, TestGroup, raceWithRejectOnTimeout } from '../../../framework/index.js';
 
 class F extends Fixture {
   constructor(...args) {
@@ -51,7 +51,7 @@ class F extends Fixture {
         });
       });
       fn();
-      return Promise.race([promise, rejectOnTimeout(TIMEOUT_IN_MS, 'Timeout occurred waiting for uncaptured error')]);
+      return raceWithRejectOnTimeout(promise, TIMEOUT_IN_MS, 'Timeout occurred waiting for uncaptured error');
     });
   }
 

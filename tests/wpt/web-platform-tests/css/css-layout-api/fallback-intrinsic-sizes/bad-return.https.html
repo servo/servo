@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#invoke-an-intrinsic-sizes-callback">
+<link rel="match" href="fallback-ref.html">
+<meta name="assert" content="This test checks that a layout() class with the intrinsicSizes function returning a bad value will fallback to block layout." />
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  width: min-content;
+}
+
+.float {
+  float: left;
+  height: 100px;
+  width: 50%;
+}
+
+.fc {
+  display: flow-root;
+  height: 100px;
+}
+
+@supports (display: layout(bad-return)) {
+  .test {
+    display: layout(bad-return);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="float"></div>
+  <div class="fc"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('bad-return', class {
+  async intrinsicSizes() { return 42; }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

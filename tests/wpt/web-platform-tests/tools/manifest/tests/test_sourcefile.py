@@ -657,7 +657,7 @@ def test_relative_testdriver(ext):
 
 
 @pytest.mark.parametrize("ext", ["htm", "html"])
-def test_reftest_node(ext):
+def test_reftest(ext):
     content = b"<link rel=match href=ref.html>"
 
     filename = "foo/test." + ext
@@ -673,7 +673,7 @@ def test_reftest_node(ext):
 
     assert s.content_is_ref_node
 
-    assert items(s) == [("reftest_node", "/" + filename)]
+    assert items(s) == [("reftest", "/" + filename)]
 
 
 @pytest.mark.parametrize("ext", ["xht", "html", "xhtml", "htm", "xml", "svg"])

@@ -1,8 +1,0 @@
-# Generate with `$ dot -Tsvg -oreftest_graph_example.svg _reftest_graph_example.dot`
-
-digraph reftest_graph_example {
-  "a.html" -> "b.html" [label="=="];
-  "a.html" -> "c.html" [label="=="];
-  "b.html" -> "b1.html" [label="=="];
-  "c.html" -> "c1.html" [label="!="];
-}

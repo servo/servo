@@ -29,7 +29,6 @@ def SourceFileWithTest(path, hash, cls, *args):
 
 item_classes = {"testharness": manifest_item.TestharnessTest,
                 "reftest": manifest_item.RefTest,
-                "reftest_node": manifest_item.RefTestNode,
                 "manual": manifest_item.ManualTest,
                 "wdspec": manifest_item.WebDriverSpecTest,
                 "conformancechecker": manifest_item.ConformanceCheckerTest,

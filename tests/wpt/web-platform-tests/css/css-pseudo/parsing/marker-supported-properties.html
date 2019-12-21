@@ -46,7 +46,7 @@ test_pseudo_computed_value("::marker", "direction", "rtl");
 test_pseudo_computed_value("::marker", "content", "\"foo\"");
 
 // ::marker does NOT support layout properties
-test_pseudo_computed_value("::marker", "display", "none", ["block", "inline"]);
+test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
 test_pseudo_computed_value("::marker", "position", "absolute", "static");
 test_pseudo_computed_value("::marker", "float", "right", "none");
 
