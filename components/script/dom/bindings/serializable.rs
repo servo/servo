@@ -6,7 +6,6 @@
 //! (https://html.spec.whatwg.org/multipage/#serializable-objects).
 
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
 
@@ -25,7 +24,7 @@ pub trait Serializable: DomObject {
     fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
-        owner: &DomRoot<GlobalScope>,
+        owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         extra_data: StorageKey,
     ) -> Result<(), ()>;

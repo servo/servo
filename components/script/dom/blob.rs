@@ -125,7 +125,7 @@ impl Serializable for Blob {
 
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
-        owner: &DomRoot<GlobalScope>,
+        owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         storage_key: StorageKey,
     ) -> Result<(), ()> {
@@ -159,7 +159,7 @@ impl Serializable for Blob {
             *blob_impls = None;
         }
 
-        let deserialized_blob = Blob::new(&**owner, blob_impl);
+        let deserialized_blob = Blob::new(&*owner, blob_impl);
 
         let blobs = blobs.get_or_insert_with(|| HashMap::new());
         blobs.insert(storage_key, deserialized_blob);

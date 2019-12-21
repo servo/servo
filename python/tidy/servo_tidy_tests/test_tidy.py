@@ -112,6 +112,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &[T] instead of &Vec<T>', next(errors)[2])
         self.assertEqual('use &str instead of &String', next(errors)[2])
         self.assertEqual('use &T instead of &Root<T>', next(errors)[2])
+        self.assertEqual('use &T instead of &DomRoot<T>', next(errors)[2])
         self.assertEqual('encountered function signature with -> ()', next(errors)[2])
         self.assertEqual('operators should go at the end of the first line', next(errors)[2])
         self.assertNoMoreErrors(errors)
