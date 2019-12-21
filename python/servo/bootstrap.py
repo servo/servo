@@ -308,6 +308,26 @@ def windows_msvc(context, force=False):
         else:
             print("done")
 
+    # Until pkg-config-lite is in the depedencies, install it manually
+    dep_dir = os.path.join(deps_dir, "pkg-config")
+    if not os.path.exists(dep_dir):
+        zip_path = os.path.join(deps_dir, "pkg-config.zip")
+        zip_url = "https://downloads.sourceforge.net/project/pkgconfiglite/0.28-1/pkg-config-lite-0.28-1_bin-win32.zip"
+
+        if not os.path.isfile(zip_path):
+            download_file("pkg-config-lite", zip_url, zip_path)
+
+        print("Extracting pkg-config-lite...", end='')
+        try:
+            extract(zip_path, deps_dir)
+            os.rename(os.path.join(deps_dir, "pkg-config-lite-0.28-1"), dep_dir)
+        except BadZipfile:
+            print("\nError: pkg-config.zip is not a valid zip file!")
+            os.remove(zip_path)
+            os.sys.exit(1)  # We can't retry here due to the non-method nature.
+        else:
+            print("done")
+
     to_install = {}
     for package in packages.WINDOWS_MSVC:
         # Don't install CMake if it already exists in PATH
