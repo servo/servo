@@ -16,6 +16,9 @@ export function rejectOnTimeout(ms, msg) {
     }, ms);
   });
 }
+export function raceWithRejectOnTimeout(p, ms, msg) {
+  return Promise.race([p, rejectOnTimeout(ms, msg)]);
+}
 export function objectEquals(x, y) {
   if (typeof x !== 'object' || typeof y !== 'object') return x === y;
   if (x === null || y === null) return x === y;

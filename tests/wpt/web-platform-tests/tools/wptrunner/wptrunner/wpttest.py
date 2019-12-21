@@ -423,6 +423,17 @@ class ManualTest(Test):
 
 
 class ReftestTest(Test):
+    """A reftest
+
+    A reftest should be considered to pass if one of its references matches (see below) *and* the
+    reference passes if it has any references recursively.
+
+    Attributes:
+        references (List[Tuple[str, str]]): a list of alternate references, where one must match for the test to pass
+        viewport_size (Optional[Tuple[int, int]]): size of the viewport for this test, if not default
+        dpi (Optional[int]): dpi to use when rendering this test, if not default
+
+    """
     result_cls = ReftestResult
     test_type = "reftest"
 
@@ -445,16 +456,9 @@ class ReftestTest(Test):
                       manifest_file,
                       manifest_test,
                       inherit_metadata,
-                      test_metadata,
-                      nodes=None,
-                      references_seen=None):
+                      test_metadata):
 
         timeout = cls.long_timeout if manifest_test.timeout == "long" else cls.default_timeout
-
-        if nodes is None:
-            nodes = {}
-        if references_seen is None:
-            references_seen = set()
 
         url = manifest_test.url
 
@@ -470,38 +474,56 @@ class ReftestTest(Test):
                    protocol="https" if hasattr(manifest_test, "https") and manifest_test.https else "http",
                    fuzzy=manifest_test.fuzzy)
 
-        nodes[url] = node
+        refs_by_type = defaultdict(list)
 
         for ref_url, ref_type in manifest_test.references:
-            comparison_key = (ref_type,) + tuple(sorted([url, ref_url]))
-            if ref_url in nodes:
-                manifest_node = ref_url
-                if comparison_key in references_seen:
-                    # We have reached a cycle so stop here
-                    # Note that just seeing a node for the second time is not
-                    # enough to detect a cycle because
-                    # A != B != C != A must include C != A
-                    # but A == B == A should not include the redundant B == A.
-                    continue
+            refs_by_type[ref_type].append(ref_url)
 
-            references_seen.add(comparison_key)
-
-            manifest_node = manifest_file.get_reference(ref_url)
-            if manifest_node:
-                reference = ReftestTest.from_manifest(manifest_file,
-                                                      manifest_node,
-                                                      [],
-                                                      None,
-                                                      nodes,
-                                                      references_seen)
-            else:
-                reference = ReftestTest(manifest_file.tests_root,
-                                        ref_url,
+        # Construct a list of all the mismatches, where we end up with mismatch_1 != url !=
+        # mismatch_2 != url != mismatch_3 etc.
+        #
+        # Per the logic documented above, this means that none of the mismatches provided match,
+        mismatch_walk = None
+        if refs_by_type["!="]:
+            mismatch_walk = ReftestTest(manifest_file.tests_root,
+                                        refs_by_type["!="][0],
                                         [],
                                         None,
                                         [])
+            cmp_ref = mismatch_walk
+            for ref_url in refs_by_type["!="][1:]:
+                cmp_self = ReftestTest(manifest_file.tests_root,
+                                       url,
+                                       [],
+                                       None,
+                                       [])
+                cmp_ref.references.append((cmp_self, "!="))
+                cmp_ref = ReftestTest(manifest_file.tests_root,
+                                      ref_url,
+                                      [],
+                                      None,
+                                      [])
+                cmp_self.references.append((cmp_ref, "!="))
 
-            node.references.append((reference, ref_type))
+        if mismatch_walk is None:
+            mismatch_refs = []
+        else:
+            mismatch_refs = [(mismatch_walk, "!=")]
+
+        if refs_by_type["=="]:
+            # For each == ref, add a reference to this node whose tail is the mismatch list.
+            # Per the logic documented above, this means any one of the matches must pass plus all the mismatches.
+            for ref_url in refs_by_type["=="]:
+                ref = ReftestTest(manifest_file.tests_root,
+                                  ref_url,
+                                  [],
+                                  None,
+                                  mismatch_refs)
+                node.references.append((ref, "=="))
+        else:
+            # Otherwise, we just add the mismatches directly as we are immediately into the
+            # mismatch chain with no alternates.
+            node.references.extend(mismatch_refs)
 
         return node
 

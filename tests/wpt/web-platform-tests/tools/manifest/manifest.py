@@ -1,12 +1,11 @@
-import itertools
 import json
 import os
-from collections import MutableMapping, defaultdict
+from collections import MutableMapping
 from six import iteritems, iterkeys, itervalues, string_types, binary_type, text_type
 
 from . import vcs
-from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, RefTestNode,
-                   SupportFile, TestharnessTest, VisualTest, WebDriverSpecTest, CrashTest)
+from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, SupportFile,
+                   TestharnessTest, VisualTest, WebDriverSpecTest, CrashTest)
 from .log import get_logger
 from .sourcefile import SourceFile
 from .utils import from_os_path, to_os_path
@@ -28,7 +27,6 @@ if MYPY:
     from typing import Tuple
     from typing import Type
     from typing import Union
-    from typing import cast
 
 try:
     import ujson
@@ -49,7 +47,6 @@ class ManifestVersionMismatch(ManifestError):
 
 item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
-                "reftest_node": RefTestNode,
                 "crashtest": CrashTest,
                 "manual": ManualTest,
                 "wdspec": WebDriverSpecTest,
@@ -247,7 +244,6 @@ class Manifest(object):
         assert url_base is not None
         self._path_hash = {}  # type: Dict[Text, Tuple[Text, Text]]
         self._data = ManifestData(self)  # type: ManifestData
-        self._reftest_nodes_by_url = None  # type: Optional[Dict[Text, Union[RefTest, RefTestNode]]]
         self.tests_root = tests_root  # type: Optional[str]
         self.url_base = url_base  # type: Text
 
@@ -280,23 +276,6 @@ class Manifest(object):
                     for test in tests:
                         yield test
 
-    @property
-    def reftest_nodes_by_url(self):
-        # type: () -> Dict[Text, Union[RefTest, RefTestNode]]
-        if self._reftest_nodes_by_url is None:
-            by_url = {}
-            for path, nodes in itertools.chain(iteritems(self._data["reftest"]),
-                                               iteritems(self._data["reftest_node"])):
-                for node in nodes:
-                    assert isinstance(node, (RefTest, RefTestNode))
-                    by_url[node.url] = node
-            self._reftest_nodes_by_url = by_url
-        return self._reftest_nodes_by_url
-
-    def get_reference(self, url):
-        # type: (Text) -> Optional[ManifestItem]
-        return self.reftest_nodes_by_url.get(url)
-
     def update(self, tree):
         # type: (Iterable[Tuple[Union[SourceFile, bytes], bool]]) -> bool
         """Update the manifest given an iterable of items that make up the updated manifest.
@@ -306,11 +285,9 @@ class Manifest(object):
         unusual API is designed as an optimistaion meaning that SourceFile items need not be
         constructed in the case we are not updating a path, but the absence of an item from
         the iterator may be used to remove defunct entries from the manifest."""
-        all_reftest_nodes = []  # type: List[Tuple[ManifestItem, Text]]
         seen_files = set()  # type: Set[Text]
 
         changed = False
-        reftest_changes = False
 
         # Create local variable references to these dicts so we avoid the
         # attribute access in the hot loop below
@@ -319,8 +296,6 @@ class Manifest(object):
 
         prev_files = data.paths()  # type: Set[Text]
 
-        reftest_types = ("reftest", "reftest_node")
-
         for source_file, update in tree:
             if not update:
                 assert isinstance(source_file, (binary_type, text_type))
@@ -328,9 +303,6 @@ class Manifest(object):
                 seen_files.add(rel_path)
                 assert rel_path in path_hash
                 old_hash, old_type = path_hash[rel_path]  # type: Tuple[Text, Text]
-                if old_type in reftest_types:
-                    manifest_items = data[old_type][rel_path]  # type: Iterable[ManifestItem]
-                    all_reftest_nodes.extend((item, old_hash) for item in manifest_items)
             else:
                 assert not isinstance(source_file, bytes)
                 rel_path = source_file.rel_path
@@ -344,28 +316,14 @@ class Manifest(object):
                 if not is_new:
                     old_hash, old_type = path_hash[rel_path]
                     if old_hash != file_hash:
-                        new_type, manifest_items = source_file.manifest_items()
                         hash_changed = True
-                        if new_type != old_type:
-                            del data[old_type][rel_path]
-                            if old_type in reftest_types:
-                                reftest_changes = True
-                    else:
-                        new_type = old_type
-                        if old_type in reftest_types:
-                            manifest_items = data[old_type][rel_path]
-                else:
-                    new_type, manifest_items = source_file.manifest_items()
-
-                if new_type in reftest_types:
-                    all_reftest_nodes.extend((item, file_hash) for item in manifest_items)
-                    if is_new or hash_changed:
-                        reftest_changes = True
-                elif is_new or hash_changed:
-                    data[new_type][rel_path] = set(manifest_items)
 
                 if is_new or hash_changed:
+                    new_type, manifest_items = source_file.manifest_items()
+                    data[new_type][rel_path] = set(manifest_items)
                     path_hash[rel_path] = (file_hash, new_type)
+                    if hash_changed and new_type != old_type:
+                        del data[old_type][rel_path]
                     changed = True
 
         deleted = prev_files - seen_files
@@ -374,8 +332,6 @@ class Manifest(object):
             for rel_path in deleted:
                 if rel_path in path_hash:
                     _, old_type = path_hash[rel_path]
-                    if old_type in reftest_types:
-                        reftest_changes = True
                     del path_hash[rel_path]
                     try:
                         del data[old_type][rel_path]
@@ -386,64 +342,7 @@ class Manifest(object):
                         if rel_path in test_data:
                             del test_data[rel_path]
 
-        if reftest_changes:
-            reftests, reftest_nodes, changed_hashes = self._compute_reftests(all_reftest_nodes)
-            reftest_data = data["reftest"]
-            reftest_data.clear()
-            for path, items in iteritems(reftests):
-                if MYPY:
-                    reftest_data[path] = cast(Set[ManifestItem], items)
-                else:
-                    reftest_data[path] = items
-
-            reftest_node_data = data["reftest_node"]
-            reftest_node_data.clear()
-            for node_path, node_items in iteritems(reftest_nodes):
-                if MYPY:
-                    reftest_node_data[node_path] = cast(Set[ManifestItem], node_items)
-                else:
-                    reftest_node_data[node_path] = node_items
-
-            path_hash.update(changed_hashes)
-
         return changed
-
-    def _compute_reftests(self,
-                          reftest_nodes  # type: List[Tuple[ManifestItem, Text]]
-                          ):
-        # type: (...) -> Tuple[Dict[Text, Set[RefTest]], Dict[Text, Set[RefTestNode]], Dict[Text, Tuple[Text, Text]]]
-        self._reftest_nodes_by_url = {}
-        has_inbound = set()
-        for item, _ in reftest_nodes:
-            assert isinstance(item, (RefTestNode, RefTest))
-            for ref_url, ref_type in item.references:
-                has_inbound.add(ref_url)
-
-        reftests = defaultdict(set)  # type: Dict[Text, Set[RefTest]]
-        references = defaultdict(set)  # type: Dict[Text, Set[RefTestNode]]
-        changed_hashes = {}  # type: Dict[Text, Tuple[Text, Text]]
-
-        for item, file_hash in reftest_nodes:
-            assert isinstance(item, (RefTestNode, RefTest))
-            if item.url in has_inbound:
-                # This is a reference
-                if isinstance(item, RefTest):
-                    item = item.to_RefTestNode()
-                    changed_hashes[item.path] = (file_hash,
-                                                 item.item_type)
-                assert isinstance(item, RefTestNode)
-                references[item.path].add(item)
-            else:
-                if isinstance(item, RefTestNode):
-                    item = item.to_RefTest()
-                    changed_hashes[item.path] = (file_hash,
-                                                 item.item_type)
-                assert isinstance(item, RefTest)
-                reftests[item.path].add(item)
-            assert isinstance(item, (RefTestNode, RefTest))
-            self._reftest_nodes_by_url[item.url] = item
-
-        return reftests, references, changed_hashes
 
     def to_json(self):
         # type: () -> Dict[Text, Any]
@@ -470,7 +369,28 @@ class Manifest(object):
 
         self._path_hash = {to_os_path(k): v for k, v in iteritems(obj["paths"])}
 
+        # merge reftest_node and reftest
+        # TODO(MANIFESTv8): remove this condition
+        if "reftest_node" in obj["items"]:
+            for path in obj["items"]["reftest_node"]:
+                os_path = to_os_path(path)
+                old_hash, old_type = self._path_hash[os_path]
+                self._path_hash[os_path] = (old_hash, "reftest")
+
         for test_type, type_paths in iteritems(obj["items"]):
+            # merge reftest_node and reftest
+            # TODO(MANIFESTv8): remove this condition
+            if test_type in ("reftest", "reftest_node"):
+                if types and "reftest" not in types:
+                    continue
+
+                if self._data["reftest"].json_data:
+                    self._data["reftest"].json_data.update(type_paths)
+                else:
+                    self._data["reftest"].set_json(tests_root, type_paths)
+
+                continue
+
             if test_type not in item_classes:
                 raise ManifestError
 

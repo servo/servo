@@ -1,28 +1,37 @@
 <!DOCType html>
 <html>
+<body>
 <script src=event-timing-test-utils.js></script>
-<button id='button_child_frame'>Generate a 'click' event</button>
+<div style="width: 300px; height: 300px" onmousedown="mainThreadBusy(120)">
 <script>
+(async () => {
   const clickTimeMin = performance.now();
-  clickAndBlockMain('button_child_frame');
-  const processingStartMin = performance.now();
-  const observerPromise = new Promise((resolve, reject) => {
-    new PerformanceObserver((entryList) => {
+  const observerPromise = new Promise(resolve => {
+    new PerformanceObserver(entryList => {
       resolve(entryList.getEntries().filter(entry => entry.name === 'mousedown'));
-    }).observe({ type:'event', buffered: true });
+    }).observe({ type:'event' });
   });
-  window.addEventListener('load', e => {
-    observerPromise.then((observedEntries) => {
-      const onloadStart = performance.now();
-      const bufferedEntries = performance.getEntriesByType('event');
-      top.postMessage({
-        "bufferedEntries" : bufferedEntries,
-        "observedEntries": observedEntries,
-        "clickTimeMin": clickTimeMin,
-        "processingStartMin" : processingStartMin,
-        "onloadStart" : onloadStart,
-      }, '*');
-    });
-  });
+  const entries = await observerPromise;
+  const clickDone = performance.now();
+  if (entries.length !== 1) {
+    top.postMessage("failed", "*");
+    return;
+  }
+  const entry = entries[0];
+  top.postMessage({
+    // Entry values (|entry| itself is not clonable)
+    "name": entry.name,
+    "cancelable": entry.cancelable,
+    "entryType": entry.entryType,
+    "startTime": entry.startTime,
+    "processingStart": entry.processingStart,
+    "processingEnd": entry.processingEnd,
+    "duration": entry.duration,
+    // Other values
+    "clickTimeMin": clickTimeMin,
+    "clickDone" : clickDone,
+  }, '*');
+}) ();
 </script>
+</body>
 </html>

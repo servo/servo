@@ -62,6 +62,10 @@ export const listing = [
     "description": ""
   },
   {
+    "path": "resource_init/sampled_texture_clear",
+    "description": "computePass test that sampled texture is cleared"
+  },
+  {
     "path": "validation/createBindGroup",
     "description": "createBindGroup validation tests."
   },

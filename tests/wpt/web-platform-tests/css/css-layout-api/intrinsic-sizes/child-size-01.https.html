@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#intrinsic-sizes">
+<link rel="match" href="child-size-01-ref.html">
+<meta name="assert" content="This test checks that passing child intrinsicSizes to a parent works correctly." />
+<style>
+.test {
+  background: red;
+  height: 100px;
+  width: min-content;
+}
+
+@supports (display: layout(parent)) {
+  .test {
+    display: layout(parent);
+    background: green;
+  }
+
+  .child {
+    display: layout(child);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+const MAX_CONTENT_SIZE = 100;
+const MIN_CONTENT_SIZE = 50;
+
+registerLayout('parent', class {
+  async intrinsicSizes(children, edges, styleMap) {
+    const childrenSizes = await Promise.all(children.map((child) => {
+        return child.intrinsicSizes();
+    }));
+
+    if (childrenSizes[0].minContentSize == MIN_CONTENT_SIZE &&
+        childrenSizes[0].maxContentSize == MAX_CONTENT_SIZE) {
+      return { maxContentSize: MAX_CONTENT_SIZE, minContentSize: MIN_CONTENT_SIZE };
+    }
+    return { maxContentSize: 0, minContentSize: 0 };
+  }
+  async layout() {}
+});
+
+registerLayout('child', class {
+  async intrinsicSizes() {
+    return { maxContentSize: MAX_CONTENT_SIZE, minContentSize: MIN_CONTENT_SIZE };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

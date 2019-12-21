@@ -130,6 +130,7 @@ const ALL_FEATURES = [
 
 const TRACKED_IMMERSIVE_DEVICE = {
     supportsImmersive: true,
+    supportedModes: [ "inline", "immersive-vr"],
     views: VALID_VIEWS,
     viewerOrigin: IDENTITY_TRANSFORM,
     supportedFeatures: ALL_FEATURES
@@ -137,6 +138,7 @@ const TRACKED_IMMERSIVE_DEVICE = {
 
 const VALID_NON_IMMERSIVE_DEVICE = {
     supportsImmersive: false,
+    supportedModes: ["inline"],
     views: NON_IMMERSIVE_VIEWS,
     viewerOrigin: IDENTITY_TRANSFORM,
     supportedFeatures: ALL_FEATURES
@@ -154,4 +156,4 @@ const RIGHT_CONTROLLER = {
     targetRayMode: "tracked-pointer",
     pointerOrigin: VALID_POINTER_TRANSFORM,
     profiles: []
-}
+};

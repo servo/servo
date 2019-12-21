@@ -109,7 +109,7 @@ function test(
     const cache = await caches.open('v1');
 
     if (response_type === 'error') {
-      await promise_rejects(t, new TypeError(), cache.match(url));
+      await promise_rejects(t, 'InvalidAccessError', cache.match(url));
       return;
     }
 

@@ -41,13 +41,4 @@ g.test('createBufferMapped', async t => {
   t.checkMapWrite(buffer, arrayBuffer, size);
 }).params(pcombine(poptions('size', [12, 512 * 1024]), //
 pbool('mappable')));
-g.test('createBufferMappedAsync', async t => {
-  const size = t.params.size;
-  const [buffer, arrayBuffer] = await t.device.createBufferMappedAsync({
-    size,
-    usage: GPUBufferUsage.COPY_SRC | (t.params.mappable ? GPUBufferUsage.MAP_WRITE : 0)
-  });
-  t.checkMapWrite(buffer, arrayBuffer, size);
-}).params(pcombine(poptions('size', [12, 512 * 1024]), //
-pbool('mappable')));
 //# sourceMappingURL=map.spec.js.map

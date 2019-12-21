@@ -3,10 +3,6 @@
 // where appropriate. Calls |callback| during event handler.
 function clickOnElement(id, callback) {
   const element = document.getElementById(id);
-  const rect = element.getBoundingClientRect();
-  const xCenter = rect.x + rect.width / 2;
-  const yCenter = rect.y + rect.height / 2;
-  const leftButton = 0;
   const clickHandler = () => {
     mainThreadBusy(120);
     if (callback)
