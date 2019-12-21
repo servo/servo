@@ -310,6 +310,7 @@ impl Response {
             metadata.https_state = response.https_state;
             metadata.referrer = response.referrer.clone();
             metadata.referrer_policy = response.referrer_policy.clone();
+            metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata
         };
 

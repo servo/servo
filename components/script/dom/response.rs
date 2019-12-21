@@ -51,6 +51,7 @@ pub struct Response {
     body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
+    redirected: DomRefCell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -69,6 +70,7 @@ impl Response {
             body: DomRefCell::new(NetTraitsResponseBody::Empty),
             body_promise: DomRefCell::new(None),
             stream_consumer: DomRefCell::new(None),
+            redirected: DomRefCell::new(false),
         }
     }
 
@@ -412,6 +414,10 @@ impl Response {
 
     pub fn set_final_url(&self, final_url: ServoUrl) {
         *self.url.borrow_mut() = Some(final_url);
+    }
+
+    pub fn set_redirected(&self, is_redirected: bool) {
+        *self.redirected.borrow_mut() = is_redirected;
     }
 
     fn set_response_members_by_type(&self, response_type: DOMResponseType) {
