@@ -287,8 +287,7 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-redirected
     fn Redirected(&self) -> bool {
-        let url_list_len = self.url_list.borrow().len();
-        url_list_len > 1
+        return *self.redirected.borrow();
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-status

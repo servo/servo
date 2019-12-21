@@ -25,7 +25,10 @@ use headers::{
 use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
 use headers::{CacheControl, ContentEncoding, ContentLength};
 use headers::{IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
-use http::header::{self, HeaderName, HeaderValue};
+use http::header::{
+    self, HeaderName, HeaderValue, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
+    CONTENT_TYPE,
+};
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
@@ -804,8 +807,18 @@ pub fn http_redirect_fetch(
                 (*code == StatusCode::SEE_OTHER && request.method != Method::HEAD)
         })
     {
+        // Step 11.1
         request.method = Method::GET;
         request.body = None;
+        // Step 11.2
+        for name in &[
+            CONTENT_ENCODING,
+            CONTENT_LANGUAGE,
+            CONTENT_LOCATION,
+            CONTENT_TYPE,
+        ] {
+            request.headers.remove(name);
+        }
     }
 
     // Step 12
