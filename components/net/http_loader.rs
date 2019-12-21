@@ -804,7 +804,9 @@ pub fn http_redirect_fetch(
         .map_or(false, |(code, _)| {
             ((*code == StatusCode::MOVED_PERMANENTLY || *code == StatusCode::FOUND) &&
                 request.method == Method::POST) ||
-                (*code == StatusCode::SEE_OTHER && request.method != Method::HEAD)
+                (*code == StatusCode::SEE_OTHER &&
+                    request.method != Method::HEAD &&
+                    request.method != Method::GET)
         })
     {
         // Step 11.1
