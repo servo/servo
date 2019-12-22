@@ -9,16 +9,13 @@ use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
-use crate::dom::bindings::utils::{
-    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT,
-};
+use crate::dom::bindings::utils::{ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
+use js::jsapi::GetWellKnownSymbol;
 use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::MutableHandleValue as RawMutableHandleValue;
 use js::jsapi::{jsid, Class, ClassOps};
-use js::jsapi::{GetNonCCWObjectGlobal, GetWellKnownSymbol};
 use js::jsapi::{JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
@@ -28,10 +25,10 @@ use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsval::{JSVal, PrivateValue};
+use js::rust::wrappers::JS_FireOnNewGlobalObject;
 use js::rust::wrappers::RUST_SYMBOL_TO_JSID;
 use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty5};
 use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById5};
-use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
@@ -102,7 +99,7 @@ impl InterfaceConstructorBehavior {
             finalize: None,
             call: Some(invalid_constructor),
             construct: Some(invalid_constructor),
-            hasInstance: Some(has_instance_hook),
+            hasInstance: None, // heycam/webidl#356
             trace: None,
         })
     }
@@ -119,7 +116,7 @@ impl InterfaceConstructorBehavior {
             finalize: None,
             call: Some(non_new_constructor),
             construct: Some(hook),
-            hasInstance: Some(has_instance_hook),
+            hasInstance: None, // heycam/webidl#356
             trace: None,
         })
     }
@@ -426,78 +423,6 @@ unsafe extern "C" fn fun_to_string_hook(
     let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
     assert!(!ret.is_null());
     ret
-}
-
-/// Hook for instanceof on interface objects.
-unsafe extern "C" fn has_instance_hook(
-    cx: *mut JSContext,
-    obj: RawHandleObject,
-    value: RawMutableHandleValue,
-    rval: *mut bool,
-) -> bool {
-    let cx = SafeJSContext::from_ptr(cx);
-    let obj_raw = HandleObject::from_raw(obj);
-    let val_raw = HandleValue::from_raw(value.handle());
-    match has_instance(cx, obj_raw, val_raw) {
-        Ok(result) => {
-            *rval = result;
-            true
-        },
-        Err(()) => false,
-    }
-}
-
-/// Return whether a value is an instance of a given prototype.
-/// <http://heycam.github.io/webidl/#es-interface-hasinstance>
-fn has_instance(
-    cx: SafeJSContext,
-    interface_object: HandleObject,
-    value: HandleValue,
-) -> Result<bool, ()> {
-    if !value.is_object() {
-        // Step 1.
-        return Ok(false);
-    }
-
-    rooted!(in(*cx) let mut value_out = value.to_object());
-    rooted!(in(*cx) let mut value = value.to_object());
-
-    unsafe {
-        let js_class = get_object_class(interface_object.get());
-        let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
-
-        if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(
-            value.get(),
-            /* stopAtWindowProxy = */ 0,
-        )) {
-            if dom_class.interface_chain[object_class.proto_depth as usize] == object_class.proto_id
-            {
-                // Step 4.
-                return Ok(true);
-            }
-        }
-
-        // Step 2.
-        let global = GetNonCCWObjectGlobal(interface_object.get());
-        assert!(!global.is_null());
-        let proto_or_iface_array = get_proto_or_iface_array(global);
-        rooted!(in(*cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
-        assert!(!prototype.is_null());
-        // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
-
-        while JS_GetPrototype(*cx, value.handle(), value_out.handle_mut()) {
-            *value = *value_out;
-            if value.is_null() {
-                // Step 5.2.
-                return Ok(false);
-            } else if value.get() as *const _ == prototype.get() {
-                // Step 5.3.
-                return Ok(true);
-            }
-        }
-    }
-    // JS_GetPrototype threw an exception.
-    Err(())
 }
 
 fn create_unscopable_object(cx: SafeJSContext, names: &[&[u8]], mut rval: MutableHandleObject) {
