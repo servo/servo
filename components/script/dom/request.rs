@@ -25,6 +25,7 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
+use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
 use http::Method as HttpMethod;
 use net_traits::request::CacheMode as NetTraitsRequestCache;
@@ -309,7 +310,8 @@ impl Request {
         // Step 30 TODO: "If signal is not null..."
 
         // Step 31
-        // "or_init" looks unclear here
+        // "or_init" looks unclear here, but it always enters the block since r
+        // hasn't had any other way to initialize its headers
         r.headers.or_init(|| Headers::for_request(&r.global()));
 
         // Step 32 - but spec says this should only be when non-empty init?
@@ -420,15 +422,27 @@ impl Request {
 
             // Step 36.4
             if let Some(contents) = content_type {
+                let ct_header_name = b"Content-Type";
                 if !r
                     .Headers()
-                    .Has(ByteString::new(b"Content-Type".to_vec()))
+                    .Has(ByteString::new(ct_header_name.to_vec()))
                     .unwrap()
                 {
+                    let ct_header_val = contents.as_bytes();
                     r.Headers().Append(
-                        ByteString::new(b"Content-Type".to_vec()),
-                        ByteString::new(contents.as_bytes().to_vec()),
+                        ByteString::new(ct_header_name.to_vec()),
+                        ByteString::new(ct_header_val.to_vec()),
                     )?;
+
+                    // In Servo r.Headers's header list isn't a pointer to
+                    // the same actual list as r.request's, and so we need to
+                    // append to both lists to keep them in sync.
+                    if let Ok(v) = HeaderValue::from_bytes(ct_header_val) {
+                        r.request
+                            .borrow_mut()
+                            .headers
+                            .insert(HeaderName::from_bytes(ct_header_name).unwrap(), v);
+                    }
                 }
             }
         }
