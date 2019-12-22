@@ -113,9 +113,14 @@ impl VideoTrackList {
                 self.set_selected(idx, false);
             }
         }
+        track.add_track_list(self);
     }
 
     pub fn clear(&self) {
+        self.tracks
+            .borrow()
+            .iter()
+            .for_each(|t| t.remove_track_list());
         self.tracks.borrow_mut().clear();
     }
 }

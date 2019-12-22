@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     self, TextTrackKind, TextTrackMethods, TextTrackMode,
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
+use crate::dom::texttracklist::TextTrackList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -25,6 +27,7 @@ pub struct TextTrack {
     id: String,
     mode: Cell<TextTrackMode>,
     cue_list: MutNullableDom<TextTrackCueList>,
+    track_list: DomRefCell<Option<Dom<TextTrackList>>>,
 }
 
 impl TextTrack {
@@ -34,6 +37,7 @@ impl TextTrack {
         label: DOMString,
         language: DOMString,
         mode: TextTrackMode,
+        track_list: Option<&TextTrackList>,
     ) -> TextTrack {
         TextTrack {
             eventtarget: EventTarget::new_inherited(),
@@ -43,6 +47,7 @@ impl TextTrack {
             id: id.into(),
             mode: Cell::new(mode),
             cue_list: Default::default(),
+            track_list: DomRefCell::new(track_list.map(|t| Dom::from_ref(t))),
         }
     }
 
@@ -53,9 +58,12 @@ impl TextTrack {
         label: DOMString,
         language: DOMString,
         mode: TextTrackMode,
+        track_list: Option<&TextTrackList>,
     ) -> DomRoot<TextTrack> {
         reflect_dom_object(
-            Box::new(TextTrack::new_inherited(id, kind, label, language, mode)),
+            Box::new(TextTrack::new_inherited(
+                id, kind, label, language, mode, track_list,
+            )),
             window,
             TextTrackBinding::Wrap,
         )
@@ -68,6 +76,14 @@ impl TextTrack {
 
     pub fn id(&self) -> &str {
         &self.id
+    }
+
+    pub fn add_track_list(&self, track_list: &TextTrackList) {
+        *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
+    }
+
+    pub fn remove_track_list(&self) {
+        *self.track_list.borrow_mut() = None;
     }
 }
 

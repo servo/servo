@@ -2362,6 +2362,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             label,
             language,
             TextTrackMode::Hidden,
+            None,
         );
         // Step 3 & 4
         self.TextTracks().add(&track);

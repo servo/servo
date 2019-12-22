@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::audiotracklist::AudioTrackList;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::{self, AudioTrackMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -19,7 +20,7 @@ pub struct AudioTrack {
     label: DOMString,
     language: DOMString,
     enabled: Cell<bool>,
-    track_list: Option<Dom<AudioTrackList>>,
+    track_list: DomRefCell<Option<Dom<AudioTrackList>>>,
 }
 
 impl AudioTrack {
@@ -37,7 +38,7 @@ impl AudioTrack {
             label: label.into(),
             language: language.into(),
             enabled: Cell::new(false),
-            track_list: track_list.map(|t| Dom::from_ref(t)),
+            track_list: DomRefCell::new(track_list.map(|t| Dom::from_ref(t))),
         }
     }
 
@@ -73,6 +74,14 @@ impl AudioTrack {
     pub fn set_enabled(&self, value: bool) {
         self.enabled.set(value);
     }
+
+    pub fn add_track_list(&self, track_list: &AudioTrackList) {
+        *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
+    }
+
+    pub fn remove_track_list(&self) {
+        *self.track_list.borrow_mut() = None;
+    }
 }
 
 impl AudioTrackMethods for AudioTrack {
@@ -103,7 +112,7 @@ impl AudioTrackMethods for AudioTrack {
 
     // https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled
     fn SetEnabled(&self, value: bool) {
-        if let Some(list) = self.track_list.as_ref() {
+        if let Some(list) = self.track_list.borrow().as_ref() {
             if let Some(idx) = list.find(self) {
                 list.set_enabled(idx, value);
             }
