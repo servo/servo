@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 
 import datetime
+import locale
 import os
 import os.path as path
 import platform
@@ -317,6 +318,16 @@ class MachCommands(CommandBase):
                 self.msvc_package_dir("gstreamer-uwp"), arch['gst_root'],
                 "lib", "pkgconfig"
             )
+
+        if 'windows' in host:
+            process = subprocess.Popen('("%s" %s > nul) && "python" -c "import os; print(repr(os.environ))"' %
+                                       (os.path.join(vs_dirs['vcdir'], "Auxiliary", "Build", "vcvarsall.bat"), "x64"),
+                                       stdout=subprocess.PIPE, shell=True)
+            stdout, _ = process.communicate()
+            exitcode = process.wait()
+            encoding = locale.getpreferredencoding()  # See https://stackoverflow.com/a/9228117
+            if exitcode == 0:
+                os.environ.update(eval(stdout.decode(encoding)))
 
         # Ensure that GStreamer libraries are accessible when linking.
         if 'windows' in target_triple:
