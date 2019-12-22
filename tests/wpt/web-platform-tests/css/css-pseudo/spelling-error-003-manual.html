@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: highlighting of spelling error</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+
+  <meta content="" name="flags">
+
+  <style>
+  textarea
+    {
+      font-size: 300%;
+    }
+
+  textarea::spelling-error
+    {
+      color: maroon;
+      text-decoration: underline dotted red;
+    }
+  </style>
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
+
+  <p>Test passes if each glyph of "txet" is maroon and if "txet" is underlined with a red dotted line.
+
+  <div><textarea rows="2" cols="20">A txet sample</textarea></div>

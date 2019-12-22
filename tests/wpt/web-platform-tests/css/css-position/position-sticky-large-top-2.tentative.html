@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Position Test: Test position:sticky element with large top in an overflow container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1598112">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2794">
+  <link rel="match" href="position-sticky-large-top-2-ref.html">
+  <meta name="assert" content="This test verifies the position of a position:sticky element with large top value can be reached by scrolling the overflow container.">
+
+  <style>
+  .scroll {
+    border: 5px solid blue;
+    padding: 5px 3px 0 8px;
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+  }
+
+  .block {
+    width: 150px;
+    height: 200px;
+    background: yellow;
+  }
+
+  .sticky {
+    position: sticky;
+    background: purple;
+    width: 50px;
+    height: 50px;
+    top: 200px;
+  }
+  </style>
+  <script>
+  function runTest() {
+    document.getElementById("scroll2").scrollTop = 50;
+  }
+  </script>
+
+  <body onload="runTest();">
+    <!-- test before scroll -->
+    <div class="scroll">
+      <span>
+        <div class="sticky"></div>
+      </span>
+      <div class="block"></div>
+    </div>
+
+    <!-- test after scroll -->
+    <div class="scroll" id="scroll2">
+      <span>
+        <div class="sticky"></div>
+      </span>
+      <div class="block"></div>
+    </div>
+  </body>
+</html>

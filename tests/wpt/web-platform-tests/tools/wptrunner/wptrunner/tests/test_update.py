@@ -66,7 +66,7 @@ def update(tests, *logs, **kwargs):
         updater.update_from_log(log)
 
     update_properties = (["debug", "os", "version", "processor"],
-                         {"os": ["version"], "processor": "bits"})
+                         {"os": ["version"], "processor": ["bits"]})
 
     expected_data = {}
     metadata.load_expected = lambda _, __, test_path, *args: expected_data.get(test_path)
@@ -1258,6 +1258,28 @@ def test_update_full_unknown():
     assert new_manifest.get_test(test_id).children[0].get(
         "expected", run_info_2) == "ERROR"
 
+
+@pytest.mark.xfail(sys.version[0] == "3",
+                   reason="metadata doesn't support py3")
+def test_update_full_unknown_missing():
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  [subtest_deleted]
+    expected:
+      if release_or_beta: ERROR
+      FAIL
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "PASS",
+                                        "expected": "PASS"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "release_or_beta": False})
+
+    updated = update(tests, log_0, full_update=True)
+    assert len(updated) == 0
 
 
 @pytest.mark.xfail(sys.version[0] == "3",

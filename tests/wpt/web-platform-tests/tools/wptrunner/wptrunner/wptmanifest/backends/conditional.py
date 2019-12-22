@@ -381,6 +381,10 @@ class ManifestItem(object):
         for item in iterkeys(self._flatten()):
             yield item
 
+    def iter_properties(self):
+        for item in self._data:
+            yield item, self._data[item]
+
     def remove_value(self, key, value):
         if key not in self._data:
             return
