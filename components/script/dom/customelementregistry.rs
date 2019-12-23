@@ -581,7 +581,9 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         return;
     }
 
-    // Step 3
+    // Step 3 happens later to save having to undo it in an exception
+
+    // Step 4
     for attr in element.attrs().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
@@ -593,7 +595,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         );
     }
 
-    // Step 4
+    // Step 5
     if element.is_connected() {
         ScriptThread::enqueue_callback_reaction(
             element,
@@ -602,44 +604,51 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         );
     }
 
-    // Step 5
+    // Step 6
     definition
         .construction_stack
         .borrow_mut()
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
-    // Step 7
+    // Steps 7-8, successful case
     let result = run_upgrade_constructor(&definition.constructor, element);
 
+    // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
 
-    // Step 7 exception handling
+    // Step 8 exception handling
     if let Err(error) = result {
-        // Step 7.1
+        // Step 8.exception.1
         element.set_custom_element_state(CustomElementState::Failed);
 
-        // Step 7.2
+        // Step 8.exception.2 isn't needed since step 3 hasn't happened yet
+
+        // Step 8.exception.3
         element.clear_reaction_queue();
 
-        // Step 7.3
+        // Step 8.exception.4
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
             throw_dom_exception(cx, &global, error);
             report_pending_exception(*cx, true);
         }
+
         return;
     }
 
-    // Step 8
+    // TODO Step 9: "If element is a form-associated custom element..."
+
+    // Step 10
+
     element.set_custom_element_state(CustomElementState::Custom);
 
-    // Step 9
+    // Step 3
     element.set_custom_element_definition(definition);
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
-/// Steps 7.1-7.2
+/// Steps 8.1-8.3
 #[allow(unsafe_code)]
 fn run_upgrade_constructor(
     constructor: &Rc<CustomElementConstructor>,
@@ -654,10 +663,12 @@ fn run_upgrade_constructor(
     }
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
+        // Step 8.1 TODO when shadow DOM exists
+
         // Go into the constructor's compartment
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::new();
-        // Step 7.1
+        // Step 8.2
         if unsafe {
             !Construct1(
                 *cx,
@@ -668,7 +679,7 @@ fn run_upgrade_constructor(
         } {
             return Err(Error::JSFailed);
         }
-        // Step 7.2
+        // Step 8.3
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
         if unsafe {
