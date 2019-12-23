@@ -30,5 +30,5 @@ servo_config_plugins = { path = "../config_plugins" }
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }
 
-[target.'cfg(not(any(target_os = "android", feature = "uwp")))'.dependencies]
+[target.'cfg(not(target_os = "android"))'.dependencies]
 dirs = "1.0"
