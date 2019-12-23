@@ -16,7 +16,7 @@ const host = get_host_info();
 
 // We run this entire test twice: first with a same-origin then with a cross-origin popup
 function performFullTest(is_same_origin_test) {
-  const POPUP_HTTP_ORIGIN = is_same_origin_test ? host.HTTP_ORIGIN : host.HTTP_REMOTE_ORIGIN
+  const POPUP_HTTP_ORIGIN = is_same_origin_test ? host.HTTP_ORIGIN : host.HTTP_NOTSAMESITE_ORIGIN
   const LOCAL_HTTP_ORIGIN = host.HTTP_ORIGIN
 
   const popupBaseURL = POPUP_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
