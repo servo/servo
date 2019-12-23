@@ -216,8 +216,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         let parent_item = map.expect_item(map.get_parent_item(var.id));
         if !has_lint_attr(&self.symbols, &parent_item.attrs, self.symbols.must_root) {
             match var.data {
-                hir::VariantData::Tuple(ref fields, ..) => {
-                    for ref field in fields {
+                hir::VariantData::Tuple(fields, ..) => {
+                    for field in fields {
                         let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                         if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                             cx.span_lint(

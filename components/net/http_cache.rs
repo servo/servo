@@ -230,12 +230,15 @@ fn get_response_expiry(response: &Response) -> Duration {
         let max_heuristic = Duration::hours(24) - age;
         let heuristic_freshness = if let Some(last_modified) =
             // If the response has a Last-Modified header field,
-            // caches are encouraged to use a heuristic expiration value
-            // that is no more than some fraction of the interval since that time.
-            response.headers.typed_get::<LastModified>() {
+        // caches are encouraged to use a heuristic expiration value
+        // that is no more than some fraction of the interval since that time.
+            response.headers.typed_get::<LastModified>()
+        {
             let current = time::now().to_timespec();
             let last_modified: SystemTime = last_modified.into();
-            let last_modified = last_modified.duration_since(SystemTime::UNIX_EPOCH).unwrap();
+            let last_modified = last_modified
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap();
             let last_modified = Timespec::new(last_modified.as_secs() as i64, 0);
             // A typical setting of this fraction might be 10%.
             let raw_heuristic_calc = (current - last_modified) / 10;
