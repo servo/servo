@@ -4,6 +4,7 @@ import os
 from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
+from six import itervalues
 from six.moves import intern
 
 from . import manifestupdate
@@ -285,7 +286,7 @@ def update_results(id_test_map,
                    disable_intermittent,
                    update_intermittent,
                    remove_intermittent):
-    test_file_items = set(id_test_map.itervalues())
+    test_file_items = set(itervalues(id_test_map))
 
     default_expected_by_type = {}
     for test_type, test_cls in wpttest.manifest_test_cls.iteritems():
@@ -673,6 +674,29 @@ class TestFileData(object):
 
         return rv
 
+    def filter_unknown_props(self, update_properties, subtests):
+        # Remove subtests which have some conditions that aren't in update_properties
+        # since removing these may be inappropriate
+        top_level_props, dependent_props = update_properties
+        all_properties = set(top_level_props)
+        for item in itervalues(dependent_props):
+            all_properties |= set(item)
+
+        filtered = []
+        for subtest in subtests:
+            include = True
+            for key, _ in subtest.iter_properties():
+                conditions = subtest.get_conditions(key)
+                for condition in conditions:
+                    if not condition.variables.issubset(all_properties):
+                        include = False
+                        break
+                if not include:
+                    break
+            if include:
+                filtered.append(subtest)
+        return filtered
+
     def update(self, default_expected_by_type, update_properties,
                full_update=False, disable_intermittent=None, update_intermittent=False,
                remove_intermittent=False):
@@ -687,6 +711,7 @@ class TestFileData(object):
 
         if full_update:
             orphans = self.orphan_subtests(expected)
+            orphans = self.filter_unknown_props(update_properties, orphans)
 
             if not self.requires_update and not orphans:
                 return

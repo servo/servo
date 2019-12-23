@@ -513,7 +513,7 @@ class PropertyUpdate(object):
             top_level_props, dependent_props = self.node.root.run_info_properties
             update_properties = set(top_level_props)
             for item in itervalues(dependent_props):
-                update_properties |= set(dependent_props)
+                update_properties |= set(item)
             for condition in current_conditions:
                 if ((not condition.variables.issubset(update_properties) and
                      not run_info_by_condition[condition])):
