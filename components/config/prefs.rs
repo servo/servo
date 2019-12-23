@@ -465,6 +465,10 @@ mod gen {
                 },
                 mime: {
                     sniff: bool,
+                },
+                user_agent: {
+                    #[serde(rename = "network.user-agent.spoof")]
+                    spoof: bool,
                 }
             },
             session_history: {

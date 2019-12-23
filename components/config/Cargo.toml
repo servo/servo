@@ -32,3 +32,6 @@ std_test_override = { path = "../std_test_override" }
 
 [target.'cfg(not(any(target_os = "android", feature = "uwp")))'.dependencies]
 dirs = "1.0"
+
+[target.'cfg(all(target_os = "windows", not(target_vendor = "uwp")))'.dependencies]
+os_info = "1.2.0"

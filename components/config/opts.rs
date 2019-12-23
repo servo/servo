@@ -478,27 +478,48 @@ enum UserAgent {
 }
 
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
-    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
-
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
-    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; rv:63.0) Servo/1.0 Firefox/63.0";
-
-    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
-    // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
-
     match agent {
-        UserAgent::Desktop => DESKTOP_UA_STRING,
+        UserAgent::Desktop => {
+            if cfg!(all(target_os = "windows", not(target_vendor = "uwp"))) &&
+                !pref!(network.user_agent.spoof)
+            {
+                match os_info::get().version().version() {
+                    os_info::VersionType::Semantic(maj, min, _patch) => {
+                        return Box::leak(
+                            format!(
+                                "Mozilla/5.0 (Windows NT {}.{};{} rv:63.0) Servo/1.0 Firefox/63.0",
+                                maj,
+                                min,
+                                if cfg!(target_arch = "x86_64") {
+                                    " Win64; x64;"
+                                } else {
+                                    ""
+                                }
+                            )
+                            .into_boxed_str(),
+                        );
+                    },
+                    _ => panic!("Failed at parsing Windows Version"),
+                }
+            } else {
+                // non Win32 or spoofing enabled
+                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                return "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
+                #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+                return "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
+
+                #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+                {
+                    return "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+                }
+                #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+                return "Mozilla/5.0 (Windows NT 10.0; rv:63.0) Servo/1.0 Firefox/63.0";
+
+                #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+                // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
+                return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+            }
+        },
         UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:63.0) Servo/1.0 Firefox/63.0",
         UserAgent::iOS => {
             "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:63.0) Servo/1.0 Firefox/63.0"

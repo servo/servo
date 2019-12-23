@@ -90,6 +90,7 @@
   "media.testing.enabled": false,
   "network.http-cache.disabled": false,
   "network.mime.sniff": false,
+  "network.user-agent.spoof": false,
   "session-history.max-length": 20,
   "shell.homepage": "https://servo.org",
   "shell.keep_screen_on.enabled": false,
