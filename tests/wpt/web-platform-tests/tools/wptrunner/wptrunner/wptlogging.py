@@ -14,7 +14,7 @@ def setup(args, defaults, formatter_defaults=None):
                                            formatter_defaults=formatter_defaults)
     setup_stdlib_logger()
 
-    for name in args.keys():
+    for name in list(args.keys()):
         if name.startswith("log_"):
             args.pop(name)
 

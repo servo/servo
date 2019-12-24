@@ -20,8 +20,6 @@ skip: true
 
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="NamedTemporaryFile cannot be reopened on Win32")
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="wptmanifest.parser doesn't support py3")
 def test_filter_unicode():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
                                ("test", "c", 10))

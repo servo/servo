@@ -1,5 +1,3 @@
-import pytest
-import sys
 from io import BytesIO
 from mock import Mock
 
@@ -7,29 +5,29 @@ from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest
 from .. import manifestexpected, wpttest
 
-dir_ini_0 = """\
+dir_ini_0 = b"""\
 prefs: [a:b]
 """
 
-dir_ini_1 = """\
+dir_ini_1 = b"""\
 prefs: [@Reset, b:c]
 max-asserts: 2
 min-asserts: 1
 tags: [b, c]
 """
 
-dir_ini_2 = """\
+dir_ini_2 = b"""\
 lsan-max-stack-depth: 42
 """
 
-test_0 = """\
+test_0 = b"""\
 [0.html]
   prefs: [c:d]
   max-asserts: 3
   tags: [a, @Reset]
 """
 
-test_1 = """\
+test_1 = b"""\
 [1.html]
   prefs:
     if os == 'win': [a:b, c:d]
@@ -37,12 +35,12 @@ test_1 = """\
     if os == 'win': FAIL
 """
 
-test_2 = """\
+test_2 = b"""\
 [2.html]
   lsan-max-stack-depth: 42
 """
 
-test_3 = """\
+test_3 = b"""\
 [3.html]
   [subtest1]
     expected: [PASS, FAIL]
@@ -54,32 +52,32 @@ test_3 = """\
     expected: FAIL
 """
 
-test_4 = """\
+test_4 = b"""\
 [4.html]
   expected: FAIL
 """
 
-test_5 = """\
+test_5 = b"""\
 [5.html]
 """
 
-test_6 = """\
+test_6 = b"""\
 [6.html]
   expected: [OK, FAIL]
 """
 
-test_7 = """\
+test_7 = b"""\
 [7.html]
   blink_expect_any_subtest_status: yep
 """
 
-test_fuzzy = """\
+test_fuzzy = b"""\
 [fuzzy.html]
   fuzzy: fuzzy-ref.html:1;200
 """
 
 
-testharness_test = """<script src="/resources/testharness.js"></script>
+testharness_test = b"""<script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>"""
 
 
@@ -117,8 +115,6 @@ def make_test_object(test_name,
     return wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id))
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_metadata_inherit():
     items = [("test", "a", 10), ("test", "a/b", 10), ("test", "c", 10)]
     inherit_metadata = [
@@ -136,8 +132,6 @@ def test_metadata_inherit():
     assert test_obj.tags == {"a", "dir:a"}
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_conditional():
     items = [("test", "a", 10), ("test", "a/b", 10), ("test", "c", 10)]
 
@@ -147,8 +141,6 @@ def test_conditional():
     assert test_obj.expected() == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_metadata_lsan_stack_depth():
     items = [("test", "a", 10), ("test", "a/b", 10)]
 
@@ -172,8 +164,6 @@ def test_metadata_lsan_stack_depth():
     assert test_obj.lsan_max_stack_depth == 42
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_subtests():
     test_obj = make_test_object(test_3, "a/3.html", 3, ("test", "a", 4), None, False)
     assert test_obj.expected("subtest1") == "PASS"
@@ -184,40 +174,30 @@ def test_subtests():
     assert test_obj.known_intermittent("subtest3") == []
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_expected_fail():
     test_obj = make_test_object(test_4, "a/4.html", 4, ("test", "a", 5), None, False)
     assert test_obj.expected() == "FAIL"
     assert test_obj.known_intermittent() == []
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_no_expected():
     test_obj = make_test_object(test_5, "a/5.html", 5, ("test", "a", 6), None, False)
     assert test_obj.expected() == "OK"
     assert test_obj.known_intermittent() == []
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_known_intermittent():
     test_obj = make_test_object(test_6, "a/6.html", 6, ("test", "a", 7), None, False)
     assert test_obj.expected() == "OK"
     assert test_obj.known_intermittent() == ["FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_expect_any_subtest_status():
     test_obj = make_test_object(test_7, "a/7.html", 7, ("test", "a", 8), None, False)
     assert test_obj.expected() == "OK"
     assert test_obj.expect_any_subtest_status() is True
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 def test_metadata_fuzzy():
     manifest_data = {
         "items": {"reftest": {"a/fuzzy.html": [["a/fuzzy.html",
@@ -234,7 +214,7 @@ def test_metadata_fuzzy():
                                                     test_path="a/fuzzy.html",
                                                     url_base="/")
 
-    test = manifest.iterpath("a/fuzzy.html").next()
+    test = next(manifest.iterpath("a/fuzzy.html"))
     test_obj = wpttest.from_manifest(manifest, test, [], test_metadata.get_test(test.id))
 
     assert test_obj.fuzzy == {('/a/fuzzy.html', '/a/fuzzy-ref.html', '=='): [[2, 3], [10, 15]]}

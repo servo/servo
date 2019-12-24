@@ -3,19 +3,20 @@ from __future__ import print_function, unicode_literals
 import json
 import os
 import sys
+from six import iteritems, itervalues
 
 from wptserve import sslutils
 
-import environment as env
-import products
-import testloader
-import wptcommandline
-import wptlogging
-import wpttest
+from . import environment as env
+from . import products
+from . import testloader
+from . import wptcommandline
+from . import wptlogging
+from . import wpttest
 from mozlog import capture, handlers
-from font import FontInstaller
-from testrunner import ManagerGroup
-from browsers.base import NullBrowser
+from .font import FontInstaller
+from .testrunner import ManagerGroup
+from .browsers.base import NullBrowser
 
 here = os.path.split(__file__)[0]
 
@@ -102,7 +103,7 @@ def list_disabled(test_paths, product, **kwargs):
     run_info, test_loader = get_loader(test_paths, product,
                                        run_info_extras=run_info_extras, **kwargs)
 
-    for test_type, tests in test_loader.disabled_tests.iteritems():
+    for test_type, tests in iteritems(test_loader.disabled_tests):
         for test in tests:
             rv.append({"test": test.id, "reason": test.disabled()})
     print(json.dumps(rv, indent=2))
@@ -127,7 +128,7 @@ def get_pause_after_test(test_loader, **kwargs):
         if kwargs["headless"]:
             return False
         tests = test_loader.tests
-        is_single_testharness = (sum(len(item) for item in tests.itervalues()) == 1 and
+        is_single_testharness = (sum(len(item) for item in itervalues(tests)) == 1 and
                                  len(tests.get("testharness", [])) == 1)
         if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness:
             return True

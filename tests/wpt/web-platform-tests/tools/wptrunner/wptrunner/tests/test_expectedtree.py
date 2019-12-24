@@ -1,7 +1,3 @@
-import sys
-
-import pytest
-
 from .. import expectedtree, metadata
 from collections import defaultdict
 
@@ -32,8 +28,6 @@ def results_object(results):
     return results_obj
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_build_tree_0():
     # Pass if debug
     results = [({"os": "linux", "version": "18.04", "debug": True}, "FAIL"),
@@ -53,8 +47,6 @@ def test_build_tree_0():
     assert dump_tree(tree) == expected
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_build_tree_1():
     # Pass if linux or windows 10
     results = [({"os": "linux", "version": "18.04", "debug": True}, "PASS"),
@@ -77,8 +69,6 @@ def test_build_tree_1():
     assert dump_tree(tree) == expected
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_build_tree_2():
     # Fails in a specific configuration
     results = [({"os": "linux", "version": "18.04", "debug": True}, "PASS"),
@@ -104,8 +94,6 @@ def test_build_tree_2():
     assert dump_tree(tree) == expected
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_build_tree_3():
 
     results = [({"os": "linux", "version": "18.04", "debug": True, "unused": False}, "PASS"),
@@ -118,8 +106,6 @@ def test_build_tree_3():
     assert dump_tree(tree) == expected
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_build_tree_4():
     # Check counts for multiple statuses
     results = [({"os": "linux", "version": "18.04", "debug": False}, "FAIL"),
