@@ -11,7 +11,6 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -25,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
-use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
@@ -3622,7 +3621,7 @@ impl DocumentMethods for Document {
     fn CreateElement(
         &self,
         mut local_name: DOMString,
-        options: &ElementCreationOptions,
+        options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -3643,7 +3642,12 @@ impl DocumentMethods for Document {
         };
 
         let name = QualName::new(None, ns, LocalName::from(local_name));
-        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        let is = match options {
+            StringOrElementCreationOptions::String(_) => None,
+            StringOrElementCreationOptions::ElementCreationOptions(options) => {
+                options.is.as_ref().map(|is| LocalName::from(&**is))
+            },
+        };
         Ok(Element::create(
             name,
             is,
@@ -3658,11 +3662,16 @@ impl DocumentMethods for Document {
         &self,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
-        options: &ElementCreationOptions,
+        options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
-        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        let is = match options {
+            StringOrElementCreationOptions::String(_) => None,
+            StringOrElementCreationOptions::ElementCreationOptions(options) => {
+                options.is.as_ref().map(|is| LocalName::from(&**is))
+            },
+        };
         Ok(Element::create(
             name,
             is,
