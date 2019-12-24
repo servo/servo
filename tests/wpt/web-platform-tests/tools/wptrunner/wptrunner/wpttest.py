@@ -2,6 +2,7 @@ import os
 import subprocess
 from six.moves.urllib.parse import urljoin
 from collections import defaultdict
+from six import string_types
 
 from .wptmanifest.parser import atoms
 
@@ -337,7 +338,7 @@ class Test(object):
 
         try:
             expected = metadata.get("expected")
-            if isinstance(expected, (basestring)):
+            if isinstance(expected, string_types):
                 return expected
             elif isinstance(expected, list):
                 return expected[0]

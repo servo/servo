@@ -108,7 +108,7 @@ def create_log(entries):
             getattr(logger, action)(**kwargs)
         logger.remove_handler(handler)
     else:
-        json.dump(entries, data)
+        data.write(json.dumps(entries).encode())
     data.seek(0)
     return data
 
@@ -132,11 +132,9 @@ def create_test_manifest(tests, url_base="/"):
     return m
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_0():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -154,11 +152,9 @@ def test_update_0():
     assert updated[0][1].is_empty
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_1():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: ERROR""")]
 
@@ -177,11 +173,9 @@ def test_update_1():
     assert new_manifest.get_test(test_id).children[0].get("expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_known_intermittent_1():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: PASS""")]
 
@@ -218,11 +212,9 @@ def test_update_known_intermittent_1():
         "expected", default_run_info) == ["PASS", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_known_intermittent_2():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: PASS""")]
 
@@ -243,11 +235,9 @@ def test_update_known_intermittent_2():
         "expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_existing_known_intermittent():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: [PASS, FAIL]""")]
 
@@ -286,11 +276,9 @@ def test_update_existing_known_intermittent():
         "expected", default_run_info) == ["PASS", "ERROR", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_remove_previous_intermittent():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: [PASS, FAIL]""")]
 
@@ -334,8 +322,6 @@ def test_update_remove_previous_intermittent():
         "expected", default_run_info) == ["PASS", "ERROR"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_new_test_with_intermittent():
     tests = [("path/to/test.htm", [test_id], "testharness", None)]
 
@@ -373,8 +359,6 @@ def test_update_new_test_with_intermittent():
         "expected", default_run_info) == ["PASS", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_expected_tie_resolution():
     tests = [("path/to/test.htm", [test_id], "testharness", None)]
 
@@ -402,11 +386,9 @@ def test_update_expected_tie_resolution():
         "expected", default_run_info) == ["PASS", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_reorder_expected():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: [PASS, FAIL]""")]
 
@@ -445,10 +427,8 @@ def test_update_reorder_expected():
         "expected", default_run_info) == ["FAIL", "PASS"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_and_preserve_unchanged_expected_intermittent():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected:
     if os == "android": [PASS, FAIL]
@@ -488,11 +468,9 @@ def test_update_and_preserve_unchanged_expected_intermittent():
         "expected", default_run_info) == "PASS"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_test_with_intermittent_to_one_expected_status():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: [PASS, FAIL]""")]
 
@@ -513,10 +491,8 @@ def test_update_test_with_intermittent_to_one_expected_status():
         "expected", default_run_info) == "ERROR"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_intermittent_with_conditions():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected:
     if os == "android": [PASS, FAIL]""")]
@@ -548,10 +524,8 @@ def test_update_intermittent_with_conditions():
         "expected", run_info_1) == ["PASS", "TIMEOUT", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_and_remove_intermittent_with_conditions():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected:
     if os == "android": [PASS, FAIL]""")]
@@ -583,11 +557,9 @@ def test_update_and_remove_intermittent_with_conditions():
         "expected", run_info_1) == ["PASS", "TIMEOUT"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_intermittent_full():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected:
       if os == "mac": [FAIL, TIMEOUT]
@@ -623,11 +595,9 @@ def test_update_intermittent_full():
         "expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_intermittent_full_remove():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected:
       if os == "mac": [FAIL, TIMEOUT, PASS]
@@ -674,11 +644,9 @@ def test_update_intermittent_full_remove():
         "expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_full_update():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected:
       if os == "mac": [FAIL, TIMEOUT]
@@ -714,11 +682,9 @@ def test_full_update():
         "expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_full_orphan():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: FAIL
     [subsub test]
@@ -747,11 +713,9 @@ def test_full_orphan():
     assert len(new_manifest.get_test(test_id).children) == 1
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_reorder_expected_full_conditions():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected:
       if os == "mac": [FAIL, TIMEOUT]
@@ -808,11 +772,9 @@ def test_update_reorder_expected_full_conditions():
         "expected", default_run_info) == ["PASS", "FAIL"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_skip_0():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -828,10 +790,8 @@ def test_skip_0():
     assert not updated
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_new_subtest():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -853,10 +813,8 @@ def test_new_subtest():
     assert new_manifest.get_test(test_id).children[1].get("expected", default_run_info) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_multiple_0():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -892,10 +850,8 @@ def test_update_multiple_0():
         "expected", {"debug": False, "os": "linux"}) == "TIMEOUT"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_multiple_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -936,10 +892,8 @@ def test_update_multiple_1():
         "expected", run_info_3) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_multiple_2():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -976,10 +930,8 @@ def test_update_multiple_2():
         "expected", run_info_2) == "TIMEOUT"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_multiple_3():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected:
       if debug: FAIL
@@ -1018,10 +970,8 @@ def test_update_multiple_3():
         "expected", run_info_2) == "TIMEOUT"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_ignore_existing():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected:
       if debug: TIMEOUT
@@ -1060,8 +1010,6 @@ def test_update_ignore_existing():
         "expected", run_info_2) == "NOTRUN"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_new_test():
     tests = [("path/to/test.htm", [test_id], "testharness", None)]
 
@@ -1084,10 +1032,8 @@ def test_update_new_test():
         "expected", run_info_1) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_duplicate():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected: ERROR""")]
 
@@ -1106,10 +1052,8 @@ def test_update_duplicate():
         "expected", run_info_1) == "ERROR"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_disable_intermittent():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected: ERROR""")]
 
@@ -1128,10 +1072,8 @@ def test_update_disable_intermittent():
         "disabled", run_info_1) == "Some message"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_stability_conditional_instability():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected: ERROR""")]
 
@@ -1164,10 +1106,8 @@ def test_update_stability_conditional_instability():
         "expected", run_info_2) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_full():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected:
       if debug: TIMEOUT
@@ -1216,10 +1156,8 @@ def test_update_full():
         "expected", run_info_2) == "ERROR"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_full_unknown():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected:
       if release_or_beta: ERROR
@@ -1259,10 +1197,8 @@ def test_update_full_unknown():
         "expected", run_info_2) == "ERROR"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_full_unknown_missing():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [subtest_deleted]
     expected:
       if release_or_beta: ERROR
@@ -1282,10 +1218,8 @@ def test_update_full_unknown_missing():
     assert len(updated) == 0
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_default():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   [test1]
     expected:
       if os == "mac": FAIL
@@ -1315,10 +1249,8 @@ def test_update_default():
     assert new_manifest.is_empty
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_default_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected:
     if os == "mac": TIMEOUT
@@ -1347,10 +1279,8 @@ def test_update_default_1():
         "expected", run_info_2) == "FAIL"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_default_2():
-    tests = [("path/to/test.htm", [test_id], "testharness", """
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""
 [test.htm]
   expected:
     if os == "mac": TIMEOUT
@@ -1379,10 +1309,8 @@ def test_update_default_2():
         "expected", run_info_2) == "TIMEOUT"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_assertion_count_0():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   max-asserts: 4
   min-asserts: 2
 """)]
@@ -1403,10 +1331,8 @@ def test_update_assertion_count_0():
     assert new_manifest.get_test(test_id).get("min-asserts") == "2"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_assertion_count_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   max-asserts: 4
   min-asserts: 2
 """)]
@@ -1427,10 +1353,8 @@ def test_update_assertion_count_1():
     assert new_manifest.get_test(test_id).has_key("min-asserts") is False
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_assertion_count_2():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   max-asserts: 4
   min-asserts: 2
 """)]
@@ -1447,10 +1371,8 @@ def test_update_assertion_count_2():
     assert not updated
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_assertion_count_3():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]
   max-asserts: 4
   min-asserts: 2
 """)]
@@ -1481,10 +1403,8 @@ def test_update_assertion_count_3():
     assert new_manifest.get_test(test_id).get("min-asserts") == "2"
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_assertion_count_4():
-    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]""")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b"""[test.htm]""")]
 
     log_0 = suite_log([("test_start", {"test": test_id}),
                        ("assertion_count", {"test": test_id,
@@ -1512,11 +1432,9 @@ def test_update_assertion_count_4():
     assert new_manifest.get_test(test_id).has_key("min-asserts") is False
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_lsan_0():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, "")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
                                       "frames": ["foo", "bar"]})])
@@ -1529,11 +1447,9 @@ def test_update_lsan_0():
     assert new_manifest.get("lsan-allowed") == ["foo"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_lsan_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, """
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"""
 lsan-allowed: [foo]""")]
 
     log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
@@ -1549,13 +1465,11 @@ lsan-allowed: [foo]""")]
     assert new_manifest.get("lsan-allowed") == ["baz", "foo"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_lsan_2():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/__dir__", ["path/__dir__"], None, """
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/__dir__", ["path/__dir__"], None, b"""
 lsan-allowed: [foo]"""),
-             ("path/to/__dir__", [dir_id], None, "")]
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
                                       "frames": ["foo", "bar"],
@@ -1571,11 +1485,9 @@ lsan-allowed: [foo]"""),
     assert new_manifest.get("lsan-allowed") == ["baz"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_lsan_3():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, "")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
                                       "frames": ["foo", "bar"]})],
@@ -1593,11 +1505,9 @@ def test_update_lsan_3():
     assert new_manifest.get("lsan-allowed") == ["baz", "foo"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_wptreport_0():
     tests = [("path/to/test.htm", [test_id], "testharness",
-              """[test.htm]
+              b"""[test.htm]
   [test1]
     expected: FAIL""")]
 
@@ -1615,11 +1525,9 @@ def test_update_wptreport_0():
     assert updated[0][1].is_empty
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_wptreport_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, "")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log = {"run_info": default_run_info.copy(),
            "results": [],
@@ -1632,11 +1540,9 @@ def test_update_wptreport_1():
     assert updated[0][1].get("lsan-allowed") == ["baz"]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_leak_total_0():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, "")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
                                           "process": "default",
@@ -1651,11 +1557,9 @@ def test_update_leak_total_0():
     assert new_manifest.get("leak-threshold") == ['default:51200']
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_leak_total_1():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, "")]
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"")]
 
     log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
                                           "process": "default",
@@ -1667,11 +1571,9 @@ def test_update_leak_total_1():
     assert not updated
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_leak_total_2():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, """
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"""
 leak-total: 110""")]
 
     log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
@@ -1684,11 +1586,9 @@ leak-total: 110""")]
     assert not updated
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_leak_total_3():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, """
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"""
 leak-total: 100""")]
 
     log_0 = suite_log([("mozleak_total", {"scope": "path/to/",
@@ -1704,11 +1604,9 @@ leak-total: 100""")]
     assert new_manifest.get("leak-threshold") == ['default:51200']
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="metadata doesn't support py3")
 def test_update_leak_total_4():
-    tests = [("path/to/test.htm", [test_id], "testharness", ""),
-             ("path/to/__dir__", [dir_id], None, """
+    tests = [("path/to/test.htm", [test_id], "testharness", b""),
+             ("path/to/__dir__", [dir_id], None, b"""
 leak-total: 110""")]
 
     log_0 = suite_log([
@@ -1737,8 +1635,6 @@ class UpdateRunner(StepRunner):
     steps = [TestStep]
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="update.state doesn't support py3")
 def test_update_pickle():
     logger = structuredlog.StructuredLogger("expected_test")
     args = {

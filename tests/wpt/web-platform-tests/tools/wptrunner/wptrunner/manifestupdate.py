@@ -3,7 +3,7 @@ import os
 from six.moves.urllib.parse import urljoin, urlsplit
 from collections import namedtuple, defaultdict, deque
 from math import ceil
-from six import iterkeys, itervalues, iteritems
+from six import integer_types, iterkeys, itervalues, iteritems, string_types, text_type
 
 from .wptmanifest import serialize
 from .wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
@@ -411,7 +411,7 @@ class PropertyUpdate(object):
         for e in errors:
             if disable_intermittent:
                 condition = e.cond.children[0] if e.cond else None
-                msg = disable_intermittent if isinstance(disable_intermittent, (str, unicode)) else "unstable"
+                msg = disable_intermittent if isinstance(disable_intermittent, string_types+(text_type,)) else "unstable"
                 self.node.set("disabled", msg, condition)
                 self.node.new_disabled = True
             else:
@@ -774,7 +774,7 @@ class AppendOnlyListUpdate(PropertyUpdate):
         for item in new:
             if item is None:
                 continue
-            elif isinstance(item, (str, unicode)):
+            elif isinstance(item, text_type):
                 rv.add(item)
             else:
                 rv |= item
@@ -897,10 +897,10 @@ def make_expr(prop_set, rhs):
 
 
 def make_node(value):
-    if type(value) in (int, float, long):
+    if isinstance(value, integer_types+(float,)):
         node = NumberNode(value)
-    elif type(value) in (str, unicode):
-        node = StringNode(unicode(value))
+    elif isinstance(value, text_type):
+        node = StringNode(text_type(value))
     elif hasattr(value, "__iter__"):
         node = ListNode()
         for item in value:
@@ -909,10 +909,10 @@ def make_node(value):
 
 
 def make_value_node(value):
-    if type(value) in (int, float, long):
+    if isinstance(value, integer_types+(float,)):
         node = ValueNode(value)
-    elif type(value) in (str, unicode):
-        node = ValueNode(unicode(value))
+    elif isinstance(value, text_type):
+        node = ValueNode(text_type(value))
     elif hasattr(value, "__iter__"):
         node = ListNode()
         for item in value:

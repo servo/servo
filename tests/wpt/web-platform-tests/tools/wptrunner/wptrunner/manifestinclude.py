@@ -150,5 +150,5 @@ class IncludeManifest(ManifestItem):
 
 
 def get_manifest(manifest_path):
-    with open(manifest_path) as f:
+    with open(manifest_path, "rb") as f:
         return conditional.compile(f, data_cls_getter=lambda x, y: IncludeManifest)

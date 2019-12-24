@@ -11,7 +11,7 @@ class BaseState(object):
             return rv
 
         logger.debug("No existing state found")
-        return object.__new__(cls, logger)
+        return super(BaseState, cls).__new__(cls)
 
     def __init__(self, logger):
         """Object containing state variables created when running Steps.

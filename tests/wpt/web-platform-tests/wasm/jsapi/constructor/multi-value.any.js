@@ -10,8 +10,8 @@ promise_test(async () => {
   builder
     .addFunction("swap", type_if_fi)
     .addBody([
-        kExprGetLocal, 1,
-        kExprGetLocal, 0,
+        kExprLocalGet, 1,
+        kExprLocalGet, 0,
         kExprReturn,
     ])
     .exportFunc();
@@ -31,8 +31,8 @@ promise_test(async () => {
   const swap = builder
     .addFunction("swap", type_if_fi)
     .addBody([
-        kExprGetLocal, 1,
-        kExprGetLocal, 0,
+        kExprLocalGet, 1,
+        kExprLocalGet, 0,
         kExprReturn,
     ]);
   builder
