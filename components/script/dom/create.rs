@@ -189,14 +189,21 @@ fn create_html_element(
         }
     }
 
-    // Steps 7.1-7.2
+    // Steps 7.1-7.3
     let result = create_native_html_element(name.clone(), prefix, document, creator);
+    match is {
+        Some(is) => {
+            result.set_is(is);
+            result.set_custom_element_state(CustomElementState::Undefined);
+        },
+        None => {
+            if is_valid_custom_element_name(&*name.local) {
+                result.set_custom_element_state(CustomElementState::Undefined);
+            }
+        },
+    };
 
-    // Step 7.3
-    if is_valid_custom_element_name(&*name.local) || is.is_some() {
-        result.set_custom_element_state(CustomElementState::Undefined);
-    }
-
+    // Step 8
     result
 }
 
