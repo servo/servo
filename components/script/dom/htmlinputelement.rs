@@ -35,7 +35,7 @@ use crate::dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{BindContext, Node, NodeDamage, UnbindContext};
+use crate::dom::node::{BindContext, CloneChildrenFlag, Node, NodeDamage, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::Validatable;
@@ -1658,6 +1658,26 @@ impl VirtualMethods for HTMLInputElement {
                 event.mark_as_handled();
             }
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+    ) {
+        if let Some(ref s) = self.super_type() {
+            s.cloning_steps(copy, maybe_doc, clone_children);
+        }
+        let elem = copy.downcast::<HTMLInputElement>().unwrap();
+        elem.value_dirty.set(self.value_dirty.get());
+        elem.checked_changed.set(self.checked_changed.get());
+        elem.upcast::<Element>()
+            .set_state(ElementState::IN_CHECKED_STATE, self.Checked());
+        elem.textinput
+            .borrow_mut()
+            .set_content(self.textinput.borrow().get_content());
     }
 }
 
