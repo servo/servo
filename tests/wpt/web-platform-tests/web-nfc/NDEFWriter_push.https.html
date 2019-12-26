@@ -35,9 +35,6 @@ const invalid_type_messages =
       // "utf-16", "utf-16le" or "utf-16be".
       createMessage([createTextRecord(test_text_data, "chinese")]),
 
-      // NDEFRecord.lang length for 'text' record must be lower than 64.
-      createMessage([createTextRecord(test_text_data, undefined /* encoding */, [...Array(64)].map(_ => 'a'))]),
-
       // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
       // NDEFRecord must have data.
       createMessage([createUrlRecord()]),
@@ -91,6 +88,10 @@ const invalid_syntax_messages =
       // Data for 'url' or 'absolute-url' record, must be a valid URL.
       createMessage([createUrlRecord('Invalid URL:// Data')]),
       createMessage([createUrlRecord('Invalid URL:// Data', true)]),
+
+      // NDEFRecord.lang length for 'text' record must be lower than 64.
+      createMessage([createTextRecord(test_text_data, undefined /* encoding */,
+                                      [...Array(64)].map(_ => 'a'))]),
     ];
 
 const invalid_signals = [
