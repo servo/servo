@@ -12,6 +12,7 @@ use crate::{
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use headers::StrictTransportSecurity;
 use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
 use headers::{AccessControlAllowMethods, AccessControlMaxAge, HeaderMapExt};
 use headers::{CacheControl, ContentLength, ContentType, Expires, LastModified, Pragma, UserAgent};
@@ -27,7 +28,9 @@ use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
-use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
+use net_traits::request::{
+    Destination, Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
+};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming,
@@ -678,6 +681,66 @@ fn test_fetch_with_hsts() {
         response.internal_response.unwrap().url().unwrap().scheme(),
         "https"
     );
+}
+
+#[test]
+fn test_load_adds_host_to_hsts_list_when_url_is_https() {
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        response
+            .headers_mut()
+            .typed_insert(StrictTransportSecurity::excluding_subdomains(
+                Duration::from_secs(31536000),
+            ));
+        *response.body_mut() = b"Yay!".to_vec().into();
+    };
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
+        .canonicalize()
+        .unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key")
+        .canonicalize()
+        .unwrap();
+    let (server, mut url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
+    url.as_mut_url().set_scheme("https").unwrap();
+
+    let certs = fs::read_to_string(cert_path).expect("Couldn't find certificate file");
+    let tls_config = create_tls_config(&certs, ALPN_H2_H1);
+
+    let mut context = FetchContext {
+        state: Arc::new(HttpState::new(tls_config)),
+        user_agent: DEFAULT_USER_AGENT.into(),
+        devtools_chan: None,
+        filemanager: FileManager::new(create_embedder_proxy()),
+        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+            ResourceTimingType::Navigation,
+        ))),
+    };
+
+    let mut request = RequestBuilder::new(url.clone())
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .build();
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .unwrap()
+        .0
+        .is_success());
+    assert!(context
+        .state
+        .hsts_list
+        .read()
+        .unwrap()
+        .is_host_secure(url.host_str().unwrap()));
 }
 
 #[test]

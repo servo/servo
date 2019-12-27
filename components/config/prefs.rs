@@ -459,6 +459,11 @@ mod gen {
                 }
             },
             network: {
+                enforce_tls: {
+                    enabled: bool,
+                    localhost: bool,
+                    onion: bool,
+                },
                 http_cache: {
                     #[serde(rename = "network.http-cache.disabled")]
                     disabled: bool,

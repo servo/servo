@@ -1382,7 +1382,7 @@ fn http_network_fetch(
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
 
     if log_enabled!(log::Level::Info) {
-        info!("request for {} ({:?})", url, request.method);
+        info!("{:?} request for {}", request.method, url);
         for header in request.headers.iter() {
             info!(" - {:?}", header);
         }
@@ -1564,9 +1564,10 @@ fn http_network_fetch(
 
     // Substep 2
 
-    // TODO Determine if response was retrieved over HTTPS
-    // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
-    response.https_state = HttpsState::None;
+    response.https_state = match url.scheme() {
+        "https" => HttpsState::Modern,
+        _ => HttpsState::None,
+    };
 
     // TODO Read request
 
@@ -1593,6 +1594,12 @@ fn http_network_fetch(
     if credentials_flag {
         set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
     }
+    context
+        .state
+        .hsts_list
+        .write()
+        .unwrap()
+        .update_hsts_list_from_response(&url, &response.headers);
 
     // TODO these steps
     // Step 16

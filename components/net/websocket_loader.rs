@@ -100,6 +100,12 @@ impl<'a> Handler for Client<'a> {
             }
         }
 
+        self.http_state
+            .hsts_list
+            .write()
+            .unwrap()
+            .update_hsts_list_from_response(self.resource_url, &headers);
+
         let _ = self
             .event_sender
             .send(WebSocketNetworkEvent::ConnectionEstablished {
@@ -185,12 +191,23 @@ pub fn init(
     thread::Builder::new()
         .name(format!("WebSocket connection to {}", req_builder.url))
         .spawn(move || {
+            let mut req_builder = req_builder;
             let protocols = match req_builder.mode {
                 RequestMode::WebSocket { protocols } => protocols,
                 _ => panic!(
                     "Received a RequestBuilder with a non-websocket mode in websocket_loader"
                 ),
             };
+
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
+            // By standard, we should work with an http(s):// URL (req_url),
+            // but as ws-rs expects to be called with a ws(s):// URL (net_url)
+            // we upgrade ws to wss, so we don't have to convert http(s) back to ws(s).
+            http_state
+                .hsts_list
+                .read()
+                .unwrap()
+                .apply_hsts_rules(&mut req_builder.url);
 
             let scheme = req_builder.url.scheme();
             let mut req_url = req_builder.url.clone();

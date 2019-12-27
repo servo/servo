@@ -3,9 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::resources::{self, Resource};
+use headers::{Header, HeaderMapExt, HeaderName, HeaderValue};
+use http::HeaderMap;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::IncludeSubdomains;
-use servo_url::ServoUrl;
+use servo_config::pref;
+use servo_url::{Host, ServoUrl};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
@@ -138,16 +141,156 @@ impl HstsList {
         }
     }
 
-    /// Step 10 of https://fetch.spec.whatwg.org/#concept-main-fetch.
-    pub fn switch_known_hsts_host_domain_url_to_https(&self, url: &mut ServoUrl) {
-        if url.scheme() != "http" {
+    /// Step 2.9 of https://fetch.spec.whatwg.org/#concept-main-fetch.
+    pub fn apply_hsts_rules(&self, url: &mut ServoUrl) {
+        if url.scheme() != "http" && url.scheme() != "ws" {
             return;
         }
-        if url
-            .domain()
-            .map_or(false, |domain| self.is_host_secure(domain))
-        {
-            url.as_mut_url().set_scheme("https").unwrap();
+
+        let upgrade_scheme = if pref!(network.enforce_tls.enabled) {
+            if (!pref!(network.enforce_tls.localhost) &&
+                match url.host() {
+                    Some(Host::Domain(domain)) => {
+                        domain.ends_with(".localhost") || domain == "localhost"
+                    },
+                    Some(Host::Ipv4(ipv4)) => ipv4.is_loopback(),
+                    Some(Host::Ipv6(ipv6)) => ipv6.is_loopback(),
+                    _ => false,
+                }) ||
+                (!pref!(network.enforce_tls.onion) &&
+                    url.domain()
+                        .map_or(false, |domain| domain.ends_with(".onion")))
+            {
+                url.domain()
+                    .map_or(false, |domain| self.is_host_secure(domain))
+            } else {
+                true
+            }
+        } else {
+            url.domain()
+                .map_or(false, |domain| self.is_host_secure(domain))
+        };
+
+        if upgrade_scheme {
+            let upgraded_scheme = match url.scheme() {
+                "ws" => "wss",
+                _ => "https",
+            };
+            url.as_mut_url().set_scheme(upgraded_scheme).unwrap();
+        }
+    }
+
+    pub fn update_hsts_list_from_response(&mut self, url: &ServoUrl, headers: &HeaderMap) {
+        if url.scheme() != "https" && url.scheme() != "wss" {
+            return;
+        }
+
+        if let Some(header) = headers.typed_get::<StrictTransportSecurity>() {
+            if let Some(host) = url.domain() {
+                let include_subdomains = if header.include_subdomains {
+                    IncludeSubdomains::Included
+                } else {
+                    IncludeSubdomains::NotIncluded
+                };
+
+                if let Some(entry) =
+                    HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age))
+                {
+                    info!("adding host {} to the strict transport security list", host);
+                    info!("- max-age {}", header.max_age);
+                    if header.include_subdomains {
+                        info!("- includeSubdomains");
+                    }
+
+                    self.push(entry);
+                }
+            }
         }
     }
 }
+
+// TODO: Remove this with the next update of the `headers` crate
+// https://github.com/hyperium/headers/issues/61
+#[derive(Clone, Debug, PartialEq)]
+struct StrictTransportSecurity {
+    include_subdomains: bool,
+    max_age: u64,
+}
+
+enum Directive {
+    MaxAge(u64),
+    IncludeSubdomains,
+    Unknown,
+}
+
+// taken from https://github.com/hyperium/headers
+impl Header for StrictTransportSecurity {
+    fn name() -> &'static HeaderName {
+        &http::header::STRICT_TRANSPORT_SECURITY
+    }
+
+    fn decode<'i, I: Iterator<Item = &'i HeaderValue>>(
+        values: &mut I,
+    ) -> Result<Self, headers::Error> {
+        values
+            .just_one()
+            .and_then(|v| v.to_str().ok())
+            .map(|s| {
+                s.split(';')
+                    .map(str::trim)
+                    .map(|sub| {
+                        if sub.eq_ignore_ascii_case("includeSubDomains") {
+                            Some(Directive::IncludeSubdomains)
+                        } else {
+                            let mut sub = sub.splitn(2, '=');
+                            match (sub.next(), sub.next()) {
+                                (Some(left), Some(right))
+                                    if left.trim().eq_ignore_ascii_case("max-age") =>
+                                {
+                                    right
+                                        .trim()
+                                        .trim_matches('"')
+                                        .parse()
+                                        .ok()
+                                        .map(Directive::MaxAge)
+                                },
+                                _ => Some(Directive::Unknown),
+                            }
+                        }
+                    })
+                    .fold(Some((None, None)), |res, dir| match (res, dir) {
+                        (Some((None, sub)), Some(Directive::MaxAge(age))) => Some((Some(age), sub)),
+                        (Some((age, None)), Some(Directive::IncludeSubdomains)) => {
+                            Some((age, Some(())))
+                        },
+                        (Some((Some(_), _)), Some(Directive::MaxAge(_))) |
+                        (Some((_, Some(_))), Some(Directive::IncludeSubdomains)) |
+                        (_, None) => None,
+                        (res, _) => res,
+                    })
+                    .and_then(|res| match res {
+                        (Some(age), sub) => Some(StrictTransportSecurity {
+                            max_age: age,
+                            include_subdomains: sub.is_some(),
+                        }),
+                        _ => None,
+                    })
+                    .ok_or_else(headers::Error::invalid)
+            })
+            .unwrap_or_else(|| Err(headers::Error::invalid()))
+    }
+
+    fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {}
+}
+
+trait IterExt: Iterator {
+    fn just_one(&mut self) -> Option<Self::Item> {
+        let one = self.next()?;
+        match self.next() {
+            Some(_) => None,
+            None => Some(one),
+        }
+    }
+}
+
+impl<T: Iterator> IterExt for T {}

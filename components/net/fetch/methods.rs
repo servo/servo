@@ -265,7 +265,7 @@ pub fn main_fetch(
         .hsts_list
         .read()
         .unwrap()
-        .switch_known_hsts_host_domain_url_to_https(request.current_url_mut());
+        .apply_hsts_rules(request.current_url_mut());
 
     // Step 11.
     // Not applicable: see fetch_async.
