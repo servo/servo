@@ -227,6 +227,15 @@ settings for the installer are fine).
 7. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
 list of installed components as well as the "Windows Universal C runtime." They are not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
 
+Note that version is hard to download online and is easier to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
+```
+choco install -y visualstudio2017community --package-parameters="'--add Microsoft.VisualStudio.Component.Git'"
+Update-SessionEnvironment #refreshing env due to Git install
+
+#--- UWP Workload and installing Windows Template Studio ---
+choco install -y visualstudio2017-workload-nativedesktop
+```
+
 ##### [Optional] Install LLVM for faster link times
 
 You may experience much faster builds on Windows by following these steps. (Related Rust issue: https://github.com/rust-lang/rust/issues/37543)
