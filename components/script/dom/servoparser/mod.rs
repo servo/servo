@@ -25,6 +25,7 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
+use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::{Node, ShadowIncluding};
@@ -1244,11 +1245,30 @@ fn create_element_for_token(
     } else {
         CustomElementCreationMode::Asynchronous
     };
+
     let element = Element::create(name, is, document, creator, creation_mode);
 
-    // Step 8.
+    // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
+    // says to invoke sanitization "when an input element is first created";
+    // however, since sanitization requires content attributes to function,
+    // it can't mean that literally.
+    // Indeed, to make sanitization work correctly, we need to _not_ sanitize
+    // until after all content attributes have been added
+
+    let maybe_input = element.downcast::<HTMLInputElement>();
+    if let Some(input) = maybe_input {
+        input.disable_sanitization();
+    }
+
+    // Step 8
     for attr in attrs {
         element.set_attribute_from_parser(attr.name, attr.value, None);
+    }
+
+    // _now_ we can sanitize (and we sanitize now even if the "value"
+    // attribute isn't present!)
+    if let Some(input) = maybe_input {
+        input.enable_sanitization();
     }
 
     // Step 9.
