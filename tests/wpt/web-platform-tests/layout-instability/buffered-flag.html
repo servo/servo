@@ -8,10 +8,13 @@
 <div id='myDiv'></div>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
 <script>
-async_test(t => {
-  if (!window.LayoutShift)
-    assert_unreached('LayoutShift entries are not supported');
+async_test(async function(t) {
+  assert_precondition(window.LayoutShift, 'LayoutShift entries are not supported');
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
   const startTime = performance.now();
   // First observer creates second in callback to ensure the entry has been dispatched by the time
   // the second observer begins observing.
@@ -22,9 +25,10 @@ async_test(t => {
       assert_equals(list.getEntries().length, 1);
       const entry = list.getEntries()[0];
       assert_equals(entry.entryType, "layout-shift");
-      assert_greater_than_equal(entry.startTime, startTime)
-      assert_less_than_equal(entry.startTime, endTime)
+      assert_greater_than_equal(entry.startTime, startTime);
+      assert_less_than_equal(entry.startTime, endTime);
       assert_equals(entry.duration, 0.0);
+      assert_equals(entry.value, computeExpectedScore(300 * (100 + 60),  60));
     })).observe({'type': 'layout-shift', buffered: true});
   }).observe({type: 'layout-shift'});
   // Modify the position of the div to cause a layout-shift entry.
