@@ -8,7 +8,7 @@ script outputs a list of all tests it generated in the format of Mozilla
 reftest.list to the stdout.
 """
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function, absolute_import
 
 TEST_FILE = 'text-emphasis-line-height-{:03}{}.html'
 TEST_TEMPLATE = '''<!DOCTYPE html>
