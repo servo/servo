@@ -124,9 +124,15 @@ impl OpaqueComputedValues {
 pub struct ValidationData {
     /// The class list of this element.
     ///
-    /// TODO(emilio): See if it's worth to sort them, or doing something else in
-    /// a similar fashion as what Boris is doing for the ID attribute.
+    /// TODO(emilio): Maybe check whether rules for these classes apply to the
+    /// element?
     class_list: Option<SmallVec<[Atom; 5]>>,
+
+    /// The part list of this element.
+    ///
+    /// TODO(emilio): Maybe check whether rules with these part names apply to
+    /// the element?
+    part_list: Option<SmallVec<[Atom; 5]>>,
 
     /// The list of presentational attributes of the element.
     pres_hints: Option<SmallVec<[ApplicableDeclarationBlock; 5]>>,
@@ -161,22 +167,41 @@ impl ValidationData {
         })
     }
 
+    /// Get or compute the part-list associated with this element.
+    pub fn part_list<E>(&mut self, element: E) -> &[Atom]
+    where
+        E: TElement,
+    {
+        if !element.has_part_attr() {
+            return &[]
+        }
+        self.part_list.get_or_insert_with(|| {
+            let mut list = SmallVec::<[Atom; 5]>::new();
+            element.each_part(|p| list.push(p.clone()));
+            // See below for the reasoning.
+            if !list.spilled() {
+                list.sort_unstable_by_key(|a| a.get_hash());
+            }
+            list
+        })
+    }
+
     /// Get or compute the class-list associated with this element.
     pub fn class_list<E>(&mut self, element: E) -> &[Atom]
     where
         E: TElement,
     {
         self.class_list.get_or_insert_with(|| {
-            let mut class_list = SmallVec::<[Atom; 5]>::new();
-            element.each_class(|c| class_list.push(c.clone()));
+            let mut list = SmallVec::<[Atom; 5]>::new();
+            element.each_class(|c| list.push(c.clone()));
             // Assuming there are a reasonable number of classes (we use the
             // inline capacity as "reasonable number"), sort them to so that
             // we don't mistakenly reject sharing candidates when one element
             // has "foo bar" and the other has "bar foo".
-            if !class_list.spilled() {
-                class_list.sort_by(|a, b| a.get_hash().cmp(&b.get_hash()));
+            if !list.spilled() {
+                list.sort_unstable_by_key(|a| a.get_hash());
             }
-            class_list
+            list
         })
     }
 
@@ -273,6 +298,11 @@ impl<E: TElement> StyleSharingCandidate<E> {
         self.validation_data.class_list(self.element)
     }
 
+    /// Get the part list of this candidate.
+    fn part_list(&mut self) -> &[Atom] {
+        self.validation_data.part_list(self.element)
+    }
+
     /// Get the pres hints of this candidate.
     fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
         self.validation_data.pres_hints(self.element)
@@ -333,6 +363,10 @@ impl<E: TElement> StyleSharingTarget<E> {
 
     fn class_list(&mut self) -> &[Atom] {
         self.validation_data.class_list(self.element)
+    }
+
+    fn part_list(&mut self) -> &[Atom] {
+        self.validation_data.part_list(self.element)
     }
 
     /// Get the pres hints of this candidate.
@@ -769,6 +803,11 @@ impl<E: TElement> StyleSharingCache<E> {
 
         if !checks::have_same_presentational_hints(target, candidate) {
             trace!("Miss: Pres Hints");
+            return None;
+        }
+
+        if !checks::have_same_parts(target, candidate) {
+            trace!("Miss: Shadow parts");
             return None;
         }
 

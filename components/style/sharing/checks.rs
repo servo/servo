@@ -81,7 +81,7 @@ where
     target.pres_hints() == candidate.pres_hints()
 }
 
-/// Whether a given element has the same class attribute than a given candidate.
+/// Whether a given element has the same class attribute as a given candidate.
 ///
 /// We don't try to share style across elements with different class attributes.
 pub fn have_same_class<E>(
@@ -92,6 +92,19 @@ where
     E: TElement,
 {
     target.class_list() == candidate.class_list()
+}
+
+/// Whether a given element has the same class attribute as a given candidate.
+///
+/// We don't try to share style across elements with different part attributes.
+pub fn have_same_parts<E>(
+    target: &mut StyleSharingTarget<E>,
+    candidate: &mut StyleSharingCandidate<E>,
+) -> bool
+where
+    E: TElement,
+{
+    target.part_list() == candidate.part_list()
 }
 
 /// Whether a given element and a candidate match the same set of "revalidation"
