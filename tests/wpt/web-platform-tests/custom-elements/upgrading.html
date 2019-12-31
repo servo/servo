@@ -12,6 +12,9 @@
 <script src="resources/custom-elements-helpers.js"></script>
 </head>
 <body>
+<infinite-cloning-element-1></infinite-cloning-element-1>
+<infinite-cloning-element-2 id="a"></infinite-cloning-element-2>
+<infinite-cloning-element-2 id="b"></infinite-cloning-element-2>
 <div id="log"></div>
 <script>
 setup({allow_uncaught_exception:true});
@@ -202,6 +205,53 @@ test(() => {
     assert_equals(error.name, 'NotSupportedError');
 }, 'If definition\'s disable shadow is true and element\'s shadow root is ' +
     'non-null, then throw a "NotSupportedError" DOMException.');
+
+test(() => {
+    var log = [];
+
+    customElements.define('infinite-cloning-element-1',class extends HTMLElement {
+        constructor() {
+            super();
+            log.push([this, 'begin']);
+            // Potential infinite recursion:
+            customElements.upgrade(this);
+            log.push([this, 'end']);
+        }
+    });
+
+    assert_equals(log.length, 2);
+    const instance = document.querySelector("infinite-cloning-element-1");
+    assert_array_equals(log[0], [instance, 'begin']);
+    assert_array_equals(log[1], [instance, 'end']);
+}, 'Infinite constructor recursion with upgrade(this) should not be possible');
+
+test(() => {
+    var log = [];
+
+    customElements.define('infinite-cloning-element-2',class extends HTMLElement {
+        constructor() {
+            super();
+            log.push([this, 'begin']);
+            const b = document.querySelector("#b");
+            b.remove();
+            // While this constructor is running for "a", "b" is still
+            // undefined, and so inserting it into the document will enqueue a
+            // second upgrade reaction for "b" in addition to the one enqueued
+            // by defining x-foo.
+            document.body.appendChild(b);
+            log.push([this, 'end']);
+        }
+    });
+
+    assert_equals(log.length, 4);
+    const instanceA = document.querySelector("#a");
+    const instanceB = document.querySelector("#b");
+    assert_array_equals(log[0], [instanceA, 'begin']);
+    assert_array_equals(log[1], [instanceB, 'begin']);
+    assert_array_equals(log[2], [instanceB, 'end']);
+    assert_array_equals(log[3], [instanceA, 'end']);
+}, 'Infinite constructor recursion with appendChild should not be possible');
+
 
 </script>
 </body>

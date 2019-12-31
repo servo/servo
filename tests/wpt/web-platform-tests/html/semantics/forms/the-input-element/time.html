@@ -291,8 +291,11 @@ test(function(){
 } , "stepDown stop so lower than the minimum value");
 
 test(function(){
+  // Set min value to ensure that 15:01 - base is a multiple of 2 min (i.e., a
+  // valid value).
+  _StepTest.min = "14:01";
   _StepTest.max = "15:01";
-  this.add_cleanup(function() { _StepTest.max = ""; });
+  this.add_cleanup(function() { _StepTest.min = _StepTest.max = ""; });
   _StepTest.value = "15:00";
   _StepTest.step = "120";
   _StepTest.stepUp();

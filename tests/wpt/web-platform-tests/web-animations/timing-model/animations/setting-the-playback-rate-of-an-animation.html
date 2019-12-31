@@ -97,8 +97,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
-  animation.currentTime = 50 * MS_PER_SEC;
   await animation.ready;
+  animation.currentTime = 50 * MS_PER_SEC;
   animation.playbackRate = 0;
   // Ensure that current time does not drift.
   assert_equals(animation.playState, 'running');
