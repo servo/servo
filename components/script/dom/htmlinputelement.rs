@@ -46,7 +46,6 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
-use caseless::compatibility_caseless_match_str;
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use encoding_rs::Encoding;
@@ -917,7 +916,7 @@ fn in_same_group(
     // TODO Both a and b are in the same home subtree.
     other.form_owner().as_deref() == owner &&
     match (other.radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
+        (Some(ref s1), Some(s2)) => s1 == s2 && s2 != &atom!(""),
         _ => false
     }
 }
