@@ -915,16 +915,13 @@ unsafe extern "C" fn consume_stream(
         let mimetype = unwrapped_source.Headers().extract_mime_type();
 
         //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
-        match &mimetype[..] {
-            b"application/wasm" | b"APPLICATION/wasm" | b"APPLICATION/WASM" => {},
-            _ => {
-                throw_dom_exception(
-                    cx,
-                    &global,
-                    Error::Type("Response has unsupported MIME type".to_string()),
-                );
-                return false;
-            },
+        if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response has unsupported MIME type".to_string()),
+            );
+            return false;
         }
 
         //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
