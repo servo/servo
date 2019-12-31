@@ -24,6 +24,14 @@ function toMojoNDEFMessage(message) {
 
 function toMojoNDEFRecord(record) {
   let nfcRecord = new device.mojom.NDEFRecord();
+  if (record.recordType.search(':') != -1) {
+    // Simply checks the existence of ':' to decide whether it's an external
+    // type. As a mock, no need to really implement the validation algo at
+    // https://w3c.github.io/web-nfc/#dfn-validate-external-type.
+    nfcRecord.category = device.mojom.NDEFRecordTypeCategory.kExternal;
+  } else {
+    nfcRecord.category = device.mojom.NDEFRecordTypeCategory.kStandardized;
+  }
   nfcRecord.recordType = record.recordType;
   nfcRecord.mediaType = record.mediaType;
   nfcRecord.id = record.id;

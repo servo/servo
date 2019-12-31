@@ -26,28 +26,36 @@ interface BaseAudioContext : EventTarget {
 
   AnalyserNode createAnalyser ();
   BiquadFilterNode createBiquadFilter ();
-  AudioBuffer createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
+  AudioBuffer createBuffer (unsigned long numberOfChannels,
+                            unsigned long length,
+                            float sampleRate);
   AudioBufferSourceNode createBufferSource ();
   ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
-  ChannelSplitterNode createChannelSplitter (optional unsigned long numberOfOutputs = 6);
+  ChannelSplitterNode createChannelSplitter (
+    optional unsigned long numberOfOutputs = 6);
   ConstantSourceNode createConstantSource ();
   ConvolverNode createConvolver ();
   DelayNode createDelay (optional double maxDelayTime = 1.0);
   DynamicsCompressorNode createDynamicsCompressor ();
   GainNode createGain ();
-  IIRFilterNode createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
+  IIRFilterNode createIIRFilter (sequence<double> feedforward,
+                                 sequence<double> feedback);
   OscillatorNode createOscillator ();
   PannerNode createPanner ();
-  PeriodicWave createPeriodicWave (sequence<float> real, sequence<float> imag, optional PeriodicWaveConstraints constraints = {});
-  ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
-                                            optional unsigned long numberOfInputChannels = 2,
-                                            optional unsigned long numberOfOutputChannels = 2);
+  PeriodicWave createPeriodicWave (sequence<float> real,
+                                   sequence<float> imag,
+                                   optional PeriodicWaveConstraints constraints = {});
+  ScriptProcessorNode createScriptProcessor(
+    optional unsigned long bufferSize = 0,
+    optional unsigned long numberOfInputChannels = 2,
+    optional unsigned long numberOfOutputChannels = 2);
   StereoPannerNode createStereoPanner ();
   WaveShaperNode createWaveShaper ();
 
-  Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
-                                        optional DecodeSuccessCallback? successCallback,
-                                        optional DecodeErrorCallback? errorCallback);
+  Promise<AudioBuffer> decodeAudioData (
+    ArrayBuffer audioData,
+    optional DecodeSuccessCallback? successCallback,
+    optional DecodeErrorCallback? errorCallback);
 };
 
 enum AudioContextLatencyCategory {
@@ -67,7 +75,8 @@ interface AudioContext : BaseAudioContext {
   Promise<void> close ();
   MediaElementAudioSourceNode createMediaElementSource (HTMLMediaElement mediaElement);
   MediaStreamAudioSourceNode createMediaStreamSource (MediaStream mediaStream);
-  MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (MediaStreamTrack mediaStreamTrack);
+  MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (
+    MediaStreamTrack mediaStreamTrack);
   MediaStreamAudioDestinationNode createMediaStreamDestination ();
 };
 
@@ -116,8 +125,14 @@ interface AudioBuffer {
   readonly attribute double duration;
   readonly attribute unsigned long numberOfChannels;
   Float32Array getChannelData (unsigned long channel);
-  void copyFromChannel (Float32Array destination, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
-  void copyToChannel (Float32Array source, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
+  void copyFromChannel (Float32Array destination,
+                        unsigned long channelNumber,
+                        optional unsigned long bufferOffset = 0);
+  void copyToChannel (Float32Array source,
+
+                      unsigned long channelNumber,
+
+                      optional unsigned long bufferOffset = 0);
 };
 
 dictionary AudioBufferOptions {
@@ -136,7 +151,9 @@ interface AudioNode : EventTarget {
   void disconnect (unsigned long output);
   void disconnect (AudioNode destinationNode);
   void disconnect (AudioNode destinationNode, unsigned long output);
-  void disconnect (AudioNode destinationNode, unsigned long output, unsigned long input);
+  void disconnect (AudioNode destinationNode,
+                   unsigned long output,
+                   unsigned long input);
   void disconnect (AudioParam destinationParam);
   void disconnect (AudioParam destinationParam, unsigned long output);
   readonly attribute BaseAudioContext context;
@@ -180,7 +197,11 @@ interface AudioParam {
   AudioParam linearRampToValueAtTime (float value, double endTime);
   AudioParam exponentialRampToValueAtTime (float value, double endTime);
   AudioParam setTargetAtTime (float target, double startTime, float timeConstant);
-  AudioParam setValueCurveAtTime (sequence<float> values, double startTime, double duration);
+  AudioParam setValueCurveAtTime (sequence<float> values,
+
+                                  double startTime,
+
+                                  double duration);
   AudioParam cancelScheduledValues (double cancelTime);
   AudioParam cancelAndHoldAtTime (double cancelTime);
 };
@@ -215,7 +236,8 @@ dictionary AnalyserOptions : AudioNodeOptions {
 
 [Exposed=Window]
 interface AudioBufferSourceNode : AudioScheduledSourceNode {
-  constructor (BaseAudioContext context, optional AudioBufferSourceOptions options = {});
+  constructor (BaseAudioContext context,
+               optional AudioBufferSourceOptions options = {});
   attribute AudioBuffer? buffer;
   readonly attribute AudioParam playbackRate;
   readonly attribute AudioParam detune;
@@ -289,7 +311,9 @@ interface BiquadFilterNode : AudioNode {
   readonly attribute AudioParam detune;
   readonly attribute AudioParam Q;
   readonly attribute AudioParam gain;
-  void getFrequencyResponse (Float32Array frequencyHz, Float32Array magResponse, Float32Array phaseResponse);
+  void getFrequencyResponse (Float32Array frequencyHz,
+                             Float32Array magResponse,
+                             Float32Array phaseResponse);
 };
 
 dictionary BiquadFilterOptions : AudioNodeOptions {
@@ -353,7 +377,8 @@ dictionary DelayOptions : AudioNodeOptions {
 
 [Exposed=Window]
 interface DynamicsCompressorNode : AudioNode {
-  constructor (BaseAudioContext context, optional DynamicsCompressorOptions options = {});
+  constructor (BaseAudioContext context,
+               optional DynamicsCompressorOptions options = {});
   readonly attribute AudioParam threshold;
   readonly attribute AudioParam knee;
   readonly attribute AudioParam ratio;
@@ -383,7 +408,9 @@ dictionary GainOptions : AudioNodeOptions {
 [Exposed=Window]
 interface IIRFilterNode : AudioNode {
   constructor (BaseAudioContext context, IIRFilterOptions options);
-  void getFrequencyResponse (Float32Array frequencyHz, Float32Array magResponse, Float32Array phaseResponse);
+  void getFrequencyResponse (Float32Array frequencyHz,
+                             Float32Array magResponse,
+                             Float32Array phaseResponse);
 };
 
 dictionary IIRFilterOptions : AudioNodeOptions {
@@ -555,7 +582,8 @@ callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object option
 
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
-  void registerProcessor (DOMString name, AudioWorkletProcessorConstructor processorCtor);
+  void registerProcessor (DOMString name,
+                          AudioWorkletProcessorConstructor processorCtor);
   readonly attribute unsigned long long currentFrame;
   readonly attribute double currentTime;
   readonly attribute float sampleRate;

@@ -13,7 +13,7 @@ dictionary RTCConfiguration {
 };
 
 enum RTCIceCredentialType {
-  "password",
+  "password"
 };
 
 dictionary RTCIceServer {
