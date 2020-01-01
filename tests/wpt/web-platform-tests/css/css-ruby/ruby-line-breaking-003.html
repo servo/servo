@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Dynamic break point change in ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#break-between">
+<link rel="match" href="ruby-line-breaking-003-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  #test {
+    border: 1px solid;
+    text-align: center;
+  }
+</style>
+<div id="test">
+  <p><ruby><rb>一<rb>二<rb>三<rb>四<rb>五<rb>六<rb>七<rb>八</ruby></p>
+  <p><ruby><rbc>一</rbc><rbc>二</rbc><rbc>三</rbc><rbc>四</rbc><rbc>五</rbc><rbc>六</rbc><rbc>七</rbc><rbc>八</rbc></ruby></p>
+</div>
+<script>
+  let div = document.getElementById("test");
+  document.body.offsetHeight;
+  test.style.width = "2.5em";
+  document.body.offsetHeight;
+  test.style.width = "4.5em";
+  document.body.offsetHeight;
+  test.style.width = "2.5em";
+</script>

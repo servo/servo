@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic removal of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+<p>'a' and 'b' should be paired with 'x' and 'y' respectively:</p>
+
+
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+
+<p>'ab' should be paried with 'xy':</p>
+
+<p><rbc>ab</rbc><rt>xy</rt></p>
+<p><rb>ab</rb><rtc style="letter-spacing: 1px">xy</rtc></p>
