@@ -370,6 +370,8 @@ pub struct Document {
     page_showing: Cell<bool>,
     /// Whether the document is salvageable.
     salvageable: Cell<bool>,
+    /// Whether the document was aborted with an active parser
+    active_parser_was_aborted: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
     /// List of responsive images
@@ -2264,6 +2266,7 @@ impl Document {
 
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
+            self.active_parser_was_aborted.set(true);
             parser.abort();
             self.salvageable.set(false);
         }
@@ -2812,6 +2815,7 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
+            active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
@@ -4458,18 +4462,25 @@ impl DocumentMethods for Document {
             return Ok(DomRoot::from_ref(self));
         }
 
+        // Step 7
+        if self.active_parser_was_aborted.get() {
+            return Ok(DomRoot::from_ref(self));
+        }
+
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
         window_from_node(self).set_navigation_start();
 
-        // Step 7
+        // Step 8
         // TODO: https://github.com/servo/servo/issues/21937
         if self.has_browsing_context() {
+            // spec says "stop document loading",
+            // which is a process that does more than just abort
             self.abort();
         }
 
-        // Step 8
+        // Step 9
         for node in self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
@@ -4477,16 +4488,16 @@ impl DocumentMethods for Document {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 9
+        // Step 10
         if self.window.Document() == DomRoot::from_ref(self) {
             self.window.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 10
+        // Step 11
         // TODO: https://github.com/servo/servo/issues/21936
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Step 11
+        // Step 12
         if self.is_fully_active() {
             let mut new_url = entry_responsible_document.url();
             if entry_responsible_document != DomRoot::from_ref(self) {
@@ -4496,13 +4507,13 @@ impl DocumentMethods for Document {
             self.set_url(new_url);
         }
 
-        // Step 12
+        // Step 13
         // TODO: https://github.com/servo/servo/issues/21938
 
-        // Step 13
+        // Step 14
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
-        // Step 14
+        // Step 15
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
@@ -4512,13 +4523,13 @@ impl DocumentMethods for Document {
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url());
 
-        // Step 15
+        // Step 16
         self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 16
-        // Handled when creating the parser in step 14
-
         // Step 17
+        // Handled when creating the parser in step 15
+
+        // Step 18
         Ok(DomRoot::from_ref(self))
     }
 
@@ -4550,8 +4561,8 @@ impl DocumentMethods for Document {
             return Err(Error::InvalidState);
         }
 
-        if !self.is_active() {
-            // Step 3.
+        // Step 3 - what specifies the is_active() part here?
+        if !self.is_active() || self.active_parser_was_aborted.get() {
             return Ok(());
         }
 
