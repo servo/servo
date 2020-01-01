@@ -28,6 +28,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName};
 use std::cell::Cell;
+use std::convert::TryInto;
 use style::element_state::ElementState;
 use style::str::{split_html_space_chars, str_join};
 
@@ -127,6 +128,41 @@ impl HTMLOptionElement {
             select.ask_for_reset();
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#concept-option-index
+    fn index(&self) -> i32 {
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
+            if let Some(select_parent) = parent.downcast::<HTMLSelectElement>() {
+                // return index in parent select's list of options
+                return self.index_in_select(select_parent);
+            } else if parent.is::<HTMLOptGroupElement>() {
+                if let Some(grandparent) = parent.GetParentNode() {
+                    if let Some(select_grandparent) = grandparent.downcast::<HTMLSelectElement>() {
+                        // return index in grandparent select's list of options
+                        return self.index_in_select(select_grandparent);
+                    }
+                }
+            }
+        }
+        // "If the option element is not in a list of options,
+        // then the option element's index is zero."
+        // self is neither a child of a select, nor a grandchild of a select
+        // via an optgroup, so it is not in a list of options
+        0
+    }
+
+    fn index_in_select(&self, select: &HTMLSelectElement) -> i32 {
+        match select.list_of_options().position(|n| &*n == self) {
+            Some(index) => index.try_into().unwrap_or(0),
+            None => {
+                // shouldn't happen but not worth a browser panic
+                warn!(
+                    "HTMLOptionElement called index_in_select at a select that did not contain it"
+                );
+                0
+            },
+        }
+    }
 }
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
@@ -224,6 +260,11 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-index
+    fn Index(&self) -> i32 {
+        self.index()
     }
 }
 

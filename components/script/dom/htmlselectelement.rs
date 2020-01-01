@@ -102,7 +102,7 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
+    pub fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
         self.upcast::<Node>().children().flat_map(|node| {
             if node.is::<HTMLOptionElement>() {
                 let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();

@@ -22,5 +22,5 @@ interface HTMLOptionElement : HTMLElement {
 
   [CEReactions]
            attribute DOMString text;
-  // readonly attribute long index;
+  readonly attribute long index;
 };
