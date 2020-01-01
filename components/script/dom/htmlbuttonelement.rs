@@ -34,7 +34,6 @@ enum ButtonType {
     Submit,
     Reset,
     Button,
-    Menu,
 }
 
 #[dom_struct]
@@ -97,7 +96,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_enumerated_getter!(Type, "type", "submit", "reset" | "button" | "menu");
+    make_enumerated_getter!(Type, "type", "submit", "reset" | "button");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
@@ -216,7 +215,6 @@ impl VirtualMethods for HTMLButtonElement {
                     let value = match &**attr.value() {
                         "reset" => ButtonType::Reset,
                         "button" => ButtonType::Button,
-                        "menu" => ButtonType::Menu,
                         _ => ButtonType::Submit,
                     };
                     self.button_type.set(value);
