@@ -49,7 +49,7 @@ class MachCommands(CommandBase):
 
         features += self.pick_media_stack(media_stack, target)
 
-        self.ensure_bootstrapped()
+        self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
         env = self.build_env()
 

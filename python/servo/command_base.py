@@ -1016,6 +1016,15 @@ install them, let us know by filing a bug!")
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
 
+        if target:
+            if self.config["tools"]["use-rustup"] and not "uwp" in target:
+                # 'rustup target add' fails if the toolchain is not installed at all.
+                self.call_rustup_run(["rustc", "--version"])
+
+                check_call(["rustup" + BIN_SUFFIX, "target", "add",
+                            "--toolchain", self.rust_toolchain(), target])
+
+
         self.context.bootstrapped = True
 
     def ensure_clobbered(self, target_dir=None):
