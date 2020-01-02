@@ -234,6 +234,7 @@ pub struct HTMLInputElement {
 
     filelist: MutNullableDom<FileList>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 #[derive(JSTraceable)]
@@ -303,6 +304,7 @@ impl HTMLInputElement {
             value_dirty: Cell::new(false),
             filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
+            labels_node_list: MutNullableDom::new(None),
         }
     }
 
@@ -791,12 +793,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
+    // Different from make_labels_getter because this one
+    // conditionally returns null.
+    fn GetLabels(&self) -> Option<DomRoot<NodeList>> {
         if self.input_type() == InputType::Hidden {
-            let window = window_from_node(self);
-            NodeList::empty(&window)
+            None
         } else {
-            self.upcast::<HTMLElement>().labels()
+            Some(self.labels_node_list.or_init(|| {
+                NodeList::new_labels_list(
+                    self.upcast::<Node>().owner_doc().window(),
+                    self.upcast::<HTMLElement>(),
+                )
+            }))
         }
     }
 

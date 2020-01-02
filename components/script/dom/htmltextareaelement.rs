@@ -52,6 +52,7 @@ pub struct HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -153,6 +154,7 @@ impl HTMLTextAreaElement {
             )),
             value_dirty: Cell::new(false),
             form_owner: Default::default(),
+            labels_node_list: Default::default(),
         }
     }
 
@@ -316,9 +318,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
     fn Select(&self) {

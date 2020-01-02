@@ -41,6 +41,7 @@ pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 impl HTMLButtonElement {
@@ -58,6 +59,7 @@ impl HTMLButtonElement {
             ),
             button_type: Cell::new(ButtonType::Submit),
             form_owner: Default::default(),
+            labels_node_list: Default::default(),
         }
     }
 
@@ -149,9 +151,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 }
 
 impl HTMLButtonElement {

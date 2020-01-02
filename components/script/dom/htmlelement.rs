@@ -4,10 +4,10 @@
 
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -29,7 +29,6 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, Node, NodeFlags, ShadowIncluding};
-use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -677,43 +676,48 @@ impl HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    pub fn labels(&self) -> DomRoot<NodeList> {
-        debug_assert!(self.is_labelable_element());
-
+    // This gets the nth label in tree order.
+    pub fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
         let element = self.upcast::<Element>();
-        let window = window_from_node(element);
 
-        // Traverse ancestors for implicitly associated <label> elements
-        // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
-        let ancestors = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLElement>)
-            // If we reach a labelable element, we have a guarantee no ancestors above it
-            // will be a label for this HTMLElement
-            .take_while(|elem| !elem.is_labelable_element())
-            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-            .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-            .filter(|elem| elem.first_labelable_descendant().as_deref() == Some(self))
-            .map(DomRoot::upcast::<Node>);
-
-        let id = element.Id();
-        let id = match &id as &str {
-            "" => return NodeList::new_simple_list(&window, ancestors),
-            id => id,
-        };
-
-        // Traverse entire tree for <label> elements with `for` attribute matching `id`
+        // Traverse entire tree for <label> elements that have
+        // this as their control.
+        // There is room for performance optimization, as we don't need
+        // the actual result of GetControl, only whether the result
+        // would match self.
+        // (Even more room for performance optimization: do what
+        // nodelist ChildrenList does and keep a mutation-aware cursor
+        // around; this may be hard since labels need to keep working
+        // even as they get detached into a subtree and reattached to
+        // a document.)
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
-        let children = root_node
+        root_node
             .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .filter(|elem| elem.is::<HTMLLabelElement>())
-            .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
-            .map(DomRoot::upcast::<Node>);
+            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+            .filter(|elem| match elem.GetControl() {
+                Some(control) => &*control == self,
+                _ => false,
+            })
+            .nth(index as usize)
+            .map(|n| DomRoot::from_ref(n.upcast::<Node>()))
+    }
 
-        NodeList::new_simple_list(&window, children.chain(ancestors))
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    // This counts the labels of the element, to support NodeList::Length
+    pub fn labels_count(&self) -> u32 {
+        // see label_at comments about performance
+        let element = self.upcast::<Element>();
+        let root_element = element.root_element();
+        let root_node = root_element.upcast::<Node>();
+        root_node
+            .traverse_preorder(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+            .filter(|elem| match elem.GetControl() {
+                Some(control) => &*control == self,
+                _ => false,
+            })
+            .count() as u32
     }
 }
 

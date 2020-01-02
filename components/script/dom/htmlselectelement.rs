@@ -61,6 +61,7 @@ pub struct HTMLSelectElement {
     htmlelement: HTMLElement,
     options: MutNullableDom<HTMLOptionsCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
@@ -80,6 +81,7 @@ impl HTMLSelectElement {
             ),
             options: Default::default(),
             form_owner: Default::default(),
+            labels_node_list: Default::default(),
         }
     }
 
@@ -249,9 +251,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-options
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {

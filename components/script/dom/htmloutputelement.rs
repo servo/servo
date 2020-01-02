@@ -22,6 +22,7 @@ use html5ever::{LocalName, Prefix};
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 impl HTMLOutputElement {
@@ -33,6 +34,7 @@ impl HTMLOutputElement {
         HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             form_owner: Default::default(),
+            labels_node_list: Default::default(),
         }
     }
 
@@ -65,9 +67,7 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 }
 
 impl VirtualMethods for HTMLOutputElement {
