@@ -8,7 +8,6 @@
 
 use serde::Serialize;
 use serde_json::{self, Value};
-use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
@@ -62,7 +61,7 @@ impl JsonPacketStream for TcpStream {
                 Ok(0) => return Ok(None), // EOF
                 Ok(1) => buf[0],
                 Ok(_) => unreachable!(),
-                Err(e) => return Err(e.description().to_owned()),
+                Err(e) => return Err(e.to_string()),
             };
             match byte {
                 b':' => {
@@ -79,7 +78,7 @@ impl JsonPacketStream for TcpStream {
                     debug!("{}", packet);
                     return match serde_json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),
-                        Err(err) => Err(err.description().to_owned()),
+                        Err(err) => Err(err.to_string()),
                     };
                 },
                 c => buffer.push(c),

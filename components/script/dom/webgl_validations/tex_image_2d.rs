@@ -47,10 +47,12 @@ pub enum TexImageValidationError {
     InvalidOffsets,
 }
 
-impl std::error::Error for TexImageValidationError {
-    fn description(&self) -> &str {
+impl std::error::Error for TexImageValidationError {}
+
+impl fmt::Display for TexImageValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::TexImageValidationError::*;
-        match *self {
+        let description = match *self {
             InvalidTextureTarget(_) => "Invalid texture target",
             TextureTargetNotBound(_) => "Texture was not bound",
             InvalidCubicTextureDimensions => {
@@ -68,17 +70,8 @@ impl std::error::Error for TexImageValidationError {
             NonPotTexture => "Expected a power of two texture",
             InvalidCompressionFormat => "Unrecognized texture compression format",
             InvalidOffsets => "Invalid X/Y texture offset parameters",
-        }
-    }
-}
-
-impl fmt::Display for TexImageValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "TexImageValidationError({})",
-            std::error::Error::description(self)
-        )
+        };
+        write!(f, "TexImageValidationError({})", description)
     }
 }
 

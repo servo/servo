@@ -31,7 +31,6 @@ use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
 use servo_url::ServoUrl;
-use std::error::Error;
 use time::precise_time_ns;
 use webrender_api::ImageKey;
 
@@ -699,11 +698,11 @@ pub enum NetworkError {
 
 impl NetworkError {
     pub fn from_hyper_error(error: &HyperError) -> Self {
-        NetworkError::Internal(error.description().to_owned())
+        NetworkError::Internal(error.to_string())
     }
 
     pub fn from_http_error(error: &HttpError) -> Self {
-        NetworkError::Internal(error.description().to_owned())
+        NetworkError::Internal(error.to_string())
     }
 }
 

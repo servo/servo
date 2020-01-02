@@ -40,7 +40,6 @@ use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::ops::Deref;
@@ -361,7 +360,7 @@ where
 
     let mut file = match File::open(&path) {
         Err(why) => {
-            warn!("couldn't open {}: {}", display, Error::description(&why));
+            warn!("couldn't open {}: {}", display, why);
             return;
         },
         Ok(file) => file,
@@ -369,11 +368,7 @@ where
 
     let mut string_buffer: String = String::new();
     match file.read_to_string(&mut string_buffer) {
-        Err(why) => panic!(
-            "couldn't read from {}: {}",
-            display,
-            Error::description(&why)
-        ),
+        Err(why) => panic!("couldn't read from {}: {}", display, why),
         Ok(_) => println!("successfully read from {}", display),
     }
 
@@ -396,16 +391,12 @@ where
     let display = path.display();
 
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, Error::description(&why)),
+        Err(why) => panic!("couldn't create {}: {}", display, why),
         Ok(file) => file,
     };
 
     match file.write_all(json_encoded.as_bytes()) {
-        Err(why) => panic!(
-            "couldn't write to {}: {}",
-            display,
-            Error::description(&why)
-        ),
+        Err(why) => panic!("couldn't write to {}: {}", display, why),
         Ok(_) => println!("successfully wrote to {}", display),
     }
 }
