@@ -352,6 +352,10 @@ class CommandBase(object):
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
                 self._rust_toolchain = f.read().strip()
+
+            if platform.system() == "Windows":
+                self._rust_toolchain += "-x86_64-pc-windows-msvc"
+
         return self._rust_toolchain
 
     def call_rustup_run(self, args, **kwargs):
@@ -370,10 +374,7 @@ class CommandBase(object):
                 print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
                 print("Try running 'rustup self update'.")
                 return 1
-            toolchain = self.rust_toolchain()
-            if platform.system() == "Windows":
-                toolchain += "-x86_64-pc-windows-msvc"
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.rust_toolchain()] + args
         else:
             args[0] += BIN_SUFFIX
         return call(args, **kwargs)
