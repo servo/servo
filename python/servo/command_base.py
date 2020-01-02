@@ -1006,13 +1006,15 @@ install them, let us know by filing a bug!")
 
         if self.config["tools"]["use-rustup"]:
             self.ensure_rustup_version()
-            if target and "uwp" not in target:
-                # 'rustup target add' fails if the toolchain is not installed at all.
-                self.call_rustup_run(["rustc", "--version"])
+            toolchain = self.rust_toolchain()
 
-                check_call(["rustup" + BIN_SUFFIX, "target", "add",
-                            "--toolchain", self.rust_toolchain(), target])
+            if toolchain not in check_output(["rustup", "toolchain", "list"]):
+                check_call(["rustup", "toolchain", "install", toolchain])
 
+            if target and "uwp" not in target and target not in check_output(
+                ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
+            ):
+                check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
 
         self.context.bootstrapped = True
 
