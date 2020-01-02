@@ -41,7 +41,7 @@ use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::{Rect, RigidTransform3D, Transform3D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use metrics::ToMs;
 use profile_traits::ipc;
@@ -73,8 +73,6 @@ pub struct XRSession {
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
-    #[ignore_malloc_size_of = "defined in ipc-channel"]
-    raf_sender: DomRefCell<Option<IpcSender<Frame>>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
@@ -108,7 +106,6 @@ impl XRSession {
 
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
-            raf_sender: DomRefCell::new(None),
             input_sources: Dom::from_ref(input_sources),
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
@@ -116,7 +113,12 @@ impl XRSession {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: Session, mode: XRSessionMode) -> DomRoot<XRSession> {
+    pub fn new(
+        global: &GlobalScope,
+        session: Session,
+        mode: XRSessionMode,
+        frame_receiver: IpcReceiver<Frame>,
+    ) -> DomRoot<XRSession> {
         let ivfov = if mode == XRSessionMode::Inline {
             Some(FRAC_PI_2)
         } else {
@@ -136,7 +138,7 @@ impl XRSession {
         );
         input_sources.set_initial_inputs(&ret);
         ret.attach_event_handler();
-        ret.setup_raf_loop();
+        ret.setup_raf_loop(frame_receiver);
         ret
     }
 
@@ -153,21 +155,15 @@ impl XRSession {
         self.mode != XRSessionMode::Inline
     }
 
-    fn setup_raf_loop(&self) {
-        assert!(
-            self.raf_sender.borrow().is_none(),
-            "RAF loop already set up"
-        );
+    fn setup_raf_loop(&self, frame_receiver: IpcReceiver<Frame>) {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
         let (task_source, canceller) = window
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        *self.raf_sender.borrow_mut() = Some(sender);
         ROUTER.add_route(
-            receiver.to_opaque(),
+            frame_receiver.to_opaque(),
             Box::new(move |message| {
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
@@ -179,15 +175,7 @@ impl XRSession {
             }),
         );
 
-        self.request_new_xr_frame();
-    }
-
-    /// Requests a new https://immersive-web.github.io/webxr/#xr-animation-frame
-    ///
-    /// This happens regardless of the presense of rAF callbacks
-    fn request_new_xr_frame(&self) {
-        let sender = self.raf_sender.borrow().clone().unwrap();
-        self.session.borrow_mut().request_animation_frame(sender);
+        self.session.borrow_mut().start_render_loop();
     }
 
     pub fn is_outside_raf(&self) -> bool {
@@ -360,8 +348,9 @@ impl XRSession {
         if self.is_immersive() {
             base_layer.swap_buffers();
             self.session.borrow_mut().render_animation_frame();
+        } else {
+            self.session.borrow_mut().start_render_loop();
         }
-        self.request_new_xr_frame();
 
         // If the canvas element is attached to the DOM, it is now dirty,
         // and we need to trigger a reflow.
