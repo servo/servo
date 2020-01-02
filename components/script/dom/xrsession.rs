@@ -348,6 +348,8 @@ impl XRSession {
         if self.is_immersive() {
             base_layer.swap_buffers();
             self.session.borrow_mut().render_animation_frame();
+        } else {
+            self.session.borrow_mut().start_render_loop();
         }
 
         // If the canvas element is attached to the DOM, it is now dirty,
