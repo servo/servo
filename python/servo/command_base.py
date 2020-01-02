@@ -1008,14 +1008,14 @@ install them, let us know by filing a bug!")
             self.ensure_rustup_version()
             toolchain = self.rust_toolchain()
 
-            if toolchain not in check_output(["rustup", "toolchain", "list"]):
+            if toolchain.encode("utf-8") not in check_output(["rustup", "toolchain", "list"]):
                 check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
 
             installed = check_output(
                 ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
             )
             for component in set(rustup_components or []) | {"rustc-dev"}:
-                if component not in installed:
+                if component.encode("utf-8") not in installed:
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
             if target and "uwp" not in target and target not in check_output(
