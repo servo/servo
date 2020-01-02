@@ -360,7 +360,7 @@ class CommandBase(object):
 
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
-            self.ensure_rustup_version()
+            assert self.context.bootstrapped
             args = ["rustup" + BIN_SUFFIX, "run", "--install", self.rust_toolchain()] + args
         else:
             args[0] += BIN_SUFFIX

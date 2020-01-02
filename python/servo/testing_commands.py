@@ -310,6 +310,7 @@ class MachCommands(CommandBase):
         return 0
 
     def install_rustfmt(self):
+        self.ensure_bootstrapped()
         with open(os.devnull, "w") as devnull:
             if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
                                     stderr=devnull) != 0:
