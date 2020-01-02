@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Canvas width and height attributes are used to infer aspect-ratio</title>
+<title>Canvas width and height attributes are used as the surface size</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -11,7 +11,7 @@
 </style>
 <body>
 <script>
-let t = async_test("Canvas width and height attributes are used to infer aspect-ratio");
+let t = async_test("Canvas width and height attributes are used as the surface size");
 function assert_ratio(img, expected) {
   let epsilon = 0.001;
   assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
