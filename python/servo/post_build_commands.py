@@ -241,7 +241,7 @@ class PostBuildCommands(CommandBase):
     @CommandBase.build_like_command_arguments
     def doc(self, params, features, target=None, android=False, magicleap=False,
             media_stack=None, **kwargs):
-        self.ensure_bootstrapped()
+        self.ensure_bootstrapped(rustup_components=["rust-docs"])
         rustc_path = check_output(
             ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"])
         assert path.basename(path.dirname(rustc_path)) == "bin"

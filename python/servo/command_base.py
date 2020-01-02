@@ -994,7 +994,7 @@ install them, let us know by filing a bug!")
             return True
         return False
 
-    def ensure_bootstrapped(self, target=None):
+    def ensure_bootstrapped(self, target=None, rustup_components=None):
         if self.context.bootstrapped:
             return
 
@@ -1011,10 +1011,12 @@ install them, let us know by filing a bug!")
             if toolchain not in check_output(["rustup", "toolchain", "list"]):
                 check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
 
-            if "rustc-dev" not in check_output(
+            installed = check_output(
                 ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
-            ):
-                check_call(["rustup", "component", "add", "--toolchain", toolchain, "rustc-dev"])
+            )
+            for component in set(rustup_components or []) | {"rustc-dev"}:
+                if component not in installed:
+                    check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
             if target and "uwp" not in target and target not in check_output(
                 ["rustup", "target", "list", "--installed", "--toolchain", toolchain]

@@ -226,7 +226,6 @@ def linux_docs_check():
         linux_build_task("Docs + check")
         .with_treeherder("Linux x64", "Doc+Check")
         .with_script("""
-            rustup component add rust-docs
             RUSTDOCFLAGS="--disable-minification" ./mach doc
             (
                 cd target/doc
