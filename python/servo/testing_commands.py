@@ -298,7 +298,7 @@ class MachCommands(CommandBase):
                 args += ["--", "--nocapture"]
 
             err = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
-            if err is not 0:
+            if err:
                 return err
 
     @Command('test-content',
