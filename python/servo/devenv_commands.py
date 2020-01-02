@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call
 from servo.build_commands import notify_build_done
 from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
@@ -213,7 +213,7 @@ class MachCommands(CommandBase):
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
             f.write(toolchain + "\n")
-        return call(["rustup" + BIN_SUFFIX, "component", "add", "rustc-dev"])
+        self.ensure_bootstrapped()
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',

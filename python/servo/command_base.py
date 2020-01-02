@@ -1009,7 +1009,12 @@ install them, let us know by filing a bug!")
             toolchain = self.rust_toolchain()
 
             if toolchain not in check_output(["rustup", "toolchain", "list"]):
-                check_call(["rustup", "toolchain", "install", toolchain])
+                check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
+
+            if "rustc-dev" not in check_output(
+                ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
+            ):
+                check_call(["rustup", "component", "add", "--toolchain", toolchain, "rustc-dev"])
 
             if target and "uwp" not in target and target not in check_output(
                 ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
@@ -1029,7 +1034,7 @@ install them, let us know by filing a bug!")
                 return 1
             raise
         version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-        if version < (1, 11, 0):
+        if version < (1, 21, 0):
             print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
             print("Try running 'rustup self update'.")
             return 1

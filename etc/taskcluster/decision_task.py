@@ -181,9 +181,6 @@ def linux_tidy_unit_untrusted():
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo_bundle()
-        .with_script("rustup set profile minimal")
-        # required by components/script_plugins:
-        .with_script("rustup component add rustc-dev")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach test-tidy --no-progress --self-test
@@ -304,11 +301,10 @@ def with_rust_nightly():
         modified_build_env["RUSTFLAGS"] = " ".join(flags)
 
     return (
-        linux_build_task("with Rust Nightly", build_env=modified_build_env, install_rustc_dev=False)
+        linux_build_task("with Rust Nightly", build_env=modified_build_env)
         .with_treeherder("Linux x64", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
-            rustup component add rustc-dev
             ./mach build --dev
             ./mach test-unit
         """)
@@ -850,7 +846,7 @@ def macos_task(name):
     )
 
 
-def linux_build_task(name, *, build_env=build_env, install_rustc_dev=True):
+def linux_build_task(name, *, build_env=build_env):
     task = (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
@@ -867,14 +863,8 @@ def linux_build_task(name, *, build_env=build_env, install_rustc_dev=True):
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo_bundle()
-        .with_script("""
-            rustup set profile minimal
-            ./mach bootstrap-gstreamer
-        """)
+        .with_script("./mach bootstrap-gstreamer")
     )
-    if install_rustc_dev:
-        # required by components/script_plugins:
-        task = task.with_script("rustup component add rustc-dev")
     return task
 
 
@@ -920,9 +910,6 @@ def windows_build_task(name, package=True, arch="x86_64"):
             path="python3",
         )
         .with_rustup()
-        .with_script("rustup set profile minimal")
-        # required by components/script_plugins:
-        .with_script("rustup component add rustc-dev")
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
         task = (
@@ -968,11 +955,6 @@ def macos_build_task(name):
         .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         .with_python2()
         .with_rustup()
-        # Since macOS workers are long-lived and ~/.rustup kept across tasks:
-        .with_script("rustup self update")
-        .with_script("rustup set profile minimal")
-        # required by components/script_plugins:
-        .with_script("rustup component add rustc-dev")
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         # Debugging for surprising generic-worker behaviour
         .with_early_script("ls")
