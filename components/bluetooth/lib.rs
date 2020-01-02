@@ -288,7 +288,7 @@ impl BluetoothManager {
         self.adapter = BluetoothAdapter::init_mock().ok();
         match test::test(self, data_set_name) {
             Ok(_) => return Ok(()),
-            Err(error) => Err(BluetoothError::Type(error.description().to_owned())),
+            Err(error) => Err(BluetoothError::Type(error.to_string())),
         }
     }
 

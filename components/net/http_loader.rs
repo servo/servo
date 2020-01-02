@@ -44,7 +44,6 @@ use net_traits::{
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
@@ -622,7 +621,7 @@ pub fn http_fetch(
                 HeaderValue::to_str(v)
                     .map(|l| {
                         ServoUrl::parse_with_base(response.actual_response().url(), &l)
-                            .map_err(|err| err.description().into())
+                            .map_err(|err| err.to_string())
                     })
                     .ok()
             });

@@ -19,7 +19,6 @@ use servo_config::opts::OutputOptions;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
@@ -397,11 +396,7 @@ impl Profiler {
             Some(OutputOptions::FileName(ref filename)) => {
                 let path = Path::new(&filename);
                 let mut file = match File::create(&path) {
-                    Err(e) => panic!(
-                        "Couldn't create {}: {}",
-                        path.display(),
-                        Error::description(&e)
-                    ),
+                    Err(e) => panic!("Couldn't create {}: {}", path.display(), e),
                     Ok(file) => file,
                 };
                 write!(

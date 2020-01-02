@@ -7,7 +7,6 @@ use heartbeats_simple::HeartbeatPow as Heartbeat;
 use profile_traits::time::ProfilerCategory;
 use std::collections::HashMap;
 use std::env::var_os;
-use std::error::Error;
 use std::fs::File;
 use std::path::Path;
 
@@ -85,7 +84,7 @@ fn open_heartbeat_log<P: AsRef<Path>>(name: P) -> Option<File> {
     match File::create(name) {
         Ok(f) => Some(f),
         Err(e) => {
-            warn!("Failed to open heartbeat log: {}", Error::description(&e));
+            warn!("Failed to open heartbeat log: {}", e);
             None
         },
     }
@@ -138,7 +137,7 @@ fn maybe_create_heartbeat(
 fn log_heartbeat_records(hb: &mut Heartbeat) {
     match hb.log_to_buffer_index() {
         Ok(_) => (),
-        Err(e) => warn!("Failed to write heartbeat log: {}", Error::description(&e)),
+        Err(e) => warn!("Failed to write heartbeat log: {}", e),
     }
 }
 
