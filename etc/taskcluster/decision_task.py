@@ -873,9 +873,9 @@ def android_build_task(name):
         # file: NDK parses $(file $SHELL) to tell x64 host from x86
         # wget: servo-media-gstreamer’s build script
         .with_script("""
-            apt-get update -q
-            apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
-            ./mach bootstrap-android --accept-all-licences --build
+            time apt-get update -q
+            time apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
+            time ./mach bootstrap-android --accept-all-licences --build
         """)
     )
 
