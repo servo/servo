@@ -281,8 +281,7 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        default_toolchain = self.default_toolchain()
-        print("Current Rust version for Servo: {}".format(default_toolchain))
+        print("Current Rust version for Servo: {}".format(self.rust_toolchain()))
         old_toolchains = []
         keep = int(keep)
         stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain'])

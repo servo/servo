@@ -243,7 +243,7 @@ class MachCommands(CommandBase):
                 self.call_rustup_run(["rustc", "--version"])
 
                 check_call(["rustup" + BIN_SUFFIX, "target", "add",
-                            "--toolchain", self.toolchain(), target])
+                            "--toolchain", self.rust_toolchain(), target])
 
         env = self.build_env(target=target, is_build=True, uwp=uwp, features=features)
         self.ensure_bootstrapped(target=target)

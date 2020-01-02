@@ -241,9 +241,8 @@ class PostBuildCommands(CommandBase):
     @CommandBase.build_like_command_arguments
     def doc(self, params, features, target=None, android=False, magicleap=False,
             media_stack=None, **kwargs):
-        env = os.environ.copy()
-        env["RUSTUP_TOOLCHAIN"] = self.toolchain()
-        rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
+        rustc_path = check_output(
+            ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"])
         assert path.basename(path.dirname(rustc_path)) == "bin"
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")

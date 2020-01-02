@@ -345,17 +345,14 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-    _default_toolchain = None
+    _rust_toolchain = None
 
-    def toolchain(self):
-        return self.default_toolchain()
-
-    def default_toolchain(self):
-        if self._default_toolchain is None:
+    def rust_toolchain(self):
+        if self._rust_toolchain is None:
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
-                self._default_toolchain = f.read().strip()
-        return self._default_toolchain
+                self._rust_toolchain = f.read().strip()
+        return self._rust_toolchain
 
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
@@ -373,7 +370,7 @@ class CommandBase(object):
                 print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
                 print("Try running 'rustup self update'.")
                 return 1
-            toolchain = self.toolchain()
+            toolchain = self.rust_toolchain()
             if platform.system() == "Windows":
                 toolchain += "-x86_64-pc-windows-msvc"
             args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
