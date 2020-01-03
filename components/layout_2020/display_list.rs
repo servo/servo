@@ -8,12 +8,18 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
 use std::sync::Arc;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
-use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};
+use style::values::specified::ui::CursorKind;
+use webrender_api::{self as wr, units};
+
+// `webrender_api::display_item::ItemTag` is private
+type ItemTag = (u64, u16);
+type HitInfo = Option<ItemTag>;
 
 pub struct DisplayListBuilder {
-    pipeline_id: wr::PipelineId,
+    current_space_and_clip: wr::SpaceAndClipInfo,
     pub wr: wr::DisplayListBuilder,
     pub is_contentful: bool,
 }
@@ -21,9 +27,24 @@ pub struct DisplayListBuilder {
 impl DisplayListBuilder {
     pub fn new(pipeline_id: wr::PipelineId, viewport_size: wr::units::LayoutSize) -> Self {
         Self {
-            pipeline_id,
+            current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(pipeline_id),
             is_contentful: false,
             wr: wr::DisplayListBuilder::new(pipeline_id, viewport_size),
+        }
+    }
+
+    fn common_properties(
+        &self,
+        clip_rect: units::LayoutRect,
+        hit_info: HitInfo,
+    ) -> wr::CommonItemProperties {
+        wr::CommonItemProperties {
+            clip_rect,
+            clip_id: self.current_space_and_clip.clip_id,
+            spatial_id: self.current_space_and_clip.spatial_id,
+            hit_info,
+            // TODO(gw): Make use of the WR backface visibility functionality.
+            flags: wr::PrimitiveFlags::default(),
         }
     }
 }
@@ -60,19 +81,12 @@ impl Fragment {
                     .translate(&containing_block.top_left);
                 let mut baseline_origin = rect.top_left.clone();
                 baseline_origin.y += t.ascent;
-                let cursor = cursor(&t.parent_style, Cursor::Text);
-                let common = CommonItemProperties {
-                    clip_rect: rect.clone().into(),
-                    clip_id: wr::ClipId::root(builder.pipeline_id),
-                    spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
-                    hit_info: cursor.map(|cursor| (t.tag.0 as u64, cursor as u16)),
-                    // TODO(gw): Make use of the WR backface visibility functionality.
-                    flags: PrimitiveFlags::default(),
-                };
                 let glyphs = glyphs(&t.glyphs, baseline_origin);
                 if glyphs.is_empty() {
                     return;
                 }
+                let hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
+                let common = builder.common_properties(rect.clone().into(), hit_info);
                 let color = t.parent_style.clone_color();
                 builder
                     .wr
@@ -85,14 +99,8 @@ impl Fragment {
                     .rect
                     .to_physical(i.style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
-                let common = CommonItemProperties {
-                    clip_rect: rect.clone().into(),
-                    clip_id: wr::ClipId::root(builder.pipeline_id),
-                    spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
-                    hit_info: None,
-                    // TODO(gw): Make use of the WR backface visibility functionality.
-                    flags: PrimitiveFlags::default(),
-                };
+                let hit_info = None;
+                let common = builder.common_properties(rect.clone().into(), hit_info);
                 builder.wr.push_image(
                     &common,
                     rect.into(),
@@ -122,19 +130,11 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left)
             .into();
-        let cursor = cursor(&self.style, Cursor::Default);
-        let common = CommonItemProperties {
-            clip_rect: border_rect,
-            clip_id: wr::ClipId::root(builder.pipeline_id),
-            spatial_id: wr::SpatialId::root_scroll_node(builder.pipeline_id),
-            hit_info: cursor.map(|cursor| (self.tag.0 as u64, cursor as u16)),
-            // TODO(gw): Make use of the WR backface visibility functionality.
-            flags: PrimitiveFlags::default(),
-        };
+        let hit_info = hit_info(&self.style, self.tag, Cursor::Default);
         let border_radius = self.border_radius(&border_rect);
 
-        self.background_display_items(builder, &common);
-        self.border_display_items(builder, &common, border_rect, border_radius);
+        self.background_display_items(builder, hit_info, border_rect);
+        self.border_display_items(builder, hit_info, border_rect, border_radius);
         let content_rect = self
             .content_rect
             .to_physical(self.style.writing_mode, containing_block)
@@ -166,20 +166,22 @@ impl BoxFragment {
     fn background_display_items(
         &self,
         builder: &mut DisplayListBuilder,
-        common: &CommonItemProperties,
+        hit_info: HitInfo,
+        border_rect: units::LayoutRect,
     ) {
         let background_color = self
             .style
             .resolve_color(self.style.clone_background_color());
-        if background_color.alpha > 0 || common.hit_info.is_some() {
-            builder.wr.push_rect(common, rgba(background_color))
+        if background_color.alpha > 0 || hit_info.is_some() {
+            let common = builder.common_properties(border_rect, hit_info);
+            builder.wr.push_rect(&common, rgba(background_color))
         }
     }
 
     fn border_display_items(
         &self,
         builder: &mut DisplayListBuilder,
-        common: &CommonItemProperties,
+        hit_info: HitInfo,
         border_rect: units::LayoutRect,
         radius: wr::BorderRadius,
     ) {
@@ -208,6 +210,7 @@ impl BoxFragment {
                 BorderStyle::Outset => wr::BorderStyle::Outset,
             },
         };
+        let common = builder.common_properties(border_rect, hit_info);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side(b.border_top_style, b.border_top_color),
             right: side(b.border_right_style, b.border_right_color),
@@ -216,7 +219,9 @@ impl BoxFragment {
             radius,
             do_aa: true,
         });
-        builder.wr.push_border(common, border_rect, widths, details)
+        builder
+            .wr
+            .push_border(&common, border_rect, widths, details)
     }
 }
 
@@ -254,16 +259,21 @@ fn glyphs(glyph_runs: &[Arc<GlyphStore>], mut origin: Vec2<Length>) -> Vec<wr::G
     glyphs
 }
 
-fn cursor(values: &ComputedValues, default: Cursor) -> Option<Cursor> {
+fn hit_info(style: &ComputedValues, tag: OpaqueNode, auto_cursor: Cursor) -> HitInfo {
     use style::computed_values::pointer_events::T as PointerEvents;
-    use style::values::specified::ui::CursorKind;
 
-    let inherited_ui = values.get_inherited_ui();
+    let inherited_ui = style.get_inherited_ui();
     if inherited_ui.pointer_events == PointerEvents::None {
-        return None;
+        None
+    } else {
+        let cursor = cursor(inherited_ui.cursor.keyword, auto_cursor);
+        Some((tag.0 as u64, cursor as u16))
     }
-    Some(match inherited_ui.cursor.keyword {
-        CursorKind::Auto => default,
+}
+
+fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
+    match kind {
+        CursorKind::Auto => auto_cursor,
         CursorKind::None => Cursor::None,
         CursorKind::Default => Cursor::Default,
         CursorKind::Pointer => Cursor::Pointer,
@@ -299,5 +309,5 @@ fn cursor(values: &ComputedValues, default: Cursor) -> Option<Cursor> {
         CursorKind::AllScroll => Cursor::AllScroll,
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
-    })
+    }
 }
