@@ -5,11 +5,11 @@
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
 use embedder_traits::Cursor;
-use euclid::{Point2D, SideOffsets2D};
+use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
 use std::sync::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{BorderStyle, Length};
+use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use webrender_api::{self as wr, units, CommonItemProperties, PrimitiveFlags};
 
 pub struct DisplayListBuilder {
@@ -131,15 +131,35 @@ impl BoxFragment {
             // TODO(gw): Make use of the WR backface visibility functionality.
             flags: PrimitiveFlags::default(),
         };
+        let border_radius = self.border_radius(&border_rect);
 
         self.background_display_items(builder, &common);
-        self.border_display_items(builder, &common, border_rect);
+        self.border_display_items(builder, &common, border_rect, border_radius);
         let content_rect = self
             .content_rect
             .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left);
         for child in &self.children {
             child.build_display_list(builder, is_contentful, &content_rect)
+        }
+    }
+
+    fn border_radius(&self, border_rect: &units::LayoutRect) -> wr::BorderRadius {
+        let resolve = |radius: &LengthPercentage, box_size: f32| {
+            radius.percentage_relative_to(Length::new(box_size)).px()
+        };
+        let corner = |corner: &style::values::computed::BorderCornerRadius| {
+            Size2D::new(
+                resolve(&corner.0.width.0, border_rect.size.width),
+                resolve(&corner.0.height.0, border_rect.size.height),
+            )
+        };
+        let b = self.style.get_border();
+        wr::BorderRadius {
+            top_left: corner(&b.border_top_left_radius),
+            top_right: corner(&b.border_top_right_radius),
+            bottom_right: corner(&b.border_bottom_right_radius),
+            bottom_left: corner(&b.border_bottom_left_radius),
         }
     }
 
@@ -161,6 +181,7 @@ impl BoxFragment {
         builder: &mut DisplayListBuilder,
         common: &CommonItemProperties,
         border_rect: units::LayoutRect,
+        radius: wr::BorderRadius,
     ) {
         let b = self.style.get_border();
         let widths = SideOffsets2D::new(
@@ -192,7 +213,7 @@ impl BoxFragment {
             right: side(b.border_right_style, b.border_right_color),
             bottom: side(b.border_bottom_style, b.border_bottom_color),
             left: side(b.border_left_style, b.border_left_color),
-            radius: wr::BorderRadius::zero(),
+            radius,
             do_aa: true,
         });
         builder.wr.push_border(common, border_rect, widths, details)
