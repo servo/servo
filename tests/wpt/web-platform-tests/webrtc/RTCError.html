@@ -35,8 +35,8 @@ test(() => {
 
 test(() => {
   const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
-  assert_equals(error.name, 'RTCError');
-}, 'RTCError.name is \'RTCError\'');
+  assert_equals(error.name, 'OperationError');
+}, 'RTCError.name is \'OperationError\'');
 
 test(() => {
   const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
