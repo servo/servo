@@ -448,6 +448,17 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 6
         promise
     }
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade
+    fn Upgrade(&self, node: &Node) {
+        // Spec says to make a list first and then iterate the list, but
+        // try-to-upgrade only queues upgrade reactions and doesn't itself
+        // modify the tree, so that's not an observable distinction.
+        node.traverse_preorder(ShadowIncluding::Yes).for_each(|n| {
+            if let Some(element) = n.downcast::<Element>() {
+                try_upgrade_element(element);
+            }
+        });
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
