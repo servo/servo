@@ -47,6 +47,13 @@ impl DisplayListBuilder {
             flags: wr::PrimitiveFlags::default(),
         }
     }
+
+    fn clipping_and_scrolling_scope<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        let previous = self.current_space_and_clip;
+        let result = f(self);
+        self.current_space_and_clip = previous;
+        result
+    }
 }
 
 /// Contentful paint, for the purpose of
@@ -133,7 +140,7 @@ impl BoxFragment {
         let hit_info = hit_info(&self.style, self.tag, Cursor::Default);
         let border_radius = self.border_radius(&border_rect);
 
-        self.background_display_items(builder, hit_info, border_rect);
+        self.background_display_items(builder, hit_info, border_rect, &border_radius);
         self.border_display_items(builder, hit_info, border_rect, border_radius);
         let content_rect = self
             .content_rect
@@ -168,13 +175,28 @@ impl BoxFragment {
         builder: &mut DisplayListBuilder,
         hit_info: HitInfo,
         border_rect: units::LayoutRect,
+        border_radius: &wr::BorderRadius,
     ) {
         let background_color = self
             .style
             .resolve_color(self.style.clone_background_color());
         if background_color.alpha > 0 || hit_info.is_some() {
-            let common = builder.common_properties(border_rect, hit_info);
-            builder.wr.push_rect(&common, rgba(background_color))
+            builder.clipping_and_scrolling_scope(|builder| {
+                if !border_radius.is_zero() {
+                    builder.current_space_and_clip.clip_id = builder.wr.define_clip(
+                        &builder.current_space_and_clip,
+                        border_rect,
+                        Some(wr::ComplexClipRegion {
+                            rect: border_rect,
+                            radii: *border_radius,
+                            mode: wr::ClipMode::Clip,
+                        }),
+                        None,
+                    );
+                }
+                let common = builder.common_properties(border_rect, hit_info);
+                builder.wr.push_rect(&common, rgba(background_color))
+            });
         }
     }
 
