@@ -3056,14 +3056,56 @@ impl Document {
         self.redirect_count.set(count)
     }
 
-    fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
+    pub fn elements_by_name_count(&self, name: &DOMString) -> u32 {
+        if name.is_empty() {
+            return 0;
+        }
+        self.count_node_list(|n| Document::is_element_in_get_by_name(n, name))
+    }
+
+    pub fn nth_element_by_name(&self, index: u32, name: &DOMString) -> Option<DomRoot<Node>> {
+        if name.is_empty() {
+            return None;
+        }
+        self.nth_in_node_list(index, |n| Document::is_element_in_get_by_name(n, name))
+    }
+
+    // Note that document.getByName does not match on the same conditions
+    // as the document named getter.
+    fn is_element_in_get_by_name(node: &Node, name: &DOMString) -> bool {
+        let element = match node.downcast::<Element>() {
+            Some(element) => element,
+            None => return false,
+        };
+        if element.namespace() != &ns!(html) {
+            return false;
+        }
+        element.get_name().map_or(false, |n| *n == **name)
+    }
+
+    fn count_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> u32 {
         let doc = self.GetDocumentElement();
         let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
-        let iter = maybe_node
+        maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(&node));
-        NodeList::new_simple_list(&self.window, iter)
+            .filter(|node| callback(&node))
+            .count() as u32
+    }
+
+    fn nth_in_node_list<F: Fn(&Node) -> bool>(
+        &self,
+        index: u32,
+        callback: F,
+    ) -> Option<DomRoot<Node>> {
+        let doc = self.GetDocumentElement();
+        let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
+        maybe_node
+            .iter()
+            .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
+            .filter(|node| callback(&node))
+            .nth(index as usize)
+            .map(|n| DomRoot::from_ref(&*n))
     }
 
     fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
@@ -4244,16 +4286,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
-        self.create_node_list(|node| {
-            let element = match node.downcast::<Element>() {
-                Some(element) => element,
-                None => return false,
-            };
-            if element.namespace() != &ns!(html) {
-                return false;
-            }
-            element.get_name().map_or(false, |atom| *atom == *name)
-        })
+        NodeList::new_elements_by_name_list(self.window(), self, name)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images

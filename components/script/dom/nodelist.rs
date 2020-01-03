@@ -7,6 +7,8 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::{ChildrenMutation, Node};
@@ -22,6 +24,7 @@ pub enum NodeListType {
     Children(ChildrenList),
     Labels(LabelsList),
     Radio(RadioList),
+    ElementsByName(ElementsByNameList),
 }
 
 // https://dom.spec.whatwg.org/#interface-nodelist
@@ -74,6 +77,17 @@ impl NodeList {
         NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
     }
 
+    pub fn new_elements_by_name_list(
+        window: &Window,
+        document: &Document,
+        name: DOMString,
+    ) -> DomRoot<NodeList> {
+        NodeList::new(
+            window,
+            NodeListType::ElementsByName(ElementsByNameList::new(document, name)),
+        )
+    }
+
     pub fn empty(window: &Window) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
@@ -87,6 +101,7 @@ impl NodeListMethods for NodeList {
             NodeListType::Children(ref list) => list.len(),
             NodeListType::Labels(ref list) => list.len(),
             NodeListType::Radio(ref list) => list.len(),
+            NodeListType::ElementsByName(ref list) => list.len(),
         }
     }
 
@@ -99,6 +114,7 @@ impl NodeListMethods for NodeList {
             NodeListType::Children(ref list) => list.item(index),
             NodeListType::Labels(ref list) => list.item(index),
             NodeListType::Radio(ref list) => list.item(index),
+            NodeListType::ElementsByName(ref list) => list.item(index),
         }
     }
 
@@ -399,5 +415,31 @@ impl RadioList {
 
     pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         self.form.nth_for_radio_list(index, self.mode, &self.name)
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub struct ElementsByNameList {
+    document: Dom<Document>,
+    name: DOMString,
+}
+
+impl ElementsByNameList {
+    pub fn new(document: &Document, name: DOMString) -> ElementsByNameList {
+        ElementsByNameList {
+            document: Dom::from_ref(document),
+            name: name,
+        }
+    }
+
+    pub fn len(&self) -> u32 {
+        self.document.elements_by_name_count(&self.name)
+    }
+
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+        self.document
+            .nth_element_by_name(index, &self.name)
+            .and_then(|n| Some(DomRoot::from_ref(&*n)))
     }
 }
