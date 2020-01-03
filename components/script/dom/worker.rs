@@ -140,11 +140,7 @@ impl Worker {
         self.terminated.get()
     }
 
-    pub fn handle_message(
-        address: TrustedWorkerAddress,
-        origin: String,
-        data: StructuredSerializedData,
-    ) {
+    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -156,14 +152,7 @@ impl Worker {
         let _ac = enter_realm(target);
         rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
-            MessageEvent::dispatch_jsval(
-                target,
-                &global,
-                message.handle(),
-                Some(&origin),
-                None,
-                ports,
-            );
+            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
             MessageEvent::dispatch_error(target, &global);

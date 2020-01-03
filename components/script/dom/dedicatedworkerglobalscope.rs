@@ -538,9 +538,8 @@ impl DedicatedWorkerGlobalScope {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let global_scope = self.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
-        let origin = global_scope.origin().immutable().ascii_serialization();
         let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, origin, data);
+            Worker::handle_message(worker, data);
         }));
         self.parent_sender
             .send(CommonScriptMsg::Task(
