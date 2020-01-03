@@ -59,6 +59,7 @@ impl HTMLTrackElement {
             Default::default(),
             Default::default(),
             Default::default(),
+            None,
         );
         Node::reflect_node(
             Box::new(HTMLTrackElement::new_inherited(
