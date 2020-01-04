@@ -345,38 +345,23 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-    _default_toolchain = None
+    _rust_toolchain = None
 
-    def toolchain(self):
-        return self.default_toolchain()
-
-    def default_toolchain(self):
-        if self._default_toolchain is None:
+    def rust_toolchain(self):
+        if self._rust_toolchain is None:
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
-                self._default_toolchain = f.read().strip()
-        return self._default_toolchain
+                self._rust_toolchain = f.read().strip()
+
+            if platform.system() == "Windows":
+                self._rust_toolchain += "-x86_64-pc-windows-msvc"
+
+        return self._rust_toolchain
 
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
-            try:
-                version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
-            except OSError as e:
-                if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
-                    print("It looks like rustup is not installed. See instructions at "
-                          "https://github.com/servo/servo/#setting-up-your-environment")
-                    print()
-                    return 1
-                raise
-            version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-            if version < (1, 11, 0):
-                print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
-                print("Try running 'rustup self update'.")
-                return 1
-            toolchain = self.toolchain()
-            if platform.system() == "Windows":
-                toolchain += "-x86_64-pc-windows-msvc"
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
+            assert self.context.bootstrapped
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.rust_toolchain()] + args
         else:
             args[0] += BIN_SUFFIX
         return call(args, **kwargs)
@@ -1009,7 +994,7 @@ install them, let us know by filing a bug!")
             return True
         return False
 
-    def ensure_bootstrapped(self, target=None):
+    def ensure_bootstrapped(self, target=None, rustup_components=None):
         if self.context.bootstrapped:
             return
 
@@ -1019,7 +1004,42 @@ install them, let us know by filing a bug!")
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
 
+        if self.config["tools"]["use-rustup"]:
+            self.ensure_rustup_version()
+            toolchain = self.rust_toolchain()
+
+            if toolchain.encode("utf-8") not in check_output(["rustup", "toolchain", "list"]):
+                check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
+
+            installed = check_output(
+                ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
+            )
+            for component in set(rustup_components or []) | {"rustc-dev"}:
+                if component.encode("utf-8") not in installed:
+                    check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
+
+            if target and "uwp" not in target and target not in check_output(
+                ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
+            ):
+                check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
+
         self.context.bootstrapped = True
+
+    def ensure_rustup_version(self):
+        try:
+            version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+        except OSError as e:
+            if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                print("It looks like rustup is not installed. See instructions at "
+                      "https://github.com/servo/servo/#setting-up-your-environment")
+                print()
+                return 1
+            raise
+        version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+        if version < (1, 21, 0):
+            print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
+            print("Try running 'rustup self update'.")
+            return 1
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:

@@ -30,7 +30,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, append_to_path_env, gstreamer_root
+from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
 from servo.util import host_triple
 
 
@@ -236,14 +236,6 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if very_verbose:
             opts += ["-vv"]
-
-        if target:
-            if self.config["tools"]["use-rustup"] and not uwp:
-                # 'rustup target add' fails if the toolchain is not installed at all.
-                self.call_rustup_run(["rustc", "--version"])
-
-                check_call(["rustup" + BIN_SUFFIX, "target", "add",
-                            "--toolchain", self.toolchain(), target])
 
         env = self.build_env(target=target, is_build=True, uwp=uwp, features=features)
         self.ensure_bootstrapped(target=target)

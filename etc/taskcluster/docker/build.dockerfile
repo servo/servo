@@ -44,7 +44,8 @@ RUN \
         #
     && \
     #
-    #
+    # Install the version of rustup that is current when this Docker image is being built:
+    # We want at least 1.21 (increment in this comment to force an image rebuild).
     curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none --profile=minimal -y && \
     #
     #
