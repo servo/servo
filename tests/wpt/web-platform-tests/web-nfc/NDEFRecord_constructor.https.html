@@ -13,8 +13,13 @@
 
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(null),
-        'The record has neither type nor data.');
+        'NDEFRecordInit#recordType is a required field.');
   }, 'NDEFRecord constructor with null init dict');
+
+  test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord({id: test_record_id, data: test_text_data}),
+        'NDEFRecordInit#recordType is a required field.');
+  }, 'NDEFRecord constructor without NDEFRecordInit#recordType field');
 
   test(() => {
     assert_throws(new TypeError, () => new NDEFRecord(

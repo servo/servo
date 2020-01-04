@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.close</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    pc.onsignalingstatechange = t.unreached_func();
+    pc.close();
+    assert_true(pc.signalingState === 'closed');
+    await new Promise(r => t.step_timeout(r, 100));
+  }, 'RTCPeerConnection.close() does not fire signalingstatechange event.');
+</script>

@@ -4,11 +4,8 @@ var validator = {
     var self = this;
     test(function() {
       self.pre_check(ctl, 'tooLong');
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
-        if (data.dirty)
-          self.set_dirty(ctl);
         if (data.expected)
           assert_true(
               ctl.validity.tooLong,
@@ -25,11 +22,8 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "tooShort");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
-        if (data.dirty)
-          self.set_dirty(ctl);
         if (data.expected)
           assert_true(
               ctl.validity.tooShort,
@@ -46,7 +40,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "patternMismatch");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -65,7 +58,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "valueMissing");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -84,7 +76,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "typeMismatch");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -103,7 +94,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "rangeOverflow");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -122,7 +112,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "rangeUnderflow");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -141,7 +130,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "stepMismatch");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -160,7 +148,6 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "badInput");
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected)
@@ -179,17 +166,24 @@ var validator = {
     var self = this;
     test(function () {
       self.pre_check(ctl, "customError");
-      ctl.setCustomValidity(data.conditions.message);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
         if (data.expected) {
           assert_true(
               ctl.validity.customError,
               'The validity.customError attribute should be true' + condStr);
-          assert_equals(
-              ctl.validationMessage, data.conditions.message,
-              'The validationMessage attribute should be \'' +
-                  data.conditions.message + '\'' + condStr);
+          // validationMessage returns the empty string if ctl is barred from
+          // constraint validation, which happens if ctl is disabled.
+          if (ctl.disabled) {
+            assert_equals(
+                ctl.validationMessage, '',
+                'The validationMessage attribute must be empty' + condStr);
+          } else {
+            assert_equals(
+                ctl.validationMessage, data.conditions.message,
+                'The validationMessage attribute should be \'' +
+                    data.conditions.message + '\'' + condStr);
+          }
         } else {
           assert_false(
               ctl.validity.customError,
@@ -205,11 +199,8 @@ var validator = {
   test_isValid: function(ctl, data) {
     var self = this;
     test(function () {
-      self.set_conditions(ctl, data.conditions);
       self.iterate_over(ctl, data).forEach(function(val) {
         const {ctl, data, condStr} = val;
-        if (data.dirty)
-          self.set_dirty(ctl);
         if (data.expected)
           assert_true(
               ctl.validity.valid,
@@ -352,7 +343,9 @@ var validator = {
       ctl.removeAttribute(item);
     });
     for (var attr in obj) {
-      if (attr === "checked" || obj[attr] || obj[attr] === "")
+      if (attr === "message")
+        ctl.setCustomValidity(obj[attr]);
+      else if (attr === "checked" || obj[attr] || obj[attr] === "")
         ctl[attr] = obj[attr];
     }
   },
@@ -398,12 +391,27 @@ var validator = {
   iterate_over: function(ctl, data) {
     // Iterate over normal, disabled, readonly, and both.
     var ctlDisabled = ctl.cloneNode(true);
+    this.set_conditions(ctlDisabled, data.conditions);
+    if (data.dirty)
+      this.set_dirty(ctlDisabled);
     ctlDisabled.disabled = true;
+
     var ctlReadonly = ctl.cloneNode(true);
+    this.set_conditions(ctlReadonly, data.conditions);
+    if (data.dirty)
+      this.set_dirty(ctlReadonly);
     ctlReadonly.readonly = true;
+
     var ctlBoth = ctl.cloneNode(true);
+    this.set_conditions(ctlBoth, data.conditions);
+    if (data.dirty)
+      this.set_dirty(ctlBoth);
     ctlBoth.disabled = true;
     ctlBoth.readonly = true;
+
+    ctl = ctl.cloneNode(true);
+    this.set_conditions(ctl, data.conditions);
+
     return [
       {ctl: ctl, data: data, condStr: '.'},
       {ctl: ctlDisabled, data: data, condStr: ', when control is disabled.'},
