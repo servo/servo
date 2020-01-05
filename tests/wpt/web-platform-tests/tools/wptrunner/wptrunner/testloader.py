@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 from six.moves.queue import Empty
 from collections import defaultdict, deque
 from multiprocessing import Queue
-from six import iteritems
+from six import ensure_binary, iteritems
 from six.moves import xrange
 
 from . import manifestinclude
@@ -51,7 +51,7 @@ class HashChunker(TestChunker):
     def __call__(self, manifest):
         chunk_index = self.chunk_number - 1
         for test_type, test_path, tests in manifest:
-            h = int(hashlib.md5(test_path).hexdigest(), 16)
+            h = int(hashlib.md5(ensure_binary(test_path)).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 
@@ -65,7 +65,7 @@ class DirectoryHashChunker(TestChunker):
     def __call__(self, manifest):
         chunk_index = self.chunk_number - 1
         for test_type, test_path, tests in manifest:
-            h = int(hashlib.md5(os.path.dirname(test_path)).hexdigest(), 16)
+            h = int(hashlib.md5(ensure_binary(os.path.dirname(test_path))).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 

@@ -143,7 +143,7 @@ For examples of spec JSON files, see [referrer-policy/spec.src.json](../../refer
 
 * **`excluded_tests`**
 
-  List of ```test_expansion``` patterns expanding into selections which get skipped when generating the tests (aka. blacklisting/suppressing)
+  List of ```test_expansion``` patterns expanding into selections which get skipped when generating the tests (aka. blocklisting/suppressing)
 
 * **`test_expansion_schema`**
 
@@ -188,9 +188,9 @@ A **selection** is a single **test instance** (scenario) with explicit values th
 
 Taking the spec JSON, the generator follows this algorithm:
 
-* Expand all ```excluded_tests``` to create a blacklist of selections
+* Expand all ```excluded_tests``` to create a blocklist of selections
 
-* For each specification requirement: Expand the ```test_expansion``` pattern into selections and check each against the blacklist, if not marked as suppresed, generate the test resources for the selection
+* For each specification requirement: Expand the ```test_expansion``` pattern into selections and check each against the blocklist, if not marked as suppresed, generate the test resources for the selection
 
 
 ### Source Contexts

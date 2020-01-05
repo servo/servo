@@ -388,20 +388,6 @@ nfc_test(async (t, mockNFC) => {
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
-  await writer.push({ records: [{ data: test_text_data}] });
-  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
-}, "Test that recordType should be set to 'text' if NDEFRecordInit.record's \
-recordType is undefined and NDEFRecordInit.record's data is DOMString.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
-  await writer.push({ records: [{ data: test_buffer_data}] });
-  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
-}, "Test that recordType should be set to 'mime' if NDEFRecordInit.record's \
-recordType is undefined and NDEFRecordInit.record's data is not DOMString.");
-
-nfc_test(async (t, mockNFC) => {
-  const writer = new NDEFWriter();
   await writer.push({ records: [{ recordType: "mime", data: test_buffer_data }] });
   assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
 }, "Test that mediaType should be set to 'application/octet-stream' if \

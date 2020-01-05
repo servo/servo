@@ -3,6 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
 <canvas id="webgl-canvas"></canvas>
 <script>
 
@@ -11,18 +12,6 @@ let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
 let testFunction =
   (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
-
-  function assert_point_approx_equals(a, b) {
-    assert_approx_equals(a.x, b.x, FLOAT_EPSILON);
-    assert_approx_equals(a.y, b.y, FLOAT_EPSILON);
-    assert_approx_equals(a.z, b.z, FLOAT_EPSILON);
-    assert_approx_equals(a.w, b.w, FLOAT_EPSILON);
-  };
-
-  function assert_transform_approx_equals(a, b) {
-    assert_point_approx_equals(a.position, b.position);
-    assert_point_approx_equals(a.orientation, b.orientation);
-  };
 
   // An identity transform should be equal to it's inverse.
   let identity_transform = new XRRigidTransform();

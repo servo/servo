@@ -1,4 +1,7 @@
-from cgi import escape
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 from collections import deque
 import base64
 import gzip as gzip_module
