@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCDataChannel.prototype.close</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  let [channel1, channel2] = await createDataChannelPair(pc1);
+  let close_handler = new Promise(resolve => {
+    channel2.onclose = event => {
+      resolve();
+    };
+  });
+  channel2.addEventListener('error', t.unreached_func());
+  channel1.close();
+  await close_handler;
+}, 'Close datachannel causes onclose to be called');
+
+promise_test(async t => {
+  // This is the same test as above, but using addEventListener
+  // rather than the "onclose" attribute.
+  let pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  let [channel1, channel2] = await createDataChannelPair(pc1);
+  let close_handler = new Promise(resolve => {
+    channel2.addEventListener('close', event => {
+      resolve();
+    });
+  });
+  channel2.addEventListener('error', t.unreached_func());
+  channel1.close();
+  await close_handler;
+}, 'Close datachannel causes close event to be called');
+
+promise_test(async t => {
+  let pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  let [channel1, channel2] = await createDataChannelPair(pc1);
+  let events = [];
+  let error = null;
+  let close_handler = new Promise(resolve => {
+    channel2.addEventListener('close', event => {
+      events.push('close');
+      resolve();
+    });
+  });
+  let error_handler = new Promise((resolve, reject) => {
+    channel2.addEventListener('error', event => {
+      events.push('error');
+      try {
+        assert_true(event instanceof RTCErrorEvent);
+        error = event.error;
+      } catch (e) {
+        // Prevent test from hanging when an assert in the error handler fails.
+        reject('Error event wrong: ' + e);
+      }
+      resolve();
+    });
+  });
+  pc1.close();
+  await error_handler;
+  await close_handler;
+  // Error should fire before close.
+  assert_array_equals(['error', 'close'], events);
+  assert_true(error instanceof RTCError);
+  assert_equals(error.name, 'OperationError');
+}, 'Close peerconnection causes close event and error to be called');
+
+</script>

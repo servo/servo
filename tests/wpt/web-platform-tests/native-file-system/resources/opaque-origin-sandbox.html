@@ -16,7 +16,7 @@
   }
 
   try {
-    window.chooseFileSystemEntries({ type: 'openDirectory' })
+    window.chooseFileSystemEntries({ type: 'open-directory' })
       .then(() => {
         post_message('chooseFileSystemEntries(): FULFILLED');
       }).catch(error => {

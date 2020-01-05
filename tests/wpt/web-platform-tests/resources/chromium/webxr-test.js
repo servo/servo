@@ -228,7 +228,7 @@ class MockRuntime {
 
     this.framesOfReference = {};
 
-    this.input_sources_ = [];
+    this.input_sources_ = new Map();
     this.next_input_source_index_ = 1;
 
     let supportedModes = [];
@@ -421,7 +421,7 @@ class MockRuntime {
     this.next_input_source_index_++;
 
     let source = new MockXRInputSource(fakeInputSourceInit, index, this);
-    this.input_sources_.push(source);
+    this.input_sources_.set(index, source);
     return source;
   }
 
@@ -540,17 +540,13 @@ class MockRuntime {
 
   // These methods are intended to be used by MockXRInputSource only.
   addInputSource(source) {
-    let index = this.input_sources_.indexOf(source);
-    if (index == -1) {
-      this.input_sources_.push(source);
+    if(!this.input_sources_.has(source.source_id_)) {
+      this.input_sources_.set(source.source_id_, source);
     }
   }
 
   removeInputSource(source) {
-    let index = this.input_sources_.indexOf(source);
-    if (index >= 0) {
-      this.input_sources_.splice(index, 1);
-    }
+    this.input_sources_.delete(source.source_id_);
   }
 
   // Mojo function implementations.
@@ -561,7 +557,6 @@ class MockRuntime {
     this.send_mojo_space_reset_ = false;
     if (this.pose_) {
       this.pose_.poseIndex++;
-
     }
 
     // Setting the input_state to null tests a slightly different path than
@@ -569,10 +564,10 @@ class MockRuntime {
     // code always sends up an empty array, but it's also valid mojom to send
     // up a null array.
     let input_state = null;
-    if (this.input_sources_.length > 0) {
+    if (this.input_sources_.size > 0) {
       input_state = [];
-      for (let i = 0; i < this.input_sources_.length; i++) {
-        input_state.push(this.input_sources_[i].getInputSourceState());
+      for (let input_source of this.input_sources_.values()) {
+        input_state.push(input_source.getInputSourceState());
       }
     }
 
@@ -739,12 +734,14 @@ class MockXRInputSource {
   }
 
   setGripOrigin(transform, emulatedPosition = false) {
+    // grip_origin was renamed to mojo_from_input in mojo
     this.mojo_from_input_ = new gfx.mojom.Transform();
     this.mojo_from_input_.matrix = getMatrixFromTransform(transform);
     this.emulated_position_ = emulatedPosition;
   }
 
   clearGripOrigin() {
+    // grip_origin was renamed to mojo_from_input in mojo
     if (this.mojo_from_input_ != null) {
       this.mojo_from_input_ = null;
       this.emulated_position_ = false;
@@ -752,6 +749,7 @@ class MockXRInputSource {
   }
 
   setPointerOrigin(transform, emulatedPosition = false) {
+    // pointer_origin was renamed to input_from_pointer in mojo
     this.desc_dirty_ = true;
     this.input_from_pointer_ = new gfx.mojom.Transform();
     this.input_from_pointer_.matrix = getMatrixFromTransform(transform);

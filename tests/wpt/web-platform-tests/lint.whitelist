@@ -77,6 +77,7 @@ AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
 # Intentional use of CRLF
 CR AT EOL: WebIDL/valid/idl/documentation-dos.widl
 CR AT EOL: cors/resources/cors-headers.asis
+CR AT EOL: fetch/h1-parsing/resources/blue-with-0x00-in-a-header.asis
 CR AT EOL: html/semantics/forms/the-textarea-element/multiline-placeholder-cr.html
 CR AT EOL: html/semantics/forms/the-textarea-element/multiline-placeholder-crlf.html
 CR AT EOL: html/semantics/forms/the-input-element/multiline-placeholder-cr.html

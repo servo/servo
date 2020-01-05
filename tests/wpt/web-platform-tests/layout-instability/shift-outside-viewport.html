@@ -4,7 +4,7 @@
 <style>
 
 body { margin: 0; }
-#j { position: relative; width: 600px; height: 200px; top: 600px; }
+#j { position: absolute; width: 600px; height: 200px; top: 100%; }
 
 </style>
 <div id='j'></div>
@@ -19,7 +19,9 @@ promise_test(async () => {
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
 
-  document.querySelector("#j").style.top = "800px";
+  // Move div even further out of viewport.
+  document.querySelector("#j").style.top =
+      document.documentElement.clientHeight + 200 + "px";
 
   // Since the element moves entirely outside of the viewport, it shouldn't
   // generate a score.
