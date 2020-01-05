@@ -13,6 +13,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
@@ -45,6 +46,8 @@ use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
 use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
+use crate::dom::nodelist::{NodeList, RadioListMode};
+use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -65,7 +68,6 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
-use crate::dom::radionodelist::RadioNodeList;
 use std::collections::HashMap;
 use time::{now, Duration, Tm};
 
@@ -114,6 +116,69 @@ impl HTMLFormElement {
             document,
             HTMLFormElementBinding::Wrap,
         )
+    }
+
+    fn filter_for_radio_list(mode: RadioListMode, child: &Element, name: &DOMString) -> bool {
+        if let Some(child) = child.downcast::<Element>() {
+            match mode {
+                RadioListMode::ControlsExceptImageInputs => {
+                    if child
+                        .downcast::<HTMLElement>()
+                        .map_or(false, |c| c.is_listed_element())
+                    {
+                        if (child.has_attribute(&local_name!("id")) &&
+                            child.get_string_attribute(&local_name!("id")) == *name) ||
+                            (child.has_attribute(&local_name!("name")) &&
+                                child.get_string_attribute(&local_name!("name")) == *name)
+                        {
+                            if let Some(inp) = child.downcast::<HTMLInputElement>() {
+                                // input, only return it if it's not image-button state
+                                return inp.input_type() != InputType::Image;
+                            } else {
+                                // control, but not an input
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                },
+                RadioListMode::Images => {
+                    if child.is::<HTMLImageElement>() {
+                        if (child.has_attribute(&local_name!("id")) &&
+                            child.get_string_attribute(&local_name!("id")) == *name) ||
+                            (child.has_attribute(&local_name!("name")) &&
+                                child.get_string_attribute(&local_name!("name")) == *name)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+            }
+        }
+        false
+    }
+
+    pub fn nth_for_radio_list(
+        &self,
+        index: u32,
+        mode: RadioListMode,
+        name: &DOMString,
+    ) -> Option<DomRoot<Node>> {
+        self.controls
+            .borrow()
+            .iter()
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &*n, name))
+            .nth(index as usize)
+            .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
+    }
+
+    pub fn count_for_radio_list(&self, mode: RadioListMode, name: &DOMString) -> u32 {
+        self.controls
+            .borrow()
+            .iter()
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &**n, name))
+            .count() as u32
     }
 }
 
@@ -248,7 +313,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = window_from_node(self);
-            HTMLFormControlsCollection::new(&window, self.upcast(), filter)
+            HTMLFormControlsCollection::new(&window, self, filter)
         }))
     }
 
@@ -265,43 +330,23 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
-        let mut candidates: Vec<DomRoot<Node>> = Vec::new();
+        let window = window_from_node(self);
 
-        let controls = self.controls.borrow();
         // Step 1
-        for child in controls.iter() {
-            if child
-                .downcast::<HTMLElement>()
-                .map_or(false, |c| c.is_listed_element())
-            {
-                if (child.has_attribute(&local_name!("id")) &&
-                    child.get_string_attribute(&local_name!("id")) == name) ||
-                    (child.has_attribute(&local_name!("name")) &&
-                        child.get_string_attribute(&local_name!("name")) == name)
-                {
-                    candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
-                }
-            }
-        }
+        let mut candidates =
+            RadioNodeList::new_controls_except_image_inputs(&window, self, name.clone());
+        let mut candidates_length = candidates.Length();
+
         // Step 2
-        if candidates.len() == 0 {
-            for child in controls.iter() {
-                if child.is::<HTMLImageElement>() {
-                    if (child.has_attribute(&local_name!("id")) &&
-                        child.get_string_attribute(&local_name!("id")) == name) ||
-                        (child.has_attribute(&local_name!("name")) &&
-                            child.get_string_attribute(&local_name!("name")) == name)
-                    {
-                        candidates.push(DomRoot::from_ref(&*child.upcast::<Node>()));
-                    }
-                }
-            }
+        if candidates_length == 0 {
+            candidates = RadioNodeList::new_images(&window, self, name.clone());
+            candidates_length = candidates.Length();
         }
 
         let mut past_names_map = self.past_names_map.borrow_mut();
 
         // Step 3
-        if candidates.len() == 0 {
+        if candidates_length == 0 {
             if past_names_map.contains_key(&name) {
                 return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
                     &*past_names_map.get(&name).unwrap().0,
@@ -311,16 +356,13 @@ impl HTMLFormElementMethods for HTMLFormElement {
         }
 
         // Step 4
-        if candidates.len() > 1 {
-            let window = window_from_node(self);
-
-            return Some(RadioNodeListOrElement::RadioNodeList(
-                RadioNodeList::new_simple_list(&window, candidates.into_iter()),
-            ));
+        if candidates_length > 1 {
+            return Some(RadioNodeListOrElement::RadioNodeList(candidates));
         }
 
         // Step 5
-        let element_node = &candidates[0];
+        // candidates_length is 1, so we can unwrap item 0
+        let element_node = candidates.upcast::<NodeList>().Item(0).unwrap();
         past_names_map.insert(
             name,
             (
