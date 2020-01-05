@@ -1033,13 +1033,14 @@ install them, let us know by filing a bug!")
                 print("It looks like rustup is not installed. See instructions at "
                       "https://github.com/servo/servo/#setting-up-your-environment")
                 print()
-                return 1
+                sys.exit(1)
             raise
         version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-        if version < (1, 21, 0):
-            print("rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version)
+        version_needed = (1, 21, 0)
+        if version < version_needed:
+            print("rustup is at version %s.%s.%s, Servo requires %s.%s.%s or more recent." % (version + version_needed))
             print("Try running 'rustup self update'.")
-            return 1
+            sys.exit(1)
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:
