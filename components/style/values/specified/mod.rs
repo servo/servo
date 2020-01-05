@@ -767,9 +767,12 @@ impl AllowQuirks {
     ToShmem,
 )]
 #[css(function)]
+#[repr(C)]
 pub struct Attr {
-    /// Optional namespace prefix and URL.
-    pub namespace: Option<(Prefix, Namespace)>,
+    /// Optional namespace prefix.
+    pub namespace_prefix: Prefix,
+    /// Optional namespace URL.
+    pub namespace_url: Namespace,
     /// Attribute name
     pub attribute: Atom,
 }
@@ -814,7 +817,7 @@ impl Attr {
                         ref t => return Err(location.new_unexpected_token_error(t.clone())),
                     };
 
-                    let prefix_and_ns = if let Some(ns) = first {
+                    let (namespace_prefix, namespace_url) = if let Some(ns) = first {
                         let prefix = Prefix::from(ns.as_ref());
                         let ns = match get_namespace_for_prefix(&prefix, context) {
                             Some(ns) => ns,
@@ -823,17 +826,18 @@ impl Attr {
                                     .new_custom_error(StyleParseErrorKind::UnspecifiedError));
                             },
                         };
-                        Some((prefix, ns))
+                        (prefix, ns)
                     } else {
-                        None
+                        (Prefix::default(), Namespace::default())
                     };
                     return Ok(Attr {
-                        namespace: prefix_and_ns,
+                        namespace_prefix,
+                        namespace_url,
                         attribute: Atom::from(second_token.as_ref()),
                     });
                 },
                 // In the case of attr(foobar    ) we don't want to error out
-                // because of the trailing whitespace
+                // because of the trailing whitespace.
                 Token::WhiteSpace(..) => {},
                 ref t => return Err(input.new_unexpected_token_error(t.clone())),
             }
@@ -841,7 +845,8 @@ impl Attr {
 
         if let Some(first) = first {
             Ok(Attr {
-                namespace: None,
+                namespace_prefix: Prefix::default(),
+                namespace_url: Namespace::default(),
                 attribute: Atom::from(first.as_ref()),
             })
         } else {
@@ -856,8 +861,8 @@ impl ToCss for Attr {
         W: Write,
     {
         dest.write_str("attr(")?;
-        if let Some((ref prefix, ref _url)) = self.namespace {
-            serialize_atom_identifier(prefix, dest)?;
+        if !self.namespace_prefix.is_empty() {
+            serialize_atom_identifier(&self.namespace_prefix, dest)?;
             dest.write_str("|")?;
         }
         serialize_atom_identifier(&self.attribute, dest)?;

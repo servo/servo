@@ -9,8 +9,6 @@ use crate::computed_values::list_style_type::T as ListStyleType;
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterPair;
-use crate::values::generics::counters::GenericCounterIncrement;
-use crate::values::generics::counters::GenericCounterSetOrReset;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyle;
 use crate::values::specified::url::SpecifiedImageUrl;
@@ -23,7 +21,7 @@ use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 
 /// A specified value for the `counter-increment` property.
-pub type CounterIncrement = GenericCounterIncrement<Integer>;
+pub type CounterIncrement = generics::GenericCounterIncrement<Integer>;
 
 impl Parse for CounterIncrement {
     fn parse<'i, 't>(
@@ -35,7 +33,7 @@ impl Parse for CounterIncrement {
 }
 
 /// A specified value for the `counter-set` and `counter-reset` properties.
-pub type CounterSetOrReset = GenericCounterSetOrReset<Integer>;
+pub type CounterSetOrReset = generics::GenericCounterSetOrReset<Integer>;
 
 impl Parse for CounterSetOrReset {
     fn parse<'i, 't>(
@@ -84,10 +82,10 @@ fn parse_counters<'i, 't>(
 }
 
 /// The specified value for the `content` property.
-pub type Content = generics::Content<SpecifiedImageUrl>;
+pub type Content = generics::GenericContent<SpecifiedImageUrl>;
 
 /// The specified value for a content item in the `content` property.
-pub type ContentItem = generics::ContentItem<SpecifiedImageUrl>;
+pub type ContentItem = generics::GenericContentItem<SpecifiedImageUrl>;
 
 impl Content {
     #[cfg(feature = "servo")]
@@ -131,17 +129,9 @@ impl Parse for Content {
         {
             return Ok(generics::Content::None);
         }
-        #[cfg(feature = "gecko")]
-        {
-            if input
-                .try(|input| input.expect_ident_matching("-moz-alt-content"))
-                .is_ok()
-            {
-                return Ok(generics::Content::MozAltContent);
-            }
-        }
 
         let mut content = vec![];
+        let mut has_alt_content = false;
         loop {
             #[cfg(feature = "gecko")]
             {
@@ -153,7 +143,7 @@ impl Parse for Content {
             match input.next() {
                 Ok(&Token::QuotedString(ref value)) => {
                     content.push(generics::ContentItem::String(
-                        value.as_ref().to_owned().into_boxed_str(),
+                        value.as_ref().to_owned().into(),
                     ));
                 },
                 Ok(&Token::Function(ref name)) => {
@@ -168,7 +158,7 @@ impl Parse for Content {
                             let location = input.current_source_location();
                             let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
                             input.expect_comma()?;
-                            let separator = input.expect_string()?.as_ref().to_owned().into_boxed_str();
+                            let separator = input.expect_string()?.as_ref().to_owned().into();
                             let style = Content::parse_counter_style(context, input);
                             Ok(generics::ContentItem::Counters(name, separator, style))
                         }),
@@ -191,6 +181,11 @@ impl Parse for Content {
                         "close-quote" => generics::ContentItem::CloseQuote,
                         "no-open-quote" => generics::ContentItem::NoOpenQuote,
                         "no-close-quote" => generics::ContentItem::NoCloseQuote,
+                        #[cfg(feature = "gecko")]
+                        "-moz-alt-content" => {
+                            has_alt_content = true;
+                            generics::ContentItem::MozAltContent
+                        },
                         _ =>{
                             let ident = ident.clone();
                             return Err(input.new_custom_error(
@@ -206,9 +201,10 @@ impl Parse for Content {
                 },
             }
         }
-        if content.is_empty() {
+        // We don't allow to parse `-moz-alt-content in multiple positions.
+        if content.is_empty() || (has_alt_content && content.len() != 1) {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        Ok(generics::Content::Items(content.into_boxed_slice()))
+        Ok(generics::Content::Items(content.into()))
     }
 }

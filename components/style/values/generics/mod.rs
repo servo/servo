@@ -39,7 +39,7 @@ pub mod transform;
 pub mod ui;
 pub mod url;
 
-// https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
+/// https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
@@ -55,6 +55,7 @@ pub mod url;
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(u8)]
 pub enum SymbolsType {
     Cyclic,
     Numeric,
@@ -63,39 +64,12 @@ pub enum SymbolsType {
     Fixed,
 }
 
-#[cfg(feature = "gecko")]
-impl SymbolsType {
-    /// Convert symbols type to their corresponding Gecko values.
-    pub fn to_gecko_keyword(self) -> u8 {
-        use crate::gecko_bindings::structs;
-        match self {
-            SymbolsType::Cyclic => structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as u8,
-            SymbolsType::Numeric => structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as u8,
-            SymbolsType::Alphabetic => structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as u8,
-            SymbolsType::Symbolic => structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as u8,
-            SymbolsType::Fixed => structs::NS_STYLE_COUNTER_SYSTEM_FIXED as u8,
-        }
-    }
-
-    /// Convert Gecko value to symbol type.
-    pub fn from_gecko_keyword(gecko_value: u32) -> SymbolsType {
-        use crate::gecko_bindings::structs;
-        match gecko_value {
-            structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC => SymbolsType::Cyclic,
-            structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC => SymbolsType::Numeric,
-            structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC => SymbolsType::Alphabetic,
-            structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC => SymbolsType::Symbolic,
-            structs::NS_STYLE_COUNTER_SYSTEM_FIXED => SymbolsType::Fixed,
-            x => panic!("Unexpected value for symbol type {}", x),
-        }
-    }
-}
-
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-counter-style>
 ///
 /// Note that 'none' is not a valid name.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+#[repr(u8)]
 pub enum CounterStyle {
     /// `<counter-style-name>`
     Name(CustomIdent),

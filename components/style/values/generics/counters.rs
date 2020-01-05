@@ -153,22 +153,26 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
-    ToResolvedValue,
     ToShmem,
 )]
-pub enum Content<ImageUrl> {
+#[repr(u8)]
+pub enum GenericContent<ImageUrl> {
     /// `normal` reserved keyword.
     Normal,
     /// `none` reserved keyword.
     None,
-    /// `-moz-alt-content`.
-    #[cfg(feature = "gecko")]
-    MozAltContent,
     /// Content items.
-    Items(#[css(iterable)] Box<[ContentItem<ImageUrl>]>),
+    Items(#[css(iterable)] crate::OwnedSlice<GenericContentItem<ImageUrl>>),
 }
 
+pub use self::GenericContent as Content;
+
 impl<ImageUrl> Content<ImageUrl> {
+    #[inline]
+    pub(crate) fn is_items(&self) -> bool {
+        matches!(*self, Self::Items(..))
+    }
+
     /// Set `content` property to `normal`.
     #[inline]
     pub fn normal() -> Self {
@@ -189,9 +193,10 @@ impl<ImageUrl> Content<ImageUrl> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum ContentItem<ImageUrl> {
+#[repr(u8)]
+pub enum GenericContentItem<ImageUrl> {
     /// Literal string content.
-    String(Box<str>),
+    String(crate::OwnedStr),
     /// `counter(name, style)`.
     #[css(comma, function)]
     Counter(CustomIdent, #[css(skip_if = "is_decimal")] CounterStyleType),
@@ -199,7 +204,7 @@ pub enum ContentItem<ImageUrl> {
     #[css(comma, function)]
     Counters(
         CustomIdent,
-        Box<str>,
+        crate::OwnedStr,
         #[css(skip_if = "is_decimal")] CounterStyleType,
     ),
     /// `open-quote`.
@@ -210,9 +215,14 @@ pub enum ContentItem<ImageUrl> {
     NoOpenQuote,
     /// `no-close-quote`.
     NoCloseQuote,
+    /// `-moz-alt-content`.
+    #[cfg(feature = "gecko")]
+    MozAltContent,
     /// `attr([namespace? `|`]? ident)`
     #[cfg(feature = "gecko")]
     Attr(Attr),
     /// `url(url)`
     Url(ImageUrl),
 }
+
+pub use self::GenericContentItem as ContentItem;

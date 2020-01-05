@@ -471,6 +471,7 @@ trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
+trivial_to_computed_value!(crate::OwnedStr);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
