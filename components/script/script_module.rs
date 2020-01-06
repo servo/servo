@@ -947,7 +947,7 @@ impl FetchResponseListener for ModuleContext {
 
         if let Err(err) = load {
             // Step 9.
-            warn!("Failed to fetch {}", self.url.clone());
+            error!("Failed to fetch {} with error {:?}", self.url.clone(), err);
             let module_tree = {
                 let module_map = global.get_module_map().borrow();
                 module_map.get(&self.url.clone()).unwrap().clone()
