@@ -5147,8 +5147,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
-            fillDescriptor = ("desc.get().value = result_root.get();\n"
+            fillDescriptor = ("desc.value = result_root.get();\n"
                               "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
@@ -5173,8 +5172,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
-            fillDescriptor = ("desc.get().value = result_root.get();\n"
+            fillDescriptor = ("desc.value = result_root.get();\n"
                               "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
@@ -5221,7 +5219,7 @@ if !expando.is_null() {
     }
 }
 """ + namedGet + """\
-desc.get().obj = ptr::null_mut();
+desc.obj = ptr::null_mut();
 return true;"""
 
     def definition_body(self):
