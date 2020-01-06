@@ -75,7 +75,7 @@
         "BorderCornerRadius",
         "computed::BorderCornerRadius::zero()",
         "parse",
-        engines="gecko servo-2013",
+        engines="gecko servo-2013 servo-2020",
         extra_prefixes=prefixes,
         spec=maybe_logical_spec(corner, "radius"),
         boxed=True,

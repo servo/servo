@@ -239,7 +239,7 @@ pub fn parse_border<'i, 't>(
 
 <%helpers:shorthand
     name="border-radius"
-    engines="gecko servo-2013"
+    engines="gecko servo-2013 servo-2020"
     sub_properties="${' '.join(
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
