@@ -931,9 +931,18 @@ impl FetchResponseListener for ModuleContext {
             let meta = self.metadata.take().unwrap();
 
             if let Some(content_type) = meta.content_type.map(Serde::into_inner) {
-                if !SCRIPT_JS_MIMES.contains(&content_type.to_string().as_str()) {
-                    return Err(NetworkError::Internal("Invalid MIME type".to_owned()));
+                let c = content_type.to_string();
+                // The MIME crate includes params (e.g. charset=utf8) in the to_string
+                // https://github.com/hyperium/mime/issues/120
+                if let Some(ty) = c.split(';').next() {
+                    if !SCRIPT_JS_MIMES.contains(&ty) {
+                        return Err(NetworkError::Internal(format!("Invalid MIME type: {}", ty)));
+                    }
+                } else {
+                    return Err(NetworkError::Internal("Empty MIME type".into()));
                 }
+            } else {
+                return Err(NetworkError::Internal("No MIME type".into()));
             }
 
             // Step 10.
