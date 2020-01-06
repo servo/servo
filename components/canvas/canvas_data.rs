@@ -798,7 +798,10 @@ impl<'a> CanvasData<'a> {
     pub fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = match self.path_builder().current_point() {
             Some(p) => p,
-            None => return,
+            None => {
+                self.path_builder().move_to(cp1);
+                cp1.clone()
+            },
         };
         let cp1 = *cp1;
         let cp2 = *cp2;
