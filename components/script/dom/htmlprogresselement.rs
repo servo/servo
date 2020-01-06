@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::{
     self, HTMLProgressElementMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -17,6 +17,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLProgressElement {
     htmlelement: HTMLElement,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 impl HTMLProgressElement {
@@ -27,6 +28,7 @@ impl HTMLProgressElement {
     ) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            labels_node_list: MutNullableDom::new(None),
         }
     }
 
@@ -48,7 +50,5 @@ impl HTMLProgressElement {
 
 impl HTMLProgressElementMethods for HTMLProgressElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 }

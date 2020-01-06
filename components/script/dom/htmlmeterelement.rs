@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding::{
     self, HTMLMeterElementMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -17,6 +17,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLMeterElement {
     htmlelement: HTMLElement,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 impl HTMLMeterElement {
@@ -27,6 +28,7 @@ impl HTMLMeterElement {
     ) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            labels_node_list: MutNullableDom::new(None),
         }
     }
 
@@ -48,7 +50,5 @@ impl HTMLMeterElement {
 
 impl HTMLMeterElementMethods for HTMLMeterElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 }

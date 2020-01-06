@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -17,6 +18,7 @@ use std::cell::Cell;
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
+    Labels(LabelsList),
 }
 
 // https://dom.spec.whatwg.org/#interface-nodelist
@@ -65,6 +67,10 @@ impl NodeList {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
 
+    pub fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
+        NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
+    }
+
     pub fn empty(window: &Window) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
@@ -76,6 +82,7 @@ impl NodeListMethods for NodeList {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref list) => list.len(),
+            NodeListType::Labels(ref list) => list.len(),
         }
     }
 
@@ -86,6 +93,7 @@ impl NodeListMethods for NodeList {
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
             NodeListType::Children(ref list) => list.item(index),
+            NodeListType::Labels(ref list) => list.item(index),
         }
     }
 
@@ -317,5 +325,35 @@ impl ChildrenList {
     fn reset(&self) {
         self.last_visited.set(self.node.GetFirstChild().as_deref());
         self.last_index.set(0u32);
+    }
+}
+
+// Labels lists: There might room for performance optimization
+// analogous to the ChildrenMutation case of a children list,
+// in which we can keep information from an older access live
+// if we know nothing has happened that would change it.
+// However, label relationships can happen from further away
+// in the DOM than parent-child relationships, so it's not as simple,
+// and it's possible that tracking label moves would end up no faster
+// than recalculating labels.
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub struct LabelsList {
+    element: Dom<HTMLElement>,
+}
+
+impl LabelsList {
+    pub fn new(element: &HTMLElement) -> LabelsList {
+        LabelsList {
+            element: Dom::from_ref(element),
+        }
+    }
+
+    pub fn len(&self) -> u32 {
+        self.element.labels_count()
+    }
+
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+        self.element.label_at(index)
     }
 }
