@@ -74,6 +74,14 @@ pub enum Error {
     InvalidNodeType,
     /// DataCloneError DOMException
     DataClone,
+    /// DataError DOMException
+    Data,
+    /// TransactionInactiveError DOMException
+    TransactionInactive,
+    /// ReadOnlyError DOMException
+    ReadOnly,
+    /// VersionError DOMException
+    Version,
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
     /// QuotaExceededError DOMException
@@ -133,6 +141,10 @@ pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Erro
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
         Error::DataClone => DOMErrorName::DataCloneError,
+        Error::Data => DOMErrorName::DataError,
+        Error::TransactionInactive => DOMErrorName::TransactionInactiveError,
+        Error::ReadOnly => DOMErrorName::ReadOnlyError,
+        Error::Version => DOMErrorName::VersionError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,

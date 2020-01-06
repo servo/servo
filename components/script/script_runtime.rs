@@ -128,6 +128,7 @@ pub trait ScriptChan: JSTraceable {
 pub enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
+    DatabaseAccessEvent,
     DevtoolsMsg,
     DocumentEvent,
     DomEvent,

@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::task::TaskCanceller;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
@@ -37,6 +38,8 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     pub task_cancellers: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
     #[ignore_malloc_size_of = "task sources are hard"]
+    database_access_task_source: DatabaseAccessTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
@@ -62,6 +65,7 @@ pub struct TaskManager {
 
 impl TaskManager {
     pub fn new(
+        database_access_task_source: DatabaseAccessTaskSource,
         dom_manipulation_task_source: DOMManipulationTaskSource,
         file_reading_task_source: FileReadingTaskSource,
         history_traversal_task_source: HistoryTraversalTaskSource,
@@ -75,6 +79,7 @@ impl TaskManager {
         websocket_task_source: WebsocketTaskSource,
     ) -> Self {
         TaskManager {
+            database_access_task_source,
             dom_manipulation_task_source,
             file_reading_task_source,
             history_traversal_task_source,
@@ -89,6 +94,14 @@ impl TaskManager {
             task_cancellers: Default::default(),
         }
     }
+
+    task_source_functions!(
+        self,
+        database_access_task_source_with_canceller,
+        database_access_task_source,
+        DatabaseAccessTaskSource,
+        DatabaseAccess
+    );
 
     task_source_functions!(
         self,

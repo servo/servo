@@ -109,6 +109,7 @@ pub enum ProfilerCategory {
     ScriptPerformanceEvent = 0x7b,
     ScriptHistoryEvent = 0x7c,
     ScriptPortMessage = 0x7d,
+    ScriptDatabaseAccessEvent = 0x7e,
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
     TimeToInteractive = 0x82,
