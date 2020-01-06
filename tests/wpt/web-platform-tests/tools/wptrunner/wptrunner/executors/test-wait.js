@@ -32,7 +32,8 @@ function wait_paints() {
 }
 
 function screenshot_if_ready() {
-  if (root.classList.contains("%(classname)s") &&
+  if (root &&
+      root.classList.contains("%(classname)s") &&
       observer === null) {
     observer = new MutationObserver(wait_paints);
     observer.observe(root, {attributes: true});

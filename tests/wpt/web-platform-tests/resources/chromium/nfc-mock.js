@@ -170,6 +170,7 @@ var WebNFCTest = (() => {
       this.reading_messages_ = [];
       this.operations_suspended_ = false;
       this.is_formatted_tag_ = false;
+      this.data_transfer_failed_ = false;
     }
 
     // NFC delegate functions.
@@ -192,6 +193,9 @@ var WebNFCTest = (() => {
           // Resolves with NotAllowedError if there are NDEF records on the device
           // and overwrite is false.
           resolve(createNDEFError(device.mojom.NDEFErrorType.NOT_ALLOWED));
+        } else if (this.data_transfer_failed_) {
+          // Resolves with NetworkError if data transfer fails.
+          resolve(createNDEFError(device.mojom.NDEFErrorType.IO_ERROR));
         } else {
           resolve(createNDEFError(null));
         }
@@ -290,6 +294,7 @@ var WebNFCTest = (() => {
       this.operations_suspended_ = false;
       this.cancelPendingPushOperation();
       this.is_formatted_tag_ = false;
+      this.data_transfer_failed_ = false;
     }
 
     cancelPendingPushOperation() {
@@ -364,6 +369,10 @@ var WebNFCTest = (() => {
 
     setIsFormattedTag(isFormatted) {
       this.is_formatted_tag_ = isFormatted;
+    }
+
+    simulateDataTransferFails() {
+      this.data_transfer_failed_ = true;
     }
   }
 

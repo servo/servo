@@ -207,4 +207,27 @@ nfc_test(async (t, mockNFC) => {
 }, "Test that NDEFReader.onreading should be fired on an unformatted NFC tag \
 with empty records array for NDEFMessage.");
 
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const message = createMessage([createTextRecord(test_text_data),
+                                createMimeRecordFromJson(test_json_data),
+                                createMimeRecord(test_buffer_data),
+                                createUnknownRecord(test_buffer_data),
+                                createUrlRecord(test_url_data),
+                                createUrlRecord(test_url_data, true),
+                                createRecord('w3.org:xyz', test_buffer_data)],
+                                test_message_origin);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_equals(event.serialNumber, fake_tag_serial_number);
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
+    controller.abort();
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage(message);
+  await promise;
+}, "Test that reading message with multiple records should succeed.");
+
 </script>
