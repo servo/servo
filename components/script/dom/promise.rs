@@ -225,7 +225,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    fn promise_obj(&self) -> HandleObject {
+    pub fn promise_obj(&self) -> HandleObject {
         let obj = self.reflector().get_jsobject();
         unsafe {
             assert!(IsPromiseObject(obj));
