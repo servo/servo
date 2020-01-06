@@ -991,15 +991,16 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
         if not success:
             status = data[0]
 
+        extra = None
         if self.debug and (success or status not in ("CRASH", "INTERNAL-ERROR")):
             assertion_count = self.protocol.asserts.get()
             if assertion_count is not None:
-                data["extra"] = {"assertion_count": assertion_count}
+                extra = {"assertion_count": assertion_count}
 
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(**data), [])
+        return (test.result_cls(extra=extra, *data), [])
 
     def do_crashtest(self, protocol, url, timeout):
         if self.protocol.coverage.is_enabled:

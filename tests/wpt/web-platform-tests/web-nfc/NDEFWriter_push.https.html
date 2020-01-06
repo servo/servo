@@ -276,7 +276,7 @@ nfc_test(async () => {
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
-  let message = createMessage([createTextRecord(test_text_data),
+  const message = createMessage([createTextRecord(test_text_data),
                                createMimeRecordFromJson(test_json_data),
                                createMimeRecord(test_buffer_data),
                                createUnknownRecord(test_buffer_data),
@@ -308,9 +308,12 @@ nfc_test(async (t, mockNFC) => {
   assertNDEFMessagesEqual(buffer_view, mockNFC.pushedMessage());
 }, "Test that NDEFWriter.push succeeds when message is ArrayBufferView.");
 
-nfc_test(async () => {
+nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
   await writer.push(createMessage([createRecord('empty')]));
+  const receivedMessage = mockNFC.pushedMessage();
+  assert_equals(receivedMessage.data.length, 1);
+  assert_equals(receivedMessage.data[0].recordType, 'empty', 'recordType');
 }, "NDEFWriter.push with 'empty' record should succeed.");
 
 nfc_test(async (t, mockNFC) => {
@@ -433,4 +436,11 @@ nfc_test(async (t, mockNFC) => {
   await promise_rejects(t, 'NotAllowedError', p);
 }, "NDEFWriter.push should fail when there are NDEF records on the NFC device \
 and NDEFPushOptions.overwrite is false.");
+
+nfc_test(async (t, mockNFC) => {
+  const writer = new NDEFWriter();
+  mockNFC.simulateDataTransferFails();
+  await promise_rejects(t, 'NetworkError', writer.push(test_text_data));
+}, "NDEFWriter.push should fail with NetworkError when NFC data transfer fails.");
+
 </script>

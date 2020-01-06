@@ -8,7 +8,8 @@ from .base import (get_free_port,
                    cmd_arg,
                    browser_command)
 from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
-                                            MarionetteRefTestExecutor)  # noqa: F401
+                                            MarionetteRefTestExecutor,  # noqa: F401
+                                            MarionetteCrashtestExecutor)  # noqa: F401
 from .firefox import (get_timeout_multiplier,  # noqa: F401
                       run_info_extras as fx_run_info_extras,
                       update_properties,  # noqa: F401
@@ -20,7 +21,8 @@ __wptrunner__ = {"product": "firefox_android",
                  "check_args": "check_args",
                  "browser": "FirefoxAndroidBrowser",
                  "executor": {"testharness": "MarionetteTestharnessExecutor",
-                              "reftest": "MarionetteRefTestExecutor"},
+                              "reftest": "MarionetteRefTestExecutor",
+                              "crashtest": "MarionetteCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
