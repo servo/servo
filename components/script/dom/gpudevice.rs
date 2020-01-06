@@ -5,6 +5,10 @@
 #![allow(unsafe_code)]
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
+use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
+    GPUBindGroupLayoutBindings, GPUBindGroupLayoutDescriptor, GPUBindingType,
+};
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{self, GPUDeviceMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -15,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
+use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -23,7 +28,9 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::typedarray::{ArrayBuffer, CreateWith};
+use std::collections::{HashMap, HashSet};
 use std::ptr::{self, NonNull};
+use webgpu::wgpu::binding_model::{BindGroupLayoutBinding, BindingType, ShaderStage};
 use webgpu::wgpu::resource::{BufferDescriptor, BufferUsage};
 use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
 
@@ -228,5 +235,178 @@ impl GPUDeviceMethods for GPUDevice {
         unsafe {
             self.resolve_create_buffer_mapped(cx, buffer, array_buffer, wgpu_descriptor, valid)
         }
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout
+    fn CreateBindGroupLayout(
+        &self,
+        descriptor: &GPUBindGroupLayoutDescriptor,
+    ) -> DomRoot<GPUBindGroupLayout> {
+        #[derive(Clone)]
+        struct MaxLimits {
+            max_uniform_buffers_per_shader_stage: i32,
+            max_storage_buffers_per_shader_stage: i32,
+            max_sampled_textures_per_shader_stage: i32,
+            max_storage_textures_per_shader_stage: i32,
+            max_samplers_per_shader_stage: i32,
+        }
+        let mut storeBindings = HashSet::new();
+        // TODO: We should have these limits on device creation
+        let limits = GPULimits::empty();
+
+        let mut validation_map = HashMap::new();
+        let maxLimits = MaxLimits {
+            max_uniform_buffers_per_shader_stage: limits.maxUniformBuffersPerShaderStage as i32,
+            max_storage_buffers_per_shader_stage: limits.maxStorageBuffersPerShaderStage as i32,
+            max_sampled_textures_per_shader_stage: limits.maxSampledTexturesPerShaderStage as i32,
+            max_storage_textures_per_shader_stage: limits.maxStorageTexturesPerShaderStage as i32,
+            max_samplers_per_shader_stage: limits.maxSamplersPerShaderStage as i32,
+        };
+        validation_map.insert(
+            webgpu::wgpu::binding_model::ShaderStage::VERTEX,
+            maxLimits.clone(),
+        );
+        validation_map.insert(
+            webgpu::wgpu::binding_model::ShaderStage::FRAGMENT,
+            maxLimits.clone(),
+        );
+        validation_map.insert(
+            webgpu::wgpu::binding_model::ShaderStage::COMPUTE,
+            maxLimits.clone(),
+        );
+        let mut max_dynamic_uniform_buffers_per_pipeline_layout =
+            limits.maxDynamicUniformBuffersPerPipelineLayout as i32;
+        let mut max_dynamic_storage_buffers_per_pipeline_layout =
+            limits.maxDynamicStorageBuffersPerPipelineLayout as i32;
+        let mut valid = true;
+
+        let bindings = descriptor
+            .bindings
+            .iter()
+            .map(|bind| {
+                // TODO: binding must be >= 0
+                storeBindings.insert(bind.binding);
+                let visibility = match ShaderStage::from_bits(bind.visibility) {
+                    Some(visibility) => visibility,
+                    None => {
+                        valid = false;
+                        ShaderStage::from_bits(0).unwrap()
+                    },
+                };
+                let ty = match bind.type_ {
+                    GPUBindingType::Uniform_buffer => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_uniform_buffers_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            max_dynamic_uniform_buffers_per_pipeline_layout -= 1;
+                        };
+                        BindingType::UniformBuffer
+                    },
+                    GPUBindingType::Storage_buffer => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_storage_buffers_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            max_dynamic_storage_buffers_per_pipeline_layout -= 1;
+                        };
+                        BindingType::StorageBuffer
+                    },
+                    GPUBindingType::Readonly_storage_buffer => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_storage_buffers_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            max_dynamic_storage_buffers_per_pipeline_layout -= 1;
+                        };
+                        BindingType::ReadonlyStorageBuffer
+                    },
+                    GPUBindingType::Sampled_texture => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_sampled_textures_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            valid = false
+                        };
+                        BindingType::SampledTexture
+                    },
+                    GPUBindingType::Storage_texture => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_storage_textures_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            valid = false
+                        };
+                        BindingType::StorageTexture
+                    },
+                    GPUBindingType::Sampler => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_samplers_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            valid = false
+                        };
+                        BindingType::Sampler
+                    },
+                };
+
+                BindGroupLayoutBinding {
+                    binding: bind.binding,
+                    visibility,
+                    ty,
+                    dynamic: bind.hasDynamicOffset,
+                    multisampled: bind.multisampled,
+                    texture_dimension: webgpu::wgpu::resource::TextureViewDimension::D2, // Use as default for now
+                }
+            })
+            .collect::<Vec<BindGroupLayoutBinding>>();
+
+        // bindings are unique
+        valid &= storeBindings.len() == bindings.len();
+
+        // Ensure that values do not exceed the max limit for each ShaderStage.
+        valid &= validation_map.values().all(|stage| {
+            stage.max_uniform_buffers_per_shader_stage >= 0 &&
+                stage.max_storage_buffers_per_shader_stage >= 0 &&
+                stage.max_sampled_textures_per_shader_stage >= 0 &&
+                stage.max_storage_textures_per_shader_stage >= 0 &&
+                stage.max_samplers_per_shader_stage >= 0
+        });
+
+        // DynamicValues does not exceed the max limit for the pipeline
+        valid &= max_dynamic_uniform_buffers_per_pipeline_layout >= 0 &&
+            max_dynamic_storage_buffers_per_pipeline_layout >= 0;
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        if let Some(window) = self.global().downcast::<Window>() {
+            let id = window
+                .Navigator()
+                .create_bind_group_layout_id(self.device.0.backend());
+            self.channel
+                .0
+                .send(WebGPURequest::CreateBindGroupLayout(
+                    sender,
+                    self.device,
+                    id,
+                    bindings.clone(),
+                ))
+                .expect("Failed to create WebGPU BindGroupLayout");
+        }
+        let bgl = receiver.recv().unwrap();
+
+        let binds = descriptor
+            .bindings
+            .iter()
+            .map(|bind| GPUBindGroupLayoutBindings {
+                binding: bind.binding,
+                hasDynamicOffset: bind.hasDynamicOffset,
+                multisampled: bind.multisampled,
+                type_: bind.type_,
+                visibility: bind.visibility,
+                //texture_dimension: bind.texture_dimension
+            })
+            .collect::<Vec<_>>();
+
+        GPUBindGroupLayout::new(&self.global(), self.channel.clone(), bgl, binds, valid)
     }
 }

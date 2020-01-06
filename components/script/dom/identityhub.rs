@@ -5,7 +5,7 @@
 use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
-    id::{AdapterId, BufferId, DeviceId},
+    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId},
     Backend,
 };
 
@@ -14,6 +14,7 @@ pub struct IdentityHub {
     adapters: IdentityManager,
     devices: IdentityManager,
     buffers: IdentityManager,
+    bind_group_layouts: IdentityManager,
     backend: Backend,
 }
 
@@ -23,6 +24,7 @@ impl IdentityHub {
             adapters: IdentityManager::default(),
             devices: IdentityManager::default(),
             buffers: IdentityManager::default(),
+            bind_group_layouts: IdentityManager::default(),
             backend,
         }
     }
@@ -35,8 +37,12 @@ impl IdentityHub {
         self.devices.alloc(self.backend)
     }
 
-    pub fn create_buffer_id(&mut self) -> BufferId {
+    fn create_buffer_id(&mut self) -> BufferId {
         self.buffers.alloc(self.backend)
+    }
+
+    fn create_bind_group_layout_id(&mut self) -> BindGroupLayoutId {
+        self.bind_group_layouts.alloc(self.backend)
     }
 }
 
@@ -117,6 +123,20 @@ impl Identities {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => self.metal_hub.create_buffer_id(),
             _ => self.dummy_hub.create_buffer_id(),
+        }
+    }
+
+    pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
+        match backend {
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Vulkan => self.vk_hub.create_bind_group_layout_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx12 => self.dx12_hub.create_bind_group_layout_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx11 => self.dx11_hub.create_bind_group_layout_id(),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            Backend::Metal => self.metal_hub.create_bind_group_layout_id(),
+            _ => self.dummy_hub.create_bind_group_layout_id(),
         }
     }
 }
