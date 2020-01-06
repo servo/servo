@@ -311,6 +311,15 @@ unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     }
 }
 
+unsafe impl<T: JSTraceable + Eq + Hash> JSTraceable for indexmap::IndexSet<T> {
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        for e in self.iter() {
+            e.trace(trc);
+        }
+    }
+}
+
 unsafe impl<A, B, C, D> JSTraceable for (A, B, C, D)
 where
     A: JSTraceable,

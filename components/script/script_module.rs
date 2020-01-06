@@ -70,6 +70,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
+use indexmap::IndexSet;
+
 pub fn get_source_text(source: &[u16]) -> SourceText<u16> {
     SourceText {
         units_: source.as_ptr() as *const _,
@@ -162,8 +164,16 @@ pub struct ModuleTree {
     text: DomRefCell<DOMString>,
     record: DomRefCell<Option<ModuleObject>>,
     status: DomRefCell<ModuleStatus>,
-    parent_urls: DomRefCell<HashSet<ServoUrl>>,
-    descendant_urls: DomRefCell<HashSet<ServoUrl>>,
+    // The spec maintains load order for descendants, so we use an indexset for descendants and
+    // parents. This isn't actually necessary for parents however the IndexSet APIs don't
+    // interop with HashSet, and IndexSet isn't very expensive
+    // (https://github.com/bluss/indexmap/issues/110)
+    //
+    // By default all maps in web specs are ordered maps
+    // (https://infra.spec.whatwg.org/#ordered-map), however we can usually get away with using
+    // stdlib maps and sets because we rarely iterate over them.
+    parent_urls: DomRefCell<IndexSet<ServoUrl>>,
+    descendant_urls: DomRefCell<IndexSet<ServoUrl>>,
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
     error: DomRefCell<Option<ModuleError>>,
     promise: DomRefCell<Option<Rc<Promise>>>,
@@ -176,8 +186,8 @@ impl ModuleTree {
             text: DomRefCell::new(DOMString::new()),
             record: DomRefCell::new(None),
             status: DomRefCell::new(ModuleStatus::Initial),
-            parent_urls: DomRefCell::new(HashSet::new()),
-            descendant_urls: DomRefCell::new(HashSet::new()),
+            parent_urls: DomRefCell::new(IndexSet::new()),
+            descendant_urls: DomRefCell::new(IndexSet::new()),
             visited_urls: DomRefCell::new(HashSet::new()),
             error: DomRefCell::new(None),
             promise: DomRefCell::new(None),
@@ -224,7 +234,7 @@ impl ModuleTree {
         *self.text.borrow_mut() = module_text;
     }
 
-    pub fn get_parent_urls(&self) -> &DomRefCell<HashSet<ServoUrl>> {
+    pub fn get_parent_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
         &self.parent_urls
     }
 
@@ -232,15 +242,15 @@ impl ModuleTree {
         self.parent_urls.borrow_mut().insert(parent_url);
     }
 
-    pub fn append_parent_urls(&self, parent_urls: HashSet<ServoUrl>) {
+    pub fn append_parent_urls(&self, parent_urls: IndexSet<ServoUrl>) {
         self.parent_urls.borrow_mut().extend(parent_urls);
     }
 
-    pub fn get_descendant_urls(&self) -> &DomRefCell<HashSet<ServoUrl>> {
+    pub fn get_descendant_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
         &self.descendant_urls
     }
 
-    pub fn append_descendant_urls(&self, descendant_urls: HashSet<ServoUrl>) {
+    pub fn append_descendant_urls(&self, descendant_urls: IndexSet<ServoUrl>) {
         self.descendant_urls.borrow_mut().extend(descendant_urls);
     }
 
@@ -474,7 +484,7 @@ impl ModuleTree {
     pub fn resolve_requested_modules(
         &self,
         global: &GlobalScope,
-    ) -> Result<HashSet<ServoUrl>, ModuleError> {
+    ) -> Result<IndexSet<ServoUrl>, ModuleError> {
         let status = self.get_status();
 
         assert_ne!(status, ModuleStatus::Initial);
@@ -503,7 +513,7 @@ impl ModuleTree {
                             None
                         }
                     })
-                    .collect::<HashSet<ServoUrl>>()
+                    .collect::<IndexSet<ServoUrl>>()
             });
         }
 
@@ -516,10 +526,10 @@ impl ModuleTree {
         global: &GlobalScope,
         module_object: HandleObject,
         base_url: ServoUrl,
-    ) -> Result<HashSet<ServoUrl>, ModuleError> {
+    ) -> Result<IndexSet<ServoUrl>, ModuleError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
-        let mut specifier_urls = HashSet::new();
+        let mut specifier_urls = IndexSet::new();
 
         unsafe {
             rooted!(in(*global.get_cx()) let requested_modules = GetRequestedModules(*global.get_cx(), module_object));
