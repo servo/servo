@@ -1143,18 +1143,14 @@ pub fn fetch_single_module_script(
         let global = owner.global();
         let module_map = global.get_module_map().borrow();
 
-        debug!("Start to fetch {}", url.clone());
+        debug!("Start to fetch {}", url);
 
         if let Some(module_tree) = module_map.get(&url.clone()) {
             let status = module_tree.get_status();
 
             let promise = module_tree.get_promise().borrow();
 
-            debug!(
-                "Meet a fetched url {} and its status is {:?}",
-                url.clone(),
-                status
-            );
+            debug!("Meet a fetched url {} and its status is {:?}", url, status);
 
             assert!(promise.is_some());
 
@@ -1170,24 +1166,12 @@ pub fn fetch_single_module_script(
                 ModuleStatus::Fetching => return promise.clone(),
                 ModuleStatus::FetchingDescendants => {
                     if module_tree.has_all_ready_descendants(&module_map) {
-                        let module_error = module_tree.get_error().borrow();
-
-                        if module_error.is_some() {
-                            promise.resolve_native(&());
-                        } else {
-                            promise.resolve_native(&());
-                        }
+                        promise.resolve_native(&());
                     }
                 },
                 // Step 3.
                 ModuleStatus::FetchFailed | ModuleStatus::Ready | ModuleStatus::Finished => {
-                    let module_error = module_tree.get_error().borrow();
-
-                    if module_error.is_some() {
-                        promise.resolve_native(&());
-                    } else {
-                        promise.resolve_native(&());
-                    }
+                    promise.resolve_native(&());
                 },
             }
 
