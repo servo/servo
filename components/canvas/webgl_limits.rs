@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::GLLimits;
+use canvas_traits::webgl::{GLLimits, WebGLVersion};
 use sparkle::gl;
 use sparkle::gl::GLenum;
 use sparkle::gl::Gl;
+use sparkle::gl::GlType;
 
 pub trait GLLimitsDetect {
-    fn detect(gl: &Gl) -> Self;
+    fn detect(gl: &Gl, webgl_version: WebGLVersion) -> Self;
 }
 
 impl GLLimitsDetect for GLLimits {
-    fn detect(gl: &Gl) -> GLLimits {
+    fn detect(gl: &Gl, webgl_version: WebGLVersion) -> GLLimits {
         let max_vertex_attribs = gl.get_integer(gl::MAX_VERTEX_ATTRIBS);
         let max_tex_size = gl.get_integer(gl::MAX_TEXTURE_SIZE);
         let max_cube_map_tex_size = gl.get_integer(gl::MAX_CUBE_MAP_TEXTURE_SIZE);
@@ -20,41 +21,74 @@ impl GLLimitsDetect for GLLimits {
         let max_renderbuffer_size = gl.get_integer(gl::MAX_RENDERBUFFER_SIZE);
         let max_texture_image_units = gl.get_integer(gl::MAX_TEXTURE_IMAGE_UNITS);
         let max_vertex_texture_image_units = gl.get_integer(gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS);
-        let max_transform_feedback_separate_attribs =
-            gl.get_integer(gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS);
 
         // TODO: better value for this?
         let max_client_wait_timeout_webgl = std::time::Duration::new(1, 0);
 
         // Based on:
         // https://searchfox.org/mozilla-central/rev/5a744713370ec47969595e369fd5125f123e6d24/dom/canvas/WebGLContextValidate.cpp#523-558
-        let (max_fragment_uniform_vectors, max_varying_vectors, max_vertex_uniform_vectors);
-        match gl.try_get_integer(gl::MAX_FRAGMENT_UNIFORM_VECTORS) {
-            Some(max_vectors) => {
-                max_fragment_uniform_vectors = max_vectors;
-                max_varying_vectors = gl.get_integer(gl::MAX_VARYING_VECTORS);
-                max_vertex_uniform_vectors = gl.get_integer(gl::MAX_VERTEX_UNIFORM_VECTORS);
-            },
-            None => {
-                let max_fragment_uniform_components =
-                    gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_COMPONENTS);
-                let max_vertex_uniform_components =
-                    gl.get_integer(gl::MAX_VERTEX_UNIFORM_COMPONENTS);
+        let (
+            max_fragment_uniform_vectors,
+            max_varying_vectors,
+            max_vertex_uniform_vectors,
+            max_vertex_output_vectors,
+            max_fragment_input_vectors,
+        );
+        if gl.get_type() == GlType::Gles {
+            max_fragment_uniform_vectors = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_VECTORS);
+            max_varying_vectors = gl.get_integer(gl::MAX_VARYING_VECTORS);
+            max_vertex_uniform_vectors = gl.get_integer(gl::MAX_VERTEX_UNIFORM_VECTORS);
+            max_vertex_output_vectors = gl
+                .try_get_integer(gl::MAX_VERTEX_OUTPUT_COMPONENTS)
+                .map(|c| c / 4)
+                .unwrap_or(max_varying_vectors);
+            max_fragment_input_vectors = gl
+                .try_get_integer(gl::MAX_FRAGMENT_INPUT_COMPONENTS)
+                .map(|c| c / 4)
+                .unwrap_or(max_vertex_output_vectors);
+        } else {
+            max_fragment_uniform_vectors = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_COMPONENTS) / 4;
+            max_vertex_uniform_vectors = gl.get_integer(gl::MAX_VERTEX_UNIFORM_COMPONENTS) / 4;
 
-                let max_vertex_output_components = gl
-                    .try_get_integer(gl::MAX_VERTEX_OUTPUT_COMPONENTS)
-                    .unwrap_or(0);
-                let max_fragment_input_components = gl
-                    .try_get_integer(gl::MAX_FRAGMENT_INPUT_COMPONENTS)
-                    .unwrap_or(0);
-                let max_varying_components = max_vertex_output_components
-                    .min(max_fragment_input_components)
-                    .max(16);
+            max_fragment_input_vectors = gl
+                .try_get_integer(gl::MAX_FRAGMENT_INPUT_COMPONENTS)
+                .or_else(|| gl.try_get_integer(gl::MAX_VARYING_COMPONENTS))
+                .map(|c| c / 4)
+                .unwrap_or_else(|| gl.get_integer(gl::MAX_VARYING_VECTORS));
+            max_vertex_output_vectors = gl
+                .try_get_integer(gl::MAX_VERTEX_OUTPUT_COMPONENTS)
+                .map(|c| c / 4)
+                .unwrap_or(max_fragment_input_vectors);
+            max_varying_vectors = max_vertex_output_vectors
+                .min(max_fragment_input_vectors)
+                .max(4);
+        };
 
-                max_fragment_uniform_vectors = max_fragment_uniform_components / 4;
-                max_varying_vectors = max_varying_components / 4;
-                max_vertex_uniform_vectors = max_vertex_uniform_components / 4;
-            },
+        let (
+            max_uniform_buffer_bindings,
+            min_program_texel_offset,
+            max_program_texel_offset,
+            max_transform_feedback_separate_attribs,
+            max_draw_buffers,
+            max_color_attachments,
+        );
+        if webgl_version == WebGLVersion::WebGL2 {
+            max_uniform_buffer_bindings = gl.get_integer(gl::MAX_UNIFORM_BUFFER_BINDINGS);
+            min_program_texel_offset = gl.get_integer(gl::MIN_PROGRAM_TEXEL_OFFSET);
+            max_program_texel_offset = gl.get_integer(gl::MAX_PROGRAM_TEXEL_OFFSET);
+            max_transform_feedback_separate_attribs =
+                gl.get_integer(gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS);
+            max_color_attachments = gl.get_integer(gl::MAX_COLOR_ATTACHMENTS);
+            max_draw_buffers = gl
+                .get_integer(gl::MAX_DRAW_BUFFERS)
+                .min(max_color_attachments)
+        } else {
+            max_uniform_buffer_bindings = 0;
+            min_program_texel_offset = 0;
+            max_program_texel_offset = 0;
+            max_transform_feedback_separate_attribs = 0;
+            max_color_attachments = 1;
+            max_draw_buffers = 1;
         }
 
         GLLimits {
@@ -70,6 +104,13 @@ impl GLLimitsDetect for GLLimits {
             max_vertex_uniform_vectors,
             max_client_wait_timeout_webgl,
             max_transform_feedback_separate_attribs,
+            max_vertex_output_vectors,
+            max_fragment_input_vectors,
+            max_uniform_buffer_bindings,
+            min_program_texel_offset,
+            max_program_texel_offset,
+            max_color_attachments,
+            max_draw_buffers,
         }
     }
 }

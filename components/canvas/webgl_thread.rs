@@ -421,7 +421,7 @@ impl WebGLThread {
 
         let context_attributes = &ContextAttributes {
             version: webgl_version.to_surfman_version(),
-            flags: attributes.to_surfman_context_attribute_flags(),
+            flags: attributes.to_surfman_context_attribute_flags(webgl_version),
         };
 
         let context_descriptor = self
@@ -486,7 +486,7 @@ impl WebGLThread {
             })),
         };
 
-        let limits = GLLimits::detect(&*gl);
+        let limits = GLLimits::detect(&*gl, webgl_version);
 
         let size = clamp_viewport(&gl, requested_size);
         if safe_size != size {
@@ -2659,17 +2659,24 @@ impl ToSurfmanVersion for WebGLVersion {
 }
 
 trait SurfmanContextAttributeFlagsConvert {
-    fn to_surfman_context_attribute_flags(&self) -> ContextAttributeFlags;
+    fn to_surfman_context_attribute_flags(
+        &self,
+        webgl_version: WebGLVersion,
+    ) -> ContextAttributeFlags;
 }
 
 impl SurfmanContextAttributeFlagsConvert for GLContextAttributes {
-    fn to_surfman_context_attribute_flags(&self) -> ContextAttributeFlags {
+    fn to_surfman_context_attribute_flags(
+        &self,
+        webgl_version: WebGLVersion,
+    ) -> ContextAttributeFlags {
         let mut flags = ContextAttributeFlags::empty();
         flags.set(ContextAttributeFlags::ALPHA, self.alpha);
         flags.set(ContextAttributeFlags::DEPTH, self.depth);
         flags.set(ContextAttributeFlags::STENCIL, self.stencil);
-        // TODO: should we always set this to true?
-        flags.set(ContextAttributeFlags::COMPATIBILITY_PROFILE, true);
+        if webgl_version == WebGLVersion::WebGL1 {
+            flags.set(ContextAttributeFlags::COMPATIBILITY_PROFILE, true);
+        }
         flags
     }
 }
