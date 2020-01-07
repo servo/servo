@@ -708,7 +708,12 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 total_chunks,
                 width=len(str(total_chunks)),
             ))
-            .with_treeherder(platform, "%sWPT-%s" % (job_id_prefix, this_chunk))
+            .with_treeherder(
+                platform,
+                "WPT-%s" % this_chunk,
+                group_symbol=job_id_prefix + "WPT",
+                group_name=name_prefix + "web-platform-tests"
+            )
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
