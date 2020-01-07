@@ -98,8 +98,6 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozBox,
     #[cfg(feature = "gecko")]
-    MozInlineBox,
-    #[cfg(feature = "gecko")]
     MozGrid,
     #[cfg(feature = "gecko")]
     MozGridGroup,
@@ -221,9 +219,9 @@ impl Display {
 
     /// XUL boxes.
     #[cfg(feature = "gecko")]
-    pub const MozBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozBox);
+    pub const MozBox: Self = Self::new(DisplayOutside::Block, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
-    pub const MozInlineBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineBox);
+    pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
     pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
     #[cfg(feature = "gecko")]
@@ -375,11 +373,6 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
-            #[cfg(feature = "gecko")]
-            DisplayOutside::XUL => match self.inside() {
-                DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
-                _ => Display::Block,
-            },
             DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             _ => Display::Block,
@@ -399,11 +392,6 @@ impl Display {
                     inside => inside,
                 };
                 Display::from3(DisplayOutside::Inline, inside, self.is_list_item())
-            },
-            #[cfg(feature = "gecko")]
-            DisplayOutside::XUL => match self.inside() {
-                DisplayInside::MozBox => Display::MozInlineBox,
-                _ => *self,
             },
             _ => *self,
         }
