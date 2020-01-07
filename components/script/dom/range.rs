@@ -986,6 +986,7 @@ impl RangeMethods for Range {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::DocumentType => unreachable!(),
+            NodeTypeId::Attr => unreachable!(),
         };
 
         // Step 2.

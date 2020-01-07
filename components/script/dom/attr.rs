@@ -5,15 +5,14 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CallbackReaction;
+use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::vtable_for;
-use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -27,7 +26,7 @@ use style::attr::{AttrIdentifier, AttrValue};
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
 pub struct Attr {
-    reflector_: Reflector,
+    node_: Node,
     identifier: AttrIdentifier,
     value: DomRefCell<AttrValue>,
 
@@ -37,6 +36,7 @@ pub struct Attr {
 
 impl Attr {
     fn new_inherited(
+        document: &Document,
         local_name: LocalName,
         value: AttrValue,
         name: LocalName,
@@ -45,7 +45,7 @@ impl Attr {
         owner: Option<&Element>,
     ) -> Attr {
         Attr {
-            reflector_: Reflector::new(),
+            node_: Node::new_inherited(document),
             identifier: AttrIdentifier {
                 local_name: local_name,
                 name: name,
@@ -58,7 +58,7 @@ impl Attr {
     }
 
     pub fn new(
-        window: &Window,
+        document: &Document,
         local_name: LocalName,
         value: AttrValue,
         name: LocalName,
@@ -66,11 +66,11 @@ impl Attr {
         prefix: Option<Prefix>,
         owner: Option<&Element>,
     ) -> DomRoot<Attr> {
-        reflect_dom_object(
+        Node::reflect_node(
             Box::new(Attr::new_inherited(
-                local_name, value, name, namespace, prefix, owner,
+                document, local_name, value, name, namespace, prefix, owner,
             )),
-            window,
+            document,
             AttrBinding::Wrap,
         )
     }
@@ -114,35 +114,10 @@ impl AttrMethods for Attr {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn TextContent(&self) -> DOMString {
-        self.Value()
-    }
-
-    // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn SetTextContent(&self, value: DOMString) {
-        self.SetValue(value)
-    }
-
-    // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn NodeValue(&self) -> DOMString {
-        self.Value()
-    }
-
-    // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn SetNodeValue(&self, value: DOMString) {
-        self.SetValue(value)
-    }
-
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
         DOMString::from(&*self.identifier.name)
-    }
-
-    // https://dom.spec.whatwg.org/#dom-attr-nodename
-    fn NodeName(&self) -> DOMString {
-        self.Name()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
@@ -248,6 +223,13 @@ impl Attr {
             namespace: (*self.identifier.namespace).to_owned(),
             name: String::from(self.Name()),
             value: String::from(self.Value()),
+        }
+    }
+
+    pub fn qualified_name(&self) -> DOMString {
+        match self.prefix() {
+            Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
+            None => DOMString::from(&**self.local_name()),
         }
     }
 }
