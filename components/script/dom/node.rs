@@ -6,7 +6,7 @@
 
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -86,7 +86,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefMut, UnsafeCell};
+use std::cell::{Cell, UnsafeCell};
 use std::cmp;
 use std::default::Default;
 use std::iter;

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
@@ -19,7 +19,7 @@ use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLProgram {

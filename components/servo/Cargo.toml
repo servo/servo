@@ -29,6 +29,7 @@ uwp = ["servo_config/uwp", "script/uwp"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
+refcell_backtrace = ["script/refcell_backtrace"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",

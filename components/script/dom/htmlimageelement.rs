@@ -5,7 +5,7 @@
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -67,7 +67,7 @@ use num_traits::ToPrimitive;
 use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
-use std::cell::{Cell, RefMut};
+use std::cell::Cell;
 use std::char;
 use std::collections::HashSet;
 use std::default::Default;

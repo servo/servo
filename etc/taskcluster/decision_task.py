@@ -206,7 +206,7 @@ def linux_tidy_unit():
             python3 ./mach build --dev
             python3 ./mach test-unit
             python3 ./mach package --dev
-            python3 ./mach build --dev --features canvas2d-raqote
+            python3 ./mach build --dev --features refcell_backtrace
             python3 ./mach build --dev --features layout-2020
             python3 ./mach build --dev --libsimpleservo
             python3 ./mach build --dev -p servo-gst-plugin

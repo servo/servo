@@ -6,7 +6,7 @@
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
@@ -98,7 +98,6 @@ use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
-use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -107,7 +106,7 @@ use selectors::Element as SelectorsElement;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref, RefMut};
+use std::cell::Cell;
 use std::default::Default;
 use std::fmt;
 use std::mem;

@@ -4,7 +4,7 @@
 
 use crate::compartments::enter_realm;
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
     self, AudioBufferMethods, AudioBufferOptions,
 };
@@ -21,7 +21,6 @@ use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
-use std::cell::Ref;
 use std::cmp::min;
 use std::ptr::{self, NonNull};
 

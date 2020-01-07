@@ -125,6 +125,8 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                     match_def_path(cx, did.did, &[sym::core, sym.cell, sym.RefMut]) ||
                     match_def_path(cx, did.did, &[sym::core, sym.slice, sym.Iter]) ||
                     match_def_path(cx, did.did, &[sym::core, sym.slice, sym.IterMut]) ||
+                    match_def_path(cx, did.did, &[sym.accountable_refcell, sym.Ref]) ||
+                    match_def_path(cx, did.did, &[sym.accountable_refcell, sym.RefMut]) ||
                     match_def_path(
                         cx,
                         did.did,
@@ -175,6 +177,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
             ty::Ref(..) => false,    // don't recurse down &ptrs
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(_) => false,
+
             _ => true,
         }
     });
@@ -412,6 +415,7 @@ symbols! {
     rc
     Rc
     cell
+    accountable_refcell
     Ref
     RefMut
     slice

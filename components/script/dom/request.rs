@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::body::{consume_body, BodyOperations, BodyType};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
@@ -38,7 +38,7 @@ use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::{Origin, Window};
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::rc::Rc;
 use std::str::FromStr;
 

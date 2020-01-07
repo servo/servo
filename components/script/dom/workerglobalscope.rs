@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compartments::InCompartment;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -52,7 +52,6 @@ use net_traits::request::{
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
-use std::cell::Ref;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};

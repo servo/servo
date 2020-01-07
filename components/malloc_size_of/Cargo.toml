@@ -22,10 +22,12 @@ servo = [
     "webrender_api",
     "xml5ever",
     "content-security-policy",
-    "uuid"
+    "uuid",
+    "accountable-refcell",
 ]
 
 [dependencies]
+accountable-refcell = { version = "0.2.0", optional = true }
 app_units = "0.7"
 content-security-policy = {version = "0.3.0", features = ["serde"], optional = true}
 crossbeam-channel = { version = "0.3", optional = true }

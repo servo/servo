@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use crate::dom::bindings::inheritance::Castable;
@@ -15,8 +15,7 @@ use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId,
 };
 use dom_struct::dom_struct;
-use ref_filter_map::ref_filter_map;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLVertexArrayObjectOES {

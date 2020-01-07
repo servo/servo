@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
@@ -25,7 +26,6 @@ use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use script_traits::serializable::BlobImpl;
-use std::cell::Ref;
 use std::ptr;
 use std::rc::Rc;
 use std::str;

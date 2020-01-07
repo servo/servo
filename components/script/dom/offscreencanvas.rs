@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext, Wrap as OffscreenCanvasWrap,
 };
@@ -22,9 +22,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::HandleValue;
 use profile_traits::ipc;
-use ref_filter_map;
 use std::cell::Cell;
-use std::cell::Ref;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -94,7 +92,7 @@ impl OffscreenCanvas {
     }
 
     pub fn context(&self) -> Option<Ref<OffscreenCanvasContext>> {
-        ref_filter_map::ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     pub fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
