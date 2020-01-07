@@ -21,7 +21,7 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute USVString ping;
   // [CEReactions]
   //         attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
 };
 //HTMLAreaElement includes HTMLHyperlinkElementUtils;
