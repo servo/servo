@@ -827,6 +827,18 @@
      {}
     ]
    ],
+   "css/border_black_groove.html": [
+    [
+     "css/border_black_groove.html",
+     [
+      [
+       "/_mozilla/css/border_black_solid.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/border_black_ridge_a.html": [
     [
      "css/border_black_ridge_a.html",
@@ -7662,20 +7674,6 @@
     ]
    ]
   },
-  "reftest_node": {
-   "css/border_black_groove.html": [
-    [
-     "css/border_black_groove.html",
-     [
-      [
-       "/_mozilla/css/border_black_solid.html",
-       "!="
-      ]
-     ],
-     {}
-    ]
-   ]
-  },
   "support": {
    ".gitignore": [
     []
@@ -14053,7 +14051,7 @@
   ],
   "css/border_black_groove.html": [
    "49e1647a6f71e320770225ad537b4fd4020bd700",
-   "reftest_node"
+   "reftest"
   ],
   "css/border_black_ridge_a.html": [
    "90cdda1dca8793a1c01b72f1ad27398903cfd823",
@@ -19552,7 +19550,7 @@
    "testharness"
   ],
   "mozilla/union.html": [
-   "42012add68c355c81e793492e59b05c1ca728f2d",
+   "dec25d03b8e46791c8044c67bca93036c3e8bdeb",
    "testharness"
   ],
   "mozilla/unitless-length.html": [
