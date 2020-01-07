@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -27,6 +27,8 @@ pub struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+    // Mostly exposed in ShadowRoot, but concept is defined for fragments in general
+    host: MutNullableDom<Element>,
 }
 
 impl DocumentFragment {
@@ -35,6 +37,7 @@ impl DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
             id_map: DomRefCell::new(HashMap::new()),
+            host: MutNullableDom::new(None),
         }
     }
 
@@ -54,6 +57,14 @@ impl DocumentFragment {
 
     pub fn id_map(&self) -> &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>> {
         &self.id_map
+    }
+
+    pub fn get_host(&self) -> Option<DomRoot<Element>> {
+        self.host.get()
+    }
+
+    pub fn set_host(&self, host: Option<&Element>) {
+        self.host.set(host)
     }
 }
 
@@ -109,5 +120,24 @@ impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         self.upcast::<Node>().query_selector_all(selectors)
+    }
+}
+
+// LayoutThread wants to get_host_for_layout from ShadowRoot, but
+// host is actually owned here.
+
+#[allow(unsafe_code)]
+pub trait LayoutDocumentFragmentHelpers {
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
+}
+
+impl LayoutDocumentFragmentHelpers for LayoutDom<DocumentFragment> {
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
+        (*self.unsafe_get())
+            .host
+            .get_inner_as_layout()
+            .expect("We should never do layout on a detached shadow root")
     }
 }

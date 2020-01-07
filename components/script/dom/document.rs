@@ -3809,9 +3809,19 @@ impl DocumentMethods for Document {
         }
 
         // Step 3.
+        if let Some(fragment) = node.downcast::<DocumentFragment>() {
+            if fragment.get_host().is_some() {
+                // Spec text doesn't actually say what to return,
+                // but IDL doesn't allow null, and
+                // returning the node itself seems to be what's expected
+                return Ok(DomRoot::from_ref(node));
+            }
+        }
+
+        // Step 4
         Node::adopt(node, self);
 
-        // Step 4.
+        // Step 5.
         Ok(DomRoot::from_ref(node))
     }
 

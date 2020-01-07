@@ -10,6 +10,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -57,8 +58,11 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
     fn Content(&self) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
-            doc.appropriate_template_contents_owner_document()
-                .CreateDocumentFragment()
+            let fragment = doc
+                .appropriate_template_contents_owner_document()
+                .CreateDocumentFragment();
+            fragment.set_host(Some(self.upcast::<Element>()));
+            fragment
         })
     }
 }

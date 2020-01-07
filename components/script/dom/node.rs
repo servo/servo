@@ -1853,11 +1853,9 @@ impl Node {
             _ => child,
         };
 
-        // Step 4.
-        let document = document_from_node(parent);
-        Node::adopt(node, &document);
+        // whatwg/dom#754 moved adopt from here to insert
 
-        // Step 5.
+        // Step 4.
         Node::insert(
             node,
             parent,
@@ -1865,7 +1863,7 @@ impl Node {
             SuppressObserver::Unsuppressed,
         );
 
-        // Step 6.
+        // Step 5.
         Ok(DomRoot::from_ref(node))
     }
 
@@ -1876,34 +1874,39 @@ impl Node {
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
     ) {
-        node.owner_doc().add_script_and_layout_blocker();
-        debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
+        // as of whatwg/dom#754, parent and node don't necessarily
+        // share a doc going into this method
+        let parent_doc = parent.owner_doc();
+        let node_doc = node.owner_doc();
+        parent_doc.add_script_and_layout_blocker();
+        node_doc.add_script_and_layout_blocker();
+
         debug_assert!(child.map_or(true, |child| Some(parent) ==
             child.GetParentNode().as_deref()));
 
-        // Step 1.
+        // Steps 1-2.
         let count = if node.is::<DocumentFragment>() {
             node.children_count()
         } else {
             1
         };
-        // Step 2.
+        // Step 5.
         if let Some(child) = child {
             if !parent.ranges.is_empty() {
                 let index = child.index();
-                // Steps 2.1-2.
+                // Steps 5.1-2.
                 parent.ranges.increase_above(parent, index, count);
             }
         }
         rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            // Step 3.
+            // Step 1, Documentfragment path
             new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
-            // Step 4.
+            // Step 4.1
             for kid in &*new_nodes {
                 Node::remove(kid, node, SuppressObserver::Suppressed);
             }
-            // Step 5.
+            // Step 4.2
             vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
 
             let mutation = Mutation::ChildList {
@@ -1916,7 +1919,7 @@ impl Node {
 
             new_nodes.r()
         } else {
-            // Step 3.
+            // Step 1, non-DocumentFragment path
             ref_slice(&node)
         };
         // Step 6.
@@ -1929,8 +1932,14 @@ impl Node {
         };
         // Step 7.
         for kid in new_nodes {
-            // Step 7.1.
+            // Step 7.1: whatwg/dom#754 moved adopt to here
+            Node::adopt(node, &parent_doc);
+
+            // Step 7.2 if child is null, or 7.3 if child is non-null
             parent.add_child(*kid, child);
+
+            // TODO Steps 7.4-7.6 require Shadow DOM slots
+
             // Step 7.7.
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
@@ -1967,39 +1976,38 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
-        node.owner_doc().remove_script_and_layout_blocker();
+        node_doc.remove_script_and_layout_blocker();
+        parent_doc.remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
         parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
-        if let Some(node) = node {
-            Node::adopt(node, &*parent.owner_doc());
-        }
-        // Step 2.
         rooted_vec!(let removed_nodes <- parent.children());
-        // Step 3.
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+                // Step 3
                 added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
                 added_nodes.r()
             } else {
+                // Step 4
                 ref_slice(node)
             }
         } else {
+            // Step 2
             &[] as &[&Node]
         };
-        // Step 4.
+        // Step 5.
         for child in &*removed_nodes {
             Node::remove(child, parent, SuppressObserver::Suppressed);
         }
-        // Step 5.
+        // Step 6.
         if let Some(node) = node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
-        // Step 6.
+        // Step 7.
         vtable_for(&parent).children_changed(&ChildrenMutation::replace_all(
             removed_nodes.r(),
             added_nodes,
@@ -2532,15 +2540,14 @@ impl NodeMethods for Node {
         // Step 9.
         let previous_sibling = child.GetPreviousSibling();
 
-        // Step 10.
-        let document = document_from_node(self);
-        Node::adopt(node, &document);
+        // whatwg/dom#754 moved adopt from here to insert
 
         let removed_child = if node != child {
             // Step 11.
             Node::remove(child, self, SuppressObserver::Suppressed);
             Some(child)
         } else {
+            // Step 10.
             None
         };
 

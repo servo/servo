@@ -11,7 +11,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
-use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::documentfragment::{DocumentFragment, LayoutDocumentFragmentHelpers};
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
@@ -41,7 +41,6 @@ pub struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
-    host: MutNullableDom<Element>,
     /// List of author styles associated with nodes in this shadow tree.
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
@@ -52,6 +51,7 @@ impl ShadowRoot {
     #[allow(unrooted_must_root)]
     fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
+        document_fragment.set_host(Some(host));
         let node = document_fragment.upcast::<Node>();
         node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
         node.set_flag(
@@ -62,7 +62,6 @@ impl ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
-            host: MutNullableDom::new(Some(host)),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
@@ -82,7 +81,10 @@ impl ShadowRoot {
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
         Node::complete_remove_subtree(&node, &UnbindContext::new(node, None, None, None));
-        self.host.set(None);
+        // host=null state must never be observed! This codepath is just for
+        // cleaning up media controls, not for use on elements that
+        // Javascript code can reference directly.
+        self.document_fragment.set_host(None);
     }
 
     pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
@@ -138,7 +140,7 @@ impl ShadowRoot {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
-        if let Some(host) = self.host.get() {
+        if let Some(host) = self.document_fragment.get_host() {
             host.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         }
     }
@@ -224,7 +226,7 @@ impl ShadowRootMethods for ShadowRoot {
 
     /// https://dom.spec.whatwg.org/#dom-shadowroot-host
     fn Host(&self) -> DomRoot<Element> {
-        let host = self.host.get();
+        let host = self.document_fragment.get_host();
         host.expect("Trying to get host from a detached shadow root")
     }
 
@@ -257,10 +259,8 @@ impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
-        (*self.unsafe_get())
-            .host
-            .get_inner_as_layout()
-            .expect("We should never do layout on a detached shadow root")
+        // layout_thread wants to get this from ShadowRoot,
+        self.upcast::<DocumentFragment>().get_host_for_layout()
     }
 
     #[inline]
