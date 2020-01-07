@@ -339,6 +339,7 @@ class SourceFile(object):
                 self.filename == "META.yml" or
                 self.filename.startswith(".") or
                 self.filename.endswith(".headers") or
+                self.filename.endswith(".ini") or
                 self.in_non_test_dir())
 
     @property

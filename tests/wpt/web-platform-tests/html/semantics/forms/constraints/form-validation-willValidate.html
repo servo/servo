@@ -41,14 +41,26 @@
     },
     //If an element is disabled, it is barred from constraint validation.
     //The willValidate attribute must be true if an element is mutable
-    //If the readonly attribute is specified on an INPUT element, the element is barred from constraint validation.
+    //If the readonly attribute is specified on an INPUT element, the element is barred from constraint validation
+    //(with the assumption that the readonly attribute applies).
     {
       tag: "input",
-      types: ["text", "search", "tel", "url", "email", "password", "datetime-local", "date", "month", "week", "time", "color", "file", "submit"],
+      types: ["text", "search", "tel", "url", "email", "password", "datetime-local", "date", "month", "week", "time"],
       testData: [
         {conditions: {disabled: true}, expected: false, name: "[target] Must be barred from the constraint validation if it is disabled"},
         {conditions: {disabled: false, readOnly: false}, expected: true, name: "[target] The willValidate attribute must be true if an element is mutable"},
         {conditions: {readOnly: true}, expected: false, name: "[target] Must be barred from the constraint validation if it is readonly"},
+        {conditions: {disabled: false, readOnly: false}, expected: false, name: "[target] The willValidate attribute must be false if it has a datalist ancestor", ancestor: "datalist"},
+      ]
+    },
+    //In the following cases, the readonly attribute does not apply.
+    {
+      tag: "input",
+      types: ["color", "file", "submit"],
+      testData: [
+        {conditions: {disabled: true}, expected: false, name: "[target] Must be barred from the constraint validation if it is disabled"},
+        {conditions: {disabled: false, readOnly: false}, expected: true, name: "[target] The willValidate attribute must be true if an element is mutable"},
+        {conditions: {readOnly: true}, expected: true, name: "[target] Must be not barred from the constraint validation even if it is readonly"},
         {conditions: {disabled: false, readOnly: false}, expected: false, name: "[target] The willValidate attribute must be false if it has a datalist ancestor", ancestor: "datalist"},
       ]
     },

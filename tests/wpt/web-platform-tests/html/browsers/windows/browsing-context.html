@@ -40,7 +40,6 @@
     }, "Check that new document nodes extant, empty");
 
     test(function () {
-      assert_equals(doc.origin, document.origin, "The document's origin should be its creator document's origin");
       assert_equals(doc.referrer, document.URL, "The document's referrer should be its creator document's address.");
       assert_equals(iframe.contentWindow.parent.document, document);
     }, "Check the document properties corresponding to the creator browsing context");

@@ -36,6 +36,7 @@ def items(s):
     "foo/resources/test.html",
     "foo/support/test.html",
     "foo/foo-manual.html.headers",
+    "crashtests/foo.html.ini",
     "css/common/test.html",
     "css/CSS2/archive/test.html",
 ])

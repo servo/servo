@@ -535,7 +535,7 @@ class WebDriverCrashtestExecutor(CrashtestExecutor):
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(**data), [])
+        return (test.result_cls(*data), [])
 
     def do_crashtest(self, protocol, url, timeout):
         protocol.base.load(url)

@@ -6,3 +6,13 @@
 partial interface MediaStreamTrack {
   attribute DOMString contentHint;
 };
+
+enum RTCDegradationPreference {
+  "maintain-framerate",
+  "maintain-resolution",
+  "balanced"
+};
+
+partial dictionary RTCRtpSendParameters {
+ RTCDegradationPreference degradationPreference;
+};

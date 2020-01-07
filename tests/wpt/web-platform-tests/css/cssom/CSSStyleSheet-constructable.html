@@ -66,7 +66,7 @@ test(() => {
   assert_equals(sheet.cssRules[0].cssText, redStyleTexts[1]);
 
   const sheet2 = new CSSStyleSheet({});
-  assert_equals(sheet2.title, "")
+  assert_equals(sheet2.title, null);
   assert_equals(sheet2.ownerNode, null);
   assert_equals(sheet2.ownerRule, null);
   assert_equals(sheet2.media.length, 0);
@@ -80,8 +80,8 @@ test(() => {
   sheet2.deleteRule(0);
   assert_equals(sheet2.cssRules.length, 0);
 
-const sheet3 = new CSSStyleSheet();
-  assert_equals(sheet3.title, "")
+  const sheet3 = new CSSStyleSheet();
+  assert_equals(sheet3.title, null);
   assert_equals(sheet3.ownerNode, null);
   assert_equals(sheet3.ownerRule, null);
   assert_equals(sheet3.media.length, 0);
