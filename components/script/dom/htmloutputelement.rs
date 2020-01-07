@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
@@ -23,6 +25,7 @@ pub struct HTMLOutputElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+    default_value_override: DomRefCell<Option<DOMString>>,
 }
 
 impl HTMLOutputElement {
@@ -35,6 +38,7 @@ impl HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
+            default_value_override: DomRefCell::new(None),
         }
     }
 
@@ -52,6 +56,11 @@ impl HTMLOutputElement {
             HTMLOutputElementBinding::Wrap,
         )
     }
+
+    pub fn reset(&self) {
+        Node::string_replace_all(self.DefaultValue(), self.upcast::<Node>());
+        *self.default_value_override.borrow_mut() = None;
+    }
 }
 
 impl HTMLOutputElementMethods for HTMLOutputElement {
@@ -68,6 +77,43 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     make_labels_getter!(Labels, labels_node_list);
+
+    // https://html.spec.whatwg.org/multipage/#dom-output-defaultvaleu
+    fn DefaultValue(&self) -> DOMString {
+        let dvo = self.default_value_override.borrow();
+        if let Some(ref dv) = *dvo {
+            dv.clone()
+        } else {
+            self.upcast::<Node>().descendant_text_content()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue
+    fn SetDefaultValue(&self, value: DOMString) {
+        if self.default_value_override.borrow().is_none() {
+            // Step 1 ("and return")
+            Node::string_replace_all(value.clone(), self.upcast::<Node>());
+        } else {
+            // Step 2, if not returned from step 1
+            *self.default_value_override.borrow_mut() = Some(value);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-output-value
+    fn Value(&self) -> DOMString {
+        self.upcast::<Node>().descendant_text_content()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-output-value
+    fn SetValue(&self, value: DOMString) {
+        *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
+        Node::string_replace_all(value, self.upcast::<Node>());
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-output-type
+    fn Type(&self) -> DOMString {
+        return DOMString::from("output");
+    }
 }
 
 impl VirtualMethods for HTMLOutputElement {

@@ -1058,7 +1058,7 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLOutputElement,
                 )) => {
-                    // Unimplemented
+                    child.downcast::<HTMLOutputElement>().unwrap().reset();
                 },
                 _ => {},
             }

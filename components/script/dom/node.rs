@@ -2017,6 +2017,16 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
+    // https://dom.spec.whatwg.org/multipage/#string-replace-all
+    pub fn string_replace_all(string: DOMString, parent: &Node) {
+        if string.len() == 0 {
+            Node::replace_all(None, parent);
+        } else {
+            let text = Text::new(string, &document_from_node(parent));
+            Node::replace_all(Some(text.upcast::<Node>()), parent);
+        };
+    }
+
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
     fn pre_remove(child: &Node, parent: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
@@ -2211,6 +2221,11 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#child-text-content>
     pub fn child_text_content(&self) -> DOMString {
         Node::collect_text_contents(self.children())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#descendant-text-content>
+    pub fn descendant_text_content(&self) -> DOMString {
+        Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No))
     }
 
     pub fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(iterator: T) -> DOMString {
