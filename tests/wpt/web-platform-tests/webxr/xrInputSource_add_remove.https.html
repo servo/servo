@@ -46,7 +46,7 @@ let testFunction = (session, fakeDeviceController, t) => new Promise((resolve) =
           assert_equals(input_sources[1].handedness, "none");
         });
 
-        fakeDeviceController.removeInputSource(input_source_1);
+        input_source_1.disconnect();
 
         session.requestAnimationFrame((time, xrFrame) => {
           let input_sources = session.inputSources;
