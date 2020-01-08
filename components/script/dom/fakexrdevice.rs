@@ -5,12 +5,17 @@
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     self, FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
 };
+use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputSourceInit;
+use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
+    XRHandedness, XRTargetRayMode,
+};
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::fakexrinputcontroller::FakeXRInputController;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
@@ -20,14 +25,19 @@ use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
+use std::cell::Cell;
 use std::rc::Rc;
-use webxr_api::{MockDeviceMsg, MockViewInit, MockViewsInit, Visibility};
+use webxr_api::{
+    Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockViewInit, MockViewsInit,
+    TargetRayMode, Visibility,
+};
 
 #[dom_struct]
 pub struct FakeXRDevice {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     sender: IpcSender<MockDeviceMsg>,
+    next_input_id: Cell<u32>,
 }
 
 impl FakeXRDevice {
@@ -35,6 +45,7 @@ impl FakeXRDevice {
         FakeXRDevice {
             reflector: Reflector::new(),
             sender,
+            next_input_id: Cell::new(0),
         }
     }
 
@@ -174,6 +185,49 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         let _ = self.sender.send(MockDeviceMsg::VisibilityChange(v));
     }
 
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateinputsourceconnection
+    fn SimulateInputSourceConnection(
+        &self,
+        init: &FakeXRInputSourceInit,
+    ) -> Fallible<DomRoot<FakeXRInputController>> {
+        let id = self.next_input_id.get();
+        self.next_input_id.set(id + 1);
+        let id = InputId(id);
+
+        let handedness = init.handedness.into();
+        let target_ray_mode = init.targetRayMode.into();
+
+        let pointer_origin = Some(get_origin(&init.pointerOrigin)?);
+
+        let grip_origin = if let Some(ref g) = init.gripOrigin {
+            Some(get_origin(g)?)
+        } else {
+            None
+        };
+
+        // XXXManishearth deal with profiles, supportedButtons, selection*
+
+        let source = InputSource {
+            handedness,
+            target_ray_mode,
+            id,
+            supports_grip: true,
+        };
+
+        let init = MockInputInit {
+            source,
+            pointer_origin,
+            grip_origin,
+        };
+
+        let global = self.global();
+        let _ = self.sender.send(MockDeviceMsg::AddInputSource(init));
+
+        let controller = FakeXRInputController::new(&global, self.sender.clone(), id);
+
+        Ok(controller)
+    }
+
     /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect
     fn Disconnect(&self) -> Rc<Promise> {
         let global = self.global();
@@ -195,5 +249,25 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         );
         self.disconnect(sender);
         p
+    }
+}
+
+impl From<XRHandedness> for Handedness {
+    fn from(h: XRHandedness) -> Self {
+        match h {
+            XRHandedness::None => Handedness::None,
+            XRHandedness::Left => Handedness::Left,
+            XRHandedness::Right => Handedness::Right,
+        }
+    }
+}
+
+impl From<XRTargetRayMode> for TargetRayMode {
+    fn from(t: XRTargetRayMode) -> Self {
+        match t {
+            XRTargetRayMode::Gaze => TargetRayMode::Gaze,
+            XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
+            XRTargetRayMode::Screen => TargetRayMode::Screen,
+        }
     }
 }

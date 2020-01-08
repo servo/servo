@@ -21,8 +21,7 @@ interface FakeXRDevice {
 
   // void setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
 
-  // Promise<FakeXRInputController>
-  //     simulateInputSourceConnection(FakeXRInputSourceInit);
+  [Throws] FakeXRInputController simulateInputSourceConnection(FakeXRInputSourceInit init);
 
   // behaves as if device was disconnected
   Promise<void> disconnect();
