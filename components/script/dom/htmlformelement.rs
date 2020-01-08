@@ -1081,6 +1081,13 @@ impl HTMLFormElement {
             .iter()
             .position(|c| &**c == control)
             .map(|idx| controls.remove(idx));
+
+        // https://html.spec.whatwg.org/multipage#forms.html#the-form-element:past-names-map-5
+        // "If an element listed in a form element's past names map
+        // changes form owner, then its entries must be removed
+        // from that map."
+        let mut past_names_map = self.past_names_map.borrow_mut();
+        past_names_map.retain(|_k, v| v.0 != control);
     }
 }
 
