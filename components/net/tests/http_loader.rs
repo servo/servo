@@ -543,7 +543,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
 }
 
 #[test]
-fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
+fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_are_present() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response
             .headers_mut()
