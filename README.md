@@ -265,6 +265,11 @@ linker = "lld-link.exe"
 > 1. Open Command Prompt or PowerShell as administrator.
 > 2. Disable case-sensitive for servo path, `fsutil.exe file SetCaseSensitiveInfo X:\path\to\servo disable`
 
+> If you got the error `DLL file `api-ms-win-crt-runtime-l1-1-0.dll` not found!` then set
+> the `WindowsSdkDir` environment variable to an appropriate `Windows Kit` directory containing
+> `Redist\ucrt\DLLs\x64\api-ms-win-crt-runtime-l1-1-0.dll`, for example
+> `C:\Program Files (x86)\Windows Kits\10`.
+
 #### Cross-compilation for Android
 
 Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
