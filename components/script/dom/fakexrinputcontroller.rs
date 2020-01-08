@@ -13,7 +13,7 @@ use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use webxr_api::{InputId, MockDeviceMsg, MockInputMsg};
+use webxr_api::{InputId, MockDeviceMsg, MockInputMsg, SelectEvent, SelectKind};
 
 #[dom_struct]
 pub struct FakeXRInputController {
@@ -78,5 +78,29 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
     /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-reconnect
     fn Reconnect(&self) {
         self.send_message(MockInputMsg::Reconnect)
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-startselection
+    fn StartSelection(&self) {
+        self.send_message(MockInputMsg::TriggerSelect(
+            SelectKind::Select,
+            SelectEvent::Start,
+        ))
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-endselection
+    fn EndSelection(&self) {
+        self.send_message(MockInputMsg::TriggerSelect(
+            SelectKind::Select,
+            SelectEvent::End,
+        ))
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-simulateselect
+    fn SimulateSelect(&self) {
+        self.send_message(MockInputMsg::TriggerSelect(
+            SelectKind::Select,
+            SelectEvent::Select,
+        ))
     }
 }

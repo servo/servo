@@ -16,9 +16,9 @@ interface FakeXRInputController {
   void disconnect();
   void reconnect();
 
-  // void startSelection();
-  // void endSelection();
-  // void simulateSelect();
+  void startSelection();
+  void endSelection();
+  void simulateSelect();
 
   // void setSupportedButtons(sequence<FakeXRButtonStateInit> supportedButtons);
   // void updateButtonState(FakeXRButtonStateInit buttonState);
