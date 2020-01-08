@@ -9,18 +9,8 @@
  */
 
 [Exposed=Window]
-interface Range {
+interface Range : AbstractRange {
   [Throws] constructor();
-  [Pure]
-  readonly attribute Node startContainer;
-  [Pure]
-  readonly attribute unsigned long startOffset;
-  [Pure]
-  readonly attribute Node endContainer;
-  [Pure]
-  readonly attribute unsigned long endOffset;
-  [Pure]
-  readonly attribute boolean collapsed;
   [Pure]
   readonly attribute Node commonAncestorContainer;
 
