@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
@@ -62,7 +63,7 @@ impl XRInputSourcesChangeEvent {
             let event = changeevent.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
-
+        let _ac = enter_realm(&*global);
         let cx = global.get_cx();
         unsafe {
             rooted!(in(*cx) let mut added_val = UndefinedValue());
