@@ -66,10 +66,10 @@ impl XRInputSourcesChangeEvent {
         let cx = global.get_cx();
         unsafe {
             rooted!(in(*cx) let mut added_val = UndefinedValue());
-            rooted!(in(*cx) let mut removed_val  = UndefinedValue());
             added.to_jsval(*cx, added_val.handle_mut());
-            removed.to_jsval(*cx, removed_val.handle_mut());
             changeevent.added.set(added_val.get());
+            rooted!(in(*cx) let mut removed_val = UndefinedValue());
+            removed.to_jsval(*cx, removed_val.handle_mut());
             changeevent.added.set(removed_val.get());
         }
 
