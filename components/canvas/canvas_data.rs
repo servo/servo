@@ -771,6 +771,9 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        if self.path_builder().current_point().is_none() {
+            self.path_builder().move_to(cp);
+        }
         self.path_builder().quadratic_curve_to(cp, endpoint);
     }
 
