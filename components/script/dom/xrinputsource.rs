@@ -75,7 +75,7 @@ impl XRInputSourceMethods for XRInputSource {
     /// https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace
     fn GetGripSpace(&self) -> Option<DomRoot<XRSpace>> {
         if self.info.supports_grip {
-            Some(self.target_ray_space.or_init(|| {
+            Some(self.grip_space.or_init(|| {
                 let global = self.global();
                 XRSpace::new_inputspace(&global, &self.session, &self, true)
             }))
