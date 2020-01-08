@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::abstractrange::{AbstractRange};
+use crate::dom::abstractrange::AbstractRange;
 use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{self, StaticRangeInit};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
