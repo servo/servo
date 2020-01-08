@@ -1719,7 +1719,10 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        debug_assert!(node.children.read().is_empty());
+        if cfg!(debug_assertions) || crate::gecko_bindings::structs::GECKO_IS_NIGHTLY {
+            assert!(node.children.read().is_empty());
+        }
+
         if node.parent.is_none() {
             debug!("Dropping root node!");
             // The free list should be null by this point
