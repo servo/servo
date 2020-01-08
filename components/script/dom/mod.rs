@@ -565,6 +565,7 @@ pub mod xrframe;
 pub mod xrinputsource;
 pub mod xrinputsourcearray;
 pub mod xrinputsourceevent;
+pub mod xrinputsourceschangeevent;
 pub mod xrpose;
 pub mod xrreferencespace;
 pub mod xrrenderstate;
