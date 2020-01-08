@@ -37,7 +37,8 @@ pub struct FakeXRDevice {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     sender: IpcSender<MockDeviceMsg>,
-    next_input_id: Cell<u32>,
+    #[ignore_malloc_size_of = "defined in webxr-api"]
+    next_input_id: Cell<InputId>,
 }
 
 impl FakeXRDevice {
@@ -45,7 +46,7 @@ impl FakeXRDevice {
         FakeXRDevice {
             reflector: Reflector::new(),
             sender,
-            next_input_id: Cell::new(0),
+            next_input_id: Cell::new(InputId(0)),
         }
     }
 
@@ -191,8 +192,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         init: &FakeXRInputSourceInit,
     ) -> Fallible<DomRoot<FakeXRInputController>> {
         let id = self.next_input_id.get();
-        self.next_input_id.set(id + 1);
-        let id = InputId(id);
+        self.next_input_id.set(InputId(id.0 + 1));
 
         let handedness = init.handedness.into();
         let target_ray_mode = init.targetRayMode.into();
