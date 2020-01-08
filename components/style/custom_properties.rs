@@ -12,7 +12,7 @@ use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValu
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
 use crate::stylesheets::{Origin, PerOrigin};
 use crate::Atom;
-use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use cssparser::{CowRcStr, Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use indexmap::IndexMap;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -30,50 +30,52 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[derive(Debug, MallocSizeOf)]
 pub struct CssEnvironment;
 
+type EnvironmentEvaluator = fn(device: &Device) -> VariableValue;
+
 struct EnvironmentVariable {
     name: Atom,
-    value: VariableValue,
+    evaluator: EnvironmentEvaluator,
 }
 
 macro_rules! make_variable {
-    ($name:expr, $value:expr) => {{
+    ($name:expr, $evaluator:expr) => {{
         EnvironmentVariable {
             name: $name,
-            value: {
-                // TODO(emilio): We could make this be more efficient (though a
-                // bit less convenient).
-                let mut input = ParserInput::new($value);
-                let mut input = Parser::new(&mut input);
-
-                let (first_token_type, css, last_token_type) =
-                    parse_self_contained_declaration_value(&mut input, None).unwrap();
-
-                VariableValue {
-                    css: css.into_owned(),
-                    first_token_type,
-                    last_token_type,
-                    references: Default::default(),
-                    references_environment: false,
-                }
-            },
+            evaluator: $evaluator,
         }
     }};
 }
 
+fn get_safearea_inset_top(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.safe_area_insets().top)
+}
+
+fn get_safearea_inset_bottom(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.safe_area_insets().bottom)
+}
+
+fn get_safearea_inset_left(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.safe_area_insets().left)
+}
+
+fn get_safearea_inset_right(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.safe_area_insets().right)
+}
+
 lazy_static! {
     static ref ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
-        make_variable!(atom!("safe-area-inset-top"), "0px"),
-        make_variable!(atom!("safe-area-inset-bottom"), "0px"),
-        make_variable!(atom!("safe-area-inset-left"), "0px"),
-        make_variable!(atom!("safe-area-inset-right"), "0px"),
+        make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
+        make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
+        make_variable!(atom!("safe-area-inset-left"), get_safearea_inset_left),
+        make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
     ];
 }
 
 impl CssEnvironment {
     #[inline]
-    fn get(&self, name: &Atom) -> Option<&VariableValue> {
+    fn get(&self, name: &Atom, device: &Device) -> Option<VariableValue> {
         let var = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
-        Some(&var.value)
+        Some((var.evaluator)(device))
     }
 }
 
@@ -252,6 +254,28 @@ impl VariableValue {
             references: custom_property_references,
             references_environment: references.references_environment,
         }))
+    }
+
+    /// Create VariableValue from css pixel value
+    pub fn pixel(number: f32) -> Self {
+        // FIXME (https://github.com/servo/rust-cssparser/issues/266):
+        // No way to get TokenSerializationType::Dimension without creating
+        // Token object.
+        let token = Token::Dimension {
+            has_sign: false,
+            value: number,
+            int_value: None,
+            unit: CowRcStr::from("px"),
+        };
+        let token_type = token.serialization_type();
+
+        VariableValue {
+            css: token.to_css_string(),
+            first_token_type: token_type,
+            last_token_type: token_type,
+            references: Default::default(),
+            references_environment: false,
+        }
     }
 }
 
@@ -929,8 +953,14 @@ fn substitute_block<'i>(
                         }
                     };
 
+                    let env_value;
                     let value = if is_env {
-                        device.environment().get(&name)
+                        if let Some(v) = device.environment().get(&name, device) {
+                            env_value = v;
+                            Some(&env_value)
+                        } else {
+                            None
+                        }
                     } else {
                         custom_properties.get(&name).map(|v| &**v)
                     };

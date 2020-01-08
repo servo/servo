@@ -16,7 +16,7 @@ use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Scale, Size2D};
+use euclid::{Scale, Size2D, SideOffsets2D};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
@@ -163,6 +163,11 @@ impl Device {
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
         RGBA::new(255, 255, 255, 255)
+    }
+
+    /// Returns safe area insets
+    pub fn safe_area_insets(&self) -> SideOffsets2D<f32, CSSPixel> {
+        SideOffsets2D::zero()
     }
 }
 

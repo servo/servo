@@ -16,7 +16,7 @@ use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
 use cssparser::RGBA;
 use euclid::default::Size2D;
-use euclid::Scale;
+use euclid::{Scale, SideOffsets2D};
 use servo_arc::Arc;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
@@ -300,5 +300,10 @@ impl Device {
     #[inline]
     pub fn unzoom_text(&self, size: Au) -> Au {
         size.scale_by(1. / self.effective_text_zoom())
+    }
+
+    /// Returns safe area insets
+    pub fn safe_area_insets(&self) -> SideOffsets2D<f32, CSSPixel> {
+        SideOffsets2D::zero()
     }
 }
