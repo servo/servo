@@ -32,12 +32,14 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.drawImage(response, 50, -50);
-    ctx.shadowColor = '#f00';
-    ctx.drawImage(response, -50, -50);
-    _assertPixel(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
-    _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-    _assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
+    createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 50, -50);
+        ctx.shadowColor = '#f00';
+        ctx.drawImage(bitmap, -50, -50);
+        _assertPixel(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
+        _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+        _assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

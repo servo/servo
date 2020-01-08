@@ -11,7 +11,13 @@
 <style>
   .grid {
     display: inline-grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto;
     font: 25px/1 Ahem;
+  }
+
+  .grid2rows {
+    grid-template-rows: auto auto;
   }
 
   .constrainedGrid {
@@ -126,32 +132,32 @@
 
 <!-- Grids with a 50x50 image as grid item and a 100x25 text grid item. -->
 
-<div id="grid-7" class="grid">
+<div id="grid-7" class="grid grid2rows">
   <img id="img-7" class="width200px" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-8" class="grid constrainedGrid">
+<div id="grid-8" class="grid grid2rows constrainedGrid">
   <img id="img-8" class="width200px" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-9" class="grid width200px">
+<div id="grid-9" class="grid grid2rows width200px">
   <img id="img-9" class="width100percent" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-10" class="grid width200px constrainedGrid">
+<div id="grid-10" class="grid grid2rows width200px constrainedGrid">
   <img id="img-10" class="width100percent" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-11" class="grid width200px justifyContentStart">
+<div id="grid-11" class="grid grid2rows width200px justifyContentStart">
   <img id="img-11" class="width100percent" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-12" class="grid width200px constrainedGrid justifyContentStart">
+<div id="grid-12" class="grid grid2rows width200px constrainedGrid justifyContentStart">
   <img id="img-12" class="width100percent" src="support/50x50-green.png">
   <div>ITEM</div>
 </div>
@@ -184,32 +190,32 @@
 
 <!-- Grids with a 500x500 image as grid item and a 100x25 text grid item. -->
 
-<div id="grid-19" class="grid">
+<div id="grid-19" class="grid grid2rows">
   <img id="img-19" class="width200px" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-20" class="grid constrainedGrid">
+<div id="grid-20" class="grid grid2rows constrainedGrid">
   <img id="img-20" class="width200px" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-21" class="grid width200px">
+<div id="grid-21" class="grid grid2rows width200px">
   <img id="img-21" class="width100percent" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-22" class="grid width200px constrainedGrid">
+<div id="grid-22" class="grid grid2rows width200px constrainedGrid">
   <img id="img-22" class="width100percent" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-23" class="grid width200px justifyContentStart">
+<div id="grid-23" class="grid grid2rows width200px justifyContentStart">
   <img id="img-23" class="width100percent" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
 
-<div id="grid-24" class="grid width200px constrainedGrid justifyContentStart">
+<div id="grid-24" class="grid grid2rows width200px constrainedGrid justifyContentStart">
   <img id="img-24" class="width100percent" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>

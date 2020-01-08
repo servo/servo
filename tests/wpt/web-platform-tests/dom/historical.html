@@ -1,16 +1,15 @@
 <!DOCTYPE html>
-
 <title>Historical DOM features must be removed</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
 <script>
-function isInterfaceNuked(name) {
+function isInterfaceRemoved(name) {
   test(function() {
     assert_equals(window[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
-var nukedInterfaces = [
+var removedInterfaces = [
   "DOMConfiguration",
   "DOMCursor",
   "DOMError",
@@ -31,16 +30,16 @@ var nukedInterfaces = [
   "UserDataHandler",
   "RangeException" // DOM Range
 ]
-nukedInterfaces.forEach(isInterfaceNuked)
+removedInterfaces.forEach(isInterfaceRemoved)
 
-function isNukedFromDocument(name) {
+function isRemovedFromDocument(name) {
   test(function() {
     var doc = document.implementation.createDocument(null,null,null)
     assert_equals(document[name], undefined)
     assert_equals(doc[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
-var documentNuked = [
+var documentRemoved = [
   "createEntityReference",
   "xmlEncoding",
   "xmlStandalone",
@@ -58,8 +57,10 @@ var documentNuked = [
   "cssElementMap",
   // https://github.com/whatwg/html/commit/e236f46820b93d6fe2e2caae0363331075c6c4fb
   "async",
+  // https://github.com/whatwg/dom/pull/815
+  "origin",
 ]
-documentNuked.forEach(isNukedFromDocument)
+documentRemoved.forEach(isRemovedFromDocument)
 
 test(function() {
   // https://github.com/whatwg/html/commit/e236f46820b93d6fe2e2caae0363331075c6c4fb
@@ -74,61 +75,61 @@ test(function() {
 
 test(function() {
   assert_equals(document.implementation["getFeature"], undefined)
-}, "DOMImplementation.getFeature() must be nuked.")
+}, "DOMImplementation.getFeature() must be removed.")
 
-function isNukedFromElement(name) {
+function isRemovedFromElement(name) {
   test(function() {
     var ele = document.createElementNS("test", "test")
     assert_equals(document.body[name], undefined)
     assert_equals(ele[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
-var elementNuked = [
+var elementRemoved = [
   "schemaTypeInfo",
   "setIdAttribute",
   "setIdAttributeNS",
   "setIdAttributeNode"
 ]
-elementNuked.forEach(isNukedFromElement)
+elementRemoved.forEach(isRemovedFromElement)
 
-function isNukedFromAttr(name) {
+function isRemovedFromAttr(name) {
   test(function() {
     var attr = document.createAttribute("test")
     assert_equals(attr[name], undefined)
-  }, "Attr member must be nuked: " + name)
+  }, "Attr member must be removed: " + name)
 }
-var attrNuked = [
+var attrRemoved = [
   "schemaTypeInfo",
   "isId"
 ]
-attrNuked.forEach(isNukedFromAttr)
+attrRemoved.forEach(isRemovedFromAttr)
 
-function isNukedFromDoctype(name) {
+function isRemovedFromDoctype(name) {
   test(function() {
     var doctype = document.implementation.createDocumentType("test", "", "")
     assert_equals(doctype[name], undefined)
-  }, "DocumentType member must be nuked: " + name)
+  }, "DocumentType member must be removed: " + name)
 }
-var doctypeNuked = [
+var doctypeRemoved = [
   "entities",
   "notations",
   "internalSubset"
 ]
-doctypeNuked.forEach(isNukedFromDoctype)
+doctypeRemoved.forEach(isRemovedFromDoctype)
 
-function isNukedFromText(name) {
+function isRemovedFromText(name) {
   test(function() {
     var text = document.createTextNode("test")
     assert_equals(text[name], undefined)
-  }, "Text member must be nuked: " + name)
+  }, "Text member must be removed: " + name)
 }
-var textNuked = [
+var textRemoved = [
   "isElementContentWhitespace",
   "replaceWholeText"
 ]
-textNuked.forEach(isNukedFromText)
+textRemoved.forEach(isRemovedFromText)
 
-function isNukedFromNode(name) {
+function isRemovedFromNode(name) {
   test(function() {
     var doc = document.implementation.createDocument(null,null,null)
     var doctype = document.implementation.createDocumentType("test", "", "")
@@ -136,9 +137,9 @@ function isNukedFromNode(name) {
     assert_equals(doc[name], undefined)
     assert_equals(doctype[name], undefined)
     assert_equals(text[name], undefined)
-  }, "Node member must be nuked: " + name)
+  }, "Node member must be removed: " + name)
 }
-var nodeNuked = [
+var nodeRemoved = [
   "hasAttributes",
   "attributes",
   "namespaceURI",
@@ -150,17 +151,17 @@ var nodeNuked = [
   "setUserData",
   "rootNode",
 ]
-nodeNuked.forEach(isNukedFromNode)
+nodeRemoved.forEach(isRemovedFromNode)
 
-function isNukedFromWindow(name) {
+function isRemovedFromWindow(name) {
   test(function() {
     assert_equals(window[name], undefined)
-  }, "Window member must be nuked: " + name)
+  }, "Window member must be removed: " + name)
 }
-var windowNuked = [
+var windowRemoved = [
   "attachEvent"
 ]
-windowNuked.forEach(isNukedFromWindow)
+windowRemoved.forEach(isRemovedFromWindow)
 
 function isRemovedFromEvent(name) {
   test(() => {

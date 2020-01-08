@@ -54,6 +54,10 @@ export const listing = [
     "description": "renderPass store op test that drawn quad is either stored or cleared based on storeop"
   },
   {
+    "path": "copyImageBitmapToTexture",
+    "description": "copy imageBitmap To texture tests."
+  },
+  {
     "path": "examples",
     "description": "Examples of writing CTS tests with various features.\n\nStart here when looking for examples of basic framework usage."
   },

@@ -26,13 +26,15 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-    var pattern = offscreenCanvas2.getContext('2d').createPattern(response, 'no-repeat');
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, 100, 50);
-    _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+    createImageBitmap(response).then(bitmap => {
+        var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+        var pattern = offscreenCanvas2.getContext('2d').createPattern(bitmap, 'no-repeat');
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, 100, 50);
+        _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

@@ -143,17 +143,14 @@ var someNonCreateableEvents = [
   "XULCommandEvent",
 ];
 someNonCreateableEvents.forEach(function (eventInterface) {
-  // SVGEvents is allowed, but not SVGEvent.  Make sure we only test if it's
-  // not whitelisted.
-  if (!(eventInterface in aliases)) {
-    test(function () {
-      assert_throws("NOT_SUPPORTED_ERR", function () {
-        var evt = document.createEvent(eventInterface);
-      });
-    }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
-  }
+  test(function () {
+    assert_throws("NOT_SUPPORTED_ERR", function () {
+      var evt = document.createEvent(eventInterface);
+    });
+  }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
 
-  if (!(eventInterface + "s" in aliases)) {
+  // SVGEvents is allowed, other plurals are not
+  if (eventInterface !== "SVGEvent") {
     test(function () {
       assert_throws("NOT_SUPPORTED_ERR", function () {
         var evt = document.createEvent(eventInterface + "s");

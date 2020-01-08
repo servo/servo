@@ -32,7 +32,6 @@
         assert_equals(video.getVideoTracks().length, 1, "video mediastream starts with one track");
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
-
         video.getVideoTracks()[0].stop();
         assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following last track ending");
         let event = await new Promise(r => recorder.onstop = r);
@@ -43,13 +42,6 @@
 
         assert_array_equals(events, ["start", "dataavailable", "stop"],
             "Should have gotten expected events");
-
-        recorder.stop();
-        await Promise.race([
-            new Promise((_, reject) => recorder.onstop =
-                _ => reject(new Error("stop() is idempotent"))),
-            new Promise(r => t.step_timeout(r, 0))
-        ]);
     }, "MediaRecorder will stop recording and fire a stop event when all tracks are ended");
 
     promise_test(async t => {
@@ -59,7 +51,6 @@
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
-
         recorder.stop();
         assert_equals(recorder.state, "inactive", "MediaRecorder state should be inactive immediately following stop() call");
 
@@ -70,14 +61,42 @@
 
         assert_array_equals(events, ["start", "dataavailable", "stop"],
             "Should have gotten expected events");
+    }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
 
-        recorder.stop();
+    promise_test(async t => {
+        const recorder = new MediaRecorder(createVideoStream());
+        assert_throws("InvalidStateError", () => { recorder.stop(); });
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
-                _ => reject(new Error("stop() is idempotent"))),
-            new Promise(r => t.step_timeout(r, 0))
-        ]);
-    }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will fire an exception when stopped after creation");
+
+    promise_test(async t => {
+        const recorder = new MediaRecorder(createVideoStream());
+        recorder.start();
+        recorder.stop();
+        let event = await new Promise(r => recorder.onstop = r);
+        assert_throws("InvalidStateError", () => { recorder.stop(); });
+        await Promise.race([
+            new Promise((_, reject) => recorder.onstop =
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will fire an exception when stopped after having just been stopped");
+
+    promise_test(async t => {
+        const stream = createVideoStream();
+        const recorder = new MediaRecorder(stream);
+        recorder.start();
+        stream.getVideoTracks()[0].stop();
+        let event = await new Promise(r => recorder.onstop = r);
+        assert_throws("InvalidStateError", () => { recorder.stop(); });
+        await Promise.race([
+            new Promise((_, reject) => recorder.onstop =
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will fire an exception when stopped after having just been spontaneously stopped");
+
 </script>
 </body>
 </html>

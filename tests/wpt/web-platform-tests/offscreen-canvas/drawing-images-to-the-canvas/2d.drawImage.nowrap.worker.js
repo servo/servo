@@ -28,10 +28,12 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.drawImage(response, -1950, 0, 2000, 50);
-    _assertPixelApprox(offscreenCanvas, 45,25, 0,255,0,255, "45,25", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 55,25, 0,255,0,255, "55,25", "0,255,0,255", 2);
+    createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, -1950, 0, 2000, 50);
+        _assertPixelApprox(offscreenCanvas, 45,25, 0,255,0,255, "45,25", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 55,25, 0,255,0,255, "55,25", "0,255,0,255", 2);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

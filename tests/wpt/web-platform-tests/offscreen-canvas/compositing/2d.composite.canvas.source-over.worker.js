@@ -29,12 +29,14 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx2.drawImage(response, 0, 0);
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(offscreenCanvas2, 0, 0);
-    _assertPixelApprox(offscreenCanvas, 50,25, 219,255,36,223, "50,25", "219,255,36,223", 5);
+    createImageBitmap(response).then(bitmap => {
+        ctx2.drawImage(bitmap, 0, 0);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(offscreenCanvas2, 0, 0);
+        _assertPixelApprox(offscreenCanvas, 50,25, 219,255,36,223, "50,25", "219,255,36,223", 5);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

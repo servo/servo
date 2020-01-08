@@ -595,8 +595,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 2,253,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 2,253,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.composite.globalAlpha.canvas
@@ -630,10 +632,12 @@
         };
     });
     promise.then(function(response) {
-        ctx.fillStyle = ctx.createPattern(response, 'no-repeat');
-        ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 50,25 ==~ 2,253,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 2,253,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.composite.globalAlpha.canvaspattern
@@ -762,8 +766,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ %s +/- 5;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ %s +/- 5;
+        }, t_fail);
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected)),
             } )
@@ -788,12 +794,14 @@
         };
     });
     promise.then(function(response) {
-        ctx2.drawImage(response, 0, 0);
-        ctx.fillStyle = 'rgba%s';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.globalCompositeOperation = '%s';
-        ctx.drawImage(offscreenCanvas2, 0, 0);
-        @assert pixel 50,25 ==~ %s +/- 5;
+        createImageBitmap(response).then(bitmap => {
+            ctx2.drawImage(bitmap, 0, 0);
+            ctx.fillStyle = 'rgba%s';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.globalCompositeOperation = '%s';
+            ctx.drawImage(offscreenCanvas2, 0, 0);
+            @assert pixel 50,25 ==~ %s +/- 5;
+        }, t_fail);
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected)),
             } )
@@ -844,9 +852,11 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 40, 40, 10, 10, 40, 50, 10, 10);
-        @assert pixel 15,15 ==~ %s +/- 5;
-        @assert pixel 50,25 ==~ %s +/- 5;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
+            @assert pixel 15,15 ==~ %s +/- 5;
+            @assert pixel 50,25 ==~ %s +/- 5;
+        }, t_fail);
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected0), to_test(expected0)),
             } )
@@ -893,9 +903,11 @@
         };
     });
     promise.then(function(response) {
-        ctx.fillStyle = ctx.createPattern(response, 'no-repeat');
-        ctx.fillRect(0, 50, 100, 50);
-        @assert pixel 50,25 ==~ %s +/- 5;
+        createImageBitmap(response).then(bitmap => {
+            ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillRect(0, 50, 100, 50);
+            @assert pixel 50,25 ==~ %s +/- 5;
+        }, t_fail);
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected0)),
             } )
@@ -2131,13 +2143,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.basic.canvas
@@ -2239,13 +2253,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, "");
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 200, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, "");
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 200, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.repeat.null
@@ -2344,13 +2360,15 @@
         };
     });
     promise.then(function(response) {
-        var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-        var pattern = offscreenCanvas2.getContext('2d').createPattern(response, 'no-repeat');
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 50,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+            var pattern = offscreenCanvas2.getContext('2d').createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.norepeat.basic
@@ -2369,13 +2387,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.norepeat.outside
@@ -2394,18 +2414,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, -50, 100, 50);
-        ctx.fillRect(-100, 0, 100, 50);
-        ctx.fillRect(0, 50, 100, 50);
-        ctx.fillRect(100, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+            ctx.fillRect(-100, 0, 100, 50);
+            ctx.fillRect(0, 50, 100, 50);
+            ctx.fillRect(100, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.norepeat.coord1
@@ -2426,14 +2448,16 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.translate(50, 0);
-        ctx.fillRect(-50, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 0);
+            ctx.fillRect(-50, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.norepeat.coord2
@@ -2450,18 +2474,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 50, 50);
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(50, 0, 50, 50);
-        ctx.fillStyle = pattern;
-        ctx.translate(50, 0);
-        ctx.fillRect(-50, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 50, 50);
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(50, 0, 50, 50);
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 0);
+            ctx.fillRect(-50, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.norepeat.coord3
@@ -2480,16 +2506,18 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.translate(50, 25);
-        ctx.fillRect(-50, -25, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 50, 25);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 25);
+            ctx.fillRect(-50, -25, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 50, 25);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeat.basic
@@ -2508,13 +2536,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeat.outside
@@ -2533,14 +2563,16 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.translate(50, 25);
-        ctx.fillRect(-50, -25, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 25);
+            ctx.fillRect(-50, -25, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeat.coord1
@@ -2559,14 +2591,16 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.translate(-128, -78);
-        ctx.fillRect(128, 78, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(-128, -78);
+            ctx.fillRect(128, 78, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeat.coord2
@@ -2583,13 +2617,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeat.coord3
@@ -2606,15 +2642,17 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.translate(-128, -78);
-        ctx.fillRect(128, 78, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.translate(-128, -78);
+            ctx.fillRect(128, 78, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeatx.basic
@@ -2635,13 +2673,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-x');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeatx.outside
@@ -2660,15 +2700,17 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-x');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 16);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 16);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeatx.coord1
@@ -2687,18 +2729,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-x');
-        ctx.fillStyle = pattern;
-        ctx.translate(0, 16);
-        ctx.fillRect(0, -16, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 16);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,25 == 0,255,0,255;
-        @assert pixel 98,25 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.translate(0, 16);
+            ctx.fillRect(0, -16, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 16);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,25 == 0,255,0,255;
+            @assert pixel 98,25 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeaty.basic
@@ -2719,13 +2763,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-y');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeaty.outside
@@ -2744,15 +2790,17 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-y');
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 16, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 16, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.repeaty.coord1
@@ -2773,18 +2821,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat-y');
-        ctx.fillStyle = pattern;
-        ctx.translate(48, 0);
-        ctx.fillRect(-48, 0, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 16, 50);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 50,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 50,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.translate(48, 0);
+            ctx.fillRect(-48, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 16, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 50,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 50,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.orientation.image
@@ -2804,18 +2854,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'no-repeat');
-        ctx.fillStyle = pattern;
-        ctx.save();
-        ctx.translate(0, -103);
-        ctx.fillRect(0, 103, 100, 50);
-        ctx.restore();
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 25);
-        @assert pixel 1,1 == 0,255,0,255;
-        @assert pixel 98,1 == 0,255,0,255;
-        @assert pixel 1,48 == 0,255,0,255;
-        @assert pixel 98,48 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.save();
+            ctx.translate(0, -103);
+            ctx.fillRect(0, 103, 100, 50);
+            ctx.restore();
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 25);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.pattern.paint.orientation.canvas
@@ -3349,8 +3401,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, -50);
-        @assert pixel 50,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.transparent.1
@@ -3374,8 +3428,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, -50);
-        @assert pixel 50,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.transparent.2
@@ -3401,12 +3457,14 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 50, -50);
-        ctx.shadowColor = '#f00';
-        ctx.drawImage(response, -50, -50);
-        @assert pixel 25,25 == 0,255,0,255;
-        @assert pixel 50,25 == 0,255,0,255;
-        @assert pixel 75,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 50, -50);
+            ctx.shadowColor = '#f00';
+            ctx.drawImage(bitmap, -50, -50);
+            @assert pixel 25,25 == 0,255,0,255;
+            @assert pixel 50,25 == 0,255,0,255;
+            @assert pixel 75,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.alpha
@@ -3430,8 +3488,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, -50);
-        @assert pixel 50,25 ==~ 127,0,127,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 ==~ 127,0,127,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.section
@@ -3455,10 +3515,12 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 50, 0, 50, 50, 0, -50, 50, 50);
-        @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 50,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 50, 0, 50, 50, 0, -50, 50, 50);
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.scale
@@ -3482,10 +3544,12 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0, 100, 50, -10, -50, 240, 50);
-        @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 50,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 100, 50, -10, -50, 240, 50);
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.canvas.basic
@@ -3577,13 +3641,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat');
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.shadowColor = '#0f0';
-        ctx.shadowOffsetY = 50;
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, -50, 100, 50);
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowColor = '#0f0';
+            ctx.shadowOffsetY = 50;
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.transparent.1
@@ -3604,13 +3670,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat');
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.shadowColor = '#f00';
-        ctx.shadowOffsetY = 50;
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, -50, 100, 50);
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowColor = '#f00';
+            ctx.shadowOffsetY = 50;
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.transparent.2
@@ -3630,18 +3698,20 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat');
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(0, 0, 50, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(50, 0, 50, 50);
-        ctx.shadowOffsetY = 50;
-        ctx.shadowColor = '#0f0';
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, -50, 100, 50);
-        @assert pixel 25,25 == 0,255,0,255;
-        @assert pixel 50,25 == 0,255,0,255;
-        @assert pixel 75,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 50, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(50, 0, 50, 50);
+            ctx.shadowOffsetY = 50;
+            ctx.shadowColor = '#0f0';
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+            @assert pixel 25,25 == 0,255,0,255;
+            @assert pixel 50,25 == 0,255,0,255;
+            @assert pixel 75,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.alpha
@@ -3661,13 +3731,15 @@
         };
     });
     promise.then(function(response) {
-        var pattern = ctx.createPattern(response, 'repeat');
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.shadowOffsetY = 50;
-        ctx.shadowColor = '#00f';
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, -50, 100, 50);
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowOffsetY = 50;
+            ctx.shadowColor = '#00f';
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.gradient.basic
@@ -4356,15 +4428,19 @@
         };
     });
     Promise.all([promise1, promise2]).then(function(response1, response2) {
-        ctx.drawImage(response2, 0, 0);
-        ctx.drawImage(response1, -100, 0);
-        ctx.drawImage(response1, 100, 0);
-        ctx.drawImage(response1, 0, -50);
-        ctx.drawImage(response1, 0, 50);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 0, 0);
+            ctx.drawImage(bitmap1, -100, 0);
+            ctx.drawImage(bitmap1, 100, 0);
+            ctx.drawImage(bitmap1, 0, -50);
+            ctx.drawImage(bitmap1, 0, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.5arg
@@ -4396,14 +4472,18 @@
         };
     });
     Promise.all([promise1, promise2]).then(function(response1, response2) {
-        ctx.drawImage(response2, 50, 0, 50, 50);
-        ctx.drawImage(response1, 0, 0, 50, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 50, 50);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 50, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 50, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 50, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.basic
@@ -4425,11 +4505,13 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0, 100, 50, 0, 0, 100, 50);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.sourcepos
@@ -4451,11 +4533,13 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 140, 20, 100, 50, 0, 0, 100, 50);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.sourcesize
@@ -4477,18 +4561,20 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0, 256, 256, 0, 0, 100, 50);
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 51, 26);
-        ctx.fillRect(49, 24, 51, 26);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
-        @assert pixel 20,20 ==~ 0,255,0,255;
-        @assert pixel 80,20 ==~ 0,255,0,255;
-        @assert pixel 20,30 ==~ 0,255,0,255;
-        @assert pixel 80,30 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 51, 26);
+            ctx.fillRect(49, 24, 51, 26);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+            @assert pixel 20,20 ==~ 0,255,0,255;
+            @assert pixel 80,20 ==~ 0,255,0,255;
+            @assert pixel 20,30 ==~ 0,255,0,255;
+            @assert pixel 80,30 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.destpos
@@ -4520,15 +4606,19 @@
         };
     });
     Promise.all([promise1, promise2]).then(function(response1, response2) {
-        ctx.drawImage(response2, 0, 0, 100, 50, 0, 0, 100, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, -100, 0, 100, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, 100, 0, 100, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, 0, -50, 100, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, 0, 50, 100, 50);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 0, 0, 100, 50, 0, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, -100, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -50, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.destsize
@@ -4560,15 +4650,19 @@
         };
     });
     Promise.all([promise1, promise2]).then(function(response1, response2) {
-        ctx.drawImage(response2, 1, 1, 1, 1, 0, 0, 100, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, -50, 0, 50, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, 100, 0, 50, 50);
-        ctx.drawImage(response1, 0, 0, 100, 50, 0, -25, 100, 25);
-        ctx.drawImage(response1, 0, 0, 100, 50, 0, 50, 100, 25);
-        @assert pixel 0,0 ==~ 0,255,0,255;
-        @assert pixel 99,0 ==~ 0,255,0,255;
-        @assert pixel 0,49 ==~ 0,255,0,255;
-        @assert pixel 99,49 ==~ 0,255,0,255;
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 1, 1, 1, 1, 0, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, -50, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -25, 100, 25);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 25);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.canvas
@@ -4673,8 +4767,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.zerosource
@@ -4697,10 +4793,12 @@
         };
     });
     promise.then(function(response) {
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 10, 10, 0, 1, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 10, 10, 1, 0, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 10, 10, 0, 0, 0, 0, 100, 50);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.zerosource.image
@@ -4725,10 +4823,12 @@
         };
     });
     promise.then(function(response) {
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response, 0, 0, 100, 50);
-        @assert pixel 50,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.negativesource
@@ -4752,18 +4852,20 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 100, 78, -100, 50, 0, 0, 50, 50);
-        ctx.drawImage(response, 100, 128, -100, -50, 50, 0, 50, 50);
-        @assert pixel 1,1 ==~ 0,255,0,255;
-        @assert pixel 1,48 ==~ 0,255,0,255;
-        @assert pixel 98,1 ==~ 0,255,0,255;
-        @assert pixel 98,48 ==~ 0,255,0,255;
-        @assert pixel 48,1 ==~ 0,255,0,255;
-        @assert pixel 48,48 ==~ 0,255,0,255;
-        @assert pixel 51,1 ==~ 0,255,0,255;
-        @assert pixel 51,48 ==~ 0,255,0,255;
-        @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 100, 78, -100, 50, 0, 0, 50, 50);
+            ctx.drawImage(bitmap, 100, 128, -100, -50, 50, 0, 50, 50);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.negativedest
@@ -4787,18 +4889,20 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 100, 78, 50, 50, 0, 50, 50, -50);
-        ctx.drawImage(response, 100, 128, 50, -50, 100, 50, -50, -50);
-        @assert pixel 1,1 ==~ 0,255,0,255;
-        @assert pixel 1,48 ==~ 0,255,0,255;
-        @assert pixel 98,1 ==~ 0,255,0,255;
-        @assert pixel 98,48 ==~ 0,255,0,255;
-        @assert pixel 48,1 ==~ 0,255,0,255;
-        @assert pixel 48,48 ==~ 0,255,0,255;
-        @assert pixel 51,1 ==~ 0,255,0,255;
-        @assert pixel 51,48 ==~ 0,255,0,255;
-        @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 100, 78, 50, 50, 0, 50, 50, -50);
+            ctx.drawImage(bitmap, 100, 128, 50, -50, 100, 50, -50, -50);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.negativedir
@@ -4822,18 +4926,20 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 178, 50, -100, 0, 0, 50, 100);
-        ctx.drawImage(response, 0, 78, 50, 100, 50, 100, 50, -100);
-        @assert pixel 1,1 ==~ 0,255,0,255;
-        @assert pixel 1,48 ==~ 0,255,0,255;
-        @assert pixel 98,1 ==~ 0,255,0,255;
-        @assert pixel 98,48 ==~ 0,255,0,255;
-        @assert pixel 48,1 ==~ 0,255,0,255;
-        @assert pixel 48,48 ==~ 0,255,0,255;
-        @assert pixel 51,1 ==~ 0,255,0,255;
-        @assert pixel 51,48 ==~ 0,255,0,255;
-        @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 178, 50, -100, 0, 0, 50, 100);
+            ctx.drawImage(bitmap, 0, 78, 50, 100, 50, 100, 50, -100);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.outsidesource
@@ -4860,18 +4966,22 @@
         };
     });
     Promise.all([promise1, promise2]).then(function(response1, response2) {
-        ctx.drawImage(response2, 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
-        ctx.drawImage(response2, 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
-        ctx.drawImage(response2, 100, 50, -5, -5, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, -0.001, 0, 100, 50, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 0, -0.001, 100, 50, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 0, 0, 100.001, 50, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 0, 0, 100, 50.001, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 0, 0, -5, 5, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 0, 0, 5, -5, 0, 0, 100, 50);
-        @assert throws INDEX_SIZE_ERR ctx.drawImage(response1, 110, 60, -20, -20, 0, 0, 100, 50);
-        @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
+            ctx.drawImage(bitmap2, 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
+            ctx.drawImage(bitmap2, 100, 50, -5, -5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, -0.001, 0, 100, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, -0.001, 100, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100.001, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100, 50.001, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, -5, 5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 5, -5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 110, 60, -20, -20, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.broken
@@ -4889,10 +4999,12 @@
         };
     });
     promise.then(function(response) {
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        createImageBitmap(response).then(bitmap => {
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.svg
@@ -4911,8 +5023,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.animated.poster
@@ -4933,8 +5047,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.path
@@ -4954,9 +5070,11 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        ctx.fill();
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            ctx.fill();
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.transform
@@ -4979,8 +5097,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.alpha
@@ -5003,8 +5123,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.clip
@@ -5028,8 +5150,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.composite
@@ -5052,8 +5176,10 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.nowrap
@@ -5074,10 +5200,12 @@
         };
     });
     promise.then(function(response) {
-        ctx.drawImage(response, -1950, 0, 2000, 50);
-        @assert pixel 45,25 ==~ 0,255,0,255;
-        @assert pixel 50,25 ==~ 0,255,0,255;
-        @assert pixel 55,25 ==~ 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, -1950, 0, 2000, 50);
+            @assert pixel 45,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 55,25 ==~ 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.nonfinite
@@ -5100,10 +5228,12 @@
         };
     });
     promise.then(function(response) {
-        @nonfinite ctx.drawImage(<response>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
-        @nonfinite ctx.drawImage(<response>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-        @nonfinite ctx.drawImage(<response>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-        @assert pixel 50,25 == 0,255,0,255;
+        createImageBitmap(response).then(bitmap => {
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.imageData.create2.basic

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Location of a page in a Web Bundle</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const location_promise = new Promise((resolve, reject) => {
+    let win = null;
+    window.addEventListener(
+        'message',
+        (event) => {
+          win.close();
+          resolve(event.data.location);
+        }, false);
+    win = window.open(
+        get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.wbn',
+        '_blank');
+    if (!win) {
+      reject('Popup could not be opened');
+    }
+  });
+  assert_equals(
+      await location_promise,
+      get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.html');
+}, 'Location of a page in a Web Bundle');
+</script>
+</body>

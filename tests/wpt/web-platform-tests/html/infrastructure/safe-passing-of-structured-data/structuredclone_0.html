@@ -498,12 +498,12 @@
                 });
             },
             function() {
-                var t = async_test("URIError objects from other realms are treated as Error");
+                var t = async_test("URIError objects from other realms are treated as URIError");
                 t.id = 35;
                 worker.onmessage = t.step_func_done(function(e) {
-                    assert_equals(Object.getPrototypeOf(e.data), Error.prototype, "Checking prototype");
-                    assert_equals(e.data.constructor, Error, "Checking constructor");
-                    assert_equals(e.data.name, "Error", "Checking name");
+                    assert_equals(Object.getPrototypeOf(e.data), URIError.prototype, "Checking prototype");
+                    assert_equals(e.data.constructor, URIError, "Checking constructor");
+                    assert_equals(e.data.name, "URIError", "Checking name");
                     assert_equals(e.data.message, "some message", "Checking message");
                     assert_equals(e.data.foo, undefined, "Checking custom property");
                 });
@@ -520,9 +520,9 @@
                 var t = async_test("Cloning a modified Error");
                 t.id = 36;
                 worker.onmessage = t.step_func_done(function(e) {
-                    assert_equals(Object.getPrototypeOf(e.data), SyntaxError.prototype, "Checking prototype");
-                    assert_equals(e.data.constructor, SyntaxError, "Checking constructor");
-                    assert_equals(e.data.name, "SyntaxError", "Checking name");
+                    assert_equals(Object.getPrototypeOf(e.data), TypeError.prototype, "Checking prototype");
+                    assert_equals(e.data.constructor, TypeError, "Checking constructor");
+                    assert_equals(e.data.name, "TypeError", "Checking name");
                     assert_equals(e.data.message, "another message", "Checking message");
                     assert_equals(e.data.foo, undefined, "Checking custom property");
                 });
