@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
@@ -44,7 +44,6 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::pref;
-use std::cell::Ref;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -192,7 +191,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
 
 impl HTMLCanvasElement {
     pub fn context(&self) -> Option<Ref<CanvasContext>> {
-        ref_filter_map::ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D>> {

@@ -4,7 +4,13 @@
 
 //! A shareable mutable container for the DOM.
 
-use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
+#[cfg(feature = "refcell_backtrace")]
+pub use accountable_refcell::{ref_filter_map, Ref, RefCell, RefMut};
+#[cfg(not(feature = "refcell_backtrace"))]
+pub use ref_filter_map::ref_filter_map;
+use std::cell::{BorrowError, BorrowMutError};
+#[cfg(not(feature = "refcell_backtrace"))]
+pub use std::cell::{Ref, RefCell, RefMut};
 use style::thread_state::{self, ThreadState};
 
 /// A mutable field in the DOM.

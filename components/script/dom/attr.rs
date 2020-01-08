@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -19,7 +19,6 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
-use std::cell::Ref;
 use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
 

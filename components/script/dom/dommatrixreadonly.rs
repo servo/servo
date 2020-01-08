@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{
     DOMMatrixReadOnlyMethods, Wrap,
@@ -26,7 +26,7 @@ use js::jsapi::JSObject;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::CreateWith;
 use js::typedarray::{Float32Array, Float64Array};
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::f64;
 use std::ptr;
 use std::ptr::NonNull;

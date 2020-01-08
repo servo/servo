@@ -19,6 +19,7 @@ unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
 webgl_backtrace = ["backtrace", "canvas_traits/webgl_backtrace"]
 js_backtrace = ["backtrace"]
+refcell_backtrace = ["accountable-refcell"]
 uwp = ["js/uwp"]
 vslatestinstalled = ["js/vslatestinstalled"]
 
@@ -31,6 +32,7 @@ serde_json = "1.0"
 tinyfiledialogs = "3.0"
 
 [dependencies]
+accountable-refcell = {version = "0.2.0", optional = true}
 app_units = "0.7"
 backtrace = {version = "0.3", optional = true}
 base64 = "0.10.1"
