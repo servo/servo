@@ -6,14 +6,18 @@
 <script>
 test(function() {
   var div = document.createElement('div');
+  var div2 = document.createElement('div');
   var optgroup = document.createElement('optgroup');
   var sel = document.getElementById('sel');
+  sel.appendChild(div2);
 
   var opt = document.createElement('option');
   sel.add(opt);
   sel.add(optgroup);
-  sel.add(opt, div);
-  sel.add(optgroup, div);
+  assert_throws("NotFoundError", function() { sel.add(opt, div); });
+  assert_throws("NotFoundError", function() { sel.add(optgroup, div); });
+  sel.add(opt, div2);
+  sel.add(optgroup, div2);
   sel.add(opt, 5);
   sel.add(optgroup, 5);
   assert_throws(new TypeError(), function() { sel.add(div) });

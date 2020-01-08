@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use crate::dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -203,13 +204,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         ValidityState::new(&window, self.upcast())
     }
 
-    // Note: this function currently only exists for union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(
         &self,
-        _element: HTMLOptionElementOrHTMLOptGroupElement,
-        _before: Option<HTMLElementOrLong>,
-    ) {
+        element: HTMLOptionElementOrHTMLOptGroupElement,
+        before: Option<HTMLElementOrLong>,
+    ) -> ErrorResult {
+        self.Options().Add(element, before)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -279,6 +280,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-select-item
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().IndexedGetter(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-setter
+    fn IndexedSetter(&self, index: u32, value: Option<&HTMLOptionElement>) -> ErrorResult {
+        self.Options().IndexedSetter(index, value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem

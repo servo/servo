@@ -5263,7 +5263,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    return (*opresult).succeed();\n" +
                     "}\n")
-        else:
+        elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "    if result.is_some() {\n"

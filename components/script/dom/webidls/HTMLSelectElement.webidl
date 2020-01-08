@@ -28,15 +28,14 @@ interface HTMLSelectElement : HTMLElement {
            attribute unsigned long length;
   getter Element? item(unsigned long index);
   HTMLOptionElement? namedItem(DOMString name);
-  // Note: this function currently only exists for union.html.
-  [CEReactions]
+
+  [CEReactions, Throws]
   void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   [CEReactions]
   void remove(); // ChildNode overload
   [CEReactions]
   void remove(long index);
-  // [CEReactions]
-  // setter void (unsigned long index, HTMLOptionElement? option);
+  [CEReactions, Throws] setter void (unsigned long index, HTMLOptionElement? option);
 
   // readonly attribute HTMLCollection selectedOptions;
   attribute long selectedIndex;
