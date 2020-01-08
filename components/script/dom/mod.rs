@@ -479,6 +479,7 @@ pub mod serviceworkerglobalscope;
 pub mod serviceworkerregistration;
 pub mod servoparser;
 pub mod shadowroot;
+pub mod staticrange;
 pub mod stereopannernode;
 pub mod storage;
 pub mod storageevent;
