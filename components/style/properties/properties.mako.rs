@@ -1584,7 +1584,7 @@ impl UnparsedValue {
         longhand_id: LonghandId,
         custom_properties: Option<<&Arc<crate::custom_properties::CustomPropertiesMap>>,
         quirks_mode: QuirksMode,
-        environment: &::custom_properties::CssEnvironment,
+        device: &Device,
     ) -> PropertyDeclaration {
         let invalid_at_computed_value_time = || {
             let keyword = if longhand_id.inherited() {
@@ -1602,7 +1602,7 @@ impl UnparsedValue {
             &self.css,
             self.first_token_type,
             custom_properties,
-            environment,
+            device,
         ) {
             Ok(css) => css,
             Err(..) => return invalid_at_computed_value_time(),

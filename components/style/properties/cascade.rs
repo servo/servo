@@ -250,7 +250,7 @@ where
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(
             inherited_style.custom_properties(),
-            device.environment(),
+            device,
         );
 
         for (declaration, origin) in iter_declarations() {
@@ -424,7 +424,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             declaration.id,
             self.context.builder.custom_properties.as_ref(),
             self.context.quirks_mode,
-            self.context.device().environment(),
+            self.context.device(),
         ))
     }
 

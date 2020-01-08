@@ -8,7 +8,7 @@
 
 use super::*;
 use crate::context::QuirksMode;
-use crate::custom_properties::{CssEnvironment, CustomPropertiesBuilder};
+use crate::custom_properties::CustomPropertiesBuilder;
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use crate::parser::ParserContext;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
@@ -778,7 +778,7 @@ impl PropertyDeclarationBlock {
         dest: &mut CssStringWriter,
         computed_values: Option<&ComputedValues>,
         custom_properties_block: Option<&PropertyDeclarationBlock>,
-        environment: &CssEnvironment,
+        device: &Device,
     ) -> fmt::Result {
         if let Ok(shorthand) = property.as_shorthand() {
             return self.shorthand_to_css(shorthand, dest);
@@ -797,7 +797,7 @@ impl PropertyDeclarationBlock {
             if let Some(block) = custom_properties_block {
                 // FIXME(emilio): This is not super-efficient here, and all this
                 // feels like a hack anyway...
-                block.cascade_custom_properties(cv.custom_properties(), environment)
+                block.cascade_custom_properties(cv.custom_properties(), device)
             } else {
                 cv.custom_properties().cloned()
             }
@@ -820,7 +820,7 @@ impl PropertyDeclarationBlock {
                         declaration.id,
                         custom_properties.as_ref(),
                         QuirksMode::NoQuirks,
-                        environment,
+                        device,
                     )
                     .to_css(dest)
             },
@@ -868,7 +868,7 @@ impl PropertyDeclarationBlock {
     ) -> Option<Arc<crate::custom_properties::CustomPropertiesMap>> {
         self.cascade_custom_properties(
             context.style().custom_properties(),
-            context.device().environment(),
+            context.device(),
         )
     }
 
@@ -878,9 +878,9 @@ impl PropertyDeclarationBlock {
     fn cascade_custom_properties(
         &self,
         inherited_custom_properties: Option<&Arc<crate::custom_properties::CustomPropertiesMap>>,
-        environment: &CssEnvironment,
+        device: &Device,
     ) -> Option<Arc<crate::custom_properties::CustomPropertiesMap>> {
-        let mut builder = CustomPropertiesBuilder::new(inherited_custom_properties, environment);
+        let mut builder = CustomPropertiesBuilder::new(inherited_custom_properties, device);
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {

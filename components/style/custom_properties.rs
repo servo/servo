@@ -7,6 +7,7 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use crate::hash::map::Entry;
+use crate::media_queries::Device;
 use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
 use crate::stylesheets::{Origin, PerOrigin};
@@ -497,14 +498,14 @@ pub struct CustomPropertiesBuilder<'a> {
     may_have_cycles: bool,
     custom_properties: Option<CustomPropertiesMap>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
-    environment: &'a CssEnvironment,
+    device: &'a Device,
 }
 
 impl<'a> CustomPropertiesBuilder<'a> {
     /// Create a new builder, inheriting from a given custom properties map.
     pub fn new(
         inherited: Option<&'a Arc<CustomPropertiesMap>>,
-        environment: &'a CssEnvironment,
+        device: &'a Device,
     ) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
@@ -512,7 +513,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             may_have_cycles: false,
             custom_properties: None,
             inherited,
-            environment,
+            device,
         }
     }
 
@@ -554,7 +555,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // of forcing a full traversal in `substitute_all` afterwards.
                 let value = if !has_references && unparsed_value.references_environment {
                     let result =
-                        substitute_references_in_value(unparsed_value, &map, &self.environment);
+                        substitute_references_in_value(unparsed_value, &map, &self.device);
                     match result {
                         Ok(new_value) => Arc::new(new_value),
                         Err(..) => {
@@ -632,7 +633,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             None => return self.inherited.cloned(),
         };
         if self.may_have_cycles {
-            substitute_all(&mut map, self.environment);
+            substitute_all(&mut map, self.device);
         }
         Some(Arc::new(map))
     }
@@ -641,7 +642,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// Resolve all custom properties to either substituted or invalid.
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: &CssEnvironment) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Device) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -677,8 +678,8 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         /// all unfinished strong connected components.
         stack: SmallVec<[usize; 5]>,
         map: &'a mut CustomPropertiesMap,
-        /// The environment to substitute `env()` variables.
-        environment: &'a CssEnvironment,
+        /// to resolve the environment to substitute `env()` variables.
+        device: &'a Device,
     }
 
     /// This function combines the traversal for cycle removal and value
@@ -813,7 +814,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         // Now we have shown that this variable is not in a loop, and
         // all of its dependencies should have been resolved. We can
         // start substitution now.
-        let result = substitute_references_in_value(&value, &context.map, &context.environment);
+        let result = substitute_references_in_value(&value, &context.map, &context.device);
 
         match result {
             Ok(computed_value) => {
@@ -838,7 +839,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
             stack: SmallVec::new(),
             var_info: SmallVec::new(),
             map: custom_properties_map,
-            environment,
+            device,
         };
         traverse(name, &mut context);
     }
@@ -848,7 +849,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
 fn substitute_references_in_value<'i>(
     value: &'i VariableValue,
     custom_properties: &CustomPropertiesMap,
-    environment: &CssEnvironment,
+    device: &Device,
 ) -> Result<ComputedValue, ParseError<'i>> {
     debug_assert!(!value.references.is_empty() || value.references_environment);
 
@@ -862,7 +863,7 @@ fn substitute_references_in_value<'i>(
         &mut position,
         &mut computed_value,
         custom_properties,
-        environment,
+        device,
     )?;
 
     computed_value.push_from(&input, position, last_token_type)?;
@@ -884,7 +885,7 @@ fn substitute_block<'i>(
     position: &mut (SourcePosition, TokenSerializationType),
     partial_computed_value: &mut ComputedValue,
     custom_properties: &CustomPropertiesMap,
-    env: &CssEnvironment,
+    device: &Device,
 ) -> Result<TokenSerializationType, ParseError<'i>> {
     let mut last_token_type = TokenSerializationType::nothing();
     let mut set_position_at_next_iteration = false;
@@ -929,7 +930,7 @@ fn substitute_block<'i>(
                     };
 
                     let value = if is_env {
-                        env.get(&name)
+                        device.environment().get(&name)
                     } else {
                         custom_properties.get(&name).map(|v| &**v)
                     };
@@ -956,7 +957,7 @@ fn substitute_block<'i>(
                             &mut position,
                             partial_computed_value,
                             custom_properties,
-                            env,
+                            device,
                         )?;
                         partial_computed_value.push_from(input, position, last_token_type)?;
                     }
@@ -974,7 +975,7 @@ fn substitute_block<'i>(
                         position,
                         partial_computed_value,
                         custom_properties,
-                        env,
+                        device,
                     )
                 })?;
                 // It's the same type for CloseCurlyBracket and CloseSquareBracket.
@@ -1000,7 +1001,7 @@ pub fn substitute<'i>(
     input: &'i str,
     first_token_type: TokenSerializationType,
     computed_values_map: Option<&Arc<CustomPropertiesMap>>,
-    env: &CssEnvironment,
+    device: &Device,
 ) -> Result<String, ParseError<'i>> {
     let mut substituted = ComputedValue::empty();
     let mut input = ParserInput::new(input);
@@ -1016,7 +1017,7 @@ pub fn substitute<'i>(
         &mut position,
         &mut substituted,
         &custom_properties,
-        env,
+        device,
     )?;
     substituted.push_from(&input, position, last_token_type)?;
     Ok(substituted.css)
