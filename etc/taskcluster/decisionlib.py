@@ -172,7 +172,7 @@ class Task:
         self.treeherder_required = True
         return self
 
-    def with_treeherder(self, category, symbol):
+    def with_treeherder(self, category, symbol, group_name=None, group_symbol=None):
         assert len(symbol) <= 25, symbol
         self.name = "%s: %s" % (category, self.name)
 
@@ -185,12 +185,16 @@ class Task:
         platform = parts[0]
         labels = parts[1:] or ["_"]
 
-        # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-treeherder/docs/task-treeherder-config
-        self.with_extra(treeherder={
-            "machine": {"platform": platform},
-            "labels": labels,
-            "symbol": symbol,
-        })
+        # https://github.com/mozilla/treeherder/blob/master/schemas/task-treeherder-config.yml
+        self.with_extra(treeherder=dict_update_if_truthy(
+            {
+                "machine": {"platform": platform},
+                "labels": labels,
+                "symbol": symbol,
+            },
+            groupName=group_name,
+            groupSymbol=group_symbol,
+        ))
 
         if CONFIG.treeherder_repository_name:
             assert CONFIG.git_sha
