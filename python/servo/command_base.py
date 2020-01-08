@@ -36,6 +36,7 @@ from .bootstrap import check_gstreamer_lib
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
 import toml
+import json
 
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
@@ -1070,6 +1071,24 @@ install them, let us know by filing a bug!")
                 print("Clobber not needed.")
 
 
+def find_highest_msvc_version_ext():
+    def vswhere(args):
+        program_files = (os.environ.get('PROGRAMFILES(X86)') or
+                         os.environ.get('PROGRAMFILES'))
+        if not program_files:
+            return []
+        vswhere = os.path.join(program_files, 'Microsoft Visual Studio',
+                               'Installer', 'vswhere.exe')
+        if not os.path.exists(vswhere):
+            return []
+        return json.loads(check_output([vswhere, '-format', 'json'] + args).decode(errors='ignore'))
+
+    for install in vswhere(['-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+                            '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK']):
+        version = install['installationVersion'].split('.')[0] + '.0'
+        yield (install['installationPath'], version, "Current" if version == '16.0' else version)
+
+
 def find_highest_msvc_version():
     editions = ["Enterprise", "Professional", "Community", "BuildTools"]
     prog_files = os.environ.get("ProgramFiles(x86)")
@@ -1089,8 +1108,13 @@ def find_highest_msvc_version():
             vsinstalldir = os.path.join(base_vs_path, version, edition)
             if os.path.exists(vsinstalldir):
                 return (vsinstalldir, vs_version, msbuild_version)
-    print("Can't find MSBuild.exe installation under %s." % base_vs_path)
-    sys.exit(1)
+
+    versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
+    if not versions:
+        print("Can't find MSBuild.exe installation under %s. Please set the VSINSTALLDIR and VisualStudioVersion" +
+              " environment variables" % base_vs_path)
+        sys.exit(1)
+    return versions[0]
 
 
 def get_msbuild_version(vs_version):
