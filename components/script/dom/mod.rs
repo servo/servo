@@ -301,6 +301,7 @@ pub mod eventtarget;
 pub mod extendableevent;
 pub mod extendablemessageevent;
 pub mod fakexrdevice;
+pub mod fakexrinputcontroller;
 pub mod file;
 pub mod filelist;
 pub mod filereader;

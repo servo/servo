@@ -534,7 +534,8 @@ unsafe_no_jsmanaged_fields!(
     webxr_api::Registry,
     webxr_api::Session,
     webxr_api::Frame,
-    webxr_api::InputSource
+    webxr_api::InputSource,
+    webxr_api::InputId
 );
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
