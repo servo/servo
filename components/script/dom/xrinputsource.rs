@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
-    XRHandedness, XRInputSourceMethods,
+    XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -12,7 +12,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
-use webxr_api::{Handedness, InputId, InputSource};
+use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -61,6 +61,15 @@ impl XRInputSourceMethods for XRInputSource {
             Handedness::None => XRHandedness::None,
             Handedness::Left => XRHandedness::Left,
             Handedness::Right => XRHandedness::Right,
+        }
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-targetraymode
+    fn TargetRayMode(&self) -> XRTargetRayMode {
+        match self.info.target_ray_mode {
+            TargetRayMode::Gaze => XRTargetRayMode::Gaze,
+            TargetRayMode::TrackedPointer => XRTargetRayMode::Tracked_pointer,
+            TargetRayMode::Screen => XRTargetRayMode::Screen,
         }
     }
 
