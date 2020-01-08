@@ -5,6 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     self, FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
 };
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
@@ -20,7 +21,7 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::rc::Rc;
-use webxr_api::{MockDeviceMsg, MockViewInit, MockViewsInit};
+use webxr_api::{MockDeviceMsg, MockViewInit, MockViewsInit, Visibility};
 
 #[dom_struct]
 pub struct FakeXRDevice {
@@ -163,7 +164,17 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulatevisibilitychange
+    fn SimulateVisibilityChange(&self, v: XRVisibilityState) {
+        let v = match v {
+            XRVisibilityState::Visible => Visibility::Visible,
+            XRVisibilityState::Visible_blurred => Visibility::VisibleBlurred,
+            XRVisibilityState::Hidden => Visibility::Hidden,
+        };
+        let _ = self.sender.send(MockDeviceMsg::VisibilityChange(v));
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect
     fn Disconnect(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);

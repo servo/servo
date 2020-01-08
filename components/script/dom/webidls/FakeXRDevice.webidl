@@ -10,9 +10,6 @@ interface FakeXRDevice {
   // requestAnimationFrame() callbacks.
   [Throws] void setViews(sequence<FakeXRViewInit> views);
 
-  // // behaves as if device was disconnected
-  // Promise<void> disconnect();
-
   [Throws] void setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
   void clearViewerOrigin();
 
@@ -20,12 +17,9 @@ interface FakeXRDevice {
   void clearFloorOrigin();
 
   // // Simulates devices focusing and blurring sessions.
-  // void simulateVisibilityChange(XRVisibilityState);
+  void simulateVisibilityChange(XRVisibilityState state);
 
   // void setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
-  // // Sets eye level used for calculating floor-level spaces
-  // void setEyeLevel(float eyeLevel);
-
 
   // Promise<FakeXRInputController>
   //     simulateInputSourceConnection(FakeXRInputSourceInit);
