@@ -13,8 +13,8 @@ interface FakeXRInputController {
   void clearGripOrigin();
   [Throws] void setPointerOrigin(FakeXRRigidTransformInit pointerOrigin, optional boolean emulatedPosition = false);
 
-  // void disconnect();
-  // void reconnect();
+  void disconnect();
+  void reconnect();
 
   // void startSelection();
   // void endSelection();

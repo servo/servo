@@ -69,4 +69,14 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
     fn ClearGripOrigin(&self) {
         self.send_message(MockInputMsg::SetGripOrigin(None))
     }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-disconnect
+    fn Disconnect(&self) {
+        self.send_message(MockInputMsg::Disconnect)
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-reconnect
+    fn Reconnect(&self) {
+        self.send_message(MockInputMsg::Reconnect)
+    }
 }
