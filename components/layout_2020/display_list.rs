@@ -38,7 +38,11 @@ impl DisplayListBuilder {
         }
     }
 
-    fn common_properties(
+    fn common_properties(&self, clip_rect: units::LayoutRect) -> wr::CommonItemProperties {
+        self.common_properties_with_hit_info(clip_rect, None)
+    }
+
+    fn common_properties_with_hit_info(
         &self,
         clip_rect: units::LayoutRect,
         hit_info: HitInfo,
@@ -91,7 +95,7 @@ impl Fragment {
                     return;
                 }
                 let hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
-                let common = builder.common_properties(rect.clone().into(), hit_info);
+                let common = builder.common_properties_with_hit_info(rect.clone().into(), hit_info);
                 let color = t.parent_style.clone_color();
                 builder
                     .wr
@@ -104,8 +108,7 @@ impl Fragment {
                     .rect
                     .to_physical(i.style.writing_mode, containing_block)
                     .translate(&containing_block.top_left);
-                let hit_info = None;
-                let common = builder.common_properties(rect.clone().into(), hit_info);
+                let common = builder.common_properties(rect.clone().into());
                 builder.wr.push_image(
                     &common,
                     rect.into(),
@@ -134,11 +137,15 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left)
             .into();
-        let hit_info = hit_info(&self.style, self.tag, Cursor::Default);
         let border_radius = self.border_radius(&border_rect);
+        let hit_info = hit_info(&self.style, self.tag, Cursor::Default);
+        if hit_info.is_some() {
+            let common = builder.common_properties_with_hit_info(border_rect, hit_info);
+            builder.wr.push_hit_test(&common)
+        }
 
-        self.background_display_items(builder, hit_info, border_rect, &border_radius);
-        self.border_display_items(builder, hit_info, border_rect, border_radius);
+        self.background_display_items(builder, border_rect, &border_radius);
+        self.border_display_items(builder, border_rect, border_radius);
         let content_rect = self
             .content_rect
             .to_physical(self.style.writing_mode, containing_block)
@@ -170,14 +177,13 @@ impl BoxFragment {
     fn background_display_items(
         &self,
         builder: &mut DisplayListBuilder,
-        hit_info: HitInfo,
         border_rect: units::LayoutRect,
         border_radius: &wr::BorderRadius,
     ) {
         let background_color = self
             .style
             .resolve_color(self.style.clone_background_color());
-        if background_color.alpha > 0 || hit_info.is_some() {
+        if background_color.alpha > 0 {
             builder.clipping_and_scrolling_scope(|builder| {
                 if !border_radius.is_zero() {
                     builder.current_space_and_clip.clip_id = builder.wr.define_clip(
@@ -191,7 +197,7 @@ impl BoxFragment {
                         None,
                     );
                 }
-                let common = builder.common_properties(border_rect, hit_info);
+                let common = builder.common_properties(border_rect);
                 builder.wr.push_rect(&common, rgba(background_color))
             });
         }
@@ -200,7 +206,6 @@ impl BoxFragment {
     fn border_display_items(
         &self,
         builder: &mut DisplayListBuilder,
-        hit_info: HitInfo,
         border_rect: units::LayoutRect,
         radius: wr::BorderRadius,
     ) {
@@ -229,7 +234,7 @@ impl BoxFragment {
                 BorderStyle::Outset => wr::BorderStyle::Outset,
             },
         };
-        let common = builder.common_properties(border_rect, hit_info);
+        let common = builder.common_properties(border_rect);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side(b.border_top_style, b.border_top_color),
             right: side(b.border_right_style, b.border_right_color),
