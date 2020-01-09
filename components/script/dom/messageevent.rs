@@ -13,7 +13,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::message_ports_to_frozen_array;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -244,7 +244,7 @@ impl MessageEventMethods for MessageEvent {
             .iter()
             .map(|port| DomRoot::from_ref(&**port))
             .collect();
-        message_ports_to_frozen_array(ports.as_slice(), cx)
+        to_frozen_array(ports.as_slice(), cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-initmessageevent>
