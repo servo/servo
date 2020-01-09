@@ -30,9 +30,11 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.fillStyle = ctx.createPattern(response, 'no-repeat');
-    ctx.fillRect(0, 50, 100, 50);
-    _assertPixelApprox(offscreenCanvas, 50,25, 0,0,0,0, "50,25", "0,0,0,0", 5);
+    createImageBitmap(response).then(bitmap => {
+        ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+        ctx.fillRect(0, 50, 100, 50);
+        _assertPixelApprox(offscreenCanvas, 50,25, 0,0,0,0, "50,25", "0,0,0,0", 5);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

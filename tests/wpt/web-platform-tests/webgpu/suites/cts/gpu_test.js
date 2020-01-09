@@ -99,19 +99,23 @@ export class GPUTest extends Fixture {
     return this.device.createShaderModule({
       code
     });
-  } // TODO: add an expectContents for textures, which logs data: uris on failure
+  }
 
-
-  expectContents(src, expected) {
-    const exp = new Uint8Array(expected.buffer, expected.byteOffset, expected.byteLength);
-    const size = expected.buffer.byteLength;
+  createCopyForMapRead(src, size) {
     const dst = this.device.createBuffer({
-      size: expected.buffer.byteLength,
+      size,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
     });
     const c = this.device.createCommandEncoder();
     c.copyBufferToBuffer(src, 0, dst, 0, size);
     this.queue.submit([c.finish()]);
+    return dst;
+  } // TODO: add an expectContents for textures, which logs data: uris on failure
+
+
+  expectContents(src, expected) {
+    const exp = new Uint8Array(expected.buffer, expected.byteOffset, expected.byteLength);
+    const dst = this.createCopyForMapRead(src, expected.buffer.byteLength);
     this.eventualAsyncExpectation(async niceStack => {
       const actual = new Uint8Array((await dst.mapReadAsync()));
       const check = this.checkBuffer(actual, exp);
@@ -153,7 +157,21 @@ export class GPUTest extends Fixture {
         failedPixels++;
         lines.push(`at [${i}], expected ${exp[i]}, got ${actual[i]}`);
       }
-    }
+    } // TODO: Could make a more convenient message, which could look like e.g.:
+    //
+    //   Starting at offset 48,
+    //              got 22222222 ABCDABCD 99999999
+    //     but expected 22222222 55555555 99999999
+    //
+    // or
+    //
+    //   Starting at offset 0,
+    //              got 00000000 00000000 00000000 00000000 (... more)
+    //     but expected 00FF00FF 00FF00FF 00FF00FF 00FF00FF (... more)
+    //
+    // Or, maybe these diffs aren't actually very useful (given we have the prints just above here),
+    // and we should remove them. More important will be logging of texture data in a visual format.
+
 
     if (size <= 256 && failedPixels > 0) {
       const expHex = Array.from(exp).map(x => x.toString(16).padStart(2, '0')).join('');

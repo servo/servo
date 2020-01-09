@@ -691,6 +691,10 @@ WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/appcache/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 
+# Web Bundle files have hard-coded URLs
+WEB-PLATFORM.TEST:web-bundle/resources/generate-test-wbns.sh
+WEB-PLATFORM.TEST:web-bundle/resources/wbn/*.wbn
+
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.

@@ -30,8 +30,10 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.drawImage(response, 0, 0);
-    _assertPixelApprox(offscreenCanvas, 50,25, 0,255,255,96, "50,25", "0,255,255,96", 5);
+    createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        _assertPixelApprox(offscreenCanvas, 50,25, 0,255,255,96, "50,25", "0,255,255,96", 5);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

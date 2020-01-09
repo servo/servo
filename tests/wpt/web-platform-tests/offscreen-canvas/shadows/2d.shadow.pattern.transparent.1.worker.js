@@ -26,13 +26,15 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    var pattern = ctx.createPattern(response, 'repeat');
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.shadowColor = '#f00';
-    ctx.shadowOffsetY = 50;
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, -50, 100, 50);
+    createImageBitmap(response).then(bitmap => {
+        var pattern = ctx.createPattern(bitmap, 'repeat');
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.shadowColor = '#f00';
+        ctx.shadowOffsetY = 50;
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, -50, 100, 50);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

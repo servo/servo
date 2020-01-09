@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web NFC (https://w3c.github.io/web-nfc/)
 
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NDEFMessage {
   constructor(NDEFMessageInit messageInit);
   readonly attribute FrozenArray<NDEFRecord> records;
@@ -15,7 +15,7 @@ dictionary NDEFMessageInit {
 
 typedef (DOMString or BufferSource or NDEFMessageInit) NDEFRecordDataSource;
 
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface NDEFRecord {
   constructor(NDEFRecordInit recordInit);
 
@@ -27,7 +27,7 @@ interface NDEFRecord {
   readonly attribute USVString? encoding;
   readonly attribute USVString? lang;
 
-  sequence<NDEFRecord> toRecords();
+  sequence<NDEFRecord>? toRecords();
 };
 
 dictionary NDEFRecordInit {
@@ -89,6 +89,6 @@ enum NDEFPushTarget {
 dictionary NDEFScanOptions {
   USVString id;
   USVString recordType;
-  USVString mediaType = "";
+  USVString mediaType;
   AbortSignal? signal;
 };

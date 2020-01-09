@@ -37,15 +37,19 @@ var promise2 = new Promise(function(resolve, reject) {
     };
 });
 Promise.all([promise1, promise2]).then(function(response1, response2) {
-    ctx.drawImage(response2, 1, 1, 1, 1, 0, 0, 100, 50);
-    ctx.drawImage(response1, 0, 0, 100, 50, -50, 0, 50, 50);
-    ctx.drawImage(response1, 0, 0, 100, 50, 100, 0, 50, 50);
-    ctx.drawImage(response1, 0, 0, 100, 50, 0, -25, 100, 25);
-    ctx.drawImage(response1, 0, 0, 100, 50, 0, 50, 100, 25);
-    _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+    var promise3 = createImageBitmap(response1);
+    var promise4 = createImageBitmap(response2);
+    Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+        ctx.drawImage(bitmap2, 1, 1, 1, 1, 0, 0, 100, 50);
+        ctx.drawImage(bitmap1, 0, 0, 100, 50, -50, 0, 50, 50);
+        ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 50, 50);
+        ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -25, 100, 25);
+        ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 25);
+        _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

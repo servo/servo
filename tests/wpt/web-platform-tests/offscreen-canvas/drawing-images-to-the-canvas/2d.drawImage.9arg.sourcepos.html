@@ -33,11 +33,13 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.drawImage(response, 140, 20, 100, 50, 0, 0, 100, 50);
-    _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+    createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
+        _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });

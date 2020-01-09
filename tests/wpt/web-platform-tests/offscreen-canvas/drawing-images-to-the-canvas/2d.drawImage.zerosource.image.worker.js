@@ -28,10 +28,12 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(response, 0, 0, 100, 50); });
-    assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(response, 0, 0, 100, 50); });
-    assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(response, 0, 0, 100, 50); });
-    _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+    createImageBitmap(response).then(bitmap => {
+        assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 0, 0, 100, 50); });
+        assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 0, 0, 100, 50); });
+        assert_throws("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 0, 0, 100, 50); });
+        _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+    }, t_fail);
 }).then(t_pass, t_fail);
 
 });
