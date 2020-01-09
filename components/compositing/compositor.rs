@@ -19,6 +19,7 @@ use gfx_traits::Epoch;
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
+use log::warn;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
@@ -46,6 +47,7 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
 use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
+use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -177,6 +179,12 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
+
+    /// The surfman instance that webrender targets
+    webrender_surfman: WebrenderSurfman,
+
+    /// The GL bindings for webrender
+    webrender_gl: Rc<dyn gleam::gl::Gl>,
 
     /// Some XR devices want to run on the main thread.
     pub webxr_main_thread: webxr::MainThreadRegistry,
@@ -316,6 +324,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            webrender_surfman: state.webrender_surfman,
+            webrender_gl: state.webrender_gl,
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
@@ -345,6 +355,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             convert_mouse_to_touch,
         );
 
+        // Make sure the GL state is OK
+        compositor.assert_gl_framebuffer_complete();
+
         // Set the size of the root layer.
         compositor.update_zoom_transform();
 
@@ -352,7 +365,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn deinit(self) {
-        self.window.make_gl_context_current();
+        if let Err(err) = self.webrender_surfman.make_gl_context_current() {
+            warn!("Failed to make GL context current: {:?}", err);
+        }
         self.webrender.deinit();
     }
 
@@ -1238,7 +1253,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     ) -> Result<Option<Image>, UnableToComposite> {
         let size = self.embedder_coordinates.framebuffer.to_u32();
 
-        self.window.make_gl_context_current();
+        if let Err(err) = self.webrender_surfman.make_gl_context_current() {
+            warn!("Failed to make GL context current: {:?}", err);
+        }
+        self.assert_no_gl_error();
+
+        // Bind the webrender framebuffer
+        let framebuffer_object = self
+            .webrender_surfman
+            .context_surface_info()
+            .unwrap_or(None)
+            .map(|info| info.framebuffer_object)
+            .unwrap_or(0);
+        self.webrender_gl
+            .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
+        self.assert_gl_framebuffer_complete();
+
         self.webrender.update();
 
         let wait_for_stable_image = match target {
@@ -1266,7 +1296,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => gl::initialize_png(
-                &*self.window.gl(),
+                &*self.webrender_gl,
                 FramebufferUintLength::new(size.width),
                 FramebufferUintLength::new(size.height),
             ),
@@ -1347,7 +1377,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng => {
                 let img = gl::draw_img(
-                    &*self.window.gl(),
+                    &*self.webrender_gl,
                     rt_info,
                     x,
                     y,
@@ -1365,7 +1395,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
             #[cfg(feature = "gl")]
             CompositeTarget::PngFile => {
-                let gl = &*self.window.gl();
+                let gl = &*self.webrender_gl;
                 profile(
                     ProfilerCategory::ImageSaving,
                     None,
@@ -1399,7 +1429,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         // Perform the page flip. This will likely block for a while.
-        self.window.present();
+        if let Err(err) = self.webrender_surfman.present() {
+            warn!("Failed to present surface: {:?}", err);
+        }
 
         self.last_composite_time = precise_time_ns();
 
@@ -1426,11 +1458,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn clear_background(&self) {
-        let gl = self.window.gl();
+        let gl = &self.webrender_gl;
+        self.assert_gl_framebuffer_complete();
 
         // Make framebuffer fully transparent.
         gl.clear_color(0.0, 0.0, 0.0, 0.0);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+        self.assert_gl_framebuffer_complete();
 
         // Make the viewport white.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
@@ -1444,6 +1478,24 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         gl.enable(gleam::gl::SCISSOR_TEST);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
         gl.disable(gleam::gl::SCISSOR_TEST);
+        self.assert_gl_framebuffer_complete();
+    }
+
+    #[track_caller]
+    fn assert_no_gl_error(&self) {
+        debug_assert_eq!(self.webrender_gl.get_error(), gleam::gl::NO_ERROR);
+    }
+
+    #[track_caller]
+    fn assert_gl_framebuffer_complete(&self) {
+        debug_assert_eq!(
+            (
+                self.webrender_gl.get_error(),
+                self.webrender_gl
+                    .check_frame_buffer_status(gleam::gl::FRAMEBUFFER)
+            ),
+            (gleam::gl::NO_ERROR, gleam::gl::FRAMEBUFFER_COMPLETE)
+        );
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {

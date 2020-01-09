@@ -321,7 +321,11 @@ mod gen {
                 subpixel_text_antialiasing: {
                     #[serde(rename = "gfx.subpixel-text-antialiasing.enabled")]
                     enabled: bool,
-                }
+                },
+                texture_swizzling: {
+                    #[serde(rename = "gfx.texture-swizzling.enabled")]
+                    enabled: bool,
+                },
             },
             js: {
                 asmjs: {

@@ -72,7 +72,7 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
   InitializeCriticalSection(&mGLLock);
   InitializeConditionVariable(&mDialogCondVar);
   InitializeCriticalSection(&mDialogLock);
-  CreateRenderSurface();
+  CreateNativeWindow();
   StartRenderLoop();
 }
 
@@ -80,22 +80,26 @@ Controls::SwapChainPanel ServoControl::Panel() {
   return GetTemplateChild(L"swapChainPanel").as<Controls::SwapChainPanel>();
 }
 
-void ServoControl::CreateRenderSurface() {
-  if (mRenderSurface == EGL_NO_SURFACE) {
-    mRenderSurface = mOpenGLES.CreateSurface(Panel(), mDPI);
-  }
+void ServoControl::CreateNativeWindow() {
+  mPanelWidth = Panel().ActualWidth() * mDPI;
+  mPanelHeight = Panel().ActualHeight() * mDPI;
+  mNativeWindowProperties.Insert(EGLNativeWindowTypeProperty, Panel());
+  // How to set size and or scale:
+  // Insert(EGLRenderSurfaceSizeProperty),
+  // PropertyValue::CreateSize(*renderSurfaceSize));
+  mNativeWindowProperties.Insert(EGLRenderResolutionScaleProperty,
+                                 PropertyValue::CreateSingle(mDPI));
 }
 
-void ServoControl::DestroyRenderSurface() {
-  mOpenGLES.DestroySurface(mRenderSurface);
-  mRenderSurface = EGL_NO_SURFACE;
+EGLNativeWindowType ServoControl::GetNativeWindow() {
+  EGLNativeWindowType win =
+      static_cast<EGLNativeWindowType>(winrt::get_abi(mNativeWindowProperties));
+
+  return win;
 }
 
 void ServoControl::RecoverFromLostDevice() {
   StopRenderLoop();
-  DestroyRenderSurface();
-  mOpenGLES.Reset();
-  CreateRenderSurface();
   StartRenderLoop();
 }
 
@@ -311,18 +315,12 @@ void ServoControl::RunOnGLThread(std::function<void()> task) {
 void ServoControl::Loop() {
   log("BrowserPage::Loop(). GL thread: %i", GetCurrentThreadId());
 
-  mOpenGLES.MakeCurrent(mRenderSurface);
-
-  EGLint panelWidth = 0;
-  EGLint panelHeight = 0;
-  mOpenGLES.GetSurfaceDimensions(mRenderSurface, &panelWidth, &panelHeight);
-  glViewport(0, 0, panelWidth, panelHeight);
-
   if (mServo == nullptr) {
     log("Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
-    mServo = std::make_unique<Servo>(mInitialURL, mArgs, panelWidth,
-                                     panelHeight, mDPI, *sd);
+    EGLNativeWindowType win = GetNativeWindow();
+    mServo = std::make_unique<Servo>(mInitialURL, mArgs, mPanelWidth,
+                                     mPanelHeight, win, mDPI, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
@@ -405,17 +403,6 @@ void ServoControl::OnServoURLChanged(hstring url) {
     mOnURLChangedEvent(*this, url);
   });
 }
-
-void ServoControl::Flush() {
-  if (mOpenGLES.SwapBuffers(mRenderSurface) != GL_TRUE) {
-    // The call to eglSwapBuffers might not be successful (i.e. due to Device
-    // Lost) If the call fails, then we must reinitialize EGL and the GL
-    // resources.
-    RunOnUIThread([=] { RecoverFromLostDevice(); });
-  }
-}
-
-void ServoControl::MakeCurrent() { mOpenGLES.MakeCurrent(mRenderSurface); }
 
 void ServoControl::WakeUp() {
   RunOnGLThread([=] {});

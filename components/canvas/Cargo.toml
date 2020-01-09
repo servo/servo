@@ -38,9 +38,10 @@ servo_config = {path = "../config"}
 sparkle = "0.1.22"
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender"}
+webrender_surfman = {path = "../webrender_surfman"}
 webrender_traits = {path = "../webrender_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
-surfman = { version = "0.1", features = ["sm-angle", "sm-osmesa"] }
+surfman = { version = "0.2", features = ["sm-angle","sm-angle-default"] }
 surfman-chains = "0.3"
 surfman-chains-api = "0.2"

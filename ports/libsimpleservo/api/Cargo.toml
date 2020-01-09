@@ -12,6 +12,7 @@ ipc-channel = "0.14"
 libservo = { path = "../../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
+surfman = { version = "0.2", features = ["sm-angle-default"] }
 
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr"}

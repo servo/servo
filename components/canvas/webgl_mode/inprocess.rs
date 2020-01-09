@@ -15,19 +15,19 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use surfman::platform::generic::universal::context::Context;
-use surfman::platform::generic::universal::device::Device;
-use surfman::platform::generic::universal::surface::SurfaceTexture;
+use surfman::Device;
 use surfman::SurfaceInfo;
+use surfman::SurfaceTexture;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainAPI;
 use surfman_chains_api::SwapChainsAPI;
+use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
-    pub webxr_swap_chains: SwapChains<WebXRSwapChainId>,
+    pub webxr_swap_chains: SwapChains<WebXRSwapChainId, Device>,
     pub webxr_surface_providers: SurfaceProviders,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
     pub output_handler: Option<Box<dyn webrender_api::OutputImageHandler>>,
@@ -37,8 +37,7 @@ pub struct WebGLComm {
 impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
-        device: Device,
-        context: Context,
+        surfman: WebrenderSurfman,
         webrender_gl: Rc<dyn gleam::gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -60,8 +59,8 @@ impl WebGLComm {
             webrender_swap_chains: webrender_swap_chains.clone(),
             webxr_swap_chains: webxr_swap_chains.clone(),
             webxr_surface_providers: webxr_surface_providers.clone(),
-            connection: device.connection(),
-            adapter: device.adapter(),
+            connection: surfman.connection(),
+            adapter: surfman.adapter(),
             api_type,
             runnable_receiver,
         };
@@ -72,7 +71,7 @@ impl WebGLComm {
             None
         };
 
-        let external = WebGLExternalImages::new(device, context, webrender_swap_chains);
+        let external = WebGLExternalImages::new(surfman, webrender_swap_chains);
 
         WebGLThread::run_on_own_thread(init);
 
@@ -89,23 +88,15 @@ impl WebGLComm {
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 struct WebGLExternalImages {
-    device: Device,
-    context: Context,
-    swap_chains: SwapChains<WebGLContextId>,
+    surfman: WebrenderSurfman,
+    swap_chains: SwapChains<WebGLContextId, Device>,
     locked_front_buffers: FnvHashMap<WebGLContextId, SurfaceTexture>,
 }
 
-impl Drop for WebGLExternalImages {
-    fn drop(&mut self) {
-        let _ = self.device.destroy_context(&mut self.context);
-    }
-}
-
 impl WebGLExternalImages {
-    fn new(device: Device, context: Context, swap_chains: SwapChains<WebGLContextId>) -> Self {
+    fn new(surfman: WebrenderSurfman, swap_chains: SwapChains<WebGLContextId, Device>) -> Self {
         Self {
-            device,
-            context,
+            surfman,
             swap_chains,
             locked_front_buffers: FnvHashMap::default(),
         }
@@ -119,13 +110,10 @@ impl WebGLExternalImages {
             id: front_buffer_id,
             size,
             ..
-        } = self.device.surface_info(&front_buffer);
+        } = self.surfman.surface_info(&front_buffer);
         debug!("... getting texture for surface {:?}", front_buffer_id);
-        let front_buffer_texture = self
-            .device
-            .create_surface_texture(&mut self.context, front_buffer)
-            .unwrap();
-        let gl_texture = front_buffer_texture.gl_texture();
+        let front_buffer_texture = self.surfman.create_surface_texture(front_buffer).unwrap();
+        let gl_texture = self.surfman.surface_texture_object(&front_buffer_texture);
 
         self.locked_front_buffers.insert(id, front_buffer_texture);
 
@@ -135,8 +123,8 @@ impl WebGLExternalImages {
     fn unlock_swap_chain(&mut self, id: WebGLContextId) -> Option<()> {
         let locked_front_buffer = self.locked_front_buffers.remove(&id)?;
         let locked_front_buffer = self
-            .device
-            .destroy_surface_texture(&mut self.context, locked_front_buffer)
+            .surfman
+            .destroy_surface_texture(locked_front_buffer)
             .unwrap();
 
         debug!("... unlocked chain {:?}", id);

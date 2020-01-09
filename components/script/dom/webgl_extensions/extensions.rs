@@ -52,10 +52,22 @@ const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 3] = [
     OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES,
 ];
 
+// Param names that are implemented for glGetParameter in a WebGL 2.0 context
+// but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
+// Example: https://www.khronos.org/registry/webgl/extensions/EXT_texture_filter_anisotropic/
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL2: [GLenum; 1] =
+    [EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT];
+
 // Param names that are implemented for glGetTexParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
 const DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1: [GLenum; 1] =
+    [EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT];
+
+// Param names that are implemented for glGetTexParameter in a WebGL 2.0 context
+// but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
+// Example: https://www.khronos.org/registry/webgl/extensions/EXT_texture_filter_anisotropic/
+const DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL2: [GLenum; 1] =
     [EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT];
 
 // Param names that are implemented for glGetVertexAttrib in a WebGL 1.0 context
@@ -116,8 +128,14 @@ impl WebGLExtensionFeatures {
             ),
             WebGLVersion::WebGL2 => (
                 Default::default(),
-                Default::default(),
-                Default::default(),
+                DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL2
+                    .iter()
+                    .cloned()
+                    .collect(),
+                DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL2
+                    .iter()
+                    .cloned()
+                    .collect(),
                 Default::default(),
                 true,
                 true,

@@ -40,6 +40,7 @@ style_traits = {path = "../style_traits"}
 time = "0.1.17"
 webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender"}
+webrender_surfman = {path = "../webrender_surfman"}
 webxr = {git = "https://github.com/servo/webxr"}
 
 [build-dependencies]

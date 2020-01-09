@@ -4,93 +4,28 @@
 
 //! A headless window implementation.
 
+use crate::events_loop::EventsLoop;
 use crate::window_trait::WindowPortsMethods;
-use euclid::{default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use gleam::gl;
-use glutin;
+use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use winit;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
+use servo::webrender_api::units::DeviceIntRect;
 use servo_media::player::context as MediaPlayerCtxt;
+use servo::webrender_surfman::WebrenderSurfman;
 use std::cell::Cell;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use std::cell::RefCell;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use std::ffi::CString;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use std::mem;
-use std::os::raw::c_void;
-use std::ptr;
 use std::rc::Rc;
-
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-struct HeadlessContext {
-    width: u32,
-    height: u32,
-    context: osmesa_sys::OSMesaContext,
-    buffer: RefCell<Vec<u32>>,
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "macos")))]
-struct HeadlessContext {
-    width: u32,
-    height: u32,
-}
-
-impl HeadlessContext {
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn new(width: u32, height: u32, share: Option<&HeadlessContext>) -> HeadlessContext {
-        let mut attribs = Vec::new();
-
-        attribs.push(osmesa_sys::OSMESA_PROFILE);
-        attribs.push(osmesa_sys::OSMESA_CORE_PROFILE);
-        attribs.push(osmesa_sys::OSMESA_CONTEXT_MAJOR_VERSION);
-        attribs.push(3);
-        attribs.push(osmesa_sys::OSMESA_CONTEXT_MINOR_VERSION);
-        attribs.push(3);
-        attribs.push(0);
-
-        let share = share.map_or(ptr::null_mut(), |share| share.context as *mut _);
-
-        let context = unsafe { osmesa_sys::OSMesaCreateContextAttribs(attribs.as_ptr(), share) };
-
-        assert!(!context.is_null());
-
-        HeadlessContext {
-            width: width,
-            height: height,
-            context: context,
-            buffer: RefCell::new(vec![0; (width * height) as usize]),
-        }
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn new(width: u32, height: u32, _share: Option<&HeadlessContext>) -> HeadlessContext {
-        HeadlessContext {
-            width: width,
-            height: height,
-        }
-    }
-
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn get_proc_address(s: &str) -> *const c_void {
-        let c_str = CString::new(s).expect("Unable to create CString");
-        unsafe { mem::transmute(osmesa_sys::OSMesaGetProcAddress(c_str.as_ptr())) }
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn get_proc_address(_: &str) -> *const c_void {
-        ptr::null() as *const _
-    }
-}
+use surfman::Connection;
+use surfman::Device;
+use surfman::NativeWidget;
+use surfman::SurfaceType;
 
 pub struct Window {
-    context: HeadlessContext,
+    webrender_surfman: WebrenderSurfman,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    gl: Rc<dyn gl::Gl>,
     device_pixels_per_px: Option<f32>,
 }
 
@@ -99,18 +34,19 @@ impl Window {
         size: Size2D<u32, DeviceIndependentPixel>,
         device_pixels_per_px: Option<f32>,
     ) -> Rc<dyn WindowPortsMethods> {
-        let context = HeadlessContext::new(size.width, size.height, None);
-        let gl = unsafe { gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s)) };
-
-        // Print some information about the headless renderer that
-        // can be useful in diagnosing CI failures on build machines.
-        println!("{}", gl.get_string(gl::VENDOR));
-        println!("{}", gl.get_string(gl::RENDERER));
-        println!("{}", gl.get_string(gl::VERSION));
+        // Initialize surfman
+        let connection = Connection::new().expect("Failed to create connection");
+        let adapter = connection.create_software_adapter().expect("Failed to create adapter");
+        let size = size.to_untyped().to_i32();
+        let surface_type = SurfaceType::Generic { size };
+        let webrender_surfman = WebrenderSurfman::create(
+            &connection,
+            &adapter,
+            surface_type,
+        ).expect("Failed to create WR surfman");
 
         let window = Window {
-            context,
-            gl,
+            webrender_surfman,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixels_per_px,
@@ -136,13 +72,18 @@ impl WindowPortsMethods for Window {
         false
     }
 
-    fn id(&self) -> glutin::WindowId {
-        unsafe { glutin::WindowId::dummy() }
+    fn id(&self) -> winit::WindowId {
+        unsafe { winit::WindowId::dummy() }
     }
 
     fn page_height(&self) -> f32 {
+        let height = self.webrender_surfman
+            .context_surface_info()
+            .unwrap_or(None)
+            .map(|info| info.size.height)
+            .unwrap_or(0);
         let dpr = self.servo_hidpi_factor();
-        self.context.height as f32 * dpr.get()
+        height as f32 * dpr.get()
     }
 
     fn set_fullscreen(&self, state: bool) {
@@ -157,24 +98,27 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn winit_event_to_servo_event(&self, _event: glutin::WindowEvent) {
+    fn winit_event_to_servo_event(&self, _event: winit::WindowEvent) {
         // Not expecting any winit events.
+    }
+
+    fn new_glwindow(&self, _events_loop: &EventsLoop) -> Box<dyn webxr::glwindow::GlWindow> {
+        unimplemented!()
     }
 }
 
 impl WindowMethods for Window {
-    fn gl(&self) -> Rc<dyn gl::Gl> {
-        self.gl.clone()
-    }
-
-    fn get_coordinates(&self) -> EmbedderCoordinates {
+     fn get_coordinates(&self) -> EmbedderCoordinates {
         let dpr = self.servo_hidpi_factor();
-        let size = (Size2D::new(self.context.width, self.context.height).to_f32() * dpr).to_i32();
+        let size = self.webrender_surfman
+            .context_surface_info()
+            .unwrap_or(None)
+            .map(|info| Size2D::from_untyped(info.size))
+            .unwrap_or(Size2D::new(0, 0));
         let viewport = DeviceIntRect::new(Point2D::zero(), size);
-        let framebuffer = DeviceIntSize::from_untyped(size.to_untyped());
         EmbedderCoordinates {
             viewport,
-            framebuffer,
+            framebuffer: size,
             window: (size, Point2D::zero()),
             screen: size,
             screen_avail: size,
@@ -182,31 +126,11 @@ impl WindowMethods for Window {
         }
     }
 
-    fn present(&self) {}
-
-    fn set_animation_state(&self, state: AnimationState) {
+     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn make_gl_context_current(&self) {
-        unsafe {
-            let mut buffer = self.context.buffer.borrow_mut();
-            let ret = osmesa_sys::OSMesaMakeCurrent(
-                self.context.context,
-                buffer.as_mut_ptr() as *mut _,
-                gl::UNSIGNED_BYTE,
-                self.context.width as i32,
-                self.context.height as i32,
-            );
-            assert_ne!(ret, 0);
-        };
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn make_gl_context_current(&self) {}
-
-    fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
+     fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
         MediaPlayerCtxt::GlContext::Unknown
     }
 
@@ -217,32 +141,17 @@ impl WindowMethods for Window {
     fn get_gl_api(&self) -> MediaPlayerCtxt::GlApi {
         MediaPlayerCtxt::GlApi::None
     }
+
+    fn webrender_surfman(&self) -> WebrenderSurfman {
+        self.webrender_surfman.clone()
+    }
 }
 
 impl webxr::glwindow::GlWindow for Window {
-    fn make_current(&self) {}
-    fn swap_buffers(&self) {}
-    fn size(&self) -> UntypedSize2D<gl::GLsizei> {
-        let dpr = self.servo_hidpi_factor().get();
-        Size2D::new(
-            (self.context.width as f32 * dpr) as gl::GLsizei,
-            (self.context.height as f32 * dpr) as gl::GLsizei,
-        )
+    fn get_native_widget(&self, _device: &Device) -> NativeWidget {
+        unimplemented!()
     }
-    fn new_window(&self) -> Result<Rc<dyn webxr::glwindow::GlWindow>, ()> {
-        let width = self.context.width;
-        let height = self.context.height;
-        let share = Some(&self.context);
-        let context = HeadlessContext::new(width, height, share);
-        let gl = self.gl.clone();
-        Ok(Rc::new(Window {
-            context,
-            gl,
-            animation_state: Cell::new(AnimationState::Idle),
-            fullscreen: Cell::new(false),
-            device_pixels_per_px: self.device_pixels_per_px,
-        }))
-    }
+
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
         Rotation3D::identity()
     }

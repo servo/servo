@@ -32,6 +32,7 @@ use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_surfman::WebrenderSurfman;
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
 use std::cell::RefCell;
@@ -39,6 +40,8 @@ use std::mem;
 use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
+use surfman::Connection;
+use surfman::SurfaceType;
 
 thread_local! {
     pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
@@ -58,6 +61,7 @@ pub struct InitOptions {
     pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
+    pub native_widget: *mut c_void,
 }
 
 #[derive(Clone, Debug)]
@@ -84,12 +88,6 @@ impl Coordinates {
 
 /// Callbacks. Implemented by embedder. Called by Servo.
 pub trait HostTrait {
-    /// Will be called from the thread used for the init call.
-    /// Will be called when the GL buffer has been updated.
-    fn flush(&self);
-    /// Will be called before drawing.
-    /// Time to make the targetted GL context current.
-    fn make_current(&self);
     /// Show alert.
     fn prompt_alert(&self, msg: String, trusted: bool);
     /// Ask Yes/No question.
@@ -211,13 +209,28 @@ pub fn init(
     gl.clear(gl::COLOR_BUFFER_BIT);
     gl.finish();
 
+    // Initialize surfman
+    let connection = Connection::new().or(Err("Failed to create connection"))?;
+    let adapter = connection
+        .create_adapter()
+        .or(Err("Failed to create adapter"))?;
+    let native_widget = unsafe {
+        connection.create_native_widget_from_ptr(
+            init_opts.native_widget,
+            init_opts.coordinates.framebuffer.to_untyped(),
+        )
+    };
+    let surface_type = SurfaceType::Widget { native_widget };
+    let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+        .or(Err("Failed to create surface manager"))?;
+
     let window_callbacks = Rc::new(ServoWindowCallbacks {
         host_callbacks: callbacks,
-        gl: gl.clone(),
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
         gl_context_pointer: init_opts.gl_context_pointer,
         native_display_pointer: init_opts.native_display_pointer,
+        webrender_surfman,
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
@@ -723,12 +736,12 @@ struct ServoEmbedderCallbacks {
 }
 
 struct ServoWindowCallbacks {
-    gl: Rc<dyn gl::Gl>,
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
     gl_context_pointer: Option<*const c_void>,
     native_display_pointer: Option<*const c_void>,
+    webrender_surfman: WebrenderSurfman,
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
@@ -798,7 +811,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 
         struct GlThread(WebGlExecutor);
         impl webxr::openxr::GlThread for GlThread {
-            fn execute(&self, runnable: Box<dyn FnOnce() + Send>) {
+            fn execute(&self, runnable: Box<dyn FnOnce(&surfman::Device) + Send>) {
                 let _ = self.0.send(runnable);
             }
             fn clone(&self) -> Box<dyn webxr::openxr::GlThread> {
@@ -835,19 +848,8 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn make_gl_context_current(&self) {
-        debug!("WindowMethods::prepare_for_composite");
-        self.host_callbacks.make_current();
-    }
-
-    fn present(&self) {
-        debug!("WindowMethods::present");
-        self.host_callbacks.flush();
-    }
-
-    fn gl(&self) -> Rc<dyn gl::Gl> {
-        debug!("WindowMethods::gl");
-        self.gl.clone()
+    fn webrender_surfman(&self) -> WebrenderSurfman {
+        self.webrender_surfman.clone()
     }
 
     fn set_animation_state(&self, state: AnimationState) {
