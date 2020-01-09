@@ -94,7 +94,7 @@ where
     target.class_list() == candidate.class_list()
 }
 
-/// Whether a given element has the same class attribute as a given candidate.
+/// Whether a given element has the same part attribute as a given candidate.
 ///
 /// We don't try to share style across elements with different part attributes.
 pub fn have_same_parts<E>(
