@@ -60,10 +60,31 @@ pub struct MessageEvent {
     origin: DomRefCell<DOMString>,
     source: DomRefCell<Option<SrcObject>>,
     lastEventId: DomRefCell<DOMString>,
-    ports: DomRefCell<Vec<DomRoot<MessagePort>>>,
+    ports: DomRefCell<Vec<Dom<MessagePort>>>,
 }
 
 impl MessageEvent {
+    pub fn new_inherited(
+        origin: DOMString,
+        source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
+        lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) -> MessageEvent {
+        MessageEvent {
+            event: Event::new_inherited(),
+            data: Heap::default(),
+            source: DomRefCell::new(source.map(|source| source.into())),
+            origin: DomRefCell::new(origin),
+            lastEventId: DomRefCell::new(lastEventId),
+            ports: DomRefCell::new(
+                ports
+                    .into_iter()
+                    .map(|port| Dom::from_ref(&*port))
+                    .collect(),
+            ),
+        }
+    }
+
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
         MessageEvent::new_initialized(
             global,
@@ -83,14 +104,12 @@ impl MessageEvent {
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
-        let ev = Box::new(MessageEvent {
-            event: Event::new_inherited(),
-            data: Heap::default(),
-            source: DomRefCell::new(source.map(|source| source.into())),
-            origin: DomRefCell::new(origin),
-            lastEventId: DomRefCell::new(lastEventId),
-            ports: DomRefCell::new(ports),
-        });
+        let ev = Box::new(MessageEvent::new_inherited(
+            origin,
+            source,
+            lastEventId,
+            ports,
+        ));
         let ev = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
         ev.data.set(data.get());
 
@@ -219,7 +238,13 @@ impl MessageEventMethods for MessageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
     fn Ports(&self, cx: JSContext) -> JSVal {
-        message_ports_to_frozen_array(self.ports.borrow().as_slice(), cx)
+        let ports: Vec<DomRoot<MessagePort>> = self
+            .ports
+            .borrow()
+            .iter()
+            .map(|port| DomRoot::from_ref(&**port))
+            .collect();
+        message_ports_to_frozen_array(ports.as_slice(), cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-initmessageevent>
@@ -239,7 +264,10 @@ impl MessageEventMethods for MessageEvent {
         *self.origin.borrow_mut() = origin.clone();
         *self.source.borrow_mut() = source.as_ref().map(|source| source.into());
         *self.lastEventId.borrow_mut() = lastEventId.clone();
-        *self.ports.borrow_mut() = ports;
+        *self.ports.borrow_mut() = ports
+            .into_iter()
+            .map(|port| Dom::from_ref(&*port))
+            .collect();
         self.event
             .init_event(Atom::from(type_), bubbles, cancelable);
     }

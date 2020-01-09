@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::Exte
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::message_ports_to_frozen_array;
@@ -31,10 +31,27 @@ pub struct ExtendableMessageEvent {
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
-    ports: Vec<DomRoot<MessagePort>>,
+    ports: Vec<Dom<MessagePort>>,
 }
 
 impl ExtendableMessageEvent {
+    pub fn new_inherited(
+        origin: DOMString,
+        lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) -> ExtendableMessageEvent {
+        ExtendableMessageEvent {
+            event: ExtendableEvent::new_inherited(),
+            data: Heap::default(),
+            origin: origin,
+            lastEventId: lastEventId,
+            ports: ports
+                .into_iter()
+                .map(|port| Dom::from_ref(&*port))
+                .collect(),
+        }
+    }
+
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -45,13 +62,11 @@ impl ExtendableMessageEvent {
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<ExtendableMessageEvent> {
-        let ev = Box::new(ExtendableMessageEvent {
-            event: ExtendableEvent::new_inherited(),
-            data: Heap::default(),
+        let ev = Box::new(ExtendableMessageEvent::new_inherited(
             origin,
             lastEventId,
             ports,
-        });
+        ));
         let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
@@ -126,6 +141,11 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
 
     /// https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports
     fn Ports(&self, cx: JSContext) -> JSVal {
-        message_ports_to_frozen_array(self.ports.as_slice(), cx)
+        let ports: Vec<DomRoot<MessagePort>> = self
+            .ports
+            .iter()
+            .map(|port| DomRoot::from_ref(&**port))
+            .collect();
+        message_ports_to_frozen_array(ports.as_slice(), cx)
     }
 }
