@@ -94,6 +94,7 @@ TRAILING WHITESPACE: server-timing/resources/parsing/*
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/support/*.vtt
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
 TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
+TRAILING WHITESPACE: cookies/http-state/resources/test-files/*
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py

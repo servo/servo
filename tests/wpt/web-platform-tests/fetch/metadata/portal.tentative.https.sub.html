@@ -30,20 +30,20 @@
     "site": "same-origin",
     "user": "",
     "mode": "navigate",
-    "dest": "document"
+    "dest": "iframe"
   });
 
   create_test("{{hosts[][www]}}:{{ports[https][0]}}", {
     "site": "same-site",
     "user": "",
     "mode": "navigate",
-    "dest": "document"
+    "dest": "iframe"
   });
 
   create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {
     "site": "cross-site",
     "user": "",
     "mode": "navigate",
-    "dest": "document"
+    "dest": "iframe"
   });
 </script>

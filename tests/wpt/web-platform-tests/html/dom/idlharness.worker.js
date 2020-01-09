@@ -7,6 +7,7 @@ idl_test(
   ["html"],
   ["dom", "cssom", "touch-events", "uievents"],
   idlArray => {
+    idlArray.add_untested_idls('typedef Window WindowProxy;');
     idlArray.add_objects({
       WorkerLocation: ['self.location'],
       WorkerNavigator: ['self.navigator'],

@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy</title>
+<meta content=timeout value=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -13,14 +14,14 @@
     "opener": true
   },
   {
-    "title": "popup with coop unsafe-inherit/coep",
-    "coop": "unsafe-inherit",
+    "title": "popup with coop unsafe-none/coep",
+    "coop": "unsafe-none",
     "coep": "require-corp",
     "opener": true
   },
   {
-    "title": "popup with coop unsafe-inherit without coep",
-    "coop": "unsafe-inherit",
+    "title": "popup with coop unsafe-none without coep",
+    "coop": "unsafe-none",
     "coep": "",
     "opener": false
   },
@@ -35,10 +36,10 @@
     coop_coep_test(t, SAME_ORIGIN, variant.coop, variant.coep, variant.title.replace(/ /g,"-"), variant.opener);
   }, `Same-origin ${variant.title}`);
 
-  // This seems useful to test, CROSS_SITE is probably too redundant though.
+  // "same-site" is a historical value, equivalent to "unsafe-none"
   async_test(t => {
     coop_coep_test(t, SAME_SITE, variant.coop, variant.coep, `same-site-${variant.title.replace(/ /g,"-")}`, false);
-  }, `Same-site ${variant.title}`);
+  }, `historical: "same-site" ${variant.title}`);
 });
 
 test(() => {

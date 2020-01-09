@@ -24,6 +24,18 @@ function createScriptURLJS(scripturl) {
   return scripturl.replace("scripturl", "successful");
 }
 
+function createHTMLJSWithThreeArguments(html0, html1, html2) {
+  return html0 + html1 + html2;
+}
+
+function createScriptJSWithThreeArguments(script0, script1, script2) {
+  return script0 + script1 + script2;
+}
+
+function createScriptURLJSWithThreeArguments(scripturl0, scripturl1, scripturl2) {
+  return scripturl0 + scripturl1 + scripturl2;
+}
+
 function createHTML_policy(win, c) {
   return win.trustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
 }
