@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy: redirects</title>
+<meta content=timeout value=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -41,18 +42,18 @@ const coopCOEPPath = new URL("resources/coop-coep.py", window.location).pathname
     "opener": false
   },
   {
-    "title": "coop unsafe-inherit/coep to coop/coep",
-    "redirectCOOP": "unsafe-inherit",
+    "title": "coop unsafe-none/coep to coop/coep",
+    "redirectCOOP": "unsafe-none",
     "redirectCOEP": "require-corp",
     "coop": "same-origin",
     "coep": "require-corp",
     "opener": true
   },
   {
-    "title": "coop unsafe-inherit/coep to coop unsafe-inherit/coep",
-    "redirectCOOP": "unsafe-inherit",
+    "title": "coop unsafe-none/coep to coop unsafe-inherit/coep",
+    "redirectCOOP": "unsafe-none",
     "redirectCOEP": "require-corp",
-    "coop": "unsafe-inherit",
+    "coop": "unsafe-none",
     "coep": "require-corp",
     "opener": true
   }

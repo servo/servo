@@ -39,7 +39,7 @@ function expireCookie(name, expiry_date, path) {
   name = name || "";
   expiry_date = expiry_date || "Thu, 01 Jan 1970 00:00:00 UTC";
   path = path || getLocalResourcesPath();
-  document.cookie = name + "=; expires=" + expiry_date + "; path=" + path + ";";
+  document.cookie = name + "=value; expires=" + expiry_date + "; path=" + path + ";";
 }
 
 /* Captures a snapshot of cookies with |parse| and allows to diff it with a

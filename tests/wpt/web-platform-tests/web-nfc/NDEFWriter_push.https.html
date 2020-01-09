@@ -290,6 +290,25 @@ nfc_test(async (t, mockNFC) => {
 and external records with default NDEFPushOptions.");
 
 nfc_test(async (t, mockNFC) => {
+  const payloadMessage = createMessage([createTextRecord(test_text_data)]);
+  // Prepare a message containing an external record that uses |payloadMessage| as its payload.
+  const message = createMessage([createRecord('example.com:payloadIsMessage',
+          payloadMessage)]);
+
+  const writer = new NDEFWriter();
+  await writer.push(message);
+  const pushed_message = mockNFC.pushedMessage();
+
+  // The mojom message received by mock nfc contains only the external type record.
+  assert_equals(pushed_message.data.length, 1);
+  assert_equals(pushed_message.data[0].recordType, 'example.com:payloadIsMessage', 'recordType');
+  // The external type record's payload is from the original |payloadMessage|.
+  assert_array_equals(pushed_message.data[0].data, new Uint8Array(0),
+      'payloadMessage is used instead');
+  assertNDEFMessagesEqual(payloadMessage, pushed_message.data[0].payloadMessage);
+}, "NDEFWriter.push NDEFMessage containing embedded records.");
+
+nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
   await writer.push(test_text_data);
   assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());

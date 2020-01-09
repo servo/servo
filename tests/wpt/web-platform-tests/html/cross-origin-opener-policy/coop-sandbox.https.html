@@ -15,8 +15,10 @@ async_test(t => {
 const popup = window.open("resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}");
 <\/script>`;
   document.body.append(frame);
-  t.step_timeout(() => {
-    t.done()
-  }, 500);
+  window.onload = t.step_func(() => {
+    t.step_timeout(() => {
+      t.done()
+    }, 1500);
+  });
 });
 </script>

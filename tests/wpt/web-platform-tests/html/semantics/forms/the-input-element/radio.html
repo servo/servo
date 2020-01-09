@@ -174,4 +174,34 @@
     assert_true(radio71.checked, "canceled click event on radio should leave the previously-checked radio checked");
     assert_false(radio72.checked, "canceled click event on previously-unchecked radio should leave that radio unchecked");
   });
+
+  test(() => {
+    const container = document.createElement('div');
+    container.innerHTML =
+        '<input type=radio name=n1><span><input type=radio name=n1 checked></span>' +
+        '<form><input type=radio name=n1 checked></form>';
+    const radios = container.querySelectorAll('input');
+    assert_false(radios[0].checked, 'Sanity check: The first radio should be unchecked');
+    assert_true(radios[1].checked, 'Sanity check: The second radio should be checked');
+    assert_true(radios[2].checked, 'Sanity check: The third radio should be checked');
+
+    radios[0].checked = true;
+    assert_true(radios[0].checked, 'The first radio should be checked after setting checked');
+    assert_false(radios[1].checked, 'The second radio should be unchecked after setting checked');
+    assert_true(radios[2].checked, 'The third radio should be checked after setting checked');
+
+    radios[1].required = true;
+    assert_false(radios[0].validity.valueMissing, 'The first radio should be valid');
+    assert_false(radios[1].validity.valueMissing, 'The second radio should be valid');
+    assert_false(radios[2].validity.valueMissing, 'The third radio should be valid');
+
+    radios[0].remove();
+    assert_false(radios[0].validity.valueMissing, 'The first radio should be valid because of no required');
+    assert_true(radios[1].validity.valueMissing, 'The second radio should be invalid***');
+    assert_false(radios[2].validity.valueMissing, 'The third radio should be valid');
+
+    radios[0].required = true;
+    radios[0].checked = false;
+    assert_true(radios[0].validity.valueMissing, 'The first radio should be invalid because of required');
+  }, 'Radio buttons in an orphan tree should make a group');
 </script>

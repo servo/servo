@@ -132,7 +132,8 @@
       testData: [
         {conditions: {required: false, checked: false, name: "test4"}, expected: false, name: "[target] The required attribute is not set"},
         {conditions: {required: true, checked: true, name: "test5"}, expected: false, name: "[target] The checked attribute is true"},
-        {conditions: {required: true, checked: false, name: "test6"}, expected: true, name: "[target] The checked attribute is false"}
+        {conditions: {required: true, checked: false, name: "test6"}, expected: true, name: "[target] The checked attribute is false"},
+        {conditions: {required: true, checked: false, name: ""}, expected: false, name: "[target] The checked attribute is false and the name attribute is empty"}
       ]
     },
     {

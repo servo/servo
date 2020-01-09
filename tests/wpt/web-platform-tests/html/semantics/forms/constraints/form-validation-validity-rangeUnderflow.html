@@ -89,7 +89,11 @@
         {conditions: {min: "12:00:00.2", value: "12:00:00.1"}, expected: true, name: "[target] The value is less than min(with millisecond in 1 digit)"},
         {conditions: {min: "12:00:00.02", value: "12:00:00.01"}, expected: true, name: "[target] The value is less than min(with millisecond in 2 digit)"},
         {conditions: {min: "12:00:00.002", value: "12:00:00.001"}, expected: true, name: "[target] The value is less than min(with millisecond in 3 digit)"},
-        {conditions: {min: "12:00:00", value: "11:59"}, expected: true, name: "[target] The time missing second part is valid"}
+        {conditions: {min: "12:00:00", value: "11:59"}, expected: true, name: "[target] The time missing second part is valid"},
+        {conditions: {min: "14:00:00", max: "12:00:00", value: "12:00:00"}, expected: false, name: "[target] The time is max for reversed range"},
+        {conditions: {min: "14:00:00", max: "12:00:00", value: "13:00:00"}, expected: true, name: "[target] The time is outside the accepted range for reversed range"},
+        {conditions: {min: "14:00:00", max: "12:00:00", value: "14:00:00"}, expected: false, name: "[target] The time is min for reversed range"},
+        {conditions: {min: "14:00:00", max: "12:00:00", value: "15:00:00"}, expected: false, name: "[target] The time is inside the accepted range for reversed range"},
       ]
     },
     {
