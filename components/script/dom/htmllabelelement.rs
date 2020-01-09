@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -65,25 +66,14 @@ impl Activatable for HTMLLabelElement {
         true
     }
 
-    // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
-    // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
-    fn pre_click_activation(&self) {}
-
-    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
-    fn canceled_activation(&self) {}
-
-    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#the-label-element:activation_behaviour
+    // Basically this is telling us that if activation bubbles up to the label
+    // at all, we are free to do an implementation-dependent thing;
+    // firing a click event is an example, and the precise details of that
+    // click event (e.g. isTrusted) are not specified.
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         if let Some(e) = self.GetControl() {
-            let elem = e.upcast::<Element>();
-            synthetic_click_activation(
-                elem,
-                false,
-                false,
-                false,
-                false,
-                ActivationSource::NotFromClick,
-            );
+            e.Click();
         }
     }
 }

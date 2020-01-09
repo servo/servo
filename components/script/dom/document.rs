@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -557,8 +556,7 @@ impl Document {
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
                     // FIXME(nox): Why are errors silenced here?
-                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                        document.upcast(),
+                    let _ = window.dispatch_event_with_target_override(
                         &event,
                     );
                 }),
@@ -1015,7 +1013,11 @@ impl Document {
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
         match mouse_event_type {
-            MouseEventType::Click => el.authentic_click_activation(event),
+            MouseEventType::Click => {
+                el.set_click_in_progress(true);
+                event.fire(node.upcast());
+                el.set_click_in_progress(false);
+            },
             MouseEventType::MouseDown => {
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
@@ -1477,16 +1479,9 @@ impl Document {
             if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
                 keyboard_event.state == KeyState::Up
             {
-                let maybe_elem = target.downcast::<Element>();
-                if let Some(el) = maybe_elem {
-                    synthetic_click_activation(
-                        el,
-                        false,
-                        false,
-                        false,
-                        false,
-                        ActivationSource::NotFromClick,
-                    )
+                if let Some(elem) = target.downcast::<Element>() {
+                    elem.upcast::<Node>()
+                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"));
                 }
             }
         }
@@ -1802,7 +1797,6 @@ impl Document {
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
         //Step 3-5.
-        let document = Trusted::new(self);
         let beforeunload_event = BeforeUnloadEvent::new(
             &self.window,
             atom!("beforeunload"),
@@ -1813,7 +1807,7 @@ impl Document {
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
-        event_target.dispatch_event_with_target(document.root().upcast(), &event);
+        self.window.dispatch_event_with_target_override(&event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -1857,7 +1851,6 @@ impl Document {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
-        let document = Trusted::new(self);
         // Step 3-6
         if self.page_showing.get() {
             self.page_showing.set(false);
@@ -1870,10 +1863,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self
-                .window
-                .upcast::<EventTarget>()
-                .dispatch_event_with_target(document.root().upcast(), &event);
+            let _ = self.window.dispatch_event_with_target_override(&event);
             // TODO Step 6, document visibility steps.
         }
         // Step 7
@@ -1887,7 +1877,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
-            let _ = event_target.dispatch_event_with_target(document.root().upcast(), &event);
+            let _ = self.window.dispatch_event_with_target_override(&event);
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -1983,8 +1973,7 @@ impl Document {
 
                     debug!("About to dispatch load for {:?}", document.url());
                     // FIXME(nox): Why are errors silenced here?
-                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                        document.upcast(),
+                    let _ = window.dispatch_event_with_target_override(
                         &event,
                     );
 
@@ -2028,8 +2017,7 @@ impl Document {
                         event.set_trusted(true);
 
                         // FIXME(nox): Why are errors silenced here?
-                        let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                            document.upcast(),
+                        let _ = window.dispatch_event_with_target_override(
                             &event,
                         );
                     }),

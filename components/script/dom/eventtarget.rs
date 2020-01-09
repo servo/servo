@@ -73,7 +73,7 @@ impl CommonEventHandler {
     }
 }
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
@@ -248,6 +248,8 @@ impl CompiledEventListener {
     }
 }
 
+// https://dom.spec.whatwg.org/#concept-event-listener
+// (as distinct from https://dom.spec.whatwg.org/#callbackdef-eventlistener)
 #[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf)]
 /// A listener in a collection of event listeners.
 struct EventListenerEntry {
@@ -367,23 +369,13 @@ impl EventTarget {
             })
     }
 
-    pub fn dispatch_event_with_target(&self, target: &EventTarget, event: &Event) -> EventStatus {
-        if let Some(window) = target.global().downcast::<Window>() {
-            if window.has_document() {
-                assert!(window.Document().can_invoke_script());
-            }
-        };
-
-        event.dispatch(self, Some(target))
-    }
-
     pub fn dispatch_event(&self, event: &Event) -> EventStatus {
         if let Some(window) = self.global().downcast::<Window>() {
             if window.has_document() {
                 assert!(window.Document().can_invoke_script());
             }
         };
-        event.dispatch(self, None)
+        event.dispatch(self, false)
     }
 
     pub fn remove_all_listeners(&self) {

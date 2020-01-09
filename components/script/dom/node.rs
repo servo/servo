@@ -37,6 +37,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -51,6 +52,7 @@ use crate::dom::htmlmediaelement::{HTMLMediaElement, LayoutHTMLMediaElementHelpe
 use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use crate::dom::mouseevent::MouseEvent;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -388,6 +390,46 @@ impl Node {
                 None
             }
         })
+    }
+
+    // https://html.spec.whatg.org/#fire_a_synthetic_mouse_event
+    pub fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString) {
+        // Spec says the choice of which global to create
+        // the mouse event on is not well-defined,
+        // and refers to heycam/webidl#135
+        let win = window_from_node(self);
+
+        let mouse_event = MouseEvent::new(
+            &win, // ambiguous in spec
+            name,
+            EventBubbles::Bubbles,       // Step 3: bubbles
+            EventCancelable::Cancelable, // Step 3: cancelable,
+            Some(&win),                  // Step 7: view (this is unambiguous in spec)
+            0,                           // detail uninitialized
+            0,                           // coordinates uninitialized
+            0,                           // coordinates uninitialized
+            0,                           // coordinates uninitialized
+            0,                           // coordinates uninitialized
+            false,
+            false,
+            false,
+            false, // Step 6 modifier keys TODO compositor hook needed
+            0,     // button uninitialized (and therefore left)
+            0,     // buttons uninitialized (and therefore none)
+            None,  // related_target uninitialized,
+            None,  // point_in_target uninitialized,
+        );
+
+        // Step 4: TODO composed flag for shadow root
+
+        // Step 5
+        mouse_event.upcast::<Event>().set_trusted(false);
+
+        // Step 8: TODO keyboard modifiers
+
+        mouse_event
+            .upcast::<Event>()
+            .dispatch(self.upcast::<EventTarget>(), false);
     }
 }
 

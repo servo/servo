@@ -2,6 +2,9 @@ DOMContentLoaded
 abort
 activate
 addtrack
+animationend
+animationiteration
+animationstart
 beforeunload
 button
 canplay
@@ -132,5 +135,9 @@ visibilitychange
 volumechange
 waiting
 webglcontextcreationerror
+webkitAnimationEnd
+webkitAnimationIteration
+webkitAnimationStart
+webkitTransitionEnd
 week
 width

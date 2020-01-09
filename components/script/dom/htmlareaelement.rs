@@ -322,10 +322,6 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn pre_click_activation(&self) {}
-
-    fn canceled_activation(&self) {}
-
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         follow_hyperlink(self.as_element(), None);
     }
