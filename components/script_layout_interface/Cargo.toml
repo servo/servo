@@ -33,5 +33,4 @@ servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
-style_traits = {path = "../style_traits", features = ["servo"]}
 webrender_api = {git = "https://github.com/servo/webrender"}
