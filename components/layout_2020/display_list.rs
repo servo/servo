@@ -39,24 +39,12 @@ impl DisplayListBuilder {
     }
 
     fn common_properties(&self, clip_rect: units::LayoutRect) -> wr::CommonItemProperties {
-        self.common_properties_with_hit_info(clip_rect, None)
+        // TODO(gw): Make use of the WR backface visibility functionality.
+        wr::CommonItemProperties::new(clip_rect, self.current_space_and_clip)
     }
 
-    fn common_properties_with_hit_info(
-        &self,
-        clip_rect: units::LayoutRect,
-        hit_info: HitInfo,
-    ) -> wr::CommonItemProperties {
-        wr::CommonItemProperties {
-            clip_rect,
-            clip_id: self.current_space_and_clip.clip_id,
-            spatial_id: self.current_space_and_clip.spatial_id,
-            hit_info,
-            // TODO(gw): Make use of the WR backface visibility functionality.
-            flags: wr::PrimitiveFlags::default(),
-        }
-    }
-
+    // FIXME: use this for the `overflow` property or anything else that clips an entire subtree.
+    #[allow(unused)]
     fn clipping_and_scrolling_scope<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         let previous = self.current_space_and_clip;
         let result = f(self);
@@ -96,8 +84,8 @@ impl Fragment {
                 if glyphs.is_empty() {
                     return;
                 }
-                let hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
-                let common = builder.common_properties_with_hit_info(rect.clone().into(), hit_info);
+                let mut common = builder.common_properties(rect.clone().into());
+                common.hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
                 let color = t.parent_style.clone_color();
                 builder
                     .wr
@@ -173,10 +161,14 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn border_edge_clip_id(&mut self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
+    fn with_border_edge_clip(
+        &mut self,
+        builder: &mut DisplayListBuilder,
+        common: &mut wr::CommonItemProperties,
+    ) {
         let border_radius = &self.border_radius;
         let border_rect = &self.border_rect;
-        *self.border_edge_clip_id.get_or_insert_with(|| {
+        let initialized = self.border_edge_clip_id.get_or_insert_with(|| {
             if border_radius.is_zero() {
                 None
             } else {
@@ -191,19 +183,19 @@ impl<'a> BuilderForBoxFragment<'a> {
                     None,
                 ))
             }
-        })
+        });
+        if let Some(clip_id) = *initialized {
+            common.clip_id = clip_id
+        }
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder, containing_block: &Rect<Length>) {
         let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
         if hit_info.is_some() {
-            builder.clipping_and_scrolling_scope(|builder| {
-                if let Some(id) = self.border_edge_clip_id(builder) {
-                    builder.current_space_and_clip.clip_id = id
-                }
-                let common = builder.common_properties_with_hit_info(self.border_rect, hit_info);
-                builder.wr.push_hit_test(&common)
-            })
+            let mut common = builder.common_properties(self.border_rect);
+            common.hit_info = hit_info;
+            self.with_border_edge_clip(builder, &mut common);
+            builder.wr.push_hit_test(&common)
         }
 
         self.background_display_items(builder);
@@ -224,13 +216,9 @@ impl<'a> BuilderForBoxFragment<'a> {
             .style
             .resolve_color(self.fragment.style.clone_background_color());
         if background_color.alpha > 0 {
-            builder.clipping_and_scrolling_scope(|builder| {
-                if let Some(id) = self.border_edge_clip_id(builder) {
-                    builder.current_space_and_clip.clip_id = id
-                }
-                let common = builder.common_properties(self.border_rect);
-                builder.wr.push_rect(&common, rgba(background_color))
-            });
+            let mut common = builder.common_properties(self.border_rect);
+            self.with_border_edge_clip(builder, &mut common);
+            builder.wr.push_rect(&common, rgba(background_color))
         }
     }
 
