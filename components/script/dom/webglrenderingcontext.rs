@@ -1020,6 +1020,13 @@ impl WebGLRenderingContext {
         }
     }
 
+    pub fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
+        match usage {
+            constants::STREAM_DRAW | constants::STATIC_DRAW | constants::DYNAMIC_DRAW => Ok(usage),
+            _ => Err(WebGLError::InvalidEnum),
+        }
+    }
+
     pub fn create_vertex_array(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::CreateVertexArray(sender));
@@ -1144,6 +1151,40 @@ impl WebGLRenderingContext {
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
+    }
+
+    #[allow(unsafe_code)]
+    pub fn buffer_sub_data(
+        &self,
+        target: u32,
+        offset: i64,
+        data: ArrayBufferViewOrArrayBuffer,
+        bound_buffer: Option<DomRoot<WebGLBuffer>>,
+    ) {
+        let bound_buffer =
+            handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
+
+        if offset < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        let data = unsafe {
+            // Safe because we don't do anything with JS until the end of the method.
+            match data {
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
+            }
+        };
+        if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
+            return self.webgl_error(InvalidValue);
+        }
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_command(WebGLCommand::BufferSubData(
+            target,
+            offset as isize,
+            receiver,
+        ));
+        sender.send(data).unwrap();
     }
 
     pub fn bind_buffer_maybe(
@@ -1764,12 +1805,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+        let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_data(target, data, usage, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) {
+        let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_data_(target, size, usage, bound_buffer)
     }
@@ -1778,30 +1821,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
-
-        if offset < 0 {
-            return self.webgl_error(InvalidValue);
-        }
-
-        let data = unsafe {
-            // Safe because we don't do anything with JS until the end of the method.
-            match data {
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
-            }
-        };
-        if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
-            return self.webgl_error(InvalidValue);
-        }
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::BufferSubData(
-            target,
-            offset as isize,
-            receiver,
-        ));
-        sender.send(data).unwrap();
+        self.buffer_sub_data(target, offset, data, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8

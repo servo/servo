@@ -49,7 +49,9 @@ use canvas_traits::canvas::{
 };
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::WebGLVertexArrayId;
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat};
+use canvas_traits::webgl::{
+    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
+};
 use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
 use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
@@ -437,6 +439,7 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
 
 unsafe_no_jsmanaged_fields!(ActiveAttribInfo);
 unsafe_no_jsmanaged_fields!(ActiveUniformInfo);
+unsafe_no_jsmanaged_fields!(ActiveUniformBlockInfo);
 unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);

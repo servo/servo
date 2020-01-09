@@ -462,6 +462,12 @@ pub enum WebGLCommand {
     GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
     GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
     GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
+    GetUniformBlockIndex(WebGLProgramId, String, WebGLSender<u32>),
+    GetUniformIndices(WebGLProgramId, Vec<String>, WebGLSender<Vec<u32>>),
+    GetActiveUniforms(WebGLProgramId, Vec<u32>, u32, WebGLSender<Vec<i32>>),
+    GetActiveUniformBlockName(WebGLProgramId, u32, WebGLSender<String>),
+    GetActiveUniformBlockParameter(WebGLProgramId, u32, u32, WebGLSender<Vec<i32>>),
+    UniformBlockBinding(WebGLProgramId, u32, u32),
     InitializeFramebuffer {
         color: bool,
         depth: bool,
@@ -479,6 +485,8 @@ pub enum WebGLCommand {
     SetSamplerParameterInt(WebGLSamplerId, u32, i32),
     GetSamplerParameterFloat(WebGLSamplerId, u32, WebGLSender<f32>),
     GetSamplerParameterInt(WebGLSamplerId, u32, WebGLSender<i32>),
+    BindBufferBase(u32, u32, Option<WebGLBufferId>),
+    BindBufferRange(u32, u32, Option<WebGLBufferId>, i64, i64),
 }
 
 macro_rules! nonzero_type {
@@ -671,6 +679,8 @@ pub struct ProgramLinkInfo {
     pub active_attribs: Box<[ActiveAttribInfo]>,
     /// The list of active uniforms.
     pub active_uniforms: Box<[ActiveUniformInfo]>,
+    /// The list of active uniform blocks.
+    pub active_uniform_blocks: Box<[ActiveUniformBlockInfo]>,
     /// The number of varying variables
     pub transform_feedback_length: i32,
     /// The buffer mode used when transform feedback is active
@@ -711,6 +721,15 @@ impl ActiveUniformInfo {
             Cow::Borrowed(&self.base_name)
         }
     }
+}
+
+/// Description of a single uniform block.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ActiveUniformBlockInfo {
+    /// The name of the uniform block.
+    pub name: String,
+    /// The size of the uniform block.
+    pub size: i32,
 }
 
 macro_rules! parameters {
@@ -999,4 +1018,13 @@ pub struct GLLimits {
     pub max_uniform_buffer_bindings: u32,
     pub min_program_texel_offset: u32,
     pub max_program_texel_offset: u32,
+    pub max_uniform_block_size: u32,
+    pub max_combined_uniform_blocks: u32,
+    pub max_combined_vertex_uniform_components: u32,
+    pub max_combined_fragment_uniform_components: u32,
+    pub max_vertex_uniform_blocks: u32,
+    pub max_vertex_uniform_components: u32,
+    pub max_fragment_uniform_blocks: u32,
+    pub max_fragment_uniform_components: u32,
+    pub uniform_buffer_offset_alignment: u32,
 }

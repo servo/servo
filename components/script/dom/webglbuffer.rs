@@ -75,7 +75,13 @@ impl WebGLBuffer {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
-            WebGLRenderingContextConstants::DYNAMIC_DRAW => (),
+            WebGLRenderingContextConstants::DYNAMIC_DRAW |
+            WebGL2RenderingContextConstants::STATIC_READ |
+            WebGL2RenderingContextConstants::DYNAMIC_READ |
+            WebGL2RenderingContextConstants::STREAM_READ |
+            WebGL2RenderingContextConstants::STATIC_COPY |
+            WebGL2RenderingContextConstants::DYNAMIC_COPY |
+            WebGL2RenderingContextConstants::STREAM_COPY => (),
             _ => return Err(WebGLError::InvalidEnum),
         }
 

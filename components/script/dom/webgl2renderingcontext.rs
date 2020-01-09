@@ -45,13 +45,14 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc;
 use js::jsapi::{JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value};
+use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, CreateWith, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
 use std::cmp;
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 
 #[dom_struct]
 pub struct WebGL2RenderingContext {
@@ -157,6 +158,18 @@ impl WebGL2RenderingContext {
             constants::TRANSFORM_FEEDBACK_BUFFER => Ok(self.bound_transform_feedback_buffer.get()),
             constants::UNIFORM_BUFFER => Ok(self.bound_uniform_buffer.get()),
             _ => self.base.bound_buffer(target),
+        }
+    }
+
+    pub fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
+        match usage {
+            constants::STATIC_READ |
+            constants::DYNAMIC_READ |
+            constants::STREAM_READ |
+            constants::STATIC_COPY |
+            constants::DYNAMIC_COPY |
+            constants::STREAM_COPY => Ok(usage),
+            _ => self.base.buffer_usage(usage),
         }
     }
 
@@ -411,40 +424,94 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
         match parameter {
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
-                Int32Value(self.base.limits().max_client_wait_timeout_webgl.as_nanos() as i32)
+                return Int32Value(
+                    self.base.limits().max_client_wait_timeout_webgl.as_nanos() as i32
+                );
             },
             constants::SAMPLER_BINDING => unsafe {
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                optional_root_object_to_js_or_null!(*cx, sampler)
+                return optional_root_object_to_js_or_null!(*cx, sampler);
             },
             constants::COPY_READ_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, &self.bound_copy_read_buffer.get())
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_copy_read_buffer.get()
+                );
             },
             constants::COPY_WRITE_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, &self.bound_copy_write_buffer.get())
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_copy_write_buffer.get()
+                );
             },
             constants::PIXEL_PACK_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, &self.bound_pixel_pack_buffer.get())
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_pixel_pack_buffer.get()
+                );
             },
             constants::PIXEL_UNPACK_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, &self.bound_pixel_unpack_buffer.get())
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_pixel_unpack_buffer.get()
+                );
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(
+                return optional_root_object_to_js_or_null!(
                     *cx,
                     &self.bound_transform_feedback_buffer.get()
-                )
+                );
             },
             constants::UNIFORM_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, &self.bound_uniform_buffer.get())
+                return optional_root_object_to_js_or_null!(*cx, &self.bound_uniform_buffer.get());
             },
             constants::TRANSFORM_FEEDBACK_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, self.current_transform_feedback.get())
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    self.current_transform_feedback.get()
+                );
             },
-            _ => self.base.GetParameter(cx, parameter),
+            _ => {},
         }
+
+        let limit = match parameter {
+            constants::MAX_UNIFORM_BUFFER_BINDINGS => {
+                Some(self.base.limits().max_uniform_buffer_bindings)
+            },
+            constants::MAX_UNIFORM_BLOCK_SIZE => Some(self.base.limits().max_uniform_block_size),
+            constants::MAX_COMBINED_UNIFORM_BLOCKS => {
+                Some(self.base.limits().max_combined_uniform_blocks)
+            },
+            constants::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS => {
+                Some(self.base.limits().max_combined_vertex_uniform_components)
+            },
+            constants::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS => {
+                Some(self.base.limits().max_combined_fragment_uniform_components)
+            },
+            constants::MAX_VERTEX_UNIFORM_BLOCKS => {
+                Some(self.base.limits().max_vertex_uniform_blocks)
+            },
+            constants::MAX_VERTEX_UNIFORM_COMPONENTS => {
+                Some(self.base.limits().max_vertex_uniform_components)
+            },
+            constants::MAX_FRAGMENT_UNIFORM_BLOCKS => {
+                Some(self.base.limits().max_fragment_uniform_blocks)
+            },
+            constants::MAX_FRAGMENT_UNIFORM_COMPONENTS => {
+                Some(self.base.limits().max_fragment_uniform_components)
+            },
+            constants::UNIFORM_BUFFER_OFFSET_ALIGNMENT => {
+                Some(self.base.limits().uniform_buffer_offset_alignment)
+            },
+            _ => None,
+        };
+        if let Some(limit) = limit {
+            return UInt32Value(limit);
+        }
+
+        self.base.GetParameter(cx, parameter)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -571,6 +638,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
         self.base.buffer_data(target, data, usage, bound_buffer)
@@ -578,6 +646,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) {
+        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
         self.base.buffer_data_(target, size, usage, bound_buffer)
@@ -593,6 +662,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         elem_offset: u32,
         length: u32,
     ) {
+        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
         let bound_buffer =
@@ -628,7 +698,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
-        self.base.BufferSubData(target, offset, data)
+        let bound_buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
+        self.base
+            .buffer_sub_data(target, offset, data, bound_buffer)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
@@ -2303,6 +2376,260 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             ty,
             DOMString::from(name),
         ))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn BindBufferBase(&self, target: u32, index: u32, buffer: Option<&WebGLBuffer>) {
+        let (bind_limit, slot) = match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER => (
+                self.base.limits().max_transform_feedback_separate_attribs,
+                &self.bound_transform_feedback_buffer,
+            ),
+            constants::UNIFORM_BUFFER => (
+                self.base.limits().max_uniform_buffer_bindings,
+                &self.bound_uniform_buffer,
+            ),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        if index >= bind_limit {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        if let Some(buffer) = buffer {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+
+            if buffer.is_marked_for_deletion() {
+                return self.base.webgl_error(InvalidOperation);
+            }
+            handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+            buffer.increment_attached_counter();
+        }
+
+        self.base.send_command(WebGLCommand::BindBufferBase(
+            target,
+            index,
+            buffer.map(|b| b.id()),
+        ));
+        if let Some(old) = slot.get() {
+            old.decrement_attached_counter();
+        }
+
+        slot.set(buffer);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn BindBufferRange(
+        &self,
+        target: u32,
+        index: u32,
+        buffer: Option<&WebGLBuffer>,
+        offset: i64,
+        size: i64,
+    ) {
+        let (bind_limit, slot) = match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER => (
+                self.base.limits().max_transform_feedback_separate_attribs,
+                &self.bound_transform_feedback_buffer,
+            ),
+            constants::UNIFORM_BUFFER => (
+                self.base.limits().max_uniform_buffer_bindings,
+                &self.bound_uniform_buffer,
+            ),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        if index >= bind_limit {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        if offset < 0 || size < 0 {
+            return self.base.webgl_error(InvalidValue);
+        }
+        if buffer.is_some() && size == 0 {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER => {
+                if size % 4 != 0 && offset % 4 != 0 {
+                    return self.base.webgl_error(InvalidValue);
+                }
+            },
+            constants::UNIFORM_BUFFER => {
+                let offset_alignment = self.base.limits().uniform_buffer_offset_alignment;
+                if offset % offset_alignment as i64 != 0 {
+                    return self.base.webgl_error(InvalidValue);
+                }
+            },
+            _ => unreachable!(),
+        }
+
+        if let Some(buffer) = buffer {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+
+            if buffer.is_marked_for_deletion() {
+                return self.base.webgl_error(InvalidOperation);
+            }
+            handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+            buffer.increment_attached_counter();
+        }
+
+        self.base.send_command(WebGLCommand::BindBufferRange(
+            target,
+            index,
+            buffer.map(|b| b.id()),
+            offset,
+            size,
+        ));
+        if let Some(old) = slot.get() {
+            old.decrement_attached_counter();
+        }
+
+        slot.set(buffer);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetUniformIndices(&self, program: &WebGLProgram, names: Vec<DOMString>) -> Option<Vec<u32>> {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(program),
+            return None
+        );
+        let indices = handle_potential_webgl_error!(
+            self.base,
+            program.get_uniform_indices(names),
+            return None
+        );
+        Some(indices)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    #[allow(unsafe_code)]
+    fn GetActiveUniforms(
+        &self,
+        cx: JSContext,
+        program: &WebGLProgram,
+        indices: Vec<u32>,
+        pname: u32,
+    ) -> JSVal {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(program),
+            return NullValue()
+        );
+        let values = handle_potential_webgl_error!(
+            self.base,
+            program.get_active_uniforms(indices, pname),
+            return NullValue()
+        );
+
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        match pname {
+            constants::UNIFORM_SIZE |
+            constants::UNIFORM_TYPE |
+            constants::UNIFORM_BLOCK_INDEX |
+            constants::UNIFORM_OFFSET |
+            constants::UNIFORM_ARRAY_STRIDE |
+            constants::UNIFORM_MATRIX_STRIDE => unsafe {
+                values.to_jsval(*cx, rval.handle_mut());
+            },
+            constants::UNIFORM_IS_ROW_MAJOR => unsafe {
+                let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
+                values.to_jsval(*cx, rval.handle_mut());
+            },
+            _ => unreachable!(),
+        }
+        rval.get()
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetUniformBlockIndex(&self, program: &WebGLProgram, block_name: DOMString) -> u32 {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(program),
+            return constants::INVALID_INDEX
+        );
+        let index = handle_potential_webgl_error!(
+            self.base,
+            program.get_uniform_block_index(block_name),
+            return constants::INVALID_INDEX
+        );
+        index
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    #[allow(unsafe_code)]
+    fn GetActiveUniformBlockParameter(
+        &self,
+        cx: JSContext,
+        program: &WebGLProgram,
+        block_index: u32,
+        pname: u32,
+    ) -> JSVal {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(program),
+            return NullValue()
+        );
+        let values = handle_potential_webgl_error!(
+            self.base,
+            program.get_active_uniform_block_parameter(block_index, pname),
+            return NullValue()
+        );
+        match pname {
+            constants::UNIFORM_BLOCK_BINDING |
+            constants::UNIFORM_BLOCK_DATA_SIZE |
+            constants::UNIFORM_BLOCK_ACTIVE_UNIFORMS => {
+                assert!(values.len() == 1);
+                UInt32Value(values[0] as u32)
+            },
+            constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
+                let values = values.iter().map(|&v| v as u32).collect::<Vec<_>>();
+                rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
+                let _ = Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut())
+                    .unwrap();
+                ObjectValue(result.get())
+            },
+            constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
+            constants::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {
+                assert!(values.len() == 1);
+                BooleanValue(values[0] != 0)
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetActiveUniformBlockName(
+        &self,
+        program: &WebGLProgram,
+        block_index: u32,
+    ) -> Option<DOMString> {
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_ownership(program),
+            return None
+        );
+        let name = handle_potential_webgl_error!(
+            self.base,
+            program.get_active_uniform_block_name(block_index),
+            return None
+        );
+        Some(DOMString::from(name))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn UniformBlockBinding(&self, program: &WebGLProgram, block_index: u32, block_binding: u32) {
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return);
+
+        if block_binding >= self.base.limits().max_uniform_buffer_bindings {
+            return self.base.webgl_error(InvalidValue);
+        }
+
+        handle_potential_webgl_error!(
+            self.base,
+            program.bind_uniform_block(block_index, block_binding),
+            return
+        )
     }
 }
 
