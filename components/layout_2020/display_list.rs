@@ -21,6 +21,11 @@ type HitInfo = Option<ItemTag>;
 pub struct DisplayListBuilder {
     current_space_and_clip: wr::SpaceAndClipInfo,
     pub wr: wr::DisplayListBuilder,
+
+    /// Contentful paint, for the purpose of
+    /// https://w3c.github.io/paint-timing/#first-contentful-paint
+    /// (i.e. the display list contains items of type text,
+    /// image, non-white canvas or SVG). Used by metrics.
     pub is_contentful: bool,
 }
 
@@ -56,32 +61,25 @@ impl DisplayListBuilder {
     }
 }
 
-/// Contentful paint, for the purpose of
-/// https://w3c.github.io/paint-timing/#first-contentful-paint
-/// (i.e. the display list contains items of type text,
-/// image, non-white canvas or SVG). Used by metrics.
-pub struct IsContentful(pub bool);
-
 impl Fragment {
     pub(crate) fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
-        is_contentful: &mut IsContentful,
         containing_block: &Rect<Length>,
     ) {
         match self {
-            Fragment::Box(b) => b.build_display_list(builder, is_contentful, containing_block),
+            Fragment::Box(b) => b.build_display_list(builder, containing_block),
             Fragment::Anonymous(a) => {
                 let rect = a
                     .rect
                     .to_physical(a.mode, containing_block)
                     .translate(&containing_block.top_left);
                 for child in &a.children {
-                    child.build_display_list(builder, is_contentful, &rect)
+                    child.build_display_list(builder, &rect)
                 }
             },
             Fragment::Text(t) => {
-                is_contentful.0 = true;
+                builder.is_contentful = true;
                 let rect = t
                     .rect
                     .to_physical(t.parent_style.writing_mode, containing_block)
@@ -101,7 +99,7 @@ impl Fragment {
             },
             Fragment::Image(i) => {
                 use style::computed_values::image_rendering::T as ImageRendering;
-                is_contentful.0 = true;
+                builder.is_contentful = true;
                 let rect = i
                     .rect
                     .to_physical(i.style.writing_mode, containing_block)
@@ -129,7 +127,6 @@ impl BoxFragment {
     fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
-        is_contentful: &mut IsContentful,
         containing_block: &Rect<Length>,
     ) {
         let border_rect = self
@@ -147,7 +144,7 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, containing_block)
             .translate(&containing_block.top_left);
         for child in &self.children {
-            child.build_display_list(builder, is_contentful, &content_rect)
+            child.build_display_list(builder, &content_rect)
         }
     }
 

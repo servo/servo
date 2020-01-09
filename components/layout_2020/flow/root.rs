@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::display_list::IsContentful;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
@@ -140,7 +139,7 @@ impl FragmentTreeRoot {
         &self,
         builder: &mut crate::display_list::DisplayListBuilder,
         viewport_size: webrender_api::units::LayoutSize,
-    ) -> IsContentful {
+    ) {
         let containing_block = geom::physical::Rect {
             top_left: geom::physical::Vec2 {
                 x: Length::zero(),
@@ -151,10 +150,8 @@ impl FragmentTreeRoot {
                 y: Length::new(viewport_size.height),
             },
         };
-        let mut is_contentful = IsContentful(false);
         for fragment in &self.0 {
-            fragment.build_display_list(builder, &mut is_contentful, &containing_block)
+            fragment.build_display_list(builder, &containing_block)
         }
-        is_contentful
     }
 }
