@@ -1290,7 +1290,7 @@ impl LayoutThread {
             self.viewport_size.height.to_f32_px(),
         ));
         let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
-        let is_contentful = fragment_tree.build_display_list(&mut display_list, viewport_size);
+        fragment_tree.build_display_list(&mut display_list, viewport_size);
 
         debug!("Layout done!");
 
@@ -1302,7 +1302,7 @@ impl LayoutThread {
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, is_contentful.0);
+            .maybe_observe_paint_time(self, epoch, display_list.is_contentful);
 
         self.webrender_api.send_display_list(
             self.webrender_document,

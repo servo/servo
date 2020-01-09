@@ -9,7 +9,6 @@
 
 use crate::custom_properties::SpecifiedValue;
 use crate::parser::{Parse, ParserContext};
-use crate::stylesheets::CorsMode;
 use crate::values::generics::image::PaintWorklet;
 use crate::values::generics::image::{
     self as generic, Circle, Ellipse, GradientCompatMode, ShapeExtent,
@@ -119,7 +118,23 @@ pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
+#[cfg(feature = "gecko")]
 pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
+
+#[cfg(not(feature = "gecko"))]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Empty enum on non-Gecko
+pub enum MozImageRect {}
 
 impl Parse for Image {
     fn parse<'i, 't>(
@@ -132,16 +147,21 @@ impl Parse for Image {
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(generic::Image::Gradient(Box::new(gradient)));
         }
-        #[cfg(feature = "servo")]
+        #[cfg(feature = "servo-layout-2013")]
         {
             if let Ok(paint_worklet) = input.try(|i| PaintWorklet::parse(context, i)) {
                 return Ok(generic::Image::PaintWorklet(paint_worklet));
             }
         }
-        if let Ok(image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
-            return Ok(generic::Image::Rect(Box::new(image_rect)));
+        #[cfg(feature = "gecko")]
+        {
+            if let Ok(image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
+                return Ok(generic::Image::Rect(Box::new(image_rect)));
+            }
+            Ok(generic::Image::Element(Image::parse_element(input)?))
         }
-        Ok(generic::Image::Element(Image::parse_element(input)?))
+        #[cfg(not(feature = "gecko"))]
+        Err(input.new_error_for_next_token())
     }
 }
 
@@ -155,6 +175,7 @@ impl Image {
     }
 
     /// Parses a `-moz-element(# <element-id>)`.
+    #[cfg(feature = "gecko")]
     fn parse_element<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Atom, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         let location = input.current_source_location();
@@ -856,6 +877,15 @@ impl Parse for PaintWorklet {
 }
 
 impl Parse for MozImageRect {
+    #[cfg(not(feature = "gecko"))]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Err(input.new_error_for_next_token())
+    }
+
+    #[cfg(feature = "gecko")]
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -866,7 +896,7 @@ impl Parse for MozImageRect {
             let url = SpecifiedImageUrl::parse_from_string(
                 string.as_ref().to_owned(),
                 context,
-                CorsMode::None,
+                crate::stylesheets::CorsMode::None,
             );
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
