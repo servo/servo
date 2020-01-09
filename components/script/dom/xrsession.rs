@@ -289,7 +289,12 @@ impl XRSession {
                 );
                 event.upcast::<Event>().fire(self.upcast());
             },
-            _ => (), // XXXManishearth TBD
+            XREvent::AddInput(info) => {
+                self.input_sources.add_input_source(self, info);
+            },
+            XREvent::RemoveInput(id) => {
+                self.input_sources.remove_input_source(self, id);
+            },
         }
     }
 
@@ -430,6 +435,13 @@ impl XRSessionMethods for XRSession {
         visibilitychange,
         GetOnvisibilitychange,
         SetOnvisibilitychange
+    );
+
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-inputsourceschange
+    event_handler!(
+        inputsourceschange,
+        GetOninputsourceschange,
+        SetOninputsourceschange
     );
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate

@@ -5,11 +5,17 @@
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     self, FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
 };
+use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputSourceInit;
+use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
+    XRHandedness, XRTargetRayMode,
+};
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::fakexrinputcontroller::FakeXRInputController;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
@@ -19,14 +25,20 @@ use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
+use std::cell::Cell;
 use std::rc::Rc;
-use webxr_api::{MockDeviceMsg, MockViewInit, MockViewsInit};
+use webxr_api::{
+    Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockViewInit, MockViewsInit,
+    TargetRayMode, Visibility,
+};
 
 #[dom_struct]
 pub struct FakeXRDevice {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     sender: IpcSender<MockDeviceMsg>,
+    #[ignore_malloc_size_of = "defined in webxr-api"]
+    next_input_id: Cell<InputId>,
 }
 
 impl FakeXRDevice {
@@ -34,6 +46,7 @@ impl FakeXRDevice {
         FakeXRDevice {
             reflector: Reflector::new(),
             sender,
+            next_input_id: Cell::new(InputId(0)),
         }
     }
 
@@ -163,7 +176,59 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulatevisibilitychange
+    fn SimulateVisibilityChange(&self, v: XRVisibilityState) {
+        let v = match v {
+            XRVisibilityState::Visible => Visibility::Visible,
+            XRVisibilityState::Visible_blurred => Visibility::VisibleBlurred,
+            XRVisibilityState::Hidden => Visibility::Hidden,
+        };
+        let _ = self.sender.send(MockDeviceMsg::VisibilityChange(v));
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateinputsourceconnection
+    fn SimulateInputSourceConnection(
+        &self,
+        init: &FakeXRInputSourceInit,
+    ) -> Fallible<DomRoot<FakeXRInputController>> {
+        let id = self.next_input_id.get();
+        self.next_input_id.set(InputId(id.0 + 1));
+
+        let handedness = init.handedness.into();
+        let target_ray_mode = init.targetRayMode.into();
+
+        let pointer_origin = Some(get_origin(&init.pointerOrigin)?);
+
+        let grip_origin = if let Some(ref g) = init.gripOrigin {
+            Some(get_origin(g)?)
+        } else {
+            None
+        };
+
+        // XXXManishearth deal with profiles, supportedButtons, selection*
+
+        let source = InputSource {
+            handedness,
+            target_ray_mode,
+            id,
+            supports_grip: true,
+        };
+
+        let init = MockInputInit {
+            source,
+            pointer_origin,
+            grip_origin,
+        };
+
+        let global = self.global();
+        let _ = self.sender.send(MockDeviceMsg::AddInputSource(init));
+
+        let controller = FakeXRInputController::new(&global, self.sender.clone(), id);
+
+        Ok(controller)
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect
     fn Disconnect(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);
@@ -184,5 +249,25 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         );
         self.disconnect(sender);
         p
+    }
+}
+
+impl From<XRHandedness> for Handedness {
+    fn from(h: XRHandedness) -> Self {
+        match h {
+            XRHandedness::None => Handedness::None,
+            XRHandedness::Left => Handedness::Left,
+            XRHandedness::Right => Handedness::Right,
+        }
+    }
+}
+
+impl From<XRTargetRayMode> for TargetRayMode {
+    fn from(t: XRTargetRayMode) -> Self {
+        match t {
+            XRTargetRayMode::Gaze => TargetRayMode::Gaze,
+            XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
+            XRTargetRayMode::Screen => TargetRayMode::Screen,
+        }
     }
 }

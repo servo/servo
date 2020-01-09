@@ -40,7 +40,7 @@ interface XRSession : EventTarget {
   attribute EventHandler onend;
   attribute EventHandler onselect;
   attribute EventHandler onsqueeze;
-  // attribute EventHandler oninputsourceschange;
+  attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
   attribute EventHandler onsqueezestart;

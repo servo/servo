@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding;
 use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding::XRViewerPoseMethods;
@@ -40,6 +41,7 @@ impl XRViewerPose {
         session: &XRSession,
         pose: ApiViewerPose,
     ) -> DomRoot<XRViewerPose> {
+        let _ac = enter_realm(&*global);
         rooted_vec!(let mut views);
         session.with_session(|s| match s.views() {
             Views::Inline => views.push(XRView::new(
