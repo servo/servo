@@ -132,6 +132,10 @@ struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
     border_rect: units::LayoutRect,
     border_radius: wr::BorderRadius,
+
+    // Outer `Option` is `None`: not initialized yet
+    // Inner `Option` is `None`: no border radius, no need to clip
+    border_edge_clip_id: Option<Option<wr::ClipId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -165,14 +169,41 @@ impl<'a> BuilderForBoxFragment<'a> {
             fragment,
             border_rect,
             border_radius,
+            border_edge_clip_id: None,
         }
+    }
+
+    fn border_edge_clip_id(&mut self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
+        let border_radius = &self.border_radius;
+        let border_rect = &self.border_rect;
+        *self.border_edge_clip_id.get_or_insert_with(|| {
+            if border_radius.is_zero() {
+                None
+            } else {
+                Some(builder.wr.define_clip(
+                    &builder.current_space_and_clip,
+                    *border_rect,
+                    Some(wr::ComplexClipRegion {
+                        rect: *border_rect,
+                        radii: *border_radius,
+                        mode: wr::ClipMode::Clip,
+                    }),
+                    None,
+                ))
+            }
+        })
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder, containing_block: &Rect<Length>) {
         let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
         if hit_info.is_some() {
-            let common = builder.common_properties_with_hit_info(self.border_rect, hit_info);
-            builder.wr.push_hit_test(&common)
+            builder.clipping_and_scrolling_scope(|builder| {
+                if let Some(id) = self.border_edge_clip_id(builder) {
+                    builder.current_space_and_clip.clip_id = id
+                }
+                let common = builder.common_properties_with_hit_info(self.border_rect, hit_info);
+                builder.wr.push_hit_test(&common)
+            })
         }
 
         self.background_display_items(builder);
@@ -194,17 +225,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             .resolve_color(self.fragment.style.clone_background_color());
         if background_color.alpha > 0 {
             builder.clipping_and_scrolling_scope(|builder| {
-                if !self.border_radius.is_zero() {
-                    builder.current_space_and_clip.clip_id = builder.wr.define_clip(
-                        &builder.current_space_and_clip,
-                        self.border_rect,
-                        Some(wr::ComplexClipRegion {
-                            rect: self.border_rect,
-                            radii: self.border_radius,
-                            mode: wr::ClipMode::Clip,
-                        }),
-                        None,
-                    );
+                if let Some(id) = self.border_edge_clip_id(builder) {
+                    builder.current_space_and_clip.clip_id = id
                 }
                 let common = builder.common_properties(self.border_rect);
                 builder.wr.push_rect(&common, rgba(background_color))
