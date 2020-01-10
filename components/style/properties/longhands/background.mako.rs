@@ -23,7 +23,6 @@ ${helpers.predefined_type(
     "background-image",
     "ImageLayer",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     initial_value="computed::ImageLayer::none()",
     initial_specified_value="specified::ImageLayer::none()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",

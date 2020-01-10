@@ -1165,7 +1165,10 @@ impl LayoutThread {
         }
 
         if self.dump_style_tree {
-            println!("{:?}", style::dom::ShowSubtreeDataAndPrimaryValues(element.as_node()));
+            println!(
+                "{:?}",
+                style::dom::ShowSubtreeDataAndPrimaryValues(element.as_node())
+            );
         }
 
         if self.dump_rule_tree {

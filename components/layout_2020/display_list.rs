@@ -8,6 +8,7 @@ use crate::geom::physical::{Rect, Vec2};
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
+use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
@@ -74,9 +75,7 @@ impl Fragment {
         containing_block: &Rect<Length>,
     ) {
         match self {
-            Fragment::Box(b) => {
-                BuilderForBoxFragment::new(b, containing_block).build(builder, containing_block)
-            },
+            Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
             Fragment::Anonymous(a) => {
                 let rect = a
                     .rect
@@ -106,7 +105,6 @@ impl Fragment {
                     .push_text(&common, rect.into(), &glyphs, t.font_key, rgba(color), None);
             },
             Fragment::Image(i) => {
-                use style::computed_values::image_rendering::T as ImageRendering;
                 builder.is_contentful = true;
                 let rect = i
                     .rect
@@ -116,11 +114,7 @@ impl Fragment {
                 builder.wr.push_image(
                     &common,
                     rect.into(),
-                    match i.style.get_inherited_box().image_rendering {
-                        ImageRendering::Auto => wr::ImageRendering::Auto,
-                        ImageRendering::CrispEdges => wr::ImageRendering::CrispEdges,
-                        ImageRendering::Pixelated => wr::ImageRendering::Pixelated,
-                    },
+                    image_rendering(i.style.get_inherited_box().image_rendering),
                     wr::AlphaType::PremultipliedAlpha,
                     i.image_key,
                     wr::ColorF::WHITE,
@@ -132,7 +126,9 @@ impl Fragment {
 
 struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
+    containing_block: &'a Rect<Length>,
     border_rect: units::LayoutRect,
+    padding_rect: Option<units::LayoutRect>,
     border_radius: wr::BorderRadius,
 
     // Outer `Option` is `None`: not initialized yet
@@ -141,7 +137,7 @@ struct BuilderForBoxFragment<'a> {
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
-    fn new(fragment: &'a BoxFragment, containing_block: &Rect<Length>) -> Self {
+    fn new(fragment: &'a BoxFragment, containing_block: &'a Rect<Length>) -> Self {
         let border_rect: units::LayoutRect = fragment
             .border_rect()
             .to_physical(fragment.style.writing_mode, containing_block)
@@ -169,10 +165,24 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         Self {
             fragment,
+            containing_block,
             border_rect,
             border_radius,
+            padding_rect: None,
             border_edge_clip_id: None,
         }
+    }
+
+    fn padding_rect(&mut self) -> &units::LayoutRect {
+        let fragment = &self.fragment;
+        let containing_block = &self.containing_block;
+        self.padding_rect.get_or_insert_with(|| {
+            fragment
+                .padding_rect()
+                .to_physical(fragment.style.writing_mode, containing_block)
+                .translate(&containing_block.top_left)
+                .into()
+        })
     }
 
     fn with_border_edge_clip(
@@ -203,7 +213,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn build(&mut self, builder: &mut DisplayListBuilder, containing_block: &Rect<Length>) {
+    fn build(&mut self, builder: &mut DisplayListBuilder) {
         let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
         if hit_info.is_some() {
             let mut common = builder.common_properties(self.border_rect);
@@ -212,31 +222,96 @@ impl<'a> BuilderForBoxFragment<'a> {
             builder.wr.push_hit_test(&common)
         }
 
-        self.background_display_items(builder);
-        self.border_display_items(builder);
+        self.build_background(builder);
+        self.build_border(builder);
         let content_rect = self
             .fragment
             .content_rect
-            .to_physical(self.fragment.style.writing_mode, containing_block)
-            .translate(&containing_block.top_left);
+            .to_physical(self.fragment.style.writing_mode, self.containing_block)
+            .translate(&self.containing_block.top_left);
         for child in &self.fragment.children {
             child.build_display_list(builder, &content_rect)
         }
     }
 
-    fn background_display_items(&mut self, builder: &mut DisplayListBuilder) {
-        let background_color = self
-            .fragment
-            .style
-            .resolve_color(self.fragment.style.clone_background_color());
+    fn build_background(&mut self, builder: &mut DisplayListBuilder) {
+        use style::values::computed::image::{Image, ImageLayer};
+        let b = self.fragment.style.get_background();
+        let background_color = self.fragment.style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
             let mut common = builder.common_properties(self.border_rect);
             self.with_border_edge_clip(builder, &mut common);
             builder.wr.push_rect(&common, rgba(background_color))
         }
+        // Reverse because the property is top layer first, we want to paint bottom layer first.
+        for layer in b.background_image.0.iter().rev() {
+            match layer {
+                ImageLayer::None => {},
+                ImageLayer::Image(image) => match image {
+                    Image::Gradient(_gradient) => {
+                        // TODO
+                    },
+                    Image::Url(image_url) => {
+                        if let Some(url) = image_url.url() {
+                            let webrender_image = builder.context.get_webrender_image_for_url(
+                                self.fragment.tag,
+                                url.clone(),
+                                UsePlaceholder::No,
+                            );
+                            if let Some(WebRenderImageInfo {
+                                width,
+                                height,
+                                key: Some(key),
+                            }) = webrender_image
+                            {
+                                self.build_background_raster_image(builder, width, height, key)
+                            }
+                        }
+                    },
+                    // Gecko-only value, represented as a (boxed) empty enum on non-Gecko.
+                    Image::Rect(rect) => match **rect {},
+                },
+            }
+        }
     }
 
-    fn border_display_items(&mut self, builder: &mut DisplayListBuilder) {
+    fn build_background_raster_image(
+        &mut self,
+        builder: &mut DisplayListBuilder,
+        intrinsic_width: u32,
+        intrinsic_height: u32,
+        key: wr::ImageKey,
+    ) {
+        let clipping_area = self.border_rect;
+        let mut common = builder.common_properties(clipping_area);
+        self.with_border_edge_clip(builder, &mut common);
+
+        // FIXME: correct positioning
+        let _positioning_area = self.padding_rect();
+        let display_item_bounds = clipping_area;
+
+        // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
+        let dppx = 1.0;
+
+        let intrinsic_size = units::LayoutSize::new(
+            intrinsic_width as f32 / dppx,
+            intrinsic_height as f32 / dppx,
+        );
+        let stretch_size = intrinsic_size;
+        let tile_spacing = units::LayoutSize::zero();
+        builder.wr.push_repeating_image(
+            &common,
+            display_item_bounds,
+            stretch_size,
+            tile_spacing,
+            image_rendering(self.fragment.style.clone_image_rendering()),
+            wr::AlphaType::PremultipliedAlpha,
+            key,
+            wr::ColorF::WHITE,
+        )
+    }
+
+    fn build_border(&mut self, builder: &mut DisplayListBuilder) {
         let b = self.fragment.style.get_border();
         let widths = SideOffsets2D::new(
             b.border_top_width.px(),
@@ -361,5 +436,14 @@ fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
         CursorKind::AllScroll => Cursor::AllScroll,
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
+    }
+}
+
+fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageRendering {
+    use style::computed_values::image_rendering::T as ImageRendering;
+    match ir {
+        ImageRendering::Auto => wr::ImageRendering::Auto,
+        ImageRendering::CrispEdges => wr::ImageRendering::CrispEdges,
+        ImageRendering::Pixelated => wr::ImageRendering::Pixelated,
     }
 }
