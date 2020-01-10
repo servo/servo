@@ -547,7 +547,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     #[cfg(feature = "gecko")]
-    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
+    fn should_suppress_linebreak<E>(
+        &self,
+        layout_parent_style: &ComputedValues,
+        element: Option<E>,
+    ) -> bool
+    where
+        E: TElement,
+    {
         // Line break suppression should only be propagated to in-flow children.
         if self.style.is_floating() || self.style.is_absolutely_positioned() {
             return false;
@@ -567,11 +574,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             // Ruby base and text are always non-breakable.
             Display::RubyBase | Display::RubyText => true,
             // Ruby base container and text container are breakable.
+            // Non-HTML elements may not form ruby base / text container because
+            // they may not respect ruby-internal display values, so we can't
+            // make them escaped from line break suppression.
             // Note that, when certain HTML tags, e.g. form controls, have ruby
             // level container display type, they could also escape from the
             // line break suppression flag while they shouldn't. However, it is
-            // generally fine since they themselves are non-breakable.
-            Display::RubyBaseContainer | Display::RubyTextContainer => false,
+            // generally fine as far as they can't break the line inside them.
+            Display::RubyBaseContainer | Display::RubyTextContainer
+                if element.map_or(true, |e| e.is_html_element()) =>
+            {
+                false
+            },
             // Anything else is non-breakable if and only if its layout parent
             // has a ruby display type, because any of the ruby boxes can be
             // anonymous.
@@ -593,7 +607,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
-        if self.should_suppress_linebreak(layout_parent_style) {
+        if self.should_suppress_linebreak(layout_parent_style, element) {
             self.style
                 .add_flags(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
