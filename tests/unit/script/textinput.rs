@@ -162,6 +162,28 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
 }
 
 #[test]
+fn test_single_line_textinput_with_max_length_allows_deletion_when_replacing_a_selection() {
+    let mut textinput = TextInput::new(
+        Lines::Single,
+        DOMString::from("abcde"),
+        DummyClipboardContext::new(""),
+        Some(UTF16CodeUnits(1)),
+        None,
+        SelectionDirection::None,
+    );
+
+    textinput.adjust_horizontal(UTF8Bytes::one(), Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal(UTF8Bytes(2), Direction::Forward, Selection::Selected);
+
+    // Selection is now "abcde"
+    //                    --
+
+    textinput.replace_selection(DOMString::from("only deletion should be applied"));
+
+    assert_eq!(textinput.get_content(), "ade");
+}
+
+#[test]
 fn test_single_line_textinput_with_max_length_multibyte() {
     let mut textinput = TextInput::new(
         Lines::Single,
