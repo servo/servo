@@ -217,11 +217,23 @@ pub struct LayoutThread {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     load_webfonts_synchronously: bool,
 
+    /// Dumps the display list form after a layout.
+    dump_display_list: bool,
+
+    /// Dumps the display list in JSON form after a layout.
+    dump_display_list_json: bool,
+
+    /// Dumps the DOM after restyle.
+    dump_style_tree: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_rule_tree: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_flow_tree: bool,
+
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// Dumps the fragment tree after a layout.
-    dump_fragment_tree: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -248,10 +260,10 @@ impl LayoutThreadFactory for LayoutThread {
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
-        _dump_display_list: bool,
-        _dump_display_list_json: bool,
-        _dump_style_tree: bool,
-        _dump_rule_tree: bool,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
         relayout_event: bool,
         _nonincremental_layout: bool,
         _trace_layout: bool,
@@ -297,6 +309,10 @@ impl LayoutThreadFactory for LayoutThread {
                         load_webfonts_synchronously,
                         window_size,
                         relayout_event,
+                        dump_display_list,
+                        dump_display_list_json,
+                        dump_style_tree,
+                        dump_rule_tree,
                         dump_flow_tree,
                     );
 
@@ -461,7 +477,11 @@ impl LayoutThread {
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
         relayout_event: bool,
-        dump_fragment_tree: bool,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
+        dump_flow_tree: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(webrender_document, id.to_webrender());
@@ -542,7 +562,11 @@ impl LayoutThread {
             busy,
             load_webfonts_synchronously,
             relayout_event,
-            dump_fragment_tree,
+            dump_display_list,
+            dump_display_list_json,
+            dump_style_tree,
+            dump_rule_tree,
+            dump_flow_tree,
         }
     }
 
@@ -836,14 +860,14 @@ impl LayoutThread {
             info.layout_is_busy,
             self.load_webfonts_synchronously,
             info.window_size,
-            false, // dump_display_list
-            false, // dump_display_list_json
-            false, // dump_style_tree
-            false, // dump_rule_tree
+            self.dump_display_list,
+            self.dump_display_list_json,
+            self.dump_style_tree,
+            self.dump_rule_tree,
             self.relayout_event,
             true,  // nonincremental_layout
             false, // trace_layout
-            false, // dump_flow_tree
+            self.dump_flow_tree,
         );
     }
 
@@ -1140,6 +1164,18 @@ impl LayoutThread {
             unsafe { element.unset_snapshot_flags() }
         }
 
+        if self.dump_style_tree {
+            println!("{:?}", style::dom::ShowSubtreeDataAndPrimaryValues(element.as_node()));
+        }
+
+        if self.dump_rule_tree {
+            layout_context
+                .style_context
+                .stylist
+                .rule_tree()
+                .dump_stdout(&guards);
+        }
+
         // GC the rule tree if some heuristics are met.
         unsafe {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
@@ -1343,8 +1379,11 @@ impl LayoutThread {
             DisplayListBuilder::new(self.id.to_webrender(), context, viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
 
-        if self.dump_fragment_tree {
+        if self.dump_flow_tree {
             fragment_tree.print();
+        }
+        if self.dump_display_list {
+            display_list.wr.print_display_list();
         }
 
         debug!("Layout done!");
