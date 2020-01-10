@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::context::LayoutContext;
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
 use embedder_traits::Cursor;
@@ -25,8 +26,9 @@ pub struct WebRenderImageInfo {
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
 
-pub struct DisplayListBuilder {
+pub struct DisplayListBuilder<'a> {
     current_space_and_clip: wr::SpaceAndClipInfo,
+    pub context: &'a LayoutContext<'a>,
     pub wr: wr::DisplayListBuilder,
 
     /// Contentful paint, for the purpose of
@@ -36,11 +38,16 @@ pub struct DisplayListBuilder {
     pub is_contentful: bool,
 }
 
-impl DisplayListBuilder {
-    pub fn new(pipeline_id: wr::PipelineId, viewport_size: wr::units::LayoutSize) -> Self {
+impl<'a> DisplayListBuilder<'a> {
+    pub fn new(
+        pipeline_id: wr::PipelineId,
+        context: &'a LayoutContext,
+        viewport_size: wr::units::LayoutSize,
+    ) -> Self {
         Self {
             current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(pipeline_id),
             is_contentful: false,
+            context,
             wr: wr::DisplayListBuilder::new(pipeline_id, viewport_size),
         }
     }

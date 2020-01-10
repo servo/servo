@@ -1147,7 +1147,12 @@ impl LayoutThread {
 
         // Perform post-style recalculation layout passes.
         if let Some(root) = &*self.fragment_tree_root.borrow() {
-            self.perform_post_style_recalc_layout_passes(root, &data.reflow_goal, Some(&document));
+            self.perform_post_style_recalc_layout_passes(
+                root,
+                &data.reflow_goal,
+                Some(&document),
+                &mut layout_context,
+            );
         }
 
         self.first_reflow.set(false);
@@ -1292,12 +1297,20 @@ impl LayoutThread {
             let author_shared_lock = self.document_shared_lock.clone().unwrap();
             let author_guard = author_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-            let _guards = StylesheetGuards {
+            let guards = StylesheetGuards {
                 author: &author_guard,
                 ua_or_user: &ua_or_user_guard,
             };
+            let snapshots = SnapshotMap::new();
+            let mut layout_context = self.build_layout_context(guards, false, &snapshots);
 
-            self.perform_post_style_recalc_layout_passes(root, &ReflowGoal::TickAnimations, None);
+            self.perform_post_style_recalc_layout_passes(
+                root,
+                &ReflowGoal::TickAnimations,
+                None,
+                &mut layout_context,
+            );
+            assert!(layout_context.pending_images.is_none());
         }
     }
 
@@ -1306,6 +1319,7 @@ impl LayoutThread {
         fragment_tree: &layout::FragmentTreeRoot,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
+        context: &mut LayoutContext,
     ) {
         if !reflow_goal.needs_display() {
             // Defer the paint step until the next ForDisplay.
@@ -1325,7 +1339,8 @@ impl LayoutThread {
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
+        let mut display_list =
+            DisplayListBuilder::new(self.id.to_webrender(), context, viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
 
         if self.dump_fragment_tree {
