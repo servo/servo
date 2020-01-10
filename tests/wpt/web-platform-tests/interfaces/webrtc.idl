@@ -588,7 +588,6 @@ interface RTCError : DOMException {
   constructor(RTCErrorInit init, optional DOMString message = "");
   readonly attribute RTCErrorDetailType errorDetail;
   readonly attribute long? sdpLineNumber;
-  readonly attribute long? httpRequestStatusCode;
   readonly attribute long? sctpCauseCode;
   readonly attribute unsigned long? receivedAlert;
   readonly attribute unsigned long? sentAlert;
@@ -597,7 +596,6 @@ interface RTCError : DOMException {
 dictionary RTCErrorInit {
   required RTCErrorDetailType errorDetail;
   long sdpLineNumber;
-  long httpRequestStatusCode;
   long sctpCauseCode;
   unsigned long receivedAlert;
   unsigned long sentAlert;

@@ -1,5 +1,7 @@
 (function() {
   'use strict';
+  // NOTE: When new default variants are added DEFAULT_VARIANTS in conftest.py
+  // must also be updated
   var variants = {
     /**
      * Tests are executed in the absence of the global Promise constructor by

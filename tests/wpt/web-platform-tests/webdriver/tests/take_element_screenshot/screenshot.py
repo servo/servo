@@ -2,7 +2,7 @@ from tests.support.asserts import assert_error, assert_success
 from tests.support.image import png_dimensions
 from tests.support.inline import inline
 
-from . import element_rect
+from . import element_dimensions
 
 
 def take_element_screenshot(session, element_id):
@@ -32,9 +32,8 @@ def test_stale(session):
 def test_format_and_dimensions(session):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
-    rect = element_rect(session, element)
 
     response = take_element_screenshot(session, element.id)
     screenshot = assert_success(response)
 
-    assert png_dimensions(screenshot) == (rect["width"], rect["height"])
+    assert png_dimensions(screenshot) == element_dimensions(session, element)

@@ -4,21 +4,58 @@ from tests.support.asserts import assert_success
 from tests.support.image import png_dimensions
 from tests.support.inline import iframe, inline
 
-from . import viewport_dimensions
+from . import element_dimensions, viewport_dimensions
 
+DEFAULT_CONTENT = "<div id='content'>Lorem ipsum dolor sit amet.</div>"
 
-DEFAULT_CSS_STYLE = """
+REFERENCE_CONTENT = "<div id='outer'>{}</div>".format(DEFAULT_CONTENT)
+REFERENCE_STYLE = """
     <style>
-      div, iframe {
+      #outer {
         display: block;
-        border: 1px solid blue;
-        width: 10em;
-        height: 10em;
+        margin: 0;
+        border: 0;
+        width: 200px;
+        height: 200px;
+      }
+      #content {
+        display: block;
+        margin: 0;
+        border: 0;
+        width: 100px;
+        height: 100px;
+        background: green;
       }
     </style>
 """
 
-DEFAULT_CONTENT = "<div>Lorem ipsum dolor sit amet.</div>"
+OUTER_IFRAME_STYLE = """
+    <style>
+      iframe {
+        display: block;
+        margin: 0;
+        border: 0;
+        width: 200px;
+        height: 200px;
+      }
+    </style>
+"""
+
+INNER_IFRAME_STYLE = """
+    <style>
+      body {
+        margin: 0;
+      }
+      div {
+        display: block;
+        margin: 0;
+        border: 0;
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+    </style>
+"""
 
 
 def take_screenshot(session):
@@ -27,8 +64,8 @@ def take_screenshot(session):
 
 
 def test_always_captures_top_browsing_context(session):
-    iframe_content = "<style>body {{ margin: 0; }}</style>{}".format(DEFAULT_CONTENT)
-    session.url = inline("""{0}{1}""".format(DEFAULT_CSS_STYLE, iframe(iframe_content)))
+    iframe_content = "{0}{1}".format(INNER_IFRAME_STYLE, DEFAULT_CONTENT)
+    session.url = inline("""{0}{1}""".format(OUTER_IFRAME_STYLE, iframe(iframe_content)))
 
     response = take_screenshot(session)
     reference_screenshot = assert_success(response)
@@ -40,20 +77,21 @@ def test_always_captures_top_browsing_context(session):
     response = take_screenshot(session)
     screenshot = assert_success(response)
 
+    assert png_dimensions(screenshot) == png_dimensions(reference_screenshot)
     assert screenshot == reference_screenshot
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
-def test_source_origin(session, url, domain):
-    session.url = inline("""{0}{1}""".format(DEFAULT_CSS_STYLE, DEFAULT_CONTENT))
+def test_source_origin(session, domain):
+    session.url = inline("{0}{1}".format(REFERENCE_STYLE, REFERENCE_CONTENT))
 
     response = take_screenshot(session)
     reference_screenshot = assert_success(response)
     assert png_dimensions(reference_screenshot) == viewport_dimensions(session)
 
-    iframe_content = "<style>body {{ margin: 0; }}</style>{}".format(DEFAULT_CONTENT)
+    iframe_content = "{0}{1}".format(INNER_IFRAME_STYLE, DEFAULT_CONTENT)
     session.url = inline("""{0}{1}""".format(
-        DEFAULT_CSS_STYLE, iframe(iframe_content, domain=domain)))
+        OUTER_IFRAME_STYLE, iframe(iframe_content, domain=domain)))
 
     response = take_screenshot(session)
     screenshot = assert_success(response)

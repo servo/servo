@@ -21,13 +21,38 @@ def main(request, response):
 <script src="/common/get-host-info.sub.js"></script>
 <iframe></iframe>
 <script>
-  const navigate = new URL(location).searchParams.get("navigate");
-  if (navigate !== null) {
-    self.location = navigate;
+  const params = new URL(location).searchParams;
+  const navHistory = params.get("navHistory");
+  const avoidBackAndForth = params.get("avoidBackAndForth");
+  const navigate = params.get("navigate");
+  // Need to wait until the page is fully loaded before navigating
+  // so that it creates a history entry properly.
+  const fullyLoaded = new Promise((resolve, reject) => {
+    addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  });
+  if (navHistory !== null) {
+    fullyLoaded.then(() => {
+      history.go(Number(navHistory));
+    });
+  } else if (navigate !== null && (history.length === 1 || !avoidBackAndForth)) {
+    fullyLoaded.then(() => {
+      self.location = navigate;
+    });
   } else {
+    let openerDOMAccessAllowed = false;
+    try {
+      openerDOMAccessAllowed = !!self.opener.document.URL;
+    } catch(ex) {
+    }
     const iframe = document.querySelector("iframe");
     iframe.onload = () => {
-      const payload = { name: self.name, opener: !!self.opener };
+      const payload = { name: self.name, opener: !!self.opener, openerDOMAccess: openerDOMAccessAllowed };
       iframe.contentWindow.postMessage(payload, "*");
     };
     const channelName = new URL(location).searchParams.get("channel");

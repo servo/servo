@@ -33,33 +33,6 @@ dictionary ReportingObserverOptions {
 
 typedef sequence<Report> ReportList;
 
-[Exposed=(Window,Worker)]
-interface DeprecationReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute DOMString id;
-  readonly attribute Date? anticipatedRemoval;
-  readonly attribute DOMString message;
-  readonly attribute DOMString? sourceFile;
-  readonly attribute unsigned long? lineNumber;
-  readonly attribute unsigned long? columnNumber;
-};
-
-[Exposed=(Window,Worker)]
-interface InterventionReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute DOMString id;
-  readonly attribute DOMString message;
-  readonly attribute DOMString? sourceFile;
-  readonly attribute unsigned long? lineNumber;
-  readonly attribute unsigned long? columnNumber;
-};
-
-[Exposed=(Window,Worker)]
-interface CrashReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute DOMString? reason;
-};
-
 dictionary GenerateTestReportParameters {
   required DOMString message;
   DOMString group = "default";
