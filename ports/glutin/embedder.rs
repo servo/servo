@@ -10,7 +10,7 @@ use crate::window_trait::WindowPortsMethods;
 use gleam::gl;
 use glutin;
 use glutin::dpi::LogicalSize;
-use glutin::EventsLoopClosed;
+use glutin::event_loop::EventLoopClosed;
 use rust_webvr::GlWindowVRService;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::EventLoopWaker;
@@ -65,9 +65,9 @@ impl EmbedderMethods for EmbedderCallbacks {
                     events_loop_clone
                         .borrow_mut()
                         .take()
-                        .ok_or(EventsLoopClosed)
+                        .ok_or(EventLoopClosed)
                 });
-                let window_builder = glutin::WindowBuilder::new()
+                let window_builder = glutin::window::WindowBuilder::new()
                     .with_title(name.clone())
                     .with_dimensions(size)
                     .with_visibility(false)

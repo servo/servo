@@ -136,8 +136,8 @@ impl WindowPortsMethods for Window {
         false
     }
 
-    fn id(&self) -> glutin::WindowId {
-        unsafe { glutin::WindowId::dummy() }
+    fn id(&self) -> glutin::window::WindowId {
+        unsafe { glutin::window::WindowId::dummy() }
     }
 
     fn page_height(&self) -> f32 {
@@ -157,7 +157,7 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn winit_event_to_servo_event(&self, _event: glutin::WindowEvent) {
+    fn winit_event_to_servo_event(&self, _event: glutin::event::WindowEvent) {
         // Not expecting any winit events.
     }
 }

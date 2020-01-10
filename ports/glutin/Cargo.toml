@@ -53,7 +53,7 @@ clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
 gleam = "0.6"
-glutin = "0.21.0"
+glutin = "0.22.0"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}

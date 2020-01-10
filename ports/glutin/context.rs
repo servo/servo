@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use glutin::os::ContextTraitExt;
-use glutin::{ContextBuilder, CreationError, EventsLoop, NotCurrent, PossiblyCurrent, WindowedContext, WindowBuilder};
+use glutin::platform::ContextTraitExt;
+use glutin::{ContextBuilder, CreationError, event_loop::EventLoop, NotCurrent, PossiblyCurrent, WindowedContext, window::WindowBuilder};
 use servo_media::player::context::GlContext as RawContext;
 use std::os::raw;
 
@@ -15,14 +15,14 @@ pub enum GlContext {
 }
 
 impl GlContext {
-    pub fn window(&self) -> &glutin::Window {
+    pub fn window(&self) -> &glutin::window::Window {
         match self {
             GlContext::Current(c) => c.window(),
             GlContext::NotCurrent(c) => c.window(),
             GlContext::None => unreachable!(),
         }
     }
-    pub fn resize(&mut self, size: glutin::dpi::PhysicalSize) {
+    pub fn resize(&mut self, size: glutin::dpi::PhysicalSize<f64>) {
         if let GlContext::NotCurrent(_) = self {
             self.make_current();
         }
@@ -87,7 +87,7 @@ impl GlContext {
             GlContext::Current(c) => {
                 #[cfg(target_os = "linux")]
                 {
-                    use glutin::os::unix::RawHandle;
+                    use glutin::platform::unix::RawHandle;
 
                     let raw_handle = unsafe { c.raw_handle() };
                     return match raw_handle {
@@ -98,7 +98,7 @@ impl GlContext {
 
                 #[cfg(target_os = "windows")]
                 {
-                    use glutin::os::windows::RawHandle;
+                    use glutin::platform::windows::RawHandle;
 
                     let raw_handle = unsafe { c.raw_handle() };
                     return match raw_handle {
@@ -132,7 +132,7 @@ impl GlContext {
         &self,
         cb: ContextBuilder<T>,
         wb: WindowBuilder,
-        el: &EventsLoop
+        el: &EventLoop<()>
     ) -> Result<WindowedContext<NotCurrent>, CreationError>
     where
         T: glutin::ContextCurrentState,

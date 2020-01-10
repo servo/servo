@@ -457,6 +457,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "calloop"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aa2097be53a00de9e8fc349fea6d76221f398f5c4fa550d420669906962d160"
+dependencies = [
+ "mio",
+ "mio-extras",
+ "nix",
+]
+
+[[package]]
 name = "canvas"
 version = "0.0.1"
 dependencies = [
@@ -863,6 +874,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-video-sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8dc065219542086f72d1e9f7aadbbab0989e980263695d129d502082d063a9d0"
+dependencies = [
+ "cfg-if",
+ "core-foundation-sys",
+ "core-graphics",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "crc"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1176,6 +1200,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "dispatch"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04e93ca78226c51902d7aa8c12c988338aadd9e85ed9c6be8aaac39192ff3605"
 
 [[package]]
 name = "display-link"
@@ -1654,7 +1684,7 @@ dependencies = [
  "gfx-hal",
  "libloading",
  "log",
- "parking_lot",
+ "parking_lot 0.9.0",
  "range-alloc",
  "raw-window-handle",
  "smallvec 0.6.10",
@@ -1710,7 +1740,7 @@ dependencies = [
  "log",
  "metal",
  "objc",
- "parking_lot",
+ "parking_lot 0.9.0",
  "range-alloc",
  "raw-window-handle",
  "smallvec 0.6.10",
@@ -1873,19 +1903,46 @@ dependencies = [
  "libloading",
  "objc",
  "osmesa-sys",
- "parking_lot",
- "wayland-client",
+ "parking_lot 0.9.0",
+ "wayland-client 0.21.13",
  "winapi",
- "winit",
+ "winit 0.19.3",
+]
+
+[[package]]
+name = "glutin"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e8c40ccddfa5fb8aaad6a152bfa6b17f157d6635928a832211534f87c9877e1"
+dependencies = [
+ "android_glue",
+ "cgl 0.3.2",
+ "cocoa 0.19.1",
+ "core-foundation",
+ "core-graphics",
+ "glutin_egl_sys",
+ "glutin_emscripten_sys",
+ "glutin_gles2_sys",
+ "glutin_glx_sys",
+ "glutin_wgl_sys",
+ "lazy_static",
+ "libloading",
+ "log",
+ "objc",
+ "osmesa-sys",
+ "parking_lot 0.9.0",
+ "wayland-client 0.23.6",
+ "winapi",
+ "winit 0.20.0",
 ]
 
 [[package]]
 name = "glutin_egl_sys"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f48987ab6cb2b61ad903b59e54a2fd0c380a7baff68cffd6826b69a73dd326"
+checksum = "772edef3b28b8ad41e4ea202748e65eefe8e5ffd1f4535f1219793dbb20b3d4c"
 dependencies = [
- "gl_generator 0.11.0",
+ "gl_generator 0.13.1",
  "winapi",
 ]
 
@@ -2547,6 +2604,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "instant"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c346c299e3fe8ef94dc10c2c0253d858a69aac1245157a3bf4125915d528caf"
+
+[[package]]
 name = "io-surface"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2703,7 +2766,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "rayon",
@@ -2780,7 +2843,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "rayon",
@@ -2890,9 +2953,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.62"
+version = "0.2.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34fcd2c08d2f832f376f4173a231990fa5aef4e99fb569867318a227ef4c06ba"
+checksum = "d515b1f41455adea1313a4a2ac8a8a477634fbae63cc6100e3aebb207ce61558"
 
 [[package]]
 name = "libdbus-sys"
@@ -3454,7 +3517,7 @@ dependencies = [
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.9.0",
  "serde",
  "servo_url",
  "size_of_test",
@@ -3808,8 +3871,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
 dependencies = [
  "lock_api",
- "parking_lot_core",
+ "parking_lot_core 0.6.2",
  "rustc_version",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92e98c49ab0b7ce5b222f2cc9193fc4efe11c6d0bd4f648e374684a6857b1cfc"
+dependencies = [
+ "lock_api",
+ "parking_lot_core 0.7.0",
 ]
 
 [[package]]
@@ -3824,6 +3897,20 @@ dependencies = [
  "redox_syscall",
  "rustc_version",
  "smallvec 0.6.10",
+ "winapi",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7582838484df45743c8434fbff785e8edf260c28748353d44bc0da32e0ceabf1"
+dependencies = [
+ "cfg-if",
+ "cloudabi",
+ "libc",
+ "redox_syscall",
+ "smallvec 1.0.0",
  "winapi",
 ]
 
@@ -4361,7 +4448,7 @@ dependencies = [
  "euclid",
  "gl_generator 0.13.1",
  "gleam 0.6.18",
- "glutin",
+ "glutin 0.21.2",
  "gvr-sys",
  "libc",
  "libloading",
@@ -4500,7 +4587,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "percent-encoding",
  "phf",
  "phf_codegen",
@@ -4737,7 +4824,7 @@ dependencies = [
  "euclid",
  "getopts",
  "gleam 0.6.18",
- "glutin",
+ "glutin 0.22.0",
  "image",
  "keyboard-types",
  "lazy_static",
@@ -4985,7 +5072,7 @@ dependencies = [
  "euclid",
  "expat-sys",
  "gleam 0.7.0",
- "glutin",
+ "glutin 0.21.2",
  "glx",
  "io-surface",
  "libc",
@@ -5253,9 +5340,25 @@ dependencies = [
  "lazy_static",
  "memmap",
  "nix",
- "wayland-client",
- "wayland-commons",
- "wayland-protocols",
+ "wayland-client 0.21.13",
+ "wayland-commons 0.21.13",
+ "wayland-protocols 0.21.4",
+]
+
+[[package]]
+name = "smithay-client-toolkit"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93960e8975909fcb14cc755de93af2149d8b8f4eb368315537d40cfd0f324054"
+dependencies = [
+ "andrew",
+ "bitflags",
+ "dlib",
+ "lazy_static",
+ "memmap",
+ "nix",
+ "wayland-client 0.23.6",
+ "wayland-protocols 0.23.6",
 ]
 
 [[package]]
@@ -5391,7 +5494,7 @@ dependencies = [
  "num_cpus",
  "ordered-float",
  "owning_ref",
- "parking_lot",
+ "parking_lot 0.9.0",
  "precomputed-hash",
  "rayon",
  "regex",
@@ -5495,7 +5598,7 @@ dependencies = [
  "osmesa-sys",
  "wayland-sys 0.24.0",
  "winapi",
- "winit",
+ "winit 0.19.3",
  "wio",
  "x11",
 ]
@@ -5519,10 +5622,10 @@ dependencies = [
  "log",
  "mach",
  "objc",
- "parking_lot",
+ "parking_lot 0.9.0",
  "wayland-sys 0.24.0",
  "winapi",
- "winit",
+ "winit 0.19.3",
  "wio",
  "x11",
 ]
@@ -6221,9 +6324,26 @@ dependencies = [
  "downcast-rs",
  "libc",
  "nix",
- "wayland-commons",
- "wayland-scanner",
+ "wayland-commons 0.21.13",
+ "wayland-scanner 0.21.13",
  "wayland-sys 0.21.13",
+]
+
+[[package]]
+name = "wayland-client"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af1080ebe0efabcf12aef2132152f616038f2d7dcbbccf7b2d8c5270fe14bcda"
+dependencies = [
+ "bitflags",
+ "calloop",
+ "downcast-rs",
+ "libc",
+ "mio",
+ "nix",
+ "wayland-commons 0.23.6",
+ "wayland-scanner 0.23.6",
+ "wayland-sys 0.23.6",
 ]
 
 [[package]]
@@ -6237,16 +6357,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "wayland-commons"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb66b0d1a27c39bbce712b6372131c6e25149f03ffb0cd017cf8f7de8d66dbdb"
+dependencies = [
+ "nix",
+ "wayland-sys 0.23.6",
+]
+
+[[package]]
 name = "wayland-protocols"
 version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3f6cebb98963f028d397e9bad2acf9d3b2f6b76fae65aea191edd9e7c0df88c"
 dependencies = [
  "bitflags",
- "wayland-client",
- "wayland-commons",
- "wayland-scanner",
+ "wayland-client 0.21.13",
+ "wayland-commons 0.21.13",
+ "wayland-scanner 0.21.13",
  "wayland-sys 0.21.13",
+]
+
+[[package]]
+name = "wayland-protocols"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6cc286643656742777d55dc8e70d144fa4699e426ca8e9d4ef454f4bf15ffcf9"
+dependencies = [
+ "bitflags",
+ "wayland-client 0.23.6",
+ "wayland-commons 0.23.6",
+ "wayland-scanner 0.23.6",
 ]
 
 [[package]]
@@ -6261,10 +6403,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "wayland-scanner"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93b02247366f395b9258054f964fe293ddd019c3237afba9be2ccbe9e1651c3d"
+dependencies = [
+ "proc-macro2 0.4.26",
+ "quote 0.6.12",
+ "xml-rs",
+]
+
+[[package]]
 name = "wayland-sys"
 version = "0.21.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "520ab0fd578017a0ee2206623ba9ef4afe5e8f23ca7b42f6acfba2f4e66b1628"
+dependencies = [
+ "dlib",
+ "lazy_static",
+]
+
+[[package]]
+name = "wayland-sys"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d94e89a86e6d6d7c7c9b19ebf48a03afaac4af6bc22ae570e9a24124b75358f4"
 dependencies = [
  "dlib",
  "lazy_static",
@@ -6456,7 +6619,7 @@ dependencies = [
  "euclid",
  "gl_generator 0.13.1",
  "gleam 0.6.18",
- "glutin",
+ "glutin 0.21.2",
  "log",
  "openxr",
  "serde",
@@ -6478,7 +6641,7 @@ dependencies = [
  "log",
  "serde",
  "surfman-chains-api",
- "winit",
+ "winit 0.19.3",
 ]
 
 [[package]]
@@ -6497,7 +6660,7 @@ dependencies = [
  "gfx-backend-vulkan",
  "gfx-hal",
  "log",
- "parking_lot",
+ "parking_lot 0.9.0",
  "rendy-descriptor",
  "rendy-memory",
  "serde",
@@ -6568,10 +6731,39 @@ dependencies = [
  "libc",
  "log",
  "objc",
- "parking_lot",
+ "parking_lot 0.9.0",
  "percent-encoding",
- "smithay-client-toolkit",
- "wayland-client",
+ "smithay-client-toolkit 0.4.6",
+ "wayland-client 0.21.13",
+ "winapi",
+ "x11-dl",
+]
+
+[[package]]
+name = "winit"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ba128780050481f453bec2a115b916dbc6ae79c303dee9bad8b9080bdccd4f5"
+dependencies = [
+ "android_glue",
+ "bitflags",
+ "cocoa 0.19.1",
+ "core-foundation",
+ "core-graphics",
+ "core-video-sys",
+ "dispatch",
+ "instant",
+ "lazy_static",
+ "libc",
+ "log",
+ "mio",
+ "mio-extras",
+ "objc",
+ "parking_lot 0.10.0",
+ "percent-encoding",
+ "raw-window-handle",
+ "smithay-client-toolkit 0.6.4",
+ "wayland-client 0.23.6",
  "winapi",
  "x11-dl",
 ]

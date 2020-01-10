@@ -15,7 +15,7 @@ use std::time;
 #[allow(dead_code)]
 enum EventLoop {
     /// A real Glutin windowing event loop.
-    Glutin(Option<glutin::EventsLoop>),
+    Glutin(Option<glutin::event_loop::EventLoop<()>>),
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
@@ -29,14 +29,14 @@ impl EventsLoop {
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(target_os = "linux"))]
     pub fn new(_headless: bool) -> Rc<RefCell<EventsLoop>> {
-        Rc::new(RefCell::new(EventsLoop(EventLoop::Glutin(Some(glutin::EventsLoop::new())))))
+        Rc::new(RefCell::new(EventsLoop(EventLoop::Glutin(Some(glutin::event_loop::EventLoop::new())))))
     }
     #[cfg(target_os = "linux")]
     pub fn new(headless: bool) -> Rc<RefCell<EventsLoop>> {
         let events_loop = if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Glutin(Some(glutin::EventsLoop::new()))
+            EventLoop::Glutin(Some(glutin::event_loop::EventLoop::new()))
         };
         Rc::new(RefCell::new(EventsLoop(events_loop)))
     }
@@ -55,20 +55,20 @@ impl EventsLoop {
                 Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
-    pub fn as_winit(&self) -> &glutin::EventsLoop {
+    pub fn as_winit(&self) -> &glutin::event_loop::EventLoop<()> {
         match self.0 {
             EventLoop::Glutin(Some(ref event_loop)) => event_loop,
             EventLoop::Glutin(None) | EventLoop::Headless(..) =>
                 panic!("Can't access winit event loop while using the fake headless event loop"),
         }
     }
-    pub fn take(&mut self) -> Option<glutin::EventsLoop> {
+    pub fn take(&mut self) -> Option<glutin::event_loop::EventLoop<()>> {
         match self.0 {
             EventLoop::Glutin(ref mut event_loop) => event_loop.take(),
             EventLoop::Headless(..) => None,
         }
     }
-    pub fn poll_events<F>(&mut self, callback: F) where F: FnMut(glutin::Event) {
+    pub fn poll_events<F>(&mut self, callback: F) where F: FnMut(glutin::event::Event<()>) {
         match self.0 {
             EventLoop::Glutin(Some(ref mut events_loop)) => events_loop.poll_events(callback),
             EventLoop::Glutin(None) => (),
@@ -86,7 +86,7 @@ impl EventsLoop {
             }
         }
     }
-    pub fn run_forever<F>(&mut self, mut callback: F) where F: FnMut(glutin::Event) -> glutin::ControlFlow {
+    pub fn run_forever<F>(&mut self, mut callback: F) where F: FnMut(glutin::event::Event<()>) -> glutin::event_loop::ControlFlow {
         match self.0 {
             EventLoop::Glutin(ref mut events_loop) => {
                 let events_loop = events_loop
@@ -98,7 +98,7 @@ impl EventsLoop {
                 let &(ref flag, ref condvar) = &**data;
                 while { !*flag.lock().unwrap() } {
                     self.sleep(flag, condvar);
-                    if callback(glutin::Event::Awakened) == glutin::ControlFlow::Break {
+                    if callback(glutin::event::Event::Awakened) == glutin::event_loop::ControlFlow::Break {
                         break;
                     }
                 }
@@ -121,11 +121,11 @@ impl EventsLoop {
 }
 
 struct HeadedEventLoopWaker {
-    proxy: Arc<glutin::EventsLoopProxy>,
+    proxy: glutin::event_loop::EventLoopProxy<()>,
 }
 impl HeadedEventLoopWaker {
-    fn new(events_loop: &glutin::EventsLoop) -> HeadedEventLoopWaker {
-        let proxy = Arc::new(events_loop.create_proxy());
+    fn new(events_loop: &glutin::event_loop::EventLoop<()>) -> HeadedEventLoopWaker {
+        let proxy = events_loop.create_proxy();
         HeadedEventLoopWaker { proxy }
     }
 }

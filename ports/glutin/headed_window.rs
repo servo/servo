@@ -16,13 +16,13 @@ use euclid::{
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
-use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+use glutin::platform::macos::{ActivationPolicy, WindowBuilderExt};
 #[cfg(target_os = "linux")]
-use glutin::os::unix::WindowExt;
+use glutin::platform::unix::WindowExtUnix;
 use glutin::Api;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
-use glutin::Icon;
-use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use glutin::window::Icon;
+use glutin::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -45,7 +45,7 @@ use winapi;
 const MULTISAMPLES: u16 = 16;
 
 #[cfg(target_os = "macos")]
-fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+fn builder_with_platform_options(mut builder: glutin::window::WindowBuilder) -> glutin::window::WindowBuilder {
     if opts::get().output_file.is_some() {
         // Prevent the window from showing in Dock.app, stealing focus,
         // when generating an output file.
@@ -55,7 +55,7 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
 }
 
 #[cfg(not(target_os = "macos"))]
-fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+fn builder_with_platform_options(builder: glutin::window::WindowBuilder) -> glutin::window::WindowBuilder {
     builder
 }
 
@@ -64,9 +64,9 @@ pub struct Window {
     events_loop: Rc<RefCell<EventsLoop>>,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<glutin::MouseButton>>,
+    mouse_down_button: Cell<Option<glutin::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
-    primary_monitor: glutin::MonitorId,
+    primary_monitor: glutin::monitor::MonitorHandle,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<KeyboardEvent>>,
@@ -117,7 +117,7 @@ impl Window {
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
-        let mut window_builder = glutin::WindowBuilder::new()
+        let mut window_builder = glutin::window::WindowBuilder::new()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparency(no_native_titlebar)
@@ -160,12 +160,12 @@ impl Window {
             context.make_current().expect("Couldn't make window current")
         };
 
-        let primary_monitor = events_loop.borrow().as_winit().get_primary_monitor();
+        let primary_monitor = events_loop.borrow().as_winit().primary_monitor();
 
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
-        } = primary_monitor.get_dimensions();
+        } = primary_monitor.size();
         let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
         // TODO(ajeffrey): can this fail?
         let LogicalSize { width, height } = context
@@ -293,7 +293,7 @@ impl Window {
     }
 
     fn handle_xr_rotation(&self, input: &KeyboardInput) {
-        if input.state != glutin::ElementState::Pressed {
+        if input.state != glutin::event::ElementState::Pressed {
             return;
         }
         let mut x = 0.0;
@@ -318,8 +318,8 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
-        button: glutin::MouseButton,
-        action: glutin::ElementState,
+        button: glutin::event::MouseButton,
+        action: glutin::event::ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
@@ -422,44 +422,44 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_cursor(&self, cursor: Cursor) {
-        use glutin::MouseCursor;
+        use glutin::window::CursorIcon;
 
         let winit_cursor = match cursor {
-            Cursor::Default => MouseCursor::Default,
-            Cursor::Pointer => MouseCursor::Hand,
-            Cursor::ContextMenu => MouseCursor::ContextMenu,
-            Cursor::Help => MouseCursor::Help,
-            Cursor::Progress => MouseCursor::Progress,
-            Cursor::Wait => MouseCursor::Wait,
-            Cursor::Cell => MouseCursor::Cell,
-            Cursor::Crosshair => MouseCursor::Crosshair,
-            Cursor::Text => MouseCursor::Text,
-            Cursor::VerticalText => MouseCursor::VerticalText,
-            Cursor::Alias => MouseCursor::Alias,
-            Cursor::Copy => MouseCursor::Copy,
-            Cursor::Move => MouseCursor::Move,
-            Cursor::NoDrop => MouseCursor::NoDrop,
-            Cursor::NotAllowed => MouseCursor::NotAllowed,
-            Cursor::Grab => MouseCursor::Grab,
-            Cursor::Grabbing => MouseCursor::Grabbing,
-            Cursor::EResize => MouseCursor::EResize,
-            Cursor::NResize => MouseCursor::NResize,
-            Cursor::NeResize => MouseCursor::NeResize,
-            Cursor::NwResize => MouseCursor::NwResize,
-            Cursor::SResize => MouseCursor::SResize,
-            Cursor::SeResize => MouseCursor::SeResize,
-            Cursor::SwResize => MouseCursor::SwResize,
-            Cursor::WResize => MouseCursor::WResize,
-            Cursor::EwResize => MouseCursor::EwResize,
-            Cursor::NsResize => MouseCursor::NsResize,
-            Cursor::NeswResize => MouseCursor::NeswResize,
-            Cursor::NwseResize => MouseCursor::NwseResize,
-            Cursor::ColResize => MouseCursor::ColResize,
-            Cursor::RowResize => MouseCursor::RowResize,
-            Cursor::AllScroll => MouseCursor::AllScroll,
-            Cursor::ZoomIn => MouseCursor::ZoomIn,
-            Cursor::ZoomOut => MouseCursor::ZoomOut,
-            _ => MouseCursor::Default,
+            Cursor::Default => CursorIcon::Default,
+            Cursor::Pointer => CursorIcon::Hand,
+            Cursor::ContextMenu => CursorIcon::ContextMenu,
+            Cursor::Help => CursorIcon::Help,
+            Cursor::Progress => CursorIcon::Progress,
+            Cursor::Wait => CursorIcon::Wait,
+            Cursor::Cell => CursorIcon::Cell,
+            Cursor::Crosshair => CursorIcon::Crosshair,
+            Cursor::Text => CursorIcon::Text,
+            Cursor::VerticalText => CursorIcon::VerticalText,
+            Cursor::Alias => CursorIcon::Alias,
+            Cursor::Copy => CursorIcon::Copy,
+            Cursor::Move => CursorIcon::Move,
+            Cursor::NoDrop => CursorIcon::NoDrop,
+            Cursor::NotAllowed => CursorIcon::NotAllowed,
+            Cursor::Grab => CursorIcon::Grab,
+            Cursor::Grabbing => CursorIcon::Grabbing,
+            Cursor::EResize => CursorIcon::EResize,
+            Cursor::NResize => CursorIcon::NResize,
+            Cursor::NeResize => CursorIcon::NeResize,
+            Cursor::NwResize => CursorIcon::NwResize,
+            Cursor::SResize => CursorIcon::SResize,
+            Cursor::SeResize => CursorIcon::SeResize,
+            Cursor::SwResize => CursorIcon::SwResize,
+            Cursor::WResize => CursorIcon::WResize,
+            Cursor::EwResize => CursorIcon::EwResize,
+            Cursor::NsResize => CursorIcon::NsResize,
+            Cursor::NeswResize => CursorIcon::NeswResize,
+            Cursor::NwseResize => CursorIcon::NwseResize,
+            Cursor::ColResize => CursorIcon::ColResize,
+            Cursor::RowResize => CursorIcon::RowResize,
+            Cursor::AllScroll => CursorIcon::AllScroll,
+            Cursor::ZoomIn => CursorIcon::ZoomIn,
+            Cursor::ZoomOut => CursorIcon::ZoomOut,
+            _ => CursorIcon::Default,
         };
         self.gl_context.borrow_mut().window().set_cursor(winit_cursor);
     }
@@ -468,20 +468,20 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn id(&self) -> glutin::WindowId {
+    fn id(&self) -> glutin::window::WindowId {
         self.gl_context.borrow().window().id()
     }
 
-    fn winit_event_to_servo_event(&self, event: glutin::WindowEvent) {
+    fn winit_event_to_servo_event(&self, event: glutin::event::WindowEvent) {
         match event {
-            glutin::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
-            glutin::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
-            glutin::WindowEvent::MouseInput { state, button, .. } => {
+            glutin::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
+            glutin::event::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
+            glutin::event::WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(button, state, self.mouse_pos.get());
                 }
             },
-            glutin::WindowEvent::CursorMoved { position, .. } => {
+            glutin::event::WindowEvent::CursorMoved { position, .. } => {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
                 let (x, y): (i32, i32) = pos.into();
                 self.mouse_pos.set(Point2D::new(x, y));
@@ -491,7 +491,7 @@ impl WindowPortsMethods for Window {
                         x as f32, y as f32,
                     )));
             },
-            glutin::WindowEvent::MouseWheel { delta, phase, .. } => {
+            glutin::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx as f64, (dy * LINE_HEIGHT) as f64,
                                                             WheelMode::DeltaLine),
@@ -524,7 +524,7 @@ impl WindowPortsMethods for Window {
                 self.event_queue.borrow_mut().push(wheel_event);
                 self.event_queue.borrow_mut().push(scroll_event);
             },
-            glutin::WindowEvent::Touch(touch) => {
+            glutin::event::WindowEvent::Touch(touch) => {
                 use servo::script_traits::TouchId;
 
                 let phase = winit_phase_to_touch_event_type(touch.phase);
@@ -537,13 +537,13 @@ impl WindowPortsMethods for Window {
                     .borrow_mut()
                     .push(WindowEvent::Touch(phase, id, point));
             },
-            glutin::WindowEvent::Refresh => {
+            glutin::event::WindowEvent::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             },
-            glutin::WindowEvent::CloseRequested => {
+            glutin::event::WindowEvent::CloseRequested => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             },
-            glutin::WindowEvent::Resized(size) => {
+            glutin::event::WindowEvent::Resized(size) => {
                 let physical_size = size.to_physical(self.device_hidpi_factor().get() as f64);
                 self.gl_context.borrow_mut().resize(physical_size);
                 // window.set_inner_size() takes DeviceIndependentPixel.
