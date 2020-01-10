@@ -1,0 +1,163 @@
+<!DOCTYPE HTML>
+<title>assert_array_equals</title>
+<script src="../../variants.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(() => {
+  assert_array_equals([], []);
+}, "empty and equal");
+test(() => {
+  assert_array_equals([1], [1]);
+}, "non-empty and equal");
+test(() => {
+  assert_array_equals([], [1]);
+}, "length differs");
+test(() => {
+  assert_array_equals([1], [,]);
+}, "property is present");
+test(() => {
+  assert_array_equals([,], [1]);
+}, "property is missing");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], ["x",1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]);
+}, "property 0 differs");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], [0,1,2,3,4,"x",6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]);
+}, "property 5 differs");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "lengths differ and input array beyond display limit");
+test(() => {
+  assert_array_equals([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "lengths differ and expected array beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "property 0 is present and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "property 0 is missing and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,,19,20,21]);
+}, "property 18 is present and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,,19,20,21], [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "property 18 is missing and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], ["x",1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "property 0 differs and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21], [0,1,2,3,4,"x",6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]);
+}, "property 5 differs and arrays are beyond display limit");
+test(() => {
+  assert_array_equals([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26], [0,1,2,3,4,5,6,7,8,9,10,11,"x",13,14,15,16,17,18,19,20,21,22,23,24,25,26]);
+}, "property 5 differs and arrays are beyond display limit on both sides");
+</script>
+<script type="text/json" id="expected">
+{
+  "type": "complete",
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "name": "empty and equal",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "name": "length differs",
+      "message": "assert_array_equals: lengths differ, expected array [1] length 1, got [] length 0",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "lengths differ and expected array beyond display limit",
+      "message": "assert_array_equals: lengths differ, expected array [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] length 22, got [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] length 21",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "lengths differ and input array beyond display limit",
+      "message": "assert_array_equals: lengths differ, expected array [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] length 21, got [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] length 22",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "non-empty and equal",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "name": "property 0 differs",
+      "message": "assert_array_equals: expected property 0 to be \"x\" but got 0 (expected array [\"x\", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] got [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 0 differs and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 0 to be \"x\" but got 0 (expected array [\"x\", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026] got [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 0 is missing and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 0 to be \"present\" but was \"missing\" (expected array [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026] got [, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 0 is present and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 0 to be \"missing\" but was \"present\" (expected array [, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026] got [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 18 is missing and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 18 to be \"present\" but was \"missing\" (expected array [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] got [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, , 19, 20, 21])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 18 is present and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 18 to be \"missing\" but was \"present\" (expected array [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, , 19, 20, 21] got [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 5 differs",
+      "message": "assert_array_equals: expected property 5 to be \"x\" but got 5 (expected array [0, 1, 2, 3, 4, \"x\", 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] got [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 5 differs and arrays are beyond display limit",
+      "message": "assert_array_equals: expected property 5 to be \"x\" but got 5 (expected array [0, 1, 2, 3, 4, \"x\", 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026] got [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, \u2026])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property 5 differs and arrays are beyond display limit on both sides",
+      "message": "assert_array_equals: expected property 12 to be \"x\" but got 12 (expected array [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, \"x\", 13, 14, 15, 16, 17, 18, 19, 20, 21, \u2026] got [\u2026, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, \u2026])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property is missing",
+      "message": "assert_array_equals: expected property 0 to be \"present\" but was \"missing\" (expected array [1] got [])",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "property is present",
+      "message": "assert_array_equals: expected property 0 to be \"missing\" but was \"present\" (expected array [] got [1])",
+      "properties": {},
+      "status_string": "FAIL"
+    }
+  ]
+}
+</script>
