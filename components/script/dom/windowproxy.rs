@@ -822,8 +822,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
 
     assert!(desc.obj.is_null() || desc.obj == target.get());
     if desc.obj == target.get() {
-        // FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
-        desc.get().obj = proxy.get();
+        desc.obj = proxy.get();
     }
 
     true
