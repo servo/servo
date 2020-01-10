@@ -1308,14 +1308,20 @@ impl WebGLImpl {
             WebGLCommand::Uniform1fv(uniform_id, ref v) => gl.uniform_1fv(uniform_id, v),
             WebGLCommand::Uniform1i(uniform_id, v) => gl.uniform_1i(uniform_id, v),
             WebGLCommand::Uniform1iv(uniform_id, ref v) => gl.uniform_1iv(uniform_id, v),
+            WebGLCommand::Uniform1ui(uniform_id, v) => gl.uniform_1ui(uniform_id, v),
+            WebGLCommand::Uniform1uiv(uniform_id, ref v) => gl.uniform_1uiv(uniform_id, v),
             WebGLCommand::Uniform2f(uniform_id, x, y) => gl.uniform_2f(uniform_id, x, y),
             WebGLCommand::Uniform2fv(uniform_id, ref v) => gl.uniform_2fv(uniform_id, v),
             WebGLCommand::Uniform2i(uniform_id, x, y) => gl.uniform_2i(uniform_id, x, y),
             WebGLCommand::Uniform2iv(uniform_id, ref v) => gl.uniform_2iv(uniform_id, v),
+            WebGLCommand::Uniform2ui(uniform_id, x, y) => gl.uniform_2ui(uniform_id, x, y),
+            WebGLCommand::Uniform2uiv(uniform_id, ref v) => gl.uniform_2uiv(uniform_id, v),
             WebGLCommand::Uniform3f(uniform_id, x, y, z) => gl.uniform_3f(uniform_id, x, y, z),
             WebGLCommand::Uniform3fv(uniform_id, ref v) => gl.uniform_3fv(uniform_id, v),
             WebGLCommand::Uniform3i(uniform_id, x, y, z) => gl.uniform_3i(uniform_id, x, y, z),
             WebGLCommand::Uniform3iv(uniform_id, ref v) => gl.uniform_3iv(uniform_id, v),
+            WebGLCommand::Uniform3ui(uniform_id, x, y, z) => gl.uniform_3ui(uniform_id, x, y, z),
+            WebGLCommand::Uniform3uiv(uniform_id, ref v) => gl.uniform_3uiv(uniform_id, v),
             WebGLCommand::Uniform4f(uniform_id, x, y, z, w) => {
                 gl.uniform_4f(uniform_id, x, y, z, w)
             },
@@ -1324,6 +1330,10 @@ impl WebGLImpl {
                 gl.uniform_4i(uniform_id, x, y, z, w)
             },
             WebGLCommand::Uniform4iv(uniform_id, ref v) => gl.uniform_4iv(uniform_id, v),
+            WebGLCommand::Uniform4ui(uniform_id, x, y, z, w) => {
+                gl.uniform_4ui(uniform_id, x, y, z, w)
+            },
+            WebGLCommand::Uniform4uiv(uniform_id, ref v) => gl.uniform_4uiv(uniform_id, v),
             WebGLCommand::UniformMatrix2fv(uniform_id, ref v) => {
                 gl.uniform_matrix_2fv(uniform_id, false, v)
             },
@@ -1700,6 +1710,34 @@ impl WebGLImpl {
                 let mut value = [0; 4];
                 unsafe {
                     gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::GetUniformUint(program_id, loc, ref sender) => {
+                let mut value = [0];
+                unsafe {
+                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value[0]).unwrap();
+            },
+            WebGLCommand::GetUniformUint2(program_id, loc, ref sender) => {
+                let mut value = [0; 2];
+                unsafe {
+                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::GetUniformUint3(program_id, loc, ref sender) => {
+                let mut value = [0; 3];
+                unsafe {
+                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            },
+            WebGLCommand::GetUniformUint4(program_id, loc, ref sender) => {
+                let mut value = [0; 4];
+                unsafe {
+                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
                 }
                 sender.send(value).unwrap();
             },

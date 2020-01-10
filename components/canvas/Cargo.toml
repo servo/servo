@@ -34,7 +34,7 @@ num-traits = "0.2"
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
 servo_config = {path = "../config"}
-sparkle = "0.1.13"
+sparkle = "0.1.14"
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender"}
 webrender_traits = {path = "../webrender_traits"}

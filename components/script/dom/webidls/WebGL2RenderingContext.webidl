@@ -15,7 +15,7 @@ typedef unsigned long long GLuint64;
 // interface WebGLVertexArrayObject : WebGLObject {
 // };
 
-// typedef ([AllowShared] Uint32Array or sequence<GLuint>) Uint32List;
+typedef (/*[AllowShared]*/ Uint32Array or sequence<GLuint>) Uint32List;
 
 interface mixin WebGL2RenderingContextBase
 {
@@ -425,10 +425,10 @@ interface mixin WebGL2RenderingContextBase
   // [WebGLHandlesContextLoss] GLint getFragDataLocation(WebGLProgram program, DOMString name);
 
   /* Uniforms */
-  // void uniform1ui(WebGLUniformLocation? location, GLuint v0);
-  // void uniform2ui(WebGLUniformLocation? location, GLuint v0, GLuint v1);
-  // void uniform3ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2);
-  // void uniform4ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
+  void uniform1ui(WebGLUniformLocation? location, GLuint v0);
+  void uniform2ui(WebGLUniformLocation? location, GLuint v0, GLuint v1);
+  void uniform3ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2);
+  void uniform4ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 
   // void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
   //                 optional GLuint srcLength = 0);
@@ -448,14 +448,14 @@ interface mixin WebGL2RenderingContextBase
   // void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
   //                 optional GLuint srcLength = 0);
 
-  // void uniform1uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
+  void uniform1uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform2uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform3uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform4uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
 
   // void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
   //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
