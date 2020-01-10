@@ -14,6 +14,13 @@ use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
 
+#[derive(Clone, Copy)]
+pub struct WebRenderImageInfo {
+    pub width: u32,
+    pub height: u32,
+    pub key: Option<wr::ImageKey>,
+}
+
 // `webrender_api::display_item::ItemTag` is private
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;

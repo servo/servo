@@ -35,7 +35,7 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::DisplayListBuilder;
+use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -56,7 +56,8 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
 use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
-use net_traits::image_cache::ImageCache;
+use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -147,6 +148,9 @@ pub struct LayoutThread {
     /// The channel on which messages can be sent to the memory profiler.
     mem_profiler_chan: profile_mem::ProfilerChan,
 
+    /// Reference to the script thread image cache.
+    image_cache: Arc<dyn ImageCache>,
+
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
 
@@ -188,6 +192,8 @@ pub struct LayoutThread {
     ///
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
+
+    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -232,7 +238,7 @@ impl LayoutThreadFactory for LayoutThread {
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        _image_cache: Arc<dyn ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
@@ -280,6 +286,7 @@ impl LayoutThreadFactory for LayoutThread {
                         background_hang_monitor,
                         constellation_chan,
                         script_chan,
+                        image_cache,
                         font_cache_thread,
                         time_profiler_chan,
                         mem_profiler_chan.clone(),
@@ -443,6 +450,7 @@ impl LayoutThread {
         background_hang_monitor: Box<dyn BackgroundHangMonitor>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
@@ -489,6 +497,7 @@ impl LayoutThread {
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
+            image_cache,
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
@@ -523,6 +532,7 @@ impl LayoutThread {
                 element_inner_text_response: String::new(),
                 inner_window_dimensions_response: None,
             })),
+            webrender_image_cache: Default::default(),
             timer: if pref!(layout.animations.test.enabled) {
                 Timer::test_mode()
             } else {
@@ -553,6 +563,7 @@ impl LayoutThread {
     fn build_layout_context<'a>(
         &'a self,
         guards: StylesheetGuards<'a>,
+        script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
@@ -560,6 +571,7 @@ impl LayoutThread {
 
         LayoutContext {
             id: self.id,
+            origin: self.url.origin(),
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -573,7 +585,14 @@ impl LayoutThread {
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
+            image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            webrender_image_cache: self.webrender_image_cache.clone(),
+            pending_images: if script_initiated_layout {
+                Some(Mutex::new(Vec::new()))
+            } else {
+                None
+            },
             use_rayon: STYLE_THREAD_POOL.pool().is_some(),
         }
     }
@@ -1074,7 +1093,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), &map);
+        let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
@@ -1132,7 +1151,12 @@ impl LayoutThread {
         }
 
         self.first_reflow.set(false);
-        self.respond_to_query_if_necessary(&data.reflow_goal, &mut *rw_data, &mut layout_context);
+        self.respond_to_query_if_necessary(
+            &data.reflow_goal,
+            &mut *rw_data,
+            &mut layout_context,
+            data.result.borrow_mut().as_mut().unwrap(),
+        );
     }
 
     fn respond_to_query_if_necessary(
@@ -1140,7 +1164,13 @@ impl LayoutThread {
         reflow_goal: &ReflowGoal,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
+        reflow_result: &mut ReflowComplete,
     ) {
+        let pending_images = match &context.pending_images {
+            Some(pending) => std::mem::take(&mut *pending.lock().unwrap()),
+            None => Vec::new(),
+        };
+        reflow_result.pending_images = pending_images;
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
