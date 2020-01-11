@@ -474,7 +474,15 @@ impl DOMString {
                 "{:04}-{:02}-{:02}T{:02}:{:02}",
                 year, month, day, hour, minute
             );
+        } else if second < 10.0 {
+            // we need exactly one leading zero on the seconds,
+            // whatever their total string length might be
+            self.0 = format!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:0{}",
+                year, month, day, hour, minute, second
+            );
         } else {
+            // we need no leading zeroes on the seconds
             self.0 = format!(
                 "{:04}-{:02}-{:02}T{:02}:{:02}:{}",
                 year, month, day, hour, minute, second
