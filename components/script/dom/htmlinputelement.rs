@@ -1306,41 +1306,27 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 }
 
-#[allow(unsafe_code)]
+fn radio_group_iter<'a>(
+    elem: &'a HTMLInputElement,
+    group: Option<&'a Atom>,
+) -> impl Iterator<Item = DomRoot<HTMLInputElement>> + 'a {
+    let owner = elem.form_owner();
+    let root = elem
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+
+    // If group is None, in_same_group always fails, but we need to always return elem.
+    root.traverse_preorder(ShadowIncluding::No)
+        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter(move |r| &**r == elem || in_same_group(&r, owner.as_deref(), group, None))
+}
+
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
-    match group {
-        None | Some(&atom!("")) => {
-            // Radio input elements with a missing or empty name are alone in their
-            // own group.
-            return;
-        },
-        _ => {},
-    }
-
-    //TODO: if not in document, use root ancestor instead of document
-    let owner = broadcaster.form_owner();
-    let doc = document_from_node(broadcaster);
-
-    // This function is a workaround for lifetime constraint difficulties.
-    fn do_broadcast(
-        doc_node: &Node,
-        broadcaster: &HTMLInputElement,
-        owner: Option<&HTMLFormElement>,
-        group: Option<&Atom>,
-    ) {
-        let iter = doc_node
-            .query_selector_iter(DOMString::from("input[type=radio]"))
-            .unwrap()
-            .filter_map(DomRoot::downcast::<HTMLInputElement>)
-            .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
-        for ref r in iter {
-            if r.Checked() {
-                r.SetChecked(false);
-            }
+    for r in radio_group_iter(broadcaster, group) {
+        if broadcaster != &*r && r.Checked() {
+            r.SetChecked(false);
         }
     }
-
-    do_broadcast(doc.upcast(), broadcaster, owner.as_deref(), group)
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
@@ -1348,13 +1334,31 @@ fn in_same_group(
     other: &HTMLInputElement,
     owner: Option<&HTMLFormElement>,
     group: Option<&Atom>,
+    tree_root: Option<&Node>,
 ) -> bool {
-    other.input_type() == InputType::Radio &&
-    // TODO Both a and b are in the same home subtree.
-    other.form_owner().as_deref() == owner &&
-    match (other.radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => s1 == s2 && s2 != &atom!(""),
-        _ => false
+    if group.is_none() {
+        // Radio input elements with a missing or empty name are alone in their own group.
+        return false;
+    }
+
+    if other.input_type() != InputType::Radio ||
+        other.form_owner().as_deref() != owner ||
+        other.radio_group_name().as_ref() != group
+    {
+        return false;
+    }
+
+    match tree_root {
+        Some(tree_root) => {
+            let other_root = other
+                .upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions::empty());
+            tree_root == &*other_root
+        },
+        None => {
+            // Skip check if the tree root isn't provided.
+            true
+        },
     }
 }
 
@@ -1461,10 +1465,10 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
     fn radio_group_name(&self) -> Option<Atom> {
-        //TODO: determine form owner
         self.upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("name"))
             .map(|name| name.value().as_atom().clone())
+            .filter(|name| name != &atom!(""))
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
@@ -2385,20 +2389,8 @@ impl Activatable for HTMLInputElement {
                 },
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):pre-click-activation-steps
                 InputType::Radio => {
-                    //TODO: if not in document, use root ancestor instead of document
-                    let owner = self.form_owner();
-                    let doc = document_from_node(self);
-                    let doc_node = doc.upcast::<Node>();
-                    let group = self.radio_group_name();
-
-                    // Safe since we only manipulate the DOM tree after finding an element
-                    let checked_member = doc_node
-                        .query_selector_iter(DOMString::from("input[type=radio]"))
-                        .unwrap()
-                        .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                        .find(|r| {
-                            in_same_group(&*r, owner.as_deref(), group.as_ref()) && r.Checked()
-                        });
+                    let checked_member = radio_group_iter(self, self.radio_group_name().as_ref())
+                        .find(|r| r.Checked());
                     cache.checked_radio = checked_member.as_deref().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
@@ -2436,12 +2428,16 @@ impl Activatable for HTMLInputElement {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
                     if let Some(ref o) = cache.checked_radio {
+                        let tree_root = self
+                            .upcast::<Node>()
+                            .GetRootNode(&GetRootNodeOptions::empty());
                         // Avoiding iterating through the whole tree here, instead
                         // we can check if the conditions for radio group siblings apply
                         if in_same_group(
                             &o,
                             self.form_owner().as_deref(),
                             self.radio_group_name().as_ref(),
+                            Some(&*tree_root),
                         ) {
                             o.SetChecked(true);
                         } else {
