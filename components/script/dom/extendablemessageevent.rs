@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -32,6 +33,8 @@ pub struct ExtendableMessageEvent {
     origin: DOMString,
     lastEventId: DOMString,
     ports: Vec<Dom<MessagePort>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
 }
 
 impl ExtendableMessageEvent {
@@ -49,6 +52,7 @@ impl ExtendableMessageEvent {
                 .into_iter()
                 .map(|port| Dom::from_ref(&*port))
                 .collect(),
+            frozen_ports: DomRefCell::new(None),
         }
     }
 
@@ -141,11 +145,22 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
 
     /// https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports
     fn Ports(&self, cx: JSContext) -> JSVal {
+        if let Some(ports) = &*self.frozen_ports.borrow() {
+            return ports.get();
+        }
+
         let ports: Vec<DomRoot<MessagePort>> = self
             .ports
             .iter()
             .map(|port| DomRoot::from_ref(&**port))
             .collect();
-        to_frozen_array(ports.as_slice(), cx)
+        let frozen_ports = to_frozen_array(ports.as_slice(), cx);
+
+        // Cache the Js value.
+        let heap_val = Heap::default();
+        heap_val.set(frozen_ports);
+        *self.frozen_ports.borrow_mut() = Some(heap_val);
+
+        frozen_ports
     }
 }
