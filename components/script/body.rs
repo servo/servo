@@ -202,7 +202,7 @@ fn run_form_data_algorithm(
 }
 
 #[allow(unsafe_code)]
-fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+pub fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
     let arraybuffer = unsafe {
         ArrayBuffer::create(

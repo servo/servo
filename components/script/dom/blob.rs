@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::body::{run_array_buffer_data_algorithm, FetchedData};
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
@@ -12,12 +13,16 @@ use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::realms::{AlreadyInRealm, InRealm};
 use dom_struct::dom_struct;
+use encoding_rs::UTF_8;
 use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
+use std::rc::Rc;
 use uuid::Uuid;
 
 // https://w3c.github.io/FileAPI/#blob
@@ -222,6 +227,59 @@ impl BlobMethods for Blob {
         let rel_pos = RelativePos::from_opts(start, end);
         let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id.clone(), type_string);
         Blob::new(&*self.global(), blob_impl)
+    }
+
+    // https://w3c.github.io/FileAPI/#text-method-algo
+    fn Text(&self) -> Rc<Promise> {
+        let global = self.global();
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let id = self.get_blob_url_id();
+        global.read_file_async(
+            id,
+            p.clone(),
+            Box::new(|promise, bytes| match bytes {
+                Ok(b) => {
+                    let (text, _, _) = UTF_8.decode(&b);
+                    let text = DOMString::from(text);
+                    promise.resolve_native(&text);
+                },
+                Err(e) => {
+                    promise.reject_error(e);
+                },
+            }),
+        );
+        p
+    }
+
+    // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
+    fn ArrayBuffer(&self) -> Rc<Promise> {
+        let global = self.global();
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+
+        let id = self.get_blob_url_id();
+
+        global.read_file_async(
+            id,
+            p.clone(),
+            Box::new(|promise, bytes| {
+                match bytes {
+                    Ok(b) => {
+                        let cx = promise.global().get_cx();
+                        let result = run_array_buffer_data_algorithm(cx, b);
+
+                        match result {
+                            Ok(FetchedData::ArrayBuffer(a)) => promise.resolve_native(&a),
+                            Err(e) => promise.reject_error(e),
+                            _ => panic!("Unexpected result from run_array_buffer_data_algorithm"),
+                        }
+                    },
+                    Err(e) => promise.reject_error(e),
+                };
+            }),
+        );
+        p
     }
 }
 

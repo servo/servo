@@ -16,6 +16,9 @@ interface Blob {
   Blob slice(optional [Clamp] long long start,
              optional [Clamp] long long end,
              optional DOMString contentType);
+
+  [NewObject] Promise<DOMString> text();
+  [NewObject] Promise<ArrayBuffer> arrayBuffer();
 };
 
 dictionary BlobPropertyBag {
