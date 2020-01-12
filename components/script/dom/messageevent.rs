@@ -13,7 +13,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::message_ports_to_frozen_array;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -61,6 +61,8 @@ pub struct MessageEvent {
     source: DomRefCell<Option<SrcObject>>,
     lastEventId: DomRefCell<DOMString>,
     ports: DomRefCell<Vec<Dom<MessagePort>>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
 }
 
 impl MessageEvent {
@@ -82,6 +84,7 @@ impl MessageEvent {
                     .map(|port| Dom::from_ref(&*port))
                     .collect(),
             ),
+            frozen_ports: DomRefCell::new(None),
         }
     }
 
@@ -238,13 +241,24 @@ impl MessageEventMethods for MessageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
     fn Ports(&self, cx: JSContext) -> JSVal {
+        if let Some(ports) = &*self.frozen_ports.borrow() {
+            return ports.get();
+        }
+
         let ports: Vec<DomRoot<MessagePort>> = self
             .ports
             .borrow()
             .iter()
             .map(|port| DomRoot::from_ref(&**port))
             .collect();
-        message_ports_to_frozen_array(ports.as_slice(), cx)
+        let frozen_ports = to_frozen_array(ports.as_slice(), cx);
+
+        // Cache the Js value.
+        let heap_val = Heap::default();
+        heap_val.set(frozen_ports);
+        *self.frozen_ports.borrow_mut() = Some(heap_val);
+
+        frozen_ports
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-initmessageevent>
@@ -268,6 +282,7 @@ impl MessageEventMethods for MessageEvent {
             .into_iter()
             .map(|port| Dom::from_ref(&*port))
             .collect();
+        *self.frozen_ports.borrow_mut() = None;
         self.event
             .init_event(Atom::from(type_), bubbles, cancelable);
     }

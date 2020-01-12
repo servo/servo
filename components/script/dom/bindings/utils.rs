@@ -10,10 +10,8 @@ use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO
 use crate::dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
 use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
-use crate::dom::messageport::MessagePort;
 use crate::dom::windowproxy;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::{jsstr_to_string, ToJSValConvertible};
@@ -126,12 +124,9 @@ impl Clone for DOMJSClass {
 unsafe impl Sync for DOMJSClass {}
 
 /// Returns a JSVal representing a frozen array of ports
-pub fn message_ports_to_frozen_array(
-    message_ports: &[DomRoot<MessagePort>],
-    cx: SafeJSContext,
-) -> JSVal {
+pub fn to_frozen_array<T: ToJSValConvertible>(convertibles: &[T], cx: SafeJSContext) -> JSVal {
     rooted!(in(*cx) let mut ports = UndefinedValue());
-    unsafe { message_ports.to_jsval(*cx, ports.handle_mut()) };
+    unsafe { convertibles.to_jsval(*cx, ports.handle_mut()) };
 
     rooted!(in(*cx) let obj = ports.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
