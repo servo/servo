@@ -18,7 +18,7 @@ async_test(t => {
             + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' +  get_host_info().HTTP_ORIGIN;
     destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
-    destUrl += '&final_resource=' + '/images/blue.png';
+    destUrl += '&final_resource=' + '/element-timing/resources/circle.svg';
     destUrl += '&timing_allow=1';
     destUrl += '&tao_steps=';
     for (let taoSteps=0; taoSteps < 4; taoSteps++) {
