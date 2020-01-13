@@ -299,23 +299,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         intrinsic: IntrinsicSizes,
         key: wr::ImageKey,
     ) {
-        // Our job here would be easier if WebRender’s `RepeatingImageDisplayItem`
-        // was “infinitely” repeating in all directions (clipped at `clip_rect`)
-        // and contained a `units::LayoutPoint` that determines the position of an arbitrary tile.
-        //
-        // Instead, it contains a `bounds` rectangle and:
-        //
-        // * The tiling is clipped to the intersection of `clip_rect` and `bounds`
-        // * The origin (top-left corner) of `bounds` is the position
-        //   of the “first” (top-left-most) tile.
-        //
-        // However the background clipping area may be larger than the positionning area,
-        // so that first time may not be the one at position (0, 0).
-        // So we compute `bounds` such that:
-        //
-        // * Its bottom-right is the bottom-right of `clip_rect`
-        // * Its top-left is the top-left of the top-left-most tile that intersects with `clip_rect`
-
         use style::computed_values::background_clip::single_value::T as Clip;
         use style::computed_values::background_origin::single_value::T as Origin;
         use style::values::computed::background::BackgroundSize as Size;
@@ -416,7 +399,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         /// Abstract over the horizontal or vertical dimension
-        /// Returns `(bounds_origin, bounds_size)`
         /// Coordinates (0, 0) for the purpose of this function are the positioning area’s origin.
         fn layout_1d(
             tile_size: &mut f32,
@@ -437,9 +419,12 @@ impl<'a> BuilderForBoxFragment<'a> {
                 .px();
             // https://drafts.csswg.org/css-backgrounds/#background-repeat
             if let Repeat::Space = repeat {
+                // The most entire tiles we can fit
                 let tile_count = (positioning_area_size / *tile_size).floor();
                 if tile_count >= 2.0 {
                     position = 0.0;
+                    // Make the outsides of the first and last of that many tiles
+                    // touch the edges of the positioning area:
                     let total_space = positioning_area_size - *tile_size * tile_count;
                     let spaces_count = tile_count - 1.0;
                     *tile_spacing = total_space / spaces_count;
@@ -448,13 +433,33 @@ impl<'a> BuilderForBoxFragment<'a> {
                 }
             }
             match repeat {
-                Repeat::NoRepeat => (false, position, *tile_size),
                 Repeat::Repeat | Repeat::Round | Repeat::Space => {
+                    // WebRender’s `RepeatingImageDisplayItem` contains a `bounds` rectangle and:
+                    //
+                    // * The tiling is clipped to the intersection of `clip_rect` and `bounds`
+                    // * The origin (top-left corner) of `bounds` is the position
+                    //   of the “first” (top-left-most) tile.
+                    //
+                    // In the general case that first tile is not the one that is positioned by
+                    // `background-position`.
+                    // We want it to be the top-left-most tile that intersects with `clip_rect`.
+                    // We find it by offsetting by a whole number of strides,
+                    // then compute `bounds` such that:
+                    //
+                    // * Its bottom-right is the bottom-right of `clip_rect`
+                    // * Its top-left is the top-left of first tile.
                     let tile_stride = *tile_size + *tile_spacing;
                     let offset = position - clipping_area_origin;
                     let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
                     let bounds_size = clipping_area_size - bounds_origin - clipping_area_origin;
                     (true, bounds_origin, bounds_size)
+                },
+                Repeat::NoRepeat => {
+                    // `RepeatingImageDisplayItem` always repeats in both dimension.
+                    // When we want only one of the dimensions to repeat,
+                    // we use the `bounds` rectangle to clip the tiling to one tile
+                    // in that dimension.
+                    (false, position, *tile_size)
                 },
             }
         }
