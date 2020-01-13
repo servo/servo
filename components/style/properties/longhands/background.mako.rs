@@ -58,8 +58,8 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword(
     "background-attachment",
-    "scroll fixed" + (" local" if engine == "gecko" else ""),
-    engines="gecko servo-2013",
+    "scroll" + (" fixed" if engine in ["gecko", "servo-2013"] else "") + (" local" if engine == "gecko" else ""),
+    engines="gecko servo-2013 servo-2020",
     vector=True,
     gecko_enum_prefix="StyleImageLayerAttachment",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
