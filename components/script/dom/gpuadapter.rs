@@ -102,12 +102,10 @@ impl GPUAdapterMethods for GPUAdapter {
                 .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
                 .is_err()
             {
-                promise.reject_error(Error::Type(
-                    "Failed to send RequestDevice message...".to_owned(),
-                ));
+                promise.reject_error(Error::Operation);
             }
         } else {
-            promise.reject_error(Error::Type("No WebGPU thread...".to_owned()))
+            promise.reject_error(Error::Operation);
         };
         promise
     }
@@ -127,9 +125,7 @@ impl AsyncWGPUListener for GPUAdapter {
                 );
                 promise.resolve_native(&device);
             },
-            _ => promise.reject_error(Error::Type(
-                "Wrong response type from WebGPU thread...".to_owned(),
-            )),
+            _ => promise.reject_error(Error::Operation),
         }
     }
 }

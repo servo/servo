@@ -180,7 +180,7 @@ impl GPUDeviceMethods for GPUDevice {
                     id,
                     wgpu_descriptor,
                 ))
-                .unwrap();
+                .expect("Failed to create WebGPU buffer");
         } else {
             unimplemented!()
         };
@@ -218,7 +218,7 @@ impl GPUDeviceMethods for GPUDevice {
                     id,
                     wgpu_descriptor.clone(),
                 ))
-                .unwrap()
+                .expect("Failed to create WebGPU buffer");
         } else {
             return vec![js_val.get()];
         };

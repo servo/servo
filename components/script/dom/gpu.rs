@@ -132,9 +132,7 @@ impl GPUMethods for GPU {
             ))
             .is_err()
         {
-            promise.reject_error(Error::Type(
-                "Failed to send adapter request to constellation...".to_owned(),
-            ));
+            promise.reject_error(Error::Operation);
         }
         promise
     }
@@ -153,10 +151,7 @@ impl AsyncWGPUListener for GPU {
                 );
                 promise.resolve_native(&adapter);
             },
-            response => promise.reject_error(Error::Type(format!(
-                "Wrong response received for GPU from WebGPU thread {:?}",
-                response,
-            ))),
+            _ => promise.reject_error(Error::Operation),
         }
     }
 }
