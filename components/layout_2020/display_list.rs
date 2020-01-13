@@ -409,6 +409,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             },
         };
 
+        if tile_size.width == 0.0 || tile_size.height == 0.0 {
+            return;
+        }
+
         // FIXME: background-repeat
         let tile_spacing = units::LayoutSize::zero();
         let tile_stride = tile_size + tile_spacing;
