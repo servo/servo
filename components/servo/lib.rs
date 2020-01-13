@@ -874,8 +874,6 @@ fn create_constellation(
 
     let resource_sender = public_resource_threads.sender();
 
-    let webgpu = webgpu::WebGPU::new();
-
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
@@ -890,7 +888,6 @@ fn create_constellation(
         webrender_document,
         webrender_api_sender,
         webgl_threads,
-        webgpu,
         webvr_chan,
         webxr_registry,
         glplayer_threads,

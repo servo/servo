@@ -173,7 +173,7 @@ use std::sync::Arc;
 use std::thread;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webgpu::WebGPU;
+use webgpu::{WebGPU, WebGPURequest};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
@@ -242,6 +242,9 @@ struct BrowsingContextGroup {
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
     event_loops: HashMap<Host, Weak<EventLoop>>,
+
+    /// The set of all WebGPU channels in this BrowsingContextGroup.
+    webgpus: HashMap<Host, WebGPU>,
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -450,10 +453,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
 
-    /// An IPC channel for the constellation to send messages to the
-    /// WebGPU threads.
-    webgpu: Option<WebGPU>,
-
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
@@ -536,9 +535,6 @@ pub struct InitialConstellationState {
 
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
-
-    /// A channel to the WebGPU threads.
-    pub webgpu: Option<WebGPU>,
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -973,7 +969,6 @@ where
                         (rng, prob)
                     }),
                     webgl_threads: state.webgl_threads,
-                    webgpu: state.webgpu,
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     canvas_chan,
@@ -1230,7 +1225,6 @@ where
                 .webgl_threads
                 .as_ref()
                 .map(|threads| threads.pipeline()),
-            webgpu: self.webgpu.clone(),
             webvr_chan: self.webvr_chan.clone(),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
@@ -1945,7 +1939,63 @@ where
                     EmbedderMsg::MediaSessionEvent(event),
                 ));
             },
+            FromScriptMsg::RequestAdapter(sender, options, ids) => self
+                .handle_request_wgpu_adapter(
+                    source_pipeline_id,
+                    BrowsingContextId::from(source_top_ctx_id),
+                    FromScriptMsg::RequestAdapter(sender, options, ids),
+                ),
         }
+    }
+
+    fn handle_request_wgpu_adapter(
+        &mut self,
+        source_pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        request: FromScriptMsg,
+    ) {
+        let browsing_context_group_id = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(bc) => &bc.bc_group_id,
+            None => return warn!("Browsing context not found"),
+        };
+        let host = match self
+            .pipelines
+            .get(&source_pipeline_id)
+            .map(|pipeline| &pipeline.url)
+        {
+            Some(ref url) => match reg_host(&url) {
+                Some(host) => host,
+                None => return warn!("Invalid host url"),
+            },
+            None => return warn!("ScriptMsg from closed pipeline {:?}.", source_pipeline_id),
+        };
+        match self
+            .browsing_context_group_set
+            .get_mut(&browsing_context_group_id)
+        {
+            Some(browsing_context_group) => {
+                let adapter_request =
+                    if let FromScriptMsg::RequestAdapter(sender, options, ids) = request {
+                        WebGPURequest::RequestAdapter(sender, options, ids)
+                    } else {
+                        return warn!("Wrong message type in handle_request_wgpu_adapter");
+                    };
+                let send = match browsing_context_group.webgpus.entry(host) {
+                    Entry::Vacant(v) => v
+                        .insert(match WebGPU::new() {
+                            Some(webgpu) => webgpu,
+                            None => return warn!("Failed to create new WebGPU thread"),
+                        })
+                        .0
+                        .send(adapter_request),
+                    Entry::Occupied(o) => o.get().0.send(adapter_request),
+                };
+                if send.is_err() {
+                    return warn!("Failed to send request adapter message on WebGPU channel");
+                }
+            },
+            None => return warn!("Browsing context group not found"),
+        };
     }
 
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
@@ -2496,12 +2546,25 @@ where
             }
         }
 
-        if let Some(webgpu) = self.webgpu.as_ref() {
-            debug!("Exiting WebGPU thread.");
-            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-            if let Err(e) = webgpu.exit(sender) {
-                warn!("Exit WebGPU Thread failed ({})", e);
-            }
+        debug!("Exiting WebGPU threads.");
+        let receivers = self
+            .browsing_context_group_set
+            .values()
+            .map(|browsing_context_group| {
+                browsing_context_group.webgpus.values().map(|webgpu| {
+                    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                    if let Err(e) = webgpu.exit(sender) {
+                        warn!("Exit WebGPU Thread failed ({})", e);
+                        None
+                    } else {
+                        Some(receiver)
+                    }
+                })
+            })
+            .flatten()
+            .filter_map(|r| r);
+
+        for receiver in receivers {
             if let Err(e) = receiver.recv() {
                 warn!("Failed to receive exit response from WebGPU ({})", e);
             }

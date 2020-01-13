@@ -4639,6 +4639,7 @@ dependencies = [
  "serde",
  "servo_atoms",
  "servo_url",
+ "smallvec 0.6.10",
  "style_traits",
  "time",
  "url",

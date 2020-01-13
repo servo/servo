@@ -65,7 +65,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use webgpu::WebGPU;
 use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
@@ -665,8 +664,6 @@ pub struct InitialScriptState {
     pub content_process_shutdown_chan: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
-    /// A channel to the WebGPU threads.
-    pub webgpu: Option<WebGPU>,
     /// A channel to the webvr thread, if available.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The XR device registry
