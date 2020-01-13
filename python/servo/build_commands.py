@@ -790,7 +790,7 @@ def angle_root(target, nuget_env):
     }
     angle_arch = arch[target.split('-')[0]]
     angle_default_path = path.join(os.getcwd(), "support", "hololens", "packages",
-                                   "ANGLE.WindowsStore.Servo.2.1.16", "bin", "UAP", angle_arch)
+                                   "ANGLE.WindowsStore.Servo.2.1.18", "bin", "UAP", angle_arch)
 
     # Nuget executable command
     nuget_app = path.join(os.getcwd(), "support", "hololens", "ServoApp.sln")
