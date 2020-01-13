@@ -92,7 +92,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "background-size",
     "BackgroundSize",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     initial_value="computed::BackgroundSize::auto()",
     initial_specified_value="specified::BackgroundSize::auto()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",

@@ -20,21 +20,25 @@ use style::Zero;
 #[derive(Debug)]
 pub(crate) struct ReplacedContent {
     pub kind: ReplacedContentKind,
+    intrinsic: IntrinsicSizes,
+}
 
-    /// * Raster images always have an instrinsic width and height, with 1 image pixel = 1px.
-    ///   The intrinsic ratio should be based on dividing those.
-    ///   See https://github.com/w3c/csswg-drafts/issues/4572 for the case where either is zero.
-    ///   PNG specifically disallows this but I (SimonSapin) am not sure about other formats.
-    ///
-    /// * Form controls have both intrinsic width and height **but no intrinsic ratio**.
-    ///   See https://github.com/w3c/csswg-drafts/issues/1044 and
-    ///   https://drafts.csswg.org/css-images/#intrinsic-dimensions “In general, […]”
-    ///
-    /// * For SVG, see https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS
-    ///   and again https://github.com/w3c/csswg-drafts/issues/4572.
-    intrinsic_width: Option<Length>,
-    intrinsic_height: Option<Length>,
-    intrinsic_ratio: Option<CSSFloat>,
+/// * Raster images always have an instrinsic width and height, with 1 image pixel = 1px.
+///   The intrinsic ratio should be based on dividing those.
+///   See https://github.com/w3c/csswg-drafts/issues/4572 for the case where either is zero.
+///   PNG specifically disallows this but I (SimonSapin) am not sure about other formats.
+///
+/// * Form controls have both intrinsic width and height **but no intrinsic ratio**.
+///   See https://github.com/w3c/csswg-drafts/issues/1044 and
+///   https://drafts.csswg.org/css-images/#intrinsic-dimensions “In general, […]”
+///
+/// * For SVG, see https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS
+///   and again https://github.com/w3c/csswg-drafts/issues/4572.
+#[derive(Debug)]
+pub(crate) struct IntrinsicSizes {
+    pub width: Option<Length>,
+    pub height: Option<Length>,
+    pub ratio: Option<CSSFloat>,
 }
 
 #[derive(Debug)]
@@ -55,10 +59,12 @@ impl ReplacedContent {
             let height = (intrinsic_size_in_dots.y as CSSFloat) / dppx;
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
-                intrinsic_width: Some(Length::new(width)),
-                intrinsic_height: Some(Length::new(height)),
-                // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                intrinsic_ratio: Some(width / height),
+                intrinsic: IntrinsicSizes {
+                    width: Some(Length::new(width)),
+                    height: Some(Length::new(height)),
+                    // FIXME https://github.com/w3c/csswg-drafts/issues/4572
+                    ratio: Some(width / height),
+                },
             });
         }
         None
@@ -66,8 +72,8 @@ impl ReplacedContent {
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {
         let intrinsic_size = physical::Vec2 {
-            x: self.intrinsic_width,
-            y: self.intrinsic_height,
+            x: self.intrinsic.width,
+            y: self.intrinsic.height,
         };
         intrinsic_size.size_to_flow_relative(style.writing_mode)
     }
@@ -76,7 +82,7 @@ impl ReplacedContent {
         &self,
         style: &ComputedValues,
     ) -> Option<CSSFloat> {
-        self.intrinsic_ratio.map(|width_over_height| {
+        self.intrinsic.ratio.map(|width_over_height| {
             if style.writing_mode.is_vertical() {
                 1. / width_over_height
             } else {
