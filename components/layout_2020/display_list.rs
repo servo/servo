@@ -309,6 +309,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         // * Its top-left is the top-left of the top-left-most tile that intersects with `clip_rect`
 
         use style::computed_values::background_clip::single_value::T as Clip;
+        use style::computed_values::background_origin::single_value::T as Origin;
 
         fn get_cyclic<T>(values: &[T], index: usize) -> &T {
             &values[index % values.len()]
@@ -321,8 +322,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             Clip::PaddingBox => self.padding_rect(),
             Clip::BorderBox => &self.border_rect,
         };
-        // FIXME: background-origin
-        let positioning_area = self.padding_rect();
+        let positioning_area = match get_cyclic(&b.background_origin.0, index) {
+            Origin::ContentBox => self.content_rect(),
+            Origin::PaddingBox => self.padding_rect(),
+            Origin::BorderBox => &self.border_rect,
+        };
 
         // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
         let dppx = 1.0;

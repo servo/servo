@@ -81,7 +81,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "background-origin",
     "padding-box border-box content-box",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     vector=True, extra_prefixes="webkit",
     gecko_enum_prefix="StyleGeometryBox",
     gecko_inexhaustive=True,
