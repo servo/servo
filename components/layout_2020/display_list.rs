@@ -319,6 +319,8 @@ impl<'a> BuilderForBoxFragment<'a> {
         use style::computed_values::background_clip::single_value::T as Clip;
         use style::computed_values::background_origin::single_value::T as Origin;
         use style::values::computed::background::BackgroundSize as Size;
+        use style::values::specified::background::BackgroundRepeat as RepeatXY;
+        use style::values::specified::background::BackgroundRepeatKeyword as Repeat;
 
         fn get_cyclic<T>(values: &[T], index: usize) -> &T {
             &values[index % values.len()]
@@ -361,7 +363,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             }
             tile_size
         };
-        let tile_size = match get_cyclic(&b.background_size.0, index) {
+        let mut tile_size = match get_cyclic(&b.background_size.0, index) {
             Size::Contain => size_contain_or_cover(ContainOrCover::Contain),
             Size::Cover => size_contain_or_cover(ContainOrCover::Cover),
             Size::ExplicitSize { width, height } => {
@@ -413,30 +415,74 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        // FIXME: background-repeat
-        let tile_spacing = units::LayoutSize::zero();
-        let tile_stride = tile_size + tile_spacing;
+        /// Abstract over the horizontal or vertical dimension
+        /// Returns `(bounds_origin, bounds_size)`
+        /// Coordinates (0, 0) for the purpose of this function are the positioning area’s origin.
+        fn layout_1d(
+            tile_size: &mut f32,
+            tile_spacing: &mut f32,
+            mut repeat: Repeat,
+            position: &LengthPercentage,
+            clipping_area_origin: f32,
+            clipping_area_size: f32,
+            positioning_area_size: f32,
+        ) -> (f32, f32) {
+            // https://drafts.csswg.org/css-backgrounds/#background-repeat
+            if let Repeat::Round = repeat {
+                *tile_size = positioning_area_size / (positioning_area_size / *tile_size).round();
+            }
+            // https://drafts.csswg.org/css-backgrounds/#background-position
+            let mut position = position
+                .percentage_relative_to(Length::new(positioning_area_size - *tile_size))
+                .px();
+            // https://drafts.csswg.org/css-backgrounds/#background-repeat
+            if let Repeat::Space = repeat {
+                let tile_count = (positioning_area_size / *tile_size).floor();
+                if tile_count >= 2.0 {
+                    position = 0.0;
+                    let total_space = positioning_area_size - *tile_size * tile_count;
+                    let spaces_count = tile_count - 1.0;
+                    *tile_spacing = total_space / spaces_count;
+                } else {
+                    repeat = Repeat::NoRepeat
+                }
+            }
+            match repeat {
+                Repeat::NoRepeat => (position, *tile_size),
+                Repeat::Repeat | Repeat::Round | Repeat::Space => {
+                    let tile_stride = *tile_size + *tile_spacing;
+                    let offset = position - clipping_area_origin;
+                    let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
+                    let bounds_size = clipping_area_size - bounds_origin - clipping_area_origin;
+                    (bounds_origin, bounds_size)
+                },
+            }
+        }
 
-        // https://drafts.csswg.org/css-backgrounds/#background-position
-        let position_percentages = positioning_area.size - tile_size;
-        let positioned_tile_origin = positioning_area.origin +
-            units::LayoutSize::new(
-                get_cyclic(&b.background_position_x.0, index)
-                    .percentage_relative_to(Length::new(position_percentages.width))
-                    .px(),
-                get_cyclic(&b.background_position_y.0, index)
-                    .percentage_relative_to(Length::new(position_percentages.height))
-                    .px(),
-            );
-
-        let offset = positioned_tile_origin - clipping_area.origin;
-        let first_tile_origin = positioned_tile_origin -
-            Vector2D::new(
-                tile_stride.width * (offset.x / tile_stride.width).ceil(),
-                tile_stride.height * (offset.y / tile_stride.height).ceil(),
-            );
-
-        let bounds = units::LayoutRect::from_points(&[first_tile_origin, clipping_area.max()]);
+        let mut tile_spacing = units::LayoutSize::zero();
+        let RepeatXY(repeat_x, repeat_y) = *get_cyclic(&b.background_repeat.0, index);
+        let (bounds_origin_x, bounds_width) = layout_1d(
+            &mut tile_size.width,
+            &mut tile_spacing.width,
+            repeat_x,
+            get_cyclic(&b.background_position_x.0, index),
+            clipping_area.origin.x - positioning_area.origin.x,
+            clipping_area.size.width,
+            positioning_area.size.width,
+        );
+        let (bounds_origin_y, bounds_height) = layout_1d(
+            &mut tile_size.height,
+            &mut tile_spacing.height,
+            repeat_y,
+            get_cyclic(&b.background_position_y.0, index),
+            clipping_area.origin.y - positioning_area.origin.y,
+            clipping_area.size.height,
+            positioning_area.size.height,
+        );
+        let bounds = units::LayoutRect::new(
+            positioning_area.origin + Vector2D::new(bounds_origin_x, bounds_origin_y),
+            Size2D::new(bounds_width, bounds_height),
+        );
 
         // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
         let mut common = builder.common_properties(*clipping_area);

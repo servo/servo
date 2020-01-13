@@ -49,7 +49,7 @@ ${helpers.predefined_type(
     "background-repeat",
     "BackgroundRepeat",
     "computed::BackgroundRepeat::repeat()",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     initial_specified_value="specified::BackgroundRepeat::repeat()",
     animation_value_type="discrete",
     vector=True,
