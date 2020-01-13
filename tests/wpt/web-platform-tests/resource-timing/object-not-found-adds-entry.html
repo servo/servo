@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const test_object_entry = (url, type, test_name) => {
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      performance.clearResourceTimings();
+      const el = document.createElement("object");
+      const po = new PerformanceObserver(t.step_func(e => {
+        const entries = e.getEntriesByType("resource");
+        assert_greater_than(entries.length, 0, "Got a performance entry");
+
+        assert_true(entries[0].name.includes(url), "Performance resource timing entry has the right name");
+        po.disconnect();
+        resolve();
+      }));
+      po.observe({type: "resource"});
+      el.data = url;
+      if (type) {
+        el.type = type;
+      }
+      el.style = "width: 0px; height: 0px;";
+      document.body.appendChild(el);
+
+      el.onload = el.onerror = t.step_timeout(() => {
+        assert_unreached("No performance entry was observed");
+        reject();
+      }, 500);
+    });
+  }, test_name);
+
+};
+
+test_object_entry("resources/status-code.py?status=404&type=none", null, "Test that an navigation object with a 404 response displays an entry");
+test_object_entry("resources/status-code.py?status=200&type=none", null, "Test that an navigation object with a 200 response displays an entry");
+test_object_entry("resources/status-code.py?status=404&type=img", "image/png", "Test that an image object with a 404 response displays an entry");
+
+</script>

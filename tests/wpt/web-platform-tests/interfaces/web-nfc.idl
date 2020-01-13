@@ -47,7 +47,7 @@ typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;
 interface NDEFWriter {
   constructor();
 
-  Promise<void> push(NDEFMessageSource message, optional NDEFPushOptions options={});
+  Promise<void> write(NDEFMessageSource message, optional NDEFWriteOptions options={});
 };
 
 [SecureContext, Exposed=Window]
@@ -73,17 +73,10 @@ dictionary NDEFReadingEventInit : EventInit {
   required NDEFMessageInit message;
 };
 
-dictionary NDEFPushOptions {
-  NDEFPushTarget target = "any";
+dictionary NDEFWriteOptions {
   boolean ignoreRead = true;
   boolean overwrite = true;
   AbortSignal? signal;
-};
-
-enum NDEFPushTarget {
-  "tag",
-  "peer",
-  "any"
 };
 
 dictionary NDEFScanOptions {

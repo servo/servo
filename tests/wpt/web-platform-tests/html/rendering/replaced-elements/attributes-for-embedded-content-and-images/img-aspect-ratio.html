@@ -18,7 +18,7 @@
 let t = async_test("Image width and height attributes are used to infer aspect-ratio");
 function assert_ratio(img, expected) {
   let epsilon = 0.001;
-  assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
+  assert_approx_equals(parseFloat(getComputedStyle(img).width, 10) / parseFloat(getComputedStyle(img).height, 10), expected, epsilon);
 }
 // Create and append a new image and immediately check the ratio.
 // This is not racy because the spec requires the user agent to queue a task:
@@ -53,6 +53,6 @@ onload = t.step_func_done(function() {
   assert_ratio(images[1], 2.0); // 2.0 is the original aspect ratio of green.png
   assert_equals(getComputedStyle(images[2]).height, "0px"); // aspect-ratio doesn't override intrinsic size of images that don't have any src.
   assert_equals(getComputedStyle(images[3]).height, getComputedStyle(images[4]).height); // aspect-ratio doesn't override intrinsic size of error images.
-  assert_ratio(images[5], 1.266); // 1.266 is the original aspect ratio of blue.png
+  assert_ratio(images[5], 133/106); // The original aspect ratio of blue.png
 });
 </script>

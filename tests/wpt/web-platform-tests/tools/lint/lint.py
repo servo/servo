@@ -843,7 +843,7 @@ def create_parser():
                         help="Output machine-readable JSON format")
     parser.add_argument("--markdown", action="store_true",
                         help="Output markdown")
-    parser.add_argument("--repo-root", help="The WPT directory. Use this"
+    parser.add_argument("--repo-root", help="The WPT directory. Use this "
                         "option if the lint script exists outside the repository")
     parser.add_argument("--ignore-glob", help="Additional file glob to ignore.")
     parser.add_argument("--all", action="store_true", help="If no paths are passed, try to lint the whole "
