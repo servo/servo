@@ -9,6 +9,7 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, Vector2D};
 use gfx::text::glyph::GlyphStore;
 use net_traits::image_cache::UsePlaceholder;
+use once_cell::unsync::OnceCell;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
@@ -128,12 +129,9 @@ struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
     containing_block: &'a Rect<Length>,
     border_rect: units::LayoutRect,
-    padding_rect: Option<units::LayoutRect>,
+    padding_rect: OnceCell<units::LayoutRect>,
     border_radius: wr::BorderRadius,
-
-    // Outer `Option` is `None`: not initialized yet
-    // Inner `Option` is `None`: no border radius, no need to clip
-    border_edge_clip_id: Option<Option<wr::ClipId>>,
+    border_edge_clip_id: OnceCell<Option<wr::ClipId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -168,19 +166,17 @@ impl<'a> BuilderForBoxFragment<'a> {
             containing_block,
             border_rect,
             border_radius,
-            padding_rect: None,
-            border_edge_clip_id: None,
+            padding_rect: OnceCell::new(),
+            border_edge_clip_id: OnceCell::new(),
         }
     }
 
-    fn padding_rect(&mut self) -> &units::LayoutRect {
-        let fragment = &self.fragment;
-        let containing_block = &self.containing_block;
-        self.padding_rect.get_or_insert_with(|| {
-            fragment
+    fn padding_rect(&self) -> &units::LayoutRect {
+        self.padding_rect.get_or_init(|| {
+            self.fragment
                 .padding_rect()
-                .to_physical(fragment.style.writing_mode, containing_block)
-                .translate(&containing_block.top_left)
+                .to_physical(self.fragment.style.writing_mode, self.containing_block)
+                .translate(&self.containing_block.top_left)
                 .into()
         })
     }
@@ -190,18 +186,16 @@ impl<'a> BuilderForBoxFragment<'a> {
         builder: &mut DisplayListBuilder,
         common: &mut wr::CommonItemProperties,
     ) {
-        let border_radius = &self.border_radius;
-        let border_rect = &self.border_rect;
-        let initialized = self.border_edge_clip_id.get_or_insert_with(|| {
-            if border_radius.is_zero() {
+        let initialized = self.border_edge_clip_id.get_or_init(|| {
+            if self.border_radius.is_zero() {
                 None
             } else {
                 Some(builder.wr.define_clip(
                     &builder.current_space_and_clip,
-                    *border_rect,
+                    self.border_rect,
                     Some(wr::ComplexClipRegion {
-                        rect: *border_rect,
-                        radii: *border_radius,
+                        rect: self.border_rect,
+                        radii: self.border_radius,
                         mode: wr::ClipMode::Clip,
                     }),
                     None,
