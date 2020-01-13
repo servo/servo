@@ -78,6 +78,7 @@ trivial_to_resolved_value!(computed::url::ComputedUrl);
 trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
 trivial_to_resolved_value!(html5ever::Prefix);
+trivial_to_resolved_value!(computed::LengthPercentage);
 
 impl<A, B> ToResolvedValue for (A, B)
 where

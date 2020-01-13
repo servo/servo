@@ -3,18 +3,82 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! `<length-percentage>` computed values, and related ones.
+//!
+//! The over-all design is a tagged pointer, with the lower bits of the pointer
+//! being non-zero if it is a non-calc value.
+//!
+//! It is expected to take 64 bits both in x86 and x86-64. This is implemented
+//! as a `union`, with 4 different variants:
+//!
+//!  * The length and percentage variants have a { tag, f32 } (effectively)
+//!    layout. The tag has to overlap with the lower 2 bits of the calc variant.
+//!
+//!  * The `calc()` variant is a { tag, pointer } in x86 (so same as the
+//!    others), or just a { pointer } in x86-64 (so that the two bits of the tag
+//!    can be obtained from the lower bits of the pointer).
+//!
+//!  * There's a `tag` variant just to make clear when only the tag is intended
+//!    to be read. Note that the tag needs to be masked always by `TAG_MASK`, to
+//!    deal with the pointer variant in x86-64.
+//!
+//! The assertions in the constructor methods ensure that the tag getter matches
+//! our expectations.
 
 use super::{Context, Length, Percentage, ToComputedValue};
-use crate::values::animated::ToAnimatedValue;
+use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::FontBaseSize;
 use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use serde::{Serialize, Deserialize};
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ToCss};
+
+#[doc(hidden)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct LengthVariant {
+    tag: u32,
+    length: Length,
+}
+
+#[doc(hidden)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct PercentageVariant {
+    tag: u32,
+    percentage: Percentage,
+}
+
+// NOTE(emilio): cbindgen only understands the #[cfg] on the top level
+// definition.
+#[doc(hidden)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+#[cfg(target_pointer_width = "32")]
+pub struct CalcVariant {
+    tag: u32,
+    ptr: *mut CalcLengthPercentage,
+}
+
+#[doc(hidden)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+#[cfg(target_pointer_width = "64")]
+pub struct CalcVariant {
+    ptr: *mut CalcLengthPercentage,
+}
+
+#[doc(hidden)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TagVariant {
+    tag: u32,
+}
 
 /// A `<length-percentage>` value. This can be either a `<length>`, a
 /// `<percentage>`, or a combination of both via `calc()`.
@@ -23,13 +87,87 @@ use style_traits::{CssWriter, ToCss};
 /// cbindgen:derive-mut-casts=true
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue)]
-#[repr(u8)]
-pub enum LengthPercentage {
+///
+/// The tag is stored in the lower two bits.
+///
+/// We need to use a struct instead of the union directly because unions with
+/// Drop implementations are unstable, looks like.
+///
+/// Also we need the union and the variants to be `pub` (even though the member
+/// is private) so that cbindgen generates it. They're not part of the public
+/// API otherwise.
+#[repr(transparent)]
+pub struct LengthPercentage(LengthPercentageUnion);
+
+#[doc(hidden)]
+#[repr(C)]
+pub union LengthPercentageUnion {
+    length: LengthVariant,
+    percentage: PercentageVariant,
+    calc: CalcVariant,
+    tag: TagVariant,
+}
+
+impl LengthPercentageUnion {
+    #[doc(hidden)] // Need to be public so that cbindgen generates it.
+    pub const TAG_CALC: u32 = 0;
+    #[doc(hidden)]
+    pub const TAG_LENGTH: u32 = 1;
+    #[doc(hidden)]
+    pub const TAG_PERCENTAGE: u32 = 2;
+    #[doc(hidden)]
+    pub const TAG_MASK: u32 = 0b11;
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[repr(u32)]
+enum Tag {
+    Calc = LengthPercentageUnion::TAG_CALC,
+    Length = LengthPercentageUnion::TAG_LENGTH,
+    Percentage = LengthPercentageUnion::TAG_PERCENTAGE,
+}
+
+// All the members should be 64 bits, even in 32-bit builds.
+#[allow(unused)]
+unsafe fn static_assert() {
+    std::mem::transmute::<u64, LengthVariant>(0u64);
+    std::mem::transmute::<u64, PercentageVariant>(0u64);
+    std::mem::transmute::<u64, CalcVariant>(0u64);
+    std::mem::transmute::<u64, LengthPercentage>(0u64);
+}
+
+impl Drop for LengthPercentage {
+    fn drop(&mut self) {
+        if self.tag() == Tag::Calc {
+            let _ = unsafe { Box::from_raw(self.0.calc.ptr) };
+        }
+    }
+}
+
+impl MallocSizeOf for LengthPercentage {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self.unpack() {
+            Unpacked::Length(..) | Unpacked::Percentage(..) => 0,
+            Unpacked::Calc(c) => unsafe { ops.malloc_size_of(c) },
+        }
+    }
+}
+
+/// An unpacked `<length-percentage>` that borrows the `calc()` variant.
+#[derive(Clone, Debug, PartialEq)]
+enum Unpacked<'a> {
+    Calc(&'a CalcLengthPercentage),
     Length(Length),
     Percentage(Percentage),
-    Calc(Box<CalcLengthPercentage>),
+}
+
+/// An unpacked `<length-percentage>` that owns the `calc()` variant, for
+/// serialization purposes.
+#[derive(Deserialize, Serialize, PartialEq)]
+enum Serializable {
+    Calc(CalcLengthPercentage),
+    Length(Length),
+    Percentage(Percentage),
 }
 
 impl LengthPercentage {
@@ -41,14 +179,28 @@ impl LengthPercentage {
 
     /// Constructs a length value.
     #[inline]
-    pub fn new_length(l: Length) -> Self {
-        Self::Length(l)
+    pub fn new_length(length: Length) -> Self {
+        let length = Self(LengthPercentageUnion {
+            length: LengthVariant {
+                tag: LengthPercentageUnion::TAG_LENGTH,
+                length,
+            }
+        });
+        debug_assert_eq!(length.tag(), Tag::Length);
+        length
     }
 
     /// Constructs a percentage value.
     #[inline]
-    pub fn new_percent(p: Percentage) -> Self {
-        Self::Percentage(p)
+    pub fn new_percent(percentage: Percentage) -> Self {
+        let percent = Self(LengthPercentageUnion {
+            percentage: PercentageVariant {
+                tag: LengthPercentageUnion::TAG_PERCENTAGE,
+                percentage,
+            }
+        });
+        debug_assert_eq!(percent.tag(), Tag::Percentage);
+        percent
     }
 
     /// Constructs a `calc()` value.
@@ -57,23 +209,77 @@ impl LengthPercentage {
         CalcLengthPercentage::new(l, percentage).to_length_percentge()
     }
 
+    /// Private version of new_calc() that constructs a calc() variant without
+    /// checking.
+    fn new_calc_unchecked(calc: Box<CalcLengthPercentage>) -> Self {
+        let ptr = Box::into_raw(calc);
+        let calc = Self(LengthPercentageUnion {
+            calc: CalcVariant {
+                #[cfg(target_pointer_width = "32")]
+                tag: LengthPercentageUnion::TAG_CALC,
+                ptr,
+            }
+        });
+        debug_assert_eq!(calc.tag(), Tag::Calc);
+        calc
+    }
+
+    #[inline]
+    fn tag(&self) -> Tag {
+        match unsafe { self.0.tag.tag & LengthPercentageUnion::TAG_MASK } {
+            LengthPercentageUnion::TAG_CALC => Tag::Calc,
+            LengthPercentageUnion::TAG_LENGTH => Tag::Length,
+            LengthPercentageUnion::TAG_PERCENTAGE => Tag::Percentage,
+            _ => unreachable!("Bogus tag?"),
+        }
+    }
+
+    #[inline]
+    fn unpack<'a>(&'a self) -> Unpacked<'a> {
+        unsafe {
+            match self.tag() {
+                Tag::Calc => Unpacked::Calc(&*self.0.calc.ptr),
+                Tag::Length => Unpacked::Length(self.0.length.length),
+                Tag::Percentage => Unpacked::Percentage(self.0.percentage.percentage),
+            }
+        }
+    }
+
+    #[inline]
+    fn to_serializable(&self) -> Serializable {
+        match self.unpack() {
+            Unpacked::Calc(c) => Serializable::Calc(c.clone()),
+            Unpacked::Length(l) => Serializable::Length(l),
+            Unpacked::Percentage(p) => Serializable::Percentage(p),
+        }
+    }
+
+    #[inline]
+    fn from_serializable(s: Serializable) -> Self {
+        match s {
+            Serializable::Calc(c) => Self::new_calc_unchecked(Box::new(c)),
+            Serializable::Length(l) => Self::new_length(l),
+            Serializable::Percentage(p) => Self::new_percent(p),
+        }
+    }
+
     /// Returns true if the computed value is absolute 0 or 0%.
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
-        match *self {
-            Self::Length(l) => l.px() == 0.0,
-            Self::Percentage(p) => p.0 == 0.0,
-            Self::Calc(ref c) => c.is_definitely_zero(),
+        match self.unpack() {
+            Unpacked::Length(l) => l.px() == 0.0,
+            Unpacked::Percentage(p) => p.0 == 0.0,
+            Unpacked::Calc(ref c) => c.is_definitely_zero(),
         }
     }
 
     /// Returns the `<length>` component of this `calc()`, unclamped.
     #[inline]
     pub fn unclamped_length(&self) -> Length {
-        match *self {
-            Self::Length(l) => l,
-            Self::Percentage(..) => Zero::zero(),
-            Self::Calc(ref c) => c.unclamped_length(),
+        match self.unpack() {
+            Unpacked::Length(l) => l,
+            Unpacked::Percentage(..) => Zero::zero(),
+            Unpacked::Calc(c) => c.unclamped_length(),
         }
     }
 
@@ -89,10 +295,10 @@ impl LengthPercentage {
     /// Returns the `<length>` component of this `calc()`, clamped.
     #[inline]
     pub fn length_component(&self) -> Length {
-        match *self {
-            Self::Length(l) => l,
-            Self::Percentage(..) => Zero::zero(),
-            Self::Calc(ref c) => c.length_component(),
+        match self.unpack() {
+            Unpacked::Length(l) => l,
+            Unpacked::Percentage(..) => Zero::zero(),
+            Unpacked::Calc(c) => c.length_component(),
         }
     }
 
@@ -103,30 +309,30 @@ impl LengthPercentage {
     /// probably rename this.
     #[inline]
     pub fn percentage(&self) -> CSSFloat {
-        match *self {
-            Self::Length(..) => 0.,
-            Self::Percentage(p) => p.0,
-            Self::Calc(ref c) => c.percentage.0,
+        match self.unpack() {
+            Unpacked::Length(..) => 0.,
+            Unpacked::Percentage(p) => p.0,
+            Unpacked::Calc(c) => c.percentage.0,
         }
     }
 
     /// Returns the `<length>` component of this `calc()`, clamped.
     #[inline]
     pub fn as_percentage(&self) -> Option<Percentage> {
-        match *self {
-            Self::Length(..) => None,
-            Self::Percentage(p) => Some(p),
-            Self::Calc(ref c) => c.as_percentage(),
+        match self.unpack() {
+            Unpacked::Length(..) => None,
+            Unpacked::Percentage(p) => Some(p),
+            Unpacked::Calc(ref c) => c.as_percentage(),
         }
     }
 
     /// Resolves the percentage.
     #[inline]
     pub fn resolve(&self, basis: Length) -> Length {
-        match *self {
-            Self::Length(l) => l,
-            Self::Percentage(p) => Length::new(basis.px() * p.0),
-            Self::Calc(ref c) => c.resolve(basis),
+        match self.unpack() {
+            Unpacked::Length(l) => l,
+            Unpacked::Percentage(p) => Length::new(basis.px() * p.0),
+            Unpacked::Calc(ref c) => c.resolve(basis),
         }
     }
 
@@ -139,20 +345,20 @@ impl LengthPercentage {
     /// Return whether there's any percentage in this value.
     #[inline]
     pub fn has_percentage(&self) -> bool {
-        match *self {
-            Self::Length(..) => false,
-            Self::Percentage(..) => true,
-            Self::Calc(ref c) => c.has_percentage,
+        match self.unpack() {
+            Unpacked::Length(..) => false,
+            Unpacked::Percentage(..) => true,
+            Unpacked::Calc(ref c) => c.has_percentage,
         }
     }
 
     /// Return the specified percentage if any.
     #[inline]
     pub fn specified_percentage(&self) -> Option<Percentage> {
-        match *self {
-            Self::Length(..) => None,
-            Self::Percentage(p) => Some(p),
-            Self::Calc(ref c) => c.specified_percentage(),
+        match self.unpack() {
+            Unpacked::Length(..) => None,
+            Unpacked::Percentage(p) => Some(p),
+            Unpacked::Calc(ref c) => c.specified_percentage(),
         }
     }
 
@@ -186,11 +392,43 @@ impl LengthPercentage {
 
     /// Returns the clamped non-negative values.
     #[inline]
-    pub fn clamp_to_non_negative(self) -> Self {
-        match self {
-            Self::Length(l) => Self::Length(l.clamp_to_non_negative()),
-            Self::Percentage(p) => Self::Percentage(p.clamp_to_non_negative()),
-            Self::Calc(c) => c.clamp_to_non_negative().to_length_percentge(),
+    pub fn clamp_to_non_negative(&self) -> Self {
+        match self.unpack() {
+            Unpacked::Length(l) => Self::new_length(l.clamp_to_non_negative()),
+            Unpacked::Percentage(p) => Self::new_percent(p.clamp_to_non_negative()),
+            Unpacked::Calc(c) => c.clamp_to_non_negative().to_length_percentge(),
+        }
+    }
+}
+
+impl PartialEq for LengthPercentage {
+    fn eq(&self, other: &Self) -> bool {
+        self.unpack() == other.unpack()
+    }
+}
+
+impl fmt::Debug for LengthPercentage {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.unpack().fmt(formatter)
+    }
+}
+
+impl ToAnimatedZero for LengthPercentage {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(match self.unpack() {
+            Unpacked::Length(l) => Self::new_length(l.to_animated_zero()?),
+            Unpacked::Percentage(p) => Self::new_percent(p.to_animated_zero()?),
+            Unpacked::Calc(c) => Self::new_calc_unchecked(Box::new(c.to_animated_zero()?)),
+        })
+    }
+}
+
+impl Clone for LengthPercentage {
+    fn clone(&self) -> Self {
+        match self.unpack() {
+            Unpacked::Length(l) => Self::new_length(l),
+            Unpacked::Percentage(p) => Self::new_percent(p),
+            Unpacked::Calc(c) => Self::new_calc_unchecked(Box::new(c.clone()))
         }
     }
 }
@@ -201,10 +439,10 @@ impl ToComputedValue for specified::LengthPercentage {
     fn to_computed_value(&self, context: &Context) -> LengthPercentage {
         match *self {
             specified::LengthPercentage::Length(ref value) => {
-                LengthPercentage::Length(value.to_computed_value(context))
+                LengthPercentage::new_length(value.to_computed_value(context))
             },
             specified::LengthPercentage::Percentage(value) => {
-                LengthPercentage::Percentage(value)
+                LengthPercentage::new_percent(value)
             },
             specified::LengthPercentage::Calc(ref calc) => {
                 (**calc).to_computed_value(context).to_length_percentge()
@@ -213,14 +451,14 @@ impl ToComputedValue for specified::LengthPercentage {
     }
 
     fn from_computed_value(computed: &LengthPercentage) -> Self {
-        match *computed {
-            LengthPercentage::Length(ref l) => {
+        match computed.unpack() {
+            Unpacked::Length(ref l) => {
                 specified::LengthPercentage::Length(ToComputedValue::from_computed_value(l))
             }
-            LengthPercentage::Percentage(p) => {
+            Unpacked::Percentage(p) => {
                 specified::LengthPercentage::Percentage(p)
             }
-            LengthPercentage::Calc(ref c) => {
+            Unpacked::Calc(c) => {
                 if let Some(p) = c.as_percentage() {
                     return specified::LengthPercentage::Percentage(p)
                 }
@@ -257,12 +495,30 @@ impl ToCss for LengthPercentage {
 
 impl Zero for LengthPercentage {
     fn zero() -> Self {
-        LengthPercentage::Length(Length::zero())
+        LengthPercentage::new_length(Length::zero())
     }
 
     #[inline]
     fn is_zero(&self) -> bool {
         self.is_definitely_zero()
+    }
+}
+
+impl Serialize for LengthPercentage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_serializable().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for LengthPercentage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self::from_serializable(Serializable::deserialize(deserializer)?))
     }
 }
 
@@ -295,12 +551,12 @@ impl CalcLengthPercentage {
     #[inline]
     pub fn to_length_percentge(self) -> LengthPercentage {
         if !self.has_percentage {
-            return LengthPercentage::Length(self.length_component())
+            return LengthPercentage::new_length(self.length_component())
         }
         if self.length.is_zero() {
-            return LengthPercentage::Percentage(Percentage(self.clamping_mode.clamp(self.percentage.0)));
+            return LengthPercentage::new_percent(Percentage(self.clamping_mode.clamp(self.percentage.0)));
         }
-        LengthPercentage::Calc(Box::new(self))
+        LengthPercentage::new_calc_unchecked(Box::new(self))
     }
 
     fn specified_percentage(&self) -> Option<Percentage> {
@@ -369,7 +625,7 @@ impl CalcLengthPercentage {
 
     /// Returns the clamped non-negative values.
     #[inline]
-    fn clamp_to_non_negative(self) -> Self {
+    fn clamp_to_non_negative(&self) -> Self {
         if self.has_percentage {
             // If we can eagerly clamp the percentage then just do that.
             if self.length.is_zero() {
