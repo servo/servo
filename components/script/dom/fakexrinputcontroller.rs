@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -127,5 +128,11 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
             XRTargetRayMode::Screen => TargetRayMode::Screen,
         };
         let _ = self.send_message(MockInputMsg::SetTargetRayMode(t));
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setprofiles
+    fn SetProfiles(&self, profiles: Vec<DOMString>) {
+        let t = profiles.into_iter().map(String::from).collect();
+        let _ = self.send_message(MockInputMsg::SetProfiles(t));
     }
 }

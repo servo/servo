@@ -8,7 +8,7 @@
 interface FakeXRInputController {
   void setHandedness(XRHandedness handedness);
   void setTargetRayMode(XRTargetRayMode targetRayMode);
-  // void setProfiles(sequence<DOMString> profiles);
+  void setProfiles(sequence<DOMString> profiles);
   [Throws] void setGripOrigin(FakeXRRigidTransformInit gripOrigin, optional boolean emulatedPosition = false);
   void clearGripOrigin();
   [Throws] void setPointerOrigin(FakeXRRigidTransformInit pointerOrigin, optional boolean emulatedPosition = false);

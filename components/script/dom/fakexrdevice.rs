@@ -205,13 +205,16 @@ impl FakeXRDeviceMethods for FakeXRDevice {
             None
         };
 
-        // XXXManishearth deal with profiles, supportedButtons, selection*
+        let profiles = init.profiles.iter().cloned().map(String::from).collect();
+
+        // XXXManishearth deal with supportedButtons and selection*
 
         let source = InputSource {
             handedness,
             target_ray_mode,
             id,
             supports_grip: true,
+            profiles,
         };
 
         let init = MockInputInit {
