@@ -411,11 +411,19 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         // FIXME: background-repeat
         let tile_spacing = units::LayoutSize::zero();
-
         let tile_stride = tile_size + tile_spacing;
 
-        // FIXME: background-position
-        let positioned_tile_origin = positioning_area.origin;
+        // https://drafts.csswg.org/css-backgrounds/#background-position
+        let position_percentages = positioning_area.size - tile_size;
+        let positioned_tile_origin = positioning_area.origin +
+            units::LayoutSize::new(
+                get_cyclic(&b.background_position_x.0, index)
+                    .percentage_relative_to(Length::new(position_percentages.width))
+                    .px(),
+                get_cyclic(&b.background_position_y.0, index)
+                    .percentage_relative_to(Length::new(position_percentages.height))
+                    .px(),
+            );
 
         let offset = positioned_tile_origin - clipping_area.origin;
         let first_tile_origin = positioned_tile_origin -
