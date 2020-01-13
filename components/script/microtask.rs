@@ -90,6 +90,8 @@ impl MicrotaskQueue {
         // Step 1
         self.performing_a_microtask_checkpoint.set(true);
 
+        debug!("Now performing a microtask checkpoint");
+
         // Steps 2
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
