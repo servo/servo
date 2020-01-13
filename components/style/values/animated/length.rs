@@ -5,7 +5,7 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure};
-use crate::values::computed::length::LengthPercentage;
+use crate::values::computed::length::{LengthPercentage, CalcLengthPercentage};
 use crate::values::computed::Percentage;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
@@ -26,10 +26,9 @@ impl Animate for LengthPercentage {
             .animate(&other.unclamped_length(), procedure)?;
         let percentage =
             animate_percentage_half(self.specified_percentage(), other.specified_percentage())?;
-        Ok(Self::with_clamping_mode(
-            length,
-            percentage,
-            self.clamping_mode,
-        ))
+
+        // Gets clamped as needed after the animation, so no need to specify any
+        // particular AllowedNumericType.
+        Ok(CalcLengthPercentage::new(length, percentage).to_length_percentge())
     }
 }

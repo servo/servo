@@ -424,6 +424,16 @@ impl ToAnimatedZero for i32 {
     }
 }
 
+impl<T> ToAnimatedZero for Box<T>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Box::new((**self).to_animated_zero()?))
+    }
+}
+
 impl<T> ToAnimatedZero for Option<T>
 where
     T: ToAnimatedZero,
