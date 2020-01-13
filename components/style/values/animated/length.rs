@@ -5,7 +5,7 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure};
-use crate::values::computed::length::{LengthPercentage, CalcLengthPercentage};
+use crate::values::computed::length::LengthPercentage;
 use crate::values::computed::Percentage;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
@@ -29,6 +29,6 @@ impl Animate for LengthPercentage {
 
         // Gets clamped as needed after the animation, so no need to specify any
         // particular AllowedNumericType.
-        Ok(CalcLengthPercentage::new(length, percentage).to_length_percentge())
+        Ok(LengthPercentage::new_calc(length, percentage))
     }
 }
