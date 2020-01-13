@@ -6,8 +6,8 @@
 
 [Exposed=Window, Pref="dom.webxr.test"]
 interface FakeXRInputController {
-  // void setHandedness(XRHandedness handedness);
-  // void setTargetRayMode(XRTargetRayMode targetRayMode);
+  void setHandedness(XRHandedness handedness);
+  void setTargetRayMode(XRTargetRayMode targetRayMode);
   // void setProfiles(sequence<DOMString> profiles);
   [Throws] void setGripOrigin(FakeXRRigidTransformInit gripOrigin, optional boolean emulatedPosition = false);
   void clearGripOrigin();

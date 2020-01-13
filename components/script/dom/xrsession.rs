@@ -295,6 +295,9 @@ impl XRSession {
             XREvent::RemoveInput(id) => {
                 self.input_sources.remove_input_source(self, id);
             },
+            XREvent::UpdateInput(id, source) => {
+                self.input_sources.add_remove_input_source(self, id, source);
+            },
         }
     }
 

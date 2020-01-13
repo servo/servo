@@ -101,6 +101,37 @@ impl XRInputSourceArray {
         event.upcast::<Event>().fire(session.upcast());
     }
 
+    pub fn add_remove_input_source(&self, session: &XRSession, id: InputId, info: InputSource) {
+        let mut input_sources = self.input_sources.borrow_mut();
+        let global = self.global();
+        let root;
+        let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
+            root = [DomRoot::from_ref(&**i)];
+            &root as &[_]
+        } else {
+            warn!("Could not find removed input source with id {:?}", id);
+            &[]
+        };
+        input_sources.retain(|i| i.id() != id);
+        let input = XRInputSource::new(&global, &session, info);
+        input_sources.push(Dom::from_ref(&input));
+
+        let added = [input];
+
+        let event = XRInputSourcesChangeEvent::new(
+            &global,
+            atom!("inputsourceschange"),
+            false,
+            true,
+            session,
+            &added,
+            removed,
+        );
+        // release the refcell guard
+        drop(input_sources);
+        event.upcast::<Event>().fire(session.upcast());
+    }
+
     pub fn find(&self, id: InputId) -> Option<DomRoot<XRInputSource>> {
         self.input_sources
             .borrow()
