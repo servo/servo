@@ -6,7 +6,7 @@ use crate::context::LayoutContext;
 use crate::fragments::{BoxFragment, Fragment};
 use crate::geom::physical::{Rect, Vec2};
 use embedder_traits::Cursor;
-use euclid::{Point2D, SideOffsets2D, Size2D};
+use euclid::{Point2D, SideOffsets2D, Size2D, Vector2D};
 use gfx::text::glyph::GlyphStore;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
@@ -282,13 +282,27 @@ impl<'a> BuilderForBoxFragment<'a> {
         intrinsic_height: u32,
         key: wr::ImageKey,
     ) {
-        let clipping_area = self.border_rect;
-        let mut common = builder.common_properties(clipping_area);
-        self.with_border_edge_clip(builder, &mut common);
+        // Our job here would be easier if WebRender’s `RepeatingImageDisplayItem`
+        // was “infinitely” repeating in all directions (clipped at `clip_rect`)
+        // and contained a `units::LayoutPoint` that determines the position of an arbitrary tile.
+        //
+        // Instead, it contains a `bounds` rectangle and:
+        //
+        // * The tiling is clipped to the intersection of `clip_rect` and `bounds`
+        // * The origin (top-left corner) of `bounds` is the position
+        //   of the “first” (top-left-most) tile.
+        //
+        // However the background clipping area may be larger than the positionning area,
+        // so that first time may not be the one at position (0, 0).
+        // So we compute `bounds` such that:
+        //
+        // * Its bottom-right is the bottom-right of `clip_rect`
+        // * Its top-left is the top-left of the top-left-most tile that intersects with `clip_rect`
 
-        // FIXME: correct positioning
-        let _positioning_area = self.padding_rect();
-        let display_item_bounds = clipping_area;
+        // FIXME: background-clip
+        let clipping_area = self.border_rect;
+        // FIXME: background-origin
+        let positioning_area = self.padding_rect();
 
         // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
         let dppx = 1.0;
@@ -297,11 +311,29 @@ impl<'a> BuilderForBoxFragment<'a> {
             intrinsic_width as f32 / dppx,
             intrinsic_height as f32 / dppx,
         );
+        // FIXME: background-size
+        // Size of one tile:
         let stretch_size = intrinsic_size;
         let tile_spacing = units::LayoutSize::zero();
+        let tile_stride = stretch_size + tile_spacing;
+
+        // FIXME: background-position
+        let positioned_tile_origin = positioning_area.origin;
+        let offset = positioned_tile_origin - clipping_area.origin;
+        let first_tile_origin = positioned_tile_origin - Vector2D::new(
+            tile_stride.width * (offset.x / tile_stride.width).ceil(),
+            tile_stride.height * (offset.y / tile_stride.height).ceil(),
+        );
+
+        let bounds = units::LayoutRect::from_points(&[first_tile_origin, clipping_area.max()]);
+
+        // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
+        let mut common = builder.common_properties(clipping_area);
+        self.with_border_edge_clip(builder, &mut common);
+
         builder.wr.push_repeating_image(
             &common,
-            display_item_bounds,
+            bounds,
             stretch_size,
             tile_spacing,
             image_rendering(self.fragment.style.clone_image_rendering()),
