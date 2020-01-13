@@ -17,6 +17,7 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::DefiniteContainingBlock;
+use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -152,6 +153,13 @@ impl FragmentTreeRoot {
         };
         for fragment in &self.0 {
             fragment.build_display_list(builder, &containing_block)
+        }
+    }
+
+    pub fn print(&self) {
+        let mut print_tree = PrintTree::new("Fragment Tree".to_string());
+        for fragment in &self.0 {
+            fragment.print(&mut print_tree);
         }
     }
 }
