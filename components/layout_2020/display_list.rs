@@ -426,7 +426,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             clipping_area_origin: f32,
             clipping_area_size: f32,
             positioning_area_size: f32,
-        ) -> (f32, f32) {
+        ) -> (bool, f32, f32) {
             // https://drafts.csswg.org/css-backgrounds/#background-repeat
             if let Repeat::Round = repeat {
                 *tile_size = positioning_area_size / (positioning_area_size / *tile_size).round();
@@ -448,20 +448,20 @@ impl<'a> BuilderForBoxFragment<'a> {
                 }
             }
             match repeat {
-                Repeat::NoRepeat => (position, *tile_size),
+                Repeat::NoRepeat => (false, position, *tile_size),
                 Repeat::Repeat | Repeat::Round | Repeat::Space => {
                     let tile_stride = *tile_size + *tile_spacing;
                     let offset = position - clipping_area_origin;
                     let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
                     let bounds_size = clipping_area_size - bounds_origin - clipping_area_origin;
-                    (bounds_origin, bounds_size)
+                    (true, bounds_origin, bounds_size)
                 },
             }
         }
 
         let mut tile_spacing = units::LayoutSize::zero();
         let RepeatXY(repeat_x, repeat_y) = *get_cyclic(&b.background_repeat.0, index);
-        let (bounds_origin_x, bounds_width) = layout_1d(
+        let (repeat_x, bounds_origin_x, bounds_width) = layout_1d(
             &mut tile_size.width,
             &mut tile_spacing.width,
             repeat_x,
@@ -470,7 +470,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             clipping_area.size.width,
             positioning_area.size.width,
         );
-        let (bounds_origin_y, bounds_height) = layout_1d(
+        let (repeat_y, bounds_origin_y, bounds_height) = layout_1d(
             &mut tile_size.height,
             &mut tile_spacing.height,
             repeat_y,
@@ -488,16 +488,27 @@ impl<'a> BuilderForBoxFragment<'a> {
         let mut common = builder.common_properties(*clipping_area);
         self.with_border_edge_clip(builder, &mut common);
 
-        builder.wr.push_repeating_image(
-            &common,
-            bounds,
-            tile_size,
-            tile_spacing,
-            image_rendering(self.fragment.style.clone_image_rendering()),
-            wr::AlphaType::PremultipliedAlpha,
-            key,
-            wr::ColorF::WHITE,
-        )
+        if repeat_x || repeat_y {
+            builder.wr.push_repeating_image(
+                &common,
+                bounds,
+                tile_size,
+                tile_spacing,
+                image_rendering(self.fragment.style.clone_image_rendering()),
+                wr::AlphaType::PremultipliedAlpha,
+                key,
+                wr::ColorF::WHITE,
+            )
+        } else {
+            builder.wr.push_image(
+                &common,
+                bounds,
+                image_rendering(self.fragment.style.clone_image_rendering()),
+                wr::AlphaType::PremultipliedAlpha,
+                key,
+                wr::ColorF::WHITE,
+            )
+        }
     }
 
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
