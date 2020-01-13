@@ -20,6 +20,9 @@ interface mixin WindowOrWorkerGlobalScope {
   long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
   void clearInterval(optional long handle = 0);
 
+  // microtask queuing
+  void queueMicrotask(VoidFunction callback);
+
   // ImageBitmap
   // Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options);
   // Promise<ImageBitmap> createImageBitmap(

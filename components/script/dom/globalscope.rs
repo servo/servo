@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
@@ -32,7 +33,7 @@ use crate::dom::performance::Performance;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::script_module::ModuleTree;
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
@@ -1770,6 +1771,13 @@ impl GlobalScope {
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(self, handle);
+    }
+
+    pub fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
+        self.enqueue_microtask(Microtask::User(UserMicrotask {
+            callback: callback,
+            pipeline: self.pipeline_id(),
+        }))
     }
 
     pub fn fire_timer(&self, handle: TimerEventId) {
