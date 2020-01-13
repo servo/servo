@@ -130,6 +130,7 @@ struct BuilderForBoxFragment<'a> {
     containing_block: &'a Rect<Length>,
     border_rect: units::LayoutRect,
     padding_rect: OnceCell<units::LayoutRect>,
+    content_rect: OnceCell<units::LayoutRect>,
     border_radius: wr::BorderRadius,
     border_edge_clip_id: OnceCell<Option<wr::ClipId>>,
 }
@@ -167,8 +168,19 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_rect,
             border_radius,
             padding_rect: OnceCell::new(),
+            content_rect: OnceCell::new(),
             border_edge_clip_id: OnceCell::new(),
         }
+    }
+
+    fn content_rect(&self) -> &units::LayoutRect {
+        self.content_rect.get_or_init(|| {
+            self.fragment
+                .content_rect
+                .to_physical(self.fragment.style.writing_mode, self.containing_block)
+                .translate(&self.containing_block.top_left)
+                .into()
+        })
     }
 
     fn padding_rect(&self) -> &units::LayoutRect {
@@ -238,7 +250,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             builder.wr.push_rect(&common, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
-        for layer in b.background_image.0.iter().rev() {
+        for (index, layer) in b.background_image.0.iter().enumerate().rev() {
             match layer {
                 ImageLayer::None => {},
                 ImageLayer::Image(image) => match image {
@@ -258,7 +270,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 key: Some(key),
                             }) = webrender_image
                             {
-                                self.build_background_raster_image(builder, width, height, key)
+                                self.build_background_raster_image(
+                                    builder, index, width, height, key,
+                                )
                             }
                         }
                     },
@@ -272,6 +286,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_background_raster_image(
         &mut self,
         builder: &mut DisplayListBuilder,
+        index: usize,
         intrinsic_width: u32,
         intrinsic_height: u32,
         key: wr::ImageKey,
@@ -293,8 +308,19 @@ impl<'a> BuilderForBoxFragment<'a> {
         // * Its bottom-right is the bottom-right of `clip_rect`
         // * Its top-left is the top-left of the top-left-most tile that intersects with `clip_rect`
 
-        // FIXME: background-clip
-        let clipping_area = self.border_rect;
+        use style::computed_values::background_clip::single_value::T as Clip;
+
+        fn get_cyclic<T>(values: &[T], index: usize) -> &T {
+            &values[index % values.len()]
+        }
+
+        let b = self.fragment.style.get_background();
+
+        let clipping_area = match get_cyclic(&b.background_clip.0, index) {
+            Clip::ContentBox => self.content_rect(),
+            Clip::PaddingBox => self.padding_rect(),
+            Clip::BorderBox => &self.border_rect,
+        };
         // FIXME: background-origin
         let positioning_area = self.padding_rect();
 
@@ -314,15 +340,16 @@ impl<'a> BuilderForBoxFragment<'a> {
         // FIXME: background-position
         let positioned_tile_origin = positioning_area.origin;
         let offset = positioned_tile_origin - clipping_area.origin;
-        let first_tile_origin = positioned_tile_origin - Vector2D::new(
-            tile_stride.width * (offset.x / tile_stride.width).ceil(),
-            tile_stride.height * (offset.y / tile_stride.height).ceil(),
-        );
+        let first_tile_origin = positioned_tile_origin -
+            Vector2D::new(
+                tile_stride.width * (offset.x / tile_stride.width).ceil(),
+                tile_stride.height * (offset.y / tile_stride.height).ceil(),
+            );
 
         let bounds = units::LayoutRect::from_points(&[first_tile_origin, clipping_area.max()]);
 
         // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-        let mut common = builder.common_properties(clipping_area);
+        let mut common = builder.common_properties(*clipping_area);
         self.with_border_edge_clip(builder, &mut common);
 
         builder.wr.push_repeating_image(
