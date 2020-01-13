@@ -213,6 +213,9 @@ pub struct LayoutThread {
 
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
+
+    /// Dumps the fragment tree after a layout.
+    dump_fragment_tree: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -246,7 +249,7 @@ impl LayoutThreadFactory for LayoutThread {
         relayout_event: bool,
         _nonincremental_layout: bool,
         _trace_layout: bool,
-        _dump_flow_tree: bool,
+        dump_flow_tree: bool,
     ) {
         thread::Builder::new()
             .name(format!("LayoutThread {:?}", id))
@@ -287,6 +290,7 @@ impl LayoutThreadFactory for LayoutThread {
                         load_webfonts_synchronously,
                         window_size,
                         relayout_event,
+                        dump_flow_tree,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -449,6 +453,7 @@ impl LayoutThread {
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
         relayout_event: bool,
+        dump_fragment_tree: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(webrender_document, id.to_webrender());
@@ -527,6 +532,7 @@ impl LayoutThread {
             busy,
             load_webfonts_synchronously,
             relayout_event,
+            dump_fragment_tree,
         }
     }
 
@@ -1291,6 +1297,10 @@ impl LayoutThread {
         ));
         let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
+
+        if self.dump_fragment_tree {
+            fragment_tree.print();
+        }
 
         debug!("Layout done!");
 

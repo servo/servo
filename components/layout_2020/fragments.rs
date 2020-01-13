@@ -4,6 +4,7 @@
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use gfx::text::glyph::GlyphStore;
+use gfx_traits::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
@@ -80,6 +81,15 @@ impl Fragment {
             Fragment::Image(f) => &mut f.rect.start_corner,
         }
     }
+
+    pub fn print(&self, tree: &mut PrintTree) {
+        match self {
+            Fragment::Box(fragment) => fragment.print(tree),
+            Fragment::Anonymous(fragment) => fragment.print(tree),
+            Fragment::Text(fragment) => fragment.print(tree),
+            Fragment::Image(fragment) => fragment.print(tree),
+        }
+    }
 }
 
 impl AnonymousFragment {
@@ -90,13 +100,67 @@ impl AnonymousFragment {
             mode,
         }
     }
+
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.new_level(format!(
+            "Anonymous\
+                \nrect={:?}",
+            self.rect
+        ));
+
+        for child in &self.children {
+            child.print(tree);
+        }
+        tree.end_level();
+    }
 }
 
 impl BoxFragment {
+    pub fn padding_rect(&self) -> Rect<Length> {
+        self.content_rect.inflate(&self.padding)
+    }
+
     pub fn border_rect(&self) -> Rect<Length> {
-        self.content_rect
-            .inflate(&self.padding)
-            .inflate(&self.border)
+        self.padding_rect().inflate(&self.border)
+    }
+
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.new_level(format!(
+            "Box\
+                \ncontent={:?}\
+                \npadding rect={:?}\
+                \nborder rect={:?}",
+            self.content_rect,
+            self.padding_rect(),
+            self.border_rect()
+        ));
+
+        for child in &self.children {
+            child.print(tree);
+        }
+        tree.end_level();
+    }
+}
+
+impl TextFragment {
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.add_item(format!(
+            "Text num_glyphs={}",
+            self.glyphs
+                .iter()
+                .map(|glyph_store| glyph_store.len().0)
+                .sum::<isize>()
+        ));
+    }
+}
+
+impl ImageFragment {
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.add_item(format!(
+            "Image\
+                \nrect={:?}",
+            self.rect
+        ));
     }
 }
 

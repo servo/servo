@@ -45,7 +45,7 @@ pub(crate) mod flow_relative {
         pub block: T,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone)]
     pub(crate) struct Rect<T> {
         pub start_corner: Vec2<T>,
         pub size: Vec2<T>,
@@ -197,6 +197,19 @@ impl flow_relative::Rect<Length> {
             start_corner: flow_relative::Vec2::zero(),
             size: flow_relative::Vec2::zero(),
         }
+    }
+}
+
+impl fmt::Debug for flow_relative::Rect<Length> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Rect(i{}×b{} @ (i{},b{}))",
+            self.size.inline.px(),
+            self.size.block.px(),
+            self.start_corner.inline.px(),
+            self.start_corner.block.px(),
+        )
     }
 }
 
