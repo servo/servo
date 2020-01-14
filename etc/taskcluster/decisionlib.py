@@ -511,11 +511,12 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch --no-tags {} {}
+            git remote add origin {}
+            git fetch origin
             git reset --hard {}
         """.format(
             assert_truthy(self.git_fetch_url),
-            assert_truthy(self.git_fetch_ref),
+            #assert_truthy(self.git_fetch_ref),
             assert_truthy(self.git_checkout_sha),
         )
         return self \
@@ -647,11 +648,12 @@ class UnixTaskMixin(Task):
             git init repo
             cd repo
             echo "{alternate}" > .git/objects/info/alternates
-            time git fetch --no-tags {} {}
+            git remote add origin {}
+            time git fetch origin
             time git reset --hard {}
         """.format(
             assert_truthy(self.git_fetch_url),
-            assert_truthy(self.git_fetch_ref),
+            #assert_truthy(self.git_fetch_ref),
             assert_truthy(self.git_checkout_sha),
             alternate=alternate_object_dir,
         ))

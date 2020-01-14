@@ -45,9 +45,8 @@ tasks:
           - '-e'
           - '-c'
           - >-
-            git init repo &&
+            git clone "$GIT_URL" repo &&
             cd repo &&
-            git fetch "$GIT_URL" "$GIT_REF" &&
             git reset --hard "$GIT_SHA" &&
             python3 etc/taskcluster/decision_task.py
   in:
