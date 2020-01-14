@@ -71,6 +71,7 @@ pub struct WebGL2RenderingContext {
     texture_pack_row_length: Cell<usize>,
     texture_pack_skip_pixels: Cell<usize>,
     texture_pack_skip_rows: Cell<usize>,
+    enable_rasterizer_discard: Cell<bool>,
 }
 
 fn typedarray_elem_size(typeid: Type) -> usize {
@@ -124,6 +125,7 @@ impl WebGL2RenderingContext {
             texture_pack_row_length: Cell::new(0),
             texture_pack_skip_pixels: Cell::new(0),
             texture_pack_skip_rows: Cell::new(0),
+            enable_rasterizer_discard: Cell::new(false),
         })
     }
 
@@ -991,12 +993,24 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Enable(&self, cap: u32) {
-        self.base.Enable(cap)
+        match cap {
+            constants::RASTERIZER_DISCARD => {
+                self.enable_rasterizer_discard.set(true);
+                self.base.send_command(WebGLCommand::Enable(cap));
+            },
+            _ => self.base.Enable(cap),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Disable(&self, cap: u32) {
-        self.base.Disable(cap)
+        match cap {
+            constants::RASTERIZER_DISCARD => {
+                self.enable_rasterizer_discard.set(false);
+                self.base.send_command(WebGLCommand::Disable(cap));
+            },
+            _ => self.base.Disable(cap),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1200,9 +1214,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     // TODO: We could write this without IPC, recording the calls to `enable` and `disable`.
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
     fn IsEnabled(&self, cap: u32) -> bool {
-        self.base.IsEnabled(cap)
+        match cap {
+            constants::RASTERIZER_DISCARD => self.enable_rasterizer_discard.get(),
+            _ => self.base.IsEnabled(cap),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
