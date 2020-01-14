@@ -9,6 +9,7 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlimageelement::ImageElementMicrotask;
@@ -34,6 +35,7 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
+    User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
     CustomElementReaction,
@@ -49,6 +51,15 @@ pub trait MicrotaskRunnable {
 pub struct EnqueuedPromiseCallback {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
+    pub pipeline: PipelineId,
+}
+
+/// A microtask that comes from a queueMicrotask() Javascript call,
+/// identical to EnqueuedPromiseCallback once it's on the queue
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct UserMicrotask {
+    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    pub callback: Rc<VoidFunction>,
     pub pipeline: PipelineId,
 }
 
@@ -91,6 +102,11 @@ impl MicrotaskQueue {
 
                 match *job {
                     Microtask::Promise(ref job) => {
+                        if let Some(target) = target_provider(job.pipeline) {
+                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                        }
+                    },
+                    Microtask::User(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }

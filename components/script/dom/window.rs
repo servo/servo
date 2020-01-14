@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::His
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
 };
@@ -860,6 +861,12 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-queuemicrotask
+    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
+        self.upcast::<GlobalScope>()
+            .queue_function_as_microtask(callback);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window

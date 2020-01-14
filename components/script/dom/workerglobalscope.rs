@@ -5,6 +5,7 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
@@ -339,6 +340,12 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-queuemicrotask
+    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
+        self.upcast::<GlobalScope>()
+            .queue_function_as_microtask(callback);
     }
 
     #[allow(unrooted_must_root)]
