@@ -328,6 +328,10 @@
   }, 'NDEFRecord constructor with record type string being treated as case sensitive');
 
   test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(createRecord(
+        'example.com:hellö', test_buffer_data)),
+        'The external type must be an ASCII string.');
+
     // Length of the external type is 255, OK.
     const record = new NDEFRecord(createRecord(
         [...Array(251)].map(_ => 'a').join('') + ':xyz', test_buffer_data));

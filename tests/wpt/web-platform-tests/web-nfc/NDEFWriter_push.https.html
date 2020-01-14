@@ -220,13 +220,6 @@ promise_test(async t => {
     t, 'NotSupportedError', writer.push(new ArrayBuffer(32 * 1024 + 1)));
 }, "Reject promise with NotSupportedError if NFC message size exceeds 32KB.");
 
-promise_test(async t => {
-  const writer = new NDEFWriter();
-  await promise_rejects(
-    t, new TypeError(), writer.push(test_text_data, {target: "invalid"}));
-}, "NDEFWriter.push should fail with TypeError when invalid target value is \
-provided.");
-
 promise_test(async () => {
   await new Promise((resolve,reject) => {
     const iframe = document.createElement('iframe');
@@ -338,13 +331,13 @@ nfc_test(async (t, mockNFC) => {
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
   await writer.push(test_text_data);
-  assertNDEFPushOptionsEqual(createNDEFPushOptions('any', true),
+  assertNDEFPushOptionsEqual(createNDEFPushOptions(true),
                             mockNFC.pushOptions());
 }, "Check that default NDEFPushOptions values are correctly set.");
 
 nfc_test(async (t, mockNFC) => {
   const writer = new NDEFWriter();
-  let ndefPushOptions = createNDEFPushOptions('tag', false);
+  let ndefPushOptions = createNDEFPushOptions(false);
   await writer.push(test_text_data, ndefPushOptions);
   assertNDEFPushOptionsEqual(ndefPushOptions, mockNFC.pushOptions());
 }, "Check that provided NDEFPushOptions values are correctly converted.");
@@ -385,8 +378,8 @@ nfc_test(async (t, mockNFC) => {
   const writer1 = new NDEFWriter();
   const writer2 = new NDEFWriter();
 
-  const ndefPushOptions1 = createNDEFPushOptions('tag', false);
-  const ndefPushOptions2 = createNDEFPushOptions('tag', true);
+  const ndefPushOptions1 = createNDEFPushOptions(false);
+  const ndefPushOptions2 = createNDEFPushOptions(true);
   const p1 = writer1.push(test_text_data, ndefPushOptions1);
   const p2 = writer2.push(test_url_data, ndefPushOptions2);
 
