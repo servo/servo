@@ -398,6 +398,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        struct Layout1DResult {
+            repeat: bool,
+            bounds_origin: f32,
+            bounds_size: f32,
+        }
+
         /// Abstract over the horizontal or vertical dimension
         /// Coordinates (0, 0) for the purpose of this function are the positioning area’s origin.
         fn layout_1d(
@@ -408,7 +414,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             clipping_area_origin: f32,
             clipping_area_size: f32,
             positioning_area_size: f32,
-        ) -> (bool, f32, f32) {
+        ) -> Layout1DResult {
             // https://drafts.csswg.org/css-backgrounds/#background-repeat
             if let Repeat::Round = repeat {
                 *tile_size = positioning_area_size / (positioning_area_size / *tile_size).round();
@@ -452,21 +458,29 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let offset = position - clipping_area_origin;
                     let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
                     let bounds_size = clipping_area_size - bounds_origin - clipping_area_origin;
-                    (true, bounds_origin, bounds_size)
+                    Layout1DResult {
+                        repeat: true,
+                        bounds_origin,
+                        bounds_size,
+                    }
                 },
                 Repeat::NoRepeat => {
                     // `RepeatingImageDisplayItem` always repeats in both dimension.
                     // When we want only one of the dimensions to repeat,
                     // we use the `bounds` rectangle to clip the tiling to one tile
                     // in that dimension.
-                    (false, position, *tile_size)
+                    Layout1DResult {
+                        repeat: false,
+                        bounds_origin: position,
+                        bounds_size: *tile_size,
+                    }
                 },
             }
         }
 
         let mut tile_spacing = units::LayoutSize::zero();
         let RepeatXY(repeat_x, repeat_y) = *get_cyclic(&b.background_repeat.0, index);
-        let (repeat_x, bounds_origin_x, bounds_width) = layout_1d(
+        let result_x = layout_1d(
             &mut tile_size.width,
             &mut tile_spacing.width,
             repeat_x,
@@ -475,7 +489,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             clipping_area.size.width,
             positioning_area.size.width,
         );
-        let (repeat_y, bounds_origin_y, bounds_height) = layout_1d(
+        let result_y = layout_1d(
             &mut tile_size.height,
             &mut tile_spacing.height,
             repeat_y,
@@ -485,15 +499,15 @@ impl<'a> BuilderForBoxFragment<'a> {
             positioning_area.size.height,
         );
         let bounds = units::LayoutRect::new(
-            positioning_area.origin + Vector2D::new(bounds_origin_x, bounds_origin_y),
-            Size2D::new(bounds_width, bounds_height),
+            positioning_area.origin + Vector2D::new(result_x.bounds_origin, result_y.bounds_origin),
+            Size2D::new(result_x.bounds_size, result_y.bounds_size),
         );
 
         // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
         let mut common = builder.common_properties(*clipping_area);
         self.with_border_edge_clip(builder, &mut common);
 
-        if repeat_x || repeat_y {
+        if result_x.repeat || result_y.repeat {
             builder.wr.push_repeating_image(
                 &common,
                 bounds,
