@@ -185,6 +185,8 @@ impl XRMethods for XR {
         let mut optional_features = vec![];
         let cx = global.get_cx();
 
+        // We are supposed to include "viewer" and on immersive devices "local"
+        // by default here, but this is handled directly in requestReferenceSpace()
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
                 unsafe {

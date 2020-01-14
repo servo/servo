@@ -559,10 +559,25 @@ impl XRSessionMethods for XRSession {
                 p.reject_error(Error::NotSupported)
             },
             ty => {
+                if ty != XRReferenceSpaceType::Viewer &&
+                    (!self.is_immersive() || ty != XRReferenceSpaceType::Local)
+                {
+                    let s = ty.as_str();
+                    if self
+                        .session
+                        .borrow()
+                        .granted_features()
+                        .iter()
+                        .find(|f| &**f == s)
+                        .is_none()
+                    {
+                        p.reject_error(Error::NotSupported);
+                        return p;
+                    }
+                }
                 p.resolve_native(&XRReferenceSpace::new(&self.global(), self, ty));
             },
         }
-
         p
     }
 
