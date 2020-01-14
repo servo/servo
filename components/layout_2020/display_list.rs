@@ -9,8 +9,8 @@ use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, Vector2D};
 use gfx::text::glyph::GlyphStore;
+use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
-use once_cell::unsync::OnceCell;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
@@ -175,7 +175,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn content_rect(&self) -> &units::LayoutRect {
-        self.content_rect.get_or_init(|| {
+        self.content_rect.init_once(|| {
             self.fragment
                 .content_rect
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
@@ -185,7 +185,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn padding_rect(&self) -> &units::LayoutRect {
-        self.padding_rect.get_or_init(|| {
+        self.padding_rect.init_once(|| {
             self.fragment
                 .padding_rect()
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
@@ -199,7 +199,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         builder: &mut DisplayListBuilder,
         common: &mut wr::CommonItemProperties,
     ) {
-        let initialized = self.border_edge_clip_id.get_or_init(|| {
+        let initialized = self.border_edge_clip_id.init_once(|| {
             if self.border_radius.is_zero() {
                 None
             } else {

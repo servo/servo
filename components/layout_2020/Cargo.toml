@@ -24,8 +24,8 @@ gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.12"
 libc = "0.2"
 msg = {path = "../msg"}
+mitochondria = "1.1.2"
 net_traits = {path = "../net_traits"}
-once_cell = "1.2.0"
 parking_lot = "0.9"
 range = {path = "../range"}
 rayon = "1"
