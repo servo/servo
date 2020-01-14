@@ -1,16 +1,5 @@
 'use strict';
 
-function toMojoNDEFPushTarget(target) {
-  switch (target) {
-  case 'peer':
-    return device.mojom.NDEFPushTarget.PEER;
-  case 'tag':
-    return device.mojom.NDEFPushTarget.TAG;
-  }
-
-  return device.mojom.NDEFPushTarget.ANY;
-}
-
 // Converts between NDEFMessageInit https://w3c.github.io/web-nfc/#dom-ndefmessage
 // and mojom.NDEFMessage structure, so that watch function can be tested.
 function toMojoNDEFMessage(message) {
@@ -92,11 +81,6 @@ function assertNDEFPushOptionsEqual(provided, received) {
     assert_equals(provided.ignoreRead, !!received.ignoreRead);
   else
     assert_equals(!!received.ignore_read, true);
-
-  if (provided.target !== undefined)
-    assert_equals(toMojoNDEFPushTarget(provided.target), received.target);
-  else
-    assert_equals(received.target, device.mojom.NDEFPushTarget.ANY);
 }
 
 // Compares NDEFReaderOptions structures that were provided to API and
@@ -205,13 +189,8 @@ var WebNFCTest = (() => {
       });
     }
 
-    async cancelPush(target) {
-      if (this.pending_push_options_ &&
-          ((target === device.mojom.NDEFPushTarget.ANY) ||
-           (this.pending_push_options_.target === target))) {
-        this.cancelPendingPushOperation();
-      }
-
+    async cancelPush() {
+      this.cancelPendingPushOperation();
       return createNDEFError(null);
     }
 

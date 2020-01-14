@@ -1205,27 +1205,14 @@
     // Wait a little, just in case some stray events fire
     await new Promise(r => t.step_timeout(r, 100));
 
-    // Receiving an RTCP bye should generate a mute event. How often this
-    // happens depends upon the browser and on timing. Rather than try to
-    // match an individual browser's current behaviour, this checks to see
-    // that we receive at least the minimum number of expected mute and
-    // unmute events.
-    assert_greater_than_equal(countMuteAudio1.count, 1,
-                              "Expect 1 mute event for pc1's audio track");
-    assert_greater_than_equal(countMuteVideo1.count, 1,
-                              "Expect 1 mute event for pc1's video track");
-    assert_greater_than_equal(countMuteAudio2.count, 1,
-                              "Expect 1 mute event for pc2's audio track");
-    assert_greater_than_equal(countMuteVideo2.count, 1,
-                              "Expect 1 mute event for pc2's video track");
-    assert_greater_than_equal(countUnmuteAudio1.count, 2,
-                              "Expect 2 unmute events for pc1's audio track");
-    assert_greater_than_equal(countUnmuteVideo1.count, 2,
-                              "Expect 2 unmute events for pc1's video track");
-    assert_greater_than_equal(countUnmuteAudio2.count, 2,
-                              "Expect 2 unmute events for pc2's audio track");
-    assert_greater_than_equal(countUnmuteVideo2.count, 2,
-                              "Expect 2 unmute events for pc2's video track");
+    assert_equals(1, countMuteAudio1.count, "Got 1 mute event for pc1's audio track");
+    assert_equals(1, countMuteVideo1.count, "Got 1 mute event for pc1's video track");
+    assert_equals(1, countMuteAudio2.count, "Got 1 mute event for pc2's audio track");
+    assert_equals(1, countMuteVideo2.count, "Got 1 mute event for pc2's video track");
+    assert_equals(2, countUnmuteAudio1.count, "Got 2 unmute events for pc1's audio track");
+    assert_equals(2, countUnmuteVideo1.count, "Got 2 unmute events for pc1's video track");
+    assert_equals(2, countUnmuteAudio2.count, "Got 2 unmute events for pc2's audio track");
+    assert_equals(2, countUnmuteVideo2.count, "Got 2 unmute events for pc2's video track");
   };
 
   const checkStop = async t => {

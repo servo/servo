@@ -147,11 +147,11 @@
   <script>
 
   test(function(t) {
-    assert_equals(passwordField.ariaDetailsElement, null);
-    passwordField.ariaDetailsElement = listItem1;
+    assert_equals(passwordField.ariaDetailsElements, null);
+    passwordField.ariaDetailsElements = [ listItem1 ];
     assert_equals(passwordField.getAttribute("aria-details"), "listItem1");
 
-    passwordField.ariaDetailsElement = listItem2;
+    passwordField.ariaDetailsElements = [ listItem2 ];
     assert_equals(passwordField.getAttribute("aria-details"), "listItem2");
   }, "aria-details");
   </script>
