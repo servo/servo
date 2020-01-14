@@ -116,7 +116,7 @@ where
                     String::from("")
                 };
                 let title = "URL or search query";
-                let input = tinyfiledialogs::input_box(title, title, &url);
+                let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                 if let Some(input) = input {
                     if let Some(url) = sanitize_url(&input) {
                         if let Some(id) = self.browser_id {
@@ -306,7 +306,7 @@ where
                             .spawn(move || {
                                 tinyfiledialogs::message_box_ok(
                                     "Alert!",
-                                    &message,
+                                    &tiny_dialog_escape(&message),
                                     MessageBoxIcon::Warning,
                                 );
                             })
@@ -503,7 +503,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
             let mut filters = vec![];
             for p in patterns {
                 let s = "*.".to_string() + &p.0;
-                filters.push(s)
+                filters.push(tiny_dialog_escape(&s))
             }
             let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
             let filter_opt = if filters.len() > 0 {
@@ -539,4 +539,28 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
             let url = pref!(shell.searchpage).replace("%s", request);
             ServoUrl::parse(&url).ok()
         })
+}
+
+// This is a mitigation for #25498, not a verified solution.
+// There may be codepaths in tinyfiledialog.c that this is
+// inadquate against, as it passes the string via shell to
+// different programs depending on what the user has installed.
+#[cfg(target_os = "linux")]
+fn tiny_dialog_escape(raw: &str) -> String {
+   let s:String = raw.chars()
+       .filter_map(|c| match c {
+           '\n' => Some('\n'),
+           '\0' ..= '\x1f' => None,
+           '<' => Some('\u{FF1C}'),
+           '>' => Some('\u{FF1E}'),
+           '&' => Some('\u{FF06}'),
+           _ => Some(c)
+       })
+       .collect();
+   return shellwords::escape(&s);
+}
+
+#[cfg(not(target_os = "linux"))]
+fn tiny_dialog_escape(raw: &str) -> String {
+   raw.to_string()
 }
