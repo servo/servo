@@ -25,7 +25,7 @@ use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use crate::style_adjuster::StyleAdjuster;
-use crate::values::computed;
+use crate::values::{computed, specified};
 
 /// We split the cascade in two phases: 'early' properties, and 'late'
 /// properties.
@@ -365,24 +365,28 @@ fn should_ignore_declaration_when_ignoring_document_colors(
     // a background image, if we're ignoring document colors).
     // Here we check backplate status to decide if ignoring background-image
     // is the right decision.
-    {
-        let background_color = match **declaration {
-            PropertyDeclaration::BackgroundColor(ref color) => color,
-            // In the future, if/when we remove the backplate pref, we can remove this
-            // special case along with the 'ignored_when_colors_disabled=True' mako line
-            // for the "background-image" property.
-            #[cfg(feature = "gecko")]
-            PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
-            _ => return true,
-        };
+    let (is_background, is_transparent) = match **declaration {
+        PropertyDeclaration::BackgroundColor(ref color) => (true, color.is_transparent()),
+        PropertyDeclaration::Color(ref color) => (false, color.0.is_transparent()),
+        // In the future, if/when we remove the backplate pref, we can remove this
+        // special case along with the 'ignored_when_colors_disabled=True' mako line
+        // for the "background-image" property.
+        #[cfg(feature = "gecko")]
+        PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
+        _ => return true,
+    };
 
-        if background_color.is_transparent() {
-            return false;
-        }
+    if is_transparent {
+        return false;
     }
 
-    let color = device.default_background_color();
-    *declaration.to_mut() = PropertyDeclaration::BackgroundColor(color.into());
+    if is_background {
+        let color = device.default_background_color();
+        *declaration.to_mut() = PropertyDeclaration::BackgroundColor(color.into());
+    } else {
+        let color = device.default_color();
+        *declaration.to_mut() = PropertyDeclaration::Color(specified::ColorPropertyValue(color.into()));
+    }
 
     false
 }

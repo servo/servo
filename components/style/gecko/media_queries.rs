@@ -280,6 +280,11 @@ impl Device {
         convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultBackgroundColor)
     }
 
+    /// Returns the default foreground color.
+    pub fn default_color(&self) -> RGBA {
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultColor)
+    }
+
     /// Returns the current effective text zoom.
     #[inline]
     fn effective_text_zoom(&self) -> f32 {
