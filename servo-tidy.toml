@@ -31,6 +31,8 @@ packages = [
   "cgl",
   "cocoa",
   "gleam",
+  "mach",
+  "nix",
   "wayland-sys",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746

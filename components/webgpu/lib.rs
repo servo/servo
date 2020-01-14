@@ -182,9 +182,9 @@ impl WGPU {
                 },
                 WebGPURequest::CreateBuffer(sender, device, id, descriptor) => {
                     let global = &self.global;
-                    let _output =
+                    let buffer_id =
                         gfx_select!(id => global.device_create_buffer(device.0, &descriptor, id));
-                    let buffer = WebGPUBuffer(id);
+                    let buffer = WebGPUBuffer(buffer_id);
                     if let Err(e) = sender.send(buffer) {
                         warn!(
                             "Failed to send response to WebGPURequest::CreateBuffer ({})",
@@ -194,12 +194,11 @@ impl WGPU {
                 },
                 WebGPURequest::CreateBufferMapped(sender, device, id, descriptor) => {
                     let global = &self.global;
-                    let mut arr_buff_ptr: *mut u8 = std::ptr::null_mut();
                     let buffer_size = descriptor.size as usize;
 
-                    let _output = gfx_select!(id =>
-                        global.device_create_buffer_mapped(device.0, &descriptor, &mut arr_buff_ptr, id));
-                    let buffer = WebGPUBuffer(id);
+                    let (buffer_id, arr_buff_ptr) = gfx_select!(id =>
+                        global.device_create_buffer_mapped(device.0, &descriptor, id));
+                    let buffer = WebGPUBuffer(buffer_id);
 
                     let mut array_buffer = Vec::with_capacity(buffer_size);
                     unsafe {
@@ -215,11 +214,11 @@ impl WGPU {
                 },
                 WebGPURequest::UnmapBuffer(buffer) => {
                     let global = &self.global;
-                    let _output = gfx_select!(buffer.0 => global.buffer_unmap(buffer.0));
+                    gfx_select!(buffer.0 => global.buffer_unmap(buffer.0));
                 },
                 WebGPURequest::DestroyBuffer(buffer) => {
                     let global = &self.global;
-                    let _output = gfx_select!(buffer.0 => global.buffer_destroy(buffer.0));
+                    gfx_select!(buffer.0 => global.buffer_destroy(buffer.0));
                 },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
