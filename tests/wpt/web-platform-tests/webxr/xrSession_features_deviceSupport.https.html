@@ -21,6 +21,7 @@
     "local-floor"]
   };
 
+
   xr_promise_test(testName,
     (t) => {
     function session_resolves(sessionMode, sessionInit) {
@@ -31,34 +32,28 @@
     }
 
     return navigator.xr.test.simulateDeviceConnection(fakeDeviceInitParams)
-      .then((controller) => new Promise((resolve, reject) => {
-        navigator.xr.test.simulateUserActivation(() => {
+      .then((controller) =>
+        promise_simulate_user_activation(() => {
           // Attempting to request required features that aren't supported by
           // the device should reject.
-          promise_rejects(t, "NotSupportedError",
+
+          return promise_rejects(t, "NotSupportedError",
             navigator.xr.requestSession("immersive-vr", {
               requiredFeatures: ['bounded-floor']
             }))
-          .then(() => {
+        }).then(() => promise_simulate_user_activation(() => {
             // Attempting to request with an unsupported feature as optional
             // should succeed
             return session_resolves("immersive-vr", {
               optionalFeatures: ['bounded-floor']
             });
+        })).then(() => promise_simulate_user_activation(() => {
+          // Attempting to request with supported features only should succeed.
+          return session_resolves("immersive-vr", {
+            requiredFeatures: ['local', 'local-floor']
           })
-          .then(() => {
-            // Attempting to request with supported features only should succeed.
-            return session_resolves("immersive-vr", {
-              requiredFeatures: ['local', 'local-floor']
-            })
-          .then(() => {
-            resolve();
-          }).catch((err) => {
-            reject(err);
-          });;
-          });
-        });
-      }));
+        }))
+      );
   });
 
 </script>
