@@ -6,8 +6,8 @@ use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
     id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, ComputePipelineId, DeviceId,
-        PipelineLayoutId, ShaderModuleId,
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
+        DeviceId, PipelineLayoutId, ShaderModuleId,
     },
     Backend,
 };
@@ -22,6 +22,7 @@ pub struct IdentityHub {
     compute_pipelines: IdentityManager,
     pipeline_layouts: IdentityManager,
     shader_modules: IdentityManager,
+    command_encoders: IdentityManager,
     backend: Backend,
 }
 
@@ -36,6 +37,7 @@ impl IdentityHub {
             compute_pipelines: IdentityManager::default(),
             pipeline_layouts: IdentityManager::default(),
             shader_modules: IdentityManager::default(),
+            command_encoders: IdentityManager::default(),
             backend,
         }
     }
@@ -70,6 +72,10 @@ impl IdentityHub {
 
     fn create_shader_module_id(&mut self) -> ShaderModuleId {
         self.shader_modules.alloc(self.backend)
+    }
+
+    pub fn create_command_encoder_id(&mut self) -> CommandEncoderId {
+        self.command_encoders.alloc(self.backend)
     }
 }
 
@@ -165,5 +171,9 @@ impl Identities {
 
     pub fn create_shader_module_id(&mut self, backend: Backend) -> ShaderModuleId {
         self.select(backend).create_shader_module_id()
+    }
+
+    pub fn create_command_encoder_id(&mut self, backend: Backend) -> CommandEncoderId {
+        self.select(backend).create_command_encoder_id()
     }
 }

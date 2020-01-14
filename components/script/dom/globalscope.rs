@@ -99,8 +99,8 @@ use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::wgpu::{
     id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, ComputePipelineId, DeviceId,
-        PipelineLayoutId, ShaderModuleId,
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
+        DeviceId, PipelineLayoutId, ShaderModuleId,
     },
     Backend,
 };
@@ -2137,10 +2137,17 @@ impl GlobalScope {
             .borrow_mut()
             .create_shader_module_id(backend)
     }
+
     pub fn wgpu_create_compute_pipeline_id(&self, backend: Backend) -> ComputePipelineId {
         self.gpu_id_hub
             .borrow_mut()
             .create_compute_pipeline_id(backend)
+    }
+
+    pub fn wgpu_create_command_encoder_id(&self, backend: Backend) -> CommandEncoderId {
+        self.gpu_id_hub
+            .borrow_mut()
+            .create_command_encoder_id(backend)
     }
 }
 
