@@ -70,7 +70,7 @@ impl App {
         // Handle browser state.
         let browser = Browser::new(window.clone());
 
-        let mut servo = Servo::new(embedder, window.clone());
+        let mut servo = Servo::new(embedder, window.clone(), device_pixels_per_px);
         let browser_id = BrowserId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();

@@ -4,11 +4,9 @@
 
 use app_units::Au;
 use euclid::default::Rect;
-use euclid::Size2D;
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
 /// Synchronous messages that script can send to layout.
@@ -41,8 +39,6 @@ pub trait LayoutRPC {
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
     /// Query layout to get the inner text for a given element.
     fn element_inner_text(&self) -> String;
-    /// Get the dimensions of an iframe's inner window.
-    fn inner_window_dimensions(&self) -> Option<Size2D<f32, CSSPixel>>;
 }
 
 pub struct ContentBoxResponse(pub Option<Rect<Au>>);
