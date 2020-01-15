@@ -7,7 +7,7 @@ import tempfile
 import threading
 import traceback
 import uuid
-from six import iteritems
+from six import ensure_str, iteritems
 
 from mozprocess import ProcessHandler
 
@@ -260,10 +260,10 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             if rv != 0 or not os.path.exists(output_path):
                 return False, ("CRASH", None)
 
-            with open(output_path) as f:
+            with open(output_path, "rb") as f:
                 # Might need to strip variable headers or something here
                 data = f.read()
-                return True, base64.b64encode(data)
+                return True, ensure_str(base64.b64encode(data))
 
     def do_test(self, test):
         result = self.implementation.run_test(test)

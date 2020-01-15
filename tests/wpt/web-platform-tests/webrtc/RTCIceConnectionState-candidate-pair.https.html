@@ -14,7 +14,7 @@ promise_test(async t => {
   const callee = new RTCPeerConnection();
   t.add_cleanup(() => callee.close());
 
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const stream = await getNoiseStream({audio:true});
   const [track] = stream.getTracks();
   caller.addTrack(track, stream);
   exchangeIceCandidates(caller, callee);

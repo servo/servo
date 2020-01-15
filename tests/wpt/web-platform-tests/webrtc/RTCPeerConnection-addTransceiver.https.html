@@ -3,6 +3,7 @@
 <title>RTCPeerConnection.prototype.addTransceiver</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -244,7 +245,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
@@ -284,7 +285,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const transceiver1 = pc.addTransceiver(track);

@@ -119,7 +119,7 @@
     const offer = await caller.createOffer();
     await caller.setLocalDescription(offer);
     await callee.setRemoteDescription(offer);
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     callee.addTrack(track, stream);

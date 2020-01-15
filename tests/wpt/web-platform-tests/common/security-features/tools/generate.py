@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 
 import argparse
@@ -64,7 +66,7 @@ def dump_test_parameters(selection):
         cls=util.CustomEncoder)
 
 
-def get_test_filename(config, selection):
+def get_test_filename(spec_directory, spec_json, selection):
     '''Returns the filname for the main test HTML file'''
 
     selection_for_filename = copy.deepcopy(selection)
@@ -72,8 +74,9 @@ def get_test_filename(config, selection):
     if selection_for_filename['delivery_value'] is None:
         selection_for_filename['delivery_value'] = 'unset'
 
-    return os.path.join(config.spec_directory,
-                        config.test_file_path_pattern % selection_for_filename)
+    return os.path.join(
+        spec_directory,
+        spec_json['test_file_path_pattern'] % selection_for_filename)
 
 
 def handle_deliveries(policy_deliveries):
@@ -127,9 +130,9 @@ def handle_deliveries(policy_deliveries):
     return {"meta": meta, "headers": headers}
 
 
-def generate_selection(spec_json, config, selection, spec,
+def generate_selection(spec_directory, spec_json, selection, spec,
                        test_html_template_basename):
-    test_filename = get_test_filename(config, selection)
+    test_filename = get_test_filename(spec_directory, spec_json, selection)
 
     target_policy_delivery = util.PolicyDelivery(selection['delivery_type'],
                                                  selection['delivery_key'],
@@ -175,16 +178,23 @@ def generate_selection(spec_json, config, selection, spec,
         "\n", indent)
 
     selection['spec_name'] = spec['name']
-    selection[
-        'test_page_title'] = config.test_page_title_template % spec['title']
+    selection['test_page_title'] = spec_json['test_page_title_template'] % spec
     selection['spec_description'] = spec['description']
     selection['spec_specification_url'] = spec['specification_url']
-    selection['helper_js'] = config.helper_js
-    selection['sanity_checker_js'] = config.sanity_checker_js
-    selection['spec_json_js'] = config.spec_json_js
+
+    test_directory = os.path.dirname(test_filename)
+
+    selection['helper_js'] = os.path.relpath(
+        os.path.join(spec_directory, 'generic', 'test-case.sub.js'),
+        test_directory)
+    selection['sanity_checker_js'] = os.path.relpath(
+        os.path.join(spec_directory, 'generic', 'sanity-checker.js'),
+        test_directory)
+    selection['spec_json_js'] = os.path.relpath(
+        os.path.join(spec_directory, 'generic', 'spec_json.js'),
+        test_directory)
 
     test_headers_filename = test_filename + ".headers"
-    test_directory = os.path.dirname(test_filename)
 
     test_html_template = util.get_template(test_html_template_basename)
     disclaimer_template = util.get_template('disclaimer.template')
@@ -194,13 +204,13 @@ def generate_selection(spec_json, config, selection, spec,
     generated_disclaimer = disclaimer_template \
         % {'generating_script_filename': os.path.relpath(sys.argv[0],
                                                          util.test_root_directory),
-           'html_template_filename': os.path.relpath(html_template_filename,
-                                                     util.test_root_directory)}
+           'spec_directory': os.path.relpath(spec_directory,
+                                             util.test_root_directory)}
 
     # Adjust the template for the test invoking JS. Indent it to look nice.
     selection['generated_disclaimer'] = generated_disclaimer.rstrip()
-    selection[
-        'test_description'] = config.test_description_template % selection
+    selection['test_description'] = spec_json[
+        'test_description_template'] % selection
     selection['test_description'] = \
         selection['test_description'].rstrip().replace("\n", "\n" + " " * 33)
 
@@ -227,12 +237,12 @@ def generate_selection(spec_json, config, selection, spec,
     util.write_file(test_filename, test_html_template % selection)
 
 
-def generate_test_source_files(config, spec_json, target):
+def generate_test_source_files(spec_directory, spec_json, target):
     test_expansion_schema = spec_json['test_expansion_schema']
     specification = spec_json['specification']
 
     spec_json_js_template = util.get_template('spec_json.js.template')
-    generated_spec_json_filename = os.path.join(config.spec_directory,
+    generated_spec_json_filename = os.path.join(spec_directory, "generic",
                                                 "spec_json.js")
     util.write_file(
         generated_spec_json_filename,
@@ -251,7 +261,8 @@ def generate_test_source_files(config, spec_json, target):
             expand_pattern(excluded_pattern, test_expansion_schema)
         for excluded_selection in permute_expansion(excluded_expansion,
                                                     artifact_order):
-            excluded_selection_path = config.selection_pattern % excluded_selection
+            excluded_selection_path = spec_json[
+                'selection_pattern'] % excluded_selection
             exclusion_dict[excluded_selection_path] = True
 
     for spec in specification:
@@ -264,7 +275,7 @@ def generate_test_source_files(config, spec_json, target):
                                        test_expansion_schema)
             for selection in permute_expansion(expansion, artifact_order):
                 selection['delivery_key'] = spec_json['delivery_key']
-                selection_path = config.selection_pattern % selection
+                selection_path = spec_json['selection_pattern'] % selection
                 if not selection_path in exclusion_dict:
                     if selection_path in output_dict:
                         if expansion_pattern['expansion'] != 'override':
@@ -280,13 +291,13 @@ def generate_test_source_files(config, spec_json, target):
         for selection_path in output_dict:
             selection = output_dict[selection_path]
             try:
-                generate_selection(spec_json, config, selection, spec,
+                generate_selection(spec_directory, spec_json, selection, spec,
                                    html_template)
             except util.ShouldSkip:
                 continue
 
 
-def main(config):
+def main():
     parser = argparse.ArgumentParser(
         description='Test suite generator utility')
     parser.add_argument(
@@ -300,16 +311,19 @@ def main(config):
         '-s',
         '--spec',
         type=str,
-        default=None,
+        default=os.getcwd(),
         help='Specify a file used for describing and generating the tests')
     # TODO(kristijanburnik): Add option for the spec_json file.
     args = parser.parse_args()
 
-    if args.spec:
-        config.spec_directory = args.spec
+    spec_directory = os.path.abspath(args.spec)
 
-    spec_filename = os.path.join(config.spec_directory, "spec.src.json")
+    spec_filename = os.path.join(spec_directory, "spec.src.json")
     spec_json = util.load_spec_json(spec_filename)
     spec_validator.assert_valid_spec_json(spec_json)
 
-    generate_test_source_files(config, spec_json, args.target)
+    generate_test_source_files(spec_directory, spec_json, args.target)
+
+
+if __name__ == '__main__':
+    main()

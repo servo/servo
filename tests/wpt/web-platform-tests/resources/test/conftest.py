@@ -2,11 +2,12 @@ import copy
 import json
 import os
 import ssl
+import sys
+import subprocess
 
 import html5lib
 import py
 import pytest
-from selenium import webdriver
 from six import text_type
 from six.moves import urllib
 
@@ -17,6 +18,9 @@ WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
 TEST_TYPES = ('functional', 'unit')
 DEFAULT_VARIANTS = ["?default"]
+
+sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools", "webdriver")))
+import webdriver
 
 
 def pytest_addoption(parser):
@@ -38,8 +42,16 @@ def pytest_collect_file(path, parent):
 
 
 def pytest_configure(config):
-    config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
-    config.add_cleanup(config.driver.quit)
+    config.proc = subprocess.Popen(["geckodriver"])
+    config.add_cleanup(config.proc.kill)
+
+    capabilities = {"alwaysMatch": {"acceptInsecureCerts": True}}
+    if config.getoption("--binary"):
+        capabilities["alwaysMatch"]["moz:firefoxOptions"] = {"binary": config.getoption("--binary")}
+
+    config.driver = webdriver.Session("localhost", 4444,
+                                      capabilities=capabilities)
+    config.add_cleanup(config.driver.end)
 
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
@@ -149,7 +161,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
         driver = self.session.config.driver
         server = self.session.config.server
 
-        driver.get(server.url(HARNESS))
+        driver.url = server.url(HARNESS)
 
         actual = driver.execute_async_script(
             'runTest("%s", "foo", arguments[0])' % self.url
@@ -172,7 +184,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
         driver = self.session.config.driver
         server = self.session.config.server
 
-        driver.get(server.url(HARNESS))
+        driver.url = server.url(HARNESS)
 
         test_url = self.url + variant
         actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % test_url)

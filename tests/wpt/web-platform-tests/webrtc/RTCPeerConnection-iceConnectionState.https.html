@@ -223,7 +223,7 @@ async_test(t => {
     t.add_cleanup(() => callee.close());
 
     caller.addTransceiver('audio', {direction:'recvonly'});
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const stream = await getNoiseStream({audio:true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     callee.addTrack(track, stream);
@@ -285,7 +285,7 @@ for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
     promise_test(async t => {
       const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
       t.add_cleanup(() => caller.close());
-      const stream = await navigator.mediaDevices.getUserMedia(
+      const stream = await getNoiseStream(
           {audio: true, video:true});
       t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
       const [track1, track2] = stream.getTracks();
@@ -341,9 +341,9 @@ promise_test(async t => {
     pc2.iceStates.push(pc2.iceConnectionState);
   };
 
-  const localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
-  const localStream2 = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
-  const remoteStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  const localStream = await getNoiseStream({audio: true, video: true});
+  const localStream2 = await getNoiseStream({audio: true, video: true});
+  const remoteStream = await getNoiseStream({audio: true, video: true});
   for (const stream of [localStream, localStream2, remoteStream]) {
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   }

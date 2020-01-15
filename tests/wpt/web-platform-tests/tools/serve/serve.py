@@ -351,7 +351,7 @@ class RoutesBuilder(object):
         if headers is None:
             headers = {}
         handler = handlers.StaticHandler(path, format_args, content_type, **headers)
-        self.add_handler(b"GET", str(route), handler)
+        self.add_handler("GET", str(route), handler)
 
     def add_mount_point(self, url_base, path):
         url_base = "/%s/" % url_base.strip("/") if url_base != "/" else "/"

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+  <canvas></canvas>
+  <script>
+    xr_session_promise_test(
+      "Tests environmentBlendMode for an AR device",
+      (session) => {
+        assert_not_equals(session.environmentBlendMode, "opaque");
+        assert_in_array(session.environmentBlendMode, ["alpha-blend", "additive"]);
+      }, IMMERSIVE_AR_DEVICE, 'immersive-ar', {});
+
+
+    xr_session_promise_test(
+      "Tests environmentBlendMode for a VR device",
+      (session) => {
+        assert_not_equals(session.environmentBlendMode, "alpha-blend");
+        assert_in_array(session.environmentBlendMode, ["opaque", "additive"]);
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {});
+</script>
+</body>

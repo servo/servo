@@ -448,7 +448,7 @@
     t.add_cleanup(() => pc1.close());
     t.add_cleanup(() => pc2.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stopTracks(stream));
     const track = stream.getAudioTracks()[0];
     pc1.addTrack(track, stream);

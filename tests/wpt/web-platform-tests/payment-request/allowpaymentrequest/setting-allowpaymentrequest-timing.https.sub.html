@@ -22,11 +22,15 @@ async_test((t) => {
     iframe.contentWindow.postMessage('What is the result of new PaymentRequest(...)?', '*');
   });
 
-  window.onmessage = t.step_func_done((e) => {
+  window.onmessage = t.step_func((e) => {
+    // Ignore messages that are not part of the test.
+    if (e.source != iframe.contentWindow) return;
+
     assert_equals(e.data.message, 'Exception');
     assert_equals(4, e.data.details.length);
     // The last entry is the error stacktrace. Ignore it in comparison.
     assert_array_equals(e.data.details.slice(0, 3), [true /* ex instanceof DOMException */, DOMException.SECURITY_ERR, 'SecurityError']);
+    t.done();
   });
 
   document.body.appendChild(iframe);

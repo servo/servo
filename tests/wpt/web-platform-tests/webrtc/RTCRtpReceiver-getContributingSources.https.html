@@ -13,7 +13,7 @@ async function connectAndExpectNoCsrcs(t, kind) {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  const stream = await navigator.mediaDevices.getUserMedia({[kind]:true});
+  const stream = await getNoiseStream({[kind]:true});
   const [track] = stream.getTracks();
   t.add_cleanup(() => track.stop());
   pc1.addTrack(track, stream);

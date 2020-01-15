@@ -1,4 +1,8 @@
 {
+  "selection_pattern": "%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s",
+  "test_file_path_pattern": "gen/%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s.html",
+  "test_description_template": "Referrer Policy: Expects %(expectation)s for %(subresource)s to %(origin)s origin and %(redirection)s redirection from %(source_scheme)s context.",
+  "test_page_title_template": "Referrer-Policy: %(title)s",
   "specification": [
     {
       "name": "unset-referrer-policy",
