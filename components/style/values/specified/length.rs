@@ -599,11 +599,11 @@ impl Length {
                     value,
                 ))))
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => input
-                .parse_nested_block(|input| {
-                    CalcNode::parse_length(context, input, num_context)
-                        .map(|calc| Length::Calc(Box::new(calc)))
-                }),
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let calc = CalcNode::parse_length(context, input, num_context, function)?;
+                Ok(Length::Calc(Box::new(calc)))
+            },
             ref token => return Err(location.new_unexpected_token_error(token.clone())),
         }
     }
@@ -822,10 +822,9 @@ impl LengthPercentage {
                     return Ok(LengthPercentage::Length(NoCalcLength::from_px(value)));
                 }
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i, num_context)
-                })?;
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let calc = CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))
             },
             _ => return Err(location.new_unexpected_token_error(token.clone())),

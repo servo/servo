@@ -144,8 +144,9 @@ fn parse_number_with_clamping_mode<'i, 't>(
                 calc_clamping_mode: None,
             })
         },
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = input.parse_nested_block(|i| CalcNode::parse_number(context, i))?;
+        Token::Function(ref name) => {
+            let function = CalcNode::math_function(name, location)?;
+            let result = CalcNode::parse_number(context, input, function)?;
             Ok(Number {
                 value: result.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: Some(clamping_mode),
@@ -543,8 +544,9 @@ impl Parse for Integer {
             Token::Number {
                 int_value: Some(v), ..
             } => Ok(Integer::new(v)),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let result = input.parse_nested_block(|i| CalcNode::parse_integer(context, i))?;
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let result = CalcNode::parse_integer(context, input, function)?;
                 Ok(Integer::from_calc(result))
             },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
@@ -559,16 +561,16 @@ impl Integer {
         input: &mut Parser<'i, 't>,
         min: i32,
     ) -> Result<Integer, ParseError<'i>> {
-        match Integer::parse(context, input) {
-            // FIXME(emilio): The spec asks us to avoid rejecting it at parse
-            // time except until computed value time.
-            //
-            // It's not totally clear it's worth it though, and no other browser
-            // does this.
-            Ok(value) if value.value() >= min => Ok(value),
-            Ok(_value) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            Err(e) => Err(e),
+        let value = Integer::parse(context, input)?;
+        // FIXME(emilio): The spec asks us to avoid rejecting it at parse
+        // time except until computed value time.
+        //
+        // It's not totally clear it's worth it though, and no other browser
+        // does this.
+        if value.value() < min {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
+        Ok(value)
     }
 
     /// Parse a non-negative integer.
