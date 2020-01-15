@@ -28,6 +28,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use euclid::Size2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -175,13 +176,6 @@ impl HTMLIFrameElement {
             replace: replace,
         };
 
-        let window_size = WindowSizeData {
-            initial_viewport: window
-                .inner_window_dimensions_query(browsing_context_id)
-                .unwrap_or_default(),
-            device_pixel_ratio: window.device_pixel_ratio(),
-        };
-
         match nav_type {
             NavigationType::InitialAboutBlank => {
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
@@ -193,7 +187,6 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id: old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
                 };
                 global_scope
                     .script_to_constellation_chan()
@@ -208,7 +201,13 @@ impl HTMLIFrameElement {
                     opener: None,
                     load_data: load_data,
                     pipeline_port: pipeline_receiver,
-                    window_size,
+                    window_size: WindowSizeData {
+                        initial_viewport: {
+                            let rect = self.upcast::<Node>().bounding_content_box_or_zero();
+                            Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px())
+                        },
+                        device_pixel_ratio: window.device_pixel_ratio(),
+                    },
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -220,7 +219,6 @@ impl HTMLIFrameElement {
                     load_data: load_data,
                     old_pipeline_id: old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
                 };
                 global_scope
                     .script_to_constellation_chan()
