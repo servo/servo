@@ -194,6 +194,9 @@ impl XRMethods for XR {
                         required_features.push(s)
                     } else {
                         warn!("Unable to convert required feature to string");
+                        if mode != XRSessionMode::Inline {
+                            self.pending_immersive_session.set(false);
+                        }
                         promise.reject_error(Error::NotSupported);
                         return promise;
                     }
@@ -220,7 +223,6 @@ impl XRMethods for XR {
             optional_features,
         };
 
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let this = Trusted::new(self);
         let (task_source, canceller) = window
@@ -253,7 +255,6 @@ impl XRMethods for XR {
         window
             .webxr_registry()
             .request_session(mode.into(), init, sender, frame_sender);
-
         promise
     }
 
@@ -274,6 +275,9 @@ impl XR {
         let session = match response {
             Ok(session) => session,
             Err(_) => {
+                if mode != XRSessionMode::Inline {
+                    self.pending_immersive_session.set(false);
+                }
                 promise.reject_error(Error::NotSupported);
                 return;
             },
