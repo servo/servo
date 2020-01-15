@@ -30,6 +30,7 @@ use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -452,35 +453,50 @@ impl EventTarget {
     }
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
+    // step 3
     #[allow(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
         handler: InternalRawUncompiledHandler,
         ty: &Atom,
     ) -> Option<CommonEventHandler> {
-        // Step 1.1
+        // Step 3.1
         let element = self.downcast::<Element>();
         let document = match element {
             Some(element) => document_from_node(element),
             None => self.downcast::<Window>().unwrap().Document(),
         };
 
-        // Step 1.2
+        // Step 3.2
         if !document.is_scripting_enabled() {
             return None;
         }
 
-        // Step 1.3
+        // Step 3.3
         let body: Vec<u16> = handler.source.encode_utf16().collect();
 
-        // TODO step 1.5 (form owner)
+        // Step 3.4 is handler.line
 
-        // Step 1.6
+        // Step 3.5
+        let form_owner = element
+            .and_then(|e| e.as_maybe_form_control())
+            .and_then(|f| f.form_owner());
+
+        // Step 3.6 TODO: settings objects not implemented
+
+        // Step 3.7 is written as though we call the parser separately
+        // from the compiler; since we just call CompileFunction with
+        // source text, we handle parse errors later
+
+        // Step 3.8 TODO: settings objects not implemented
+
+        // Step 3.9
         let window = document.window();
 
         let url_serialized = CString::new(handler.url.to_string()).unwrap();
         let name = CString::new(&**ty).unwrap();
 
+        // Step 3.9, subsection ParameterList
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];
         static mut ERROR_ARG_NAMES: [*const c_char; 5] = [
             b"event\0" as *const u8 as *const c_char,
@@ -489,7 +505,6 @@ impl EventTarget {
             b"colno\0" as *const u8 as *const c_char,
             b"error\0" as *const u8 as *const c_char,
         ];
-        // step 10
         let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = unsafe {
             if is_error {
@@ -501,11 +516,19 @@ impl EventTarget {
 
         let cx = window.get_cx();
         let options = CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32);
-        // TODO step 1.10.1-3 (document, form owner, element in scope chain)
 
+        // Step 3.9, subsection Scope steps 1-6
         let scopechain = AutoObjectVectorWrapper::new(*cx);
 
-        let _ac = enter_realm(&*window);
+        if let Some(element) = element {
+            scopechain.append(document.reflector().get_jsobject().get());
+            if let Some(form_owner) = form_owner {
+                scopechain.append(form_owner.reflector().get_jsobject().get());
+            }
+            scopechain.append(element.reflector().get_jsobject().get());
+        }
+
+        let _ac = enter_realm(&*window); // TODO 3.8 should replace this
         rooted!(in(*cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(
@@ -525,17 +548,20 @@ impl EventTarget {
             )
         };
         if !rv || handler.get().is_null() {
-            // Step 1.8.2
+            // Step 3.7
             unsafe {
                 let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(*cx, false);
             }
-            // Step 1.8.1 / 1.8.3
             return None;
         }
 
-        // TODO step 1.11-13
+        // Step 3.10 happens when we drop _ac
+
+        // TODO Step 3.11
+
+        // Step 3.12
         let funobj = unsafe { JS_GetFunctionObject(handler.get()) };
         assert!(!funobj.is_null());
         // Step 1.14
