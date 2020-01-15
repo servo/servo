@@ -114,6 +114,27 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     }
 }
 
+pub fn uniform_get<T, F>(triple: (&WebGLRenderingContext, WebGLProgramId, i32), f: F) -> T
+where
+    F: FnOnce(WebGLProgramId, i32, WebGLSender<T>) -> WebGLCommand,
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    let (sender, receiver) = webgl_channel().unwrap();
+    triple.0.send_command(f(triple.1, triple.2, sender));
+    receiver.recv().unwrap()
+}
+
+#[allow(unsafe_code)]
+pub unsafe fn uniform_typed<T>(cx: *mut JSContext, value: &[T::Element]) -> JSVal
+where
+    T: TypedArrayElementCreator,
+{
+    rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+    <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(&value), rval.handle_mut())
+        .unwrap();
+    ObjectValue(rval.get())
+}
+
 bitflags! {
     /// Set of bitflags for texture unpacking (texImage2d, etc...)
     #[derive(JSTraceable, MallocSizeOf)]
@@ -401,7 +422,7 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
+    pub fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
     where
         F: FnOnce(&WebGLUniformLocation) -> WebGLResult<()>,
     {
@@ -1213,6 +1234,25 @@ impl WebGLRenderingContext {
 
     pub fn current_program(&self) -> Option<DomRoot<WebGLProgram>> {
         self.current_program.get()
+    }
+
+    pub fn uniform_check_program(
+        &self,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation,
+    ) -> WebGLResult<()> {
+        self.validate_ownership(program)?;
+
+        if program.is_deleted() ||
+            !program.is_linked() ||
+            self.context_id() != location.context_id() ||
+            program.id() != location.program_id() ||
+            program.link_generation() != location.link_generation()
+        {
+            return Err(InvalidOperation);
+        }
+
+        Ok(())
     }
 }
 
@@ -3548,88 +3588,60 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         program: &WebGLProgram,
         location: &WebGLUniformLocation,
     ) -> JSVal {
-        handle_potential_webgl_error!(self, self.validate_ownership(program), return NullValue());
-
-        if program.is_deleted() ||
-            !program.is_linked() ||
-            self.context_id() != location.context_id() ||
-            program.id() != location.program_id() ||
-            program.link_generation() != location.link_generation()
-        {
-            self.webgl_error(InvalidOperation);
-            return NullValue();
-        }
-
-        fn get<T, F>(triple: (&WebGLRenderingContext, WebGLProgramId, i32), f: F) -> T
-        where
-            F: FnOnce(WebGLProgramId, i32, WebGLSender<T>) -> WebGLCommand,
-            T: for<'de> Deserialize<'de> + Serialize,
-        {
-            let (sender, receiver) = webgl_channel().unwrap();
-            triple.0.send_command(f(triple.1, triple.2, sender));
-            receiver.recv().unwrap()
-        }
+        handle_potential_webgl_error!(
+            self,
+            self.uniform_check_program(program, location),
+            return NullValue()
+        );
 
         let triple = (self, program.id(), location.id());
 
-        unsafe fn typed<T>(cx: *mut JSContext, value: &[T::Element]) -> JSVal
-        where
-            T: TypedArrayElementCreator,
-        {
-            rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
-            <TypedArray<T, *mut JSObject>>::create(
-                cx,
-                CreateWith::Slice(&value),
-                rval.handle_mut(),
-            )
-            .unwrap();
-            ObjectValue(rval.get())
-        }
-
         match location.type_() {
-            constants::BOOL => BooleanValue(get(triple, WebGLCommand::GetUniformBool)),
+            constants::BOOL => BooleanValue(uniform_get(triple, WebGLCommand::GetUniformBool)),
             constants::BOOL_VEC2 => unsafe {
                 rooted!(in(*cx) let mut rval = NullValue());
-                get(triple, WebGLCommand::GetUniformBool2).to_jsval(*cx, rval.handle_mut());
+                uniform_get(triple, WebGLCommand::GetUniformBool2).to_jsval(*cx, rval.handle_mut());
                 rval.get()
             },
             constants::BOOL_VEC3 => unsafe {
                 rooted!(in(*cx) let mut rval = NullValue());
-                get(triple, WebGLCommand::GetUniformBool3).to_jsval(*cx, rval.handle_mut());
+                uniform_get(triple, WebGLCommand::GetUniformBool3).to_jsval(*cx, rval.handle_mut());
                 rval.get()
             },
             constants::BOOL_VEC4 => unsafe {
                 rooted!(in(*cx) let mut rval = NullValue());
-                get(triple, WebGLCommand::GetUniformBool4).to_jsval(*cx, rval.handle_mut());
+                uniform_get(triple, WebGLCommand::GetUniformBool4).to_jsval(*cx, rval.handle_mut());
                 rval.get()
             },
             constants::INT | constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
-                Int32Value(get(triple, WebGLCommand::GetUniformInt))
+                Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt))
             },
             constants::INT_VEC2 => unsafe {
-                typed::<Int32>(*cx, &get(triple, WebGLCommand::GetUniformInt2))
+                uniform_typed::<Int32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformInt2))
             },
             constants::INT_VEC3 => unsafe {
-                typed::<Int32>(*cx, &get(triple, WebGLCommand::GetUniformInt3))
+                uniform_typed::<Int32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformInt3))
             },
             constants::INT_VEC4 => unsafe {
-                typed::<Int32>(*cx, &get(triple, WebGLCommand::GetUniformInt4))
+                uniform_typed::<Int32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformInt4))
             },
-            constants::FLOAT => DoubleValue(get(triple, WebGLCommand::GetUniformFloat) as f64),
+            constants::FLOAT => {
+                DoubleValue(uniform_get(triple, WebGLCommand::GetUniformFloat) as f64)
+            },
             constants::FLOAT_VEC2 => unsafe {
-                typed::<Float32>(*cx, &get(triple, WebGLCommand::GetUniformFloat2))
+                uniform_typed::<Float32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformFloat2))
             },
             constants::FLOAT_VEC3 => unsafe {
-                typed::<Float32>(*cx, &get(triple, WebGLCommand::GetUniformFloat3))
+                uniform_typed::<Float32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformFloat3))
             },
             constants::FLOAT_VEC4 | constants::FLOAT_MAT2 => unsafe {
-                typed::<Float32>(*cx, &get(triple, WebGLCommand::GetUniformFloat4))
+                uniform_typed::<Float32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformFloat4))
             },
             constants::FLOAT_MAT3 => unsafe {
-                typed::<Float32>(*cx, &get(triple, WebGLCommand::GetUniformFloat9))
+                uniform_typed::<Float32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformFloat9))
             },
             constants::FLOAT_MAT4 => unsafe {
-                typed::<Float32>(*cx, &get(triple, WebGLCommand::GetUniformFloat16))
+                uniform_typed::<Float32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformFloat16))
             },
             _ => panic!("wrong uniform type"),
         }
