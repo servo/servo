@@ -339,11 +339,12 @@ impl Lines {
             block: line_block_size,
         };
         self.next_line_block_position += size.block;
-        self.fragments.push(Fragment::Anonymous(AnonymousFragment {
-            children: line_contents,
-            rect: Rect { start_corner, size },
-            mode: containing_block.style.writing_mode,
-        }))
+        self.fragments
+            .push(Fragment::Anonymous(AnonymousFragment::new(
+                Rect { start_corner, size },
+                line_contents,
+                containing_block.style.writing_mode,
+            )))
     }
 }
 
@@ -402,22 +403,24 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         inline_position: &mut Length,
         at_line_break: bool,
     ) {
-        let mut fragment = BoxFragment {
-            tag: self.tag,
-            style: self.style.clone(),
-            children: std::mem::take(&mut nesting_level.fragments_so_far),
-            content_rect: Rect {
-                size: Vec2 {
-                    inline: *inline_position - self.start_corner.inline,
-                    block: nesting_level.max_block_size_of_fragments_so_far,
-                },
-                start_corner: self.start_corner.clone(),
+        let content_rect = Rect {
+            size: Vec2 {
+                inline: *inline_position - self.start_corner.inline,
+                block: nesting_level.max_block_size_of_fragments_so_far,
             },
-            padding: self.padding.clone(),
-            border: self.border.clone(),
-            margin: self.margin.clone(),
-            block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
+            start_corner: self.start_corner.clone(),
         };
+
+        let mut fragment = BoxFragment::new(
+            self.tag,
+            self.style.clone(),
+            std::mem::take(&mut nesting_level.fragments_so_far),
+            content_rect,
+            self.padding.clone(),
+            self.border.clone(),
+            self.margin.clone(),
+            CollapsedBlockMargins::zero(),
+        );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
         if last_fragment {
             *inline_position += fragment.padding.inline_end +
@@ -470,16 +473,16 @@ fn layout_atomic<'box_tree>(
             let size = replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
-            BoxFragment {
-                tag: atomic.tag,
-                style: atomic.style.clone(),
-                children: fragments,
+            BoxFragment::new(
+                atomic.tag,
+                atomic.style.clone(),
+                fragments,
                 content_rect,
                 padding,
                 border,
                 margin,
-                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
-            }
+                CollapsedBlockMargins::zero(),
+            )
         },
         Err(non_replaced) => {
             let box_size = atomic.style.box_size();
@@ -545,16 +548,16 @@ fn layout_atomic<'box_tree>(
                     inline: inline_size,
                 },
             };
-            BoxFragment {
-                tag: atomic.tag,
-                style: atomic.style.clone(),
-                children: independent_layout.fragments,
+            BoxFragment::new(
+                atomic.tag,
+                atomic.style.clone(),
+                independent_layout.fragments,
                 content_rect,
                 padding,
                 border,
                 margin,
-                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
-            }
+                CollapsedBlockMargins::zero(),
+            )
         },
     };
 

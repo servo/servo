@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::geom::physical;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
@@ -36,6 +37,9 @@ pub(crate) struct BoxFragment {
     pub margin: Sides<Length>,
 
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
+
+    /// The scrollable overflow of this box fragment.
+    pub scrollable_overflow: physical::Rect<Length>,
 }
 
 pub(crate) struct CollapsedBlockMargins {
@@ -55,6 +59,9 @@ pub(crate) struct AnonymousFragment {
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
     pub mode: WritingMode,
+
+    /// The scrollable overflow of this anonymous fragment's children.
+    pub scrollable_overflow: physical::Rect<Length>,
 }
 
 pub(crate) struct TextFragment {
@@ -90,6 +97,21 @@ impl Fragment {
             Fragment::Image(fragment) => fragment.print(tree),
         }
     }
+
+    pub fn scrollable_overflow(&self) -> physical::Rect<Length> {
+        // FIXME(mrobinson, bug 25564): We should be using the containing block
+        // here to properly convert scrollable overflow to physical geometry.
+        match self {
+            Fragment::Box(fragment) => fragment.scrollable_overflow.clone(),
+            Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
+            Fragment::Text(fragment) => fragment
+                .rect
+                .to_physical(fragment.parent_style.writing_mode, &physical::Rect::zero()),
+            Fragment::Image(fragment) => fragment
+                .rect
+                .to_physical(fragment.style.writing_mode, &physical::Rect::zero()),
+        }
+    }
 }
 
 impl AnonymousFragment {
@@ -98,6 +120,21 @@ impl AnonymousFragment {
             children: vec![],
             rect: Rect::zero(),
             mode,
+            scrollable_overflow: physical::Rect::zero(),
+        }
+    }
+
+    pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
+        // FIXME(mrobinson, bug 25564): We should be using the containing block
+        // here to properly convert scrollable overflow to physical geometry.
+        let scrollable_overflow = children.iter().fold(physical::Rect::zero(), |acc, child| {
+            acc.axis_aligned_bounding_box(&child.scrollable_overflow())
+        });
+        AnonymousFragment {
+            rect,
+            children,
+            mode,
+            scrollable_overflow,
         }
     }
 
@@ -116,6 +153,37 @@ impl AnonymousFragment {
 }
 
 impl BoxFragment {
+    pub fn new(
+        tag: OpaqueNode,
+        style: ServoArc<ComputedValues>,
+        children: Vec<Fragment>,
+        content_rect: Rect<Length>,
+        padding: Sides<Length>,
+        border: Sides<Length>,
+        margin: Sides<Length>,
+        block_margins_collapsed_with_children: CollapsedBlockMargins,
+    ) -> BoxFragment {
+        // FIXME(mrobinson, bug 25564): We should be using the containing block
+        // here to properly convert scrollable overflow to physical geometry.
+        let scrollable_overflow = children.iter().fold(
+            content_rect
+                .inflate(&border)
+                .to_physical(style.writing_mode, &physical::Rect::zero()),
+            |acc, child| acc.axis_aligned_bounding_box(&child.scrollable_overflow()),
+        );
+        BoxFragment {
+            tag,
+            style,
+            children,
+            content_rect,
+            padding,
+            border,
+            margin,
+            block_margins_collapsed_with_children,
+            scrollable_overflow,
+        }
+    }
+
     pub fn padding_rect(&self) -> Rect<Length> {
         self.content_rect.inflate(&self.padding)
     }

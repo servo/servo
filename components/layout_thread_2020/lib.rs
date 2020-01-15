@@ -1374,12 +1374,16 @@ impl LayoutThread {
             document.will_paint();
         }
 
+        let mut display_list = DisplayListBuilder::new(
+            self.id.to_webrender(),
+            context,
+            fragment_tree.scrollable_overflow(),
+        );
+
         let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        let mut display_list =
-            DisplayListBuilder::new(self.id.to_webrender(), context, viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
 
         if self.dump_flow_tree {

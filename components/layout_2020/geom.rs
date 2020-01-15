@@ -60,6 +60,15 @@ pub(crate) mod flow_relative {
     }
 }
 
+impl<T: Zero> physical::Vec2<T> {
+    pub fn zero() -> Self {
+        Self {
+            x: T::zero(),
+            y: T::zero(),
+        }
+    }
+}
+
 impl<T: fmt::Debug> fmt::Debug for physical::Vec2<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Not using f.debug_struct on purpose here, to keep {:?} output somewhat compact
@@ -383,6 +392,33 @@ impl<T> physical::Rect<T> {
         physical::Rect {
             top_left: &self.top_left + by,
             size: self.size.clone(),
+        }
+    }
+}
+
+impl physical::Rect<Length> {
+    pub fn axis_aligned_bounding_box(&self, other: &Self) -> Self {
+        let top_left = physical::Vec2 {
+            x: self.top_left.x.min(other.top_left.x),
+            y: self.top_left.y.min(other.top_left.y),
+        };
+
+        let bottom_corner_x = (self.top_left.x + self.size.x).max(other.top_left.x + other.size.x);
+        let bottom_corner_y = (self.top_left.y + self.size.y).max(other.top_left.y + other.size.y);
+        let size = physical::Vec2 {
+            x: bottom_corner_x - top_left.x,
+            y: bottom_corner_y - top_left.y,
+        };
+
+        Self { top_left, size }
+    }
+}
+
+impl<T: Zero> physical::Rect<T> {
+    pub fn zero() -> Self {
+        Self {
+            top_left: physical::Vec2::zero(),
+            size: physical::Vec2::zero(),
         }
     }
 }
