@@ -255,7 +255,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36a698e449024a5d18994a815998bf5e2e4bc1883e35a7d7ba95b6b69ee45907"
 dependencies = [
  "cfg-if",
- "core-foundation",
+ "core-foundation 0.6.4",
  "lazycell",
  "libc",
  "mach 0.2.3",
@@ -713,7 +713,7 @@ checksum = "cf79daa4e11e5def06e55306aa3601b87de6b5149671529318da048f67cdd77b"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "foreign-types",
  "libc",
@@ -728,7 +728,7 @@ checksum = "f29f7768b2d1be17b96158e3285951d366b40211320fb30826a76cb7a0da6400"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "foreign-types",
  "libc",
@@ -910,7 +910,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56790968ab1c8a1202a102e6de05fc6e1ec87da99e4e93e9a7d13efbfc1e95a9"
 dependencies = [
  "bitflags",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "foreign-types",
  "libc",
 ]
@@ -933,7 +933,7 @@ version = "13.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95a72b5e50e549969dd88eff3047495fe5b8c6f028635442c2b708be707e669"
 dependencies = [
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "foreign-types",
  "libc",
@@ -1734,7 +1734,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "core-text 13.2.0",
  "dwrote",
@@ -2000,7 +2000,7 @@ dependencies = [
  "android_glue",
  "cgl 0.2.3",
  "cocoa 0.18.4",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "glutin_egl_sys",
  "glutin_emscripten_sys",
@@ -2691,7 +2691,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2279a6faecd06034f88218f77f7a767693e0957bce0323a96d92747e2760b445"
 dependencies = [
  "cgl 0.3.2",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "gleam 0.7.0",
  "leaky-cow",
  "libc",
@@ -5397,7 +5397,7 @@ source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fe
 name = "simpleservo"
 version = "0.0.1"
 dependencies = [
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "getopts",
  "gl_generator 0.11.0",
  "libc",
@@ -5716,7 +5716,7 @@ dependencies = [
  "bitflags",
  "cgl 0.3.2",
  "cocoa 0.19.1",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "display-link",
  "euclid",
@@ -5743,7 +5743,7 @@ dependencies = [
  "bitflags",
  "cgl 0.3.2",
  "cocoa 0.19.1",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "display-link",
  "euclid",
@@ -6596,7 +6596,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "cfg-if",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "core-text 13.2.0",
  "cstr",
@@ -6635,7 +6635,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "derive_more 0.13.0",
  "euclid",
@@ -6808,7 +6808,7 @@ dependencies = [
  "backtrace",
  "bitflags",
  "cocoa 0.18.4",
- "core-foundation 0.6.2",
+ "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "lazy_static",
  "libc",
