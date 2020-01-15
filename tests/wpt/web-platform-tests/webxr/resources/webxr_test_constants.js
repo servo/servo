@@ -136,6 +136,14 @@ const TRACKED_IMMERSIVE_DEVICE = {
     supportedFeatures: ALL_FEATURES
 };
 
+const IMMERSIVE_AR_DEVICE = {
+  supportsImmersive: true,
+  supportedModes: [ "inline", "immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  supportedFeatures: ALL_FEATURES
+};
+
 const VALID_NON_IMMERSIVE_DEVICE = {
     supportsImmersive: false,
     supportedModes: ["inline"],
@@ -154,6 +162,13 @@ const VALID_CONTROLLER = {
 const RIGHT_CONTROLLER = {
     handedness: "right",
     targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+};
+
+const SCREEN_CONTROLLER = {
+    handedness: "none",
+    targetRayMode: "screen",
     pointerOrigin: VALID_POINTER_TRANSFORM,
     profiles: []
 };

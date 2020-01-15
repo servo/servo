@@ -6,14 +6,14 @@ import stat
 import errno
 import subprocess
 import tempfile
-import urlparse
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from distutils.spawn import find_executable
 
+from six.moves.urllib.parse import urlsplit
 import requests
 
-from utils import call, get, untar, unzip
+from .utils import call, get, untar, unzip
 
 uname = platform.uname()
 
@@ -172,7 +172,7 @@ class Firefox(Browser):
                 filename = filenames[0]
 
         if not filename:
-            filename = urlparse.urlsplit(resp.url).path.rsplit("/", 1)[1]
+            filename = urlsplit(resp.url).path.rsplit("/", 1)[1]
 
         if not filename:
             filename = "firefox.tar.bz2"

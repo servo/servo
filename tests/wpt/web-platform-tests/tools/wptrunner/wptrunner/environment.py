@@ -192,7 +192,7 @@ class TestEnvironment(object):
             data += fp.read()
         with open(os.path.join(here, "testdriver-extra.js"), "rb") as fp:
             data += fp.read()
-        route_builder.add_handler(b"GET", b"/resources/testdriver.js",
+        route_builder.add_handler("GET", "/resources/testdriver.js",
                                   StringHandler(data, "text/javascript"))
 
         for url_base, paths in iteritems(self.test_paths):

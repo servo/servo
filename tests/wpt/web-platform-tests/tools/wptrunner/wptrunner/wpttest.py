@@ -93,7 +93,7 @@ class RunInfo(dict):
         self._update_mozinfo(metadata_root)
         self.update(mozinfo.info)
 
-        from update.tree import GitTree
+        from .update.tree import GitTree
         try:
             # GitTree.__init__ throws if we are not in a git tree.
             rev = GitTree(log_error=False).rev

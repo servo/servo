@@ -34,6 +34,7 @@
 
   <script>
     var wheelbox = document.getElementById("wheelbox");
+    var test_wheel_scrolling = async_test("wheel scrolling test");
 
     EventRecorder.configure({
       mergeEventTypes: ['wheel'],
@@ -46,16 +47,18 @@
       e.stopPropagation();
       this.className = "green";
       endTest();
-      done();
+      test_wheel_scrolling.done();
     });
 
     function endTest() {
       EventRecorder.stop();
       var results = EventRecorder.getRecords();
-      // Check results:
-      assert_equals(results.length, 1, "One mousemove event");
-      assert_equals(results[0].event.type, 'wheel', "First event is a wheel event");
-      assert_equals(results[0].event.target, 'div#wheelbox', "First event targetted wheelbox");
+      test_wheel_scrolling.step(function () {
+        // Check results:
+        assert_equals(results.length, 1, "One mousemove event");
+        assert_equals(results[0].event.type, 'wheel', "First event is a wheel event");
+        assert_equals(results[0].event.target, 'div#wheelbox', "First event targetted wheelbox");
+      });
     }
 
     EventRecorder.start();

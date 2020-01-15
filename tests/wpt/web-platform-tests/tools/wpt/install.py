@@ -1,6 +1,6 @@
 import argparse
-import browser
 import sys
+from . import browser
 
 
 latest_channels = {

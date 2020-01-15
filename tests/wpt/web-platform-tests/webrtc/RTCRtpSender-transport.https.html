@@ -13,7 +13,7 @@
   promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = caller.addTrack(track);
@@ -24,7 +24,7 @@
   promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = caller.addTrack(track);
@@ -45,7 +45,7 @@
     promise_test(async t => {
         const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
       t.add_cleanup(() => caller.close());
-      const stream = await navigator.mediaDevices.getUserMedia(
+      const stream = await getNoiseStream(
           {audio: true, video:true});
       t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
       const [track1, track2] = stream.getTracks();
@@ -91,7 +91,7 @@
     promise_test(async t => {
         const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
       t.add_cleanup(() => caller.close());
-      const stream = await navigator.mediaDevices.getUserMedia(
+      const stream = await getNoiseStream(
           {audio: true, video:true});
       t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
       const [track1, track2] = stream.getTracks();

@@ -64,6 +64,15 @@ test(function() {
     var time = new Date().getTime()
     var client = new XMLHttpRequest()
 
+    var id = did_preflight(true, client, {extra:'max_age='})
+    did_preflight(false, client, {extra:'max_age=', token: id})
+},
+'age = blank, should be cached')
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+
     var id = did_preflight(true, client, {extra:'max_age=0'})
     did_preflight(true, client, {extra:'max_age=0', token: id})
 },

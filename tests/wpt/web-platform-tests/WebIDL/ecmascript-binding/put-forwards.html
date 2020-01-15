@@ -114,4 +114,18 @@ test(() => {
     element.style = "color: green";
   });
 }, "TypeError when getter of [PutForwards] attribute returns non-object");
+
+test(() => {
+  var element = document.createElement("div");
+
+  var element_style = element.style;
+  Object.defineProperty(element.style, "cssText", {
+    value: null,
+    writable: false,
+  });
+
+  element.style = "color: green";
+  assert_equals(element.style, element_style);
+  assert_equals(element.style.cssText, null);
+}, "Does not throw when setter of [PutForwards] attribute returns false");
 </script>

@@ -1,8 +1,8 @@
-const echo = "/client-hints/echo_client_hints_received.py";
-const accept = "/client-hints/resources/accept_ch_lifetime.html";
-const httpequiv_accept = "/client-hints/resources/http_equiv_accept_ch_lifetime.html";
-const expect = "/client-hints/resources/expect_client_hints_headers.html"
-const do_not_expect = "/client-hints/resources/do_not_expect_client_hints_headers.html"
+const echo = "/client-hints/accept-ch-stickiness/resources/echo-client-hints-received.py";
+const accept = "/client-hints/accept-ch-stickiness/resources/accept-ch.html";
+const httpequiv_accept = "/client-hints/accept-ch-stickiness/resources/http-equiv-accept-ch.html";
+const expect = "/client-hints/accept-ch-stickiness/resources/expect-client-hints-headers.html"
+const do_not_expect = "/client-hints/accept-ch-stickiness/resources/do-not-expect-client-hints-headers.html"
 
 const host_info = get_host_info();
 const run_test = test => {
@@ -53,7 +53,7 @@ const run_test = test => {
         assert_unreached("unknown test type");
       }
     });
-  }, test.name + " set Accept-CH-Lifetime");
+  }, test.name + " set Accept-CH");
 
   // Finally, verify that CH are actually sent (or not) on requests
   promise_test(t => {
@@ -62,7 +62,7 @@ const run_test = test => {
       window.addEventListener('message', t.step_func(function(e) {
         win.close();
         assert_equals(e.data, "PASS", "message from opened page");
-        fetch("/client-hints/resources/clear-site-data.html").then(resolve);
+        fetch("/client-hints/accept-ch-stickiness/resources/clear-site-data.html").then(resolve);
       }));
       // Open a new window. Verify that the user agent attaches client hints.
       win = window.open(test.expect_url);

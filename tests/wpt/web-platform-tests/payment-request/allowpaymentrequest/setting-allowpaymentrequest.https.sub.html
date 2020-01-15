@@ -20,6 +20,9 @@ async_test((t) => {
   });
 
   window.onmessage = t.step_func((e) => {
+    // Ignore messages that are not part of the test.
+    if (e.source != iframe.contentWindow) return;
+
     i++;
     if (i === 1) {
       assert_equals(e.data.message, 'Exception', 'before navigation');

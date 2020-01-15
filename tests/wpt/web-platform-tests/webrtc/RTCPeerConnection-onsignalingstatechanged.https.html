@@ -7,7 +7,7 @@
 <script>
 
 promise_test(async t => {
-  const [track] = (await navigator.mediaDevices.getUserMedia({video: true})).getTracks();
+  const [track] = (await getNoiseStream({video: true})).getTracks();
   t.add_cleanup(() => track.stop());
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());

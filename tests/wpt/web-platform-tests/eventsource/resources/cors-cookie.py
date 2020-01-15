@@ -1,7 +1,8 @@
 from datetime import datetime
+from six import ensure_str
 
 def main(request, response):
-    last_event_id = request.headers.get("Last-Event-Id", "")
+    last_event_id = ensure_str(request.headers.get("Last-Event-Id", ""))
     ident = request.GET.first('ident', "test")
     cookie = "COOKIE" if ident in request.cookies else "NO_COOKIE"
     origin = request.GET.first('origin', request.headers["origin"])

@@ -39,27 +39,24 @@ project-directory/ (e.g. referrer-policy/)
 ├── spec.src.json
 ├── generic/
 │   ├── test-case.sub.js - Per-project test helper
-│   └── tools/
-│       └── generator.py - Per-project generator script
+│   ├── sanity-checker.js (Used by debug target only)
+│   └── spec_json.js (Used by debug target only)
 └── gen/ - generated tests
 ```
 
-Invoking `project-directory/generic/tools/generate.py` will parse the spec JSON and determine which tests to generate (or skip) while using templates.
-
 ## Generating the tests
 
-The repository already contains generated tests, so if you're making changes, see the [Removing all generated tests](#removing-all-generated-tests) section below, on how to remove them before you start generating tests which include your changes.
+Note: When the repository already contains generated tests, [remove all generated tests](#removing-all-generated-tests) first.
 
 ```bash
-# Chdir into the project directory.
-cd ~/web-platform-tests/project-directory
-
 # Generate the test files under gen/ (HTMLs and .headers files).
-./generic/tools/generate.py
+path/to/common/security-features/tools/generate.py --spec path/to/project-directory/
 
 # Add all generated tests to the repo.
-git add gen/ && git commit -m "Add generated tests"
+git add path/to/project-directory/gen/ && git commit -m "Add generated tests"
 ```
+
+This will parse the spec JSON (`project-directory/spec.src.json`) and determine which tests to generate (or skip) while using templates.
 
 During the generation, the spec is validated by ```common/security-features/tools/spec_validator.py```. This is specially important when you're making changes to  `spec.src.json`. Make sure it's a valid JSON (no comments or trailing commas). The validator reports specific errors (missing keys etc.), if any.
 
@@ -68,18 +65,14 @@ During the generation, the spec is validated by ```common/security-features/tool
 Simply remove all files under `project-directory/gen/`.
 
 ```bash
-# Chdir into the project directory.
-cd ~/web-platform-tests/project-directory
-
-# Remove all generated tests.
-rm -r gen/
+rm -r path/to/project-directory/gen/
 ```
 
 ### Options for generating tests
 
 Note: this section is currently obsolete. Only the release template is working.
 
-The generator script ```./generic/tools/generate.py``` has two targets: ```release``` and ```debug```.
+The generator script has two targets: ```release``` and ```debug```.
 
 * Using **release** for the target will produce tests using a template for optimizing size and performance. The release template is intended for the official web-platform-tests and possibly other test suites. No sanity checking is done in release mode. Use this option whenever you're checking into web-platform-tests.
 

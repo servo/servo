@@ -891,6 +891,11 @@ class MockXRInputSource {
         case 'tracked-pointer':
           input_desc.targetRayMode = device.mojom.XRTargetRayMode.POINTING;
           break;
+        case 'screen':
+          input_desc.targetRayMode = device.mojom.XRTargetRayMode.TAPPING;
+          break;
+        default:
+          throw new Error('Unhandled target ray mode ' + this.target_ray_mode_);
       }
 
       switch (this.handedness_) {
