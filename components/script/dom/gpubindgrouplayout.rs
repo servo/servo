@@ -42,6 +42,7 @@ impl GPUBindGroupLayout {
             valid: Cell::new(valid),
         }
     }
+
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
@@ -59,6 +60,20 @@ impl GPUBindGroupLayout {
             global,
             GPUBindGroupLayoutBinding::Wrap,
         )
+    }
+}
+
+impl GPUBindGroupLayout {
+    pub fn is_valid(&self) -> bool {
+        self.valid.get()
+    }
+
+    pub fn id(&self) -> WebGPUBindGroupLayout {
+        self.bind_group_layout
+    }
+
+    pub fn bindings(&self) -> &[GPUBindGroupLayoutBindings] {
+        &self.bindings
     }
 }
 
