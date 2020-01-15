@@ -89,7 +89,7 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
@@ -1821,16 +1821,6 @@ impl Window {
         DOMString::from(resolved)
     }
 
-    pub fn inner_window_dimensions_query(
-        &self,
-        browsing_context: BrowsingContextId,
-    ) -> Option<Size2D<f32, CSSPixel>> {
-        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery(browsing_context)) {
-            return None;
-        }
-        self.layout_rpc.inner_window_dimensions()
-    }
-
     #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
         if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
@@ -2359,7 +2349,6 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::StyleQuery(_n) => "\tStyleQuery",
             &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
             &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
-            &QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
         },
     });
 

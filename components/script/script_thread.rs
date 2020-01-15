@@ -2350,7 +2350,6 @@ impl ScriptThread {
                 load_data.url.clone(),
             ),
             layout_is_busy: layout_is_busy.clone(),
-            window_size,
         });
 
         // Pick a layout thread, any layout thread
@@ -3668,15 +3667,6 @@ impl ScriptThread {
         };
 
         let window = document.window();
-        if window.window_size() == new_size {
-            return;
-        }
-        debug!(
-            "resizing pipeline {:?} from {:?} to {:?}",
-            pipeline_id,
-            window.window_size(),
-            new_size
-        );
         window.set_window_size(new_size);
         window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize);
 

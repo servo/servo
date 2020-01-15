@@ -1811,9 +1811,18 @@ impl Fragment {
                         Some(browsing_context_id) => browsing_context_id,
                         None => return warn!("No browsing context id for iframe."),
                     };
+                    let pipeline_id = match fragment_info.pipeline_id {
+                        Some(pipeline_id) => pipeline_id,
+                        None => return warn!("No pipeline id for iframe {}.", browsing_context_id),
+                    };
 
                     let base = create_base_display_item(state);
                     let bounds = stacking_relative_content_box.to_layout();
+                    let item = DisplayItem::Iframe(Box::new(IframeDisplayItem {
+                        base,
+                        bounds,
+                        iframe: pipeline_id,
+                    }));
 
                     // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
                     //         looks bogus.
@@ -1822,16 +1831,6 @@ impl Fragment {
                         size: euclid::Size2D::new(bounds.size.width, bounds.size.height),
                     });
 
-                    let pipeline_id = match fragment_info.pipeline_id {
-                        Some(pipeline_id) => pipeline_id,
-                        None => return warn!("No pipeline id for iframe {}.", browsing_context_id),
-                    };
-
-                    let item = DisplayItem::Iframe(Box::new(IframeDisplayItem {
-                        base,
-                        bounds,
-                        iframe: pipeline_id,
-                    }));
                     state.add_display_item(item);
                 }
             },
