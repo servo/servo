@@ -211,7 +211,7 @@ pub fn init(
         gl: gl.clone(),
     });
 
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
+    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None);
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {

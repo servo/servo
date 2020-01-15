@@ -7,7 +7,6 @@
 use crate::context::LayoutContext;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
-use euclid::Size2D;
 use euclid::Vector2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -23,7 +22,6 @@ use std::sync::{Arc, Mutex};
 use style::dom::OpaqueNode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
-use style_traits::CSSPixel;
 use webrender_api::units::LayoutPixel;
 use webrender_api::ExternalScrollId;
 
@@ -72,9 +70,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the inner text of a given element.
     pub element_inner_text_response: String,
-
-    /// A queued response for the viewport dimensions for a given browsing context.
-    pub inner_window_dimensions_response: Option<Size2D<f32, CSSPixel>>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -154,12 +149,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.element_inner_text_response.clone()
-    }
-
-    fn inner_window_dimensions(&self) -> Option<Size2D<f32, CSSPixel>> {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.inner_window_dimensions_response.clone()
     }
 }
 

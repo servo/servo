@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::browsingcontext::NewBrowsingContextInfo;
-use euclid::Size2D;
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };
@@ -11,7 +10,6 @@ use script_traits::LoadData;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::{fmt, mem};
-use style_traits::CSSPixel;
 
 /// Represents the joint session history
 /// https://html.spec.whatwg.org/multipage/#joint-session-history
@@ -124,9 +122,6 @@ pub struct SessionHistoryChange {
     /// Holds data for not-yet constructed browsing contexts that are not
     /// easily available when they need to be constructed.
     pub new_browsing_context_info: Option<NewBrowsingContextInfo>,
-
-    /// The size of the viewport for the browsing context.
-    pub window_size: Size2D<f32, CSSPixel>,
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.
