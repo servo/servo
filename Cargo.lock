@@ -4799,6 +4799,7 @@ dependencies = [
  "osmesa-sys",
  "rust-webvr",
  "servo-media",
+ "shellwords",
  "sig",
  "tinyfiledialogs",
  "webxr",
@@ -5187,6 +5188,16 @@ checksum = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
 dependencies = [
  "lazy_static",
  "libc",
+]
+
+[[package]]
+name = "shellwords"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "685f0e9b0efe23d26e60a780d8dcd3ac95e90975814de9bc6f48e5d609b5d0f5"
+dependencies = [
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
