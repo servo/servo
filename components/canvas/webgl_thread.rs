@@ -1343,6 +1343,24 @@ impl WebGLImpl {
             WebGLCommand::UniformMatrix4fv(uniform_id, ref v) => {
                 gl.uniform_matrix_4fv(uniform_id, false, v)
             },
+            WebGLCommand::UniformMatrix3x2fv(uniform_id, ref v) => {
+                gl.uniform_matrix_3x2fv(uniform_id, false, v)
+            },
+            WebGLCommand::UniformMatrix4x2fv(uniform_id, ref v) => {
+                gl.uniform_matrix_4x2fv(uniform_id, false, v)
+            },
+            WebGLCommand::UniformMatrix2x3fv(uniform_id, ref v) => {
+                gl.uniform_matrix_2x3fv(uniform_id, false, v)
+            },
+            WebGLCommand::UniformMatrix4x3fv(uniform_id, ref v) => {
+                gl.uniform_matrix_4x3fv(uniform_id, false, v)
+            },
+            WebGLCommand::UniformMatrix2x4fv(uniform_id, ref v) => {
+                gl.uniform_matrix_2x4fv(uniform_id, false, v)
+            },
+            WebGLCommand::UniformMatrix3x4fv(uniform_id, ref v) => {
+                gl.uniform_matrix_3x4fv(uniform_id, false, v)
+            },
             WebGLCommand::ValidateProgram(program_id) => gl.validate_program(program_id.get()),
             WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) => {
                 gl.vertex_attrib_4f(attrib_id, x, y, z, w)
@@ -1782,6 +1800,48 @@ impl WebGLImpl {
                     gl.get_uniform_fv(program_id.get(), loc, &mut value);
                 }
                 sender.send(value).unwrap();
+            },
+            WebGLCommand::GetUniformFloat2x3(program_id, loc, ref sender) => {
+                let mut value = [0.; 2 * 3];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetUniformFloat2x4(program_id, loc, ref sender) => {
+                let mut value = [0.; 2 * 4];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetUniformFloat3x2(program_id, loc, ref sender) => {
+                let mut value = [0.; 3 * 2];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetUniformFloat3x4(program_id, loc, ref sender) => {
+                let mut value = [0.; 3 * 4];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetUniformFloat4x2(program_id, loc, ref sender) => {
+                let mut value = [0.; 4 * 2];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetUniformFloat4x3(program_id, loc, ref sender) => {
+                let mut value = [0.; 4 * 3];
+                unsafe {
+                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformBlockIndex(program_id, ref name, ref sender) => {
                 let name = to_name_in_compiled_shader(name);

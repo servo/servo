@@ -1322,6 +1322,25 @@ impl WebGLRenderingContext {
 
         Ok(vec)
     }
+
+    pub fn uniform_matrix_section(
+        &self,
+        vec: Float32ArrayOrUnrestrictedFloatSequence,
+        offset: u32,
+        length: u32,
+        transpose: bool,
+        uniform_size: usize,
+        uniform_location: &WebGLUniformLocation,
+    ) -> WebGLResult<Vec<f32>> {
+        let vec = match vec {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if transpose {
+            return Err(InvalidValue);
+        }
+        self.uniform_vec_section::<f32>(vec, offset, length, uniform_size, uniform_location)
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -3526,25 +3545,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
         self.with_location(location, |location| {
             match location.type_() {
                 constants::FLOAT_MAT2 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = match val {
-                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-            };
-            if transpose {
-                return Err(InvalidValue);
-            }
-            if val.len() < 4 || val.len() % 4 != 0 {
-                return Err(InvalidValue);
-            }
-            if location.size().is_none() && val.len() != 4 {
-                return Err(InvalidOperation);
-            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 4, location)?;
             self.send_command(WebGLCommand::UniformMatrix2fv(location.id(), val));
             Ok(())
         });
@@ -3556,25 +3566,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
         self.with_location(location, |location| {
             match location.type_() {
                 constants::FLOAT_MAT3 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = match val {
-                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-            };
-            if transpose {
-                return Err(InvalidValue);
-            }
-            if val.len() < 9 || val.len() % 9 != 0 {
-                return Err(InvalidValue);
-            }
-            if location.size().is_none() && val.len() != 9 {
-                return Err(InvalidOperation);
-            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 9, location)?;
             self.send_command(WebGLCommand::UniformMatrix3fv(location.id(), val));
             Ok(())
         });
@@ -3586,25 +3587,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
         self.with_location(location, |location| {
             match location.type_() {
                 constants::FLOAT_MAT4 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = match val {
-                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-            };
-            if transpose {
-                return Err(InvalidValue);
-            }
-            if val.len() < 16 || val.len() % 16 != 0 {
-                return Err(InvalidValue);
-            }
-            if location.size().is_none() && val.len() != 16 {
-                return Err(InvalidOperation);
-            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 16, location)?;
             self.send_command(WebGLCommand::UniformMatrix4fv(location.id(), val));
             Ok(())
         });

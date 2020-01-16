@@ -50,7 +50,7 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, CreateWith, Uint32, Uint32Array};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32, Uint32, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
 use std::cmp;
@@ -1744,8 +1744,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
-        self.base.UniformMatrix2fv(location, transpose, v)
+        self.base
+            .UniformMatrix2fv(location, transpose, v, src_offset, src_length)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1754,8 +1757,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
-        self.base.UniformMatrix3fv(location, transpose, v)
+        self.base
+            .UniformMatrix3fv(location, transpose, v, src_offset, src_length)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1764,8 +1770,179 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
     ) {
-        self.base.UniformMatrix4fv(location, transpose, v)
+        self.base
+            .UniformMatrix4fv(location, transpose, v, src_offset, src_length)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix3x2fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT3x2 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                3 * 2,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix3x2fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix4x2fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT4x2 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                4 * 2,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix4x2fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix2x3fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT2x3 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                2 * 3,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix2x3fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix4x3fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT4x3 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                4 * 3,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix4x3fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix2x4fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT2x4 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                2 * 4,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix2x4fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn UniformMatrix3x4fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.base.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT3x4 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.base.uniform_matrix_section(
+                val,
+                src_offset,
+                src_length,
+                transpose,
+                3 * 4,
+                location,
+            )?;
+            self.base
+                .send_command(WebGLCommand::UniformMatrix3x4fv(location.id(), val));
+            Ok(())
+        });
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -1796,6 +1973,42 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             },
             constants::UNSIGNED_INT_VEC4 => unsafe {
                 uniform_typed::<Uint32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformUint4))
+            },
+            constants::FLOAT_MAT2x3 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat2x3),
+                )
+            },
+            constants::FLOAT_MAT2x4 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat2x4),
+                )
+            },
+            constants::FLOAT_MAT3x2 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat3x2),
+                )
+            },
+            constants::FLOAT_MAT3x4 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat3x4),
+                )
+            },
+            constants::FLOAT_MAT4x2 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat4x2),
+                )
+            },
+            constants::FLOAT_MAT4x3 => unsafe {
+                uniform_typed::<Float32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformFloat4x3),
+                )
             },
             _ => self.base.GetUniform(cx, program, location),
         }
