@@ -450,12 +450,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         let allowed_to_insert_count = if let Some(max_length) = self.max_length {
             let len_after_selection_replaced =
                 self.utf16_len().saturating_sub(self.selection_utf16_len());
-            if len_after_selection_replaced >= max_length {
-                // If, after deleting the selection, the len is still greater than the max
-                // length, then don't delete/insert anything
-                return;
-            }
-
             max_length.saturating_sub(len_after_selection_replaced)
         } else {
             UTF16CodeUnits(usize::MAX)
