@@ -48,6 +48,12 @@ pub enum WebGPURequest {
         wgpu::id::BufferId,
         wgpu::resource::BufferDescriptor,
     ),
+    CreateBindGroupLayout(
+        IpcSender<WebGPUBindGroupLayout>,
+        WebGPUDevice,
+        wgpu::id::BindGroupLayoutId,
+        Vec<wgpu::binding_model::BindGroupLayoutBinding>,
+    ),
     UnmapBuffer(WebGPUBuffer),
     DestroyBuffer(WebGPUBuffer),
 }
@@ -220,6 +226,22 @@ impl WGPU {
                     let global = &self.global;
                     gfx_select!(buffer.0 => global.buffer_destroy(buffer.0));
                 },
+                WebGPURequest::CreateBindGroupLayout(sender, device, id, bindings) => {
+                    let global = &self.global;
+                    let descriptor = wgpu_core::binding_model::BindGroupLayoutDescriptor {
+                        bindings: bindings.as_ptr(),
+                        bindings_length: bindings.len(),
+                    };
+                    let bgl_id = gfx_select!(id => global.device_create_bind_group_layout(device.0, &descriptor, id));
+                    let bgl = WebGPUBindGroupLayout(bgl_id);
+
+                    if let Err(e) = sender.send(bgl) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateBufferMapped ({})",
+                            e
+                        )
+                    }
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -250,3 +272,4 @@ macro_rules! webgpu_resource {
 webgpu_resource!(WebGPUAdapter, wgpu::id::AdapterId);
 webgpu_resource!(WebGPUDevice, wgpu::id::DeviceId);
 webgpu_resource!(WebGPUBuffer, wgpu::id::BufferId);
+webgpu_resource!(WebGPUBindGroupLayout, wgpu::id::BindGroupLayoutId);

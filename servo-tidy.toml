@@ -33,6 +33,8 @@ packages = [
   "gleam",
   "mach",
   "nix",
+  "peek-poke",
+  "peek-poke-derive",
   "wayland-sys",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746

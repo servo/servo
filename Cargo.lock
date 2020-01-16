@@ -4027,7 +4027,25 @@ version = "0.2.0"
 source = "git+https://github.com/servo/webrender#edac864107cf43732ec66a9d3288e869a70ce1de"
 dependencies = [
  "euclid",
- "peek-poke-derive",
+ "peek-poke-derive 0.2.1",
+]
+
+[[package]]
+name = "peek-poke"
+version = "0.2.0"
+source = "git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075#969bd7fe2be1a83f87916dc8b388c63cfd457075"
+dependencies = [
+ "peek-poke-derive 0.2.0",
+]
+
+[[package]]
+name = "peek-poke-derive"
+version = "0.2.0"
+source = "git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075#969bd7fe2be1a83f87916dc8b388c63cfd457075"
+dependencies = [
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn 1.0.3",
 ]
 
 [[package]]
@@ -6651,7 +6669,7 @@ dependencies = [
  "derive_more 0.13.0",
  "euclid",
  "malloc_size_of_derive",
- "peek-poke",
+ "peek-poke 0.2.0 (git+https://github.com/servo/webrender)",
  "serde",
  "serde_bytes",
  "serde_derive",
@@ -6740,7 +6758,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/wgpu#c0fa61a064c3572ee60d6c4c6a59ca0571394200"
+source = "git+https://github.com/gfx-rs/wgpu#881222a9477036e9e3504045452d88abfe5ae177"
 dependencies = [
  "arrayvec 0.5.1",
  "battery",
@@ -6755,6 +6773,7 @@ dependencies = [
  "gfx-hal",
  "log",
  "parking_lot",
+ "peek-poke 0.2.0 (git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075)",
  "rendy-descriptor",
  "rendy-memory",
  "serde",
