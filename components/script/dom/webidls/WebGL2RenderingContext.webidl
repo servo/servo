@@ -430,24 +430,6 @@ interface mixin WebGL2RenderingContextBase
   void uniform3ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2);
   void uniform4ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 
-  // void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-
-  // void uniform1iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-
   void uniform1uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
                    optional GLuint srcLength = 0);
   void uniform2uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
