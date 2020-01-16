@@ -10,6 +10,16 @@
 
 <script>
   "use strict";
+
+  // The prefixed animation events are special; their event types are
+  // camel-case.
+  const prefixedAnimationAttributeToEventType = new Map([
+    ["webkitanimationend", "webkitAnimationEnd"],
+    ["webkitanimationiteration", "webkitAnimationIteration"],
+    ["webkitanimationstart", "webkitAnimationStart"],
+    ["webkittransitionend", "webkitTransitionEnd"],
+  ]);
+
   setup({ explicit_done: true });
 
   // basic pattern lifted from /html/webappapis/scripting/events/event-handler-all-global-events.html
@@ -131,7 +141,11 @@
           );
           let target = undefined;
           element[name] = (e) => { target = e.currentTarget; }
-          element.dispatchEvent(new Event(withoutOn));
+          let eventType = withoutOn;
+          if (prefixedAnimationAttributeToEventType.has(eventType)) {
+            eventType = prefixedAnimationAttributeToEventType.get(eventType);
+          }
+          element.dispatchEvent(new Event(eventType));
           assert_equals(target, element, "The event must be fired at the <math> element");
         }, `${name}: dispatching an Event at a <math> element must trigger element.${name}`);
       }

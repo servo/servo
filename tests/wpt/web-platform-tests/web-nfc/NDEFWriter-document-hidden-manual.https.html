@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>NDEFWriter.push respect page visibility changes</title>
+<title>NDEFWriter.write respect page visibility changes</title>
 <link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -10,7 +10,7 @@
 
 promise_test(async t => {
   const writer = new NDEFWriter();
-  const p1 = writer.push(test_text_data);
+  const p1 = writer.write(test_text_data);
 
   return await new Promise((resolve, reject) => {
     p1.then(() => {
@@ -20,7 +20,7 @@ promise_test(async t => {
       reject();
     });
   });
-}, "Test NDEFWriter.push operation should be suspend when document is not visible");
+}, "Test NDEFWriter.write operation should be suspend when document is not visible");
 
 </script>
 

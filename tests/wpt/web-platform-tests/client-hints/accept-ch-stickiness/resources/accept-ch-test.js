@@ -22,7 +22,7 @@ const run_test = test => {
   }, test.name + " precondition: Test that the browser does not have client " +
     "hints preferences cached");
 
-  // Then, attempt to set Accept-CH-Lifetime for 1 second
+  // Then, attempt to set Accept-CH
   promise_test(t => {
     return new Promise(resolve => {
       if (test.type == "navigation") {

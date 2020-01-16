@@ -10,7 +10,7 @@
 #test {
   color: rgb(255, 0, 0);
 }
-span::-webkit-something-invalid, #test, ::-WeBkIt-sOmEtHiNg-NoNeXiSt123 {
+span::-webkit-something-invalid, #test, ::-WeBkIt-sOmEtHiNg-NoNeXiSt123, ::-webkit-\ escaped {
   color: rgb(0, 255, 0);
 }
 ::-webkitfoo, #test {
@@ -29,7 +29,8 @@ span::-webkit-something-invalid, #test, ::-WeBkIt-sOmEtHiNg-NoNeXiSt123 {
     let sheet = document.getElementById("style").sheet;
     assert_equals(sheet.cssRules[1].selectorText,
                   "span::-webkit-something-invalid, " +
-                  "#test, ::-webkit-something-nonexist123");
+                  "#test, ::-webkit-something-nonexist123, " +
+                  "::-webkit-\\ escaped");
   }, "webkit-prefixed pseudo-element selectors should be accessible from CSSOM");
 
   test(() => {

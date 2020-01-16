@@ -107,6 +107,7 @@
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.id, test_record_id, 'id');
+    // By default, 'utf-8'.
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -123,6 +124,7 @@
     assert_equals(record.recordType, 'text', 'recordType');
     assert_equals(record.mediaType, null, 'mediaType');
     assert_equals(record.id, test_record_id, 'id');
+    // By default, 'utf-8'.
     assert_equals(record.encoding, 'utf-8', 'encoding');
     assert_equals(record.lang, 'en', 'lang');
     const decoder = new TextDecoder();
@@ -133,18 +135,32 @@
   }, 'NDEFRecord constructor with text record type and arrayBufferView data');
 
   test(() => {
+    assert_throws(new TypeError, () => new NDEFRecord(createTextRecord(
+            test_text_data, 'random-encoding')));
+    assert_throws(new TypeError, () => new NDEFRecord(createTextRecord(
+            test_text_data, 'utf-16')));
+    // Only 'utf-8' is OK for a DOMString data source.
+    const record = new NDEFRecord(createTextRecord(test_text_data, 'utf-8', 'fr'));
+    assert_equals(record.recordType, 'text', 'recordType');
+    assert_equals(record.encoding, 'utf-8', 'encoding');
+    assert_equals(record.lang, 'fr', 'lang');
+    const decoder = new TextDecoder();
+    assert_equals(decoder.decode(record.data), test_text_data,
+        'data has the same content with the original text');
+
+    assert_throws(new TypeError, () => new NDEFRecord(createTextRecord(
+            encodeTextToArrayBuffer(test_text_data, 'utf-8'), 'random-encoding')));
+    // The encoding list valid for a BufferSource data source.
     const encodings = ['utf-8', 'utf-16', 'utf-16be', 'utf-16le'];
     for (const encoding of encodings) {
-      const lang = 'fr';
-      const record = new NDEFRecord(createTextRecord(test_text_data, encoding, lang));
+      const record = new NDEFRecord(createTextRecord(encodeTextToArrayBuffer(
+              test_text_data, encoding), encoding, 'fr'));
       assert_equals(record.recordType, 'text', 'recordType');
-      assert_equals(record.mediaType, null, 'mediaType');
-    assert_equals(record.id, test_record_id, 'id');
       assert_equals(record.encoding, encoding, 'encoding');
-      assert_equals(record.lang, lang, 'lang');
-      const decoder = new TextDecoder();
+      assert_equals(record.lang, 'fr', 'lang');
+      const decoder = new TextDecoder(record.encoding);
       assert_equals(decoder.decode(record.data), test_text_data,
-          'data has the same content with the original dictionary');
+          'data has the same content with the original text. encoding: ' + encoding);
     }
   }, 'NDEFRecord constructor with text record type, encoding, and lang');
 

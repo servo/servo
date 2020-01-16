@@ -10,6 +10,16 @@
 
 <script>
 "use strict";
+
+// The prefixed animation events are special; their event types are
+// camel-case.
+const prefixedAnimationAttributeToEventType = new Map([
+  ["webkitanimationend", "webkitAnimationEnd"],
+  ["webkitanimationiteration", "webkitAnimationIteration"],
+  ["webkitanimationstart", "webkitAnimationStart"],
+  ["webkittransitionend", "webkitTransitionEnd"],
+]);
+
 setup({ explicit_done: true });
 
 fetch("/interfaces/html.idl").then(res => res.text()).then(htmlIDL => {
@@ -54,7 +64,11 @@ fetch("/interfaces/html.idl").then(res => res.text()).then(htmlIDL => {
       const el = document.createElement("div");
       el.setAttribute(name, `window.${name}Happened2 = true;`);
 
-      el.dispatchEvent(new Event(withoutOn));
+      let eventType = withoutOn;
+      if (prefixedAnimationAttributeToEventType.has(eventType)) {
+        eventType = prefixedAnimationAttributeToEventType.get(eventType);
+      }
+      el.dispatchEvent(new Event(eventType));
 
       assert_true(window[name + "Happened2"], "Dispatching an event must run the code");
     }, `${name}: the content attribute must execute when an event is dispatched`);

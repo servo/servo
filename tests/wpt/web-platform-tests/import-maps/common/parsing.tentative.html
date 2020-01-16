@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script type="module">
+import { runTestsFromJSON } from "./resources/common-test-helper.js";
+
+for (const json of [
+  'resources/parsing-addresses-absolute.json',
+  'resources/parsing-addresses-invalid.json',
+  'resources/parsing-addresses.json',
+  'resources/parsing-invalid-json.json',
+  'resources/parsing-schema-normalization.json',
+  'resources/parsing-schema-scope.json',
+  'resources/parsing-schema-specifier-map.json',
+  'resources/parsing-schema-toplevel.json',
+  'resources/parsing-scope-keys.json',
+  'resources/parsing-specifier-keys.json',
+  'resources/parsing-trailing-slashes.json',
+]) {
+  promise_test(() =>
+    runTestsFromJSON(json),
+    "Test helper: fetching and sanity checking test JSON: " + json);
+}
+</script>

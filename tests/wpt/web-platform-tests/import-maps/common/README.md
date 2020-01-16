@@ -6,7 +6,12 @@ tests for the reference JavaScript implementation at [WICG repository](https://g
 
 ## Basics
 
-A **test object** describes a set of parameters (import maps and base URLs) and specifiers to be tested.
+A **test object** describes a set of parameters (import maps and base URLs) and test expectations.
+Test expectations can be:
+
+- Expected resulting URLs for specifiers (resolution tests), or
+- Expected parsed import maps (parsing tests).
+
 Each JSON file under [resources/](resources/) directory consists of a test object.
 A minimum test object would be:
 
@@ -33,10 +38,11 @@ Required fields:
     - In WPT tests, this is used for the test name of `promise_test()` together with specifier to be resolved, like `"Main test name: a"`.
 - `importMap` (object or string): the import map to be attached.
 - `importMapBaseURL` (string): the base URL used for [parsing the import map](https://wicg.github.io/import-maps/#parse-an-import-map-string).
-- `baseURL` (string): the base URL used in [resolving a specifier](https://wicg.github.io/import-maps/#resolve-a-module-specifier) for each specifiers.
-- `expectedResults` (object; string to (string or null)): test cases.
+- (resolution tests only) `expectedResults` (object; string to (string or null)): resolution test cases.
     - The keys are specifiers to be resolved.
     - The values are expected resolved URLs. If `null`, resolution should fail.
+- (resolution tests only) `baseURL` (string): the base URL used in [resolving a specifier](https://wicg.github.io/import-maps/#resolve-a-module-specifier) for each specifiers.
+- (parsing tests only) `expectedParsedImportMap` (object): the expected parsed import map for parsing test cases.
 
 Optional fields:
 

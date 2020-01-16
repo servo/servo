@@ -74,6 +74,33 @@ NFCHWStatus.NOT_SUPPORTED = NFCHWStatus.ENABLED + 1;
 // OS-level NFC setting OFF
 NFCHWStatus.DISABLED = NFCHWStatus.NOT_SUPPORTED + 1;
 
+function encodeTextToArrayBuffer(string, encoding) {
+  // Only support 'utf-8', 'utf-16', 'utf-16be', and 'utf-16le'.
+  assert_true(
+      encoding === 'utf-8' || encoding === 'utf-16' ||
+      encoding === 'utf-16be' || encoding === 'utf-16le');
+
+  if (encoding === 'utf-8') {
+    return new TextEncoder().encode(string).buffer;
+  }
+
+  if (encoding === 'utf-16') {
+    let uint16array = new Uint16Array(string.length);
+    for (let i = 0; i < string.length; i++) {
+      uint16array[i] = string.codePointAt(i);
+    }
+    return uint16array.buffer;
+  }
+
+  const littleEndian = encoding === 'utf-16le';
+  const buffer = new ArrayBuffer(string.length * 2);
+  const view = new DataView(buffer);
+  for (let i = 0; i < string.length; i++) {
+    view.setUint16(i * 2, string.codePointAt(i), littleEndian);
+  }
+  return buffer;
+}
+
 function createMessage(records) {
   if (records !== undefined) {
     let message = {};
@@ -125,12 +152,12 @@ function createUrlRecord(url, isAbsUrl) {
   return createRecord('url', url, test_record_id);
 }
 
-function createNDEFPushOptions(ignoreRead) {
+function createNDEFWriteOptions(ignoreRead) {
   return {ignoreRead};
 }
 
 // Compares NDEFMessageSource that was provided to the API
-// (e.g. NDEFWriter.push), and NDEFMessage that was received by the
+// (e.g. NDEFWriter.write), and NDEFMessage that was received by the
 // mock NFC service.
 function assertNDEFMessagesEqual(providedMessage, receivedMessage) {
   // If simple data type is passed, e.g. String or ArrayBuffer or

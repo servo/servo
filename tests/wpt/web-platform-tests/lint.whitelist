@@ -686,7 +686,7 @@ LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js
 LAYOUTTESTS APIS: web-nfc/NDEFReader-document-hidden-manual.https.html
 LAYOUTTESTS APIS: web-nfc/NDEFReader_scan.https.html
-LAYOUTTESTS APIS: web-nfc/NDEFWriter_push.https.html
+LAYOUTTESTS APIS: web-nfc/NDEFWriter_write.https.html
 
 # Signed Exchange files have hard-coded URLs in the certUrl field
 WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg

@@ -70,6 +70,7 @@
             test(function(){
                 assert_selector_serializes_to(':lang(ja)', ':lang(ja)');
                 assert_selector_serializes_to(':lang( ja )', ':lang(ja)');
+                assert_selector_serializes_to(':lang( j\\ a )', ':lang(j\\ a)');
             }, 'single pseudo (simple) selector "lang" which accepts arguments in the sequence of simple selectors that is not a universal selector')
 
 

@@ -49,6 +49,10 @@ partial interface RTCPeerConnection {
     readonly        attribute DOMString?                    idpErrorInfo;
 };
 
+partial dictionary RTCConfiguration {
+    DOMString peerIdentity;
+};
+
 dictionary RTCIdentityProviderOptions {
     DOMString protocol = "default";
     DOMString usernameHint;
@@ -60,6 +64,29 @@ interface RTCIdentityAssertion {
     constructor(DOMString idp, DOMString name);
     attribute DOMString idp;
     attribute DOMString name;
+};
+
+partial interface RTCError {
+  readonly attribute long? httpRequestStatusCode;
+};
+
+partial dictionary RTCErrorInit {
+  long httpRequestStatusCode;
+};
+
+// This is an extension of RTCErrorDetailType from [[WEBRTC-PC]]
+// Unfortunately, WebIDL does not support partial enums (yet).
+//
+// partial enum RTCErrorDetailType {
+enum RTCErrorDetailTypeIdp {
+  "idp-bad-script-failure",
+  "idp-execution-failure",
+  "idp-load-failure",
+  "idp-need-login",
+  "idp-timeout",
+  "idp-tls-failure",
+  "idp-token-expired",
+  "idp-token-invalid",
 };
 
 partial dictionary MediaStreamConstraints {

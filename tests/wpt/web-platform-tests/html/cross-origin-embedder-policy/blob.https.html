@@ -28,14 +28,13 @@ const origins = get_host_info();
       t.add_cleanup(() => { frame.remove(); });
       const path = new URL("resources/blob-url-factory.html", window.location).pathname;
       frame.src = `${origin}${path}?id=${id}&variant=${variant}&crossOrigin=${crossOrigin}`;
-      window.addEventListener("message", t.step_func(({ data }) => {
+      window.addEventListener("message", t.step_func_done(({ data }) => {
         if (data.id !== id) {
           return;
         }
         assert_equals(data.origin, origin);
         assert_true(data.sameOriginNoCORPSuccess, "Same-origin without CORP did not succeed");
         assert_true(data.crossOriginNoCORPFailure, "Cross-origin without CORP did not fail");
-        t.done();
       }));
       document.body.append(frame);
     }, `Cross-Origin-Embedder-Policy and blob: URL from ${origin} in subframe via ${variant}`);

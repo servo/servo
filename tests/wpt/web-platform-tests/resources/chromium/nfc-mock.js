@@ -74,9 +74,9 @@ function compareNDEFRecords(providedRecord, receivedRecord) {
                       new Uint8Array(receivedRecord.data));
 }
 
-// Compares NDEFPushOptions structures that were provided to API and
+// Compares NDEFWriteOptions structures that were provided to API and
 // received by the mock mojo service.
-function assertNDEFPushOptionsEqual(provided, received) {
+function assertNDEFWriteOptionsEqual(provided, received) {
   if (provided.ignoreRead !== undefined)
     assert_equals(provided.ignoreRead, !!received.ignoreRead);
   else
@@ -149,7 +149,7 @@ var WebNFCTest = (() => {
 
       this.hw_status_ = NFCHWStatus.ENABLED;
       this.pushed_message_ = null;
-      this.pending_push_options_ = null;
+      this.pending_write_options_ = null;
       this.pending_promise_func_ = null;
       this.push_completed_ = true;
       this.client_ = null;
@@ -171,7 +171,7 @@ var WebNFCTest = (() => {
       }
 
       this.pushed_message_ = message;
-      this.pending_push_options_ = options;
+      this.pending_write_options_ = options;
       return new Promise(resolve => {
         if (this.operations_suspended_ || !this.push_completed_) {
           // Leaves the push pending.
@@ -256,8 +256,8 @@ var WebNFCTest = (() => {
       return this.pushed_message_;
     }
 
-    pushOptions() {
-      return this.pending_push_options_;
+    writeOptions() {
+      return this.pending_write_options_;
     }
 
     watchOptions() {
@@ -287,7 +287,7 @@ var WebNFCTest = (() => {
       }
 
       this.pushed_message_ = null;
-      this.pending_push_options_ = null;
+      this.pending_write_options_ = null;
       this.push_completed_ = true;
     }
 
@@ -296,8 +296,8 @@ var WebNFCTest = (() => {
       this.reading_messages_.push(message);
       // Ignores reading if NFC operation is suspended.
       if(this.operations_suspended_) return;
-      // Ignores reading if NDEFPushOptions.ignoreRead is true.
-      if (this.pending_push_options_ && this.pending_push_options_.ignoreRead)
+      // Ignores reading if NDEFWriteOptions.ignoreRead is true.
+      if (this.pending_write_options_ && this.pending_write_options_.ignoreRead)
         return;
       // Triggers onWatch if the new message matches existing watchers.
       for (let watcher of this.watchers_) {
