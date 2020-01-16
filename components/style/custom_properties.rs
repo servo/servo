@@ -62,14 +62,12 @@ fn get_safearea_inset_right(device: &Device) -> VariableValue {
     VariableValue::pixel(device.safe_area_insets().right)
 }
 
-lazy_static! {
-    static ref ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
-        make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
-        make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
-        make_variable!(atom!("safe-area-inset-left"), get_safearea_inset_left),
-        make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
-    ];
-}
+static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
+    make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
+    make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
+    make_variable!(atom!("safe-area-inset-left"), get_safearea_inset_left),
+    make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
+];
 
 impl CssEnvironment {
     #[inline]
