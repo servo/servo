@@ -4,8 +4,6 @@
 
 #![feature(proc_macro_diagnostic)]
 
-extern crate proc_macro;
-
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
 use quote::*;

@@ -23,21 +23,24 @@
 extern crate matches;
 extern crate rustc;
 extern crate rustc_driver;
+extern crate rustc_hir;
+extern crate rustc_lint;
 extern crate rustc_session;
+extern crate rustc_span;
 extern crate syntax;
 
-use rustc::hir::def_id::DefId;
-use rustc::hir::intravisit as visit;
-use rustc::hir::{self, ExprKind, HirId};
-use rustc::lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc::ty;
 use rustc_driver::plugin::Registry;
+use rustc_hir::def_id::DefId;
+use rustc_hir::intravisit as visit;
+use rustc_hir::{self as hir, ExprKind, HirId};
+use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc_session::declare_lint;
+use rustc_span::source_map;
+use rustc_span::source_map::{ExpnKind, MacroKind, Span};
+use rustc_span::symbol::sym;
+use rustc_span::symbol::Symbol;
 use syntax::ast::{AttrKind, Attribute};
-use syntax::source_map;
-use syntax::source_map::{ExpnKind, MacroKind, Span};
-use syntax::symbol::sym;
-use syntax::symbol::Symbol;
 
 #[allow(deprecated)]
 #[plugin_registrar]
@@ -290,6 +293,8 @@ struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
 }
 
 impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
+    type Map = rustc::hir::map::Map<'tcx>;
+
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;
 
@@ -353,7 +358,9 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
 
     fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
 
-    fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'tcx> {
+    fn nested_visit_map<'this>(
+        &'this mut self,
+    ) -> hir::intravisit::NestedVisitorMap<'this, Self::Map> {
         hir::intravisit::NestedVisitorMap::OnlyBodies(&self.cx.tcx.hir())
     }
 }
