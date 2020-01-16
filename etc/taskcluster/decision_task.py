@@ -132,7 +132,7 @@ log_artifacts_expire_in = "1 year"
 
 build_env = {
     "RUST_BACKTRACE": "1",
-    "RUSTFLAGS": "-Dwarnings",
+    #"RUSTFLAGS": "-Dwarnings",
     "CARGO_INCREMENTAL": "0",
 }
 unix_build_env = {
