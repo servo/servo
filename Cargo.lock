@@ -126,6 +126,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayref"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d382e583f07208808f6b1249e60848879ba3543f57c32277bf52d69c2f0f0ee"
+
+[[package]]
 name = "arrayvec"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -249,7 +255,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36a698e449024a5d18994a815998bf5e2e4bc1883e35a7d7ba95b6b69ee45907"
 dependencies = [
  "cfg-if",
- "core-foundation",
+ "core-foundation 0.6.4",
  "lazycell",
  "libc",
  "mach 0.2.3",
@@ -303,6 +309,17 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+
+[[package]]
+name = "blake2b_simd"
+version = "0.5.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8fb2d74254a3a0b5cac33ac9f8ed0e44aa50378d9dbb2e5d83bd21ed1dc2c8a"
+dependencies = [
+ "arrayref",
+ "arrayvec 0.5.1",
+ "constant_time_eq",
+]
 
 [[package]]
 name = "block"
@@ -696,8 +713,8 @@ checksum = "cf79daa4e11e5def06e55306aa3601b87de6b5149671529318da048f67cdd77b"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "foreign-types",
  "libc",
  "objc",
@@ -711,8 +728,8 @@ checksum = "f29f7768b2d1be17b96158e3285951d366b40211320fb30826a76cb7a0da6400"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "foreign-types",
  "libc",
  "objc",
@@ -775,6 +792,12 @@ dependencies = [
  "webvr_traits",
  "webxr",
 ]
+
+[[package]]
+name = "constant_time_eq"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "constellation"
@@ -854,7 +877,17 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25b9e03f145fd4f2bf705e07b900cd41fc636598fe5dc452fd0db1441c3f496d"
 dependencies = [
- "core-foundation-sys",
+ "core-foundation-sys 0.6.2",
+ "libc",
+]
+
+[[package]]
+name = "core-foundation"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d24c7a13c43e870e37c1556b74555437870a04514f7685f5b354e090567171"
+dependencies = [
+ "core-foundation-sys 0.7.0",
  "libc",
 ]
 
@@ -865,13 +898,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"
 
 [[package]]
+name = "core-foundation-sys"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
+
+[[package]]
 name = "core-graphics"
 version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56790968ab1c8a1202a102e6de05fc6e1ec87da99e4e93e9a7d13efbfc1e95a9"
 dependencies = [
  "bitflags",
- "core-foundation",
+ "core-foundation 0.6.4",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59e78b2e0aaf43f08e7ae0d6bc96895ef72ff0921c7d4ff4762201b2dba376dd"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.7.0",
  "foreign-types",
  "libc",
 ]
@@ -882,8 +933,20 @@ version = "13.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95a72b5e50e549969dd88eff3047495fe5b8c6f028635442c2b708be707e669"
 dependencies = [
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-text"
+version = "15.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
+dependencies = [
+ "core-foundation 0.7.0",
+ "core-graphics 0.19.0",
  "foreign-types",
  "libc",
 ]
@@ -1204,6 +1267,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13aea89a5c93364a98e9b37b2fa237effbb694d5cfe01c5b70941f7eb087d5e3"
+dependencies = [
+ "cfg-if",
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afa0b23de8fd801745c471deffa6e12d248f962c9fd4b4c33787b055599bde7b"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_users",
+ "winapi",
+]
+
+[[package]]
 name = "display-link"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1414,6 +1499,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "failure"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8273f13c977665c5db7eb2b99ae520952fe5ac831ae4cd09d80c4c7042b5ed9"
+dependencies = [
+ "backtrace",
+ "failure_derive",
+]
+
+[[package]]
+name = "failure_derive"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bc225b78e0391e4b8683440bf2e63c2deeeb2ce5189eab46e2b68c6d3725d08"
+dependencies = [
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn 1.0.3",
+ "synstructure",
+]
+
+[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1458,15 +1565,15 @@ checksum = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
 
 [[package]]
 name = "font-kit"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b7ff8d2a0a660875d01689807925a45c5843bf90a1ef97ec52ef86ab0cafba"
+checksum = "09b6e2b877097ffd0abac6597fea26fccb5ed7eb9da0a4094f11ccc8aba64efb"
 dependencies = [
  "byteorder",
- "core-foundation",
- "core-graphics",
- "core-text",
- "dirs",
+ "core-foundation 0.7.0",
+ "core-graphics 0.19.0",
+ "core-text 15.0.0",
+ "dirs 2.0.2",
  "dwrote",
  "euclid",
  "float-ord",
@@ -1475,7 +1582,6 @@ dependencies = [
  "libc",
  "log",
  "lyon_path",
- "memmap",
  "servo-fontconfig",
  "walkdir",
  "winapi",
@@ -1521,6 +1627,12 @@ name = "fs_extra"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f2a4a2034423744d2cc7ca2068453168dcdb82c438419e639a26bd87839c674"
+
+[[package]]
+name = "fuchsia-cprng"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 
 [[package]]
 name = "fuchsia-zircon"
@@ -1622,9 +1734,9 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation",
- "core-graphics",
- "core-text",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
+ "core-text 13.2.0",
  "dwrote",
  "euclid",
  "fnv",
@@ -1728,7 +1840,7 @@ dependencies = [
  "block",
  "cocoa 0.19.1",
  "copyless",
- "core-graphics",
+ "core-graphics 0.17.3",
  "foreign-types",
  "gfx-auxil",
  "gfx-hal",
@@ -1753,7 +1865,7 @@ dependencies = [
  "arrayvec 0.5.1",
  "ash",
  "byteorder",
- "core-graphics",
+ "core-graphics 0.17.3",
  "gfx-hal",
  "lazy_static",
  "log",
@@ -1888,8 +2000,8 @@ dependencies = [
  "android_glue",
  "cgl 0.2.3",
  "cocoa 0.18.4",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "glutin_egl_sys",
  "glutin_emscripten_sys",
  "glutin_gles2_sys",
@@ -2297,8 +2409,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf14b85a0c906ef4ef3ff87d0fba25ee45b724404a1a3100dc25eeb4f37ff43b"
 dependencies = [
  "cmake",
- "core-graphics",
- "core-text",
+ "core-graphics 0.17.3",
+ "core-text 13.2.0",
  "foreign-types",
  "freetype",
  "pkg-config",
@@ -2579,7 +2691,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2279a6faecd06034f88218f77f7a767693e0957bce0323a96d92747e2760b445"
 dependencies = [
  "cgl 0.3.2",
- "core-foundation",
+ "core-foundation 0.6.4",
  "gleam 0.7.0",
  "leaky-cow",
  "libc",
@@ -3118,12 +3230,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "lyon_geom"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e2a8bde54788e0eb4f1b9f072910bfa1cba95688698f7bb206d13a2f8fd06b3"
+dependencies = [
+ "arrayvec 0.5.1",
+ "euclid",
+ "num-traits",
+]
+
+[[package]]
 name = "lyon_path"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bcb57ac24a5428539e2c7c0592766d5933c937d703f430990c669c00de96862"
 dependencies = [
- "lyon_geom",
+ "lyon_geom 0.14.0",
 ]
 
 [[package]]
@@ -3287,7 +3410,7 @@ dependencies = [
  "bitflags",
  "block",
  "cocoa 0.19.1",
- "core-graphics",
+ "core-graphics 0.17.3",
  "foreign-types",
  "log",
  "objc",
@@ -4167,7 +4290,7 @@ dependencies = [
  "getrandom",
  "libc",
  "rand_chacha",
- "rand_core",
+ "rand_core 0.5.1",
  "rand_hc",
  "rand_pcg",
 ]
@@ -4179,8 +4302,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03a2a90da8c7523f554344f921aa97283eadf6ac484a6d2a7d0212fa7f8d6853"
 dependencies = [
  "c2-chacha",
- "rand_core",
+ "rand_core 0.5.1",
 ]
+
+[[package]]
+name = "rand_core"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a6fdeb83b075e8266dcc8762c22776f6877a63111121f5f8c7411e5be7eed4b"
+dependencies = [
+ "rand_core 0.4.2",
+]
+
+[[package]]
+name = "rand_core"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c33a3c44ca05fa6f1807d8e6743f3824e8509beca625669633be0acbdf509dc"
 
 [[package]]
 name = "rand_core"
@@ -4197,7 +4335,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 dependencies = [
- "rand_core",
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -4206,7 +4344,21 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8df6b0b3dc9991a10b2d91a86d1129314502169a1bf6afa67328945e02498b76"
 dependencies = [
- "rand_core",
+ "rand_core 0.5.1",
+]
+
+[[package]]
+name = "rand_os"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b75f676a1e053fc562eafbb47838d67c84801e38fc1ba459e8f180deabd5071"
+dependencies = [
+ "cloudabi",
+ "fuchsia-cprng",
+ "libc",
+ "rand_core 0.4.2",
+ "rdrand",
+ "winapi",
 ]
 
 [[package]]
@@ -4215,7 +4367,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
 dependencies = [
- "rand_core",
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -4236,12 +4388,12 @@ checksum = "dd5927936723a9e8b715d37d7e4b390455087c4bdf25b9f702309460577b14f9"
 
 [[package]]
 name = "raqote"
-version = "0.7.7-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#79162ec845a1f7ac221fbe5d50cde3f6630bf335"
+version = "0.7.8-alpha.0"
+source = "git+https://github.com/jrmuizel/raqote#0cad3c338d9587bf0e9f6bc9e26112998767a1b5"
 dependencies = [
  "euclid",
  "font-kit",
- "lyon_geom",
+ "lyon_geom 0.15.0",
  "png",
  "sw-composite",
  "typed-arena",
@@ -4291,6 +4443,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdrand"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
+dependencies = [
+ "rand_core 0.3.1",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4303,6 +4464,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
 dependencies = [
  "redox_syscall",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ecedbca3bf205f8d8f5c2b44d83cd0690e39ee84b951ed649e9f1841132b66d"
+dependencies = [
+ "failure",
+ "rand_os",
+ "redox_syscall",
+ "rust-argon2",
 ]
 
 [[package]]
@@ -4398,6 +4571,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "rust-argon2"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ca4eaef519b494d1f2848fc602d18816fed808a981aedf4f1f00ceb7c9d32cf"
+dependencies = [
+ "base64",
+ "blake2b_simd",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -5076,7 +5260,7 @@ dependencies = [
 name = "servo_config"
 version = "0.0.1"
 dependencies = [
- "dirs",
+ "dirs 1.0.2",
  "embedder_traits",
  "euclid",
  "getopts",
@@ -5130,7 +5314,7 @@ dependencies = [
  "lazy_static",
  "log",
  "rand",
- "rand_core",
+ "rand_core 0.5.1",
  "rand_isaac",
  "uuid",
 ]
@@ -5224,7 +5408,7 @@ source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fe
 name = "simpleservo"
 version = "0.0.1"
 dependencies = [
- "core-foundation",
+ "core-foundation 0.6.4",
  "getopts",
  "gl_generator 0.11.0",
  "libc",
@@ -5543,8 +5727,8 @@ dependencies = [
  "bitflags",
  "cgl 0.3.2",
  "cocoa 0.19.1",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "display-link",
  "euclid",
  "gl_generator 0.11.0",
@@ -5570,8 +5754,8 @@ dependencies = [
  "bitflags",
  "cgl 0.3.2",
  "cocoa 0.19.1",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "display-link",
  "euclid",
  "gl_generator 0.11.0",
@@ -6048,9 +6232,9 @@ checksum = "e604eb7b43c06650e854be16a2a03155743d3752dd1c943f6829e26b7a36e382"
 
 [[package]]
 name = "typed-arena"
-version = "1.4.1"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6c06a92aef38bb4dc5b0df00d68496fc31307c5344c867bb61678c6e1671ec5"
+checksum = "0685c84d5d54d1c26f7d3eb96cd41550adb97baed141a761cf335d3d33bcd0ae"
 
 [[package]]
 name = "typenum"
@@ -6423,9 +6607,9 @@ dependencies = [
  "bitflags",
  "byteorder",
  "cfg-if",
- "core-foundation",
- "core-graphics",
- "core-text",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
+ "core-text 13.2.0",
  "cstr",
  "dwrote",
  "euclid",
@@ -6462,8 +6646,8 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "derive_more 0.13.0",
  "euclid",
  "malloc_size_of_derive",
@@ -6635,8 +6819,8 @@ dependencies = [
  "backtrace",
  "bitflags",
  "cocoa 0.18.4",
- "core-foundation",
- "core-graphics",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
  "lazy_static",
  "libc",
  "log",
