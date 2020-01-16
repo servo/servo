@@ -551,8 +551,11 @@ class MockRuntime {
 
   // Mojo function implementations.
 
+  _injectAdditionalFrameData(options, frameData) {
+  }
+
   // XRFrameDataProvider implementation.
-  getFrameData() {
+  getFrameData(options) {
     let mojo_space_reset = this.send_mojo_space_reset_;
     this.send_mojo_space_reset_ = false;
     if (this.pose_) {
@@ -577,18 +580,21 @@ class MockRuntime {
     now += diff;
     now *= 1000000;
 
+    let frameData = {
+      pose: this.pose_,
+      mojoSpaceReset: mojo_space_reset,
+      inputState: input_state,
+      timeDelta: {
+        microseconds: now,
+      },
+      frameId: this.next_frame_id_++,
+      bufferHolder: null,
+      bufferSize: {},
+    };
+    this._injectAdditionalFrameData(options, frameData);
+
     return Promise.resolve({
-      frameData: {
-        pose: this.pose_,
-        mojoSpaceReset: mojo_space_reset,
-        inputState: input_state,
-        timeDelta: {
-          microseconds: now,
-        },
-        frameId: this.next_frame_id_++,
-        bufferHolder: null,
-        bufferSize: {}
-      }
+      frameData: frameData,
     });
   }
 

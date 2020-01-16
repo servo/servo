@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Computed size of ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#content-property">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that getComputedStyle exposes the resolved sizes of a ::marker." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+:root {
+  --image: url('/images/green-100x50.png');
+}
+:root::after {
+  /* Preload image */
+  content: var(--image);
+}
+#target {
+  font: 10px/1 Ahem;
+  --content: normal;
+}
+#target::marker {
+  content: var(--content);
+}
+</style>
+<div id="log"></div>
+<ul>
+  <li id="target"></li>
+</ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+function checkMarkerSize(expectedWidth, expectedHeight) {
+  const {width, height} = getComputedStyle(target, "::marker");
+  assert_equals(width, expectedWidth, "width");
+  assert_equals(height, expectedHeight, "height");
+}
+setup({explicit_done: true});
+addEventListener("load", () => {
+  test(() => {
+    // Marker string: "1. "
+    target.style.listStyleType = "decimal";
+    checkMarkerSize("30px", "10px");
+  }, "Decimal ::marker");
+  test(() => {
+    // Marker string: "10. "
+    target.setAttribute("value", "10");
+    checkMarkerSize("40px", "10px");
+  }, "Decimal ::marker with custom value");
+  test(() => {
+    // Marker string: "st"
+    target.style.listStyleType = "'st'";
+    checkMarkerSize("20px", "10px");
+  }, "String ::marker");
+  test(() => {
+    // No marker box
+    target.style.listStyleType = "none";
+    checkMarkerSize("auto", "auto");
+  }, "::marker with no box due to 'list-style'");
+  test(() => {
+    // Marker contents: "foo", "bar"
+    target.style.setProperty("--content", "'foo' 'bar'");
+    checkMarkerSize("60px", "10px");
+  }, "::marker with custom string contents");
+  test(() => {
+    // Marker contents: 100x50 image (+2px due to baseline alignment)
+    target.style.setProperty("--content", "var(--image)");
+    checkMarkerSize("100px", "52px");
+  }, "::marker with custom image contents");
+  test(() => {
+    // Marker contents: "foo", 100x50 image (+2px due to baseline alignment)
+    target.style.setProperty("--content", "'foo' var(--image)");
+    checkMarkerSize("130px", "52px");
+  }, "::marker with custom string and image contents");
+  test(() => {
+    // No marker box
+    target.style.listStyleType = "";
+    target.style.setProperty("--content", "none");
+    checkMarkerSize("auto", "auto");
+  }, "::marker with no box due to 'content'");
+  done();
+}, {once: true});
+</script>

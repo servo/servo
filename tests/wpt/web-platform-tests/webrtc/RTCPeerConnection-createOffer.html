@@ -49,7 +49,7 @@
 
     return generateVideoReceiveOnlyOffer(pc)
     .then(offer =>
-      pc.setLocalDescription(offer)
+       pc.setLocalDescription(offer)
       .then(() => {
         assert_equals(pc.signalingState, 'have-local-offer');
         assert_session_desc_similar(pc.localDescription, offer);
@@ -93,6 +93,26 @@
     });
   }, 'When media stream is added when createOffer() is running in parallel, the result offer should contain the new media stream');
 
+  /*
+  If connection's signaling state is neither "stable" nor "have-local-offer", return a promise rejected with a newly created InvalidStateError.
+  */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+       pc.setRemoteDescription(offer)
+       .then(() => {
+          assert_equals(pc.signalingState, 'have-remote-offer');
+          return promise_rejects(t, 'InvalidStateError',
+             pc.createOffer());
+       })
+     )
+  }, 'createOffer() should fail when signaling state is not stable or have-local-offer');
   /*
    *  TODO
    *  4.3.2 createOffer

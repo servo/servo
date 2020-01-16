@@ -241,9 +241,6 @@ dictionary RTCVideoSenderStats : RTCVideoHandlerStats {
              DOMString           mediaSourceId;
 };
 
-dictionary RTCSenderVideoTrackAttachmentStats : RTCVideoSenderStats {
-};
-
 dictionary RTCVideoReceiverStats : RTCVideoHandlerStats {
 };
 
@@ -252,9 +249,6 @@ dictionary RTCAudioHandlerStats : RTCMediaHandlerStats {
 
 dictionary RTCAudioSenderStats : RTCAudioHandlerStats {
              DOMString           mediaSourceId;
-};
-
-dictionary RTCSenderAudioTrackAttachmentStats : RTCAudioSenderStats {
 };
 
 dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
@@ -364,6 +358,12 @@ dictionary RTCIceServerStats : RTCStats {
 dictionary RTCMediaStreamStats : RTCStats {
   DOMString streamIdentifier;
   sequence<DOMString> trackIds;
+};
+
+dictionary RTCSenderVideoTrackAttachmentStats : RTCVideoSenderStats {
+};
+
+dictionary RTCSenderAudioTrackAttachmentStats : RTCAudioSenderStats {
 };
 
 dictionary RTCReceiverVideoTrackAttachmentStats : RTCVideoReceiverStats {};

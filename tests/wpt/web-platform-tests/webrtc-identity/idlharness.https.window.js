@@ -5,7 +5,7 @@
 
 idl_test(
   ['webrtc-identity'],
-  ['webrtc', 'mediacapture-streams', 'html', 'dom'],
+  ['webrtc', 'mediacapture-streams', 'html', 'dom', 'WebIDL'],
   async idlArray => {
     idlArray.add_objects({
       RTCPeerConnection: [`new RTCPeerConnection()`],

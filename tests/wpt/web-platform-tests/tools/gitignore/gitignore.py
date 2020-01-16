@@ -269,7 +269,7 @@ class PathFilter(object):
                             target.append(item)
 
             dirnames[:] = keep_dirs
-            assert ".git" not in dirnames
+            assert not any(".git" == name for name, _ in dirnames)
             yield orig_dirpath, dirnames, keep_files
 
     def __call__(self,

@@ -261,9 +261,8 @@ def generate_test_source_files(spec_directory, spec_json, target):
             expand_pattern(excluded_pattern, test_expansion_schema)
         for excluded_selection in permute_expansion(excluded_expansion,
                                                     artifact_order):
-            excluded_selection_path = spec_json[
-                'selection_pattern'] % excluded_selection
-            exclusion_dict[excluded_selection_path] = True
+            excluded_selection['delivery_key'] = spec_json['delivery_key']
+            exclusion_dict[dump_test_parameters(excluded_selection)] = True
 
     for spec in specification:
         # Used to make entries with expansion="override" override preceding
@@ -276,20 +275,20 @@ def generate_test_source_files(spec_directory, spec_json, target):
             for selection in permute_expansion(expansion, artifact_order):
                 selection['delivery_key'] = spec_json['delivery_key']
                 selection_path = spec_json['selection_pattern'] % selection
-                if not selection_path in exclusion_dict:
-                    if selection_path in output_dict:
-                        if expansion_pattern['expansion'] != 'override':
-                            print(
-                                "Error: %s's expansion is default but overrides %s"
-                                % (selection['name'],
-                                   output_dict[selection_path]['name']))
-                            sys.exit(1)
-                    output_dict[selection_path] = copy.deepcopy(selection)
-                else:
-                    print('Excluding selection:', selection_path)
+                if selection_path in output_dict:
+                    if expansion_pattern['expansion'] != 'override':
+                        print(
+                            "Error: %s's expansion is default but overrides %s"
+                            % (selection['name'],
+                               output_dict[selection_path]['name']))
+                        sys.exit(1)
+                output_dict[selection_path] = copy.deepcopy(selection)
 
         for selection_path in output_dict:
             selection = output_dict[selection_path]
+            if dump_test_parameters(selection) in exclusion_dict:
+                print('Excluding selection:', selection_path)
+                continue
             try:
                 generate_selection(spec_directory, spec_json, selection, spec,
                                    html_template)

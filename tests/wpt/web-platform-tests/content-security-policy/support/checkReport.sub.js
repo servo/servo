@@ -47,7 +47,7 @@
   // is to wait for some reasonable amount of time and if no report has been
   // received to conclude that no report has been generated. These timeouts must
   // not exceed the test timeouts set by vendors otherwise the test would fail.
-  var timeout = document.querySelector("meta[name=timeout][content=long]") ? 25 : 5;
+  var timeout = document.querySelector("meta[name=timeout][content=long]") ? 20 : 3;
   var reportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_report&timeout=" + timeout + "&reportID=" + reportID;
 
   if (testName == "") testName = "Violation report status OK.";
