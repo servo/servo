@@ -200,6 +200,7 @@ def linux_tidy_unit():
     return (
         linux_build_task("Tidy + dev build + unit tests")
         .with_treeherder("Linux x64", "Tidy+Unit")
+        .with_max_run_time_minutes(75)
         .with_script("""
             ./mach test-tidy --no-progress --all
             python3 ./mach test-tidy --no-progress --all --no-wpt
