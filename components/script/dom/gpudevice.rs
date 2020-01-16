@@ -12,8 +12,6 @@ use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{self, GPUDeviceMethods};
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -23,12 +21,11 @@ use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
-use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, ObjectValue};
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::collections::{HashMap, HashSet};
 use std::ptr::{self, NonNull};
@@ -179,20 +176,16 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
         let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
         let (sender, receiver) = ipc::channel().unwrap();
-        if let Some(window) = self.global().downcast::<Window>() {
-            let id = window.Navigator().create_buffer_id(self.device.0.backend());
-            self.channel
-                .0
-                .send(WebGPURequest::CreateBuffer(
-                    sender,
-                    self.device,
-                    id,
-                    wgpu_descriptor,
-                ))
-                .expect("Failed to create WebGPU buffer");
-        } else {
-            unimplemented!()
-        };
+        let id = self.global().wgpu_create_buffer_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreateBuffer(
+                sender,
+                self.device,
+                id,
+                wgpu_descriptor,
+            ))
+            .expect("Failed to create WebGPU buffer");
 
         let buffer = receiver.recv().unwrap();
 
@@ -216,21 +209,16 @@ impl GPUDeviceMethods for GPUDevice {
     ) -> Vec<JSVal> {
         let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
         let (sender, receiver) = ipc::channel().unwrap();
-        rooted!(in(*cx) let js_val = UndefinedValue());
-        if let Some(window) = self.global().downcast::<Window>() {
-            let id = window.Navigator().create_buffer_id(self.device.0.backend());
-            self.channel
-                .0
-                .send(WebGPURequest::CreateBufferMapped(
-                    sender,
-                    self.device,
-                    id,
-                    wgpu_descriptor.clone(),
-                ))
-                .expect("Failed to create WebGPU buffer");
-        } else {
-            return vec![js_val.get()];
-        };
+        let id = self.global().wgpu_create_buffer_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreateBufferMapped(
+                sender,
+                self.device,
+                id,
+                wgpu_descriptor.clone(),
+            ))
+            .expect("Failed to create WebGPU buffer");
 
         let (buffer, array_buffer) = receiver.recv().unwrap();
 
@@ -381,20 +369,19 @@ impl GPUDeviceMethods for GPUDevice {
             max_dynamic_storage_buffers_per_pipeline_layout >= 0;
 
         let (sender, receiver) = ipc::channel().unwrap();
-        if let Some(window) = self.global().downcast::<Window>() {
-            let id = window
-                .Navigator()
-                .create_bind_group_layout_id(self.device.0.backend());
-            self.channel
-                .0
-                .send(WebGPURequest::CreateBindGroupLayout(
-                    sender,
-                    self.device,
-                    id,
-                    bindings.clone(),
-                ))
-                .expect("Failed to create WebGPU BindGroupLayout");
-        }
+        let id = self
+            .global()
+            .wgpu_create_bind_group_layout_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreateBindGroupLayout(
+                sender,
+                self.device,
+                id,
+                bindings.clone(),
+            ))
+            .expect("Failed to create WebGPU BindGroupLayout");
+
         let bgl = receiver.recv().unwrap();
 
         let binds = descriptor
@@ -460,20 +447,19 @@ impl GPUDeviceMethods for GPUDevice {
             max_dynamic_storage_buffers_per_pipeline_layout >= 0;
 
         let (sender, receiver) = ipc::channel().unwrap();
-        if let Some(window) = self.global().downcast::<Window>() {
-            let id = window
-                .Navigator()
-                .create_pipeline_layout_id(self.device.0.backend());
-            self.channel
-                .0
-                .send(WebGPURequest::CreatePipelineLayout(
-                    sender,
-                    self.device,
-                    id,
-                    bgl_ids,
-                ))
-                .expect("Failed to create WebGPU PipelineLayout");
-        }
+        let id = self
+            .global()
+            .wgpu_create_pipeline_layout_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreatePipelineLayout(
+                sender,
+                self.device,
+                id,
+                bgl_ids,
+            ))
+            .expect("Failed to create WebGPU PipelineLayout");
+
         let pipeline_layout = receiver.recv().unwrap();
         GPUPipelineLayout::new(&self.global(), bind_group_layouts, pipeline_layout, valid)
     }

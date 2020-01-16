@@ -6,9 +6,7 @@ use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
     self, GPUAdapterMethods, GPUDeviceDescriptor,
 };
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -17,7 +15,6 @@ use crate::dom::gpu::response_async;
 use crate::dom::gpu::AsyncWGPUListener;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
-use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -92,21 +89,17 @@ impl GPUAdapterMethods for GPUAdapter {
                 max_bind_groups: descriptor.limits.maxBindGroups,
             },
         };
-        if let Some(window) = self.global().downcast::<Window>() {
-            let id = window
-                .Navigator()
-                .create_device_id(self.adapter.0.backend());
-            if self
-                .channel
-                .0
-                .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
-                .is_err()
-            {
-                promise.reject_error(Error::Operation);
-            }
-        } else {
+        let id = self
+            .global()
+            .wgpu_create_device_id(self.adapter.0.backend());
+        if self
+            .channel
+            .0
+            .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
+            .is_err()
+        {
             promise.reject_error(Error::Operation);
-        };
+        }
         promise
     }
 }
