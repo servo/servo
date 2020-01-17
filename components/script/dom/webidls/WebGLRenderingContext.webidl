@@ -650,15 +650,23 @@ interface mixin WebGLRenderingContextBase
     void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
 
-    void uniform1fv(WebGLUniformLocation? location, Float32List v);
-    void uniform2fv(WebGLUniformLocation? location, Float32List v);
-    void uniform3fv(WebGLUniformLocation? location, Float32List v);
-    void uniform4fv(WebGLUniformLocation? location, Float32List v);
+    void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform2fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform3fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform4fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
 
-    void uniform1iv(WebGLUniformLocation? location, Int32List v);
-    void uniform2iv(WebGLUniformLocation? location, Int32List v);
-    void uniform3iv(WebGLUniformLocation? location, Int32List v);
-    void uniform4iv(WebGLUniformLocation? location, Int32List v);
+    void uniform1iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform2iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform3iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
 
     void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
     void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
