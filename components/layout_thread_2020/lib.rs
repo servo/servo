@@ -35,7 +35,7 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::DisplayListBuilder;
+use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -56,7 +56,8 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
 use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
-use net_traits::image_cache::ImageCache;
+use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -147,6 +148,9 @@ pub struct LayoutThread {
     /// The channel on which messages can be sent to the memory profiler.
     mem_profiler_chan: profile_mem::ProfilerChan,
 
+    /// Reference to the script thread image cache.
+    image_cache: Arc<dyn ImageCache>,
+
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
 
@@ -189,6 +193,8 @@ pub struct LayoutThread {
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
 
+    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
 
@@ -211,11 +217,23 @@ pub struct LayoutThread {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     load_webfonts_synchronously: bool,
 
+    /// Dumps the display list form after a layout.
+    dump_display_list: bool,
+
+    /// Dumps the display list in JSON form after a layout.
+    dump_display_list_json: bool,
+
+    /// Dumps the DOM after restyle.
+    dump_style_tree: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_rule_tree: bool,
+
+    /// Dumps the flow tree after a layout.
+    dump_flow_tree: bool,
+
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// Dumps the fragment tree after a layout.
-    dump_fragment_tree: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -232,7 +250,7 @@ impl LayoutThreadFactory for LayoutThread {
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        _image_cache: Arc<dyn ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
@@ -242,10 +260,10 @@ impl LayoutThreadFactory for LayoutThread {
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
-        _dump_display_list: bool,
-        _dump_display_list_json: bool,
-        _dump_style_tree: bool,
-        _dump_rule_tree: bool,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
         relayout_event: bool,
         _nonincremental_layout: bool,
         _trace_layout: bool,
@@ -280,6 +298,7 @@ impl LayoutThreadFactory for LayoutThread {
                         background_hang_monitor,
                         constellation_chan,
                         script_chan,
+                        image_cache,
                         font_cache_thread,
                         time_profiler_chan,
                         mem_profiler_chan.clone(),
@@ -290,6 +309,10 @@ impl LayoutThreadFactory for LayoutThread {
                         load_webfonts_synchronously,
                         window_size,
                         relayout_event,
+                        dump_display_list,
+                        dump_display_list_json,
+                        dump_style_tree,
+                        dump_rule_tree,
                         dump_flow_tree,
                     );
 
@@ -443,6 +466,7 @@ impl LayoutThread {
         background_hang_monitor: Box<dyn BackgroundHangMonitor>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
@@ -453,7 +477,11 @@ impl LayoutThread {
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
         relayout_event: bool,
-        dump_fragment_tree: bool,
+        dump_display_list: bool,
+        dump_display_list_json: bool,
+        dump_style_tree: bool,
+        dump_rule_tree: bool,
+        dump_flow_tree: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(webrender_document, id.to_webrender());
@@ -489,6 +517,7 @@ impl LayoutThread {
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
+            image_cache,
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
@@ -523,6 +552,7 @@ impl LayoutThread {
                 element_inner_text_response: String::new(),
                 inner_window_dimensions_response: None,
             })),
+            webrender_image_cache: Default::default(),
             timer: if pref!(layout.animations.test.enabled) {
                 Timer::test_mode()
             } else {
@@ -532,7 +562,11 @@ impl LayoutThread {
             busy,
             load_webfonts_synchronously,
             relayout_event,
-            dump_fragment_tree,
+            dump_display_list,
+            dump_display_list_json,
+            dump_style_tree,
+            dump_rule_tree,
+            dump_flow_tree,
         }
     }
 
@@ -553,6 +587,7 @@ impl LayoutThread {
     fn build_layout_context<'a>(
         &'a self,
         guards: StylesheetGuards<'a>,
+        script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
@@ -560,6 +595,7 @@ impl LayoutThread {
 
         LayoutContext {
             id: self.id,
+            origin: self.url.origin(),
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -573,7 +609,14 @@ impl LayoutThread {
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
+            image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            webrender_image_cache: self.webrender_image_cache.clone(),
+            pending_images: if script_initiated_layout {
+                Some(Mutex::new(Vec::new()))
+            } else {
+                None
+            },
             use_rayon: STYLE_THREAD_POOL.pool().is_some(),
         }
     }
@@ -817,14 +860,14 @@ impl LayoutThread {
             info.layout_is_busy,
             self.load_webfonts_synchronously,
             info.window_size,
-            false, // dump_display_list
-            false, // dump_display_list_json
-            false, // dump_style_tree
-            false, // dump_rule_tree
+            self.dump_display_list,
+            self.dump_display_list_json,
+            self.dump_style_tree,
+            self.dump_rule_tree,
             self.relayout_event,
             true,  // nonincremental_layout
             false, // trace_layout
-            false, // dump_flow_tree
+            self.dump_flow_tree,
         );
     }
 
@@ -1074,7 +1117,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), &map);
+        let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
@@ -1121,6 +1164,21 @@ impl LayoutThread {
             unsafe { element.unset_snapshot_flags() }
         }
 
+        if self.dump_style_tree {
+            println!(
+                "{:?}",
+                style::dom::ShowSubtreeDataAndPrimaryValues(element.as_node())
+            );
+        }
+
+        if self.dump_rule_tree {
+            layout_context
+                .style_context
+                .stylist
+                .rule_tree()
+                .dump_stdout(&guards);
+        }
+
         // GC the rule tree if some heuristics are met.
         unsafe {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
@@ -1128,11 +1186,21 @@ impl LayoutThread {
 
         // Perform post-style recalculation layout passes.
         if let Some(root) = &*self.fragment_tree_root.borrow() {
-            self.perform_post_style_recalc_layout_passes(root, &data.reflow_goal, Some(&document));
+            self.perform_post_style_recalc_layout_passes(
+                root,
+                &data.reflow_goal,
+                Some(&document),
+                &mut layout_context,
+            );
         }
 
         self.first_reflow.set(false);
-        self.respond_to_query_if_necessary(&data.reflow_goal, &mut *rw_data, &mut layout_context);
+        self.respond_to_query_if_necessary(
+            &data.reflow_goal,
+            &mut *rw_data,
+            &mut layout_context,
+            data.result.borrow_mut().as_mut().unwrap(),
+        );
     }
 
     fn respond_to_query_if_necessary(
@@ -1140,7 +1208,13 @@ impl LayoutThread {
         reflow_goal: &ReflowGoal,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
+        reflow_result: &mut ReflowComplete,
     ) {
+        let pending_images = match &context.pending_images {
+            Some(pending) => std::mem::take(&mut *pending.lock().unwrap()),
+            None => Vec::new(),
+        };
+        reflow_result.pending_images = pending_images;
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
@@ -1262,12 +1336,20 @@ impl LayoutThread {
             let author_shared_lock = self.document_shared_lock.clone().unwrap();
             let author_guard = author_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-            let _guards = StylesheetGuards {
+            let guards = StylesheetGuards {
                 author: &author_guard,
                 ua_or_user: &ua_or_user_guard,
             };
+            let snapshots = SnapshotMap::new();
+            let mut layout_context = self.build_layout_context(guards, false, &snapshots);
 
-            self.perform_post_style_recalc_layout_passes(root, &ReflowGoal::TickAnimations, None);
+            self.perform_post_style_recalc_layout_passes(
+                root,
+                &ReflowGoal::TickAnimations,
+                None,
+                &mut layout_context,
+            );
+            assert!(layout_context.pending_images.is_none());
         }
     }
 
@@ -1276,6 +1358,7 @@ impl LayoutThread {
         fragment_tree: &layout::FragmentTreeRoot,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
+        context: &mut LayoutContext,
     ) {
         if !reflow_goal.needs_display() {
             // Defer the paint step until the next ForDisplay.
@@ -1295,11 +1378,15 @@ impl LayoutThread {
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        let mut display_list = DisplayListBuilder::new(self.id.to_webrender(), viewport_size);
+        let mut display_list =
+            DisplayListBuilder::new(self.id.to_webrender(), context, viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
 
-        if self.dump_fragment_tree {
+        if self.dump_flow_tree {
             fragment_tree.print();
+        }
+        if self.dump_display_list {
+            display_list.wr.print_display_list();
         }
 
         debug!("Layout done!");

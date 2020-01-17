@@ -90,6 +90,12 @@ malloc_size_of_is_0!(UntrustedNodeAddress);
 #[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
 
+impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
+    fn from(o: style_traits::dom::OpaqueNode) -> Self {
+        UntrustedNodeAddress(o.0 as *const c_void)
+    }
+}
+
 impl Serialize for UntrustedNodeAddress {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         (self.0 as usize).serialize(s)

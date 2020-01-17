@@ -18,12 +18,15 @@ atomic_refcell = "0.1"
 cssparser = "0.27"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.20"
+fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.12"
 libc = "0.2"
 msg = {path = "../msg"}
+mitochondria = "1.1.2"
 net_traits = {path = "../net_traits"}
+parking_lot = "0.9"
 range = {path = "../range"}
 rayon = "1"
 rayon_croissant = "0.2.0"
@@ -32,6 +35,7 @@ script_traits = {path = "../script_traits"}
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_geometry = {path = "../geometry"}
+servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo", "servo-layout-2020"]}
 style_traits = {path = "../style_traits"}
 unicode-script = {version = "0.3", features = ["harfbuzz"]}

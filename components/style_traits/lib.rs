@@ -86,6 +86,7 @@ pub enum CSSPixel {}
 //     / desktop_zoom => CSSPixel
 
 pub mod arc_slice;
+pub mod dom;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;
