@@ -668,9 +668,12 @@ interface mixin WebGLRenderingContextBase
     void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
                     optional GLuint srcLength = 0);
 
-    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
-    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
-    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
     void useProgram(WebGLProgram? program);
     void validateProgram(WebGLProgram program);

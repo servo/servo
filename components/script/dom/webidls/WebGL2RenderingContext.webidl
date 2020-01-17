@@ -439,26 +439,20 @@ interface mixin WebGL2RenderingContextBase
   void uniform4uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
                    optional GLuint srcLength = 0);
 
-  // void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix3x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix4x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
-  // void uniformMatrix2x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix2x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix4x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
-  // void uniformMatrix2x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix2x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix3x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
   /* Vertex attribs */
   // void vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w);
