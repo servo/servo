@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>This test validates LargestContenfulPaint information for cross-origin redirect chain images.</title>
+<title>This test validates LargestContentfulPaint information for cross-origin redirect chain images.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/largest-contentful-paint-helpers.js"></script>
@@ -11,14 +11,12 @@
 <body>
 <script>
 async_test(t => {
-    if (!window.LargestContentfulPaint) {
-      assert_unreached("LargestContentfulPaint is not implemented");
-    }
+    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
             + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' +  get_host_info().HTTP_ORIGIN;
     destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
-    destUrl += '&final_resource=' + '/element-timing/resources/circle.svg';
+    destUrl += '&final_resource=' + '/element-timing/resources/circle-tao.svg';
     destUrl += '&timing_allow=1';
     destUrl += '&tao_steps=';
 

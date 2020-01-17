@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <text x="100" y="100" font-size="50" style="direction: ltr; unicode-bidi: bidi-override">
+    <tspan style="opacity: 0.5">a</tspan>&#x5d2;<tspan style="opacity: 0.5">&#x5d1;</tspan>b
+  </text>
+</svg>

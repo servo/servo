@@ -45,11 +45,9 @@
       };
 
       dictionary RTCRtpEncodingParameters {
-        RTCDtxStatus        dtx;
         boolean             active;
         RTCPriorityType     priority;
         RTCPriorityType     networkPriority;
-        unsigned long       ptime;
         unsigned long       maxBitrate;
         double              maxFramerate;
 
@@ -57,11 +55,6 @@
         DOMString           rid;
 
         double              scaleResolutionDownBy;
-      };
-
-      enum RTCDtxStatus {
-        "disabled",
-        "enabled"
       };
 
       enum RTCPriorityType {
@@ -142,13 +135,11 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const { sender } = pc.addTransceiver('audio', {
+    const { sender } = pc.addTransceiver('video', {
       sendEncodings: [{
-        dtx: 'enabled',
         active: false,
         priority: 'low',
         networkPriority: 'low',
-        ptime: 5,
         maxBitrate: 8,
         maxFramerate: 25,
         rid: 'foo'
@@ -160,14 +151,12 @@
     validateSenderRtpParameters(param);
     const encoding = getFirstEncoding(param);
 
-    assert_equals(encoding.dtx, 'enabled');
     assert_equals(encoding.active, false);
     assert_equals(encoding.priority, 'low');
     assert_equals(encoding.networkPriority, 'low');
-    assert_equals(encoding.ptime, 5);
     assert_equals(encoding.maxBitrate, 8);
     assert_equals(encoding.maxFramerate, 25);
-    assert_equals(encoding.rid, 'foo');
+    assert_not_own_property(encoding, "rid", "rid should be removed with a single encoding");
 
   }, `sender.getParameters() should return sendEncodings set by addTransceiver()`);
 
@@ -260,7 +249,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const { sender } = pc.addTransceiver('audio');
+    const { sender } = pc.addTransceiver('video');
     await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
@@ -330,12 +319,6 @@
     }, desc + ' without RTCRtpTransceiverInit');
   }
 
-  test_modified_encoding('audio', 'dtx', 'enabled', 'disabled',
-    'setParameters() with modified encoding.dtx should succeed');
-
-  test_modified_encoding('audio', 'dtx', 'enabled', undefined,
-    'setParameters() with unset encoding.dtx should succeed');
-
   test_modified_encoding('audio', 'active', false, true,
     'setParameters() with modified encoding.active should succeed');
 
@@ -345,13 +328,13 @@
   test_modified_encoding('audio', 'networkPriority', 'very-low', 'high',
     'setParameters() with modified encoding.networkPriority should succeed');
 
-  test_modified_encoding('audio', 'ptime', 2, 4,
-    'setParameters() with modified encoding.ptime should succeed');
-
   test_modified_encoding('audio', 'maxBitrate', 10000, 20000,
     'setParameters() with modified encoding.maxBitrate should succeed');
 
   test_modified_encoding('video', 'maxFramerate', 24, 16,
     'setParameters() with modified encoding.maxFramerate should succeed');
+
+  test_modified_encoding('video', 'scaleResolutionDownBy', 2, 4,
+    'setParameters() with modified encoding.scaleResolutionDownBy should succeed');
 
 </script>

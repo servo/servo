@@ -705,8 +705,9 @@ def setup_logging(kwargs, default_config=None, formatter_defaults=None):
 
 def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     from wptrunner import wptcommandline
+    from six import iteritems
 
-    kwargs = utils.Kwargs(kwargs.iteritems())
+    kwargs = utils.Kwargs(iteritems(kwargs))
 
     product_parts = kwargs["product"].split(":")
     kwargs["product"] = product_parts[0].replace("-", "_")

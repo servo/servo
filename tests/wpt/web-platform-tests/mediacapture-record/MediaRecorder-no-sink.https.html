@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="utils/peerconnection.js"></script>
+</head>
+
+<body>
+  <script>
+
+[{name: "audio",        kind: {audio: true, video: false}},
+ {name: "video",        kind: {audio: false, video: true}},
+ {name: "audio/video",  kind: {audio: true, video: true}}].forEach(args => {
+  promise_test(async t => {
+    const [localPc, remotePc, stream] = await startConnection(
+        t, args.kind.audio, args.kind.video);
+    const recorder = new MediaRecorder(stream);
+    // Set an arbitrary timeslice interval so the ondataavailable event
+    // handler gets invoked repeatedly. Without it, the test would
+    // deadlock as it's currently written.
+    recorder.start(100);
+    let combinedSize = 0;
+    const dataPromise = new Promise(r => recorder.ondataavailable = e => {
+      // Wait for an arbitrary amount of data to appear before we resolve.
+      combinedSize += e.data.size;
+      if (combinedSize > 4711) r();
+    });
+    await dataPromise;
+    recorder.stop();
+  }, "PeerConnection MediaRecorder records " + args.name +
+     " from PeerConnection without sinks");
+ });
+
+  </script>
+</body>
+
+</html>

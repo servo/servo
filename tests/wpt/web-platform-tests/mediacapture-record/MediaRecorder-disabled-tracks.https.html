@@ -30,7 +30,7 @@
       const recorderOnError = test.unreached_func('Recording error.');
 
       const gotStream = test.step_func(function(stream) {
-        for (track in stream.getTracks())
+        for (track of stream.getTracks())
           track.enabled = false;
 
         recorder = new MediaRecorder(stream);

@@ -24,7 +24,7 @@
             `data:text/html,<script src = "${BASE}/common/security-features/resources/common.sub.js"></` + `script>
             <script src = "${BASE}/referrer-policy/generic/referrer-policy-test-case.js"></` + `script>
             <script>
-              var urlPath = "/referrer-policy/generic/subresource/xhr.py";
+              var urlPath = "/common/security-features/subresource/xhr.py";
               var url = "${BASE}" + urlPath;
               requestViaXhr(url).then((msg) => {
                   parent.postMessage({referrer: msg.referrer}, "*")})
