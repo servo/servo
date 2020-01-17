@@ -12,15 +12,23 @@ promise_test(async t => {
   let pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   let [channel1, channel2] = await createDataChannelPair(pc1);
-  let close_handler = new Promise(resolve => {
+  let closeHandler = new Promise(resolve => {
     channel2.onclose = event => {
       resolve();
     };
   });
+  let closingSeen = false;
+  channel1.onclosing = t.unreached_func();
+  channel2.onclosing = event => {
+    assert_equals(channel2.readyState, 'closing');
+    closingSeen = true;
+  }
   channel2.addEventListener('error', t.unreached_func());
   channel1.close();
-  await close_handler;
-}, 'Close datachannel causes onclose to be called');
+  await closeHandler;
+  assert_equals(channel2.readyState, 'closed');
+  assert_true(closingSeen, 'Closing event was seen');
+}, 'Close datachannel causes onclosing and onclose to be called');
 
 promise_test(async t => {
   // This is the same test as above, but using addEventListener
@@ -28,15 +36,23 @@ promise_test(async t => {
   let pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   let [channel1, channel2] = await createDataChannelPair(pc1);
-  let close_handler = new Promise(resolve => {
+  let closeHandler = new Promise(resolve => {
     channel2.addEventListener('close', event => {
       resolve();
     });
   });
+  let closingSeen = false;
+  channel1.addEventListener('closing', t.unreached_func());
+  channel2.addEventListener('closing', event => {
+    assert_equals(channel2.readyState, 'closing');
+    closingSeen = true;
+  });
   channel2.addEventListener('error', t.unreached_func());
   channel1.close();
-  await close_handler;
-}, 'Close datachannel causes close event to be called');
+  await closeHandler;
+  assert_equals(channel2.readyState, 'closed');
+  assert_true(closingSeen, 'Closing event was seen');
+}, 'Close datachannel causes closing and close event to be called');
 
 promise_test(async t => {
   let pc1 = new RTCPeerConnection();
@@ -44,13 +60,13 @@ promise_test(async t => {
   let [channel1, channel2] = await createDataChannelPair(pc1);
   let events = [];
   let error = null;
-  let close_handler = new Promise(resolve => {
+  let closeHandler = new Promise(resolve => {
     channel2.addEventListener('close', event => {
       events.push('close');
       resolve();
     });
   });
-  let error_handler = new Promise((resolve, reject) => {
+  let errorHandler = new Promise((resolve, reject) => {
     channel2.addEventListener('error', event => {
       events.push('error');
       try {
@@ -64,8 +80,8 @@ promise_test(async t => {
     });
   });
   pc1.close();
-  await error_handler;
-  await close_handler;
+  await errorHandler;
+  await closeHandler;
   // Error should fire before close.
   assert_array_equals(['error', 'close'], events);
   assert_true(error instanceof RTCError);

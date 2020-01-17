@@ -38,7 +38,7 @@ const waitForLoad = new Promise(resolve => { addEventListener('load', resolve); 
 
 idl_test(
   ['html'],
-  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom', 'xhr', 'FileAPI'],
+  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom', 'xhr', 'FileAPI', 'mediacapture-streams'],
   async idlArray => {
     self.documentWithHandlers = new Document();
     const handler = function(e) {};

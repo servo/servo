@@ -468,6 +468,19 @@ function attachShadowDiv(host) {
 }
 
 test(() => {
+  const sheet = new CSSStyleSheet();
+  assert_equals(sheet.cssRules.length, 0);
+
+  sheet.replaceSync(redStyleTexts[0])
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(redStyleTexts[0], sheet.cssRules[0].cssText);
+
+  sheet.replaceSync(redStyleTexts[1]);
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(redStyleTexts[1], sheet.cssRules[0].cssText);
+}, 'CSSStyleSheet.replaceSync replaces stylesheet text synchronously');
+
+test(() => {
   // Attach a div inside a shadow root with the class ".red".
   const span = document.createElement("span");
   thirdSection.appendChild(span);
@@ -485,7 +498,7 @@ test(() => {
   sheet.insertRule(redStyleTexts[1]);
   assert_equals(sheet.cssRules.length, 2);
   assert_equals(sheet.cssRules[0].cssText, redStyleTexts[1]);
-}, 'CSSStyleSheet.replaceSync replaces stylesheet text synchronously');
+}, 'CSSStyleSheet.replaceSync correctly updates the style of its adopters synchronously');
 
 const import_text = '@import url("support/constructable-import.css");';
 
@@ -496,6 +509,27 @@ test(() => {
 test(() => {
   assert_throws("NotAllowedError", () => { (new CSSStyleSheet).insertRule(import_text) });
 }, 'Inserting an @import rule through insertRule on a constructed stylesheet throws an exception');
+
+async_test(t => {
+    const importUrl = "support/constructable-import.css";
+    const sheet = new CSSStyleSheet();
+
+    assert_throws("NotAllowedError", () => { sheet.replaceSync(`@import url("${importUrl}");`) });
+
+    const timeAfterReplaceSync = performance.now();
+    let link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = importUrl;
+
+    link.addEventListener("error", t.unreached_func("Load shouldn't fail"));
+    link.addEventListener("load", t.step_func_done(event => {
+      let entries = window.performance.getEntriesByType('resource').filter(entry => entry.name.includes(importUrl));
+      assert_equals(entries.length, 1, "There should be only one entry for the import URL");
+      assert_greater_than_equal(entries[0].startTime, timeAfterReplaceSync, "The entry's start time should be after replaceSync threw");
+      link.remove();
+    }));
+    document.body.appendChild(link);
+}, "CSSStyleSheet.replaceSync should not trigger any loads from @import rules")
 
 promise_test(() => {
   const span = document.createElement("span");

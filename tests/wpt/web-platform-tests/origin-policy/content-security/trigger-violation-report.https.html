@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSP via origin policy must trigger a securitypolicyviolation event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js"></script>
+
+<body>
+
+<script>
+"use strict";
+
+promise_test(() => {
+  const imgURL = (new URL("/common/security-features/subresource/image.py", document.location)).href;
+
+  return Promise.all([
+    waitForOneSecurityPolicyViolationEvent(imgURL).then(blockedURI => {
+      assert_equals(blockedURI, imgURL);
+    }),
+    waitForImgFail(imgURL)
+  ]);
+});
+</script>

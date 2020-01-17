@@ -145,6 +145,7 @@ let loadChromiumResources = Promise.resolve().then(() => {
     '/gen/ui/gfx/mojom/gpu_fence_handle.mojom.js',
     '/gen/ui/gfx/mojom/transform.mojom.js',
     '/gen/device/vr/public/mojom/vr_service.mojom.js',
+    '/resources/chromium/webxr-test-math-helper.js',
     '/resources/chromium/webxr-test.js',
     '/resources/testdriver.js',
     '/resources/testdriver-vendor.js',

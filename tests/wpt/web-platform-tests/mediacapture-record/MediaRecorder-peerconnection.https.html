@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="utils/peerconnection.js"></script>
+</head>
+
+<body>
+  <video id="remote" autoplay width="240" />
+  <script>
+
+[{ name: "video", kind: { video: true, audio: false }, mimeType: "" },
+ { name: "audio", kind: { video: false, audio: true }, mimeType: "" },
+ { name: "audio/video", kind: { video: true, audio: true }, mimeType: "" },
+ { name: "audio", kind: { video: false, audio: true }, mimeType: "video/webm;codecs=vp8" },
+ { name: "video", kind: { video: true, audio: false }, mimeType: "video/webm;codecs=vp8" },
+ { name: "audio/video", kind: { video: true, audio: true }, mimeType: "video/webm;codecs=vp8" },
+ { name: "audio", kind: { video: false, audio: true }, mimeType: "video/webm;codecs=vp9" },
+ { name: "video", kind: { video: true, audio: false }, mimeType: "video/webm;codecs=vp9" },
+ { name: "audio/video", kind: { video: true, audio: true }, mimeType: "video/webm;codecs=vp9" }]
+  .forEach(args => {
+    const formatString = JSON.stringify(args.kind) +
+        " with format " + (args.mimeType ? args.mimeType : "[passthrough]") + ".";
+    promise_test(async t => {
+      const [localPc, remotePc, stream] = await startConnection(
+          t, args.kind.audio, args.kind.video);
+      const recorder = new MediaRecorder(stream, { mimeType: args.mimeType });
+      let combinedSize = 0;
+      const dataPromise = new Promise(r => {
+        recorder.onstart = () => {
+          recorder.ondataavailable = e => {
+            // Wait for an arbitrary amount of data to appear before we resolve.
+            combinedSize += e.data.size;
+            if (combinedSize > 4711) r();
+          }
+        }
+      });
+      recorder.start(100);
+      await dataPromise;
+      recorder.stop();
+    }, "PeerConnection MediaRecorder receives data after onstart, " +
+          formatString);
+
+    promise_test(async t => {
+      const [localPc, remotePc, stream] = await startConnection(
+          t, args.kind.audio, args.kind.video);
+      const recorder = new MediaRecorder(stream, { mimeType: args.mimeType });
+      const stopPromise = new Promise(r => recorder.onstop = r);
+      const dataPromise = new Promise(r => recorder.ondataavailable = r);
+      recorder.start();
+      await waitForReceivedFrames(
+        t, remotePc, args.kind.audio, args.kind.video, 10);
+      for (transceiver of remotePc.getTransceivers())
+        transceiver.receiver.track.stop();
+      // As the tracks ended, we'd like to see data from the recorder.
+      // For details:
+      // https://www.w3.org/TR/mediastream-recording/#mediarecorder-methods.
+      await dataPromise;
+      await stopPromise;
+    }, "PeerConnection MediaRecorder gets ondata on stopping recorded " +
+            "tracks " + formatString);
+  });
+
+  </script>
+</body>
+
+</html>

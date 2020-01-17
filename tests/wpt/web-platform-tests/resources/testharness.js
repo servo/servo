@@ -1019,7 +1019,7 @@ policies and contribution forms [3].
 
         switch (typeof val) {
         case "string":
-            val = val.replace("\\", "\\\\");
+            val = val.replace(/\\/g, "\\\\");
             for (var p in replacements) {
                 var replace = "\\" + replacements[p];
                 val = val.replace(RegExp(String.fromCharCode(p), "g"), replace);

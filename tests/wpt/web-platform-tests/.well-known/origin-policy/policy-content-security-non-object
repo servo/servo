@@ -1,0 +1,3 @@
+{
+  "content_security": ["script-src 'self' 'unsafe-inline'"]
+}

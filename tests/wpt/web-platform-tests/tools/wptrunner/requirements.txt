@@ -6,4 +6,4 @@ mozdebug==0.1.1
 pillow==6.2.1  # pyup: <7.0
 urllib3[secure]==1.25.7
 requests==2.22.0
-six==1.13.0
+six==1.14.0

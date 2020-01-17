@@ -1212,7 +1212,7 @@ class WebKitGTKMiniBrowser(WebKit):
         gcc = find_executable("gcc")
         if gcc:
             try:
-                triplet = call(gcc, "-dumpmachine").strip()
+                triplet = call(gcc, "-dumpmachine").decode().strip()
             except subprocess.CalledProcessError:
                 pass
         # Add Debian/Ubuntu path
@@ -1231,7 +1231,7 @@ class WebKitGTKMiniBrowser(WebKit):
         if binary is None:
             return None
         try:  # WebKitGTK MiniBrowser before 2.26.0 doesn't support --version
-            output = call(binary, "--version").strip()
+            output = call(binary, "--version").decode().strip()
         except subprocess.CalledProcessError:
             return None
         # Example output: "WebKitGTK 2.26.1"

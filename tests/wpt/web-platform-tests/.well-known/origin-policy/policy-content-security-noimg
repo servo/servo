@@ -1,0 +1,5 @@
+{
+  "content_security": {
+    "policies": ["img-src 'none'"]
+  }
+}

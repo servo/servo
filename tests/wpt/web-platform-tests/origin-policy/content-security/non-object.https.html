@@ -1,0 +1,11 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Non-object "content_security" member must be ignored</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js"></script>
+
+<script>
+"use strict";
+runCSPTest({ unsafeEval: true });
+</script>

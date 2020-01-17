@@ -24,6 +24,20 @@
         return arr;
     }
 
+    // This function is used to check that elements of |actual| is a sub
+    // sequence in the |expected| sequence.
+    function assertSequenceIn(actual, expected) {
+      let i = 0;
+      for (event of actual) {
+        const j = expected.slice(i).indexOf(event);
+        assert_greater_than_equal(
+            j, 0, "Sequence element " + event + " is not included in " +
+            expected.slice(i));
+        i = j;
+      }
+      return true;
+    }
+
     promise_test(async t => {
         let video = createVideoStream();
         let recorder = new MediaRecorder(video);
@@ -40,8 +54,10 @@
         assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
         assert_equals(recorder.state, "inactive", "MediaRecorder is inactive after stop event");
 
-        assert_array_equals(events, ["start", "dataavailable", "stop"],
-            "Should have gotten expected events");
+        // As the test is written, it's not guaranteed that
+        // onstart/ondataavailable is invoked, but it's fine if they are.
+        // The stop element is guaranteed to be in events when we get here.
+        assertSequenceIn(events, ["start", "dataavailable", "stop"]);
     }, "MediaRecorder will stop recording and fire a stop event when all tracks are ended");
 
     promise_test(async t => {
@@ -59,8 +75,10 @@
         assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
         assert_equals(recorder.state, "inactive", "MediaRecorder is inactive after stop event");
 
-        assert_array_equals(events, ["start", "dataavailable", "stop"],
-            "Should have gotten expected events");
+        // As the test is written, it's not guaranteed that
+        // onstart/ondataavailable is invoked, but it's fine if they are.
+        // The stop element is guaranteed to be in events when we get here.
+        assertSequenceIn(events, ["start", "dataavailable", "stop"]);
     }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
 
     promise_test(async t => {

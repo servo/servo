@@ -1904,7 +1904,6 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onmouseout;
   attribute EventHandler onmouseover;
   attribute EventHandler onmouseup;
-  attribute EventHandler onwheel;
   attribute EventHandler onpause;
   attribute EventHandler onplay;
   attribute EventHandler onplaying;
@@ -1929,6 +1928,7 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onwebkitanimationiteration;
   attribute EventHandler onwebkitanimationstart;
   attribute EventHandler onwebkittransitionend;
+  attribute EventHandler onwheel;
 };
 
 interface mixin WindowEventHandlers {
