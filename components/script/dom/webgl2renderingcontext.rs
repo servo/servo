@@ -441,6 +441,16 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
         match parameter {
+            constants::VERSION => unsafe {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                "WebGL 2.0".to_jsval(*cx, rval.handle_mut());
+                return rval.get();
+            },
+            constants::SHADING_LANGUAGE_VERSION => unsafe {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                "WebGL GLSL ES 3.00".to_jsval(*cx, rval.handle_mut());
+                return rval.get();
+            },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
                 return Int32Value(
                     self.base.limits().max_client_wait_timeout_webgl.as_nanos() as i32
