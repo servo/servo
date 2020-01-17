@@ -49,6 +49,7 @@ impl HTMLAudioElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-audio
+    #[allow(non_snake_case)]
     pub fn Audio(window: &Window, src: Option<DOMString>) -> Fallible<DomRoot<HTMLAudioElement>> {
         let document = window.Document();
         let audio = HTMLAudioElement::new(local_name!("audio"), None, &document);

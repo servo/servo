@@ -10,6 +10,7 @@ use url::quirks;
 #[derive(MallocSizeOf)]
 pub struct UrlHelper;
 
+#[allow(non_snake_case)]
 impl UrlHelper {
     pub fn Origin(url: &ServoUrl) -> USVString {
         USVString(quirks::origin(url.as_url()).to_owned())

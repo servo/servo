@@ -77,6 +77,7 @@ impl HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option
+    #[allow(non_snake_case)]
     pub fn Option(
         window: &Window,
         text: DOMString,

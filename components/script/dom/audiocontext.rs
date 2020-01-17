@@ -85,6 +85,7 @@ impl AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         options: &AudioContextOptions,

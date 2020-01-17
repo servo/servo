@@ -23,6 +23,7 @@ pub struct DOMPointReadOnly {
     w: Cell<f64>,
 }
 
+#[allow(non_snake_case)]
 impl DOMPointReadOnly {
     pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
         DOMPointReadOnly {
@@ -58,6 +59,7 @@ impl DOMPointReadOnly {
     }
 }
 
+#[allow(non_snake_case)]
 impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
@@ -80,6 +82,7 @@ impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     }
 }
 
+#[allow(non_snake_case)]
 pub trait DOMPointWriteMethods {
     fn SetX(&self, value: f64);
     fn SetY(&self, value: f64);

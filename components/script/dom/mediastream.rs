@@ -21,6 +21,7 @@ pub struct MediaStream {
     tracks: DomRefCell<Vec<Dom<MediaStreamTrack>>>,
 }
 
+#[allow(non_snake_case)]
 impl MediaStream {
     pub fn new_inherited() -> MediaStream {
         MediaStream {

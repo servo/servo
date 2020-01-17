@@ -19,6 +19,7 @@ pub struct MessageChannel {
 
 impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<MessageChannel>> {
         let incumbent = GlobalScope::incumbent().ok_or(Error::InvalidState)?;
 

@@ -224,6 +224,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#constructors
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }

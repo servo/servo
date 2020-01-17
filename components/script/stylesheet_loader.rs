@@ -16,7 +16,7 @@ use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::{containing_shadow_root, document_from_node, window_from_node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
-use crate::fetch::create_a_potential_CORS_request;
+use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
@@ -344,7 +344,7 @@ pub(crate) fn stylesheet_fetch_request(
     referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
 ) -> RequestBuilder {
-    create_a_potential_CORS_request(url, Destination::Style, cors_setting, None)
+    create_a_potential_cors_request(url, Destination::Style, cors_setting, None)
         .origin(origin)
         .pipeline_id(Some(pipeline_id))
         .referrer(Some(referrer))

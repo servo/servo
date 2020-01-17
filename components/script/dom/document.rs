@@ -450,6 +450,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
+#[allow(non_snake_case)]
 impl Document {
     #[inline]
     pub fn loader(&self) -> Ref<DocumentLoader> {
@@ -2899,6 +2900,7 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());

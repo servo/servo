@@ -2708,6 +2708,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    #[allow(non_snake_case)]
     fn BeginTransformFeedback(&self, primitiveMode: u32) {
         match primitiveMode {
             constants::POINTS | constants::LINES | constants::TRIANGLES => {},
@@ -2775,6 +2776,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    #[allow(non_snake_case)]
     fn TransformFeedbackVaryings(
         &self,
         program: &WebGLProgram,

@@ -38,6 +38,7 @@ impl Text {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window, text: DOMString) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
         Ok(Text::new(text, &document))

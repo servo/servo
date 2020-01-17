@@ -904,7 +904,7 @@ impl StreamConsumer {
 unsafe extern "C" fn consume_stream(
     _cx: *mut RawJSContext,
     obj: HandleObject,
-    _mimeType: MimeType,
+    _mime_type: MimeType,
     _consumer: *mut JSStreamConsumer,
 ) -> bool {
     let cx = JSContext::from_ptr(_cx);

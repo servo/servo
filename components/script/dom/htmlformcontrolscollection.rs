@@ -47,6 +47,7 @@ impl HTMLFormControlsCollection {
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLFormControlsCollection) implements Length
+    #[allow(non_snake_case)]
     pub fn Length(&self) -> u32 {
         self.collection.Length()
     }

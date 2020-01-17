@@ -83,6 +83,7 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
         Ok(Range::new_with_doc(&document))

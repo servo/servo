@@ -71,6 +71,7 @@ impl VRFrameData {
         root
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<VRFrameData>> {
         Ok(VRFrameData::new(&window.global()))
     }

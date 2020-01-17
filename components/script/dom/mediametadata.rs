@@ -43,6 +43,7 @@ impl MediaMetadata {
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         init: &MediaMetadataInit,

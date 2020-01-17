@@ -53,6 +53,7 @@ impl From<&WindowProxyOrMessagePortOrServiceWorker> for SrcObject {
 }
 
 #[dom_struct]
+#[allow(non_snake_case)]
 pub struct MessageEvent {
     event: Event,
     #[ignore_malloc_size_of = "mozjs"]
@@ -65,6 +66,7 @@ pub struct MessageEvent {
     frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
 }
 
+#[allow(non_snake_case)]
 impl MessageEvent {
     pub fn new_inherited(
         origin: DOMString,
@@ -262,6 +264,7 @@ impl MessageEventMethods for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-initmessageevent>
+    #[allow(non_snake_case)]
     fn InitMessageEvent(
         &self,
         _cx: JSContext,

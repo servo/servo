@@ -59,6 +59,7 @@ impl XRRigidTransform {
     }
 
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         position: &DOMPointInit,

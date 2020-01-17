@@ -32,6 +32,7 @@ impl DOMRect {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         x: f64,

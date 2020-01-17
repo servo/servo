@@ -15,6 +15,7 @@ pub mod area {
     pub use crate::dom::htmlareaelement::{Area, Shape};
 }
 
+#[allow(non_snake_case)]
 pub mod size_of {
     use crate::dom::characterdata::CharacterData;
     use crate::dom::element::Element;

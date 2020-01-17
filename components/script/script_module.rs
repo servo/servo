@@ -1050,7 +1050,7 @@ impl ResourceTimingListener for ModuleContext {
 
 impl PreInvoke for ModuleContext {}
 
-#[allow(unsafe_code)]
+#[allow(unsafe_code, non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
 /// getting module metadata, getting script private reference and resolving dynamic import)
 pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
@@ -1065,7 +1065,7 @@ pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     SetModuleDynamicImportHook(rt, None);
 }
 
-#[allow(unsafe_code)]
+#[allow(unsafe_code, non_snake_case)]
 /// https://tc39.github.io/ecma262/#sec-hostresolveimportedmodule
 /// https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)
 unsafe extern "C" fn HostResolveImportedModule(

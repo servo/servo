@@ -290,6 +290,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
 static DEFAULT_MIN_LENGTH: i32 = -1;
 
+#[allow(non_snake_case)]
 impl HTMLInputElement {
     fn new_inherited(
         local_name: LocalName,
@@ -1038,7 +1039,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     fn SetValueAsDate(&self, cx: SafeJSContext, value: *mut JSObject) -> ErrorResult {
         rooted!(in(*cx) let value = value);
         if !self.does_value_as_date_apply() {

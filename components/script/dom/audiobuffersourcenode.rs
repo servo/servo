@@ -107,6 +107,7 @@ impl AudioBufferSourceNode {
         ))
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         context: &BaseAudioContext,

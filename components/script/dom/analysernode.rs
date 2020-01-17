@@ -119,6 +119,7 @@ impl AnalyserNode {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         context: &BaseAudioContext,

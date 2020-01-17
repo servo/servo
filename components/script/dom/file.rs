@@ -80,6 +80,7 @@ impl File {
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,

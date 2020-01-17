@@ -26,7 +26,7 @@ use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::create_a_potential_CORS_request;
+use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_module::fetch_inline_module_script;
 use crate::script_module::{fetch_external_module_script, ModuleOwner};
@@ -326,7 +326,7 @@ pub(crate) fn script_fetch_request(
     referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
 ) -> RequestBuilder {
-    create_a_potential_CORS_request(url, Destination::Script, cors_setting, None)
+    create_a_potential_cors_request(url, Destination::Script, cors_setting, None)
         .origin(origin)
         .pipeline_id(Some(pipeline_id))
         .referrer(Some(referrer))

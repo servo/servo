@@ -383,14 +383,14 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
                     let width = rectangle.Width().round() as i64;
                     let height = rectangle.Height().round() as i64;
 
-                    let clientWidth = body.ClientWidth() as i64;
-                    let clientHeight = body.ClientHeight() as i64;
+                    let client_width = body.ClientWidth() as i64;
+                    let client_height = body.ClientHeight() as i64;
 
                     // Steps 2 - 5
                     let left = cmp::max(0, cmp::min(x, x + width));
-                    let right = cmp::min(clientWidth, cmp::max(x, x + width));
+                    let right = cmp::min(client_width, cmp::max(x, x + width));
                     let top = cmp::max(0, cmp::min(y, y + height));
-                    let bottom = cmp::min(clientHeight, cmp::max(y, y + height));
+                    let bottom = cmp::min(client_height, cmp::max(y, y + height));
 
                     // Steps 6 - 7
                     let x = (left + right) / 2;

@@ -18,7 +18,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::fetch::{create_a_potential_CORS_request, FetchCanceller};
+use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
@@ -488,6 +488,7 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         url: DOMString,
@@ -516,7 +517,7 @@ impl EventSource {
         };
         // Step 8
         // TODO: Step 9 set request's client settings
-        let mut request = create_a_potential_CORS_request(
+        let mut request = create_a_potential_cors_request(
             url_record,
             Destination::None,
             Some(cors_attribute_state),

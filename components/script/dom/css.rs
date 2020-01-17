@@ -22,6 +22,7 @@ pub struct CSS {
     reflector_: Reflector,
 }
 
+#[allow(non_snake_case)]
 impl CSS {
     /// <http://dev.w3.org/csswg/cssom/#serialize-an-identifier>
     pub fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {

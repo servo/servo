@@ -44,6 +44,7 @@ impl DOMParser {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<DOMParser>> {
         Ok(DOMParser::new(window))
     }

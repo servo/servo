@@ -90,6 +90,7 @@ impl AudioBuffer {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         options: &AudioBufferOptions,

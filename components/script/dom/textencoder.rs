@@ -37,6 +37,7 @@ impl TextEncoder {
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TextEncoder>> {
         Ok(TextEncoder::new(global))
     }

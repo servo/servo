@@ -132,7 +132,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method
-#[allow(unrooted_must_root)]
+#[allow(unrooted_must_root, non_snake_case)]
 pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -349,7 +349,7 @@ pub fn load_whole_resource(
 }
 
 /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-pub(crate) fn create_a_potential_CORS_request(
+pub(crate) fn create_a_potential_cors_request(
     url: ServoUrl,
     destination: Destination,
     cors_setting: Option<CorsSettings>,

@@ -69,6 +69,7 @@ impl URL {
     }
 }
 
+#[allow(non_snake_case)]
 impl URL {
     // https://url.spec.whatwg.org/#constructors
     pub fn Constructor(

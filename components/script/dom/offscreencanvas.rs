@@ -69,6 +69,7 @@ impl OffscreenCanvas {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         width: u64,
