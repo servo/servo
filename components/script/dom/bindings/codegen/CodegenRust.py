@@ -2641,7 +2641,7 @@ let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usi
 rooted!(in(*cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(*cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
-                         proto.get());
+                         proto.get(), ptr::null(), false);
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(*cx) let obj = obj);\
@@ -3007,6 +3007,14 @@ rooted!(in(*cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
+        if self.descriptor.hasNamedPropertiesObject():
+            assert self.descriptor.isGlobal()
+            assert not self.haveUnscopables
+            code.append(CGGeneric("""\
+rooted!(in(*cx) let mut prototype_proto_proto = prototype_proto.get());
+dom::types::%s::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+assert!(!prototype_proto.is_null());""" % name))
+
         properties = {
             "id": name,
             "unscopables": "unscopable_names" if self.haveUnscopables else "&[]",
@@ -3031,8 +3039,12 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
         else:
             proto_properties = properties
 
+
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
+"""))
+
+        code.append(CGGeneric("""
 create_interface_prototype_object(cx,
                                   global.into(),
                                   prototype_proto.handle().into(),
@@ -3042,6 +3054,9 @@ create_interface_prototype_object(cx,
                                   %(consts)s,
                                   %(unscopables)s,
                                   prototype.handle_mut().into());
+""" % proto_properties))
+
+        code.append(CGGeneric("""
 assert!(!prototype.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 (*cache)[PrototypeList::ID::%(id)s as usize] = prototype.get();
@@ -5147,8 +5162,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5161,8 +5175,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
                     "}\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             attrs = []
             if not self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
                 attrs.append("JSPROP_ENUMERATE")
@@ -5172,8 +5185,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5419,11 +5431,10 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                         "    return true;\n" +
                         "}\n\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
         condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
         if indexedGetter:
             condition = "index.is_none() && (%s)" % condition
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             named = """\
 if %s {
     let mut has_on_proto = false;
@@ -5506,8 +5517,7 @@ if !expando.is_null() {
         else:
             getIndexedOrExpando = getFromExpando + "\n"
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
             # From step 1:
             #     If O supports indexed properties and P is an array index, then:
@@ -5859,6 +5869,7 @@ class CGInterfaceTrait(CGThing):
             return functools.reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
 
         methods = []
+
         for name, arguments, rettype in members():
             arguments = list(arguments)
             methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
@@ -6179,6 +6190,7 @@ class CGDescriptor(CGThing):
 
         defaultToJSONMethod = None
         unscopableNames = []
+
         for m in descriptor.interface.members:
             if (m.isMethod() and
                     (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
@@ -6214,7 +6226,7 @@ class CGDescriptor(CGThing):
                 elif m.getExtendedAttribute("Replaceable"):
                     cgThings.append(CGSpecializedReplaceableSetter(descriptor, m))
 
-                if (not m.isStatic() and not descriptor.interface.isCallback()):
+                if not m.isStatic() and not descriptor.interface.isCallback():
                     cgThings.append(CGMemberJITInfo(descriptor, m))
 
         if defaultToJSONMethod:

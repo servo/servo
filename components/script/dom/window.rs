@@ -66,6 +66,7 @@ use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::window_named_properties;
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
@@ -87,7 +88,9 @@ use js::jsapi::{GCReason, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{
+    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
+};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -123,6 +126,7 @@ use std::env;
 use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -1345,6 +1349,64 @@ impl Window {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object:supported_property_names
+    // This gets the supported property names for the named properties object
+    // on the prototype chain, not technically for the Window itself.
+    pub fn supported_property_names_impl(&self) -> Vec<DOMString> {
+        let document = self.Document();
+        if !document.is_html_document() {
+            return vec![];
+        }
+        // It's really the document, not the window, that has
+        // the answer to this question. It's not necessarily the same
+        // set as the document's supported property names, though.
+        document.window_supported_property_names()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    // This is called from the prototype object in window_named_properties
+    // only when the Window object itself hasn't returned anything from the get
+    // (e.g. it won't be called if a global variable has the name)
+    pub fn named_getter_impl(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+        let document = self.Document();
+        if !document.is_html_document() {
+            return None;
+        }
+
+        debug!("In named_getter_impl for name {}", name);
+
+        // This is different enough from the document named getter
+        // to need a separate codepath from that, but it iterates though
+        // elements by id and by name in a similar way.
+        let result = document.window_named_getter(name);
+        if result.is_some() {
+            debug!("Got a result");
+        } else {
+            debug!("Got no result");
+        }
+        result
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    // The window object itself technically does nothing on a named get,
+    // but codegen uses the presence of fn NamedGetter like a flag.
+    // The real named getter behavior happens from the window named properties
+    // object, which calls named_getter_impl.
+    pub fn NamedGetter(&self, _cx: JSContext, _name: DOMString) -> Option<NonNull<JSObject>> {
+        return None;
+    }
+
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    pub fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    ) {
+        window_named_properties::create(cx, proto, object)
+    }
+
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
@@ -2072,6 +2134,12 @@ impl Window {
         // If we didn't have a clip rect, the previous display doesn't need rebuilding
         // because it was built for infinite clip (MaxRect::amax_rect()).
         had_clip_rect
+    }
+
+    // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
+        // TODO: When this is fixed, also implement NamedGetter properly.
+        None
     }
 
     pub fn suspend(&self) {
