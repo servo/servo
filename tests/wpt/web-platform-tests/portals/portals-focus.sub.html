@@ -86,19 +86,47 @@
   }, "test that a x-origin iframe inside an adopted portal cannot steal focus");
 
   const TAB = "\ue004"; // https://w3c.github.io/webdriver/#keyboard-actions
+  const SPACE = " "
+  const RETURN = "\r";
+
   promise_test(async t => {
     let portal = await createPortal(document, "resources/focus-page-with-button.html");
     try {
-      portal.tabIndex = 0;
       await test_driver.send_keys(document.body, TAB);
-      portal.onmessage = t.step_func(e => {
-        assert_unreached("button inside portal should not be focused");
-      });
+      portal.onmessage = t.unreached_func("button inside portal should not be focused");
+      await new Promise(r => t.step_timeout(r, 500));
+    } finally {
+      document.body.removeChild(portal);
+    }
+  }, "test that a portal is keyboard focusable");
+
+  promise_test(async t => {
+    let portal = await createPortal(document, "resources/focus-page-with-button.html");
+    try {
+      let portalFocusPromise = new Promise(r => portal.onfocus = r);
+      portal.onmessage = t.unreached_func("button inside portal should not be focused");
+      await test_driver.send_keys(document.body, TAB);
+      await portalFocusPromise;
+      await test_driver.send_keys(document.body, TAB);
       await new Promise(r => t.step_timeout(r, 500));
     } finally {
       document.body.removeChild(portal);
     }
   }, "test that we cannot tab into a portal's contents");
+
+  promise_test(async t => {
+    let portal = await createPortal(document, "resources/simple-portal.html");
+    try {
+      portal.focus();
+      for (let key of [SPACE, RETURN]) {
+        let clickPromise = new Promise(r => portal.onclick = r);
+        await test_driver.send_keys(document.body, key);
+        await clickPromise;
+      }
+    } finally {
+      document.body.removeChild(portal);
+    }
+  }, "test that a portal is keyboard activatable");
 
 </script>
 </body>

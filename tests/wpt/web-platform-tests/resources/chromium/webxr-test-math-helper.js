@@ -23,7 +23,7 @@ class XRMathHelper {
     // .w is treated here like an entity type, 1 signifies points, 0 signifies vectors.
     // point - point, point - vector, vector - vector are ok, vector - point is not.
     if (lhs.w != rhs.w && lhs.w == 0.0) {
-      console.warn("vector - point not allowed: " + toString(lhs) + "-" + toString(rhs));
+      throw new Error("vector - point not allowed: " + toString(lhs) + "-" + toString(rhs));
     }
 
     return {x : lhs.x - rhs.x, y : lhs.y - rhs.y, z : lhs.z - rhs.z, w : lhs.w - rhs.w};
@@ -31,7 +31,7 @@ class XRMathHelper {
 
   static add(lhs, rhs) {
     if (lhs.w == rhs.w && lhs.w == 1.0) {
-      console.warn("point + point not allowed", p1, p2);
+      throw new Error("point + point not allowed", p1, p2);
     }
 
     return {x : lhs.x + rhs.x, y : lhs.y + rhs.y, z : lhs.z + rhs.z, w : lhs.w + rhs.w};
@@ -39,7 +39,7 @@ class XRMathHelper {
 
   static cross(lhs, rhs) {
     if (lhs.w != 0.0 || rhs.w != 0.0) {
-      console.warn("cross product not allowed: " + toString(lhs) + "x" + toString(rhs));
+      throw new Error("cross product not allowed: " + toString(lhs) + "x" + toString(rhs));
     }
 
     return {
@@ -52,7 +52,7 @@ class XRMathHelper {
 
   static dot(lhs, rhs) {
     if (lhs.w != 0 || rhs.w != 0) {
-      console.warn("dot product not allowed: " + toString(lhs) + "x" + toString(rhs));
+      throw new Error("dot product not allowed: " + toString(lhs) + "x" + toString(rhs));
     }
 
     return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
@@ -60,7 +60,7 @@ class XRMathHelper {
 
   static mul(scalar, vector) {
     if (vector.w != 0) {
-      console.warn("scalar * vector not allowed", scalar, vector);
+      throw new Error("scalar * vector not allowed", scalar, vector);
     }
 
     return {x : vector.x * scalar, y : vector.y * scalar, z : vector.z * scalar, w : vector.w};

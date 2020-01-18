@@ -5,7 +5,7 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { getGPU } from '../../framework/gpu/implementation.js';
-import { Fixture } from '../../framework/index.js';
+import { Fixture, assert, unreachable } from '../../framework/index.js';
 let glslangInstance;
 export class GPUTest extends Fixture {
   constructor(...args) {
@@ -34,7 +34,7 @@ export class GPUTest extends Fixture {
 
     try {
       await this.device.popErrorScope();
-      throw new Error('There was an error scope on the stack at the beginning of the test');
+      unreachable('There was an error scope on the stack at the beginning of the test');
     } catch (ex) {}
 
     this.device.pushErrorScope('out-of-memory');
@@ -49,14 +49,14 @@ export class GPUTest extends Fixture {
       const gpuValidationError = await this.device.popErrorScope();
 
       if (gpuValidationError !== null) {
-        if (!(gpuValidationError instanceof GPUValidationError)) throw new Error();
+        assert(gpuValidationError instanceof GPUValidationError);
         this.fail(`Unexpected validation error occurred: ${gpuValidationError.message}`);
       }
 
       const gpuOutOfMemoryError = await this.device.popErrorScope();
 
       if (gpuOutOfMemoryError !== null) {
-        if (!(gpuOutOfMemoryError instanceof GPUOutOfMemoryError)) throw new Error();
+        assert(gpuOutOfMemoryError instanceof GPUOutOfMemoryError);
         this.fail('Unexpected out-of-memory error occurred');
       }
     }
@@ -91,10 +91,7 @@ export class GPUTest extends Fixture {
   }
 
   makeShaderModuleFromGLSL(stage, glsl) {
-    if (!glslangInstance) {
-      throw new Error('GLSL compiler is not instantiated. Run `await t.initGLSL()` first');
-    }
-
+    assert(glslangInstance !== undefined, 'GLSL compiler is not instantiated. Run `await t.initGLSL()` first');
     const code = glslangInstance.compileGLSL(glsl, stage, false);
     return this.device.createShaderModule({
       code

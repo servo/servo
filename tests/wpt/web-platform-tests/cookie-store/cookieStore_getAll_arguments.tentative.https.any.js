@@ -142,3 +142,61 @@ promise_test(async testCase => {
   assert_equals(cookies[0].name, 'cookie-name');
   assert_equals(cookies[0].value, 'cookie-value');
 }, 'cookieStore.getAll with matchType set to starts-with and missing name');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  let target_url = self.location.href;
+  if (self.GLOBAL.isWorker()) {
+    target_url = target_url + '/path/within/scope';
+  }
+
+  const cookies = await cookieStore.getAll({ url: target_url });
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+}, 'cookieStore.getAll with absolute url in options');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  let target_path = self.location.pathname;
+  if (self.GLOBAL.isWorker()) {
+    target_path = target_path + '/path/within/scope';
+  }
+
+  const cookies = await cookieStore.getAll({ url: target_path });
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+}, 'cookieStore.getAll with relative url in options');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  const invalid_url =
+      `${self.location.protocol}//${self.location.host}/different/path`;
+  await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
+      { url: invalid_url }));
+}, 'cookieStore.getAll with invalid url path in options');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  const invalid_url =
+      `${self.location.protocol}//www.example.com${self.location.pathname}`;
+  await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
+      { url: invalid_url }));
+}, 'cookieStore.getAll with invalid url host in options');

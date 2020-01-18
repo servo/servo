@@ -8,10 +8,14 @@ export class FilterByGroup {
   constructor(suite, groupPrefix) {
     _defineProperty(this, "suite", void 0);
 
-    _defineProperty(this, "groupPrefix", void 0);
+    _defineProperty(this, "specPathPrefix", void 0);
 
     this.suite = suite;
-    this.groupPrefix = groupPrefix;
+    this.specPathPrefix = groupPrefix;
+  }
+
+  matches(id) {
+    return id.spec.suite === this.suite && this.pathMatches(id.spec.path);
   }
 
   async iterate(loader) {
@@ -23,7 +27,7 @@ export class FilterByGroup {
       path,
       description
     } of specs) {
-      if (path.startsWith(this.groupPrefix)) {
+      if (this.pathMatches(path)) {
         const isReadme = path === '' || path.endsWith('/');
         const spec = isReadme ? {
           description
@@ -39,6 +43,21 @@ export class FilterByGroup {
     }
 
     return entries;
+  }
+
+  definitelyOneFile() {
+    // FilterByGroup could always possibly match multiple files, because it represents a prefix,
+    // e.g. "a:b" not "a:b:".
+    return false;
+  }
+
+  idIfSingle() {
+    // FilterByGroup could be one whole suite, but we only want whole files, tests, or cases.
+    return undefined;
+  }
+
+  pathMatches(path) {
+    return path.startsWith(this.specPathPrefix);
   }
 
 }

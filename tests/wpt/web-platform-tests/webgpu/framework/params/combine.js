@@ -6,15 +6,14 @@ let _Symbol$iterator;
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+import { assert } from '../util/index.js';
 export function pcombine(...params) {
   return new PCombine(params);
 }
 
 function merge(a, b) {
   for (const key of Object.keys(a)) {
-    if (b.hasOwnProperty(key)) {
-      throw new Error('Duplicate key: ' + key);
-    }
+    assert(!b.hasOwnProperty(key), 'Duplicate key: ' + key);
   }
 
   return { ...a,

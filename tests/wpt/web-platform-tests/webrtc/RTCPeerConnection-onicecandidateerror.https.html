@@ -20,7 +20,11 @@ promise_test(async t => {
     // Testing of event.errorText can be added later once it's content is
     // specified in spec with more detail.
     assert_true(event.errorCode >= 300 && event.errorCode <= 799, "errorCode");
-    assert_true(event.hostCandidate.includes(":"), "hostCandidate");
+    if (event.port == 0) {
+      assert_equals(event.address, null);
+    } else {
+      assert_true(event.address.includes(".") || event.address.includes(":"));
+    }
     assert_true(event.url.includes("123"), "url");
   });
   const stream = await getNoiseStream({audio:true});

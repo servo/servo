@@ -12,6 +12,7 @@ export function getStackTrace(e) {
 
   const parts = e.stack.split('\n');
   const stack = [];
+  const moreStack = [];
   let found = false;
   const suitesRegex = /[\/\\]suites[\/\\]/;
 
@@ -20,10 +21,15 @@ export function getStackTrace(e) {
     const isSuites = suitesRegex.test(part);
 
     if (found && !isSuites) {
-      break;
+      moreStack.push(part);
     }
 
     if (isSuites) {
+      if (moreStack.length) {
+        stack.push(...moreStack);
+        moreStack.length = 0;
+      }
+
       stack.push(part);
       found = true;
     }

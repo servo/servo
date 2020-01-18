@@ -3,16 +3,13 @@
 **/
 
 import { allowedTestNameCharacters } from '../allowed_characters.js';
+import { assert, unreachable } from '../util/index.js';
 import { FilterByGroup } from './filter_by_group.js';
 import { FilterByParamsExact, FilterByParamsMatch, FilterByTestMatch } from './filter_one_file.js';
 // Each filter is of one of the forms below (urlencoded).
-export async function loadFilter(loader, filter) {
+export function makeFilter(filter) {
   const i1 = filter.indexOf(':');
-
-  if (i1 === -1) {
-    throw new Error('Test queries must fully specify their suite name (e.g. "cts:")');
-  }
-
+  assert(i1 !== -1, 'Test queries must fully specify their suite name (e.g. "cts:")');
   const suite = filter.substring(0, i1);
   const i2 = filter.indexOf(':', i1 + 1);
 
@@ -22,7 +19,7 @@ export async function loadFilter(loader, filter) {
     // - cts:buffers/
     // - cts:buffers/map
     const groupPrefix = filter.substring(i1 + 1);
-    return new FilterByGroup(suite, groupPrefix).iterate(loader);
+    return new FilterByGroup(suite, groupPrefix);
   }
 
   const path = filter.substring(i1 + 1, i2);
@@ -36,7 +33,7 @@ export async function loadFilter(loader, filter) {
     return new FilterByTestMatch({
       suite,
       path
-    }, testPrefix).iterate(loader);
+    }, testPrefix);
   }
 
   const i3 = i2 + 1 + i3sub;
@@ -55,7 +52,7 @@ export async function loadFilter(loader, filter) {
     return new FilterByParamsMatch({
       suite,
       path
-    }, test, params).iterate(loader);
+    }, test, params);
   } else if (token === '=') {
     // - cts:buffers/mapWriteAsync:basic=
     // - cts:buffers/mapWriteAsync:basic={}
@@ -63,9 +60,12 @@ export async function loadFilter(loader, filter) {
     return new FilterByParamsExact({
       suite,
       path
-    }, test, params).iterate(loader);
+    }, test, params);
   } else {
-    throw new Error("invalid character after test name; must be '~' or '='");
+    unreachable("invalid character after test name; must be '~' or '='");
   }
+}
+export function loadFilter(loader, filter) {
+  return makeFilter(filter).iterate(loader);
 }
 //# sourceMappingURL=load_filter.js.map
