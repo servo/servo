@@ -143,11 +143,12 @@ impl<'a> PathBuilderRef<'a> {
             ),
             Point2D::new(rect.origin.x, rect.origin.y + rect.size.height),
         );
-        self.builder.move_to(self.transform.transform_point(first));
-        self.builder.line_to(self.transform.transform_point(second));
-        self.builder.line_to(self.transform.transform_point(third));
-        self.builder.line_to(self.transform.transform_point(fourth));
-        self.builder.close();
+        self.move_to(&first);
+        self.line_to(&second);
+        self.line_to(&third);
+        self.line_to(&fourth);
+        self.close();
+        self.move_to(&first);
     }
 
     fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
@@ -209,6 +210,10 @@ impl<'a> PathBuilderRef<'a> {
             Some(point) => Some(inverse.transform_point(Point2D::new(point.x, point.y))),
             None => None,
         }
+    }
+
+    fn close(&mut self) {
+        self.builder.close();
     }
 }
 
@@ -573,7 +578,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn close_path(&mut self) {
-        self.path_builder().builder.close();
+        self.path_builder().close();
     }
 
     fn ensure_path(&mut self) {
