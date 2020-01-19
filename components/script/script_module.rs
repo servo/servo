@@ -633,6 +633,7 @@ impl ModuleTree {
         }
 
         // 5-6.
+        let mut errors: Vec<ModuleError> = Vec::new();
         let descendant_urls = module_tree.get_descendant_urls().borrow();
 
         for descendant_module in descendant_urls
@@ -650,13 +651,13 @@ impl ModuleTree {
                 ModuleTree::find_first_parse_error(&global, &descendant_module, discovered_urls);
 
             // 8-4.
-            if child_parse_error.is_some() {
-                return child_parse_error;
+            if let Some(child_error) = child_parse_error {
+                errors.push(child_error);
             }
         }
 
         // Step 9.
-        return None;
+        return errors.into_iter().max();
     }
 }
 
