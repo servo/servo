@@ -1,4 +1,4 @@
-<!-- AUTO-GENERATED - DO NOT EDIT. See gen_wpt_cts_html.ts. -->
+<!-- AUTO-GENERATED - DO NOT EDIT. See WebGPU CTS: tools/gen_wpt_cts_html. -->
 <!--
     This test suite is built from the TypeScript sources at:
     https://github.com/gpuweb/cts
@@ -11,15 +11,8 @@
     NOTE:
     The WPT version of this file is generated with *one variant per test spec
     file*. If your harness needs more fine-grained suppressions, you'll need to
-    generate your own variants list from your suppression list. For example, if
-    test file cts:a/b: has 3 tests and you need to suppress a single case, you
-    might break it out into the following variants:
-
-      - cts:a/b:test1~
-      - cts:a/b:test2={"x":1}
-      - cts:a/b:test2={"x":2}  // <- suppress this one
-      - cts:a/b:test2={"x":3}
-      - cts:a/b:test3~
+    generate your own variants list from your suppression list.
+    See `tools/gen_wpt_cts_html` to do this.
 
     When run under browser CI, the original cts.html should be skipped, and
     this alternate version should be run instead, under a non-exported WPT test
@@ -54,37 +47,36 @@
 
 <textarea id=results></textarea>
 <script type=module src=/webgpu/runtime/wpt.js></script>
-
-<meta name=variant content='?q=cts:buffers/create_mapped:'>
-<meta name=variant content='?q=cts:buffers/map:'>
-<meta name=variant content='?q=cts:buffers/map_detach:'>
-<meta name=variant content='?q=cts:buffers/map_oom:'>
-<meta name=variant content='?q=cts:canvas/context_creation:'>
-<meta name=variant content='?q=cts:command_buffer/basic:'>
-<meta name=variant content='?q=cts:command_buffer/compute/basic:'>
-<meta name=variant content='?q=cts:command_buffer/copies:'>
-<meta name=variant content='?q=cts:command_buffer/render/basic:'>
-<meta name=variant content='?q=cts:command_buffer/render/rendering:'>
-<meta name=variant content='?q=cts:command_buffer/render/storeop:'>
-<meta name=variant content='?q=cts:copyImageBitmapToTexture:'>
-<meta name=variant content='?q=cts:examples:'>
-<meta name=variant content='?q=cts:fences:'>
-<meta name=variant content='?q=cts:resource_init/sampled_texture_clear:'>
-<meta name=variant content='?q=cts:validation/createBindGroup:'>
-<meta name=variant content='?q=cts:validation/createBindGroupLayout:'>
-<meta name=variant content='?q=cts:validation/createPipelineLayout:'>
-<meta name=variant content='?q=cts:validation/createRenderPipeline:'>
-<meta name=variant content='?q=cts:validation/createTexture:'>
-<meta name=variant content='?q=cts:validation/createView:'>
-<meta name=variant content='?q=cts:validation/error_scope:'>
-<meta name=variant content='?q=cts:validation/fences:'>
-<meta name=variant content='?q=cts:validation/queue_submit:'>
-<meta name=variant content='?q=cts:validation/render_pass:'>
-<meta name=variant content='?q=cts:validation/render_pass_descriptor:'>
-<meta name=variant content='?q=cts:validation/setBindGroup:'>
-<meta name=variant content='?q=cts:validation/setBlendColor:'>
-<meta name=variant content='?q=cts:validation/setScissorRect:'>
-<meta name=variant content='?q=cts:validation/setStencilReference:'>
-<meta name=variant content='?q=cts:validation/setVertexBuffer:'>
-<meta name=variant content='?q=cts:validation/setViewport:'>
-<meta name=variant content='?q=cts:validation/vertex_state:'>
+<meta name=variant content='?q=cts:buffers/create_mapped'>
+<meta name=variant content='?q=cts:buffers/map'>
+<meta name=variant content='?q=cts:buffers/map_detach'>
+<meta name=variant content='?q=cts:buffers/map_oom'>
+<meta name=variant content='?q=cts:canvas/context_creation'>
+<meta name=variant content='?q=cts:command_buffer/basic'>
+<meta name=variant content='?q=cts:command_buffer/compute/basic'>
+<meta name=variant content='?q=cts:command_buffer/copies'>
+<meta name=variant content='?q=cts:command_buffer/render/basic'>
+<meta name=variant content='?q=cts:command_buffer/render/rendering'>
+<meta name=variant content='?q=cts:command_buffer/render/storeop'>
+<meta name=variant content='?q=cts:copyImageBitmapToTexture'>
+<meta name=variant content='?q=cts:examples'>
+<meta name=variant content='?q=cts:fences'>
+<meta name=variant content='?q=cts:resource_init/sampled_texture_clear'>
+<meta name=variant content='?q=cts:validation/createBindGroup'>
+<meta name=variant content='?q=cts:validation/createBindGroupLayout'>
+<meta name=variant content='?q=cts:validation/createPipelineLayout'>
+<meta name=variant content='?q=cts:validation/createRenderPipeline'>
+<meta name=variant content='?q=cts:validation/createTexture'>
+<meta name=variant content='?q=cts:validation/createView'>
+<meta name=variant content='?q=cts:validation/error_scope'>
+<meta name=variant content='?q=cts:validation/fences'>
+<meta name=variant content='?q=cts:validation/queue_submit'>
+<meta name=variant content='?q=cts:validation/render_pass'>
+<meta name=variant content='?q=cts:validation/render_pass_descriptor'>
+<meta name=variant content='?q=cts:validation/setBindGroup'>
+<meta name=variant content='?q=cts:validation/setBlendColor'>
+<meta name=variant content='?q=cts:validation/setScissorRect'>
+<meta name=variant content='?q=cts:validation/setStencilReference'>
+<meta name=variant content='?q=cts:validation/setVertexBuffer'>
+<meta name=variant content='?q=cts:validation/setViewport'>
+<meta name=variant content='?q=cts:validation/vertex_state'>

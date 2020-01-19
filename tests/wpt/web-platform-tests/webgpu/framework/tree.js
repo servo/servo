@@ -2,6 +2,8 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
+import { stringifyPublicParams } from './params/index.js';
+
 // e.g. iteratePath('a/b/c/d', ':') yields ['a/', 'a/b/', 'a/b/c/', 'a/b/c/d:']
 function* iteratePath(path, terminator) {
   const parts = path.split('/');
@@ -25,7 +27,7 @@ function* iteratePath(path, terminator) {
 }
 
 export function treeFromFilterResults(log, listing) {
-  function insertOrNew(n, k) {
+  function getOrInsert(n, k) {
     const children = n.children;
 
     if (children.has(k)) {
@@ -44,18 +46,18 @@ export function treeFromFilterResults(log, listing) {
   };
 
   for (const f of listing) {
-    const files = insertOrNew(tree, f.id.suite + ':');
+    const files = getOrInsert(tree, f.id.suite + ':');
 
     if (f.id.path === '') {
       // This is a suite README.
-      files.description = f.spec.description;
+      files.description = f.spec.description.trim();
       continue;
     }
 
     let tests = files;
 
     for (const path of iteratePath(f.id.path, ':')) {
-      tests = insertOrNew(tests, f.id.suite + ':' + path);
+      tests = getOrInsert(tests, f.id.suite + ':' + path);
     }
 
     if (f.spec.description) {
@@ -75,10 +77,10 @@ export function treeFromFilterResults(log, listing) {
       let cases = tests;
 
       for (const path of iteratePath(t.id.test, '~')) {
-        cases = insertOrNew(cases, fId + ':' + path);
+        cases = getOrInsert(cases, fId + ':' + path);
       }
 
-      const p = t.id.params ? JSON.stringify(t.id.params) : '';
+      const p = stringifyPublicParams(t.id.params);
       cases.children.set(fId + ':' + t.id.test + '=' + p, {
         runCase: t
       });

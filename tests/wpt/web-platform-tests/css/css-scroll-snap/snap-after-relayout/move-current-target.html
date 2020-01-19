@@ -95,8 +95,6 @@ test(t => {
   assert_equals(scroller.scrollTop, 100);
   assert_equals(scroller.scrollLeft, 100);
 
-  // TODO(alsan): Chrome currently doesn't correctly re-snap due to transform.
-  // It seems to be an invalidation issue. http://crbug.com/1028316
   initial_target.style.setProperty("transform", "translate(0,100px)");
   assert_equals(scroller.scrollTop, 200);
   assert_equals(scroller.scrollLeft, 100);

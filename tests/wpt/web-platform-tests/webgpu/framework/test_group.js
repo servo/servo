@@ -5,8 +5,9 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { allowedTestNameCharacters } from './allowed_characters.js';
-import { paramsEquals } from './params/index.js';
-import { checkPublicParamType, extractPublicParams } from './url_query.js';
+import { extractPublicParams, paramsEquals } from './params/index.js';
+import { checkPublicParamType } from './url_query.js';
+import { assert } from './util/index.js';
 const validNames = new RegExp('^[' + allowedTestNameCharacters + ']+$');
 export class TestGroup {
   constructor(fixture) {
@@ -26,30 +27,18 @@ export class TestGroup {
   }
 
   checkName(name) {
-    if (!validNames.test(name)) {
-      throw new Error(`Invalid test name ${name}; must match [${validNames}]+`);
-    }
-
-    if (name !== decodeURIComponent(name)) {
-      // Shouldn't happen due to the rule above. Just makes sure that treated
-      // unencoded strings as encoded strings is OK.
-      throw new Error(`Not decodeURIComponent-idempotent: ${name} !== ${decodeURIComponent(name)}`);
-    }
-
-    if (this.seen.has(name)) {
-      throw new Error(`Duplicate test name: ${name}`);
-    }
-
+    assert(validNames.test(name), `Invalid test name ${name}; must match [${validNames}]+`);
+    assert( // Shouldn't happen due to the rule above. Just makes sure that treated
+    // unencoded strings as encoded strings is OK.
+    name === decodeURIComponent(name), `Not decodeURIComponent-idempotent: ${name} !== ${decodeURIComponent(name)}`);
+    assert(!this.seen.has(name), `Duplicate test name: ${name}`);
     this.seen.add(name);
   } // TODO: This could take a fixture, too, to override the one for the group.
 
 
   test(name, fn) {
     // Replace spaces with underscores for readability.
-    if (name.indexOf('_') !== -1) {
-      throw new Error('Invalid test name ${name}: contains underscore (use space)');
-    }
-
+    assert(name.indexOf('_') === -1, 'Invalid test name ${name}: contains underscore (use space)');
     name = name.replace(/ /g, '_');
     this.checkName(name);
     const test = new Test(name, this.fixture, fn);
@@ -75,10 +64,7 @@ class Test {
   }
 
   params(specs) {
-    if (this.cases !== null) {
-      throw new Error('test case is already parameterized');
-    }
-
+    assert(this.cases === null, 'test case is already parameterized');
     const cases = Array.from(specs);
     const seen = []; // This is n^2.
 
@@ -90,10 +76,7 @@ class Test {
         checkPublicParamType(v);
       }
 
-      if (seen.some(x => paramsEquals(x, publicParams))) {
-        throw new Error('Duplicate test case params');
-      }
-
+      assert(!seen.some(x => paramsEquals(x, publicParams)), 'Duplicate test case params');
       seen.push(publicParams);
     }
 

@@ -5,7 +5,7 @@
 export const description = `
 copy imageBitmap To texture tests.
 `;
-import { TestGroup, pcombine, poptions } from '../../framework/index.js';
+import { TestGroup, assert, pcombine, poptions } from '../../framework/index.js';
 import { GPUTest } from './gpu_test.js';
 
 function calculateRowPitch(width, bytesPerPixel) {
@@ -68,11 +68,7 @@ class F extends GPUTest {
     imageCanvas.width = imageBitmap.width;
     imageCanvas.height = imageBitmap.height;
     const imageCanvasContext = imageCanvas.getContext('2d');
-
-    if (!imageCanvasContext) {
-      throw new Error('Cannot create canvas context for reading back contents from imageBitmap.');
-    }
-
+    assert(imageCanvasContext !== null, 'Cannot create canvas context for reading back contents from imageBitmap.');
     imageCanvasContext.drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
     return imageCanvasContext.getImageData(0, 0, imageBitmap.width, imageBitmap.height).data;
   }

@@ -7,13 +7,35 @@ export * from './combine.js';
 export * from './exclude.js';
 export * from './filter.js';
 export * from './options.js';
+export function extractPublicParams(params) {
+  const publicParams = {};
+
+  for (const k of Object.keys(params)) {
+    if (!k.startsWith('_')) {
+      publicParams[k] = params[k];
+    }
+  }
+
+  return publicParams;
+}
+export function stringifyPublicParams(p) {
+  if (p === null || paramsEquals(p, {})) {
+    return '';
+  }
+
+  return JSON.stringify(extractPublicParams(p));
+}
 export function paramsEquals(x, y) {
   if (x === y) {
     return true;
   }
 
-  if (x === null || y === null) {
-    return false;
+  if (x === null) {
+    x = {};
+  }
+
+  if (y === null) {
+    y = {};
   }
 
   for (const xk of Object.keys(x)) {
@@ -40,8 +62,7 @@ export function paramsSupersets(sup, sub) {
   }
 
   if (sup === null) {
-    // && sub !== undefined
-    return false;
+    sup = {};
   }
 
   for (const k of Object.keys(sub)) {

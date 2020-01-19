@@ -18,7 +18,12 @@
       let portal = e.adoptPredecessor();
       document.body.appendChild(portal);
       portal.onmessage = handleMessage;
-    }
+    };
+
+    window.onfocus = () => {
+      if (window.portalHost)
+        window.portalHost.postMessage("window focused", "*");
+    };
   </script>
   <button>A</button>
 </body>
