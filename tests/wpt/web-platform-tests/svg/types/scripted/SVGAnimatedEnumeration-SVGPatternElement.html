@@ -22,15 +22,15 @@ test(function() {
   assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { patternElement.patternUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = 3; });
   assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { patternElement.patternUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = -1; });
   assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { patternElement.patternUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = 0; });
   assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
 
@@ -51,15 +51,15 @@ test(function() {
   assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { patternElement.patternContentUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = 3; });
   assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { patternElement.patternContentUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = -1; });
   assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { patternElement.patternContentUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = 0; });
   assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
 

@@ -30,15 +30,15 @@ test(function() {
   assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feColorMatrixElement.type.baseVal = 5; });
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = 5; });
   assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
   assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
 
-  assert_throws(new TypeError(), function() { feColorMatrixElement.type.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = -1; });
   assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
   assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
 
-  assert_throws(new TypeError(), function() { feColorMatrixElement.type.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = 0; });
   assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
   assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
 

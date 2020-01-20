@@ -20,9 +20,9 @@ test(function() {
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
 
   // Check assigning various valid and invalid values.
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 3; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = -1; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
 
   // ECMA-262, 9.7, "ToUint16"
@@ -30,12 +30,12 @@ test(function() {
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
 
   // ECMA-262, 9.7, "ToUint16"
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 'aString'; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 'aString'; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
 
   clipPathElement.clipPathUnits.baseVal = 2;
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = clipPathElement; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = clipPathElement; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
 });
 </script>

@@ -98,8 +98,8 @@ promise_test(async t => {
 
   await animation.ready;
 
-  assert_throws(
-    new TypeError(),
+  assert_throws_js(
+    TypeError,
     () => {
       animation.currentTime = null;
     },

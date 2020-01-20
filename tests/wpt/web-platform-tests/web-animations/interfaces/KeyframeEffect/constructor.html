@@ -41,7 +41,7 @@ test(t => {
 
 test(t => {
   for (const invalidEasing of gInvalidEasings) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, null, { easing: invalidEasing });
     }, `TypeError is thrown for easing '${invalidEasing}'`);
   }
@@ -57,7 +57,7 @@ test(t => {
                   `resulting composite for '${composite}'`);
   }
   for (const composite of gBadKeyframeCompositeValueTests) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, getKeyframe(composite));
     });
   }
@@ -76,7 +76,7 @@ test(t => {
                   `resulting composite for '${composite}'`);
   }
   for (const composite of gBadKeyframeCompositeValueTests) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, getKeyframes(composite));
     });
   }
@@ -92,7 +92,7 @@ test(t => {
                   `resulting composite for '${composite}'`);
   }
   for (const composite of gBadOptionsCompositeValueTests) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, {
         left: ['10px', '20px']
       }, { composite: composite });
@@ -117,7 +117,7 @@ for (const subtest of gKeyframesTests) {
 
 for (const subtest of gInvalidKeyframesTests) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, subtest.input);
     });
   }, `KeyframeEffect constructor throws with ${subtest.desc}`);
@@ -169,7 +169,7 @@ for (const subtest of gKeyframeEffectOptionTests) {
 
 for (const subtest of gInvalidKeyframeEffectOptionTests) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, { left: ['10px', '20px'] }, subtest.input);
     });
   }, `Invalid KeyframeEffect option by ${subtest.desc}`);

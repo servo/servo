@@ -35,15 +35,15 @@ test(function() {
   assert_equals(feFuncRElement.getAttribute('type'), "gamma");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feFuncRElement.type.baseVal = 6; });
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = 6; });
   assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
   assert_equals(feFuncRElement.getAttribute('type'), "gamma");
 
-  assert_throws(new TypeError(), function() { feFuncRElement.type.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = -1; });
   assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
   assert_equals(feFuncRElement.getAttribute('type'), "gamma");
 
-  assert_throws(new TypeError(), function() { feFuncRElement.type.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = 0; });
   assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
   assert_equals(feFuncRElement.getAttribute('type'), "gamma");
 

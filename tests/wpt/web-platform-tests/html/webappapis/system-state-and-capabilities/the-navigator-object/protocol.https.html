@@ -110,9 +110,9 @@ const denylist = [
   'ws',
   'wss',
   'wyciwyg',
-  /*other invalid schemes*/
+  /* other invalid schemes */
   'unrecognized',
-  'mаilto', /*a cyrillic "а"*/
+  'mаilto', /* a cyrillic "а" */
   'mailto:',
   'mailto://',
   'mailto' + String.fromCharCode(0),
@@ -122,7 +122,11 @@ const denylist = [
   'ssh:/',
   'magnet:+',
   'tel:sip',
+  /* web+ prefixed schemes must be followed by 1+ ascii alphas */
   'web+',
+  'web+dots.are.forbidden',
+  'web+dashes-are-forbidden',
+  'web+digits123areforbidden',
 ];
 for (const scheme of denylist) {
   test(() => {
@@ -161,7 +165,7 @@ const safelist = [
   'webcal',
   'wtai',
   'xmpp',
-  /*other valid schemes*/
+  /* other valid schemes */
   'BitcoIn',
   'Irc',
   'MagneT',

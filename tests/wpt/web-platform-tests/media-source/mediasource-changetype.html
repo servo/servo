@@ -15,7 +15,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 {
     var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-    assert_throws(new TypeError(), function()
+    assert_throws_js(TypeError, function()
     {
         sourceBuffer.changeType("");
     }, "changeType");
