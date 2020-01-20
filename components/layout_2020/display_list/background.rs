@@ -38,7 +38,7 @@ pub(super) fn layout_layer(
 ) -> Option<Layer> {
     let b = fragment_builder.fragment.style.get_background();
 
-    let clipping_area = match get_cyclic(&b.background_clip.0, layer_index) {
+    let painting_area = match get_cyclic(&b.background_clip.0, layer_index) {
         Clip::ContentBox => fragment_builder.content_rect(),
         Clip::PaddingBox => fragment_builder.padding_rect(),
         Clip::BorderBox => &fragment_builder.border_rect,
@@ -132,8 +132,8 @@ pub(super) fn layout_layer(
         &mut tile_spacing.width,
         repeat_x,
         get_cyclic(&b.background_position_x.0, layer_index),
-        clipping_area.origin.x - positioning_area.origin.x,
-        clipping_area.size.width,
+        painting_area.origin.x - positioning_area.origin.x,
+        painting_area.size.width,
         positioning_area.size.width,
     );
     let result_y = layout_1d(
@@ -141,8 +141,8 @@ pub(super) fn layout_layer(
         &mut tile_spacing.height,
         repeat_y,
         get_cyclic(&b.background_position_y.0, layer_index),
-        clipping_area.origin.y - positioning_area.origin.y,
-        clipping_area.size.height,
+        painting_area.origin.y - positioning_area.origin.y,
+        painting_area.size.height,
         positioning_area.size.height,
     );
     let bounds = units::LayoutRect::new(
@@ -151,7 +151,7 @@ pub(super) fn layout_layer(
     );
 
     // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-    let mut common = builder.common_properties(*clipping_area);
+    let mut common = builder.common_properties(*painting_area);
     fragment_builder.with_border_edge_clip(builder, &mut common);
 
     Some(Layer {
@@ -170,8 +170,8 @@ fn layout_1d(
     tile_spacing: &mut f32,
     mut repeat: Repeat,
     position: &LengthPercentage,
-    clipping_area_origin: f32,
-    clipping_area_size: f32,
+    painting_area_origin: f32,
+    painting_area_size: f32,
     positioning_area_size: f32,
 ) -> Layout1DResult {
     // https://drafts.csswg.org/css-backgrounds/#background-repeat
@@ -214,9 +214,9 @@ fn layout_1d(
             // * Its bottom-right is the bottom-right of `clip_rect`
             // * Its top-left is the top-left of first tile.
             let tile_stride = *tile_size + *tile_spacing;
-            let offset = position - clipping_area_origin;
+            let offset = position - painting_area_origin;
             let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
-            let bounds_size = clipping_area_size - bounds_origin - clipping_area_origin;
+            let bounds_size = painting_area_size - bounds_origin - painting_area_origin;
             Layout1DResult {
                 repeat: true,
                 bounds_origin,
