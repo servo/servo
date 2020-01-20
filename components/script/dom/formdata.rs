@@ -185,12 +185,19 @@ impl FormDataMethods for FormData {
 
 impl FormData {
     // https://xhr.spec.whatwg.org/#create-an-entry
-    // Steps 3-4.
     fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> DomRoot<File> {
+        // Steps 3-4
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
-            None if blob.downcast::<File>().is_none() => DOMString::from("blob"),
-            None => DOMString::from(""),
+            None => match blob.downcast::<File>() {
+                None => DOMString::from("blob"),
+                // If it is already a file and no filename was given,
+                // then neither step 3 nor step 4 happens, so instead of
+                // creating a new File object we use the existing one.
+                Some(file) => {
+                    return DomRoot::from_ref(file);
+                },
+            },
         };
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
