@@ -331,7 +331,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
     @CommandArgument('--force-cpp', default=False, action="store_true", help="Force CPP check")
-    def test_tidy(self, all_files, no_wpt, no_progress, self_test, stylo, force_cpp):
+    def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
         if self_test:
             return test_tidy.do_tests()
         else:
