@@ -45,6 +45,7 @@ impl URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         init: USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString,

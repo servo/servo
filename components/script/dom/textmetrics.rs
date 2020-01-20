@@ -11,6 +11,7 @@ use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 #[dom_struct]
+#[allow(non_snake_case)]
 pub struct TextMetrics {
     reflector_: Reflector,
     width: Finite<f64>,
@@ -27,6 +28,7 @@ pub struct TextMetrics {
     ideographicBaseline: Finite<f64>,
 }
 
+#[allow(non_snake_case)]
 impl TextMetrics {
     fn new_inherited(
         width: f64,

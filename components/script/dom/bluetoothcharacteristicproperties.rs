@@ -24,6 +24,7 @@ pub struct BluetoothCharacteristicProperties {
     writable_auxiliaries: bool,
 }
 
+#[allow(non_snake_case)]
 impl BluetoothCharacteristicProperties {
     pub fn new_inherited(
         broadcast: bool,

@@ -83,6 +83,7 @@ impl XRWebGLLayer {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &Window,
         session: &XRSession,

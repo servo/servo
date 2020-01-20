@@ -50,6 +50,7 @@ impl Blob {
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,

@@ -23,6 +23,7 @@ pub struct CloseEvent {
     reason: DOMString,
 }
 
+#[allow(non_snake_case)]
 impl CloseEvent {
     pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {

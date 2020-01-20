@@ -41,6 +41,7 @@ pub struct OfflineAudioContext {
     pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
+#[allow(non_snake_case)]
 impl OfflineAudioContext {
     #[allow(unrooted_must_root)]
     fn new_inherited(

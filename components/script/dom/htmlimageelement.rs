@@ -41,7 +41,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::create_a_potential_CORS_request;
+use crate::fetch::create_a_potential_cors_request;
 use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -283,7 +283,7 @@ pub(crate) fn image_fetch_request(
     from_picture_or_srcset: FromPictureOrSrcSet,
 ) -> RequestBuilder {
     let mut request =
-        create_a_potential_CORS_request(img_url, Destination::Image, cors_setting, None)
+        create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None)
             .origin(origin)
             .pipeline_id(Some(pipeline_id))
             .referrer_policy(referrer_policy);
@@ -293,6 +293,7 @@ pub(crate) fn image_fetch_request(
     request
 }
 
+#[allow(non_snake_case)]
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {

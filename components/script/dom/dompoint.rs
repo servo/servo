@@ -19,6 +19,7 @@ pub struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
+#[allow(non_snake_case)]
 impl DOMPoint {
     fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
         DOMPoint {

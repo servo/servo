@@ -45,12 +45,14 @@ impl TestWorklet {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window))
     }
 }
 
 impl TestWorkletMethods for TestWorklet {
+    #[allow(non_snake_case)]
     fn AddModule(
         &self,
         moduleURL: USVString,

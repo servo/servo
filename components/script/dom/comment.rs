@@ -34,6 +34,7 @@ impl Comment {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window, data: DOMString) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
         Ok(Comment::new(data, &document))

@@ -65,7 +65,7 @@ impl PromiseRejectionEvent {
         ev
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,

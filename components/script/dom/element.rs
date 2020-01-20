@@ -1202,6 +1202,7 @@ impl Element {
         }
     }
 
+    #[allow(non_snake_case)]
     pub fn xmlSerialize(&self, traversal_scope: XmlTraversalScope) -> Fallible<DOMString> {
         let mut writer = vec![];
         match xmlSerialize::serialize(

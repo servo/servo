@@ -76,7 +76,7 @@ impl Worker {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         script_url: USVString,

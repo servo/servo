@@ -60,7 +60,7 @@ use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::{create_a_potential_CORS_request, FetchCanceller};
+use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
@@ -292,6 +292,7 @@ impl From<MediaStreamOrBlob> for SrcObject {
 }
 
 #[dom_struct]
+#[allow(non_snake_case)]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -837,7 +838,7 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
-        let request = create_a_potential_CORS_request(url.clone(), destination, cors_setting, None)
+        let request = create_a_potential_cors_request(url.clone(), destination, cors_setting, None)
             .headers(headers)
             .origin(document.origin().immutable().clone())
             .pipeline_id(Some(self.global().pipeline_id()))

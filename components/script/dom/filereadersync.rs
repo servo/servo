@@ -40,6 +40,7 @@ impl FileReaderSync {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global))
     }

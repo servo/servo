@@ -59,6 +59,7 @@ impl RTCIceCandidate {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         config: &RTCIceCandidateInit,

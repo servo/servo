@@ -27,6 +27,7 @@ pub struct DOMMatrix {
     parent: DOMMatrixReadOnly,
 }
 
+#[allow(non_snake_case)]
 impl DOMMatrix {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
@@ -74,7 +75,7 @@ impl DOMMatrix {
     }
 
     pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
-        Self::new(global, ro.is_2d(), ro.matrix().clone())
+        Self::new(global, ro.is2D(), ro.matrix().clone())
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array
@@ -102,6 +103,7 @@ impl DOMMatrix {
     }
 }
 
+#[allow(non_snake_case)]
 impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
     fn M11(&self) -> f64 {

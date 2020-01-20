@@ -55,13 +55,13 @@ impl BluetoothRemoteGATTDescriptor {
         global: &GlobalScope,
         characteristic: &BluetoothRemoteGATTCharacteristic,
         uuid: DOMString,
-        instanceID: String,
+        instance_id: String,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTDescriptor::new_inherited(
                 characteristic,
                 uuid,
-                instanceID,
+                instance_id,
             )),
             global,
             BluetoothRemoteGATTDescriptorBinding::Wrap,

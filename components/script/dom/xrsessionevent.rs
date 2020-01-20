@@ -50,6 +50,7 @@ impl XRSessionEvent {
         trackevent
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,

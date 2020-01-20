@@ -55,7 +55,7 @@ impl CustomEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,

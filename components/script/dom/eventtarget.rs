@@ -339,6 +339,7 @@ impl EventTarget {
         reflect_dom_object(Box::new(EventTarget::new_inherited()), global, Wrap)
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
         Ok(EventTarget::new(global))
     }

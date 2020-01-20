@@ -143,6 +143,7 @@ impl WebSocket {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         url: DOMString,

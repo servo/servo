@@ -159,6 +159,7 @@ impl FileReader {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
         Ok(FileReader::new(global))
     }

@@ -53,6 +53,7 @@ pub struct Response {
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
 }
 
+#[allow(non_snake_case)]
 impl Response {
     pub fn new_inherited() -> Response {
         Response {

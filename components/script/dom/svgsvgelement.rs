@@ -55,7 +55,7 @@ pub trait LayoutSVGSVGElementHelpers {
 }
 
 impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     fn data(&self) -> SVGSVGData {
         unsafe {
             let SVG = &*self.unsafe_get();

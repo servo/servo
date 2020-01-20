@@ -74,6 +74,7 @@ impl Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         input: RequestInfo,

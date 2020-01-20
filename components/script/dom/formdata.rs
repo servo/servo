@@ -51,6 +51,7 @@ impl FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         form: Option<&HTMLFormElement>,

@@ -27,6 +27,7 @@ pub struct StorageEvent {
     storage_area: MutNullableDom<Storage>,
 }
 
+#[allow(non_snake_case)]
 impl StorageEvent {
     pub fn new_inherited(
         key: Option<DOMString>,
@@ -109,6 +110,7 @@ impl StorageEvent {
     }
 }
 
+#[allow(non_snake_case)]
 impl StorageEventMethods for StorageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(&self) -> Option<DOMString> {

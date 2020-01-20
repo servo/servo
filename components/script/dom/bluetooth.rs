@@ -66,6 +66,7 @@ const BT_DESC_CONVERSION_ERROR: &'static str =
     "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[allow(non_snake_case)]
 pub struct AllowedBluetoothDevice {
     pub deviceId: DOMString,
     pub mayUseGATT: bool,

@@ -43,6 +43,7 @@ where
     f()
 }
 
+#[allow(non_snake_case)]
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {

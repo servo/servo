@@ -67,6 +67,7 @@ impl RadioNodeList {
 
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     // https://github.com/servo/servo/issues/5875
+    #[allow(non_snake_case)]
     pub fn Length(&self) -> u32 {
         self.node_list.Length()
     }

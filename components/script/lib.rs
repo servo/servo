@@ -9,7 +9,6 @@
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]
-#![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 #![allow(deprecated)] // FIXME: Can we make `allow` only apply to the `plugin` crate attribute?

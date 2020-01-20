@@ -50,6 +50,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         init: Option<HeadersInit>,
@@ -393,13 +394,13 @@ pub fn normalize_value(value: ByteString) -> ByteString {
     }
 }
 
-fn is_HTTP_whitespace(byte: u8) -> bool {
+fn is_http_whitespace(byte: u8) -> bool {
     byte == b'\t' || byte == b'\n' || byte == b'\r' || byte == b' '
 }
 
 fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate() {
-        if !is_HTTP_whitespace(byte) {
+        if !is_http_whitespace(byte) {
             return Some(index);
         }
     }
@@ -408,7 +409,7 @@ fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
 
 fn index_of_last_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate().rev() {
-        if !is_HTTP_whitespace(byte) {
+        if !is_http_whitespace(byte) {
             return Some(index);
         }
     }

@@ -138,6 +138,7 @@ impl DOMException {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         message: DOMString,

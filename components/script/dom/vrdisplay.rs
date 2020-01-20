@@ -212,7 +212,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-getframedata-framedata-framedata
-    fn GetFrameData(&self, frameData: &VRFrameData) -> bool {
+    fn GetFrameData(&self, frame_data: &VRFrameData) -> bool {
         // If presenting we use a synced data with compositor for the whole frame.
         // Frame data is only synced with compositor when GetFrameData is called from
         // inside the VRDisplay.requestAnimationFrame. This is checked using the running_display_raf property.
@@ -223,7 +223,7 @@ impl VRDisplayMethods for VRDisplay {
             if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
                 self.sync_frame_data();
             }
-            frameData.update(&self.frame_data.borrow());
+            frame_data.update(&self.frame_data.borrow());
             return true;
         }
 
@@ -240,7 +240,7 @@ impl VRDisplayMethods for VRDisplay {
             .unwrap();
         return match receiver.recv().unwrap() {
             Ok(data) => {
-                frameData.update(&data);
+                frame_data.update(&data);
                 true
             },
             Err(e) => {

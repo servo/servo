@@ -33,12 +33,14 @@ use std::ptr::NonNull;
 use style::parser::ParserContext;
 
 #[dom_struct]
+#[allow(non_snake_case)]
 pub struct DOMMatrixReadOnly {
     reflector_: Reflector,
     matrix: DomRefCell<Transform3D<f64>>,
     is2D: Cell<bool>,
 }
 
+#[allow(non_snake_case)]
 impl DOMMatrixReadOnly {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
@@ -91,7 +93,7 @@ impl DOMMatrixReadOnly {
         self.matrix.borrow()
     }
 
-    pub fn is_2d(&self) -> bool {
+    pub fn is2D(&self) -> bool {
         self.is2D.get()
     }
 
@@ -421,6 +423,7 @@ impl DOMMatrixReadOnly {
     }
 }
 
+#[allow(non_snake_case)]
 impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
     fn M11(&self) -> f64 {
@@ -761,7 +764,7 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
     {
         Err(error::Error::Type("Invalid matrix initializer.".to_owned()))
     } else {
-        let mut is2D = dict.is2D;
+        let mut is_2d = dict.is2D;
         // Step 2.
         let m11 = dict.m11.unwrap_or(dict.a.unwrap_or(1.0));
         // Step 3.
@@ -775,7 +778,7 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
         // Step 7.
         let m42 = dict.m42.unwrap_or(dict.f.unwrap_or(0.0));
         // Step 8.
-        if is2D.is_none() &&
+        if is_2d.is_none() &&
             (dict.m31 != 0.0 ||
                 dict.m32 != 0.0 ||
                 dict.m13 != 0.0 ||
@@ -787,17 +790,17 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
                 dict.m33 != 1.0 ||
                 dict.m44 != 1.0)
         {
-            is2D = Some(false);
+            is_2d = Some(false);
         }
         // Step 9.
-        if is2D.is_none() {
-            is2D = Some(true);
+        if is_2d.is_none() {
+            is_2d = Some(true);
         }
         let matrix = Transform3D::row_major(
             m11, m12, dict.m13, dict.m14, m21, m22, dict.m23, dict.m24, dict.m31, dict.m32,
             dict.m33, dict.m34, m41, m42, dict.m43, dict.m44,
         );
-        Ok((is2D.unwrap(), matrix))
+        Ok((is_2d.unwrap(), matrix))
     }
 }
 
