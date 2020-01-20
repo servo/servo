@@ -5,16 +5,15 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { SkipTestCase } from './fixture.js';
+import { extractPublicParams } from './params/index.js';
 import { makeQueryString } from './url_query.js';
-import { extractPublicParams } from './url_query.js';
-import { getStackTrace, now } from './util/index.js';
+import { assert, getStackTrace, now } from './util/index.js';
 import { version } from './version.js';
-
-class LogMessageWithStack extends Error {
-  constructor(name, ex) {
+export class LogMessageWithStack extends Error {
+  constructor(name, ex, includeStack = true) {
     super(ex.message);
     this.name = name;
-    this.stack = ex.stack;
+    this.stack = includeStack ? ex.stack : undefined;
   }
 
   toJSON() {
@@ -24,19 +23,14 @@ class LogMessageWithStack extends Error {
       m += ': ' + this.message;
     }
 
-    m += '\n' + getStackTrace(this);
+    if (this.stack) {
+      m += '\n' + getStackTrace(this);
+    }
+
     return m;
   }
 
 }
-
-class LogMessageWithoutStack extends LogMessageWithStack {
-  toJSON() {
-    return this.message;
-  }
-
-}
-
 export class Logger {
   constructor() {
     _defineProperty(this, "results", []);
@@ -110,10 +104,7 @@ export class TestCaseRecorder {
   }
 
   finish() {
-    if (this.startTime < 0) {
-      throw new Error('finish() before start()');
-    }
-
+    assert(this.startTime >= 0, 'finish() before start()');
     const endTime = now(); // Round to next microsecond to avoid storing useless .xxxx00000000000002 in results.
 
     this.result.timems = Math.ceil((endTime - this.startTime) * 1000) / 1000;
@@ -127,7 +118,7 @@ export class TestCaseRecorder {
       return;
     }
 
-    this.logs.push(new LogMessageWithoutStack('DEBUG', ex));
+    this.logs.push(new LogMessageWithStack('DEBUG', ex, false));
   }
 
   warn(ex) {

@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Embedded Enforcement: Sec-Required-CSP header.</title>
+  <title>Embedded Enforcement: Sec-Required-CSP header.</title>
+  <!--
+    This test is creating and navigating >=70 iframes. This can exceed the
+    "short" timeout". See https://crbug.com/818324
+  -->
+  <meta name="timeout" content="long">
+
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/testharness-helper.sub.js"></script>

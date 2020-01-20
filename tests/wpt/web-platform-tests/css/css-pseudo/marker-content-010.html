@@ -3,7 +3,11 @@
 <meta charset="utf-8">
 <title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
 <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
-<link rel="match" href="marker-content-010-ref.html">
+<!-- Outside markers may affect the height of the first line of the list item.
+     In the 1st reference the line height isn't affected, in the 2nd one it is.
+     Both are valid behaviors, the test passes if one of them matches -->
+<link rel="match" href="marker-content-010-ref-001.html">
+<link rel="match" href="marker-content-010-ref-002.html">
 <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
 <style>
 html,body {

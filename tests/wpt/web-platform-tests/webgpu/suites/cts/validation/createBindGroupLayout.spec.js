@@ -5,7 +5,8 @@
 export const description = `
 createBindGroupLayout validation tests.
 `;
-import { TestGroup } from '../../../framework/index.js';
+import { C, TestGroup, poptions } from '../../../framework/index.js';
+import { bindingTypeInfo, bindingTypes } from '../format_info.js';
 import { ValidationTest } from './validation_test.js';
 
 function clone(descriptor) {
@@ -18,11 +19,11 @@ g.test('some binding index was specified more than once', async t => {
     bindings: [{
       binding: 0,
       visibility: GPUShaderStage.COMPUTE,
-      type: 'storage-buffer'
+      type: C.BindingType.StorageBuffer
     }, {
       binding: 1,
       visibility: GPUShaderStage.COMPUTE,
-      type: 'storage-buffer'
+      type: C.BindingType.StorageBuffer
     }]
   }; // Control case
 
@@ -39,7 +40,7 @@ g.test('negative binding index', async t => {
     bindings: [{
       binding: 0,
       visibility: GPUShaderStage.COMPUTE,
-      type: 'storage-buffer'
+      type: C.BindingType.StorageBuffer
     }]
   }; // Control case
 
@@ -52,14 +53,13 @@ g.test('negative binding index', async t => {
   });
 });
 g.test('Visibility of bindings can be 0', async t => {
-  const descriptor = {
+  t.device.createBindGroupLayout({
     bindings: [{
       binding: 0,
       visibility: 0,
       type: 'storage-buffer'
     }]
-  };
-  t.device.createBindGroupLayout(descriptor);
+  });
 });
 g.test('number of dynamic buffers exceeds the maximum value', async t => {
   const {
@@ -94,17 +94,15 @@ g.test('number of dynamic buffers exceeds the maximum value', async t => {
     t.device.createBindGroupLayout(badDescriptor);
   });
 }).params([{
-  type: 'storage-buffer',
+  type: C.BindingType.StorageBuffer,
   maxDynamicBufferCount: 4
 }, {
-  type: 'uniform-buffer',
+  type: C.BindingType.UniformBuffer,
   maxDynamicBufferCount: 8
 }]);
 g.test('dynamic set to true is allowed only for buffers', async t => {
-  const {
-    type,
-    _success
-  } = t.params;
+  const type = t.params.type;
+  const success = bindingTypeInfo[type].type === 'buffer';
   const descriptor = {
     bindings: [{
       binding: 0,
@@ -113,33 +111,8 @@ g.test('dynamic set to true is allowed only for buffers', async t => {
       hasDynamicOffset: true
     }]
   };
-
-  if (_success) {
-    // Control case
+  t.expectValidationError(() => {
     t.device.createBindGroupLayout(descriptor);
-  } else {
-    // Dynamic set to true is not allowed in some cases.
-    t.expectValidationError(() => {
-      t.device.createBindGroupLayout(descriptor);
-    });
-  }
-}).params([{
-  type: 'uniform-buffer',
-  _success: true
-}, {
-  type: 'storage-buffer',
-  _success: true
-}, {
-  type: 'readonly-storage-buffer',
-  _success: true
-}, {
-  type: 'sampler',
-  _success: false
-}, {
-  type: 'sampled-texture',
-  _success: false
-}, {
-  type: 'storage-texture',
-  _success: false
-}]);
+  }, !success);
+}).params(poptions('type', bindingTypes));
 //# sourceMappingURL=createBindGroupLayout.spec.js.map

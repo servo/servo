@@ -3,16 +3,14 @@
 **/
 
 /// <reference types="@webgpu/types" />
+import { assert } from '../util/index.js';
 let impl = undefined;
 export function getGPU() {
   if (impl) {
     return impl;
   }
 
-  if (typeof navigator === 'undefined' || navigator.gpu === undefined) {
-    throw new Error('No WebGPU implementation found');
-  }
-
+  assert(typeof navigator !== 'undefined' && navigator.gpu !== undefined, 'No WebGPU implementation found');
   impl = navigator.gpu;
   return impl;
 }
