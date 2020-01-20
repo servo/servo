@@ -426,8 +426,13 @@ where
                         node = child;
                         continue;
                     }
+                } else if node == self {
+                    // If this is the root of the subtree and we aren't descending
+                    // into our children return now.
+                    return;
                 }
             }
+
             let mut next_is_a_sibling_of = node;
             node = loop {
                 if let Some(sibling) = next_is_a_sibling_of.next_sibling() {
