@@ -18,7 +18,8 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::DefiniteContainingBlock;
-use euclid::Size2D;
+use app_units::Au;
+use euclid::default::{Point2D, Rect, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
@@ -35,6 +36,9 @@ pub struct FragmentTreeRoot {
 
     /// The scrollable overflow of the root of the fragment tree.
     scrollable_overflow: physical::Rect<Length>,
+
+    /// The axis-aligned bounding box of the border box of all child fragments
+    bounding_box_of_border_boxes: physical::Rect<Length>,
 }
 
 impl BoxTreeRoot {
@@ -165,9 +169,32 @@ impl BoxTreeRoot {
                     acc.axis_aligned_bounding_box(&child_overflow)
                 });
 
+        let containing_block = physical::Rect::zero();
+        let bounding_box_of_border_boxes =
+            independent_layout
+                .fragments
+                .iter()
+                .fold(physical::Rect::zero(), |acc, child| {
+                    acc.axis_aligned_bounding_box(&match child {
+                        Fragment::Box(fragment) => fragment
+                            .border_rect()
+                            .to_physical(fragment.style.writing_mode, &containing_block),
+                        Fragment::Anonymous(fragment) => {
+                            fragment.rect.to_physical(fragment.mode, &containing_block)
+                        },
+                        Fragment::Text(fragment) => fragment
+                            .rect
+                            .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                        Fragment::Image(fragment) => fragment
+                            .rect
+                            .to_physical(fragment.style.writing_mode, &containing_block),
+                    })
+                });
+
         FragmentTreeRoot {
             children: independent_layout.fragments,
             scrollable_overflow,
+            bounding_box_of_border_boxes,
         }
     }
 }
@@ -205,5 +232,17 @@ impl FragmentTreeRoot {
             self.scrollable_overflow.size.x.px(),
             self.scrollable_overflow.size.y.px(),
         ))
+    }
+
+    pub fn bounding_box_of_border_boxes(&self) -> Rect<Au> {
+        let origin = Point2D::new(
+            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.x.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.y.px()),
+        );
+        let size = Size2D::new(
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.x.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.y.px()),
+        );
+        Rect::new(origin, size)
     }
 }
