@@ -1,3 +1,5 @@
 spec: https://w3c.github.io/speech-api/
 suggested_reviewers:
+  - andrenatal
   - foolip
+  - marcoscaceres

@@ -1,4 +1,4 @@
 Content-Security-Policy: trusted-types *
 Content-Security-Policy: script-src http: https: 'nonce-123' 'report-sample'
 Content-Security-Policy: plugin-types bla/blubb
-
+Content-Security-Policy: require-trusted-types-for 'script'

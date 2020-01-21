@@ -24,35 +24,11 @@ var MathMLFeatureDetection = {
     },
 
     "has_menclose": function() {
-        if (!this.hasOwnProperty("_has_menclose")) {
-            document.body.insertAdjacentHTML("beforeend", "<math>\
-<mrow style='font-size: 20px !important'>\
-  <mrow>\
-    <mrow>\
-      <mrow>\
-        <mtext>A</mtext>\
-      </mrow>\
-    </mrow>\
-  </mrow>\
-</mrow>\
-<menclose notation='box' style='font-size: 20px !important'>\
-  <menclose notation='box'>\
-    <menclose notation='box'>\
-      <menclose notation='box'>\
-        <mtext>A</mtext>\
-      </menclose>\
-    </menclose>\
-  </menclose>\
-</menclose>\
-</math>");
-            var math = document.body.lastElementChild;
-            // The boxes will make menclose wider than mrow, if the former is supported.
-            this._has_menclose =
-                math.lastElementChild.getBoundingClientRect().width -
-                math.firstElementChild.getBoundingClientRect().width > 5;
-            document.body.removeChild(math);
-        }
-        return this._has_menclose;
+        // Just check whether <mrow> is supported because discussion on this is
+        // still open ( https://github.com/mathml-refresh/mathml/issues/105 )
+        // and it would have to behave at least like an mrow, even if it becomes
+        // an unknown element at the end.
+        return this.has_mrow();
     },
 
     "has_merror": function() {

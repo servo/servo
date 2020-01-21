@@ -63,13 +63,11 @@ promise_test(function(t) {
       .then(function() { return with_iframe(iframe_url); })
       .then(function(f) {
           frame = f;
+          t.add_cleanup(function() { frame.remove(); });
           return test_matchall(frame, expected_only_window, {});
         })
       .then(function() {
           return test_matchall(frame, expected_only_window, {type:'window'});
-        })
-      .then(function() {
-          frame.remove();
         });
   }, 'Verify matchAll() with window client type');
 
@@ -87,6 +85,7 @@ promise_test(function(t) {
       .then(function() { return with_iframe(iframe_url); })
       .then(function(f) {
           frame = f;
+          t.add_cleanup(function() { frame.remove(); });
           return new Promise(function(resolve, reject) {
               var w = new SharedWorker(shared_worker_url);
               w.port.onmessage = resolve;
@@ -115,9 +114,6 @@ promise_test(function(t) {
         })
       .then(function() {
           return test_matchall(frame, expected_all_clients, {type:'all'});
-        })
-      .then(function() {
-          frame.remove();
         });
 }, 'Verify matchAll() with {window, sharedworker, worker} client types');
 
