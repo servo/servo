@@ -1426,7 +1426,6 @@ impl Element {
             .iter()
             .find(|a| a.name() == name)
             .map(|js| DomRoot::from_ref(&**js));
-
         fn id_and_name_must_be_atoms(name: &LocalName, maybe_attr: &Option<DomRoot<Attr>>) -> bool {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
