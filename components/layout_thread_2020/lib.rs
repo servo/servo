@@ -46,7 +46,7 @@ use layout::query::{
     process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
-use layout::BoxTreeRoot;
+use layout::{BoxTreeRoot, FragmentTreeRoot};
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -172,10 +172,10 @@ pub struct LayoutThread {
     outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// The root of the box tree.
-    box_tree_root: RefCell<Option<layout::BoxTreeRoot>>,
+    box_tree_root: RefCell<Option<BoxTreeRoot>>,
 
     /// The root of the fragment tree.
-    fragment_tree_root: RefCell<Option<layout::FragmentTreeRoot>>,
+    fragment_tree_root: RefCell<Option<FragmentTreeRoot>>,
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
@@ -1218,7 +1218,10 @@ impl LayoutThread {
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
-                    rw_data.content_box_response = process_content_box_request(node);
+                    rw_data.content_box_response = process_content_box_request(
+                        node,
+                        (&*self.fragment_tree_root.borrow()).as_ref(),
+                    );
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
                     rw_data.content_boxes_response = process_content_boxes_request(node);
@@ -1355,7 +1358,7 @@ impl LayoutThread {
 
     fn perform_post_style_recalc_layout_passes(
         &self,
-        fragment_tree: &layout::FragmentTreeRoot,
+        fragment_tree: &FragmentTreeRoot,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
@@ -1374,12 +1377,16 @@ impl LayoutThread {
             document.will_paint();
         }
 
+        let mut display_list = DisplayListBuilder::new(
+            self.id.to_webrender(),
+            context,
+            fragment_tree.scrollable_overflow(),
+        );
+
         let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        let mut display_list =
-            DisplayListBuilder::new(self.id.to_webrender(), context, viewport_size);
         fragment_tree.build_display_list(&mut display_list, viewport_size);
 
         if self.dump_flow_tree {

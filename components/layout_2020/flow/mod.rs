@@ -495,16 +495,16 @@ fn layout_in_flow_non_replaced_block_level<'a>(
             inline: inline_size,
         },
     };
-    BoxFragment {
+    BoxFragment::new(
         tag,
-        style: style.clone(),
-        children: fragments,
+        style.clone(),
+        fragments,
         content_rect,
         padding,
         border,
         margin,
         block_margins_collapsed_with_children,
-    }
+    )
 }
 
 /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
@@ -545,16 +545,17 @@ fn layout_in_flow_replaced_block_level<'a>(
         },
         size,
     };
-    BoxFragment {
+    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+    BoxFragment::new(
         tag,
-        style: style.clone(),
-        children: fragments,
+        style.clone(),
+        fragments,
         content_rect,
         padding,
         border,
-        block_margins_collapsed_with_children: CollapsedBlockMargins::from_margin(&margin),
         margin,
-    }
+        block_margins_collapsed_with_children,
+    )
 }
 
 fn solve_inline_margins_for_in_flow_block_level(

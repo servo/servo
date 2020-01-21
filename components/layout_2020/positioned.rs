@@ -290,11 +290,11 @@ impl<'box_tree> PositioningContext<'box_tree> {
             );
             positioned_box_fragment
                 .children
-                .push(Fragment::Anonymous(AnonymousFragment {
+                .push(Fragment::Anonymous(AnonymousFragment::new(
+                    padding_rect,
                     children,
-                    rect: padding_rect,
-                    mode: positioned_box_fragment.style.writing_mode,
-                }))
+                    positioned_box_fragment.style.writing_mode,
+                )))
         }
     }
 }
@@ -470,16 +470,16 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
                 size,
             };
 
-            BoxFragment {
-                tag: self.absolutely_positioned_box.contents.tag,
-                style: style.clone(),
-                children: fragments,
+            BoxFragment::new(
+                self.absolutely_positioned_box.contents.tag,
+                style.clone(),
+                fragments,
                 content_rect,
                 padding,
                 border,
                 margin,
-                block_margins_collapsed_with_children: CollapsedBlockMargins::zero(),
-            }
+                CollapsedBlockMargins::zero(),
+            )
         })
     }
 }

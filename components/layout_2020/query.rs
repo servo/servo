@@ -5,6 +5,7 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 
 use crate::context::LayoutContext;
+use crate::flow::FragmentTreeRoot;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
@@ -163,8 +164,15 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 }
 
-pub fn process_content_box_request(_requested_node: OpaqueNode) -> Option<Rect<Au>> {
-    None
+pub fn process_content_box_request(
+    _requested_node: OpaqueNode,
+    fragment_tree_root: Option<&FragmentTreeRoot>,
+) -> Option<Rect<Au>> {
+    let fragment_tree_root = match fragment_tree_root {
+        Some(fragment_tree_root) => fragment_tree_root,
+        None => return None,
+    };
+    Some(fragment_tree_root.bounding_box_of_border_boxes())
 }
 
 pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au>> {

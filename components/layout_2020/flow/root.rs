@@ -11,12 +11,15 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom;
 use crate::geom::flow_relative::Vec2;
+use crate::geom::physical;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::DefiniteContainingBlock;
+use app_units::Au;
+use euclid::default::{Point2D, Rect, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
@@ -26,7 +29,17 @@ use style::Zero;
 use style_traits::CSSPixel;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
-pub struct FragmentTreeRoot(Vec<Fragment>);
+
+pub struct FragmentTreeRoot {
+    /// The children of the root of the fragment tree.
+    children: Vec<Fragment>,
+
+    /// The scrollable overflow of the root of the fragment tree.
+    scrollable_overflow: physical::Rect<Length>,
+
+    /// The axis-aligned bounding box of the border box of all child fragments
+    bounding_box_of_border_boxes: physical::Rect<Length>,
+}
 
 impl BoxTreeRoot {
     pub fn construct<'dom, Node>(context: &LayoutContext, root_element: Node) -> Self
@@ -131,7 +144,58 @@ impl BoxTreeRoot {
             &mut independent_layout.fragments,
         );
 
-        FragmentTreeRoot(independent_layout.fragments)
+        // FIXME(mrobinson, bug 25564): We should be using the containing block
+        // here to properly convert scrollable overflow to physical geometry.
+        let scrollable_overflow =
+            independent_layout
+                .fragments
+                .iter()
+                .fold(physical::Rect::zero(), |acc, child| {
+                    let child_overflow = child.scrollable_overflow();
+
+                    // https://drafts.csswg.org/css-overflow/#scrolling-direction
+                    // We want to clip scrollable overflow on box-start and inline-start
+                    // sides of the scroll container.
+                    //
+                    // FIXME(mrobinson, bug 25564): This should take into account writing
+                    // mode.
+                    let child_overflow = physical::Rect {
+                        top_left: physical::Vec2::zero(),
+                        size: physical::Vec2 {
+                            x: child_overflow.size.x + child_overflow.top_left.x,
+                            y: child_overflow.size.y + child_overflow.top_left.y,
+                        },
+                    };
+                    acc.axis_aligned_bounding_box(&child_overflow)
+                });
+
+        let containing_block = physical::Rect::zero();
+        let bounding_box_of_border_boxes =
+            independent_layout
+                .fragments
+                .iter()
+                .fold(physical::Rect::zero(), |acc, child| {
+                    acc.axis_aligned_bounding_box(&match child {
+                        Fragment::Box(fragment) => fragment
+                            .border_rect()
+                            .to_physical(fragment.style.writing_mode, &containing_block),
+                        Fragment::Anonymous(fragment) => {
+                            fragment.rect.to_physical(fragment.mode, &containing_block)
+                        },
+                        Fragment::Text(fragment) => fragment
+                            .rect
+                            .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                        Fragment::Image(fragment) => fragment
+                            .rect
+                            .to_physical(fragment.style.writing_mode, &containing_block),
+                    })
+                });
+
+        FragmentTreeRoot {
+            children: independent_layout.fragments,
+            scrollable_overflow,
+            bounding_box_of_border_boxes,
+        }
     }
 }
 
@@ -151,15 +215,34 @@ impl FragmentTreeRoot {
                 y: Length::new(viewport_size.height),
             },
         };
-        for fragment in &self.0 {
+        for fragment in &self.children {
             fragment.build_display_list(builder, &containing_block)
         }
     }
 
     pub fn print(&self) {
         let mut print_tree = PrintTree::new("Fragment Tree".to_string());
-        for fragment in &self.0 {
+        for fragment in &self.children {
             fragment.print(&mut print_tree);
         }
+    }
+
+    pub fn scrollable_overflow(&self) -> webrender_api::units::LayoutSize {
+        webrender_api::units::LayoutSize::from_untyped(Size2D::new(
+            self.scrollable_overflow.size.x.px(),
+            self.scrollable_overflow.size.y.px(),
+        ))
+    }
+
+    pub fn bounding_box_of_border_boxes(&self) -> Rect<Au> {
+        let origin = Point2D::new(
+            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.x.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.y.px()),
+        );
+        let size = Size2D::new(
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.x.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.y.px()),
+        );
+        Rect::new(origin, size)
     }
 }
