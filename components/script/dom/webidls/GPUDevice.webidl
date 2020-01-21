@@ -16,8 +16,8 @@ interface GPUDevice : EventTarget {
     //GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);
-    /*GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor);
-    GPUBindGroup createBindGroup(GPUBindGroupDescriptor descriptor);
+    GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor);
+    /*GPUBindGroup createBindGroup(GPUBindGroupDescriptor descriptor);
 
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
     GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);

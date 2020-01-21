@@ -5,7 +5,7 @@
 use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
-    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId},
+    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
     Backend,
 };
 
@@ -15,6 +15,7 @@ pub struct IdentityHub {
     devices: IdentityManager,
     buffers: IdentityManager,
     bind_group_layouts: IdentityManager,
+    pipeline_layouts: IdentityManager,
     backend: Backend,
 }
 
@@ -25,6 +26,7 @@ impl IdentityHub {
             devices: IdentityManager::default(),
             buffers: IdentityManager::default(),
             bind_group_layouts: IdentityManager::default(),
+            pipeline_layouts: IdentityManager::default(),
             backend,
         }
     }
@@ -43,6 +45,10 @@ impl IdentityHub {
 
     fn create_bind_group_layout_id(&mut self) -> BindGroupLayoutId {
         self.bind_group_layouts.alloc(self.backend)
+    }
+
+    fn create_pipeline_layout_id(&mut self) -> PipelineLayoutId {
+        self.pipeline_layouts.alloc(self.backend)
     }
 }
 
@@ -137,6 +143,20 @@ impl Identities {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => self.metal_hub.create_bind_group_layout_id(),
             _ => self.dummy_hub.create_bind_group_layout_id(),
+        }
+    }
+
+    pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
+        match backend {
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Vulkan => self.vk_hub.create_pipeline_layout_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx12 => self.dx12_hub.create_pipeline_layout_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx11 => self.dx11_hub.create_pipeline_layout_id(),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            Backend::Metal => self.metal_hub.create_pipeline_layout_id(),
+            _ => self.dummy_hub.create_pipeline_layout_id(),
         }
     }
 }

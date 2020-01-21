@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{self, GPUDeviceMethods};
+use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -21,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
+use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
@@ -409,5 +411,70 @@ impl GPUDeviceMethods for GPUDevice {
             .collect::<Vec<_>>();
 
         GPUBindGroupLayout::new(&self.global(), self.channel.clone(), bgl, binds, valid)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
+    fn CreatePipelineLayout(
+        &self,
+        descriptor: &GPUPipelineLayoutDescriptor,
+    ) -> DomRoot<GPUPipelineLayout> {
+        // TODO: We should have these limits on device creation
+        let limits = GPULimits::empty();
+        let mut bind_group_layouts = Vec::new();
+        let mut bgl_ids = Vec::new();
+        let mut max_dynamic_uniform_buffers_per_pipeline_layout =
+            limits.maxDynamicUniformBuffersPerPipelineLayout as i32;
+        let mut max_dynamic_storage_buffers_per_pipeline_layout =
+            limits.maxDynamicStorageBuffersPerPipelineLayout as i32;
+        descriptor.bindGroupLayouts.iter().for_each(|each| {
+            if each.is_valid() {
+                let id = each.id();
+                bind_group_layouts.push(id);
+                bgl_ids.push(id.0);
+            }
+            each.bindings().iter().for_each(|bind| {
+                match bind.type_ {
+                    GPUBindingType::Uniform_buffer => {
+                        if bind.hasDynamicOffset {
+                            max_dynamic_uniform_buffers_per_pipeline_layout -= 1;
+                        };
+                    },
+                    GPUBindingType::Storage_buffer => {
+                        if bind.hasDynamicOffset {
+                            max_dynamic_storage_buffers_per_pipeline_layout -= 1;
+                        };
+                    },
+                    GPUBindingType::Readonly_storage_buffer => {
+                        if bind.hasDynamicOffset {
+                            max_dynamic_storage_buffers_per_pipeline_layout -= 1;
+                        };
+                    },
+                    _ => {},
+                };
+            });
+        });
+
+        let valid = descriptor.bindGroupLayouts.len() <= limits.maxBindGroups as usize &&
+            descriptor.bindGroupLayouts.len() == bind_group_layouts.len() &&
+            max_dynamic_uniform_buffers_per_pipeline_layout >= 0 &&
+            max_dynamic_storage_buffers_per_pipeline_layout >= 0;
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        if let Some(window) = self.global().downcast::<Window>() {
+            let id = window
+                .Navigator()
+                .create_pipeline_layout_id(self.device.0.backend());
+            self.channel
+                .0
+                .send(WebGPURequest::CreatePipelineLayout(
+                    sender,
+                    self.device,
+                    id,
+                    bgl_ids,
+                ))
+                .expect("Failed to create WebGPU PipelineLayout");
+        }
+        let pipeline_layout = receiver.recv().unwrap();
+        GPUPipelineLayout::new(&self.global(), bind_group_layouts, pipeline_layout, valid)
     }
 }

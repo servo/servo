@@ -28,7 +28,7 @@ use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::rc::Rc;
 use webgpu::wgpu::{
-    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId},
+    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
     Backend,
 };
 
@@ -93,6 +93,12 @@ impl Navigator {
         self.gpu_id_hub
             .borrow_mut()
             .create_bind_group_layout_id(backend)
+    }
+
+    pub fn create_pipeline_layout_id(&self, backend: Backend) -> PipelineLayoutId {
+        self.gpu_id_hub
+            .borrow_mut()
+            .create_pipeline_layout_id(backend)
     }
 }
 

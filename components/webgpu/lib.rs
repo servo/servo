@@ -54,6 +54,12 @@ pub enum WebGPURequest {
         wgpu::id::BindGroupLayoutId,
         Vec<wgpu::binding_model::BindGroupLayoutBinding>,
     ),
+    CreatePipelineLayout(
+        IpcSender<WebGPUPipelineLayout>,
+        WebGPUDevice,
+        wgpu::id::PipelineLayoutId,
+        Vec<wgpu::id::BindGroupLayoutId>,
+    ),
     UnmapBuffer(WebGPUBuffer),
     DestroyBuffer(WebGPUBuffer),
 }
@@ -237,7 +243,23 @@ impl WGPU {
 
                     if let Err(e) = sender.send(bgl) {
                         warn!(
-                            "Failed to send response to WebGPURequest::CreateBufferMapped ({})",
+                            "Failed to send response to WebGPURequest::CreateBindGroupLayout ({})",
+                            e
+                        )
+                    }
+                },
+                WebGPURequest::CreatePipelineLayout(sender, device, id, bind_group_layouts) => {
+                    let global = &self.global;
+                    let descriptor = wgpu_core::binding_model::PipelineLayoutDescriptor {
+                        bind_group_layouts: bind_group_layouts.as_ptr(),
+                        bind_group_layouts_length: bind_group_layouts.len(),
+                    };
+                    let pl_id = gfx_select!(id => global.device_create_pipeline_layout(device.0, &descriptor, id));
+                    let pipeline_layout = WebGPUPipelineLayout(pl_id);
+
+                    if let Err(e) = sender.send(pipeline_layout) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreatePipelineLayout ({})",
                             e
                         )
                     }
@@ -273,3 +295,4 @@ webgpu_resource!(WebGPUAdapter, wgpu::id::AdapterId);
 webgpu_resource!(WebGPUDevice, wgpu::id::DeviceId);
 webgpu_resource!(WebGPUBuffer, wgpu::id::BufferId);
 webgpu_resource!(WebGPUBindGroupLayout, wgpu::id::BindGroupLayoutId);
+webgpu_resource!(WebGPUPipelineLayout, wgpu::id::PipelineLayoutId);
