@@ -22,7 +22,9 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{cors_setting_for_element, referrer_policy_for_element};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, RawLayoutElementHelpers,
+};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -51,7 +53,7 @@ use app_units::{Au, AU_PER_PX};
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, QualName};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
@@ -1257,8 +1259,15 @@ impl HTMLImageElement {
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
-        let document = window.Document();
-        let image = HTMLImageElement::new(local_name!("img"), None, &document);
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("img")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+        );
+
+        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
         if let Some(w) = width {
             image.SetWidth(w);
         }
