@@ -34,4 +34,4 @@ spirv_cross = { git = "https://github.com/servo/spirv_cross", branch = "wgpu-ser
 backtrace = { git = "https://github.com/MeFisto94/backtrace-rs", branch = "fix-strtab-freeing-crash" }
 
 [patch."https://github.com/servo/rust-mozjs"]
-mozjs = { git = "https://github.com/jdm/servo", branch = "proxyopts2" }
+mozjs = { git = "https://github.com/jdm/rust-mozjs", branch = "proxyopt2" }
