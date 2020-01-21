@@ -197,7 +197,7 @@ def _activate_virtualenv(topdir, is_firefox):
     if need_pip_upgrade:
         # Upgrade pip when virtualenv is created to fix the issue
         # https://github.com/servo/servo/issues/11074
-        _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip==19.3.1"])
+        _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip<20"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
