@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -87,6 +88,12 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_atomic_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {

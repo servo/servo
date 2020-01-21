@@ -18,6 +18,7 @@ use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
@@ -67,9 +68,11 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
             return None;
         }
 
+        let name = Atom::from(name);
+
         let mut filter_map = self.collection.elements_iter().filter_map(|elem| {
-            if elem.get_string_attribute(&local_name!("name")) == name ||
-                elem.get_string_attribute(&local_name!("id")) == name
+            if elem.get_name().map_or(false, |n| n == name) ||
+                elem.get_id().map_or(false, |i| i == name)
             {
                 Some(elem)
             } else {
@@ -90,7 +93,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(window, &*self.form, name),
+                    RadioNodeList::new_controls_except_image_inputs(window, &*self.form, &name),
                 ))
             }
         // Step 3

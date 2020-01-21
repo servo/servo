@@ -26,7 +26,6 @@ use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_config::pref;
 use std::sync::atomic::AtomicBool;
-use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StylesheetContents, ViewportRule};
@@ -86,8 +85,8 @@ impl HTMLMetaElement {
 
     fn process_attributes(&self) {
         let element = self.upcast::<Element>();
-        if let Some(ref name) = element.get_attribute(&ns!(), &local_name!("name")) {
-            let name = name.value().to_ascii_lowercase();
+        if let Some(ref name) = element.get_name() {
+            let name = name.to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
             if name == "viewport" {
@@ -137,8 +136,8 @@ impl HTMLMetaElement {
 
     fn process_referrer_attribute(&self) {
         let element = self.upcast::<Element>();
-        if let Some(ref name) = element.get_attribute(&ns!(), &local_name!("name")) {
-            let name = name.value().to_ascii_lowercase();
+        if let Some(ref name) = element.get_name() {
+            let name = name.to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
             if name == "referrer" {
@@ -183,16 +182,6 @@ impl VirtualMethods for HTMLMetaElement {
 
         if context.tree_connected {
             self.process_attributes();
-        }
-    }
-
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("name") => AttrValue::from_atomic(value.into()),
-            _ => self
-                .super_type()
-                .unwrap()
-                .parse_plain_attribute(name, value),
         }
     }
 

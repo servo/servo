@@ -84,6 +84,7 @@ radio
 range
 ratechange
 readystatechange
+referrer
 reftest-wait
 rejectionhandled
 removetrack

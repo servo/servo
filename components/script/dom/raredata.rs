@@ -9,6 +9,7 @@ use crate::dom::customelementregistry::{
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
+use servo_atoms::Atom;
 use std::rc::Rc;
 
 //XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
@@ -42,4 +43,7 @@ pub struct ElementRareData {
     pub custom_element_definition: Option<Rc<CustomElementDefinition>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub custom_element_state: CustomElementState,
+    /// The "name" content attribute; not used as frequently as id, but used
+    /// in named getter loops so it's worth looking up quickly when present
+    pub name_attribute: Option<Atom>,
 }

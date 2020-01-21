@@ -58,7 +58,7 @@ impl HTMLHeadElement {
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .filter(|elem| elem.is::<HTMLMetaElement>())
-            .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
+            .filter(|elem| elem.get_name() == Some(atom!("referrer")))
             .filter(|elem| {
                 elem.get_attribute(&ns!(), &local_name!("content"))
                     .is_some()

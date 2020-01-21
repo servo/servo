@@ -220,7 +220,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_getter!(Placeholder, "placeholder");

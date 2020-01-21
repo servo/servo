@@ -7,12 +7,12 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_atoms::Atom;
 use std::cell::Cell;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -381,11 +381,11 @@ pub enum RadioListMode {
 pub struct RadioList {
     form: Dom<HTMLFormElement>,
     mode: RadioListMode,
-    name: DOMString,
+    name: Atom,
 }
 
 impl RadioList {
-    pub fn new(form: &HTMLFormElement, mode: RadioListMode, name: DOMString) -> RadioList {
+    pub fn new(form: &HTMLFormElement, mode: RadioListMode, name: Atom) -> RadioList {
         RadioList {
             form: Dom::from_ref(form),
             mode: mode,

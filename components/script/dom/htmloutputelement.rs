@@ -114,6 +114,12 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     fn Type(&self) -> DOMString {
         return DOMString::from("output");
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_atomic_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_getter!(Name, "name");
 }
 
 impl VirtualMethods for HTMLOutputElement {

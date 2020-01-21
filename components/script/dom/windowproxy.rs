@@ -81,7 +81,8 @@ pub struct WindowProxy {
     /// In the case that this is a top-level window, this is our id.
     top_level_browsing_context_id: TopLevelBrowsingContextId,
 
-    /// The name of the browsing context
+    /// The name of the browsing context (sometimes, but not always,
+    /// equal to the name of a container element)
     name: DomRefCell<DOMString>,
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.

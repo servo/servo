@@ -9,8 +9,8 @@ interface HTMLOutputElement : HTMLElement {
 
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
-  // [CEReactions]
-  //          attribute DOMString name;
+  [CEReactions]
+           attribute DOMString name;
 
   [Pure] readonly attribute DOMString type;
   [CEReactions]

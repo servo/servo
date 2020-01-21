@@ -1313,8 +1313,8 @@ impl HTMLImageElement {
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
             .find(|n| {
                 n.upcast::<Element>()
-                    .get_string_attribute(&local_name!("name")) ==
-                    last
+                    .get_name()
+                    .map_or(false, |n| *n == *last)
             });
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
@@ -1649,7 +1649,6 @@ impl VirtualMethods for HTMLImageElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("width") | &local_name!("height") => {
                 AttrValue::from_dimension(value.into())
             },

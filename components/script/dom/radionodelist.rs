@@ -16,6 +16,7 @@ use crate::dom::node::Node;
 use crate::dom::nodelist::{NodeList, NodeListType, RadioList, RadioListMode};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct RadioNodeList {
@@ -42,14 +43,14 @@ impl RadioNodeList {
     pub fn new_controls_except_image_inputs(
         window: &Window,
         form: &HTMLFormElement,
-        name: DOMString,
+        name: &Atom,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
             NodeListType::Radio(RadioList::new(
                 form,
                 RadioListMode::ControlsExceptImageInputs,
-                name,
+                name.clone(),
             )),
         )
     }
@@ -57,11 +58,11 @@ impl RadioNodeList {
     pub fn new_images(
         window: &Window,
         form: &HTMLFormElement,
-        name: DOMString,
+        name: &Atom,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
-            NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name)),
+            NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name.clone())),
         )
     }
 
