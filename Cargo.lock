@@ -3578,6 +3578,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.12.1"
+source = "git+https://github.com/jdm/rust-mozjs?branch=proxyopt2#6fb4627e93e7cc2a0b1fd0d829b9706d5b240c38"
 dependencies = [
  "cc",
  "lazy_static",

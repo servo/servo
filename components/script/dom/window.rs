@@ -1392,6 +1392,7 @@ impl Window {
     // but codegen uses the presence of fn NamedGetter like a flag.
     // The real named getter behavior happens from the window named properties
     // object, which calls named_getter_impl.
+    #[allow(non_snake_case)]
     pub fn NamedGetter(&self, _cx: JSContext, _name: DOMString) -> Option<NonNull<JSObject>> {
         return None;
     }
@@ -2137,6 +2138,7 @@ impl Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
+    #[allow(non_snake_case)]
     pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
         // TODO: When this is fixed, also implement NamedGetter properly.
         None
