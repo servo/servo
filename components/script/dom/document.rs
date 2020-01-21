@@ -2660,7 +2660,7 @@ impl Document {
         // The filter matches embed, form, frameset, img and object
         // by their name attribute, and everything including those by
         // their id attribute. We already know we won't be hitting
-	// a browsing context we care about and can leave that flag false.
+        // a browsing context we care about and can leave that flag false.
         match self.look_up_named_elements(&name, |name, node| {
             window_nameditem_filter(name, node, false)
         }) {
@@ -2681,10 +2681,10 @@ impl Document {
         }
         impl CollectionFilter for WindowNamedElementFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-	        // Flag is false here because this is a collection that
-		// only returns elements, and an iframe isn't automatically
-		// a collection member just because it contains a browsing
-		// context that would count as a named item.
+                // Flag is false here because this is a collection that
+                // only returns elements, and an iframe isn't automatically
+                // a collection member just because it contains a browsing
+                // context that would count as a named item.
                 window_nameditem_filter(&self.name, elem.upcast(), false)
             }
         }
@@ -3650,14 +3650,17 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object:supported_property_names
     pub fn window_supported_property_names(&self) -> Vec<DOMString> {
         // We care here about anything that the window named getter can return,
-	// whether it's an element or the browsing context contained by
-	// that element.
+        // whether it's an element or the browsing context contained by
+        // that element.
         self.supported_property_names_impl(|name, node| window_nameditem_filter(name, node, true))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object:supported_property_names
-    fn supported_property_names_impl(&self, nameditem_filter: fn(name: &Atom, node: &Node) -> bool) ->  Vec<DOMString> {
+    fn supported_property_names_impl(
+        &self,
+        nameditem_filter: fn(name: &Atom, node: &Node) -> bool,
+    ) -> Vec<DOMString> {
         // The tricky part here is making sure we return the names in
         // tree order, without just resorting to a full tree walkthrough.
 
@@ -4660,7 +4663,6 @@ impl DocumentMethods for Document {
         }
     }
 
-
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.supported_property_names_impl(Node::is_document_named_item)
@@ -5013,8 +5015,8 @@ fn window_nameditem_filter(name: &Atom, node: &Node, include_browsing_contexts: 
     match html_elem_type {
         HTMLElementTypeId::HTMLEmbedElement |
         HTMLElementTypeId::HTMLFormElement |
-	// web-platform-tests/wpt#21249
-        // HTMLElementTypeId::HTMLFrameSetElement | 
+        // web-platform-tests/wpt#21249
+        // HTMLElementTypeId::HTMLFrameSetElement |
         HTMLElementTypeId::HTMLImageElement |
         HTMLElementTypeId::HTMLObjectElement => {
             match elem.get_attribute(&ns!(), &local_name!("name")) {
@@ -5022,16 +5024,16 @@ fn window_nameditem_filter(name: &Atom, node: &Node, include_browsing_contexts: 
                 None => false,
             }
         },
-	HTMLElementTypeId::HTMLIFrameElement => {
-	    include_browsing_contexts &&
-	        match elem.get_attribute(&ns!(), &local_name!("name")) {
+        HTMLElementTypeId::HTMLIFrameElement => {
+            include_browsing_contexts &&
+                match elem.get_attribute(&ns!(), &local_name!("name")) {
                 Some(ref attr) => attr.value().as_atom() == name,
                 None => false,
             } &&
-	    match elem.downcast::<HTMLIFrameElement>().unwrap().GetContentWindow() {
-	        None => false,
-  	        Some(proxy) => proxy.get_name() == **name
-	    }
+            match elem.downcast::<HTMLIFrameElement>().unwrap().GetContentWindow() {
+                None => false,
+                Some(proxy) => proxy.get_name() == **name
+            }
         },
         _ => false,
     }

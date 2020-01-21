@@ -3039,7 +3039,6 @@ assert!(!prototype_proto.is_null());""" % name))
         else:
             proto_properties = properties
 
-
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
 """))
@@ -5162,7 +5161,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), "
+                              "proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5185,7 +5185,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), "
+                              "proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',

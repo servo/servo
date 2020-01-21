@@ -12,18 +12,18 @@ use js::conversions::ToJSValConvertible;
 use js::error::throw_type_error;
 use js::glue::RUST_JSID_TO_STRING;
 use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_JSID_IS_STRING};
+use js::jsapi::jsid;
+use js::jsapi::JS_AtomizeAndPinString;
 use js::jsapi::JS_SetImmutablePrototype;
 use js::jsapi::{AutoIdVector, HandleId, MutableHandle, ObjectOpResult, PropertyDescriptor};
 use js::jsapi::{Handle, HandleObject, JSContext, UndefinedHandleValue};
-use js::jsapi::JS_AtomizeAndPinString;
-use js::jsapi::jsid;
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
+use js::rust::wrappers::AppendToAutoIdVector;
+use js::rust::wrappers::RUST_INTERNED_STRING_TO_JSID;
 use js::rust::IntoHandle;
 use js::rust::{Handle as RustHandle, MutableHandle as RustMutableHandle};
 use js::rust::{HandleObject as RustHandleObject, MutableHandleObject as RustMutableHandleObject};
-use js::rust::wrappers::{AppendToAutoIdVector};
-use js::rust::wrappers::RUST_INTERNED_STRING_TO_JSID;
 use libc;
 use std::ffi::CString;
 use std::panic;
@@ -127,22 +127,25 @@ unsafe extern "C" fn own_property_keys(
     proxy: HandleObject,
     props: *mut AutoIdVector,
 ) -> bool {
-    return wrap_panic(panic::AssertUnwindSafe(|| {
-        let cx = SafeJSContext::from_ptr(cx);
-        let window = Root::downcast::<Window>(GlobalScope::from_object(proxy.get()))
-            .expect("global is not a window");
-        for name in window.supported_property_names_impl() {
-            let cstring = CString::new(name).unwrap();
-            let jsstring = JS_AtomizeAndPinString(*cx, cstring.as_ptr());
-            rooted!(in(*cx) let rooted = jsstring);
-            rooted!(in(*cx) let mut rooted_jsid: jsid);
-            RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
-            AppendToAutoIdVector(props, rooted_jsid.handle());
-	}
-	// TODO can the window named properties object, itself,
-	// have expandos? If so, where do we even put them?
-        return true;
-    }), false);
+    return wrap_panic(
+        panic::AssertUnwindSafe(|| {
+            let cx = SafeJSContext::from_ptr(cx);
+            let window = Root::downcast::<Window>(GlobalScope::from_object(proxy.get()))
+                .expect("global is not a window");
+            for name in window.supported_property_names_impl() {
+                let cstring = CString::new(name).unwrap();
+                let jsstring = JS_AtomizeAndPinString(*cx, cstring.as_ptr());
+                rooted!(in(*cx) let rooted = jsstring);
+                rooted!(in(*cx) let mut rooted_jsid: jsid);
+                RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
+                AppendToAutoIdVector(props, rooted_jsid.handle());
+            }
+            // TODO can the window named properties object, itself,
+            // have expandos? If so, where do we even put them?
+            return true;
+        }),
+        false,
+    );
 }
 
 #[allow(unsafe_code)]
