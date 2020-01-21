@@ -49,7 +49,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 mediasource_test(function(test, mediaElement, mediaSource)
 {
     mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
-    assert_throws(new TypeError(), function() { mediaSource.setLiveSeekableRange(-1, 1); });
+    assert_throws_js(TypeError, function() { mediaSource.setLiveSeekableRange(-1, 1); });
     test.done();
 }, "setLiveSeekableRange throws a TypeError if start is negative");
 
@@ -57,7 +57,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 mediasource_test(function(test, mediaElement, mediaSource)
 {
     mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
-    assert_throws(new TypeError(), function() { mediaSource.setLiveSeekableRange(2, 1); });
+    assert_throws_js(TypeError, function() { mediaSource.setLiveSeekableRange(2, 1); });
     test.done();
 }, "setLiveSeekableRange throws a TypeError if start is greater than end");
 

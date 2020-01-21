@@ -32,15 +32,15 @@ test(function() {
   assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = 5; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.xChannelSelector.baseVal = 5; });
   assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
 
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.xChannelSelector.baseVal = -1; });
   assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
 
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.xChannelSelector.baseVal = 0; });
   assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
 
@@ -71,15 +71,15 @@ test(function() {
   assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = 5; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.yChannelSelector.baseVal = 5; });
   assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
 
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.yChannelSelector.baseVal = -1; });
   assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
 
-  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feDisplacementMapElement.yChannelSelector.baseVal = 0; });
   assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
   assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
 

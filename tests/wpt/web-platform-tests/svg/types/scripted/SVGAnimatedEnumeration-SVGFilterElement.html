@@ -22,15 +22,15 @@ test(function() {
   assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { filterElement.filterUnits.baseVal = 3; });
   assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { filterElement.filterUnits.baseVal = -1; });
   assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { filterElement.filterUnits.baseVal = 0; });
   assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
 
@@ -51,15 +51,15 @@ test(function() {
   assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { filterElement.primitiveUnits.baseVal = 3; });
   assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { filterElement.primitiveUnits.baseVal = -1; });
   assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { filterElement.primitiveUnits.baseVal = 0; });
   assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
 

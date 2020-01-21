@@ -25,15 +25,15 @@ test(function() {
   assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feConvolveMatrixElement.edgeMode.baseVal = 4; });
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = 4; });
   assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
   assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
 
-  assert_throws(new TypeError(), function() { feConvolveMatrixElement.edgeMode.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = -1; });
   assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
   assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
 
-  assert_throws(new TypeError(), function() { feConvolveMatrixElement.edgeMode.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = 0; });
   assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
   assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
 

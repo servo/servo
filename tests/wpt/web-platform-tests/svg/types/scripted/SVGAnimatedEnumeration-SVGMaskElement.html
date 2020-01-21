@@ -22,15 +22,15 @@ test(function() {
   assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { maskElement.maskUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = 3; });
   assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { maskElement.maskUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = -1; });
   assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { maskElement.maskUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = 0; });
   assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
 
@@ -51,15 +51,15 @@ test(function() {
   assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { maskElement.maskContentUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = 3; });
   assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { maskElement.maskContentUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = -1; });
   assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { maskElement.maskContentUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = 0; });
   assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
 

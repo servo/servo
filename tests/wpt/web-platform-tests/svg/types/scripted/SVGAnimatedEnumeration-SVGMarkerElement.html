@@ -24,15 +24,15 @@ test(function() {
   assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { markerElement.markerUnits.baseVal = 3; });
   assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
   assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
 
-  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { markerElement.markerUnits.baseVal = -1; });
   assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
   assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
 
-  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { markerElement.markerUnits.baseVal = 0; });
   assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
   assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
 
@@ -91,15 +91,15 @@ test(function() {
   markerElement.setAttribute('orient', '10deg');
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = 3; });
+  assert_throws_js(TypeError, function() { markerElement.orientType.baseVal = 3; });
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
   assert_equals(markerElement.getAttribute('orient'), "10deg");
 
-  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = -1; });
+  assert_throws_js(TypeError, function() { markerElement.orientType.baseVal = -1; });
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
   assert_equals(markerElement.getAttribute('orient'), "10deg");
 
-  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = 0; });
+  assert_throws_js(TypeError, function() { markerElement.orientType.baseVal = 0; });
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
   assert_equals(markerElement.getAttribute('orient'), "10deg");
 

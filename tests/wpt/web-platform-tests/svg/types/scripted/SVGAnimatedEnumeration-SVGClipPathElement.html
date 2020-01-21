@@ -20,15 +20,15 @@ test(function() {
   assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 3; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 3; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = -1; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = -1; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
 
-  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 0; });
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 0; });
   assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
   assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
 

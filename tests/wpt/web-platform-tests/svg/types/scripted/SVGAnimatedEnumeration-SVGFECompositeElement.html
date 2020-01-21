@@ -40,15 +40,15 @@ test(function() {
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feCompositeElement.operator.baseVal = 7; });
+  assert_throws_js(TypeError, function() { feCompositeElement.operator.baseVal = 7; });
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 
-  assert_throws(new TypeError(), function() { feCompositeElement.operator.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feCompositeElement.operator.baseVal = -1; });
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 
-  assert_throws(new TypeError(), function() { feCompositeElement.operator.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feCompositeElement.operator.baseVal = 0; });
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 

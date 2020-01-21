@@ -20,15 +20,15 @@ test(function() {
   assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { feMorphologyElement.operator.baseVal = 4; });
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = 4; });
   assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
   assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
 
-  assert_throws(new TypeError(), function() { feMorphologyElement.operator.baseVal = -1; });
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = -1; });
   assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
   assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
 
-  assert_throws(new TypeError(), function() { feMorphologyElement.operator.baseVal = 0; });
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = 0; });
   assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
   assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
 
