@@ -12,6 +12,7 @@ use compositing::CompositorProxy;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::EventLoopWaker;
+use euclid::{Scale, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -48,6 +49,8 @@ use std::process;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -164,7 +167,10 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    pub window_size: Size2D<f32, CSSPixel>,
+
+    /// Information about the device pixel ratio.
+    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
@@ -204,6 +210,10 @@ pub struct InitialPipelineState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
+    /// platform default setting.
+    pub device_pixels_per_px: Option<f32>,
 }
 
 pub struct NewPipeline {
@@ -223,6 +233,11 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
 
+        let window_size = WindowSizeData {
+            initial_viewport: state.window_size,
+            device_pixel_ratio: state.device_pixel_ratio,
+        };
+
         let (script_chan, sampler_chan) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
@@ -232,7 +247,7 @@ impl Pipeline {
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     opener: state.opener,
                     load_data: state.load_data.clone(),
-                    window_size: state.window_size,
+                    window_size: window_size,
                     pipeline_port: pipeline_port,
                 };
 
@@ -291,7 +306,7 @@ impl Pipeline {
                     resource_threads: state.resource_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: state.window_size,
+                    window_size: window_size,
                     layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
@@ -307,6 +322,7 @@ impl Pipeline {
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
+                    device_pixels_per_px: state.device_pixels_per_px,
                 };
 
                 // Spawn the child process.
@@ -514,6 +530,7 @@ pub struct UnprivilegedPipelineContent {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
+    device_pixels_per_px: Option<f32>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -604,7 +621,8 @@ impl UnprivilegedPipelineContent {
             paint_time_metrics,
             layout_thread_busy_flag.clone(),
             self.opts.load_webfonts_synchronously,
-            self.window_size,
+            self.opts.initial_window_size,
+            self.device_pixels_per_px,
             self.opts.dump_display_list,
             self.opts.dump_display_list_json,
             self.opts.dump_style_tree,

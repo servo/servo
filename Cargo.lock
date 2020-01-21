@@ -4828,7 +4828,6 @@ dependencies = [
  "servo_atoms",
  "servo_url",
  "style",
- "style_traits",
  "webrender_api",
 ]
 
