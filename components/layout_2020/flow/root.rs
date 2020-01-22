@@ -9,9 +9,8 @@ use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
-use crate::geom;
 use crate::geom::flow_relative::Vec2;
-use crate::geom::physical;
+use crate::geom::PhysicalRect;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
@@ -25,7 +24,6 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
-use style::Zero;
 use style_traits::CSSPixel;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
@@ -35,10 +33,10 @@ pub struct FragmentTreeRoot {
     children: Vec<Fragment>,
 
     /// The scrollable overflow of the root of the fragment tree.
-    scrollable_overflow: physical::Rect<Length>,
+    scrollable_overflow: PhysicalRect<Length>,
 
     /// The axis-aligned bounding box of the border box of all child fragments
-    bounding_box_of_border_boxes: physical::Rect<Length>,
+    bounding_box_of_border_boxes: PhysicalRect<Length>,
 }
 
 impl BoxTreeRoot {
@@ -116,7 +114,7 @@ impl BoxTreeRoot {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
-        viewport: geom::Size<CSSPixel>,
+        viewport: euclid::Size2D<f32, CSSPixel>,
     ) -> FragmentTreeRoot {
         let style = ComputedValues::initial_values();
         let initial_containing_block = DefiniteContainingBlock {
@@ -150,7 +148,7 @@ impl BoxTreeRoot {
             independent_layout
                 .fragments
                 .iter()
-                .fold(physical::Rect::zero(), |acc, child| {
+                .fold(PhysicalRect::zero(), |acc, child| {
                     let child_overflow = child.scrollable_overflow();
 
                     // https://drafts.csswg.org/css-overflow/#scrolling-direction
@@ -159,23 +157,23 @@ impl BoxTreeRoot {
                     //
                     // FIXME(mrobinson, bug 25564): This should take into account writing
                     // mode.
-                    let child_overflow = physical::Rect {
-                        top_left: physical::Vec2::zero(),
-                        size: physical::Vec2 {
-                            x: child_overflow.size.x + child_overflow.top_left.x,
-                            y: child_overflow.size.y + child_overflow.top_left.y,
-                        },
-                    };
-                    acc.axis_aligned_bounding_box(&child_overflow)
+                    let child_overflow = PhysicalRect::new(
+                        euclid::Point2D::zero(),
+                        euclid::Size2D::new(
+                            child_overflow.size.width + child_overflow.origin.x,
+                            child_overflow.size.height + child_overflow.origin.y,
+                        ),
+                    );
+                    acc.union(&child_overflow)
                 });
 
-        let containing_block = physical::Rect::zero();
+        let containing_block = PhysicalRect::zero();
         let bounding_box_of_border_boxes =
             independent_layout
                 .fragments
                 .iter()
-                .fold(physical::Rect::zero(), |acc, child| {
-                    acc.axis_aligned_bounding_box(&match child {
+                .fold(PhysicalRect::zero(), |acc, child| {
+                    acc.union(&match child {
                         Fragment::Box(fragment) => fragment
                             .border_rect()
                             .to_physical(fragment.style.writing_mode, &containing_block),
@@ -205,16 +203,13 @@ impl FragmentTreeRoot {
         builder: &mut crate::display_list::DisplayListBuilder,
         viewport_size: webrender_api::units::LayoutSize,
     ) {
-        let containing_block = geom::physical::Rect {
-            top_left: geom::physical::Vec2 {
-                x: Length::zero(),
-                y: Length::zero(),
-            },
-            size: geom::physical::Vec2 {
-                x: Length::new(viewport_size.width),
-                y: Length::new(viewport_size.height),
-            },
-        };
+        let containing_block = PhysicalRect::new(
+            euclid::Point2D::zero(),
+            euclid::Size2D::new(
+                Length::new(viewport_size.width),
+                Length::new(viewport_size.height),
+            ),
+        );
         for fragment in &self.children {
             fragment.build_display_list(builder, &containing_block)
         }
@@ -229,19 +224,19 @@ impl FragmentTreeRoot {
 
     pub fn scrollable_overflow(&self) -> webrender_api::units::LayoutSize {
         webrender_api::units::LayoutSize::from_untyped(Size2D::new(
-            self.scrollable_overflow.size.x.px(),
-            self.scrollable_overflow.size.y.px(),
+            self.scrollable_overflow.size.width.px(),
+            self.scrollable_overflow.size.height.px(),
         ))
     }
 
     pub fn bounding_box_of_border_boxes(&self) -> Rect<Au> {
         let origin = Point2D::new(
-            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.x.px()),
-            Au::from_f32_px(self.bounding_box_of_border_boxes.top_left.y.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.origin.x.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.origin.y.px()),
         );
         let size = Size2D::new(
-            Au::from_f32_px(self.bounding_box_of_border_boxes.size.x.px()),
-            Au::from_f32_px(self.bounding_box_of_border_boxes.size.y.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.width.px()),
+            Au::from_f32_px(self.bounding_box_of_border_boxes.size.height.px()),
         );
         Rect::new(origin, size)
     }

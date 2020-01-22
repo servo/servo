@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::{flow_relative, physical};
+use crate::geom::{flow_relative, PhysicalSides, PhysicalSize};
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
@@ -75,33 +75,39 @@ impl ComputedValuesExt for ComputedValues {
     #[inline]
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
         let position = self.get_position();
-        physical::Sides {
-            top: position.top.clone(),
-            left: position.left.clone(),
-            bottom: position.bottom.clone(),
-            right: position.right.clone(),
-        }
-        .to_flow_relative(self.writing_mode)
+        flow_relative::Sides::from_physical(
+            &PhysicalSides::new(
+                position.top.clone(),
+                position.right.clone(),
+                position.bottom.clone(),
+                position.left.clone(),
+            ),
+            self.writing_mode,
+        )
     }
 
     #[inline]
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
-        physical::Vec2 {
-            x: size_to_length(position.width.clone()),
-            y: size_to_length(position.height.clone()),
-        }
-        .size_to_flow_relative(self.writing_mode)
+        flow_relative::Vec2::from_physical_size(
+            &PhysicalSize::new(
+                size_to_length(position.width.clone()),
+                size_to_length(position.height.clone()),
+            ),
+            self.writing_mode,
+        )
     }
 
     #[inline]
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
-        physical::Vec2 {
-            x: size_to_length(position.min_width.clone()),
-            y: size_to_length(position.min_height.clone()),
-        }
-        .size_to_flow_relative(self.writing_mode)
+        flow_relative::Vec2::from_physical_size(
+            &PhysicalSize::new(
+                size_to_length(position.min_width.clone()),
+                size_to_length(position.min_height.clone()),
+            ),
+            self.writing_mode,
+        )
     }
 
     #[inline]
@@ -111,45 +117,53 @@ impl ComputedValuesExt for ComputedValues {
             MaxSize::None => MaxSize::None,
         };
         let position = self.get_position();
-        physical::Vec2 {
-            x: unwrap(position.max_width.clone()),
-            y: unwrap(position.max_height.clone()),
-        }
-        .size_to_flow_relative(self.writing_mode)
+        flow_relative::Vec2::from_physical_size(
+            &PhysicalSize::new(
+                unwrap(position.max_width.clone()),
+                unwrap(position.max_height.clone()),
+            ),
+            self.writing_mode,
+        )
     }
 
     #[inline]
     fn padding(&self) -> flow_relative::Sides<LengthPercentage> {
         let padding = self.get_padding();
-        physical::Sides {
-            top: padding.padding_top.0.clone(),
-            left: padding.padding_left.0.clone(),
-            bottom: padding.padding_bottom.0.clone(),
-            right: padding.padding_right.0.clone(),
-        }
-        .to_flow_relative(self.writing_mode)
+        flow_relative::Sides::from_physical(
+            &PhysicalSides::new(
+                padding.padding_top.0.clone(),
+                padding.padding_right.0.clone(),
+                padding.padding_bottom.0.clone(),
+                padding.padding_left.0.clone(),
+            ),
+            self.writing_mode,
+        )
     }
 
     fn border_width(&self) -> flow_relative::Sides<Length> {
         let border = self.get_border();
-        physical::Sides {
-            top: border.border_top_width.0,
-            left: border.border_left_width.0,
-            bottom: border.border_bottom_width.0,
-            right: border.border_right_width.0,
-        }
-        .to_flow_relative(self.writing_mode)
+        flow_relative::Sides::from_physical(
+            &PhysicalSides::new(
+                border.border_top_width.0,
+                border.border_right_width.0,
+                border.border_bottom_width.0,
+                border.border_left_width.0,
+            ),
+            self.writing_mode,
+        )
     }
 
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
         let margin = self.get_margin();
-        physical::Sides {
-            top: margin.margin_top.clone(),
-            left: margin.margin_left.clone(),
-            bottom: margin.margin_bottom.clone(),
-            right: margin.margin_right.clone(),
-        }
-        .to_flow_relative(self.writing_mode)
+        flow_relative::Sides::from_physical(
+            &PhysicalSides::new(
+                margin.margin_top.clone(),
+                margin.margin_right.clone(),
+                margin.margin_bottom.clone(),
+                margin.margin_left.clone(),
+            ),
+            self.writing_mode,
+        )
     }
 }
 

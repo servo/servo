@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::element_data::{LayoutBox, LayoutDataForElement};
-use crate::geom::physical::Vec2;
+use crate::geom::PhysicalSize;
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::wrapper::GetRawData;
@@ -307,7 +307,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode + Send + Sync {
 
     /// Returns the image if it’s loaded, and its size in image pixels
     /// adjusted for `image_density`.
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<f64>)>;
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)>;
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
@@ -337,7 +337,7 @@ where
         }
     }
 
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, Vec2<f64>)> {
+    fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let (resource, metadata) = node.image_data()?;
         let (width, height) = resource
@@ -350,11 +350,7 @@ where
             width = width / density;
             height = height / density;
         }
-        let size = Vec2 {
-            x: width,
-            y: height,
-        };
-        Some((resource, size))
+        Some((resource, PhysicalSize::new(width, height)))
     }
 
     fn first_child(self) -> Option<Self> {

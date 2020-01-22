@@ -715,7 +715,7 @@ impl CSSPixelLength {
     }
 }
 
-impl Zero for CSSPixelLength {
+impl num_traits::Zero for CSSPixelLength {
     fn zero() -> Self {
         CSSPixelLength::new(0.)
     }

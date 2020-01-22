@@ -5,7 +5,7 @@
 use crate::dom_traversal::NodeExt;
 use crate::fragments::{Fragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
-use crate::geom::physical;
+use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
@@ -55,8 +55,8 @@ impl ReplacedContent {
             // https://drafts.csswg.org/css-images-4/#the-image-resolution
             let dppx = 1.0;
 
-            let width = (intrinsic_size_in_dots.x as CSSFloat) / dppx;
-            let height = (intrinsic_size_in_dots.y as CSSFloat) / dppx;
+            let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
+            let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
                 intrinsic: IntrinsicSizes {
@@ -71,11 +71,8 @@ impl ReplacedContent {
     }
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {
-        let intrinsic_size = physical::Vec2 {
-            x: self.intrinsic.width,
-            y: self.intrinsic.height,
-        };
-        intrinsic_size.size_to_flow_relative(style.writing_mode)
+        let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
+        Vec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
     fn inline_size_over_block_size_intrinsic_ratio(
@@ -158,11 +155,10 @@ impl ReplacedContent {
             //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
             // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
             //  than 150px, and has a width not greater than the device width.”
-            physical::Vec2 {
-                x: Length::new(300.),
-                y: Length::new(150.),
-            }
-            .size_to_flow_relative(mode)
+            Vec2::from_physical_size(
+                &PhysicalSize::new(Length::new(300.), Length::new(150.)),
+                mode,
+            )
         };
         let clamp = |inline_size: Length, block_size: Length| Vec2 {
             inline: inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline),
