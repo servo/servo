@@ -586,13 +586,17 @@ impl CustomElementDefinition {
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 #[allow(unsafe_code)]
 pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
-    // Steps 1-2
+    // Step 1
     let state = element.get_custom_element_state();
-    if state == CustomElementState::Custom || state == CustomElementState::Failed {
+    if state != CustomElementState::Undefined && state != CustomElementState::Uncustomized {
         return;
     }
 
-    // Step 3 happens later to save having to undo it in an exception
+    // Step 2
+    element.set_custom_element_definition(Rc::clone(&definition));
+
+    // Step 3
+    element.set_custom_element_state(CustomElementState::Failed);
 
     // Step 4
     for attr in element.attrs().iter() {
@@ -630,14 +634,12 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
     // Step 8 exception handling
     if let Err(error) = result {
         // Step 8.exception.1
-        element.set_custom_element_state(CustomElementState::Failed);
+        element.clear_custom_element_definition();
 
-        // Step 8.exception.2 isn't needed since step 3 hasn't happened yet
-
-        // Step 8.exception.3
+        // Step 8.exception.2
         element.clear_reaction_queue();
 
-        // Step 8.exception.4
+        // Step 8.exception.3
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
@@ -651,11 +653,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
     // TODO Step 9: "If element is a form-associated custom element..."
 
     // Step 10
-
     element.set_custom_element_state(CustomElementState::Custom);
-
-    // Step 3
-    element.set_custom_element_definition(definition);
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
