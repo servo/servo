@@ -4,6 +4,8 @@
 
 //! A thin atomically-reference-counted slice.
 
+use serde::de::{Deserialize, Deserializer};
+use serde::ser::{Serialize, Serializer};
 use servo_arc::ThinArc;
 use std::ops::Deref;
 use std::ptr::NonNull;
@@ -57,6 +59,25 @@ impl<T> Default for ArcSlice<T> {
             debug_assert_eq!(empty.len(), 0);
             empty
         }
+    }
+}
+
+impl<T: Serialize> Serialize for ArcSlice<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.deref().serialize(serializer)
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for ArcSlice<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let r = Vec::deserialize(deserializer)?;
+        Ok(ArcSlice::from_iter(r.into_iter()))
     }
 }
 
