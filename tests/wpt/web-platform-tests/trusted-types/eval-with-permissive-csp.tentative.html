@@ -7,7 +7,7 @@
 
   <!-- Note: Trusted Types enforcement, and a CSP that allows all eval. -->
   <meta http-equiv="Content-Security-Policy"
-        content="script-src 'nonce-abc' 'unsafe-eval'; trusted-types *">
+        content="script-src 'nonce-abc' 'unsafe-eval'; trusted-types *; require-trusted-types-for 'script'">
 </head>
 <body>
 <script nonce="abc">

@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
-<meta name="timeout" content="long">
+<meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -15,6 +15,7 @@ function url_test_cache(t, url, channelName, hasOpener) {
     const payload = event.data;
     assert_equals(payload.name, hasOpener ? channelName : "");
     assert_equals(payload.opener, hasOpener);
+    assert_equals(w.closed, !hasOpener);
     bc.close()
 
     // test the same url for cache
@@ -23,9 +24,7 @@ function url_test_cache(t, url, channelName, hasOpener) {
 
   const w = window.open(url, channelName);
 
-  // w will be closed by its postback iframe. When out of process,
-  // window.close() does not work.
-  t.add_cleanup(() => w.close());
+  // The popup is closed by url_test.
 }
 
 // Redirect from hostA to hostB with same coop and coep.

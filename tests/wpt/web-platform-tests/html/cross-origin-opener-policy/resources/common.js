@@ -12,13 +12,17 @@ function url_test(t, url, channelName, hasOpener, openerDOMAccess) {
     if (openerDOMAccess !== undefined) {
       assert_equals(payload.openerDOMAccess, openerDOMAccess, 'openerDOMAccess');
     }
+    assert_equals(w.closed, !hasOpener, 'Openee browsing context closed');
   });
 
   const w = window.open(url, channelName);
 
-  // w will be closed by its postback iframe. When out of process,
-  // window.close() does not work.
-  t.add_cleanup(() => w.close());
+  // Close the popup once the test is complete.
+  // The browsing context might be closed hence use the broadcast channel
+  // to trigger the closure.
+  t.add_cleanup(() => {
+    bc.postMessage("close");
+  });
 }
 
 function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess) {
@@ -43,7 +47,14 @@ function run_coop_test_iframe (documentTitle, iframe_origin, popup_origin, popup
   const name = iframe_origin.name + "_iframe_opening_" + popup_origin.name + "_popup_with_coop_" + popup_coop;
   async_test(t => {
       const frame = document.createElement("iframe");
-      t.add_cleanup(() => { frame.remove(); });
+
+      // Close the popup and remove the frame once the test is
+      // complete. The browsing context might be closed hence use the
+      // broadcast channel to trigger the closure.
+      t.add_cleanup(() => {
+        frame.remove();
+        bc.postMessage("close");
+      });
 
       const origin = CROSS_ORIGIN.origin;
       const path = new URL("resources/iframe-popup.sub.html", window.location).pathname;

@@ -1088,14 +1088,15 @@
             ctx.direction = 'ltr';
             ctx.align = 'left'
             ctx.baseline = 'alphabetic'
-            // Some platforms may return '-0'.
-            @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) === 0;
             // Different platforms may render text slightly different.
+            // Values that are nominally expected to be zero might actually vary by a pixel or so
+            // if the UA accounts for antialiasing at glyph edges, so we allow a slight deviation.
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) <= 1;
             @assert ctx.measureText('A').actualBoundingBoxRight >= 50;
             @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
-            @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) === 0;
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) <= 1;
 
-            @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) === 0;
+            @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) <= 1;
             @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
             @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
             @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;

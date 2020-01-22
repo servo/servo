@@ -125,13 +125,13 @@
   }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
 
   promise_test(t => {
-    let p = promise_violation("trusted-types two")();
+    let p = promise_violation("require-trusted-types-for 'script'")();
     expect_throws(_ => document.getElementById("script").src = url);
     return p;
   }, "Trusted Type violation report: assign string to script url");
 
   promise_test(t => {
-    let p = promise_violation("trusted-types two")();
+    let p = promise_violation("require-trusted-types-for 'script'")();
     expect_throws(_ => document.getElementById("div").innerHTML = "abc");
     return p;
   }, "Trusted Type violation report: assign string to html");
@@ -152,7 +152,7 @@
 
   promise_test(t => {
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types two"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("Element.innerHTML"))
         .then(expect_sample("abc"));
@@ -162,7 +162,7 @@
 
   promise_test(t => {
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types two"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLScriptElement.src"));
       expect_throws(_ => { document.getElementById("script").src = "" });
@@ -171,7 +171,7 @@
 
   promise_test(t => {
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types two"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLElement.innerText"))
         .then(expect_sample("2+2;"));
@@ -181,7 +181,7 @@
 
   promise_test(t => {
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types one"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("eval"))
         .then(expect_sample("2+2"))
@@ -195,7 +195,7 @@
     // We expect the sample string to always contain the name, and at least the
     // start of the value, but it should not be excessively long.
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types two"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(expect_blocked_uri("trusted-types-sink"))
         .then(expect_sample("HTMLElement.innerText"))
         .then(expect_sample("abbb"))
@@ -214,7 +214,7 @@
 
     promise_test(t => {
       let p = Promise.resolve()
-          .then(promise_violation("trusted-types one"))
+          .then(promise_violation("require-trusted-types-for 'script'"))
           .then(expect_blocked_uri("trusted-types-sink"))
           .then(expect_sample("HTMLScriptElement.src"))
           .then(expect_sample("abc"));

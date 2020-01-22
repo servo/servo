@@ -12,7 +12,8 @@
   }
 
   function expectViolationAsMessage(sample) {
-    const filter = e => (e.data.effectiveDirective == "trusted-types" &&
+    const filter = e => ((e.data.effectiveDirective == "require-trusted-types-for" ||
+                          e.data.effectiveDirective == "trusted-types") &&
                          (!sample || e.data.sample.startsWith(sample)));
     return new expectMessage(filter);
   }

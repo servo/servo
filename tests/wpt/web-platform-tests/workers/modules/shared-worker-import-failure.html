@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>SharedWorker: import failure</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script> setup({allow_uncaught_exception: true}); </script>
+<script>
+
+// TODO: Factor out the test cases into a separate file.
+// (like import-test-cases.js)
+// TODO: Add rest of the tests correponding to
+// 'dedicated-worker-import-failure.html'
+
+promise_test(async () => {
+  const scriptURL = 'resources/import-scripts-worker.js';
+  const worker = new SharedWorker(scriptURL, { type: 'module' });
+  const msg_event =
+    await new Promise(resolve => worker.port.onmessage = resolve);
+  assert_equals(msg_event.data, 'TypeError');
+}, 'importScripts() on module worker should throw an exception.');
+
+test(() => {
+  const scriptURL = 'http://invalid:123$';
+  assert_throws('SyntaxError',
+                () => new SharedWorker(scriptURL, { type: 'module' }));
+}, 'SharedWorker construction for an invalid URL should throw an exception.');
+
+test(() => {
+  const scriptURL = 'file:///static-import-worker.js';
+  assert_throws('SecurityError',
+                () => new SharedWorker(scriptURL, { type: 'module' }));
+}, 'SharedWorker construction for a file URL should throw an exception.');
+
+</script>

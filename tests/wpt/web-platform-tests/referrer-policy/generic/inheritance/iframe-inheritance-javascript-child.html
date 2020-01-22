@@ -1,0 +1,70 @@
+<!doctype html>
+<title>Referrer Policy: iframes with javascript url reuse referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="origin">
+<div id="log"></div>
+<script>
+[
+  {
+    srcDocPolicy: ``,
+    expected: self.origin + "/"
+  },
+  {
+    srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
+    expected: undefined
+  }
+].forEach(({ srcDocPolicy, expected }) => {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener("message", t.step_func(msg => {
+        assert_equals(msg.data.referrer, expected);
+        resolve();
+      }), { once:true });
+
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      iframe.srcdoc = `${srcDocPolicy}<body><h1>Outer iframe</h1></body>`;
+      iframe.onload = t.step_func(() => {
+        iframe.onload = null;
+        const iframeChild =  iframe.contentDocument.createElement("iframe");
+        iframeChild.src = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN)}'`;
+        iframe.contentDocument.body.appendChild(iframeChild);
+      });
+      document.body.appendChild(iframe);
+    });
+  });
+});
+
+[
+  {
+    srcDocPolicy: ``,
+    expected: self.origin + "/"
+  },
+  {
+    srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
+    expected: undefined
+  }
+].forEach(({ srcDocPolicy, expected }) => {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener("message", t.step_func(msg => {
+        assert_equals(msg.data.referrer, expected);
+        resolve();
+      }), { once:true });
+
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      iframe.srcdoc = `${srcDocPolicy}<body><h1>Outer iframe</h1></body>`;
+      iframe.onload = t.step_func(() => {
+        iframe.onload = null;
+        iframe.contentWindow.location = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN)}'`;
+      });
+      document.body.appendChild(iframe);
+    });
+  });
+});
+
+</script>

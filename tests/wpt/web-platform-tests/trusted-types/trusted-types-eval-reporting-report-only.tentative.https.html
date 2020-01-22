@@ -76,7 +76,7 @@
 
   promise_test(t => {
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types *"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(promise_flush());
     eval('script_run_beacon="report-only-does-not-stop"');
     assert_equals(script_run_beacon, 'report-only-does-not-stop');

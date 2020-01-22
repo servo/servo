@@ -48,6 +48,14 @@ function checkScroll() {
   let key = (new URL(document.location)).searchParams.get("key");
   stashResults(key, results);
 }
+
+// Ensure two animation frames on load to test the fallback to element anchor,
+// which gets queued for the next frame if the text fragment is not found.
+window.onload = function() {
+  window.requestAnimationFrame(function() {
+    window.requestAnimationFrame(checkScroll);
+  })
+}
 </script>
 <style>
   .scroll-section {
@@ -64,7 +72,7 @@ function checkScroll() {
     display: none;
   }
 </style>
-<body onload="window.requestAnimationFrame(checkScroll)">
+<body>
   <div id="element" class="scroll-section">Element</div>
   <p id="text" class="scroll-section">This is a test page !$'()*+./:;=?@_~ &,- &#x30cd;&#x30b3;</p>
   <p id="more-text" class="scroll-section">More test page text</p>

@@ -31,14 +31,19 @@ promise_test(async t => {
 promise_test(async t => {
   const scope1 = 'resources/scope/getregistrations/scope1';
   const scope2 = 'resources/scope/getregistrations/scope2';
+  const scope3 = 'resources/scope/getregistrations/scope12';
+
   const script = 'resources/empty-worker.js';
   t.add_cleanup(() => service_worker_unregister(t, scope1));
   t.add_cleanup(() => service_worker_unregister(t, scope2));
+  t.add_cleanup(() => service_worker_unregister(t, scope3));
 
   const registrations = [
       await service_worker_unregister_and_register(t, script, scope1),
-      await service_worker_unregister_and_register(t, script, scope2)
+      await service_worker_unregister_and_register(t, script, scope2),
+      await service_worker_unregister_and_register(t, script, scope3),
   ];
+
   const value = await navigator.serviceWorker.getRegistrations();
   assert_array_equals(value, registrations);
 }, 'Register multiple times then getRegistrations');

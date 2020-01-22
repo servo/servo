@@ -5,33 +5,21 @@
     <link rel="help" href="https://www.w3.org/TR/referrer-policy/#referrer-policy-delivery-nested">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <!-- Common global functions for referrer-policy tests. -->
-    <script src="/common/security-features/resources/common.sub.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="resources/make-html-script.js"></script>
     <meta name="referrer" content="origin">
   </head>
   <body onload="runTest()">
     <h1>Referrer Policy: iframes srcdoc correctly inherit the ancestor's referrer policy</h1>
     <script>
       var test = async_test("iframes srcdoc correctly inherit the ancestor's referrer policy");
-      window.addEventListener("message", test.step_func((msg) => {
-        assert_equals(msg.data.referrer, document.location.origin + "/");
-        test.done();
+      window.addEventListener("message", test.step_func_done(msg => {
+        assert_equals(msg.data.referrer, self.origin + "/");
       }));
 
       function runTest() {
         var iframe = document.createElement("iframe");
-        iframe.srcdoc =
-            `<script src = "/common/security-features/resources/common.sub.js"></` + `script>
-            <script>
-              var urlPath = "/common/security-features/subresource/xhr.py";
-              var url = "${location.protocol}//www1.${location.hostname}:${location.port}" + urlPath;
-              requestViaXhr(url).then((msg) => {
-                  parent.postMessage({referrer: msg.referrer}, "*")})
-                .catch((e) => {
-                    parent.postMessage({referrer: "FAILURE"}, "*");
-                  });
-            </` + "script>";
-
+        iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN);
         document.body.appendChild(iframe);
       }
     </script>

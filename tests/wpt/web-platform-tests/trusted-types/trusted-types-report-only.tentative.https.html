@@ -77,8 +77,8 @@
     return p.then(report => {
       assert_equals(report.documentURI, "" + window.location);
       assert_equals(report.disposition, "report");
-      assert_equals(report.effectiveDirective, "trusted-types");
-      assert_equals(report.violatedDirective, "trusted-types");
+      assert_equals(report.effectiveDirective, "require-trusted-types-for");
+      assert_equals(report.violatedDirective, "require-trusted-types-for");
       assert_true(report.originalPolicy.startsWith("trusted-types two;"));
     });
   }, "Trusted Type violation report: check report contents");
