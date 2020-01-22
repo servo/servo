@@ -71,10 +71,6 @@ pub enum FontBaseSize {
     CurrentStyle,
     /// Use the inherited font-size.
     InheritedStyle,
-    /// Use the inherited font-size, but strip em units.
-    ///
-    /// FIXME(emilio): This is very complex, and should go away.
-    InheritedStyleButStripEmUnits,
 }
 
 impl FontBaseSize {
@@ -82,7 +78,7 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> computed::Length {
         match *self {
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
-            FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
+            FontBaseSize::InheritedStyle => {
                 context.style().get_parent_font().clone_font_size().size()
             },
         }
@@ -144,11 +140,7 @@ impl FontRelativeLength {
                     }
                 }
 
-                if base_size == FontBaseSize::InheritedStyleButStripEmUnits {
-                    (Zero::zero(), length)
-                } else {
-                    (reference_font_size, length)
-                }
+                (reference_font_size, length)
             },
             FontRelativeLength::Ex(length) => {
                 if context.for_non_inherited_property.is_some() {

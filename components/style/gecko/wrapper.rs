@@ -956,9 +956,8 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
 
         let (wm, font) = match base_size {
             FontBaseSize::CurrentStyle => (style.writing_mode, style.get_font()),
-            // These are only used for font-size computation, and the first is
-            // really dubious...
-            FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
+            // This is only used for font-size computation.
+            FontBaseSize::InheritedStyle => {
                 (*style.inherited_writing_mode(), style.get_parent_font())
             },
         };
