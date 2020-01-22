@@ -23,6 +23,9 @@ dictionary FakeXRDeviceInit {
     required boolean supportsImmersive;
     required sequence<FakeXRViewInit> views;
 
+    // this is actually sequence<any>, but we don't support
+    // non-string features anyway
+    sequence<DOMString> supportedFeatures;
     boolean supportsUnbounded = false;
     // Whether the space supports tracking in inline sessions
     boolean supportsTrackingInInline = true;

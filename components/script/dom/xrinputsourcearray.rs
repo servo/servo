@@ -45,7 +45,7 @@ impl XRInputSourceArray {
             for info in sess.initial_inputs() {
                 // XXXManishearth we should be able to listen for updates
                 // to the input sources
-                let input = XRInputSource::new(&global, &session, *info);
+                let input = XRInputSource::new(&global, &session, info.clone());
                 input_sources.push(Dom::from_ref(&input));
             }
         });
@@ -54,11 +54,11 @@ impl XRInputSourceArray {
     pub fn add_input_source(&self, session: &XRSession, info: InputSource) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
-        let input = XRInputSource::new(&global, &session, info);
         debug_assert!(
             input_sources.iter().find(|i| i.id() == info.id).is_none(),
             "Should never add a duplicate input id!"
         );
+        let input = XRInputSource::new(&global, &session, info);
         input_sources.push(Dom::from_ref(&input));
 
         let added = [input];
@@ -96,6 +96,37 @@ impl XRInputSourceArray {
             &removed,
         );
         input_sources.retain(|i| i.id() != id);
+        // release the refcell guard
+        drop(input_sources);
+        event.upcast::<Event>().fire(session.upcast());
+    }
+
+    pub fn add_remove_input_source(&self, session: &XRSession, id: InputId, info: InputSource) {
+        let mut input_sources = self.input_sources.borrow_mut();
+        let global = self.global();
+        let root;
+        let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
+            root = [DomRoot::from_ref(&**i)];
+            &root as &[_]
+        } else {
+            warn!("Could not find removed input source with id {:?}", id);
+            &[]
+        };
+        input_sources.retain(|i| i.id() != id);
+        let input = XRInputSource::new(&global, &session, info);
+        input_sources.push(Dom::from_ref(&input));
+
+        let added = [input];
+
+        let event = XRInputSourcesChangeEvent::new(
+            &global,
+            atom!("inputsourceschange"),
+            false,
+            true,
+            session,
+            &added,
+            removed,
+        );
         // release the refcell guard
         drop(input_sources);
         event.upcast::<Event>().fire(session.upcast());

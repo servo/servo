@@ -71,7 +71,7 @@ impl XRInputSourcesChangeEvent {
             changeevent.added.set(added_val.get());
             rooted!(in(*cx) let mut removed_val = UndefinedValue());
             removed.to_jsval(*cx, removed_val.handle_mut());
-            changeevent.added.set(removed_val.get());
+            changeevent.removed.set(removed_val.get());
         }
 
         changeevent

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
@@ -11,7 +12,11 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
 use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
 
 #[dom_struct]
@@ -24,6 +29,8 @@ pub struct XRInputSource {
     target_ray_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "Defined in rust-webxr"]
     grip_space: MutNullableDom<XRSpace>,
+    #[ignore_malloc_size_of = "mozjs"]
+    profiles: Heap<JSVal>,
 }
 
 impl XRInputSource {
@@ -34,19 +41,30 @@ impl XRInputSource {
             info,
             target_ray_space: Default::default(),
             grip_space: Default::default(),
+            profiles: Heap::default(),
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
     ) -> DomRoot<XRInputSource> {
-        reflect_dom_object(
+        let source = reflect_dom_object(
             Box::new(XRInputSource::new_inherited(session, info)),
             global,
             XRInputSourceBinding::Wrap,
-        )
+        );
+
+        let _ac = enter_realm(&*global);
+        let cx = global.get_cx();
+        unsafe {
+            rooted!(in(*cx) let mut profiles = UndefinedValue());
+            source.info.profiles.to_jsval(*cx, profiles.handle_mut());
+            source.profiles.set(profiles.get());
+        }
+        source
     }
 
     pub fn id(&self) -> InputId {
@@ -91,5 +109,9 @@ impl XRInputSourceMethods for XRInputSource {
         } else {
             None
         }
+    }
+    // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
+    fn Profiles(&self, _cx: JSContext) -> JSVal {
+        self.profiles.get()
     }
 }

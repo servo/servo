@@ -101,6 +101,18 @@ function xr_session_promise_test(
       properties);
 }
 
+
+// This function wraps the provided function in a
+// simulateUserActivation() call, and resolves the promise with the
+// result of func(), or an error if one is thrown
+function promise_simulate_user_activation(func) {
+  return new Promise((resolve, reject) => {
+    navigator.xr.test.simulateUserActivation(() => {
+      try { let a = func(); resolve(a); } catch(e) { reject(e); }
+    });
+  });
+}
+
 // This functions calls a callback with each API object as specified
 // by https://immersive-web.github.io/webxr/spec/latest/, allowing
 // checks to be made on all ojects.

@@ -69,8 +69,10 @@ impl XRTest {
 
 impl XRTestMethods for XRTest {
     /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    #[allow(unsafe_code)]
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+        let global = self.global();
+        let p = Promise::new(&global);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(&o) {
@@ -104,12 +106,19 @@ impl XRTestMethods for XRTest {
             },
         };
 
+        let supported_features = if let Some(ref s) = init.supportedFeatures {
+            s.iter().cloned().map(String::from).collect()
+        } else {
+            vec![]
+        };
+
         let init = MockDeviceInit {
             viewer_origin: origin,
             views,
             supports_immersive: init.supportsImmersive,
             supports_unbounded: init.supportsUnbounded,
             floor_origin,
+            supported_features,
         };
 
         let global = self.global();
