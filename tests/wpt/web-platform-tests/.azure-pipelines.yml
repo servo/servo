@@ -19,6 +19,7 @@ trigger:
 # These are all the branches referenced in the jobs that follow.
 - epochs/daily
 - epochs/three_hourly
+- triggers/edge_stable
 - triggers/edge_dev
 - triggers/edge_canary
 - triggers/safari_stable
@@ -238,6 +239,42 @@ jobs:
       artifactName: 'infrastructure'
     condition: always()
   - template: tools/ci/azure/cleanup_win10.yml
+
+- job: results_edge_stable
+  displayName: 'all tests: Edge Stable'
+  condition: |
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_stable'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_stable']))
+  strategy:
+    parallel: 10 # chosen to make runtime ~2h
+  timeoutInMinutes: 180
+  pool:
+    name: 'Hosted Windows Client'
+  steps:
+  - template: tools/ci/azure/system_info.yml
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_python.yml
+  - template: tools/ci/azure/pip_install.yml
+    parameters:
+      packages: virtualenv
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_edge.yml
+    parameters:
+      channel: stable
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel stable edgechromium
+    displayName: 'Run tests (Edge Stable)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'edge-stable-results'
+  - template: tools/ci/azure/cleanup_win10.yml
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: results_edge_stable
+    artifactName: edge-stable-results
 
 - job: results_edge_dev
   displayName: 'all tests: Edge Dev'

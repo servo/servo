@@ -1,8 +1,12 @@
 <!doctype html>
 <title>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy: a navigating popup</title>
-<meta content=timeout value=long>
+<meta name=timeout content=long>
+<meta name=variant content=?0-1>
+<meta name=variant content=?2-3>
+<meta name=variant content=?4-last>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/common/subset-tests.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/common.js"></script>
 <script>
@@ -35,7 +39,7 @@
     "title": "coop unsafe-none/coep",
     "coop": "unsafe-none",
     "coep": "require-corp",
-    "opener": true
+    "opener": false
   },
   {
     "title": "coop unsafe-none/no coep",
@@ -43,7 +47,12 @@
     "coep": "",
     "opener": false
   }
-].forEach(variant => {
+].forEach((variant, i) => {
+  // Only run specified variants
+  if (!shouldRunSubTest(i)) {
+    return;
+  }
+
   ["same-origin", "same-site"].forEach(site => {
     const title = `Popup navigating to ${site} with ${variant.title}`;
     const channel = title.replace(/ /g,"-");

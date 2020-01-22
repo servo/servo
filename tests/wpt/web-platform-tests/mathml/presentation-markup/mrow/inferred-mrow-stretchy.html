@@ -31,7 +31,7 @@
   window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown"].forEach((tag) => {
           var mo = document.getElementById("mo" + tag);
           test(function() {
               assert_true(MathMLFeatureDetection.has_mspace());
@@ -52,7 +52,8 @@
     <math><mphantom><mo style="visibilty: visible;" id="moPhantom">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mphantom></math>
     <math><mo id="moMath">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></math>
     <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></menclose></math>
-    <math><mpadded notation="box"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
+    <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
+    <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></unknown></math>
   </p>
 </body>
 </html>

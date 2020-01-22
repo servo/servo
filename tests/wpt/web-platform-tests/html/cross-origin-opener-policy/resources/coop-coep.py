@@ -50,6 +50,13 @@ def main(request, response):
       openerDOMAccessAllowed = !!self.opener.document.URL;
     } catch(ex) {
     }
+    // Handle the response from the frame, closing the popup once the
+    // test completes.
+    addEventListener("message", event => {
+      if (event.data == "close") {
+        close();
+      }
+    });
     const iframe = document.querySelector("iframe");
     iframe.onload = () => {
       const payload = { name: self.name, opener: !!self.opener, openerDOMAccess: openerDOMAccessAllowed };

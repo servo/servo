@@ -68,7 +68,7 @@
   promise_test(t => {
     let beacon = 'never_overwritten';
     let p = Promise.resolve()
-        .then(promise_violation("trusted-types *"))
+        .then(promise_violation("require-trusted-types-for 'script'"))
         .then(promise_flush());
     assert_throws(new EvalError(),
                   _ => eval('beacon="should not run"'));

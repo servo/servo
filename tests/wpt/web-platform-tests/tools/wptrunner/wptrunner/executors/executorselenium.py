@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import json
 import os
 import socket
 import threading
 import time
 import traceback
-import urlparse
 import uuid
+from six.moves.urllib.parse import urljoin
 
 from .base import (CallbackHandler,
                    RefTestExecutor,
@@ -87,8 +88,8 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
     def load_runner(self, url_protocol):
         if self.runner_handle:
             self.webdriver.switch_to_window(self.runner_handle)
-        url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
-                               "/testharness_runner.html")
+        url = urljoin(self.parent.executor.server_url(url_protocol),
+                      "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
         self.webdriver.get(url)
         self.runner_handle = self.webdriver.current_window_handle

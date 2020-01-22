@@ -1,6 +1,6 @@
 <!doctype html>
 <title>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy: redirects</title>
-<meta content=timeout value=long>
+<meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -47,7 +47,7 @@ const coopCOEPPath = new URL("resources/coop-coep.py", window.location).pathname
     "redirectCOEP": "require-corp",
     "coop": "same-origin",
     "coep": "require-corp",
-    "opener": true
+    "opener": false
   },
   {
     "title": "coop unsafe-none/coep to coop unsafe-inherit/coep",
@@ -55,7 +55,7 @@ const coopCOEPPath = new URL("resources/coop-coep.py", window.location).pathname
     "redirectCOEP": "require-corp",
     "coop": "unsafe-none",
     "coep": "require-corp",
-    "opener": true
+    "opener": false
   }
 ].forEach(variant => {
   const title = `Redirect from ${variant.title}`;

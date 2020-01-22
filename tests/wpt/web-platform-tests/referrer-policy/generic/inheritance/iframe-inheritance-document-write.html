@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Referrer Policy: iframes with document.write()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="origin">
+<div id="log"></div>
+<script>
+async_test(t => {
+  window.addEventListener("message", t.step_func_done(msg => {
+    assert_equals(msg.data.referrer, self.origin + "/");
+  }));
+
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(createScriptString(get_host_info().REMOTE_ORIGIN));
+  iframe.contentDocument.close();
+});
+</script>

@@ -5,43 +5,27 @@
     <link rel="help" href="https://www.w3.org/TR/referrer-policy/#referrer-policy-delivery-nested">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <!-- Common global functions for referrer-policy tests. -->
-    <script src="/common/security-features/resources/common.sub.js"></script>
-    <script src="/referrer-policy/generic/referrer-policy-test-case.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="resources/make-html-script.js"></script>
     <meta name="referrer" content="origin">
   </head>
   <body onload="runTest()">
     <h1>Referrer Policy: iframes srcdoc child correctly inherit the ancestor's referrer policy</h1>
     <script>
       var test = async_test("iframes srcdoc child correctly inherit the ancestor's referrer policy");
-      window.addEventListener("message", test.step_func((msg) => {
-        assert_equals(msg.data.referrer, document.location.origin + "/");
-        test.done();
+      window.addEventListener("message", test.step_func_done(msg => {
+        assert_equals(msg.data.referrer, self.origin + "/");
       }));
-
-      const BASE = location.protocol + "//www1." + location.hostname + ":" + location.port;
 
       function runTest() {
         var iframe = document.createElement("iframe");
         iframe.srcdoc = `<body><h1>Outer iframe</h1></body>`;
-        iframe.onload = function() {
+        iframe.onload = test.step_func(() => {
           iframe.onload = null;
           var iframeChild =  iframe.contentDocument.createElement("iframe");
-          iframeChild.srcdoc =
-            `<script src = "${BASE}/common/security-features/resources/common.sub.js"></sc` + `ript>
-            <script src = "${BASE}/referrer-policy/generic/referrer-policy-test-case.js"></sc` + `ript>
-            <script>
-              var urlPath = "/common/security-features/subresource/xhr.py";
-              var url = "${BASE}" + urlPath;
-              requestViaXhr(url).then((msg) => {
-                  window.top.postMessage({referrer: msg.referrer}, "*")})
-                .catch((e) => {
-                    window.top.postMessage({referrer: "FAILURE"}, "*");
-                  });
-            </sc` + "ript>";
+          iframeChild.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN);
           iframe.contentDocument.body.appendChild(iframeChild);
-        };
-
+        });
         document.body.appendChild(iframe);
       }
     </script>
