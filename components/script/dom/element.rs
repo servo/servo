@@ -1177,6 +1177,10 @@ impl Element {
         ns!()
     }
 
+    pub fn name_attribute(&self) -> Option<Atom> {
+        self.rare_data().as_ref()?.name_attribute.clone()
+    }
+
     pub fn style_attribute(&self) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
@@ -2803,25 +2807,25 @@ impl VirtualMethods for Element {
                             if let Some(old_value) = old_value {
                                 let old_value = old_value.as_atom().clone();
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_named_element(self, old_value);
+                                    shadow_root.unregister_element_id(self, old_value);
                                 } else {
-                                    doc.unregister_named_element(self, old_value);
+                                    doc.unregister_element_id(self, old_value);
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.register_named_element(self, value);
+                                    shadow_root.register_element_id(self, value);
                                 } else {
-                                    doc.register_named_element(self, value);
+                                    doc.register_element_id(self, value);
                                 }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_named_element(self, value);
+                                    shadow_root.unregister_element_id(self, value);
                                 } else {
-                                    doc.unregister_named_element(self, value);
+                                    doc.unregister_element_id(self, value);
                                 }
                             }
                         },
@@ -2839,8 +2843,27 @@ impl VirtualMethods for Element {
                             None
                         }
                     });
-                // TODO: notify the document about the name change
-                // once it has a name_map (#25548)
+                // Keep the document name_map up to date
+                // (if we're not in shadow DOM)
+                if node.is_connected() && node.containing_shadow_root().is_none() {
+                    let value = attr.value().as_atom().clone();
+                    match mutation {
+                        AttributeMutation::Set(old_value) => {
+                            if let Some(old_value) = old_value {
+                                let old_value = old_value.as_atom().clone();
+                                doc.unregister_element_name(self, old_value);
+                            }
+                            if value != atom!("") {
+                                doc.register_element_name(self, value);
+                            }
+                        },
+                        AttributeMutation::Removed => {
+                            if value != atom!("") {
+                                doc.unregister_element_name(self, value);
+                            }
+                        },
+                    }
+                }
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
@@ -2896,11 +2919,17 @@ impl VirtualMethods for Element {
 
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
-                shadow_root.register_named_element(self, value.clone());
+                shadow_root.register_element_id(self, value.clone());
             } else {
-                doc.register_named_element(self, value.clone());
+                doc.register_element_id(self, value.clone());
             }
         }
+        if let Some(ref value) = self.name_attribute() {
+            if self.upcast::<Node>().containing_shadow_root().is_none() {
+                doc.register_element_name(self, value.clone());
+            }
+        }
+
         // This is used for layout optimization.
         doc.increment_dom_count();
     }
@@ -2933,7 +2962,10 @@ impl VirtualMethods for Element {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
-            doc.unregister_named_element(self, value.clone());
+            doc.unregister_element_id(self, value.clone());
+        }
+        if let Some(ref value) = self.name_attribute() {
+            doc.unregister_element_name(self, value.clone());
         }
         // This is used for layout optimization.
         doc.decrement_dom_count();

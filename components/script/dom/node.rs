@@ -83,6 +83,7 @@ use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
@@ -1168,6 +1169,34 @@ impl Node {
                     .Host()
                     .upcast::<Node>(),
             );
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
+    pub fn is_document_named_item(&self, name: &Atom) -> bool {
+        let html_elem_type = match self.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+            _ => return false,
+        };
+        let elem = self
+            .downcast::<Element>()
+            .expect("Node with an Element::HTMLElement NodeTypeID must be an Element");
+        match html_elem_type {
+            HTMLElementTypeId::HTMLFormElement | HTMLElementTypeId::HTMLIFrameElement => {
+                elem.get_name().map_or(false, |n| n == *name)
+            },
+            HTMLElementTypeId::HTMLImageElement =>
+            // Images can match by id, but only when their name is non-empty.
+            {
+                elem.get_name().map_or(false, |n| {
+                    n == *name || elem.get_id().map_or(false, |i| i == *name)
+                })
+            },
+            // TODO: Handle <embed> and <object>; these depend on
+            // whether the element is "exposed", a concept which
+            // doesn't fully make sense until embed/object behaviors
+            // are actually implemented.
+            _ => false,
         }
     }
 }
