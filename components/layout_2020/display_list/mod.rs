@@ -19,6 +19,7 @@ use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
 
 mod background;
+mod gradient;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
@@ -282,8 +283,17 @@ impl<'a> BuilderForBoxFragment<'a> {
             match layer {
                 ImageLayer::None => {},
                 ImageLayer::Image(image) => match image {
-                    Image::Gradient(_gradient) => {
-                        // TODO
+                    Image::Gradient(gradient) => {
+                        let intrinsic = IntrinsicSizes {
+                            width: None,
+                            height: None,
+                            ratio: None,
+                        };
+                        if let Some(layer) =
+                            &background::layout_layer(self, builder, index, intrinsic)
+                        {
+                            gradient::build(&self.fragment.style, gradient, layer, builder)
+                        }
                     },
                     Image::Url(image_url) => {
                         // FIXME: images won’t always have in intrinsic width or height
