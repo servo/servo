@@ -13,7 +13,7 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString? crossOrigin;
   [CEReactions]
            attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions]
            attribute DOMString media;
   [CEReactions]
