@@ -97,7 +97,7 @@ impl ToComputedValue for LineHeight {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let base = context.style().get_font().clone_font_size().size();
-                        computed_calc.percentage_relative_to(base)
+                        computed_calc.resolve(base)
                     },
                 };
                 GenericLineHeight::Length(result.into())

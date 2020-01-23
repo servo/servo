@@ -377,7 +377,7 @@ impl ToAbsoluteLength for ComputedLengthPercentage {
             // distance without any layout info.
             //
             // FIXME(emilio): This looks wrong.
-            None => Ok(self.length_component().px()),
+            None => Ok(self.resolve(Zero::zero()).px()),
         }
     }
 }

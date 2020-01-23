@@ -614,12 +614,6 @@ pub enum FontSize {
     System(SystemFont),
 }
 
-impl From<LengthPercentage> for FontSize {
-    fn from(other: LengthPercentage) -> Self {
-        FontSize::Length(other)
-    }
-}
-
 /// Specifies a prioritized list of font family names or generic family names.
 #[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
 #[cfg_attr(feature = "servo", derive(Hash))]
