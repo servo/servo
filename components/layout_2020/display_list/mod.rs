@@ -270,10 +270,11 @@ impl<'a> BuilderForBoxFragment<'a> {
         let b = self.fragment.style.get_background();
         let background_color = self.fragment.style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
-            let mut common = builder.common_properties(self.border_rect);
-            if let Some(clip_id) = self.border_edge_clip(builder) {
-                common.clip_id = clip_id
-            }
+            // https://drafts.csswg.org/css-backgrounds/#background-color
+            // “The background color is clipped according to the background-clip
+            //  value associated with the bottom-most background image layer.”
+            let layer_index = b.background_image.0.len() - 1;
+            let (_, common) = background::painting_area(self, builder, layer_index);
             builder.wr.push_rect(&common, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
