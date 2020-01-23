@@ -30,6 +30,26 @@ fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
     &values[layer_index % values.len()]
 }
 
+pub(super) fn painting_area<'a>(
+    fragment_builder: &'a super::BuilderForBoxFragment,
+    builder: &mut super::DisplayListBuilder,
+    layer_index: usize,
+) -> (&'a units::LayoutRect, wr::CommonItemProperties) {
+    let fb = fragment_builder;
+    let b = fb.fragment.style.get_background();
+    let (painting_area, clip) = match get_cyclic(&b.background_clip.0, layer_index) {
+        Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
+        Clip::PaddingBox => (fb.padding_rect(), fb.padding_edge_clip(builder)),
+        Clip::BorderBox => (&fb.border_rect, fb.border_edge_clip(builder)),
+    };
+    // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
+    let mut common = builder.common_properties(*painting_area);
+    if let Some(clip_id) = clip {
+        common.clip_id = clip_id
+    }
+    (painting_area, common)
+}
+
 pub(super) fn layout_layer(
     fragment_builder: &mut super::BuilderForBoxFragment,
     builder: &mut super::DisplayListBuilder,
@@ -37,12 +57,8 @@ pub(super) fn layout_layer(
     intrinsic: IntrinsicSizes,
 ) -> Option<Layer> {
     let b = fragment_builder.fragment.style.get_background();
+    let (painting_area, common) = painting_area(fragment_builder, builder, layer_index);
 
-    let painting_area = match get_cyclic(&b.background_clip.0, layer_index) {
-        Clip::ContentBox => fragment_builder.content_rect(),
-        Clip::PaddingBox => fragment_builder.padding_rect(),
-        Clip::BorderBox => &fragment_builder.border_rect,
-    };
     let positioning_area = match get_cyclic(&b.background_origin.0, layer_index) {
         Origin::ContentBox => fragment_builder.content_rect(),
         Origin::PaddingBox => fragment_builder.padding_rect(),
@@ -149,10 +165,6 @@ pub(super) fn layout_layer(
         positioning_area.origin + Vector2D::new(result_x.bounds_origin, result_y.bounds_origin),
         Size2D::new(result_x.bounds_size, result_y.bounds_size),
     );
-
-    // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-    let mut common = builder.common_properties(*painting_area);
-    fragment_builder.with_border_edge_clip(builder, &mut common);
 
     Some(Layer {
         common,

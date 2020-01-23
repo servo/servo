@@ -141,6 +141,8 @@ struct BuilderForBoxFragment<'a> {
     content_rect: OnceCell<units::LayoutRect>,
     border_radius: wr::BorderRadius,
     border_edge_clip_id: OnceCell<Option<wr::ClipId>>,
+    padding_edge_clip_id: OnceCell<Option<wr::ClipId>>,
+    content_edge_clip_id: OnceCell<Option<wr::ClipId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -178,6 +180,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
             border_edge_clip_id: OnceCell::new(),
+            padding_edge_clip_id: OnceCell::new(),
+            content_edge_clip_id: OnceCell::new(),
         }
     }
 
@@ -201,30 +205,41 @@ impl<'a> BuilderForBoxFragment<'a> {
         })
     }
 
-    fn with_border_edge_clip(
-        &mut self,
-        builder: &mut DisplayListBuilder,
-        common: &mut wr::CommonItemProperties,
-    ) {
-        let initialized = self.border_edge_clip_id.init_once(|| {
-            if self.border_radius.is_zero() {
-                None
-            } else {
-                Some(builder.wr.define_clip(
-                    &builder.current_space_and_clip,
-                    self.border_rect,
-                    Some(wr::ComplexClipRegion {
-                        rect: self.border_rect,
-                        radii: self.border_radius,
-                        mode: wr::ClipMode::Clip,
-                    }),
-                    None,
-                ))
-            }
-        });
-        if let Some(clip_id) = *initialized {
-            common.clip_id = clip_id
-        }
+    fn border_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
+        *self
+            .border_edge_clip_id
+            .init_once(|| clip_for_radii(self.border_radius, self.border_rect, builder))
+    }
+
+    fn padding_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
+        *self.padding_edge_clip_id.init_once(|| {
+            clip_for_radii(
+                inner_radii(
+                    self.border_radius,
+                    self.fragment
+                        .border
+                        .to_physical(self.fragment.style.writing_mode)
+                        .to_webrender(),
+                ),
+                self.border_rect,
+                builder,
+            )
+        })
+    }
+
+    fn content_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
+        *self.content_edge_clip_id.init_once(|| {
+            clip_for_radii(
+                inner_radii(
+                    self.border_radius,
+                    (&self.fragment.border + &self.fragment.padding)
+                        .to_physical(self.fragment.style.writing_mode)
+                        .to_webrender(),
+                ),
+                self.border_rect,
+                builder,
+            )
+        })
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder) {
@@ -232,7 +247,9 @@ impl<'a> BuilderForBoxFragment<'a> {
         if hit_info.is_some() {
             let mut common = builder.common_properties(self.border_rect);
             common.hit_info = hit_info;
-            self.with_border_edge_clip(builder, &mut common);
+            if let Some(clip_id) = self.border_edge_clip(builder) {
+                common.clip_id = clip_id
+            }
             builder.wr.push_hit_test(&common)
         }
 
@@ -254,7 +271,9 @@ impl<'a> BuilderForBoxFragment<'a> {
         let background_color = self.fragment.style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
             let mut common = builder.common_properties(self.border_rect);
-            self.with_border_edge_clip(builder, &mut common);
+            if let Some(clip_id) = self.border_edge_clip(builder) {
+                common.clip_id = clip_id
+            }
             builder.wr.push_rect(&common, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
@@ -469,5 +488,42 @@ fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageR
         ImageRendering::Auto => wr::ImageRendering::Auto,
         ImageRendering::CrispEdges => wr::ImageRendering::CrispEdges,
         ImageRendering::Pixelated => wr::ImageRendering::Pixelated,
+    }
+}
+
+/// Radii for the padding edge or content edge
+fn inner_radii(mut radii: wr::BorderRadius, offsets: units::LayoutSideOffsets) -> wr::BorderRadius {
+    radii.top_left.width -= -offsets.left;
+    radii.bottom_left.width -= offsets.left;
+
+    radii.top_right.width -= offsets.right;
+    radii.bottom_right.width -= offsets.right;
+
+    radii.top_left.height -= offsets.top;
+    radii.top_right.height -= offsets.top;
+
+    radii.bottom_left.height -= offsets.bottom;
+    radii.bottom_right.height -= offsets.bottom;
+    radii
+}
+
+fn clip_for_radii(
+    radii: wr::BorderRadius,
+    rect: units::LayoutRect,
+    builder: &mut DisplayListBuilder,
+) -> Option<wr::ClipId> {
+    if radii.is_zero() {
+        None
+    } else {
+        Some(builder.wr.define_clip(
+            &builder.current_space_and_clip,
+            rect,
+            Some(wr::ComplexClipRegion {
+                rect,
+                radii,
+                mode: wr::ClipMode::Clip,
+            }),
+            None,
+        ))
     }
 }
