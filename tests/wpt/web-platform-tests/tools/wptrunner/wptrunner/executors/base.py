@@ -1,6 +1,5 @@
 import base64
 import hashlib
-from six.moves.http_client import HTTPConnection
 import io
 import json
 import os
@@ -8,8 +7,10 @@ import threading
 import traceback
 import socket
 import sys
-from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 from abc import ABCMeta, abstractmethod
+from six import text_type
+from six.moves.http_client import HTTPConnection
+from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 
 from ..testrunner import Stop
 from .protocol import Protocol, BaseProtocolPart
@@ -293,7 +294,7 @@ class TestExecutor(object):
             status = e.status
         else:
             status = "INTERNAL-ERROR"
-        message = unicode(getattr(e, "message", ""))
+        message = text_type(getattr(e, "message", ""))
         if message:
             message += "\n"
         message += traceback.format_exc(e)

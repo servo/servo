@@ -25,7 +25,7 @@ function runTests(testData) {
 
     self.test(() => {
       const url = new URL("about:blank")
-      assert_throws(new TypeError, () => url.href = test.input)
+      assert_throws_js(TypeError, () => url.href = test.input)
     }, "URL's href: " + name)
 
     self.test(() => {
@@ -34,11 +34,11 @@ function runTests(testData) {
     }, "XHR: " + name)
 
     self.test(() => {
-      assert_throws(new TypeError, () => self.navigator.sendBeacon(test.input))
+      assert_throws_js(TypeError, () => self.navigator.sendBeacon(test.input))
     }, "sendBeacon(): " + name)
 
     self.test(() => {
-      assert_throws(new TypeError, () => self[0].location = test.input)
+      assert_throws_js(self[0].TypeError, () => self[0].location = test.input)
     }, "Location's href: " + name)
 
     self.test(() => {

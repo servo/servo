@@ -45,7 +45,7 @@
     }, 'insertRule with #bar selector');
 
     test(function() {
-        assert_throws(new TypeError, function() { styleSheet.insertRule() });
+        assert_throws_js(TypeError, function() { styleSheet.insertRule() });
     }, 'insertRule with no argument throws');
 
     test(function() {
@@ -65,7 +65,7 @@
     }, 'deleteRule(1)');
 
     test(function() {
-        assert_throws(new TypeError, function() { styleSheet.deleteRule() });
+        assert_throws_js(TypeError, function() { styleSheet.deleteRule() });
     }, 'deleteRule with no argument throws');
 
     test(function() {

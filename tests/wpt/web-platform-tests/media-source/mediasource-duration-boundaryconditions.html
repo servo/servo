@@ -21,7 +21,7 @@
                   test.waitForExpectedEvents(function()
                   {
                       if (expectedError) {
-                          assert_throws(expectedError,
+                          assert_throws_js(expectedError,
                               function() { mediaSource.duration = testDurationValue; },
                               "mediaSource.duration assignment throws an exception for " + testDurationValue);
                           test.done();
@@ -50,14 +50,14 @@
           DurationBoundaryConditionTest(Number.MAX_VALUE, null, "Set duration to Number.MAX_VALUE");
           DurationBoundaryConditionTest(Number.MIN_VALUE, null, "Set duration to Number.MIN_VALUE");
           DurationBoundaryConditionTest(Number.MAX_VALUE - 1, null, "Set duration to Number.MAX_VALUE - 1");
-          DurationBoundaryConditionTest(Number.MIN_VALUE - 1, new TypeError(), "Set duration to Number.MIN_VALUE - 1");
+          DurationBoundaryConditionTest(Number.MIN_VALUE - 1, TypeError, "Set duration to Number.MIN_VALUE - 1");
           DurationBoundaryConditionTest(Number.POSITIVE_INFINITY, null, "Set duration to Number.POSITIVE_INFINITY");
-          DurationBoundaryConditionTest(Number.NEGATIVE_INFINITY, new TypeError(), "Set duration to Number.NEGATIVE_INFINITY");
-          DurationBoundaryConditionTest(-1 * Number.MAX_VALUE, new TypeError(), "Set duration to lowest value.");
-          DurationBoundaryConditionTest(-101.9, new TypeError(), "Set duration to a negative double.");
+          DurationBoundaryConditionTest(Number.NEGATIVE_INFINITY, TypeError, "Set duration to Number.NEGATIVE_INFINITY");
+          DurationBoundaryConditionTest(-1 * Number.MAX_VALUE, TypeError, "Set duration to lowest value.");
+          DurationBoundaryConditionTest(-101.9, TypeError, "Set duration to a negative double.");
           DurationBoundaryConditionTest(101.9, null, "Set duration to a positive double.");
           DurationBoundaryConditionTest(0, null, "Set duration to zero");
-          DurationBoundaryConditionTest(NaN, new TypeError(), "Set duration to NaN");
+          DurationBoundaryConditionTest(NaN, TypeError, "Set duration to NaN");
         </script>
     </body>
 </html>

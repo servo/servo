@@ -34,7 +34,6 @@ const stopTracks = (...streams) => {
         readonly attribute USVString           protocol;
         readonly attribute boolean             negotiated;
         readonly attribute unsigned short?     id;
-        readonly attribute RTCPriorityType     priority;
         readonly attribute RTCDataChannelState readyState;
         readonly attribute unsigned long       bufferedAmount;
                  attribute unsigned long       bufferedAmountLowThreshold;
@@ -51,16 +50,6 @@ const stopTracks = (...streams) => {
         boolean         negotiated = false;
         [EnforceRange]
         unsigned short  id;
-        RTCPriorityType priority = "low";
-    };
-
-  4.9.1.  RTCPriorityType Enum
-
-    enum RTCPriorityType {
-      "very-low",
-      "low",
-      "medium",
-      "high"
     };
  */
 
@@ -102,8 +91,6 @@ test(t => {
         member.
     15. Let channel have an [[DataChannelId]] internal slot initialized to option's id
         member, if it is present and [[Negotiated]] is true, otherwise null.
-    17. Let channel have an [[DataChannelPriority]] internal slot initialized to option's
-        priority member.
     21. If the [[DataChannelId]] slot is null (due to no ID being passed into
         createDataChannel, or [[Negotiated]] being false), and the DTLS role of the SCTP
         transport has already been negotiated, then initialize [[DataChannelId]] to a value
@@ -148,7 +135,6 @@ test(t => {
   // Since no offer/answer exchange has occurred yet, the DTLS role is unknown
   // and so the ID should be null.
   assert_equals(dc.id, null);
-  assert_equals(dc.priority, 'low');
   assert_equals(dc.readyState, 'connecting');
   assert_equals(dc.bufferedAmount, 0);
   assert_equals(dc.bufferedAmountLowThreshold, 0);
@@ -165,8 +151,7 @@ test(t => {
     // Note: maxPacketLifeTime is not set in this test.
     protocol: 'custom',
     negotiated: true,
-    id: 3,
-    priority: 'high'
+    id: 3
   });
 
   assert_true(dc instanceof RTCDataChannel, 'is RTCDataChannel');
@@ -177,7 +162,6 @@ test(t => {
   assert_equals(dc.protocol, 'custom');
   assert_equals(dc.negotiated, true);
   assert_equals(dc.id, 3);
-  assert_equals(dc.priority, 'high');
   assert_equals(dc.readyState, 'connecting');
   assert_equals(dc.bufferedAmount, 0);
   assert_equals(dc.bufferedAmountLowThreshold, 0);
@@ -189,7 +173,7 @@ test(t => {
   });
   assert_equals(dc2.label, 'test2');
   assert_equals(dc2.maxPacketLifeTime, 42);
-  assert_equals(dc.maxRetransmits, null);
+  assert_equals(dc2.maxRetransmits, null);
 }, 'createDataChannel with provided parameters should initialize attributes to provided values');
 
 /*
@@ -366,28 +350,6 @@ for (const id of [-1, 65535, 65536]) {
         { 'negotiated': true, 'id': id }));
   }, `createDataChannel with id ${id} should throw TypeError`);
 }
-
-/*
-  6.2.  RTCDataChannel
-    createDataChannel
-      17. Let channel have an [[DataChannelPriority]] internal slot initialized to option's
-          priority member.
- */
-test(t => {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-
-  const dc = pc.createDataChannel('', { priority: 'high' });
-  assert_equals(dc.priority, 'high');
-}, 'createDataChannel with priority "high" should succeed');
-
-test(t => {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-
-  assert_throws(new TypeError(),
-    () => pc.createDataChannel('', { priority: 'invalid' }));
-}, 'createDataChannel with invalid priority should throw TypeError');
 
 /*
   6.2.  createDataChannel

@@ -1,7 +1,8 @@
 import os
-from six.moves.urllib.parse import urljoin
 from collections import deque
-from six import text_type
+from six import string_types, text_type
+from six.moves.urllib.parse import urljoin
+
 
 from .wptmanifest.backends import static
 from .wptmanifest.backends.base import ManifestItem
@@ -47,7 +48,7 @@ def list_prop(name, node):
     """List property"""
     try:
         list_prop = node.get(name)
-        if isinstance(list_prop, basestring):
+        if isinstance(list_prop, string_types):
             return [list_prop]
         return list(list_prop)
     except KeyError:

@@ -258,7 +258,7 @@ for (const duration of gGoodDurationValues) {
 
 for (const invalid of gBadDurationValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { duration: invalid });
     });
   }, 'Throws when setting invalid duration: '

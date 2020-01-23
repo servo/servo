@@ -9,7 +9,11 @@ promise_test(() => {
   const worker = new Worker(script_url, { type: 'module' });
   return new Promise((resolve, reject) => {
         worker.onmessage = resolve;
-        worker.onerror = (error) => reject(error && error.message);
+        worker.onerror = error => {
+          const msg = error instanceof ErrorEvent ? error.message
+                                                  : 'unknown error';
+          reject(msg);
+        };
       })
       .then(msg_event => assert_true(msg_event.data.endsWith(script_url)));
 }, 'Test import.meta.url on the top-level module script.');
@@ -21,7 +25,11 @@ promise_test(() => {
   worker.postMessage('./' + script_url);
   return new Promise((resolve, reject) => {
         worker.onmessage = resolve;
-        worker.onerror = (error) => reject(error && error.message);
+        worker.onerror = error => {
+          const msg = error instanceof ErrorEvent ? error.message
+                                                  : 'unknown error';
+          reject(msg);
+        };
       })
       .then(msg_event => assert_true(msg_event.data.endsWith(script_url)));
 }, 'Test import.meta.url on the imported module script.');
@@ -34,7 +42,11 @@ promise_test(() => {
 
   return new Promise((resolve, reject) => {
         worker.onmessage = resolve;
-        worker.onerror = (error) => reject(error && error.message);
+        worker.onerror = error => {
+          const msg = error instanceof ErrorEvent ? error.message
+                                                  : 'unknown error';
+          reject(msg);
+        };
       })
       .then(msg_event => assert_true(msg_event.data.endsWith(script_url)))
       .then(() => {

@@ -38,7 +38,11 @@ promise_test(async () => {
   worker.postMessage(scriptURL);
   const msg_event = await new Promise((resolve, reject) => {
     worker.onmessage = resolve;
-    worker.onerror = (error) => reject(error && error.message);
+    worker.onerror = error => {
+      const msg = error instanceof ErrorEvent ? error.message
+                                              : 'unknown error';
+      reject(msg);
+    };
   });
   assert_equals(msg_event.data, 'TypeError');
 }, 'Dynamic import for non-existent script should throw an exception.');

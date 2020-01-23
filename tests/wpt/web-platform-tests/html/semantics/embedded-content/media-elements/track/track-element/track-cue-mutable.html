@@ -52,7 +52,7 @@
                 // to the new value; if the new value is the string "auto",
                 // then it must be interpreted as the special value auto.
                 assert_equals(textCue.line, "auto");
-                assert_throws(new TypeError, function() { textCue.line = "gazonk"; });
+                assert_throws_js(TypeError, function() { textCue.line = "gazonk"; });
                 assert_equals(textCue.line, "auto");
                 textCue.line = 42;
                 assert_equals(textCue.line, 42);

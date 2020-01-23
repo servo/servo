@@ -15,8 +15,7 @@
     <script src="%(spec_json_js)s"></script>
     <!-- Internal checking of the tests -->
     <script src="%(sanity_checker_js)s"></script>
-    <script src="%(helper_js)s"></script>
-  </head>
+%(helper_js)s  </head>
   <body>
     <script>
       TestCase(

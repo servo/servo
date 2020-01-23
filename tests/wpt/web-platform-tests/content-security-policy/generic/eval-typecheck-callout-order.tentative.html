@@ -10,7 +10,7 @@
 
     <script nonce='abc'>
     test(function() {
-      assert_throws(new EvalError, function() {
+      assert_throws_js(EvalError, function() {
         eval("0");
       }, "eval of a string should reach host callout");
     }, "eval of a string should be checked by CSP");
