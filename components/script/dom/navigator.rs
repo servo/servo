@@ -12,7 +12,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
 use crate::dom::gpu::GPU;
-use crate::dom::identityhub::Identities;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
@@ -24,13 +23,7 @@ use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xr::XR;
 use dom_struct::dom_struct;
-use smallvec::SmallVec;
-use std::cell::RefCell;
 use std::rc::Rc;
-use webgpu::wgpu::{
-    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
-    Backend,
-};
 
 #[dom_struct]
 pub struct Navigator {
@@ -45,8 +38,6 @@ pub struct Navigator {
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
-    #[ignore_malloc_size_of = "Defined in wgpu"]
-    gpu_id_hub: RefCell<Identities>,
 }
 
 impl Navigator {
@@ -63,7 +54,6 @@ impl Navigator {
             permissions: Default::default(),
             mediasession: Default::default(),
             gpu: Default::default(),
-            gpu_id_hub: RefCell::new(Identities::new()),
         }
     }
 
@@ -73,32 +63,6 @@ impl Navigator {
             window,
             NavigatorBinding::Wrap,
         )
-    }
-}
-
-impl Navigator {
-    pub fn create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
-        self.gpu_id_hub.borrow_mut().create_adapter_ids()
-    }
-
-    pub fn create_device_id(&self, backend: Backend) -> DeviceId {
-        self.gpu_id_hub.borrow_mut().create_device_id(backend)
-    }
-
-    pub fn create_buffer_id(&self, backend: Backend) -> BufferId {
-        self.gpu_id_hub.borrow_mut().create_buffer_id(backend)
-    }
-
-    pub fn create_bind_group_layout_id(&self, backend: Backend) -> BindGroupLayoutId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_bind_group_layout_id(backend)
-    }
-
-    pub fn create_pipeline_layout_id(&self, backend: Backend) -> PipelineLayoutId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_pipeline_layout_id(backend)
     }
 }
 

@@ -26,6 +26,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::htmlscriptelement::ScriptId;
+use crate::dom::identityhub::Identities;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -79,8 +80,9 @@ use script_traits::{
 };
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
+use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::CString;
@@ -91,6 +93,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
 use uuid::Uuid;
+use webgpu::wgpu::{
+    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
+    Backend,
+};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -206,6 +212,9 @@ pub struct GlobalScope {
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
+
+    #[ignore_malloc_size_of = "defined in wgpu"]
+    gpu_id_hub: RefCell<Identities>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -421,6 +430,7 @@ impl GlobalScope {
             consumed_rejections: Default::default(),
             is_headless,
             user_agent,
+            gpu_id_hub: RefCell::new(Identities::new()),
         }
     }
 
@@ -1969,6 +1979,30 @@ impl GlobalScope {
         }
         // TODO: Worker and Worklet global scopes.
         None
+    }
+
+    pub fn wgpu_create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
+        self.gpu_id_hub.borrow_mut().create_adapter_ids()
+    }
+
+    pub fn wgpu_create_bind_group_layout_id(&self, backend: Backend) -> BindGroupLayoutId {
+        self.gpu_id_hub
+            .borrow_mut()
+            .create_bind_group_layout_id(backend)
+    }
+
+    pub fn wgpu_create_buffer_id(&self, backend: Backend) -> BufferId {
+        self.gpu_id_hub.borrow_mut().create_buffer_id(backend)
+    }
+
+    pub fn wgpu_create_device_id(&self, backend: Backend) -> DeviceId {
+        self.gpu_id_hub.borrow_mut().create_device_id(backend)
+    }
+
+    pub fn wgpu_create_pipeline_layout_id(&self, backend: Backend) -> PipelineLayoutId {
+        self.gpu_id_hub
+            .borrow_mut()
+            .create_pipeline_layout_id(backend)
     }
 }
 

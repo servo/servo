@@ -5,7 +5,6 @@
 use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::GPURequestAdapterOptions;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::{self, GPUMethods, GPUPowerPreference};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -14,7 +13,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
-use crate::task_source::TaskSource;
+use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -69,11 +68,10 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
     receiver: &T,
 ) -> IpcSender<WebGPUResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let (task_source, canceller) = receiver
+    let task_source = receiver.global().dom_manipulation_task_source();
+    let canceller = receiver
         .global()
-        .as_window()
-        .task_manager()
-        .dom_manipulation_task_source_with_canceller();
+        .task_canceller(TaskSourceName::DOMManipulation);
     let mut trusted = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
     ROUTER.add_route(
@@ -121,7 +119,7 @@ impl GPUMethods for GPU {
             },
             None => wgpu::instance::PowerPreference::Default,
         };
-        let ids = global.as_window().Navigator().create_adapter_ids();
+        let ids = global.wgpu_create_adapter_ids();
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
