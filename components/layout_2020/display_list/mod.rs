@@ -9,9 +9,11 @@ use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
+use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
+use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
@@ -63,8 +65,6 @@ impl<'a> DisplayListBuilder<'a> {
         wr::CommonItemProperties::new(clip_rect, self.current_space_and_clip)
     }
 
-    // FIXME: use this for the `overflow` property or anything else that clips an entire subtree.
-    #[allow(unused)]
     fn clipping_and_scrolling_scope<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         let previous = self.current_space_and_clip;
         let result = f(self);
@@ -256,14 +256,49 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         self.build_background(builder);
         self.build_border(builder);
-        let content_rect = self
-            .fragment
-            .content_rect
-            .to_physical(self.fragment.style.writing_mode, self.containing_block)
-            .translate(self.containing_block.origin.to_vector());
-        for child in &self.fragment.children {
-            child.build_display_list(builder, &content_rect)
-        }
+
+        builder.clipping_and_scrolling_scope(|builder| {
+            let overflow_x = self.fragment.style.get_box().overflow_x;
+            let overflow_y = self.fragment.style.get_box().overflow_y;
+            let original_scroll_and_clip_info = builder.current_space_and_clip;
+            if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
+                // TODO(mrobinson): We should use the correct fragment type, once we generate
+                // fragments from ::before and ::after generated content selectors.
+                let id = combine_id_with_fragment_type(
+                    self.fragment.tag.id() as usize,
+                    FragmentType::FragmentBody,
+                ) as u64;
+                let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
+
+                let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
+                    ComputedOverflow::Hidden == overflow_y
+                {
+                    wr::ScrollSensitivity::Script
+                } else {
+                    wr::ScrollSensitivity::ScriptAndInputEvents
+                };
+
+                builder.current_space_and_clip = builder.wr.define_scroll_frame(
+                    &original_scroll_and_clip_info,
+                    Some(external_id),
+                    self.fragment.scrollable_overflow().to_webrender(),
+                    *self.padding_rect(),
+                    vec![], // complex_clips
+                    None,   // image_mask
+                    sensitivity,
+                    wr::units::LayoutVector2D::zero(),
+                );
+            }
+
+            let content_rect = self
+                .fragment
+                .content_rect
+                .to_physical(self.fragment.style.writing_mode, self.containing_block)
+                .translate(self.containing_block.origin.to_vector());
+            for child in &self.fragment.children {
+                child.build_display_list(builder, &content_rect)
+            }
+        });
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {

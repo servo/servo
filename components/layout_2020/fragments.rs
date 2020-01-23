@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalPoint, PhysicalRect};
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
+use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -39,7 +40,7 @@ pub(crate) struct BoxFragment {
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 
     /// The scrollable overflow of this box fragment.
-    pub scrollable_overflow: PhysicalRect<Length>,
+    pub scrollable_overflow_from_children: PhysicalRect<Length>,
 }
 
 pub(crate) struct CollapsedBlockMargins {
@@ -101,15 +102,16 @@ impl Fragment {
     pub fn scrollable_overflow(&self) -> PhysicalRect<Length> {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
+        let containing_block = PhysicalRect::zero();
         match self {
-            Fragment::Box(fragment) => fragment.scrollable_overflow.clone(),
+            Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
                 .rect
-                .to_physical(fragment.parent_style.writing_mode, &PhysicalRect::zero()),
+                .to_physical(fragment.parent_style.writing_mode, &containing_block),
             Fragment::Image(fragment) => fragment
                 .rect
-                .to_physical(fragment.style.writing_mode, &PhysicalRect::zero()),
+                .to_physical(fragment.style.writing_mode, &containing_block),
         }
     }
 }
@@ -125,10 +127,13 @@ impl AnonymousFragment {
     }
 
     pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
-        // FIXME(mrobinson, bug 25564): We should be using the containing block
-        // here to properly convert scrollable overflow to physical geometry.
+        let content_origin = rect.start_corner.to_physical(mode);
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
-            acc.union(&child.scrollable_overflow())
+            acc.union(
+                &child
+                    .scrollable_overflow()
+                    .translate(content_origin.to_vector()),
+            )
         });
         AnonymousFragment {
             rect,
@@ -141,8 +146,9 @@ impl AnonymousFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.new_level(format!(
             "Anonymous\
-                \nrect={:?}",
-            self.rect
+                \nrect={:?}\
+                \nscrollable_overflow={:?}",
+            self.rect, self.scrollable_overflow
         ));
 
         for child in &self.children {
@@ -163,14 +169,10 @@ impl BoxFragment {
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
-        // FIXME(mrobinson, bug 25564): We should be using the containing block
-        // here to properly convert scrollable overflow to physical geometry.
-        let scrollable_overflow = children.iter().fold(
-            content_rect
-                .inflate(&border)
-                .to_physical(style.writing_mode, &PhysicalRect::zero()),
-            |acc, child| acc.union(&child.scrollable_overflow()),
-        );
+        let scrollable_overflow_from_children =
+            children.iter().fold(PhysicalRect::zero(), |acc, child| {
+                acc.union(&child.scrollable_overflow())
+            });
         BoxFragment {
             tag,
             style,
@@ -180,8 +182,26 @@ impl BoxFragment {
             border,
             margin,
             block_margins_collapsed_with_children,
-            scrollable_overflow,
+            scrollable_overflow_from_children,
         }
+    }
+
+    pub fn scrollable_overflow(&self) -> PhysicalRect<Length> {
+        // FIXME(mrobinson, bug 25564): We should be using the containing block
+        // here to properly convert scrollable overflow to physical geometry.
+        let physical_padding_rect = self
+            .padding_rect()
+            .to_physical(self.style.writing_mode, &PhysicalRect::zero());
+
+        let content_origin = self
+            .content_rect
+            .start_corner
+            .to_physical(self.style.writing_mode);
+        physical_padding_rect.union(
+            &self
+                .scrollable_overflow_from_children
+                .translate(content_origin.to_vector()),
+        )
     }
 
     pub fn padding_rect(&self) -> Rect<Length> {
@@ -197,16 +217,58 @@ impl BoxFragment {
             "Box\
                 \ncontent={:?}\
                 \npadding rect={:?}\
-                \nborder rect={:?}",
+                \nborder rect={:?}\
+                \nscrollable_overflow={:?}\
+                \noverflow={:?} / {:?}\
+                \nstyle={:p}",
             self.content_rect,
             self.padding_rect(),
-            self.border_rect()
+            self.border_rect(),
+            self.scrollable_overflow(),
+            self.style.get_box().overflow_x,
+            self.style.get_box().overflow_y,
+            self.style,
         ));
 
         for child in &self.children {
             child.print(tree);
         }
         tree.end_level();
+    }
+
+    pub fn scrollable_overflow_for_parent(
+        &self,
+        containing_block: &PhysicalRect<Length>,
+    ) -> PhysicalRect<Length> {
+        let mut overflow = self
+            .border_rect()
+            .to_physical(self.style.writing_mode, containing_block);
+
+        if self.style.get_box().overflow_y != ComputedOverflow::Visible &&
+            self.style.get_box().overflow_x != ComputedOverflow::Visible
+        {
+            return overflow;
+        }
+
+        // https://www.w3.org/TR/css-overflow-3/#scrollable
+        // Only include the scrollable overflow of a child box if it has overflow: visible.
+        let scrollable_overflow = self.scrollable_overflow();
+        let bottom_right = PhysicalPoint::new(
+            overflow.max_x().max(scrollable_overflow.max_x()),
+            overflow.max_y().max(scrollable_overflow.max_y()),
+        );
+
+        if self.style.get_box().overflow_y == ComputedOverflow::Visible {
+            overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
+            overflow.size.height = bottom_right.y - overflow.origin.y;
+        }
+
+        if self.style.get_box().overflow_x == ComputedOverflow::Visible {
+            overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
+            overflow.size.width = bottom_right.x - overflow.origin.x;
+        }
+
+        overflow
     }
 }
 
