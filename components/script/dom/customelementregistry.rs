@@ -1140,6 +1140,7 @@ fn is_extendable_element_interface(element: &str) -> bool {
         element == "output" ||
         element == "p" ||
         element == "param" ||
+        element == "picture" ||
         element == "plaintext" ||
         element == "pre" ||
         element == "progress" ||
