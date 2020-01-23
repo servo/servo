@@ -5,7 +5,7 @@
 use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
-    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
+    id::{AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
     Backend,
 };
 
@@ -14,6 +14,7 @@ pub struct IdentityHub {
     adapters: IdentityManager,
     devices: IdentityManager,
     buffers: IdentityManager,
+    bind_groups: IdentityManager,
     bind_group_layouts: IdentityManager,
     pipeline_layouts: IdentityManager,
     backend: Backend,
@@ -25,6 +26,7 @@ impl IdentityHub {
             adapters: IdentityManager::default(),
             devices: IdentityManager::default(),
             buffers: IdentityManager::default(),
+            bind_groups: IdentityManager::default(),
             bind_group_layouts: IdentityManager::default(),
             pipeline_layouts: IdentityManager::default(),
             backend,
@@ -41,6 +43,10 @@ impl IdentityHub {
 
     fn create_buffer_id(&mut self) -> BufferId {
         self.buffers.alloc(self.backend)
+    }
+
+    fn create_bind_group_id(&mut self) -> BindGroupId {
+        self.bind_groups.alloc(self.backend)
     }
 
     fn create_bind_group_layout_id(&mut self) -> BindGroupLayoutId {
@@ -129,6 +135,20 @@ impl Identities {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => self.metal_hub.create_buffer_id(),
             _ => self.dummy_hub.create_buffer_id(),
+        }
+    }
+
+    pub fn create_bind_group_id(&mut self, backend: Backend) -> BindGroupId {
+        match backend {
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Vulkan => self.vk_hub.create_bind_group_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx12 => self.dx12_hub.create_bind_group_id(),
+            #[cfg(target_os = "windows")]
+            Backend::Dx11 => self.dx11_hub.create_bind_group_id(),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            Backend::Metal => self.metal_hub.create_bind_group_id(),
+            _ => self.dummy_hub.create_bind_group_id(),
         }
     }
 

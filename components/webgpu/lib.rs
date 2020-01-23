@@ -5,8 +5,6 @@
 #[macro_use]
 extern crate log;
 #[macro_use]
-extern crate serde;
-#[macro_use]
 pub extern crate wgpu_core as wgpu;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -47,6 +45,13 @@ pub enum WebGPURequest {
         WebGPUDevice,
         wgpu::id::BufferId,
         wgpu::resource::BufferDescriptor,
+    ),
+    CreateBindGroup(
+        IpcSender<WebGPUBindGroup>,
+        WebGPUDevice,
+        wgpu::id::BindGroupId,
+        WebGPUBindGroupLayout,
+        Vec<wgpu::binding_model::BindGroupBinding>,
     ),
     CreateBindGroupLayout(
         IpcSender<WebGPUBindGroupLayout>,
@@ -232,6 +237,23 @@ impl WGPU {
                     let global = &self.global;
                     gfx_select!(buffer.0 => global.buffer_destroy(buffer.0));
                 },
+                WebGPURequest::CreateBindGroup(sender, device, id, layout_id, bindings) => {
+                    let global = &self.global;
+                    let descriptor = wgpu_core::binding_model::BindGroupDescriptor {
+                        layout: layout_id.0,
+                        bindings: bindings.as_ptr(),
+                        bindings_length: bindings.len(),
+                    };
+                    let bg_id = gfx_select!(id => global.device_create_bind_group(device.0, &descriptor, id));
+                    let bind_group = WebGPUBindGroup(bg_id);
+
+                    if let Err(e) = sender.send(bind_group) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateBindGroup ({})",
+                            e
+                        )
+                    }
+                },
                 WebGPURequest::CreateBindGroupLayout(sender, device, id, bindings) => {
                     let global = &self.global;
                     let descriptor = wgpu_core::binding_model::BindGroupLayoutDescriptor {
@@ -294,5 +316,6 @@ macro_rules! webgpu_resource {
 webgpu_resource!(WebGPUAdapter, wgpu::id::AdapterId);
 webgpu_resource!(WebGPUDevice, wgpu::id::DeviceId);
 webgpu_resource!(WebGPUBuffer, wgpu::id::BufferId);
+webgpu_resource!(WebGPUBindGroup, wgpu::id::BindGroupId);
 webgpu_resource!(WebGPUBindGroupLayout, wgpu::id::BindGroupLayoutId);
 webgpu_resource!(WebGPUPipelineLayout, wgpu::id::PipelineLayoutId);

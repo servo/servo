@@ -6,6 +6,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
+use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::GPUBindGroupDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
     GPUBindGroupLayoutBindings, GPUBindGroupLayoutDescriptor, GPUBindingType,
 };
@@ -18,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
+use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
@@ -29,7 +31,10 @@ use js::jsval::{JSVal, ObjectValue};
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::collections::{HashMap, HashSet};
 use std::ptr::{self, NonNull};
-use webgpu::wgpu::binding_model::{BindGroupLayoutBinding, BindingType, ShaderStage};
+use webgpu::wgpu::binding_model::{
+    BindGroupBinding, BindGroupLayoutBinding, BindingResource, BindingType, BufferBinding,
+    ShaderStage,
+};
 use webgpu::wgpu::resource::{BufferDescriptor, BufferUsage};
 use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
 
@@ -462,5 +467,65 @@ impl GPUDeviceMethods for GPUDevice {
 
         let pipeline_layout = receiver.recv().unwrap();
         GPUPipelineLayout::new(&self.global(), bind_group_layouts, pipeline_layout, valid)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup
+    fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
+        let alignment: u64 = 256;
+        let mut valid = descriptor.layout.bindings().len() == descriptor.bindings.len();
+
+        valid &= descriptor.bindings.iter().all(|bind| {
+            let buffer_size = bind.resource.buffer.size();
+            let resource_size = bind.resource.size.unwrap_or(buffer_size);
+            let length = bind.resource.offset.checked_add(resource_size);
+            let usage = BufferUsage::from_bits(bind.resource.buffer.usage()).unwrap();
+
+            length.is_some() &&
+            buffer_size >= length.unwrap() && // check buffer OOB
+            bind.resource.offset % alignment == 0 && // check alignment
+            bind.resource.offset < buffer_size && // on Vulkan offset must be less than size of buffer
+            descriptor.layout.bindings().iter().any(|layout_bind| {
+                let ty = match layout_bind.type_ {
+                    GPUBindingType::Storage_buffer  => BufferUsage::STORAGE,
+                    // GPUBindingType::Readonly_storage_buffer  => BufferUsage::STORAGE_READ,
+                    GPUBindingType::Uniform_buffer => BufferUsage::UNIFORM,
+                    _ => unimplemented!(),
+                };
+                // binding must be present in layout
+                layout_bind.binding == bind.binding &&
+                // binding must contain one buffer of its type
+                usage.contains(ty)
+            })
+        });
+
+        let bindings = descriptor
+            .bindings
+            .iter()
+            .map(|bind| BindGroupBinding {
+                binding: bind.binding,
+                resource: BindingResource::Buffer(BufferBinding {
+                    buffer: bind.resource.buffer.id().0,
+                    offset: bind.resource.offset,
+                    size: bind.resource.size.unwrap_or(bind.resource.buffer.size()),
+                }),
+            })
+            .collect::<Vec<_>>();
+        let (sender, receiver) = ipc::channel().unwrap();
+        let id = self
+            .global()
+            .wgpu_create_bind_group_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreateBindGroup(
+                sender,
+                self.device,
+                id,
+                descriptor.layout.id(),
+                bindings,
+            ))
+            .expect("Failed to create WebGPU PipelineLayout");
+
+        let bind_group = receiver.recv().unwrap();
+        GPUBindGroup::new(&self.global(), bind_group, valid)
     }
 }

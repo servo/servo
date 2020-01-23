@@ -79,6 +79,20 @@ impl GPUBuffer {
     }
 }
 
+impl GPUBuffer {
+    pub fn id(&self) -> WebGPUBuffer {
+        self.buffer
+    }
+
+    pub fn size(&self) -> GPUBufferSize {
+        self.size
+    }
+
+    pub fn usage(&self) -> u32 {
+        self.usage
+    }
+}
+
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
         self.Destroy()

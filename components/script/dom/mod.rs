@@ -318,6 +318,7 @@ pub mod gamepadlist;
 pub mod globalscope;
 pub mod gpu;
 pub mod gpuadapter;
+pub mod gpubindgroup;
 pub mod gpubindgrouplayout;
 pub mod gpubuffer;
 pub mod gpubufferusage;
