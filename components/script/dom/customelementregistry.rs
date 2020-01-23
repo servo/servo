@@ -1127,6 +1127,7 @@ fn is_extendable_element_interface(element: &str) -> bool {
         element == "map" ||
         element == "mark" ||
         element == "marquee" ||
+        element == "menu" ||
         element == "meta" ||
         element == "meter" ||
         element == "nav" ||

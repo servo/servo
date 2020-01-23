@@ -364,6 +364,7 @@ pub mod htmllielement;
 pub mod htmllinkelement;
 pub mod htmlmapelement;
 pub mod htmlmediaelement;
+pub mod htmlmenuelement;
 pub mod htmlmetaelement;
 pub mod htmlmeterelement;
 pub mod htmlmodelement;

@@ -36,6 +36,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMapElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLModElementBinding;
@@ -279,6 +280,7 @@ pub fn get_constructor_object_from_local_name(
         local_name!("map") => get_constructor!(HTMLMapElementBinding),
         local_name!("mark") => get_constructor!(HTMLElementBinding),
         local_name!("marquee") => get_constructor!(HTMLElementBinding),
+        local_name!("menu") => get_constructor!(HTMLMenuElementBinding),
         local_name!("meta") => get_constructor!(HTMLMetaElementBinding),
         local_name!("meter") => get_constructor!(HTMLMeterElementBinding),
         local_name!("nav") => get_constructor!(HTMLElementBinding),

@@ -46,6 +46,7 @@ use crate::dom::htmllegendelement::HTMLLegendElement;
 use crate::dom::htmllielement::HTMLLIElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlmapelement::HTMLMapElement;
+use crate::dom::htmlmenuelement::HTMLMenuElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlmeterelement::HTMLMeterElement;
 use crate::dom::htmlmodelement::HTMLModElement;
@@ -309,6 +310,7 @@ pub fn create_native_html_element(
         local_name!("map") => make!(HTMLMapElement),
         local_name!("mark") => make!(HTMLElement),
         local_name!("marquee") => make!(HTMLElement),
+        local_name!("menu") => make!(HTMLMenuElement),
         local_name!("meta") => make!(HTMLMetaElement),
         local_name!("meter") => make!(HTMLMeterElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:multicol
