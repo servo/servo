@@ -205,7 +205,7 @@ impl CallbackInterface {
     }
 }
 
-/// Wraps the reflector for `p` into the compartment of `cx`.
+/// Wraps the reflector for `p` into the realm of `cx`.
 pub fn wrap_call_this_object<T: DomObject>(cx: JSContext, p: &T, mut rval: MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
@@ -225,7 +225,7 @@ pub struct CallSetup {
     exception_global: DomRoot<GlobalScope>,
     /// The `JSContext` used for the call.
     cx: JSContext,
-    /// The compartment we were in before the call.
+    /// The realm we were in before the call.
     old_realm: *mut Realm,
     /// The exception handling used for the call.
     handling: ExceptionHandling,

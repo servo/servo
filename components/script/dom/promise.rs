@@ -11,13 +11,13 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use crate::compartments::{enter_realm, InCompartment};
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -83,12 +83,12 @@ impl Drop for Promise {
 
 impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
-        let compartment = enter_realm(&*global);
-        let comp = InCompartment::Entered(&compartment);
-        Promise::new_in_current_compartment(global, comp)
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        Promise::new_in_current_realm(global, comp)
     }
 
-    pub fn new_in_current_compartment(global: &GlobalScope, _comp: InCompartment) -> Rc<Promise> {
+    pub fn new_in_current_realm(global: &GlobalScope, _comp: InRealm) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());

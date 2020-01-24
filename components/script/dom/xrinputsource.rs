@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
@@ -12,6 +11,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;

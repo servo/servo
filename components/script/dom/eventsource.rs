@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods, Wrap,
@@ -20,6 +19,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::realms::enter_realm;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;

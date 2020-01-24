@@ -17,7 +17,6 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use crate::compartments::enter_realm;
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -69,6 +68,7 @@ use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::realms::enter_realm;
 use crate::script_runtime::{get_reports, new_rt_and_cx, JSContext, Runtime, ScriptPort};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::serviceworkerjob::{Job, JobQueue};
@@ -701,7 +701,7 @@ pub struct ScriptThread {
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
 /// when the script thread fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
-/// to forcibly tear down the JS compartments for pages associated with the failing ScriptThread.
+/// to forcibly tear down the JS realms for pages associated with the failing ScriptThread.
 struct ScriptMemoryFailsafe<'a> {
     owner: Option<&'a ScriptThread>,
 }
@@ -2264,7 +2264,7 @@ impl ScriptThread {
         warn!("resize sent to nonexistent pipeline");
     }
 
-    // exit_fullscreen creates a new JS promise object, so we need to have entered a compartment
+    // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
     fn handle_exit_fullscreen(&self, id: PipelineId) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {

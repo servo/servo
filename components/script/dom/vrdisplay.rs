@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -33,6 +32,7 @@ use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::{WebGLMessageSender, WebGLRenderingContext};
+use crate::realms::InRealm;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -322,8 +322,8 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-requestpresent
-    fn RequestPresent(&self, layers: Vec<VRLayer>, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn RequestPresent(&self, layers: Vec<VRLayer>, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         // TODO: WebVR spec: this method must be called in response to a user gesture
 
         // WebVR spec: If canPresent is false the promise MUST be rejected
@@ -386,8 +386,8 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-exitpresent
-    fn ExitPresent(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn ExitPresent(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // WebVR spec: If the VRDisplay is not presenting the promise MUST be rejected.
         if !self.presenting.get() {

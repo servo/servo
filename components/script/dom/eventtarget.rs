@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -34,6 +33,7 @@ use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::realms::enter_realm;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};

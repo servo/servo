@@ -4,7 +4,6 @@
 
 // check-tidy: no specs after this line
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -49,6 +48,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
@@ -990,7 +990,7 @@ impl TestBindingMethods for TestBinding {
         &self,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
@@ -998,7 +998,7 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new_in_current_compartment(&global, comp);
+        let p = Promise::new_in_current_realm(&global, comp);
         p.append_native_handler(&handler);
         return p;
 
@@ -1021,8 +1021,8 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InCompartment) -> Rc<Promise> {
-        Promise::new_in_current_compartment(&self.global(), comp)
+    fn PromiseAttribute(&self, comp: InRealm) -> Rc<Promise> {
+        Promise::new_in_current_realm(&self.global(), comp)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

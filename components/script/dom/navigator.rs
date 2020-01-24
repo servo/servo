@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::error::Error;
@@ -22,6 +21,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xr::XR;
+use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -172,8 +172,8 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
-    fn GetVRDisplays(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn GetVRDisplays(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         let displays = self.Xr().get_displays();
         match displays {
             Ok(displays) => promise.resolve_native(&displays),

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
     self, GPUAdapterMethods, GPUDeviceDescriptor,
 };
@@ -15,6 +14,7 @@ use crate::dom::gpu::response_async;
 use crate::dom::gpu::AsyncWGPUListener;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -78,8 +78,8 @@ impl GPUAdapterMethods for GPUAdapter {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
-    fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         let sender = response_async(&promise, self);
         let desc = wgpu::instance::DeviceDescriptor {
             extensions: wgpu::instance::Extensions {

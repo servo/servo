@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // check-tidy: no specs after this line
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
@@ -18,6 +17,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
+use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -57,7 +57,7 @@ impl TestWorkletMethods for TestWorklet {
         &self,
         moduleURL: USVString,
         options: &WorkletOptions,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         self.worklet.AddModule(moduleURL, options, comp)
     }

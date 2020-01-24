@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::GPURequestAdapterOptions;
 use crate::dom::bindings::codegen::Bindings::GPUBinding::{self, GPUMethods, GPUPowerPreference};
 use crate::dom::bindings::error::Error;
@@ -13,6 +12,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
+use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
@@ -104,13 +104,9 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
 
 impl GPUMethods for GPU {
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter
-    fn RequestAdapter(
-        &self,
-        options: &GPURequestAdapterOptions,
-        comp: InCompartment,
-    ) -> Rc<Promise> {
+    fn RequestAdapter(&self, options: &GPURequestAdapterOptions, comp: InRealm) -> Rc<Promise> {
         let global = &self.global();
-        let promise = Promise::new_in_current_compartment(global, comp);
+        let promise = Promise::new_in_current_realm(global, comp);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => wgpu::instance::PowerPreference::LowPower,

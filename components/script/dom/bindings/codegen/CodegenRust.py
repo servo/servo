@@ -771,14 +771,14 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         #
         # 1) Normal call to API with a Promise argument.  This is a case the
         #    spec covers, and we should be using the current Realm's
-        #    Promise.  That means the current compartment.
+        #    Promise.  That means the current realm.
         # 2) Promise return value from a callback or callback interface.
         #    This is in theory a case the spec covers but in practice it
         #    really doesn't define behavior here because it doesn't define
         #    what Realm we're in after the callback returns, which is when
         #    the argument conversion happens.  We will use the current
-        #    compartment, which is the compartment of the callable (which
-        #    may itself be a cross-compartment wrapper itself), which makes
+        #    realm, which is the realm of the callable (which
+        #    may itself be a cross-realm wrapper itself), which makes
         #    as much sense as anything else. In practice, such an API would
         #    once again be providing a Promise to signal completion of an
         #    operation, which would then not be exposed to anyone other than
@@ -3397,8 +3397,8 @@ class CGCallGenerator(CGThing):
 
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
-        if nativeMethodName in descriptor.inCompartmentMethods:
-            args.append(CGGeneric("InCompartment::in_compartment(&AlreadyInCompartment::assert_for_cx(cx))"))
+        if nativeMethodName in descriptor.inRealmMethods:
+            args.append(CGGeneric("InRealm::in_realm(&AlreadyInRealm::assert_for_cx(cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -5671,7 +5671,7 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
 // The custom element definition cannot use an element interface as its constructor
 
-// The new_target might be a cross-compartment wrapper. Get the underlying object
+// The new_target might be a cross-realm wrapper. Get the underlying object
 // so we can do the spec's object-identity checks.
 rooted!(in(*cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), *cx, 1));
 if new_target.is_null() {
@@ -5697,11 +5697,11 @@ rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
     if !proto_val.is_object() {
         // Step 7 of https://html.spec.whatwg.org/multipage/#htmlconstructor.
         // This fallback behavior is designed to match analogous behavior for the
-        // JavaScript built-ins. So we enter the compartment of our underlying
+        // JavaScript built-ins. So we enter the realm of our underlying
         // newTarget object and fall back to the prototype object from that global.
         // XXX The spec says to use GetFunctionRealm(), which is not actually
         // the same thing as what we have here (e.g. in the case of scripted callable proxies
-        // whose target is not same-compartment with the proxy, or bound functions, etc).
+        // whose target is not same-realm with the proxy, or bound functions, etc).
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
 
         rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
@@ -5712,7 +5712,7 @@ rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
     };
 }
 
-// Wrap prototype in this context since it is from the newTarget compartment
+// Wrap prototype in this context since it is from the newTarget realm
 if !JS_WrapObject(*cx, prototype.handle_mut()) {
     return false;
 }
@@ -5770,15 +5770,15 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
 
-        def attribute_arguments(needCx, argument=None, inCompartment=False):
+        def attribute_arguments(needCx, argument=None, inRealm=False):
             if needCx:
                 yield "cx", "SafeJSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
 
-            if inCompartment:
-                yield "_comp", "InCompartment"
+            if inRealm:
+                yield "_comp", "InRealm"
 
         def members():
             for m in descriptor.interface.members:
@@ -5790,7 +5790,7 @@ class CGInterfaceTrait(CGThing):
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inCompartment=name in descriptor.inCompartmentMethods)
+                                                     inRealm=name in descriptor.inRealmMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield name + ('_' * idx), arguments, rettype
                 elif m.isAttr() and not m.isStatic():
@@ -5799,7 +5799,7 @@ class CGInterfaceTrait(CGThing):
                     yield (name,
                            attribute_arguments(
                                typeNeedsCx(m.type, True),
-                               inCompartment=name in descriptor.inCompartmentMethods
+                               inRealm=name in descriptor.inRealmMethods
                            ),
                            return_type(descriptor, m.type, infallible))
 
@@ -5814,7 +5814,7 @@ class CGInterfaceTrait(CGThing):
                                attribute_arguments(
                                    typeNeedsCx(m.type, False),
                                    m.type,
-                                   inCompartment=name in descriptor.inCompartmentMethods
+                                   inRealm=name in descriptor.inRealmMethods
                                ),
                                rettype)
 
@@ -5831,7 +5831,7 @@ class CGInterfaceTrait(CGThing):
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inCompartment=name in descriptor.inCompartmentMethods)
+                                                     inRealm=name in descriptor.inRealmMethods)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -5842,7 +5842,7 @@ class CGInterfaceTrait(CGThing):
                             yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inCompartment=name in descriptor.inCompartmentMethods)
+                                                     inRealm=name in descriptor.inRealmMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype
 
@@ -6138,8 +6138,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::windowproxy::WindowProxy',
         'crate::dom::globalscope::GlobalScope',
         'crate::mem::malloc_size_of_including_raw_self',
-        'crate::compartments::InCompartment',
-        'crate::compartments::AlreadyInCompartment',
+        'crate::realms::InRealm',
+        'crate::realms::AlreadyInRealm',
         'crate::script_runtime::JSContext as SafeJSContext',
         'libc',
         'servo_config::pref',
@@ -6861,7 +6861,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     return declType.define()
 
 
-def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inCompartment=False):
+def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inRealm=False):
     if needCx(returnType, arguments, passJSBits):
         yield "cx", "SafeJSContext"
 
@@ -6873,8 +6873,8 @@ def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True,
     if trailing:
         yield trailing
 
-    if inCompartment:
-        yield "_comp", "InCompartment"
+    if inRealm:
+        yield "_comp", "InRealm"
 
 
 def return_type(descriptorProvider, rettype, infallible):

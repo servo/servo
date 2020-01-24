@@ -377,9 +377,6 @@ mod gen {
                             slice_ms: i64,
                         },
                         low_frequency_heap_growth: i64,
-                        per_compartment: {
-                            enabled: bool,
-                        },
                         per_zone: {
                             enabled: bool,
                         },

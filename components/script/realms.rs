@@ -7,38 +7,38 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
-pub struct AlreadyInCompartment(());
+pub struct AlreadyInRealm(());
 
-impl AlreadyInCompartment {
+impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub fn assert(global: &GlobalScope) -> AlreadyInCompartment {
+    pub fn assert(global: &GlobalScope) -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*global.get_cx()).is_null());
         }
-        AlreadyInCompartment(())
+        AlreadyInRealm(())
     }
 
-    pub fn assert_for_cx(cx: JSContext) -> AlreadyInCompartment {
+    pub fn assert_for_cx(cx: JSContext) -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*cx).is_null());
         }
-        AlreadyInCompartment(())
+        AlreadyInRealm(())
     }
 }
 
 #[derive(Clone, Copy)]
-pub enum InCompartment<'a> {
-    Already(&'a AlreadyInCompartment),
+pub enum InRealm<'a> {
+    Already(&'a AlreadyInRealm),
     Entered(&'a JSAutoRealm),
 }
 
-impl<'a> InCompartment<'a> {
-    pub fn in_compartment(token: &AlreadyInCompartment) -> InCompartment {
-        InCompartment::Already(token)
+impl<'a> InRealm<'a> {
+    pub fn in_realm(token: &AlreadyInRealm) -> InRealm {
+        InRealm::Already(token)
     }
 
-    pub fn entered(token: &JSAutoRealm) -> InCompartment {
-        InCompartment::Entered(token)
+    pub fn entered(token: &JSAutoRealm) -> InRealm {
+        InRealm::Entered(token)
     }
 }
 
