@@ -17,7 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::realms::enter_realm;
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
@@ -370,7 +370,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
+    pub fn opener(&self, cx: *mut JSContext, in_realm_proof: InRealm) -> JSVal {
         if self.disowned.get() {
             return NullValue();
         }
@@ -387,7 +387,8 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let global_to_clone_from = unsafe { GlobalScope::from_context(cx) };
+                        let global_to_clone_from =
+                            unsafe { GlobalScope::from_context(cx, in_realm_proof) };
                         WindowProxy::new_dissimilar_origin(
                             &*global_to_clone_from,
                             opener_id,
@@ -982,10 +983,11 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 // defined in the DissimilarOriginWindow IDL.
 
 #[allow(unsafe_code)]
-unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
+unsafe fn throw_security_error(cx: *mut JSContext, realm: InRealm) -> bool {
     if !JS_IsExceptionPending(cx) {
-        let global = GlobalScope::from_context(cx);
-        throw_dom_exception(SafeJSContext::from_ptr(cx), &*global, Error::Security);
+        let safe_context = SafeJSContext::from_ptr(cx);
+        let global = GlobalScope::from_context(cx, realm);
+        throw_dom_exception(safe_context, &*global, Error::Security);
     }
     false
 }
@@ -1006,7 +1008,8 @@ unsafe extern "C" fn has_xorigin(
         *bp = true;
         true
     } else {
-        throw_security_error(cx)
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        throw_security_error(cx, InRealm::Already(&in_realm_proof))
     }
 }
 
@@ -1032,7 +1035,8 @@ unsafe extern "C" fn set_xorigin(
     _: RawHandleValue,
     _: *mut ObjectOpResult,
 ) -> bool {
-    throw_security_error(cx)
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
 #[allow(unsafe_code)]
@@ -1042,7 +1046,8 @@ unsafe extern "C" fn delete_xorigin(
     _: RawHandleId,
     _: *mut ObjectOpResult,
 ) -> bool {
-    throw_security_error(cx)
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
 #[allow(unsafe_code, non_snake_case)]
@@ -1065,7 +1070,8 @@ unsafe extern "C" fn defineProperty_xorigin(
     _: RawHandle<PropertyDescriptor>,
     _: *mut ObjectOpResult,
 ) -> bool {
-    throw_security_error(cx)
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
 #[allow(unsafe_code, non_snake_case)]
@@ -1074,7 +1080,8 @@ unsafe extern "C" fn preventExtensions_xorigin(
     _: RawHandleObject,
     _: *mut ObjectOpResult,
 ) -> bool {
-    throw_security_error(cx)
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
 static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {

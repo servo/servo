@@ -673,7 +673,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn Opener(&self, cx: JSContext) -> JSVal {
+    fn Opener(&self, cx: JSContext, in_realm_proof: InRealm) -> JSVal {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -688,7 +688,7 @@ impl WindowMethods for Window {
             return NullValue();
         }
         // Step 3 to 5.
-        current.opener(*cx)
+        current.opener(*cx, in_realm_proof)
     }
 
     #[allow(unsafe_code)]

@@ -32,6 +32,7 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener};
 use crate::network_listener::{PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use encoding_rs::UTF_8;
@@ -473,8 +474,9 @@ impl ModuleTree {
 
         if let Some(exception) = &*module_error {
             unsafe {
+                let ar = enter_realm(&*global);
                 JS_SetPendingException(*global.get_cx(), exception.handle());
-                report_pending_exception(*global.get_cx(), true);
+                report_pending_exception(*global.get_cx(), true, InRealm::Entered(&ar));
             }
         }
     }
@@ -1074,7 +1076,8 @@ unsafe extern "C" fn HostResolveImportedModule(
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSString>,
 ) -> *mut JSObject {
-    let global_scope = GlobalScope::from_context(cx);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global_scope = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
 
     // Step 2.
     let mut base_url = global_scope.api_base_url();

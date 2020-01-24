@@ -38,7 +38,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
-use crate::realms::enter_realm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_module::ModuleTree;
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
@@ -61,10 +61,10 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
-use js::jsapi::{JSAutoRealm, JSContext};
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::EvaluateUtf8;
@@ -1449,8 +1449,9 @@ impl GlobalScope {
 
     /// Returns the global scope for the given JSContext
     #[allow(unsafe_code)]
-    pub unsafe fn from_context(cx: *mut JSContext) -> DomRoot<Self> {
+    pub unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
         let global = CurrentGlobalOrNull(cx);
+        assert!(!global.is_null());
         global_scope_from_global(global, cx)
     }
 
@@ -1846,10 +1847,10 @@ impl GlobalScope {
             self.time_profiler_chan().clone(),
             || {
                 let cx = self.get_cx();
-                let globalhandle = self.reflector().get_jsobject();
                 let filename = CString::new(filename).unwrap();
 
-                let _ac = JSAutoRealm::new(*cx, globalhandle.get());
+                let ar = enter_realm(&*self);
+
                 let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
 
@@ -1866,7 +1867,7 @@ impl GlobalScope {
 
                 if !result {
                     debug!("error evaluating Dom string");
-                    unsafe { report_pending_exception(*cx, true) };
+                    unsafe { report_pending_exception(*cx, true, InRealm::Entered(&ar)) };
                 }
 
                 maybe_resume_unwind();

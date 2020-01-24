@@ -25,7 +25,7 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
@@ -42,7 +42,6 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
@@ -399,11 +398,8 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        let _ac = JSAutoRealm::new(
-                            self.runtime.cx(),
-                            self.reflector().get_jsobject().get(),
-                        );
-                        report_pending_exception(self.runtime.cx(), true);
+                        let ar = enter_realm(&*self);
+                        report_pending_exception(self.runtime.cx(), true, InRealm::Entered(&ar));
                     }
                 }
             },
