@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::fragments::{BoxFragment, Fragment};
-use crate::geom::physical::{Rect, Vec2};
+use crate::geom::{PhysicalPoint, PhysicalRect, ToWebRender};
 use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, Vector2D};
@@ -74,7 +74,7 @@ impl Fragment {
     pub(crate) fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
-        containing_block: &Rect<Length>,
+        containing_block: &PhysicalRect<Length>,
     ) {
         match self {
             Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
@@ -82,7 +82,7 @@ impl Fragment {
                 let rect = a
                     .rect
                     .to_physical(a.mode, containing_block)
-                    .translate(&containing_block.top_left);
+                    .translate(containing_block.origin.to_vector());
                 for child in &a.children {
                     child.build_display_list(builder, &rect)
                 }
@@ -92,30 +92,35 @@ impl Fragment {
                 let rect = t
                     .rect
                     .to_physical(t.parent_style.writing_mode, containing_block)
-                    .translate(&containing_block.top_left);
-                let mut baseline_origin = rect.top_left.clone();
+                    .translate(containing_block.origin.to_vector());
+                let mut baseline_origin = rect.origin.clone();
                 baseline_origin.y += t.ascent;
                 let glyphs = glyphs(&t.glyphs, baseline_origin);
                 if glyphs.is_empty() {
                     return;
                 }
-                let mut common = builder.common_properties(rect.clone().into());
+                let mut common = builder.common_properties(rect.clone().to_webrender());
                 common.hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
                 let color = t.parent_style.clone_color();
-                builder
-                    .wr
-                    .push_text(&common, rect.into(), &glyphs, t.font_key, rgba(color), None);
+                builder.wr.push_text(
+                    &common,
+                    rect.to_webrender(),
+                    &glyphs,
+                    t.font_key,
+                    rgba(color),
+                    None,
+                );
             },
             Fragment::Image(i) => {
                 builder.is_contentful = true;
                 let rect = i
                     .rect
                     .to_physical(i.style.writing_mode, containing_block)
-                    .translate(&containing_block.top_left);
-                let common = builder.common_properties(rect.clone().into());
+                    .translate(containing_block.origin.to_vector());
+                let common = builder.common_properties(rect.clone().to_webrender());
                 builder.wr.push_image(
                     &common,
-                    rect.into(),
+                    rect.to_webrender(),
                     image_rendering(i.style.get_inherited_box().image_rendering),
                     wr::AlphaType::PremultipliedAlpha,
                     i.image_key,
@@ -128,7 +133,7 @@ impl Fragment {
 
 struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
-    containing_block: &'a Rect<Length>,
+    containing_block: &'a PhysicalRect<Length>,
     border_rect: units::LayoutRect,
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
@@ -137,12 +142,12 @@ struct BuilderForBoxFragment<'a> {
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
-    fn new(fragment: &'a BoxFragment, containing_block: &'a Rect<Length>) -> Self {
+    fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Length>) -> Self {
         let border_rect: units::LayoutRect = fragment
             .border_rect()
             .to_physical(fragment.style.writing_mode, containing_block)
-            .translate(&containing_block.top_left)
-            .into();
+            .translate(containing_block.origin.to_vector())
+            .to_webrender();
 
         let border_radius = {
             let resolve = |radius: &LengthPercentage, box_size: f32| {
@@ -179,8 +184,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.fragment
                 .content_rect
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
-                .translate(&self.containing_block.top_left)
-                .into()
+                .translate(self.containing_block.origin.to_vector())
+                .to_webrender()
         })
     }
 
@@ -189,8 +194,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.fragment
                 .padding_rect()
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
-                .translate(&self.containing_block.top_left)
-                .into()
+                .translate(self.containing_block.origin.to_vector())
+                .to_webrender()
         })
     }
 
@@ -235,7 +240,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             .fragment
             .content_rect
             .to_physical(self.fragment.style.writing_mode, self.containing_block)
-            .translate(&self.containing_block.top_left);
+            .translate(self.containing_block.origin.to_vector());
         for child in &self.fragment.children {
             child.build_display_list(builder, &content_rect)
         }
@@ -580,7 +585,10 @@ fn rgba(rgba: cssparser::RGBA) -> wr::ColorF {
     )
 }
 
-fn glyphs(glyph_runs: &[Arc<GlyphStore>], mut origin: Vec2<Length>) -> Vec<wr::GlyphInstance> {
+fn glyphs(
+    glyph_runs: &[Arc<GlyphStore>],
+    mut origin: PhysicalPoint<Length>,
+) -> Vec<wr::GlyphInstance> {
     use gfx_traits::ByteIndex;
     use range::Range;
 
