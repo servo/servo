@@ -10,6 +10,7 @@ use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use time::{self, Tm};
 
@@ -141,6 +142,17 @@ impl CookieStorage {
             // Ensure that longer paths are sorted earlier than shorter paths
             Ordering::Greater => Ordering::Less,
             Ordering::Less => Ordering::Greater,
+        }
+    }
+
+    pub fn remove_expired_cookies_for_url(&mut self, url: &ServoUrl) {
+        let domain = reg_host(url.host_str().unwrap_or(""));
+        if let Entry::Occupied(mut entry) = self.cookies_map.entry(domain) {
+            let cookies = entry.get_mut();
+            cookies.retain(|c| !is_cookie_expired(&c));
+            if cookies.len() == 0 {
+                entry.remove_entry();
+            }
         }
     }
 
