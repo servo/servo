@@ -46,6 +46,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLParamElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLPictureElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLPreElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
@@ -292,6 +293,7 @@ pub fn get_constructor_object_from_local_name(
         local_name!("output") => get_constructor!(HTMLOutputElementBinding),
         local_name!("p") => get_constructor!(HTMLParagraphElementBinding),
         local_name!("param") => get_constructor!(HTMLParamElementBinding),
+        local_name!("picture") => get_constructor!(HTMLPictureElementBinding),
         local_name!("plaintext") => get_constructor!(HTMLPreElementBinding),
         local_name!("pre") => get_constructor!(HTMLPreElementBinding),
         local_name!("progress") => get_constructor!(HTMLProgressElementBinding),
