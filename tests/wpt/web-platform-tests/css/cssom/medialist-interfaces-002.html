@@ -36,7 +36,7 @@
     // MediaList.deleteMedium called without argument throws error.
     test(function() {
       media_list = setup();
-      assert_throws(new TypeError, function() { media_list.deleteMedium(); });
+      assert_throws_js(TypeError, function() { media_list.deleteMedium(); });
     }, "deleteMedium_called_without_argument");
 
     // MediaList.deleteMedium removes correct medium and updates corresponding properties.

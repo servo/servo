@@ -23,7 +23,7 @@ indexeddb_test(
       const cursor = r.result;
 
       setTimeout(t.step_func(() => {
-        assert_throws(new TypeError, () => { cursor.advance(0); },
+        assert_throws_js(TypeError, () => { cursor.advance(0); },
                       '"zero" check (TypeError) should precede ' +
                       '"not active" check (TransactionInactiveError)');
         t.done();

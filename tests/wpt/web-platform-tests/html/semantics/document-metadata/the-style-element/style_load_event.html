@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>HTML Test: The style load event should fire when textContent is changed</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#update-a-style-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id=target onload="load()">
+  .box { color:red; }
+</style>
+<div class='box'></div>
+<div id="log"></div>
+
+<script>
+  var loadCount = 0;
+  function load() { loadCount++; }
+
+  function styleLoad() {
+    return new Promise((resolve) => {
+      document.getElementById('target').addEventListener('load', () => {
+        resolve();
+      });
+    });
+  }
+
+  promise_test(async t => {
+    await styleLoad();
+    assert_equals(loadCount,1,"Style element should have loaded once by now");
+    target.textContent = `.box { color: green; }`;
+    await styleLoad();
+    assert_equals(loadCount,2,"Style element should fire the load event when textContent changes");
+  },"style load event should fire when textContent changed");
+</script>

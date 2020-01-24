@@ -16,8 +16,8 @@ test(function(t) {
 }, "Test that setActionHandler() can be executed for supported actions");
 
 test(function(t) {
-  assert_throws(
-      new TypeError,
+  assert_throws_js(
+      TypeError,
       _ => { window.navigator.mediaSession.setActionHandler("invalid", null); });
 }, "Test that setActionHandler() throws exception for unsupported actions");
 

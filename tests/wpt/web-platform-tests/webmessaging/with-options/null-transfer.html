@@ -5,6 +5,6 @@
 <div id=log></div>
 <script>
 test(function(t) {
-  assert_throws(new TypeError, () => postMessage('', {transfer: null}));
+  assert_throws_js(TypeError, () => postMessage('', {transfer: null}));
 });
 </script>

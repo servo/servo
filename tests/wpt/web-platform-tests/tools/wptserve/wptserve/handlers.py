@@ -95,15 +95,29 @@ class DirectoryHandler(object):
             link = urljoin(base_path, "..")
             yield ("""<li class="dir"><a href="%(link)s">%(name)s</a></li>""" %
                    {"link": link, "name": ".."})
+        items = []
+        prev_item = None
         for item in sorted(os.listdir(path)):
+            if prev_item and prev_item + ".headers" == item:
+                items[-1][1] = item
+                prev_item = None
+                continue
+            items.append([item, None])
+            prev_item = item
+        for item, dot_headers in items:
             link = html.escape(quote(item))
+            dot_headers_markup = ""
+            if dot_headers is not None:
+                dot_headers_markup = (""" (<a href="%(link)s">.headers</a>)""" %
+                                      {"link": html.escape(quote(dot_headers))})
             if os.path.isdir(os.path.join(path, item)):
                 link += "/"
                 class_ = "dir"
             else:
                 class_ = "file"
-            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a></li>""" %
-                   {"link": link, "name": html.escape(item), "class": class_})
+            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a>%(headers)s</li>""" %
+                   {"link": link, "name": html.escape(item), "class": class_,
+                    "headers": dot_headers_markup})
 
 
 def wrap_pipeline(path, request, response):

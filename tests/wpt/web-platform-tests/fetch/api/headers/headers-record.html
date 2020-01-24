@@ -35,7 +35,7 @@ test(function() {
 }, "Passing undefined to Headers constructor");
 
 test(function() {
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(null);
   });
 }, "Passing null to Headers constructor");
@@ -126,7 +126,7 @@ test(function() {
   this.add_cleanup(clearLog);
   var record = { a: "b", "\uFFFF": "d" };
   var proxy = new Proxy(record, loggingHandler);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(proxy);
   });
 
@@ -151,7 +151,7 @@ test(function() {
   this.add_cleanup(clearLog);
   var record = { a: "\uFFFF", c: "d" }
   var proxy = new Proxy(record, loggingHandler);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(proxy);
   });
 

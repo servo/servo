@@ -11,8 +11,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/security-features/resources/common.sub.js"></script>
-    <script src="%(helper_js)s"></script>
-  </head>
+%(helper_js)s  </head>
   <body>
     <script>
       TestCase(

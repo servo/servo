@@ -23,7 +23,7 @@ indexeddb_test(
     worker.postMessage('', [buffer]);
     assert_equals(array.byteLength, 0);
 
-    assert_throws(new TypeError, () => { store.put('', buffer); });
+    assert_throws_js(TypeError, () => { store.put('', buffer); });
     t.done();
   },
   'Detached ArrayBuffer'
@@ -43,7 +43,7 @@ indexeddb_test(
     worker.postMessage('', [array.buffer]);
     assert_equals(array.length, 0);
 
-    assert_throws(new TypeError, () => { store.put('', array); });
+    assert_throws_js(TypeError, () => { store.put('', array); });
     t.done();
   },
   'Detached TypedArray'

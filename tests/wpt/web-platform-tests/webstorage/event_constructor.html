@@ -8,7 +8,7 @@
  <body>
     <script>
         test(function() {
-            assert_throws(new TypeError, () => new StorageEvent());
+            assert_throws_js(TypeError, () => new StorageEvent());
             // should be redundant, but .length can be wrong with custom bindings
             assert_equals(StorageEvent.length, 1, 'StorageEvent.length');
         }, 'constructor with no arguments');

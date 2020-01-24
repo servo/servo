@@ -131,4 +131,26 @@ promise_test(async t => {
 promise_test(t => {
   return promise_rejects(t, new TypeError(), fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
 }, `"require-corp" top-level: fetch() to response without CORP should fail`);
+
+promise_test(t => {
+  const w = window.open();
+  return promise_rejects(t, new TypeError(), w.fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
+}, `"require-corp" top-level: fetch() to response without CORP through a WindowProxy should fail`);
+
+async_test(t => {
+  let w = window.open();
+  const frame = w.document.createElement("iframe");
+  t.add_cleanup(() => w.close());
+  t.step_timeout(() => {
+    // Make sure the iframe didn't load. See
+    // https://github.com/whatwg/html/issues/125 for why a timeout is
+    // used here. Long term all network error handling should be similar
+    // and have a reliable event.
+    assert_equals(frame.contentDocument, null);
+    t.done();
+  }, 500);
+  frame.src = "/common/blank.html";
+  document.body.append(frame);
+  assert_equals(frame.contentDocument.body.localName, "body");
+}, `"require-corp" top-level: navigating an iframe to a page without CORP, through a WindowProxy, should fail`);
 </script>

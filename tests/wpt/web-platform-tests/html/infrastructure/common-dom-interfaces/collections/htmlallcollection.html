@@ -160,7 +160,7 @@ test(function() {
 
 test(function() {
   assert_equals(document.all.namedItem.length, 1);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     document.all.namedItem();
   });
 }, "namedItem method with no argument");

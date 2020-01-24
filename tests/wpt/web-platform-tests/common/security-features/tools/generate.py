@@ -130,8 +130,8 @@ def handle_deliveries(policy_deliveries):
     return {"meta": meta, "headers": headers}
 
 
-def generate_selection(spec_directory, spec_json, selection, spec,
-                       test_html_template_basename):
+def generate_selection(spec_directory, test_helper_filenames, spec_json,
+                       selection, spec, test_html_template_basename):
     test_filename = get_test_filename(spec_directory, spec_json, selection)
 
     target_policy_delivery = util.PolicyDelivery(selection['delivery_type'],
@@ -184,9 +184,10 @@ def generate_selection(spec_directory, spec_json, selection, spec,
 
     test_directory = os.path.dirname(test_filename)
 
-    selection['helper_js'] = os.path.relpath(
-        os.path.join(spec_directory, 'generic', 'test-case.sub.js'),
-        test_directory)
+    selection['helper_js'] = ""
+    for test_helper_filename in test_helper_filenames:
+        selection['helper_js'] += '    <script src="%s"></script>\n' % (
+            os.path.relpath(test_helper_filename, test_directory))
     selection['sanity_checker_js'] = os.path.relpath(
         os.path.join(spec_directory, 'generic', 'sanity-checker.js'),
         test_directory)
@@ -237,16 +238,19 @@ def generate_selection(spec_directory, spec_json, selection, spec,
     util.write_file(test_filename, test_html_template % selection)
 
 
-def generate_test_source_files(spec_directory, spec_json, target):
+def generate_test_source_files(spec_directory, test_helper_filenames,
+                               spec_json, target):
     test_expansion_schema = spec_json['test_expansion_schema']
     specification = spec_json['specification']
 
     spec_json_js_template = util.get_template('spec_json.js.template')
-    generated_spec_json_filename = os.path.join(spec_directory, "generic",
-                                                "spec_json.js")
     util.write_file(
-        generated_spec_json_filename,
+        os.path.join(spec_directory, "generic", "spec_json.js"),
         spec_json_js_template % {'spec_json': json.dumps(spec_json)})
+
+    util.write_file(
+        os.path.join(spec_directory, "generic", "debug-output.spec.src.json"),
+        json.dumps(spec_json, indent=2, separators=(',', ': ')))
 
     # Choose a debug/release template depending on the target.
     html_template = "test.%s.html.template" % target
@@ -290,10 +294,24 @@ def generate_test_source_files(spec_directory, spec_json, target):
                 print('Excluding selection:', selection_path)
                 continue
             try:
-                generate_selection(spec_directory, spec_json, selection, spec,
-                                   html_template)
+                generate_selection(spec_directory, test_helper_filenames,
+                                   spec_json, selection, spec, html_template)
             except util.ShouldSkip:
                 continue
+
+
+def merge_json(base, child):
+    for key in child:
+        if key not in base:
+            base[key] = child[key]
+            continue
+        # `base[key]` and `child[key]` both exists.
+        if isinstance(base[key], list) and isinstance(child[key], list):
+            base[key].extend(child[key])
+        elif isinstance(base[key], dict) and isinstance(child[key], dict):
+            merge_json(base[key], child[key])
+        else:
+            base[key] = child[key]
 
 
 def main():
@@ -317,11 +335,38 @@ def main():
 
     spec_directory = os.path.abspath(args.spec)
 
-    spec_filename = os.path.join(spec_directory, "spec.src.json")
-    spec_json = util.load_spec_json(spec_filename)
-    spec_validator.assert_valid_spec_json(spec_json)
+    # Read `spec.src.json` files, starting from `spec_directory`, and
+    # continuing to parent directories as long as `spec.src.json` exists.
+    spec_filenames = []
+    test_helper_filenames = []
+    spec_src_directory = spec_directory
+    while len(spec_src_directory) >= len(util.test_root_directory):
+        spec_filename = os.path.join(spec_src_directory, "spec.src.json")
+        if not os.path.exists(spec_filename):
+            break
+        spec_filenames.append(spec_filename)
+        test_filename = os.path.join(spec_src_directory, 'generic',
+                                     'test-case.sub.js')
+        assert (os.path.exists(test_filename))
+        test_helper_filenames.append(test_filename)
+        spec_src_directory = os.path.abspath(
+            os.path.join(spec_src_directory, ".."))
 
-    generate_test_source_files(spec_directory, spec_json, args.target)
+    spec_filenames = list(reversed(spec_filenames))
+    test_helper_filenames = list(reversed(test_helper_filenames))
+
+    if len(spec_filenames) == 0:
+        print('Error: No spec.src.json is found at %s.' % spec_directory)
+        return
+
+    spec_json = util.load_spec_json(spec_filenames[0])
+    for spec_filename in spec_filenames[1:]:
+        child_spec_json = util.load_spec_json(spec_filename)
+        merge_json(spec_json, child_spec_json)
+
+    spec_validator.assert_valid_spec_json(spec_json)
+    generate_test_source_files(spec_directory, test_helper_filenames,
+                               spec_json, args.target)
 
 
 if __name__ == '__main__':

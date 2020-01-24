@@ -37,7 +37,7 @@ test(() => {
 
 test(() => {
   for (const invalidEasing of gInvalidEasings) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, { easing: invalidEasing });
     }, `TypeError is thrown for easing '${invalidEasing}'`);
   }
@@ -46,7 +46,7 @@ test(() => {
 
 test(() => {
   for (const invalidEasing of gInvalidEasings) {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       new KeyframeEffect(target, [{ easing: invalidEasing }]);
     }, `TypeError is thrown for easing '${invalidEasing}'`);
   }
