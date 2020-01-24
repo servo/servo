@@ -5550,7 +5550,7 @@ dependencies = [
 [[package]]
 name = "spirv_cross"
 version = "0.16.0"
-source = "git+https://github.com/kvark/spirv_cross?branch=wgpu#636677bad724797789239c16e6d332e9b4d97b86"
+source = "git+https://github.com/servo/spirv_cross?branch=wgpu-servo#636677bad724797789239c16e6d332e9b4d97b86"
 dependencies = [
  "cc",
 ]
