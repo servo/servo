@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding;
 use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding::XRViewerPoseMethods;
@@ -13,6 +12,7 @@ use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
 use crate::dom::xrview::XRView;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;

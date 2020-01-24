@@ -5,7 +5,6 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
@@ -15,6 +14,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::glue::CopyJSStructuredCloneData;
 use js::glue::DeleteJSAutoStructuredCloneBuffer;

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::analysernode::AnalyserNode;
 use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::audiobuffersourcenode::AudioBufferSourceNode;
@@ -47,6 +46,7 @@ use crate::dom::pannernode::PannerNode;
 use crate::dom::promise::Promise;
 use crate::dom::stereopannernode::StereoPannerNode;
 use crate::dom::window::Window;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
@@ -282,9 +282,9 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
-    fn Resume(&self, comp: InCompartment) -> Rc<Promise> {
+    fn Resume(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
@@ -437,10 +437,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,
         decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
         decode_error_callback: Option<Rc<DecodeErrorCallback>>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         let global = self.global();
         let window = global.as_window();
 

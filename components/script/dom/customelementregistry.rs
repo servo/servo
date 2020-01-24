@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
@@ -31,6 +30,7 @@ use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncludi
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
@@ -417,20 +417,20 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    fn WhenDefined(&self, name: DOMString, comp: InCompartment) -> Rc<Promise> {
+    fn WhenDefined(&self, name: DOMString, comp: InRealm) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_current_compartment(&global_scope, comp);
+            let promise = Promise::new_in_current_realm(&global_scope, comp);
             promise.reject_native(&DOMException::new(&global_scope, DOMErrorName::SyntaxError));
             return promise;
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
-            let promise = Promise::new_in_current_compartment(&global_scope, comp);
+            let promise = Promise::new_in_current_realm(&global_scope, comp);
             promise.resolve_native(&UndefinedValue());
             return promise;
         }
@@ -440,7 +440,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 4, 5
         let promise = map.get(&name).cloned().unwrap_or_else(|| {
-            let promise = Promise::new_in_current_compartment(&global_scope, comp);
+            let promise = Promise::new_in_current_realm(&global_scope, comp);
             map.insert(name, promise.clone());
             promise
         });
@@ -535,7 +535,7 @@ impl CustomElementDefinition {
         rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
         rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
         {
-            // Go into the constructor's compartment
+            // Go into the constructor's realm
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
             let args = HandleValueArray::new();
             if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
@@ -676,7 +676,7 @@ fn run_upgrade_constructor(
     {
         // Step 8.1 TODO when shadow DOM exists
 
-        // Go into the constructor's compartment
+        // Go into the constructor's realm
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::new();
         // Step 8.2

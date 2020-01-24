@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
@@ -23,6 +22,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use crossbeam_channel::{unbounded, Sender};

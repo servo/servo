@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
@@ -13,6 +12,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::JS_GetArrayBufferViewBuffer;

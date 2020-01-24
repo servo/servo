@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     ServiceWorkerContainerMethods, Wrap,
@@ -16,6 +15,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
+use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use crate::serviceworkerjob::{Job, JobType};
 use dom_struct::dom_struct;
@@ -59,10 +59,10 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         &self,
         script_url: USVString,
         options: &RegistrationOptions,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         // A: Step 1
-        let promise = Promise::new_in_current_compartment(&*self.global(), comp);
+        let promise = Promise::new_in_current_realm(&*self.global(), comp);
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
         // A: Step 3-5

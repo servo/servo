@@ -64,8 +64,6 @@ pub mod document_loader;
 mod dom;
 #[warn(deprecated)]
 mod canvas_state;
-#[warn(deprecated)]
-mod compartments;
 mod euclidext;
 #[warn(deprecated)]
 pub mod fetch;
@@ -81,6 +79,8 @@ mod mem;
 mod microtask;
 #[warn(deprecated)]
 mod network_listener;
+#[warn(deprecated)]
+mod realms;
 #[warn(deprecated)]
 mod script_module;
 #[warn(deprecated)]

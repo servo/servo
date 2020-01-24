@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::NavigationPreloadState;
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
     NavigationPreloadManagerMethods, Wrap,
@@ -14,6 +13,7 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
 use std::rc::Rc;
@@ -44,8 +44,8 @@ impl NavigationPreloadManager {
 
 impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
-    fn Enable(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&*self.global(), comp);
+    fn Enable(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -66,8 +66,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
-    fn Disable(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&*self.global(), comp);
+    fn Disable(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -88,8 +88,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
-    fn SetHeaderValue(&self, value: ByteString, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&*self.global(), comp);
+    fn SetHeaderValue(&self, value: ByteString, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
         if self.serviceworker_registration.active().is_none() {
@@ -110,8 +110,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
-    fn GetState(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&*self.global(), comp);
+    fn GetState(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&*self.global(), comp);
         // 2.
         let mut state = NavigationPreloadState::empty();
 

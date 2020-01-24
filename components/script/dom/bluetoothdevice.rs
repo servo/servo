@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
@@ -22,6 +21,7 @@ use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::realms::InRealm;
 use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, BluetoothServiceMsg};
 use dom_struct::dom_struct;
@@ -278,8 +278,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
-    fn WatchAdvertisements(&self, comp: InCompartment) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
+    fn WatchAdvertisements(&self, comp: InRealm) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(&self.global(), comp);
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function

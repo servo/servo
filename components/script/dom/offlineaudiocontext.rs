@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
@@ -21,6 +20,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use msg::constellation_msg::PipelineId;
@@ -127,8 +127,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
-    fn StartRendering(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn StartRendering(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);
             return promise;

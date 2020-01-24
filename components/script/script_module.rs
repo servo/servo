@@ -5,7 +5,6 @@
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
 
-use crate::compartments::{enter_realm, AlreadyInCompartment, InCompartment};
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -32,6 +31,7 @@ use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener};
 use crate::network_listener::{PreInvoke, ResourceTimingListener};
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use encoding_rs::UTF_8;
@@ -325,8 +325,8 @@ impl ModuleTree {
             ))),
         );
 
-        let _compartment = enter_realm(&*owner.global());
-        AlreadyInCompartment::assert(&*owner.global());
+        let _realm = enter_realm(&*owner.global());
+        AlreadyInRealm::assert(&*owner.global());
         let _ais = AutoIncumbentScript::new(&*owner.global());
 
         let promise = promise.as_ref().unwrap();
@@ -724,11 +724,11 @@ impl ModuleOwner {
             ))),
         );
 
-        let compartment = enter_realm(&*self.global());
-        let comp = InCompartment::Entered(&compartment);
+        let realm = enter_realm(&*self.global());
+        let comp = InRealm::Entered(&realm);
         let _ais = AutoIncumbentScript::new(&*self.global());
 
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         promise.append_native_handler(&handler);
 
@@ -1324,8 +1324,8 @@ fn fetch_module_descendants_and_link(
                 unsafe {
                     let global = owner.global();
 
-                    let _compartment = enter_realm(&*global);
-                    AlreadyInCompartment::assert(&*global);
+                    let _realm = enter_realm(&*global);
+                    AlreadyInRealm::assert(&*global);
                     let _ais = AutoIncumbentScript::new(&*global);
 
                     let abv = CreateAutoObjectVector(*global.get_cx());

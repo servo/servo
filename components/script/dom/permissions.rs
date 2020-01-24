@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionDescriptor;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -17,6 +16,7 @@ use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
@@ -97,11 +97,8 @@ impl Permissions {
         let p = match promise {
             Some(promise) => promise,
             None => {
-                let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-                Promise::new_in_current_compartment(
-                    &self.global(),
-                    InCompartment::Already(&in_compartment_proof),
-                )
+                let in_realm_proof = AlreadyInRealm::assert(&self.global());
+                Promise::new_in_current_realm(&self.global(), InRealm::Already(&in_realm_proof))
             },
         };
 

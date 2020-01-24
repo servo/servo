@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
@@ -97,6 +96,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -3170,11 +3170,9 @@ impl Document {
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let promise = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+        let in_realm_proof = AlreadyInRealm::assert(&self.global());
+        let promise =
+            Promise::new_in_current_realm(&self.global(), InRealm::Already(&in_realm_proof));
         let mut error = false;
 
         // Step 4
@@ -3241,11 +3239,8 @@ impl Document {
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let in_compartment_proof = AlreadyInCompartment::assert(&global);
-        let promise = Promise::new_in_current_compartment(
-            &global,
-            InCompartment::Already(&in_compartment_proof),
-        );
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let promise = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));

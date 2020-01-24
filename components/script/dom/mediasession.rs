@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
@@ -22,6 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
+use crate::realms::{AlreadyInRealm, InRealm};
 use dom_struct::dom_struct;
 use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
 use embedder_traits::MediaSessionEvent;
@@ -85,8 +85,8 @@ impl MediaSession {
         if let Some(media) = self.media_instance.get() {
             match action {
                 MediaSessionActionType::Play => {
-                    let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-                    media.Play(InCompartment::Already(&in_compartment_proof));
+                    let in_realm_proof = AlreadyInRealm::assert(&self.global());
+                    media.Play(InRealm::Already(&in_realm_proof));
                 },
                 MediaSessionActionType::Pause => {
                     media.Pause();

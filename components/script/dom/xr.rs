@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding;
@@ -25,6 +24,7 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
+use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
@@ -161,11 +161,11 @@ impl XRMethods for XR {
         &self,
         mode: XRSessionMode,
         init: RootedTraceableBox<XRSessionInit>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_compartment(&global, comp);
+        let promise = Promise::new_in_current_realm(&global, comp);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {

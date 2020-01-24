@@ -10,7 +10,6 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
@@ -34,6 +33,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::dom::workletglobalscope::WorkletTask;
 use crate::fetch::load_whole_resource;
+use crate::realms::InRealm;
 use crate::script_runtime::new_rt_and_cx;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::Runtime;
@@ -115,11 +115,11 @@ impl WorkletMethods for Worklet {
         &self,
         module_url: USVString,
         options: &WorkletOptions,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         // Step 1.
         let global = self.window.upcast();
-        let promise = Promise::new_in_current_compartment(&global, comp);
+        let promise = Promise::new_in_current_realm(&global, comp);
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {

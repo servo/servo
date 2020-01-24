@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
@@ -38,6 +37,7 @@ use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::{Rect, RigidTransform3D, Transform3D};
@@ -453,7 +453,7 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-updaterenderstate
-    fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InCompartment) -> ErrorResult {
+    fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InRealm) -> ErrorResult {
         // Step 2
         if self.ended.get() {
             return Err(Error::InvalidState);
@@ -545,8 +545,8 @@ impl XRSessionMethods for XRSession {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
-    fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InCompartment) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
+    fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InRealm) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(&self.global(), comp);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 

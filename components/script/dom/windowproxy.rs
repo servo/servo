@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
@@ -18,6 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
@@ -586,10 +586,10 @@ impl WindowProxy {
 
             // Brain transpant the window proxy.
             // We need to do this, because the Window and WindowProxy
-            // objects need to be in the same compartment.
+            // objects need to be in the same realm.
             // JS_TransplantObject does this by copying the contents
             // of the old window proxy to the new window proxy, then
-            // making the old window proxy a cross-compartment wrapper
+            // making the old window proxy a cross-realm wrapper
             // pointing to the new window proxy.
             rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             debug!(

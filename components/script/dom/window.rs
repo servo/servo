@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -57,6 +56,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::fetch;
 use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
+use crate::realms::InRealm;
 use crate::script_runtime::{
     CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
@@ -1259,7 +1259,7 @@ impl WindowMethods for Window {
         &self,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init, comp)
     }

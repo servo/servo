@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{enter_realm, InCompartment};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
@@ -23,6 +22,7 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::network_listener::{
     self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
 };
+use crate::realms::{enter_realm, InRealm};
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -137,12 +137,12 @@ pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
-    comp: InCompartment,
+    comp: InRealm,
 ) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new_in_current_compartment(global, comp);
+    let promise = Promise::new_in_current_realm(global, comp);
     let response = Response::new(global);
 
     // Step 2

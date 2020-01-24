@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding;
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
@@ -24,6 +23,7 @@ use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use msg::constellation_msg::PipelineId;
@@ -127,9 +127,9 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
-    fn Suspend(&self, comp: InCompartment) -> Rc<Promise> {
+    fn Suspend(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -188,9 +188,9 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
-    fn Close(&self, comp: InCompartment) -> Rc<Promise> {
+    fn Close(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
