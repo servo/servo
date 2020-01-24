@@ -42,7 +42,6 @@ impl SVGPathData {
     /// Get the array of PathCommand.
     #[inline]
     pub fn commands(&self) -> &[PathCommand] {
-        debug_assert!(!self.0.is_empty());
         &self.0
     }
 
@@ -92,10 +91,6 @@ impl Parse for SVGPathData {
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let path_string = input.expect_string()?.as_ref();
-        if path_string.is_empty() {
-            // Treat an empty string as invalid, so we will not set it.
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         // Parse the svg path string as multiple sub-paths.
         let mut path_parser = PathParser::new(path_string);
