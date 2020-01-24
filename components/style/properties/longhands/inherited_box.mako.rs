@@ -43,7 +43,7 @@ ${helpers.single_keyword(
     servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
-    needs_conversion=True,
+    gecko_enum_prefix="StyleDirection",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
