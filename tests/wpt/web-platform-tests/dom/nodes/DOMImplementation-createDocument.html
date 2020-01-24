@@ -155,11 +155,11 @@ test(function() {
 })
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.implementation.createDocument()
   }, "createDocument() should throw")
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.implementation.createDocument('')
   }, "createDocument('') should throw")
 }, "createDocument with missing arguments");

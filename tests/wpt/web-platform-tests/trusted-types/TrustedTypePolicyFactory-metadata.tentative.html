@@ -122,7 +122,7 @@
             }
             assert_equals("" + result_value, "" + value);
           } else {
-            assert_throws(new TypeError(), test_fn, "throws");
+            assert_throws_js(TypeError, test_fn, "throws");
           }
         }, `Test assignment of ${type ? type : "string"} on ${elem}.${property}`);
 
@@ -137,7 +137,7 @@
             test_fn();
             assert_equals("" + element.getAttribute(property), "" + value);
           } else {
-            assert_throws(new TypeError(), test_fn, "throws");
+            assert_throws_js(TypeError, test_fn, "throws");
           }
         }, `Test assignment of ${type ? type : "string"} on ${elem}.setAttribute(${property},..)`);
       }

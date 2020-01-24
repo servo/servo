@@ -13,12 +13,12 @@
       test(function() {
         var client = new XMLHttpRequest()
         client.open('GET', 'folder.txt', false)
-        assert_throws("InvalidAccessError", function() { client.timeout = 1000 })
+        assert_throws_dom("InvalidAccessError", function() { client.timeout = 1000 })
         }, 'setting timeout attribute on sync request')
       test(function() {
         var client = new XMLHttpRequest()
         client.timeout = 1000
-        assert_throws("InvalidAccessError", function() { client.open('GET', 'folder.txt', false) })
+        assert_throws_dom("InvalidAccessError", function() { client.open('GET', 'folder.txt', false) })
         }, 'open() with async false when timeout is set')
     </script>
   </body>

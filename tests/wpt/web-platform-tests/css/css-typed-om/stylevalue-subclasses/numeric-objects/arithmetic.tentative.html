@@ -62,7 +62,7 @@ for (const {methodName, mathType} of gArithmeticOps) {
   }, 'Calling ' + mathType.name + '.' + methodName + ' with number CSSUnitValues simplifies to a CSSUnitValue');
 
   test(() => {
-    assert_throws(new TypeError(), () => new CSS.px(0)[methodName](CSS.px(1), CSS.s(2)));
+    assert_throws_js(TypeError, () => new CSS.px(0)[methodName](CSS.px(1), CSS.s(2)));
   }, 'Calling CSSNumericValue.' + methodName + ' with incompatible types throws TypeError');
 }
 
@@ -145,9 +145,9 @@ test(() => {
 }, 'Calling CSSNumericValue.div inverts all argument values');
 
 test(() => {
-  assert_throws(new RangeError(), () => CSS.number(2).div(CSS.number(0)));
-  assert_throws(new RangeError(), () => CSS.number(3).div(CSS.px(10) ,CSS.number(0)));
-  assert_throws(new RangeError(), () => CSS.number(2).div(CSS.number(0), CSS.number(0)));
+  assert_throws_js(RangeError, () => CSS.number(2).div(CSS.number(0)));
+  assert_throws_js(RangeError, () => CSS.number(3).div(CSS.px(10) ,CSS.number(0)));
+  assert_throws_js(RangeError, () => CSS.number(2).div(CSS.number(0), CSS.number(0)));
 }, 'Can not divide with CSSUnitValue which has zero value and number type');
 
 </script>

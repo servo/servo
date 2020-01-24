@@ -57,15 +57,15 @@ test(function() {
   assert_equals(element.mode.baseVal, SVGFEBlendElement.SVG_FEBLEND_MODE_LIGHTEN);
   assert_equals(element.getAttribute('mode'), "lighten");
 
-  assert_throws(new TypeError(), function() { element.mode.baseVal = 17; });
+  assert_throws_js(TypeError, function() { element.mode.baseVal = 17; });
   assert_equals(element.mode.baseVal, SVGFEBlendElement.SVG_FEBLEND_MODE_LIGHTEN);
   assert_equals(element.getAttribute('mode'), "lighten");
 
-  assert_throws(new TypeError(), function() { element.mode.baseVal = -1; });
+  assert_throws_js(TypeError, function() { element.mode.baseVal = -1; });
   assert_equals(element.mode.baseVal, SVGFEBlendElement.SVG_FEBLEND_MODE_LIGHTEN);
   assert_equals(element.getAttribute('mode'), "lighten");
 
-  assert_throws(new TypeError(), function() { element.mode.baseVal = 0; });
+  assert_throws_js(TypeError, function() { element.mode.baseVal = 0; });
   assert_equals(element.mode.baseVal, SVGFEBlendElement.SVG_FEBLEND_MODE_LIGHTEN);
   assert_equals(element.getAttribute('mode'), "lighten");
 }, document.title + ", setter, invalid value");

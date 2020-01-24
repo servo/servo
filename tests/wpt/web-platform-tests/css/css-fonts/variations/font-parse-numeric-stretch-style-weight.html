@@ -128,7 +128,7 @@ function testParseFace() {
       test(
           () => {
             var fontFace = new FontFace('testfont', 'url()');
-            assert_throws('SyntaxError', () => {
+            assert_throws_dom('SyntaxError', () => {
               fontFace[theProperty] = faceTest;
             }, 'Value must not be accepted as weight value.');
           },

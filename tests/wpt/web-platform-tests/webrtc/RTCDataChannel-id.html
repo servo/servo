@@ -331,9 +331,9 @@ promise_test(async (t) => {
 
   // Try creating one further channel on both sides. The attempt should fail since all IDs are
   // taken. If one ID is available, the implementation probably miscounts (or I did in the test).
-  assert_throws('OperationError', () =>
+  assert_throws_dom('OperationError', () =>
     pc1.createDataChannel('this is too exhausting!'));
-  assert_throws('OperationError', () =>
+  assert_throws_dom('OperationError', () =>
     pc2.createDataChannel('this is too exhausting!'));
 
   maybeDone();

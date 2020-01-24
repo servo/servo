@@ -16,11 +16,11 @@ test(() => {
 }, "length");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Module());
+  assert_throws_js(TypeError, () => new WebAssembly.Module());
 }, "No arguments");
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.Module(emptyModuleBinary));
+  assert_throws_js(TypeError, () => WebAssembly.Module(emptyModuleBinary));
 }, "Calling");
 
 test(() => {
@@ -38,7 +38,7 @@ test(() => {
     Array.from(emptyModuleBinary),
   ];
   for (const argument of invalidArguments) {
-    assert_throws(new TypeError(), () => new WebAssembly.Module(argument),
+    assert_throws_js(TypeError, () => new WebAssembly.Module(argument),
                   `new Module(${format_value(argument)})`);
   }
 }, "Invalid arguments");

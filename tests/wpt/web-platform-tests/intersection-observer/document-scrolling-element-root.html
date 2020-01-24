@@ -28,18 +28,16 @@ iframe.onload = function() {
   runTestCycle(function() {
     assert_true(!!iframe, "iframe exists");
 
-    root = iframe.contentDocument.scrollingElement;
-    assert_true(!!root, "Root element exists.");
     target = iframe.contentDocument.getElementById("target");
     assert_true(!!target, "Target element exists.");
     var observer = new IntersectionObserver(function(changes) {
       entries = entries.concat(changes)
-    }, { root: root });
+    }, { root: iframe.contentDocument });
     observer.observe(target);
     entries = entries.concat(observer.takeRecords());
     assert_equals(entries.length, 0, "No initial notifications.");
     runTestCycle(step0, "First rAF.");
-  }, "Observer with explicit root which is the document's scrolling element.");
+  }, "Observer with explicit root which is the document.");
 };
 
 function step0() {

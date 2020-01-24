@@ -32,7 +32,7 @@
               objStore = db.transaction("test")
                            .objectStore("test");
 
-            assert_throws('NotFoundError',
+            assert_throws_dom('NotFoundError',
                 function() { index = objStore.index("index") });
             assert_equals(index, undefined);
             db.close();

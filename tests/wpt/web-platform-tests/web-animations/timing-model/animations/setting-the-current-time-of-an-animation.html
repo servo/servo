@@ -26,7 +26,7 @@ promise_test(async t => {
   await anim.ready;
 
   assert_greater_than_equal(anim.currentTime, 0);
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     anim.currentTime = null;
   });
 }, 'Setting the current time of a playing animation to unresolved throws a'
@@ -38,7 +38,7 @@ promise_test(async t => {
   anim.pause();
 
   assert_greater_than_equal(anim.currentTime, 0);
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     anim.currentTime = null;
   });
 }, 'Setting the current time of a paused animation to unresolved throws a'

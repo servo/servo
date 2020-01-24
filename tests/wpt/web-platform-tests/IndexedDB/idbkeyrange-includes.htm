@@ -8,20 +8,20 @@
 
 test(function() {
   var range = IDBKeyRange.bound(12, 34);
-  assert_throws(new TypeError, function() { range.includes(); },
+  assert_throws_js(TypeError, function() { range.includes(); },
       'throws if key is not specified');
 
-  assert_throws('DataError', function() { range.includes(undefined); },
+  assert_throws_dom('DataError', function() { range.includes(undefined); },
       'throws if key is undefined');
-  assert_throws('DataError', function() { range.includes(null); },
+  assert_throws_dom('DataError', function() { range.includes(null); },
       'throws if key is null');
-  assert_throws('DataError', function() { range.includes({}); },
+  assert_throws_dom('DataError', function() { range.includes({}); },
       'throws if key is not valid type');
-  assert_throws('DataError', function() { range.includes(NaN); },
+  assert_throws_dom('DataError', function() { range.includes(NaN); },
       'throws if key is not valid number');
-  assert_throws('DataError', function() { range.includes(new Date(NaN)); },
+  assert_throws_dom('DataError', function() { range.includes(new Date(NaN)); },
       'throws if key is not valid date');
-  assert_throws('DataError', function() {
+  assert_throws_dom('DataError', function() {
       var a = []; a[0] = a; range.includes(a);
   }, 'throws if key is not valid array');
 }, "IDBKeyRange.includes() with invalid input");

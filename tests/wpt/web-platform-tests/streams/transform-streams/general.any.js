@@ -376,7 +376,7 @@ test(() => {
   new TransformStream({
     start(controller) {
       controller.terminate();
-      assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue should throw');
+      assert_throws_js(TypeError, () => controller.enqueue(), 'enqueue should throw');
     }
   });
 }, 'enqueue() should throw after controller.terminate()');
@@ -389,7 +389,7 @@ promise_test(() => {
     }
   });
   const cancelPromise = ts.readable.cancel();
-  assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue should throw');
+  assert_throws_js(TypeError, () => controller.enqueue(), 'enqueue should throw');
   return cancelPromise;
 }, 'enqueue() should throw after readable.cancel()');
 
@@ -431,11 +431,11 @@ promise_test(() => {
 }, 'start() should not be called twice');
 
 test(() => {
-  assert_throws(new RangeError(), () => new TransformStream({ readableType: 'bytes' }), 'constructor should throw');
+  assert_throws_js(RangeError, () => new TransformStream({ readableType: 'bytes' }), 'constructor should throw');
 }, 'specifying a defined readableType should throw');
 
 test(() => {
-  assert_throws(new RangeError(), () => new TransformStream({ writableType: 'bytes' }), 'constructor should throw');
+  assert_throws_js(RangeError, () => new TransformStream({ writableType: 'bytes' }), 'constructor should throw');
 }, 'specifying a defined writableType should throw');
 
 test(() => {

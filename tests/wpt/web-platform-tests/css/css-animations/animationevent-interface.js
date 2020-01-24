@@ -10,7 +10,7 @@
   }, "the event inherts from Event");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent();
     }, 'First argument is required, so was expecting a TypeError.');
   }, 'Missing type argument');
@@ -176,37 +176,37 @@
   }, "elapsedTime set to an object with a valueOf function");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: NaN});
     }, 'elapsedTime cannot be NaN so was expecting a TypeError');
   }, "elapsedTime cannot be set to NaN");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: Infinity});
     }, 'elapsedTime cannot be Infinity so was expecting a TypeError');
   }, "elapsedTime cannot be set to Infinity");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: -Infinity});
     }, 'elapsedTime cannot be -Infinity so was expecting a TypeError');
   }, "elapsedTime cannot be set to -Infinity");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: "sample"});
     }, 'elapsedTime cannot be a string so was expecting a TypeError');
   }, "elapsedTime cannot be set to 'sample'");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: [0.5, 1.0]});
     }, 'elapsedTime cannot be a multi-element array so was expecting a TypeError');
   }, "elapsedTime cannot be set to [0.5, 1.0]");
 
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new AnimationEvent("test", {elapsedTime: { sample: 0.5}});
     }, 'elapsedTime cannot be an object so was expecting a TypeError');
   }, "elapsedTime cannot be set to an object");

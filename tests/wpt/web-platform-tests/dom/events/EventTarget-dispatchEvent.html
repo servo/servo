@@ -14,14 +14,14 @@ setup({
 })
 
 test(function() {
-  assert_throws(new TypeError(), function() { document.dispatchEvent(null) })
+  assert_throws_js(TypeError, function() { document.dispatchEvent(null) })
 }, "Calling dispatchEvent(null).")
 
 for (var alias in aliases) {
   test(function() {
     var e = document.createEvent(alias)
     assert_equals(e.type, "", "Event type should be empty string before initialization")
-    assert_throws("InvalidStateError", function() { document.dispatchEvent(e) })
+    assert_throws_dom("InvalidStateError", function() { document.dispatchEvent(e) })
   }, "If the event's initialized flag is not set, an InvalidStateError must be thrown (" + alias + ").")
 }
 
@@ -32,10 +32,10 @@ dispatch_dispatch.step(function() {
 
   var target = document.createElement("div")
   target.addEventListener("type", dispatch_dispatch.step_func(function() {
-    assert_throws("InvalidStateError", function() {
+    assert_throws_dom("InvalidStateError", function() {
       target.dispatchEvent(e)
     })
-    assert_throws("InvalidStateError", function() {
+    assert_throws_dom("InvalidStateError", function() {
       document.dispatchEvent(e)
     })
   }), false)

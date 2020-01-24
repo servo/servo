@@ -36,7 +36,7 @@ test(t => {
 test(t => {
   const iceTransport = makeIceTransport(t);
   iceTransport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => makeQuicTransport(t, iceTransport));
 }, 'RTCQuicTransport constructor throws if passed a closed RTCIceTransport.');
 
@@ -44,7 +44,7 @@ test(t => {
   const iceTransport = makeIceTransport(t);
   const firstQuicTransport =
       makeQuicTransport(t, iceTransport);
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => makeQuicTransport(t, iceTransport));
 }, 'RTCQuicTransport constructor throws if passed an RTCIceTransport that ' +
     'already has an active RTCQuicTransport.');
@@ -59,7 +59,7 @@ promise_test(async t => {
   await doSignalingHandshake(pc1, pc2);
   const iceTransport = pc1.sctp.transport.iceTransport;
 
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => makeQuicTransport(t, iceTransport));
 }, 'RTCQuicTransport constructor throws if passed an RTCIceTransport that ' +
     'came from an RTCPeerConnection.');
@@ -109,28 +109,28 @@ test(t => {
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.connect();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.connect());
 }, 'connect() throws if already called connect().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.listen(new Uint8Array([12345]));
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.connect());
 }, 'connect() throws if already called listen().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.connect());
 }, 'connect() throws after stop().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.transport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.connect());
 }, 'connect() throws if called after RTCIceTransport has stopped.');
 
@@ -143,28 +143,28 @@ test(t => {
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.connect();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.listen(new Uint8Array([12345])));
 }, 'listen() throws if already called connect().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.listen(new Uint8Array([12345]));
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.listen(new Uint8Array([12345])));
 }, 'listen() throws if already called listen().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.listen(new Uint8Array([12345])));
 }, 'listen() throws after stop().');
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.transport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.listen(new Uint8Array([12345])));
 }, 'listen() throws if called after RTCIceTransport has stopped.');
 
@@ -177,7 +177,7 @@ test(t => {
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   const key = new Uint8Array();
-  assert_throws('NotSupportedError',
+  assert_throws_dom('NotSupportedError',
       () => quicTransport.listen(key));
 }, 'listen() throws if given an empty key.');
 
@@ -282,7 +282,7 @@ promise_test(async t => {
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.sendDatagram(new Uint8Array([1])));
 }, `sendDatagram() throws InvalidStateError if called before 'connected'.`);
 
@@ -290,7 +290,7 @@ test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   quicTransport.stop();
   assert_equals(quicTransport.state, 'closed');
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => quicTransport.sendDatagram(new Uint8Array([1])));
 }, `sendDatagram() throws InvalidStateError if called when 'closed'.`);
 
@@ -309,7 +309,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
       await makeTwoConnectedQuicTransports(t);
   const bigData = new Uint8Array(localQuicTransport.maxDatagramLength + 1);
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => localQuicTransport.sendDatagram(bigData));
 }, 'sendDatagram() throws InvalidStateError if called with data larger ' +
     'than maxDatagramLength()');

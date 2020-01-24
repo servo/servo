@@ -71,36 +71,38 @@ promise_test(async t => {
     assert_equals(calls, 1);
 }, "doesn't look up handleEvent method on callable event listeners");
 
-const uncaught_error_test = async (t, listener) => {
+const uncaught_error_test = async (t, getHandleEvent) => {
     const mql = await createMQL(t);
-    mql.addListener(listener);
 
-    const eventWatcher = new EventWatcher(t, window, "error");
+    let calls = 0;
+    mql.addListener({
+        get handleEvent() {
+            calls++;
+            return getHandleEvent();
+        },
+    });
+
+    const eventWatcher = new EventWatcher(t, window, "error", waitForChangesReported);
     const errorPromise = eventWatcher.wait_for("error");
     triggerMQLEvent(mql);
 
     const event = await errorPromise;
+    assert_equals(calls, 1, "handleEvent property was not looked up");
     throw event.error;
 };
 
 promise_test(t => {
     const error = { name: "test" };
-    const listener = {
-        get handleEvent() {
-            throw error;
-        },
-    };
 
-    return promise_rejects_exactly(t, error, uncaught_error_test(t, listener));
+    return promise_rejects_exactly(t, error,
+        uncaught_error_test(t, () => { throw error; }));
 }, "rethrows errors when getting handleEvent");
 
 promise_test(t => {
-    const listener = { handleEvent: null };
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, listener));
+    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => false));
 }, "throws if handleEvent is falsy and not callable");
 
 promise_test(t => {
-    const listener = { handleEvent: "str" };
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, listener));
+    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => "str"));
 }, "throws if handleEvent is thruthy and not callable");
 </script>

@@ -14,13 +14,13 @@ setup(function() {
 
 invalid_names.forEach(function(name) {
   test(function() {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       document.createAttribute(name, "test");
     });
   }, "HTML document.createAttribute(" + format_value(name) + ") should throw");
 
   test(function() {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       xml_document.createAttribute(name, "test");
     });
   }, "XML document.createAttribute(" + format_value(name) + ") should throw");

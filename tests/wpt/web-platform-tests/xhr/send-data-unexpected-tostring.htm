@@ -47,7 +47,7 @@
       test3.done()
     })
     client.open('POST', 'resources/content.py')
-    assert_throws('InvalidStateError', function(){
+    assert_throws_dom('InvalidStateError', function(){
       client.send(objSendsOnStringification)
     })
   });

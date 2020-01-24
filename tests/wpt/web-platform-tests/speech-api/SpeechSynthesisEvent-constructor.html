@@ -14,26 +14,26 @@ interface SpeechSynthesisEvent : Event {
 };
 */
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisEvent();
   });
 }, "SpeechSynthesisEvent with no arguments throws TypeError");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisEvent("type");
   });
 }, "SpeechSynthesisEvent with no eventInitDict throws TypeError");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisEvent("type", {});
   });
 }, `SpeechSynthesisEvent with empty eventInitDict throws TypeError (requires
     utterance)`);
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisEvent("type", {charIndex: 10, elapsedTime: 50, name:"foo"});
   });
 }, `SpeechSynthesisEvent with eventInitDict not having utterance throws

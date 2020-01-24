@@ -396,8 +396,8 @@ class SubFunctions(object):
     def uuid(request):
         return str(uuid.uuid4())
 
-    # Maintain a whitelist of supported algorithms, restricted to those that
-    # are available on all platforms [1]. This ensures that test authors do not
+    # Maintain a list of supported algorithms, restricted to those that are
+    # available on all platforms [1]. This ensures that test authors do not
     # unknowingly introduce platform-specific tests.
     #
     # [1] https://docs.python.org/2/library/hashlib.html

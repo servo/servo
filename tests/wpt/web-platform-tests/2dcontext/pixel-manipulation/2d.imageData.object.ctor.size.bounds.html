@@ -20,9 +20,9 @@ var t = async_test("ImageData has a usable constructor");
 _addTest(function(canvas, ctx) {
 
 _assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
-assert_throws("INDEX_SIZE_ERR", function() { new window.ImageData(0, 0); });
-assert_throws("INDEX_SIZE_ERR", function() { new window.ImageData(0, 1); });
-assert_throws("INDEX_SIZE_ERR", function() { new window.ImageData(1, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { new window.ImageData(0, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { new window.ImageData(0, 1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { new window.ImageData(1, 0); });
 
 
 });

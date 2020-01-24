@@ -86,7 +86,7 @@ onmessage = (e) => {
   ]
   ;broken.forEach((val) => {
     test(() => {
-      assert_throws("SyntaxError", () => { location.protocol = val })
+      assert_throws_dom("SyntaxError", () => { location.protocol = val })
     }, encodeURI(val) + " (percent-encoded) is not a scheme")
   })
   let c = 0

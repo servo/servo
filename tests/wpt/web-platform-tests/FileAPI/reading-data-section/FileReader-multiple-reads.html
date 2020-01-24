@@ -12,7 +12,7 @@ test(function() {
   var reader = new FileReader();
   reader.readAsText(blob_1)
   assert_equals(reader.readyState, FileReader.LOADING, "readyState Must be LOADING")
-  assert_throws("InvalidStateError", function () {
+  assert_throws_dom("InvalidStateError", function () {
     reader.readAsText(blob_2)
   })
 }, 'test FileReader InvalidStateError exception for readAsText');
@@ -23,7 +23,7 @@ test(function() {
   var reader = new FileReader();
   reader.readAsDataURL(blob_1)
   assert_equals(reader.readyState, FileReader.LOADING, "readyState Must be LOADING")
-  assert_throws("InvalidStateError", function () {
+  assert_throws_dom("InvalidStateError", function () {
     reader.readAsDataURL(blob_2)
   })
 }, 'test FileReader InvalidStateError exception for readAsDataURL');
@@ -34,7 +34,7 @@ test(function() {
   var reader = new FileReader();
   reader.readAsArrayBuffer(blob_1)
   assert_equals(reader.readyState, FileReader.LOADING, "readyState Must be LOADING")
-  assert_throws("InvalidStateError", function () {
+  assert_throws_dom("InvalidStateError", function () {
     reader.readAsArrayBuffer(blob_2)
   })
 }, 'test FileReader InvalidStateError exception for readAsArrayBuffer');
@@ -49,7 +49,7 @@ async_test(function() {
     triggered = true;
     assert_equals(reader.readyState, FileReader.LOADING,
                   "readyState must be LOADING")
-    assert_throws("InvalidStateError", function () {
+    assert_throws_dom("InvalidStateError", function () {
       reader.readAsArrayBuffer(blob_2)
     })
   });

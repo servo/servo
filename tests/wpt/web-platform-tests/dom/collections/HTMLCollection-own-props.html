@@ -30,7 +30,7 @@ test(function() {
   var c = document.getElementsByTagName(tag);
   var element = append(this, tag, name);
   assert_equals(c[name], element);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     c[name] = "foo";
   });
   assert_equals(c[name], element);
@@ -76,7 +76,7 @@ test(function() {
   var c = document.getElementsByTagName(tag);
   var element = append(this, tag);
   assert_equals(c[0], element);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     c[0] = "foo";
   });
   assert_equals(c[0], element);
@@ -98,7 +98,7 @@ test(function() {
   var tag = "u";
   var c = document.getElementsByTagName(tag);
   assert_equals(c[0], undefined);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     c[0] = "foo";
   });
   assert_equals(c[0], undefined);

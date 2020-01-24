@@ -31,7 +31,7 @@
         });
 
         e.target.transaction.oncomplete = t.step_func(function(e) {
-            assert_throws('TransactionInactiveError', function() { window.cursor.update(window.record); })
+            assert_throws_dom('TransactionInactiveError', function() { window.cursor.update(window.record); })
             t.done();
         });
     }

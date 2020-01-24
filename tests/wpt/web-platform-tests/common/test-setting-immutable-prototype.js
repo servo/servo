@@ -1,7 +1,7 @@
 self.testSettingImmutablePrototypeToNewValueOnly =
   (prefix, target, newValue, newValueString, { isSameOriginDomain }) => {
   test(() => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       Object.setPrototypeOf(target, newValue);
     });
   }, `${prefix}: setting the prototype to ${newValueString} via Object.setPrototypeOf should throw a TypeError`);
@@ -44,7 +44,7 @@ self.testSettingImmutablePrototype =
     }, `${prefix}: setting the prototype to ${originalValueString} via __proto__ should not throw`);
   } else {
     test(() => {
-      assert_throws("SecurityError", function() {
+      assert_throws_dom("SecurityError", function() {
         target.__proto__ = newValue;
       });
     }, `${prefix}: setting the prototype to ${originalValueString} via __proto__ should throw a "SecurityError" since ` +

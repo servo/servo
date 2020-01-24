@@ -13,7 +13,7 @@ var t = async_test(),
 open_rq.onupgradeneeded = function(e) {
     var db = e.target.result
     db.createObjectStore("dupe")
-    assert_throws(
+    assert_throws_dom(
         'ConstraintError',
         function() { db.createObjectStore("dupe") })
 

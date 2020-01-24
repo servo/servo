@@ -18,13 +18,13 @@
     var sheet = document.getElementById("styleElement").sheet;
     test(function() {
         assert_equals(sheet.cssRules.length, 1);
-        assert_throws("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
         assert_equals(sheet.cssRules.length, 1);
     }, "insertRule with import and omitted index argument");
 
     test(function() {
         assert_equals(sheet.cssRules.length, 1);
-        assert_throws("HierarchyRequestError", function() { sheet.insertRule("p { color: yellow; }", undefined); });
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: yellow; }", undefined); });
         assert_equals(sheet.cssRules.length, 1);
         assert_equals(sheet.cssRules.item(0).cssText, "@import url(\"support/a-green.css\");");
     }, "insertRule with import and undefined index argument");

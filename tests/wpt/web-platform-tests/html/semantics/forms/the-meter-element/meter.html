@@ -72,12 +72,12 @@
       }
       test(function() {
           var meter = document.createElement("meter");
-          assert_throws(new TypeError(), function() { meter.value = "foobar"; }, "value attribute");
-          assert_throws(new TypeError(), function() { meter.min = "foobar"; }, "min attribute");
-          assert_throws(new TypeError(), function() { meter.max = "foobar"; }, "max attribute");
-          assert_throws(new TypeError(), function() { meter.low = "foobar"; }, "low attribute");
-          assert_throws(new TypeError(), function() { meter.high = "foobar"; }, "high attribute");
-          assert_throws(new TypeError(), function() { meter.optimum = "foobar"; }, "optimum attribute");
+          assert_throws_js(TypeError, function() { meter.value = "foobar"; }, "value attribute");
+          assert_throws_js(TypeError, function() { meter.min = "foobar"; }, "min attribute");
+          assert_throws_js(TypeError, function() { meter.max = "foobar"; }, "max attribute");
+          assert_throws_js(TypeError, function() { meter.low = "foobar"; }, "low attribute");
+          assert_throws_js(TypeError, function() { meter.high = "foobar"; }, "high attribute");
+          assert_throws_js(TypeError, function() { meter.optimum = "foobar"; }, "optimum attribute");
       }, "Invalid floating-point number values");
 
     </script>

@@ -38,8 +38,8 @@ test(function() {
   var metadata = new MediaMetadata({});
   assert_not_equals(metadata, null);
 
-  assert_throws(new TypeError(), _ => new MediaMetadata('foobar'));
-  assert_throws(new TypeError(), _ => new MediaMetadata(42));
+  assert_throws_js(TypeError, _ => new MediaMetadata('foobar'));
+  assert_throws_js(TypeError, _ => new MediaMetadata(42));
 }, 'Test that MediaMetadata is constructed using a dictionary');
 
 test(function() {
@@ -113,7 +113,7 @@ test(function() {
 
 test(function() {
   var metadata = new MediaMetadata({ artwork: [ { src: 'http://foo.com/' } ] });
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     metadata.artwork.push({
       src: 'http://example.com/', sizes: '40x40', type: 'image/png',
     });
@@ -163,14 +163,14 @@ test(function() {
 test(function() {
   var metadata = 42;
 
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     metadata
       new MediaMetadata({ artwork: [ { src: 'http://[example.com]' }] });
   });
   assert_equals(metadata, 42);
 
   metadata = new MediaMetadata();
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     metadata.artwork = [
       // Valid url.
       { src: 'http://example.com' },
@@ -189,12 +189,12 @@ test(function() {
 }, "Test MediaImage default values");
 
 test(function() {
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     new MediaMetadata({ artwork: [ {} ] });
   });
 
   var metadata = new MediaMetadata();
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     metadata.artwork = [ { type: 'image/png', sizes: '40x40' } ];
   });
 }, "Test that MediaImage.src is required")

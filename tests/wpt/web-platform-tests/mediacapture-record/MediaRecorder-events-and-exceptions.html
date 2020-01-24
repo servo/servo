@@ -45,11 +45,11 @@
       recorder.onstop = recorderOnUnexpectedEvent;
       recorder.stop();
       assert_equals(recorder.state, "inactive", "stop() is idempotent");
-      assert_throws("InvalidStateError", function() { recorder.pause() },
+      assert_throws_dom("InvalidStateError", function() { recorder.pause() },
                     "recorder cannot be pause()ed in |inactive| state");
-      assert_throws("InvalidStateError", function() { recorder.resume() },
+      assert_throws_dom("InvalidStateError", function() { recorder.resume() },
                     "recorder cannot be resume()d in |inactive| state");
-      assert_throws("InvalidStateError", function() { recorder.requestData() },
+      assert_throws_dom("InvalidStateError", function() { recorder.requestData() },
                     "cannot requestData() if recorder is in |inactive| state");
       test.done();
     });
@@ -80,7 +80,7 @@
     assert_equals(stream.getVideoTracks().length, 1);
     assert_equals(stream.getVideoTracks()[0].readyState, 'live');
 
-    assert_throws("NotSupportedError",
+    assert_throws_dom("NotSupportedError",
                   function() {
                     recorder = new MediaRecorder(
                       new MediaStream(), {mimeType : "video/invalid"});
@@ -91,14 +91,14 @@
 
     recorder.stop();
     assert_equals(recorder.state, "inactive", "stop() is idempotent");
-    assert_throws("InvalidStateError", function(){recorder.pause()},
+    assert_throws_dom("InvalidStateError", function(){recorder.pause()},
                   "recorder cannot be pause()ed in |inactive| state");
-    assert_throws("InvalidStateError", function(){recorder.resume()},
+    assert_throws_dom("InvalidStateError", function(){recorder.resume()},
                   "recorder cannot be resume()d in |inactive| state");
-    assert_throws("InvalidStateError", function(){recorder.requestData()},
+    assert_throws_dom("InvalidStateError", function(){recorder.requestData()},
                   "cannot requestData() if recorder is in |inactive| state");
 
-    assert_throws("NotSupportedError",
+    assert_throws_dom("NotSupportedError",
                   function() {
                     recorder.start();
                   },

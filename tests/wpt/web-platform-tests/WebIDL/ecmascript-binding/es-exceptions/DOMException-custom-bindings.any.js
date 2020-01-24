@@ -1,7 +1,7 @@
 "use strict";
 
 test(() => {
-  assert_throws(new TypeError(), () => DOMException());
+  assert_throws_js(TypeError, () => DOMException());
 }, "Cannot construct without new");
 
 test(() => {
@@ -26,7 +26,7 @@ test(() => {
 test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "message").get;
 
-  assert_throws(new TypeError(), () => getter.apply({}));
+  assert_throws_js(TypeError, () => getter.apply({}));
 }, "message getter performs brand checks (i.e. is not [LenientThis]");
 
 test(() => {
@@ -43,7 +43,7 @@ test(() => {
 test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "name").get;
 
-  assert_throws(new TypeError(), () => getter.apply({}));
+  assert_throws_js(TypeError, () => getter.apply({}));
 }, "name getter performs brand checks (i.e. is not [LenientThis]");
 
 test(() => {
@@ -60,7 +60,7 @@ test(() => {
 test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "code").get;
 
-  assert_throws(new TypeError(), () => getter.apply({}));
+  assert_throws_js(TypeError, () => getter.apply({}));
 }, "code getter performs brand checks (i.e. is not [LenientThis]");
 
 test(() => {
@@ -98,7 +98,7 @@ test(() => {
 }, "toString() behavior from Error.prototype applies as expected");
 
 test(() => {
-  assert_throws(new TypeError(), () => DOMException.prototype.toString());
+  assert_throws_js(TypeError, () => DOMException.prototype.toString());
 }, "DOMException.prototype.toString() applied to DOMException.prototype throws because of name/message brand checks");
 
 test(() => {

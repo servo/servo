@@ -71,7 +71,7 @@
         iframe.contentWindow.postMessage(null, "*");
         let certificate2 = await promise;
 
-        assert_throws("InvalidAccessError", () => { new RTCPeerConnection({certificates: [certificate2]}) });
+        assert_throws_dom("InvalidAccessError", () => { new RTCPeerConnection({certificates: [certificate2]}) });
         iframe.remove();
     }, "Check cross-origin created RTCCertificate");
 </script>

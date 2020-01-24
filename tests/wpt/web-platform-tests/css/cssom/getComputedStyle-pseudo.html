@@ -138,7 +138,7 @@ test(function() {
 }, "Dynamically change to display: contents on pseudo-elements");
 test(function() {
   var div = document.getElementById('test');
-  assert_throws(new TypeError(), () => getComputedStyle(div, "totallynotapseudo"),
+  assert_throws_js(TypeError, () => getComputedStyle(div, "totallynotapseudo"),
                 "getComputedStyle with an unknown pseudo-element throws");
 }, "Unknown pseudo-elements throw");
 </script>

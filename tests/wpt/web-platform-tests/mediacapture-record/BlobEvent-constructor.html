@@ -6,25 +6,25 @@
 <script>
 test(function() {
   assert_equals(BlobEvent.length, 2);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type");
   });
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type", null);
   });
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type", undefined);
   });
 }, "The BlobEventInit dictionary is required");
 
 test(function() {
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type", {});
   });
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type", { data: null });
   });
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     new BlobEvent("type", { data: undefined });
   });
 }, "The BlobEventInit dictionary's data member is required.");

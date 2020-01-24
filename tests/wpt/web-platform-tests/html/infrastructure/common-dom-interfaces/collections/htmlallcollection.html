@@ -160,7 +160,7 @@ test(function() {
 
 test(function() {
   assert_equals(document.all.namedItem.length, 1);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     document.all.namedItem();
   });
 }, "namedItem method with no argument");
@@ -225,12 +225,12 @@ test(function() {
 }, "legacy caller with no argument");
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new document.all("picture");
   }, "New should not work on document.all()");
 
   // https://esdiscuss.org/topic/isconstructor#content-11
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new (new Proxy(document.all, {
       construct: function() {
         return {};

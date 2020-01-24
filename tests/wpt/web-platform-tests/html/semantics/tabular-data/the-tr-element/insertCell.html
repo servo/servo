@@ -41,13 +41,13 @@ test(function () {
 }, "HTMLTableRowElement insertCell()");
 
 test(function () {
-  assert_throws("IndexSizeError", function () {
+  assert_throws_dom("IndexSizeError", function () {
     tr.insertCell(-2);
   });
 }, "HTMLTableRowElement insertCell(-2)");
 
 test(function () {
-  assert_throws("IndexSizeError", function () {
+  assert_throws_dom("IndexSizeError", function () {
     tr.insertCell(tr.cells.length + 1);
   });
 }, "HTMLTableRowElement insertCell(cells.length + 1)");

@@ -32,8 +32,8 @@
     for (const supportedMethods of [].concat(knownPMIs).concat(unknownPMIs)) {
       const method = { supportedMethods };
       const request = new PaymentRequest([method], details);
-      assert_throws(
-        new TypeError(),
+      assert_throws_js(
+        TypeError,
         () => {
           const badMethod = Object.assign(
             {},
@@ -55,8 +55,8 @@
       // Only check the PMIs that are actually supported
       if (!(await request.canMakePayment())) continue;
 
-      assert_throws(
-        new TypeError(),
+      assert_throws_js(
+        TypeError,
         () => {
           const badMethod = Object.assign(
             {},

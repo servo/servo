@@ -13,7 +13,7 @@
       const emptyFile = new File([''], 'empty');
 
       test(() => {
-        assert_throws(new TypeError(), () => { navigator.canShare({files: textFile}) });
+        assert_throws_js(TypeError, () => { navigator.canShare({files: textFile}) });
       }, 'canShare with single file');
 
       test(() => {

@@ -27,7 +27,7 @@ test(t => {
   target.appendChild(frame);
   const frame_probe = document.getElementById("frame").contentDocument.getElementById("probe");
   probe.innerHTML = "probe";
-  assert_throws(new TypeError(), _ => { frame_probe.innnerHTML = "probe" });
+  assert_throws_js(TypeError, _ => { frame_probe.innnerHTML = "probe" });
 }, "Regression test for TT changes to parseFromString.");
 </script>
 </body>

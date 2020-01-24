@@ -19,8 +19,8 @@
    	    
 
         test(function() {
-            assert_throws(
-                new EvalError(),
+            assert_throws_js(
+                EvalError,
                 function() {
                     var funq = new Function('');
                     funq();

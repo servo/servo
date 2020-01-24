@@ -219,14 +219,14 @@
             server.credential are omitted, then throw an InvalidAccessError.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net'
       }] }));
   }, 'with turn server and no credentials should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net',
         username: 'user'
@@ -234,7 +234,7 @@
   }, 'with turn server and only username should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net',
         credential: 'cred'
@@ -242,14 +242,14 @@
   }, 'with turn server and only credential should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net'
       }] }));
   }, 'with turns server and no credentials should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net',
         username: 'user'
@@ -257,7 +257,7 @@
   }, 'with turns server and only username should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net',
         credential: 'cred'
@@ -365,7 +365,7 @@
             and abort these steps.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.org',
         credentialType: 'password',
@@ -384,7 +384,7 @@
             InvalidAccessError and abort these steps.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.org',
         credentialType: 'oauth',

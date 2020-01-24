@@ -121,7 +121,7 @@ async_test(function() {
 
 test(function() {
   var e = document.createEvent("Event")
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     e.initEvent()
   })
 }, "First parameter to initEvent should be mandatory.")

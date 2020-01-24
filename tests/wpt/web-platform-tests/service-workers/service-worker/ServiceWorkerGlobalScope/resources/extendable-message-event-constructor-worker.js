@@ -53,8 +53,9 @@ test(function() {
           valueOf: function() { return TEST_OBJECT; } } }).data ==
       TEST_OBJECT);
   assert_equals(createEvent({ get data(){ return 123; } }).data, 123);
-  assert_throws({ name: 'Error' }, function() {
-      createEvent({ get data() { throw { name: 'Error' }; } }); });
+  let thrown = { name: 'Error' };
+  assert_throws_exactly(thrown, function() {
+      createEvent({ get data() { throw thrown; } }); });
 }, '`data` is specified');
 
 test(function() {
@@ -81,8 +82,9 @@ test(function() {
       '[object Object]');
   assert_equals(
       createEvent({ get origin() { return 123; } }).origin, '123');
-  assert_throws({ name: 'Error' }, function() {
-      createEvent({ get origin() { throw { name: 'Error' }; } }); });
+  let thrown = { name: 'Error' };
+  assert_throws_exactly(thrown, function() {
+      createEvent({ get origin() { throw thrown; } }); });
 }, '`origin` is specified');
 
 test(function() {
@@ -112,8 +114,9 @@ test(function() {
   assert_equals(
       createEvent({ get lastEventId() { return 123; } }).lastEventId,
       '123');
-  assert_throws({ name: 'Error' }, function() {
-      createEvent({ get lastEventId() { throw { name: 'Error' }; } }); });
+  let thrown = { name: 'Error' };
+  assert_throws_exactly(thrown, function() {
+      createEvent({ get lastEventId() { throw thrown; } }); });
 }, '`lastEventId` is specified');
 
 test(function() {
@@ -123,8 +126,8 @@ test(function() {
       self.registration.active);
   assert_equals(
       createEvent({ source: CHANNEL1.port1 }).source, CHANNEL1.port1);
-  assert_throws(
-      { name: 'TypeError' }, function() { createEvent({ source: this }); },
+  assert_throws_js(
+      TypeError, function() { createEvent({ source: this }); },
       'source should be Client or ServiceWorker or MessagePort');
 }, '`source` is specified');
 
@@ -138,36 +141,37 @@ test(function() {
   assert_array_equals(createEvent({ ports: undefined }).ports, []);
 
   // Invalid message ports.
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: [1, 2, 3] }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: TEST_OBJECT }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: null }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: this }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: false }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: true }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: '' }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: 'chocolate' }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: 12345 }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: 18446744073709551615 }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ ports: NaN }); });
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       function() { createEvent({ get ports() { return 123; } }); });
-  assert_throws({ name: 'Error' }, function() {
-      createEvent({ get ports() { throw { name: 'Error' }; } }); });
+  let thrown = { name: 'Error' };
+  assert_throws_exactly(thrown, function() {
+      createEvent({ get ports() { throw thrown; } }); });
   // Note that valueOf() is not called, when the left hand side is
   // evaluated.
   var valueOf = function() { return PORTS; };
-  assert_throws({ name: 'TypeError' }, function() {
+  assert_throws_js(TypeError, function() {
       createEvent({ ports: { valueOf: valueOf } }); });
 }, '`ports` is specified');
 

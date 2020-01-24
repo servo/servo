@@ -8,7 +8,7 @@ var isOpenCalled = false;
 wsocket.addEventListener('open', test.step_func(function(evt) {
   var reason = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123";
   assert_equals(reason.length, 124);
-  assert_throws("SYNTAX_ERR", function() {
+  assert_throws_dom("SYNTAX_ERR", function() {
     wsocket.close(1000, reason)
   });
   test.done();

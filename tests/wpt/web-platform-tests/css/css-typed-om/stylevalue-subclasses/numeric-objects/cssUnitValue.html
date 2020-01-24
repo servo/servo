@@ -11,11 +11,11 @@
 'use strict';
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSUnitValue(0, 'lemon'));
+  assert_throws_js(TypeError, () => new CSSUnitValue(0, 'lemon'));
 }, 'Constructing CSSUnitValue with an unknown unit throws a TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSUnitValue(0, ''));
+  assert_throws_js(TypeError, () => new CSSUnitValue(0, ''));
 }, 'Constructing CSSUnitValue with a empty string unit throws a TypeError');
 
 for (const unit of gValidUnits) {

@@ -34,7 +34,7 @@
             window.addEventListener("message", msgHandler);
 
             if (!w)
-              reject("Popup could not be opened (did you whitelist the test site in your popup blocker?).");
+              reject("Popup could not be opened (did you allow the test site in your popup blocker?).");
           });
         });
     }, title);

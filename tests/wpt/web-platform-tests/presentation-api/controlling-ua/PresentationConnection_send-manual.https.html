@@ -65,7 +65,7 @@
 
             // send data in "connecting" state (throws an exception)
             assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
-            assert_throws('InvalidStateError', () => {
+            assert_throws_dom('InvalidStateError', () => {
                 connection.send('');
             }, 'an InvalidStateError is thrown if the state is "connecting"');
 
@@ -103,7 +103,7 @@
             return watcher.wait_for('close');
         }).then(() => {
             assert_equals(connection.state, 'closed', 'the state is set to "closed" when the presentation connection is closed');
-            assert_throws('InvalidStateError', () => {
+            assert_throws_dom('InvalidStateError', () => {
                 connection.send('');
             }, 'an InvalidStateError is thrown if the state is "closed"');
 
@@ -117,7 +117,7 @@
             return watcher.wait_for('terminate');
         }).then(() => {
             assert_equals(connection.state, 'terminated', 'the state is set to "terminated" when the presentation connection is terminated');
-            assert_throws('InvalidStateError', () => {
+            assert_throws_dom('InvalidStateError', () => {
                 connection.send('');
             }, 'an InvalidStateError is thrown if the state is "terminated"');
         });

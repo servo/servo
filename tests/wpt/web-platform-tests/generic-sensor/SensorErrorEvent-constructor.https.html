@@ -6,7 +6,7 @@
 <script>
   test(() => {
     assert_equals(SensorErrorEvent.length, 2);
-    assert_throws(new TypeError, () => new SensorErrorEvent('error'));
+    assert_throws_js(TypeError, () => new SensorErrorEvent('error'));
   }, 'SensorErrorEvent constructor without init dict');
 
   test(() => {

@@ -13,7 +13,7 @@ indexeddb_test(
   },
   (t, db) => {
     db.close();
-    assert_throws('InvalidStateError', () => {
+    assert_throws_dom('InvalidStateError', () => {
       db.transaction('no-such-store');
     }, '"Connection is closed" check (InvalidStateError) should precede ' +
        '"store names" check (NotFoundError)');
@@ -28,7 +28,7 @@ indexeddb_test(
   },
   (t, db) => {
     db.close();
-    assert_throws('InvalidStateError', () => {
+    assert_throws_dom('InvalidStateError', () => {
       db.transaction([]);
     }, '"Connection is closed" check (InvalidStateError) should precede ' +
        '"stores is empty" check (InvalidAccessError)');
@@ -42,7 +42,7 @@ indexeddb_test(
     db.createObjectStore('s');
   },
   (t, db) => {
-    assert_throws('NotFoundError', () => {
+    assert_throws_dom('NotFoundError', () => {
       db.transaction('no-such-store', 'versionchange');
     }, '"No such store" check (NotFoundError) should precede ' +
        '"invalid mode" check (TypeError)');

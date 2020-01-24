@@ -2,4 +2,11 @@
 
 if __name__ == "__main__":
     from tools.wpt import wpt
-    wpt.main()
+    from sys import version_info, argv
+    args, extra = wpt.parse_args(argv[1:])
+
+    if args.py3 and version_info.major < 3:
+        from subprocess import call
+        call(['python3', argv[0]] + [args.command] + extra)
+    else:
+        wpt.main()

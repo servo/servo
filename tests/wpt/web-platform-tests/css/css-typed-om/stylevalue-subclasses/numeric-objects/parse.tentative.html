@@ -8,19 +8,19 @@
 'use strict';
 
 test(() => {
-  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('%#('));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('%#('));
 }, 'Parsing an invalid string throws SyntaxError');
 
 test(() => {
-  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('auto'));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('auto'));
 }, 'Parsing a string with a non numeric token throws SyntaxError');
 
 test(() => {
-  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('1 2'));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('1 2'));
 }, 'Parsing a string with left over numeric tokens throws SyntaxError');
 
 test(() => {
-  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('calc(calc(1px * 2s) + 3%)'));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('calc(calc(1px * 2s) + 3%)'));
 }, 'Parsing a calc with incompatible units throws a SyntaxError');
 
 test(() => {

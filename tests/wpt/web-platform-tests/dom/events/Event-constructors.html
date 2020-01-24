@@ -5,7 +5,7 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new Event()
   })
 })
@@ -46,7 +46,7 @@ test(function() {
   assert_true("initEvent" in ev)
 })
 test(function() {
-  assert_throws(new TypeError(), function() { Event("test") },
+  assert_throws_js(TypeError, function() { Event("test") },
                 'Calling Event constructor without "new" must throw');
 })
 test(function() {

@@ -28,18 +28,18 @@ test(() => {
   element.attachShadow({mode: 'closed'});
 
   // No definition and it's already a host.
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     element.attachShadow({mode: 'closed'});
   }, 'No definition, host');
 
   // The element has a definition, and it's already a host.
   customElements.define('shadow-disabled-element', ShadowDisabledElement);
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     element.attachShadow({mode: 'closed'});
   }, 'Definition, host');
 
   // The element has a definition, and it's not a host.
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     document.createElement('shadow-disabled-element').attachShadow({mode: 'closed'});
   }, 'Definition, not a host');
 }, 'Element.attachShadow for an autonomous custom element with ' +
@@ -56,20 +56,20 @@ test(() => {
   element.attachShadow({mode: 'closed'});
 
   // No definition and it's already a host.
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     element.attachShadow({mode: 'closed'});
   }, 'No definition, host.');
 
   // The element has a definition, and it's already a host.
   customElements.define('shadow-disabled-heading-element',
       ShadowDisabledHeadingElement, {extends: 'h2'});
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     element.attachShadow({mode: 'closed'});
   }, 'Definition, host');
 
   // The element has a definition, and it's not a host.
   let h2 = document.createElement('h2', {is: 'shadow-disabled-heading-element'});
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     h2.attachShadow({mode: 'closed'});
   }, 'Definition, not a host');
 }, 'Element.attachShadow for a customized built-in element with ' +
@@ -92,7 +92,7 @@ class MyCustomizedBuiltinElement extends HTMLInputElement {
 customElements.define('my-input', MyCustomizedBuiltinElement, { extends: 'input' });
 
 test(() => {
-  assert_throws({'name': 'NotSupportedError'}, () => {
+  assert_throws_dom('NotSupportedError', () => {
     document.createElement('input', {is: 'my-input'}).attachShadow({mode: "open"});
   });
 }, 'Element.attachShadow must throw a NotSupportedError for customized built-in elements');

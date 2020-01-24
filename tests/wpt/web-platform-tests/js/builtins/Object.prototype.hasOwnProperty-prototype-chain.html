@@ -34,7 +34,7 @@ test(function() {
 
 test(function() {
   [null, undefined].forEach(function(that) {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
         function() { that.hasOwnProperty('hasOwnProperty'); });
   });
 });

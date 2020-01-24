@@ -8,13 +8,13 @@
 <script>
 test(t => {
   trustedTypes.createPolicy("a", {}),
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
                 _ => trustedTypes.createPolicy("a", {}),
                 "Duplicate name");
 
   trustedTypes.createPolicy("b", {}),
 
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
                 _ => trustedTypes.createPolicy("d", {}),
                 "Invalid name.");
 }, "TrustedTypePolicyFactory and policy list in CSP.");

@@ -209,7 +209,7 @@ test(function() {
 
 test(function() {
   var add = document.createElement("p");
-  assert_throws(new TypeError(), function() {b_opts.add(add);});
+  assert_throws_js(TypeError, function() {b_opts.add(add);});
 }, "Add non-option to collection");
 
 </script>

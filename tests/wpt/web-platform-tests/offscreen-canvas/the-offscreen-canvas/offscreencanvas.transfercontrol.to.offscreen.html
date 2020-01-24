@@ -19,7 +19,7 @@ test(function() {
     placeholder.width = 100;
     placeholder.height = 50;
     var offscreenCanvas = placeholder.transferControlToOffscreen();
-    assert_throws("InvalidStateError", function() { placeholder.getContext('2d'); });
+    assert_throws_dom("InvalidStateError", function() { placeholder.getContext('2d'); });
 }, "Test that calling getContext on a placeholder canvas that has already transferred its control throws an exception");
 
 test(function() {
@@ -27,7 +27,7 @@ test(function() {
     placeholder.width = 100;
     placeholder.height = 50;
     var offscreenCanvas = placeholder.transferControlToOffscreen();
-    assert_throws("InvalidStateError", function() { placeholder.transferControlToOffscreen(); });
+    assert_throws_dom("InvalidStateError", function() { placeholder.transferControlToOffscreen(); });
 }, "Test that calling transferControlToOffscreen twice throws an exception");
 
 </script>

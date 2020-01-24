@@ -16,9 +16,9 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 10); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 0); });
 t.done();
 
 });

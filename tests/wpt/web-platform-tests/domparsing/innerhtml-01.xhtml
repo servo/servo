@@ -13,13 +13,13 @@
 <script>
 test(function() {
   document.documentElement.appendChild(document.createElement("test:test"));
-  assert_throws("INVALID_STATE_ERR", function() {
+  assert_throws_dom("INVALID_STATE_ERR", function() {
     document.documentElement.innerHTML;
   }, "getting element with \":\" in its local name");
 });
 test(function() {
   document.title = "\f";
-  assert_throws("INVALID_STATE_ERR", function() {
+  assert_throws_dom("INVALID_STATE_ERR", function() {
     document.getElementsByTagName("title")[0].innerHTML;
   }, "Getting a Text node whose data contains characters that are not matched by the XML Char production");
 });

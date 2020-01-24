@@ -81,6 +81,41 @@ The generator script has two targets: ```release``` and ```debug```.
 Note that **release** is the default target when invoking ```generate.py```.
 
 
+## Sub projects
+
+Projects can be nested, for example to reuse a single `spec.src.json` across similar but slightly different sets of generated tests.
+The directory structure would look like:
+
+```
+project-directory/ (e.g. referrer-policy/)
+├── spec.src.json - Parent project's spec JSON
+├── generic/
+│   └── test-case.sub.js - Parent project's test helper
+├── gen/ - parent project's generated tests
+└── sub-project-directory/ (e.g. 4K)
+    ├── spec.src.json - Child project's spec JSON
+    ├── generic/
+    │   └── test-case.sub.js - Child project's test helper
+    └── gen/ - child project's generated tests
+```
+
+`generate.py --spec project-directory/sub-project-directory` generates test files under `project-directory/sub-project-directory/gen`, based on `project-directory/spec.src.json` and `project-directory/sub-project-directory/spec.src.json`.
+
+- The child project's `spec.src.json` is merged into parent project's `spec.src.json`.
+    - Two spec JSON objects are merged recursively.
+    - If a same key exists in both objects, the child's value overwrites the parent's value.
+        - If both (child's and parent's) values are arrays, then the child's value is concatenated to the parent's value.
+    - For debugging, `generate.py` dumps the merged spec JSON object as `generic/debug-output.spec.src.json`.
+- The child project's generated tests include both of the parent and child project's `test-case.sub.js`:
+  ```html
+  <script src="project-directory/test-case.sub.js"></script>
+  <script src="project-directory/sub-project-directory/test-case.sub.js"></script>
+  <script>
+    TestCase(...);
+  </script>
+  ```
+
+
 ## Updating the tests
 
 The main test logic lives in ```project-directory/generic/test-case.sub.js``` with helper functions defined in ```/common/security-features/resources/common.js``` so you should probably start there.

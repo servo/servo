@@ -33,7 +33,7 @@ async function checkPopulateMatrix(t, sensorProvider, sensorType) {
   const eventWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
 
   // Throws with insufficient buffer space.
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       () => sensor.populateMatrix(new Float32Array(15)));
 
   // Throws if no orientation data available.
@@ -41,7 +41,7 @@ async function checkPopulateMatrix(t, sensorProvider, sensorType) {
       () => sensor.populateMatrix(new Float32Array(16)));
 
   // Throws if passed SharedArrayBuffer view.
-  assert_throws({ name: 'TypeError' },
+  assert_throws_js(TypeError,
       () => sensor.populateMatrix(new Float32Array(new SharedArrayBuffer(16))));
 
   sensor.start();

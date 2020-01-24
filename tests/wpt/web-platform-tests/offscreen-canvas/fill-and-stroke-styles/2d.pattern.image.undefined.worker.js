@@ -16,7 +16,7 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-assert_throws(new TypeError(), function() { ctx.createPattern(undefined, 'repeat'); });
+assert_throws_js(TypeError, function() { ctx.createPattern(undefined, 'repeat'); });
 t.done();
 
 });

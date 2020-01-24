@@ -22,19 +22,19 @@ test(function() {
       return NodeFilter.FILTER_ACCEPT;
     });
   walker.currentNode = document.body;
-  assert_throws("InvalidStateError", function() { walker.parentNode() });
+  assert_throws_dom("InvalidStateError", function() { walker.parentNode() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.firstChild() });
+  assert_throws_dom("InvalidStateError", function() { walker.firstChild() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.lastChild() });
+  assert_throws_dom("InvalidStateError", function() { walker.lastChild() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.previousSibling() });
+  assert_throws_dom("InvalidStateError", function() { walker.previousSibling() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.nextSibling() });
+  assert_throws_dom("InvalidStateError", function() { walker.nextSibling() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.previousNode() });
+  assert_throws_dom("InvalidStateError", function() { walker.previousNode() });
   depth--;
-  assert_throws("InvalidStateError", function() { walker.nextNode() });
+  assert_throws_dom("InvalidStateError", function() { walker.nextNode() });
 }, "Recursive filters need to throw");
 
 function filterNode(node, whatToShow, filter) {

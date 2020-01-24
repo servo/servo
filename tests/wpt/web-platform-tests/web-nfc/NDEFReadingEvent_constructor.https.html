@@ -8,11 +8,11 @@
 
   test(() => {
     assert_equals(NDEFReadingEvent.length, 2);
-    assert_throws(new TypeError, () => new NDEFReadingEvent('message'));
+    assert_throws_js(TypeError, () => new NDEFReadingEvent('message'));
   }, 'NDEFReadingEvent constructor without init dict');
 
   test(() => {
-    assert_throws(new TypeError, () => new NDEFReadingEvent('type',
+    assert_throws_js(TypeError, () => new NDEFReadingEvent('type',
           {serialNumber: '', message: null}),
         'NDEFMessageInit#records is a required field.');
   }, 'NDEFReadingEvent constructor failed to construct its NDEFMessage');

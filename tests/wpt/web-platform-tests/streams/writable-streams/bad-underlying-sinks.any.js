@@ -7,7 +7,7 @@ const error1 = new Error('error1');
 error1.name = 'error1';
 
 test(() => {
-  assert_throws(error1, () => {
+  assert_throws_exactly(error1, () => {
     new WritableStream({
       get start() {
         throw error1;
@@ -15,7 +15,7 @@ test(() => {
     });
   }, 'constructor should throw same error as throwing start getter');
 
-  assert_throws(error1, () => {
+  assert_throws_exactly(error1, () => {
     new WritableStream({
       start() {
         throw error1;
@@ -23,13 +23,13 @@ test(() => {
     });
   }, 'constructor should throw same error as throwing start method');
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new WritableStream({
       start: 'not a function or undefined'
     });
   }, 'constructor should throw TypeError when passed a non-function start property');
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new WritableStream({
       start: { apply() {} }
     });
@@ -72,7 +72,7 @@ promise_test(t => {
 }, 'close: returning a rejected promise should cause writer close() and ready to reject');
 
 test(() => {
-  assert_throws(error1, () => new WritableStream({
+  assert_throws_exactly(error1, () => new WritableStream({
     get close() {
       throw error1;
     }
@@ -80,7 +80,7 @@ test(() => {
 }, 'close: throwing getter should cause constructor to throw');
 
 test(() => {
-  assert_throws(error1, () => new WritableStream({
+  assert_throws_exactly(error1, () => new WritableStream({
     get write() {
       throw error1;
     }
@@ -162,13 +162,13 @@ promise_test(t => {
 }, 'write: returning a rejected promise (second write) should cause writer write() and ready to reject');
 
 test(() => {
-  assert_throws(new TypeError(), () => new WritableStream({
+  assert_throws_js(TypeError, () => new WritableStream({
     abort: { apply() {} }
   }), 'constructor should throw');
 }, 'abort: non-function abort method with .apply');
 
 test(() => {
-  assert_throws(error1, () => new WritableStream({
+  assert_throws_exactly(error1, () => new WritableStream({
     get abort() {
       throw error1;
     }

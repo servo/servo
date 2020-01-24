@@ -55,7 +55,7 @@ async_test(function(t) {
     var offscreenCanvas = placeholder.transferControlToOffscreen();
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     worker.addEventListener('message', t.step_func_done(function(msg) {
-        assert_throws("InvalidStateError", function() { placeholder.getContext('2d'); });
+        assert_throws_dom("InvalidStateError", function() { placeholder.getContext('2d'); });
     }));
     worker.postMessage({msg: 'test2', data: offscreenCanvas}, [offscreenCanvas]);
 }, "Test that calling getContext on a placeholder canvas that is transferred its control to an OffscreenCanvas throws an exception, when the OffscreenCanvas is transferred to a worker");
@@ -67,7 +67,7 @@ async_test(function(t) {
     var offscreenCanvas = placeholder.transferControlToOffscreen();
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     worker.addEventListener('message', t.step_func_done(function(msg) {
-        assert_throws("InvalidStateError", function() { placeholder.transferControlToOffscreen(); });
+        assert_throws_dom("InvalidStateError", function() { placeholder.transferControlToOffscreen(); });
     }));
     worker.postMessage({msg: 'test3', data: offscreenCanvas}, [offscreenCanvas]);
 }, "Test that calling transferControlToOffscreen twice throws an exception, when its associated OffscreenCanvas is transferred to a worker");

@@ -40,13 +40,14 @@ def load_commands():
     return rv
 
 
-def parse_args(argv, commands):
+def parse_args(argv, commands = load_commands()):
     parser = argparse.ArgumentParser()
     parser.add_argument("--venv", action="store", help="Path to an existing virtualenv to use")
     parser.add_argument("--skip-venv-setup", action="store_true",
                         dest="skip_venv_setup",
                         help="Whether to use the virtualenv as-is. Must set --venv as well")
     parser.add_argument("--debug", action="store_true", help="Run the debugger in case of an exception")
+    parser.add_argument("--py3", action="store_true", help="Run with python3")
     subparsers = parser.add_subparsers(dest="command")
     for command, props in iteritems(commands):
         subparsers.add_parser(command, help=props["help"], add_help=False)

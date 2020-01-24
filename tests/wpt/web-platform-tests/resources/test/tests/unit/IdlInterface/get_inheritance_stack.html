@@ -19,7 +19,7 @@
 
     test(function() {
         var i = interfaceFrom('interface A : B { };');
-        assert_throws(new Error(), _ => i.get_inheritance_stack());
+        assert_throws_js(Error, _ => i.get_inheritance_stack());
     }, "should throw for interfaces which inherit from another interface which wasn't added to the IdlArray");
 
     test(function() {

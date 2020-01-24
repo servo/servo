@@ -81,7 +81,7 @@ for (const subtest of gKeyframesTests) {
 for (const subtest of gInvalidKeyframesTests) {
   test(t => {
     const div = createDiv(t);
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       div.animate(subtest.input, 2000);
     });
   }, `Element.animate() does not accept ${subtest.desc}`);
@@ -108,7 +108,7 @@ test(t => {
 
 for (const invalid of gBadDelayValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { delay: invalid });
     });
   }, `Element.animate() does not accept invalid delay value: ${invalid}`);
@@ -127,7 +127,7 @@ for (const invalid of gBadDurationValues) {
     continue;
   }
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, invalid);
     });
   }, 'Element.animate() does not accept invalid duration value: '
@@ -136,7 +136,7 @@ for (const invalid of gBadDurationValues) {
 
 for (const invalid of gBadDurationValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { duration: invalid });
     });
   }, 'Element.animate() does not accept invalid duration value: '
@@ -146,7 +146,7 @@ for (const invalid of gBadDurationValues) {
 
 for (const invalidEasing of gInvalidEasings) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate({ easing: invalidEasing }, 2000);
     });
   }, `Element.animate() does not accept invalid easing: '${invalidEasing}'`);
@@ -154,7 +154,7 @@ for (const invalidEasing of gInvalidEasings) {
 
 for (const invalid of gBadIterationStartValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { iterationStart: invalid });
     });
   }, 'Element.animate() does not accept invalid iterationStart value: ' +
@@ -163,7 +163,7 @@ for (const invalid of gBadIterationStartValues) {
 
 for (const invalid of gBadIterationsValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { iterations: invalid });
     });
   }, 'Element.animate() does not accept invalid iterations value: ' +

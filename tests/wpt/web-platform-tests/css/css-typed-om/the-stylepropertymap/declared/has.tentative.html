@@ -11,7 +11,7 @@
 
 test(t => {
   const styleMap = createDeclaredStyleMap(t);
-  assert_throws(new TypeError(), () => styleMap.has('lemon'));
+  assert_throws_js(TypeError, () => styleMap.has('lemon'));
 }, 'Calling StylePropertyMap.has with an unsupported property throws a TypeError');
 
 const gTestCases = [

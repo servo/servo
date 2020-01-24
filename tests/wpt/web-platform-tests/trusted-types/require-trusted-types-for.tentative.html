@@ -28,7 +28,7 @@
     let p = Promise.resolve()
         .then(promise_violation("require-trusted-types-for 'script'"));
     d = document.createElement("div");
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
         _ => {
           d.innerHTML = "a";
         });
@@ -40,7 +40,7 @@
     let p = Promise.resolve()
         .then(promise_violation("require-trusted-types-for 'script'"));
     d = document.createElement("script");
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
         _ => {
           d.innerText = "a";
         });
@@ -52,7 +52,7 @@
     let p = Promise.resolve()
         .then(promise_violation("require-trusted-types-for 'script'"));
     s = document.createElement("script");
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
         _ => {
           s.src = "a";
         });

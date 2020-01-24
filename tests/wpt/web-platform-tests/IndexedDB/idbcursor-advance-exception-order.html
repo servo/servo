@@ -23,7 +23,7 @@ indexeddb_test(
       const cursor = r.result;
 
       setTimeout(t.step_func(() => {
-        assert_throws(new TypeError, () => { cursor.advance(0); },
+        assert_throws_js(TypeError, () => { cursor.advance(0); },
                       '"zero" check (TypeError) should precede ' +
                       '"not active" check (TransactionInactiveError)');
         t.done();
@@ -48,7 +48,7 @@ indexeddb_test(
       db.deleteObjectStore('s2');
 
       setTimeout(t.step_func(() => {
-        assert_throws('TransactionInactiveError', () => { cursor.advance(1); },
+        assert_throws_dom('TransactionInactiveError', () => { cursor.advance(1); },
                       '"not active" check (TransactionInactiveError) ' +
                       'should precede "deleted" check (InvalidStateError)');
         t.done();
@@ -77,7 +77,7 @@ indexeddb_test(
       cursor.advance(1);
 
       setTimeout(t.step_func(() => {
-        assert_throws('TransactionInactiveError', () => { cursor.advance(1); },
+        assert_throws_dom('TransactionInactiveError', () => { cursor.advance(1); },
                       '"not active" check (TransactionInactiveError) ' +
                       'should precede "got value" check (InvalidStateError)');
         t.done();

@@ -21,7 +21,7 @@ test(() => {
 
 test(() => {
   const init = {method: 'POST', keepalive: true, body: new ReadableStream()};
-  assert_throws(new TypeError(), () => {new Request('/', init)});
+  assert_throws_js(TypeError, () => {new Request('/', init)});
 }, 'keepalive flag with stream body');
 </script>
 </body>

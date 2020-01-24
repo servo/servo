@@ -9,7 +9,7 @@
     <script>
         test(() => {
             const event = new StorageEvent('storage');
-            assert_throws(new TypeError, () => event.initStorageEvent());
+            assert_throws_js(TypeError, () => event.initStorageEvent());
             // should be redundant, but .length can be wrong with custom bindings
             assert_equals(event.initStorageEvent.length, 1, 'event.initStorageEvent.length');
         }, 'initStorageEvent with 0 arguments');

@@ -61,7 +61,7 @@ var testAudio = async_test(function() {
     this.step_func(function(stream) {
       assert_equals(stream.getAudioTracks().length, 1);
       assert_equals(stream.getVideoTracks().length, 0);
-      assert_throws("NotSupportedError",
+      assert_throws_dom("NotSupportedError",
                     function() {
                       var capturer = new ImageCapture(stream.getAudioTracks()[0]);
                     },
@@ -82,11 +82,11 @@ var testParameter = test(function() {
     "",
     true
   ];
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
                 function() { var capturer = new ImageCapture(); },
                'an ImageCapturer can not be created with no parameter');
   invalidParameters.map(parameter => {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   function() { var capturer = new ImageCapture(parameter); },
                  `an ImageCapturer can not be created with a ${parameter} parameter`);
   });

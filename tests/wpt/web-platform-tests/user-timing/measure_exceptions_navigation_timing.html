@@ -27,7 +27,7 @@ setup(function () {
 });
 
 test(function () {
-   assert_throws("InvalidAccessError", function () {
+   assert_throws_dom("InvalidAccessError", function () {
        window.performance.measure("measure", zeroedNavTimingAtt);
    });
 }, "window.performance.measure(\"measure\", \"" + zeroedNavTimingAtt + "\"), where \"" +
@@ -35,7 +35,7 @@ test(function () {
                               "InvalidAccessError exception.");
 
 test(function () {
-   assert_throws("InvalidAccessError", function () {
+   assert_throws_dom("InvalidAccessError", function () {
        window.performance.measure("measure", zeroedNavTimingAtt, "responseEnd");
    });
 }, "window.performance.measure(\"measure\", \"" + zeroedNavTimingAtt + "\", " +
@@ -43,7 +43,7 @@ test(function () {
                               "attribute with a value of 0, throws a InvalidAccessError exception.");
 
 test(function () {
-   assert_throws("InvalidAccessError", function () {
+   assert_throws_dom("InvalidAccessError", function () {
        window.performance.measure("measure", "navigationStart", zeroedNavTimingAtt);
    });
 }, "window.performance.measure(\"measure\", \"navigationStart\", \"" + zeroedNavTimingAtt +
@@ -51,7 +51,7 @@ test(function () {
                               "value of 0, throws a InvalidAccessError exception.");
 
 test(function () {
-   assert_throws("InvalidAccessError", function () {
+   assert_throws_dom("InvalidAccessError", function () {
        window.performance.measure("measure", zeroedNavTimingAtt, zeroedNavTimingAtt);
    });
 }, "window.performance.measure(\"measure\", \"" + zeroedNavTimingAtt + "\", \"" +

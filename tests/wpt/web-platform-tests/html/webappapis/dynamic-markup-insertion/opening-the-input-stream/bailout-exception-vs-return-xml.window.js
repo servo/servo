@@ -2,7 +2,7 @@ async_test(t => {
   const iframe = document.body.appendChild(document.createElement("iframe"));
   t.add_cleanup(() => { iframe.remove(); });
   self.testSynchronousScript = t.step_func_done(() => {
-    assert_throws("InvalidStateError", () => {
+    assert_throws_dom("InvalidStateError", () => {
       iframe.contentDocument.open();
     }, "opening an XML document should throw");
   });
@@ -15,7 +15,7 @@ for (const ev of ["beforeunload", "pagehide", "unload"]) {
     t.add_cleanup(() => { iframe.remove(); });
     iframe.addEventListener("load", t.step_func(() => {
       iframe.contentWindow.addEventListener(ev, t.step_func_done(() => {
-        assert_throws("InvalidStateError", () => {
+        assert_throws_dom("InvalidStateError", () => {
           iframe.contentDocument.open();
         }, "opening an XML document should throw");
       }));

@@ -82,14 +82,14 @@ test(t => {
   let constructorFunc = function() {
     new ScrollTimeline({orientation: 'nonsense', timeRange: 100})
   };
-  assert_throws(TypeError(), constructorFunc);
+  assert_throws_js(TypeError, constructorFunc);
 
   // 'auto' for orientation was previously in the spec, but was removed. Make
   // sure that implementations do not support it.
   constructorFunc = function() {
     new ScrollTimeline({orientation: 'auto', timeRange: 100})
   };
-  assert_throws(TypeError(), constructorFunc);
+  assert_throws_js(TypeError, constructorFunc);
 }, 'Creating a ScrollTimeline with an invalid orientation value should throw');
 
 // startScrollOffset and endScrollOffset
@@ -182,7 +182,7 @@ for (const offset of gInvalidScrollOffsetValues) {
       new ScrollTimeline(
           {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset})
     };
-    assert_throws(new TypeError(), constructorFunc);
+    assert_throws_js(TypeError, constructorFunc);
   }, '\'' + offset + '\' is an invalid scroll offset value');
 }
 
@@ -193,7 +193,7 @@ for (const suffix of gInvalidScrollOffsetSuffixes) {
       new ScrollTimeline(
           {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset});
     };
-    assert_throws(new TypeError(), constructorFunc);
+    assert_throws_js(TypeError, constructorFunc);
   }, '\'' + suffix + '\' is an invalid scroll offset unit');
 }
 
@@ -230,7 +230,7 @@ for (let timeRange of gInvalidTimeRangeValues) {
     const constructorFunc = function() {
       new ScrollTimeline({timeRange: timeRange});
     };
-    assert_throws(new TypeError(), constructorFunc);
+    assert_throws_js(TypeError, constructorFunc);
   }, '\'' + timeRange + '\' is an invalid timeRange value');
 }
 
@@ -259,6 +259,6 @@ test(t => {
   let constructorFunc = function() {
     new ScrollTimeline({fill: 'nonsense', timeRange: 100})
   };
-  assert_throws(TypeError(), constructorFunc);
+  assert_throws_js(TypeError, constructorFunc);
 }, 'Creating a ScrollTimeline with an invalid fill value should throw');
 </script>

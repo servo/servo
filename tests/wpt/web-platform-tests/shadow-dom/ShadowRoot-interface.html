@@ -21,7 +21,7 @@ test(function () {
 }, 'ShadowRoot must inherit from DocumentFragment');
 
 test(function () {
-    assert_throws({'name': 'TypeError'}, function () { new ShadowRoot(); }, 'new ShadowRoot() must throw a TypeError');
+    assert_throws_js(TypeError, function () { new ShadowRoot(); }, 'new ShadowRoot() must throw a TypeError');
 }, 'ShadowRoot must not be a constructor');
 
 function testActiveElement(mode) {

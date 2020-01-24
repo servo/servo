@@ -151,7 +151,7 @@ test(t => {
 
 test(t => {
   // Should fail rather than falling back to record
-  assert_throws(new TypeError(), function() { new URLSearchParams(["key", "value"]); });
+  assert_throws_js(TypeError, function() { new URLSearchParams(["key", "value"]); });
 }, "A string array in sequence<sequence> or record");
 
 </script>

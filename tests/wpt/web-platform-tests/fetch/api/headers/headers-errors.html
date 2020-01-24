@@ -12,19 +12,19 @@
     <script>
 
       test(function() {
-        assert_throws(new TypeError() , function() { new Headers([["name"]]); });
+        assert_throws_js(TypeError, function() { new Headers([["name"]]); });
       }, "Create headers giving an array having one string as init argument");
 
       test(function() {
-        assert_throws(new TypeError() , function() { new Headers([["invalid", "invalidValue1", "invalidValue2"]]); });
+        assert_throws_js(TypeError, function() { new Headers([["invalid", "invalidValue1", "invalidValue2"]]); });
       }, "Create headers giving an array having three strings as init argument");
 
       test(function() {
-        assert_throws(new TypeError() , function() { new Headers([["invalidĀ", "Value1"]]); });
+        assert_throws_js(TypeError, function() { new Headers([["invalidĀ", "Value1"]]); });
       }, "Create headers giving bad header name as init argument");
 
       test(function() {
-        assert_throws(new TypeError() , function() { new Headers([["name", "invalidValueĀ"]]); });
+        assert_throws_js(TypeError, function() { new Headers([["name", "invalidValueĀ"]]); });
       }, "Create headers giving bad header value as init argument");
 
       var badNames = ["invalidĀ", {}];
@@ -33,57 +33,57 @@
       badNames.forEach(function(name) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.get(name); });
+          assert_throws_js(TypeError, function() { headers.get(name); });
         }, "Check headers get with an invalid name " + name);
       });
 
       badNames.forEach(function(name) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.delete(name); });
+          assert_throws_js(TypeError, function() { headers.delete(name); });
         }, "Check headers delete with an invalid name " + name);
       });
 
       badNames.forEach(function(name) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.has(name); });
+          assert_throws_js(TypeError, function() { headers.has(name); });
         }, "Check headers has with an invalid name " + name);
       });
 
       badNames.forEach(function(name) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.set(name, "Value1"); });
+          assert_throws_js(TypeError, function() { headers.set(name, "Value1"); });
         }, "Check headers set with an invalid name " + name);
       });
 
       badValues.forEach(function(value) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.set("name", value); });
+          assert_throws_js(TypeError, function() { headers.set("name", value); });
         }, "Check headers set with an invalid value " + value);
       });
 
       badNames.forEach(function(name) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.append("invalidĀ", "Value1"); });
+          assert_throws_js(TypeError, function() { headers.append("invalidĀ", "Value1"); });
         }, "Check headers append with an invalid name " + name);
       });
 
       badValues.forEach(function(value) {
         test(function() {
           var headers = new Headers();
-          assert_throws(new TypeError() , function() { headers.append("name", value); });
+          assert_throws_js(TypeError, function() { headers.append("name", value); });
         }, "Check headers append with an invalid value " + value);
       });
 
       test(function() {
         var headers = new Headers([["name", "value"]]);
-        assert_throws(new TypeError() , function() { headers.forEach(); });
-        assert_throws(new TypeError() , function() { headers.forEach(undefined); });
-        assert_throws(new TypeError() , function() { headers.forEach(1); });
+        assert_throws_js(TypeError, function() { headers.forEach(); });
+        assert_throws_js(TypeError, function() { headers.forEach(undefined); });
+        assert_throws_js(TypeError, function() { headers.forEach(1); });
       }, "Headers forEach throws if argument is not callable");
 
       test(function() {

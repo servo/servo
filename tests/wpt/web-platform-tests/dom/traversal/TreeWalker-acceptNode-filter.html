@@ -88,18 +88,18 @@ test(function()
 test(function()
 {
     var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, {});
-    assert_throws(new TypeError(), function () { walker.firstChild(); });
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(new TypeError(), function () { walker.nextNode(); });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object lacking acceptNode property');
 
 test(function()
 {
     var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, { acceptNode: "foo" });
-    assert_throws(new TypeError(), function () { walker.firstChild(); });
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(new TypeError(), function () { walker.nextNode(); });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object with non-function acceptNode property');
 

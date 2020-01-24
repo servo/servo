@@ -45,11 +45,11 @@
     }, 'insertRule with #bar selector');
 
     test(function() {
-        assert_throws(new TypeError, function() { styleSheet.insertRule() });
+        assert_throws_js(TypeError, function() { styleSheet.insertRule() });
     }, 'insertRule with no argument throws');
 
     test(function() {
-        assert_throws("IndexSizeError", function() {
+        assert_throws_dom("IndexSizeError", function() {
             styleSheet.insertRule("#bar { margin: 10px; }", styleSheet.cssRules.length + 1)
         });
     }, 'insertRule with index greater than length throws');
@@ -65,11 +65,11 @@
     }, 'deleteRule(1)');
 
     test(function() {
-        assert_throws(new TypeError, function() { styleSheet.deleteRule() });
+        assert_throws_js(TypeError, function() { styleSheet.deleteRule() });
     }, 'deleteRule with no argument throws');
 
     test(function() {
-        assert_throws("IndexSizeError", function() { emptyStyleSheet.deleteRule(0) });
+        assert_throws_dom("IndexSizeError", function() { emptyStyleSheet.deleteRule(0) });
     }, 'deleteRule on empty style sheet throws');
 
     test(function() {
@@ -79,7 +79,7 @@
     }, 'removeRule with no argument removes first rule');
 
     test(function() {
-        assert_throws("IndexSizeError", function() { emptyStyleSheet.removeRule(0) });
+        assert_throws_dom("IndexSizeError", function() { emptyStyleSheet.removeRule(0) });
     }, 'removeRule on empty style sheet throws');
 
     test(function() {
@@ -111,7 +111,7 @@
     }, 'addRule with no argument adds "undefined" selector');
 
     test(function() {
-        assert_throws("IndexSizeError", function() {
+        assert_throws_dom("IndexSizeError", function() {
             styleSheet.addRule("#foo", "color: red", styleSheet.cssRules.length + 1);
         });
     }, 'addRule with index greater than length throws');

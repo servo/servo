@@ -27,7 +27,7 @@
 ].forEach(dict => {
   test(() => {
     assert_true('fromMatrix' in DOMMatrix, 'fromMatrix should exist');
-    assert_throws(new TypeError(), () => DOMMatrix.fromMatrix(dict));
+    assert_throws_js(TypeError, () => DOMMatrix.fromMatrix(dict));
   }, `${format_dict(dict)} (invalid)`);
 });
 

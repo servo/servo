@@ -27,9 +27,9 @@ test(() => {
     get highWaterMark() { throw error; }
   };
 
-  assert_throws({ name: 'TypeError' }, () => new ByteLengthQueuingStrategy(), 'construction fails with undefined');
-  assert_throws({ name: 'TypeError' }, () => new ByteLengthQueuingStrategy(null), 'construction fails with null');
-  assert_throws({ name: 'Error' }, () => new ByteLengthQueuingStrategy(highWaterMarkObjectGetterThrowing),
+  assert_throws_js(TypeError, () => new ByteLengthQueuingStrategy(), 'construction fails with undefined');
+  assert_throws_js(TypeError, () => new ByteLengthQueuingStrategy(null), 'construction fails with null');
+  assert_throws_js(Error, () => new ByteLengthQueuingStrategy(highWaterMarkObjectGetterThrowing),
     'construction fails with an object with a throwing highWaterMark getter');
 
   // Should not fail:
@@ -50,8 +50,8 @@ test(() => {
   const chunkGetterThrowing = {
     get byteLength() { throw error; }
   };
-  assert_throws({ name: 'TypeError' }, () => ByteLengthQueuingStrategy.prototype.size(), 'size fails with undefined');
-  assert_throws({ name: 'TypeError' }, () => ByteLengthQueuingStrategy.prototype.size(null), 'size fails with null');
+  assert_throws_js(TypeError, () => ByteLengthQueuingStrategy.prototype.size(), 'size fails with undefined');
+  assert_throws_js(TypeError, () => ByteLengthQueuingStrategy.prototype.size(null), 'size fails with null');
   assert_equals(ByteLengthQueuingStrategy.prototype.size('potato'), undefined,
     'size succeeds with undefined with a random non-object type');
   assert_equals(ByteLengthQueuingStrategy.prototype.size({}), undefined,
@@ -60,7 +60,7 @@ test(() => {
     'size succeeds with the right amount with an object with a hwm');
   assert_equals(ByteLengthQueuingStrategy.prototype.size(chunkGetter), size,
     'size succeeds with the right amount with an object with a hwm getter');
-  assert_throws({ name: 'Error' }, () => ByteLengthQueuingStrategy.prototype.size(chunkGetterThrowing),
+  assert_throws_js(Error, () => ByteLengthQueuingStrategy.prototype.size(chunkGetterThrowing),
     'size fails with the error thrown by the getter');
 
 }, 'ByteLengthQueuingStrategy size behaves as expected with strange arguments');

@@ -17,13 +17,13 @@ test(function () {
 }, 'CustomElementRegistry interface must have define as a method');
 
 test(function () {
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('badname', 1); },
+    assert_throws_js(TypeError, function () { customElements.define('badname', 1); },
         'customElements.define must throw a TypeError when the element interface is a number');
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('badname', '123'); },
+    assert_throws_js(TypeError, function () { customElements.define('badname', '123'); },
         'customElements.define must throw a TypeError when the element interface is a string');
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('badname', {}); },
+    assert_throws_js(TypeError, function () { customElements.define('badname', {}); },
         'customElements.define must throw a TypeError when the element interface is an object');
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('badname', []); },
+    assert_throws_js(TypeError, function () { customElements.define('badname', []); },
         'customElements.define must throw a TypeError when the element interface is an array');
 }, 'customElements.define must throw when the element interface is not a constructor');
 
@@ -34,13 +34,13 @@ test(function () {
 test(function () {
     class MyCustomElement extends HTMLElement {};
 
-    assert_throws({'name': 'SyntaxError'}, function () { customElements.define(null, MyCustomElement); },
+    assert_throws_dom('SyntaxError', function () { customElements.define(null, MyCustomElement); },
         'customElements.define must throw a SyntaxError if the tag name is null');
-    assert_throws({'name': 'SyntaxError'}, function () { customElements.define('', MyCustomElement); },
+    assert_throws_dom('SyntaxError', function () { customElements.define('', MyCustomElement); },
         'customElements.define must throw a SyntaxError if the tag name is empty');
-    assert_throws({'name': 'SyntaxError'}, function () { customElements.define('abc', MyCustomElement); },
+    assert_throws_dom('SyntaxError', function () { customElements.define('abc', MyCustomElement); },
         'customElements.define must throw a SyntaxError if the tag name does not contain "-"');
-    assert_throws({'name': 'SyntaxError'}, function () { customElements.define('a-Bc', MyCustomElement); },
+    assert_throws_dom('SyntaxError', function () { customElements.define('a-Bc', MyCustomElement); },
         'customElements.define must throw a SyntaxError if the tag name contains an upper case letter');
 
     var builtinTagNames = [
@@ -55,7 +55,7 @@ test(function () {
     ];
 
     for (var tagName of builtinTagNames) {
-        assert_throws({'name': 'SyntaxError'}, function () { customElements.define(tagName, MyCustomElement); },
+        assert_throws_dom('SyntaxError', function () { customElements.define(tagName, MyCustomElement); },
             'customElements.define must throw a SyntaxError if the tag name is "' + tagName + '"');
     }
 
@@ -73,7 +73,7 @@ test(function () {
     })
 
     customElements.define('some-custom-element', SomeCustomElement);
-    assert_throws({'name': 'NotSupportedError'}, function () { customElements.define('some-custom-element', OtherCustomElement); },
+    assert_throws_dom('NotSupportedError', function () { customElements.define('some-custom-element', OtherCustomElement); },
         'customElements.define must throw a NotSupportedError if the specified tag name is already used');
     assert_array_equals(calls, [], 'customElements.define must validate the custom element name before getting the prototype of the constructor');
 
@@ -83,7 +83,7 @@ test(function () {
     class AnotherCustomElement extends HTMLElement {};
 
     customElements.define('another-custom-element', AnotherCustomElement);
-    assert_throws({'name': 'NotSupportedError'}, function () { customElements.define('some-other-element', AnotherCustomElement); },
+    assert_throws_dom('NotSupportedError', function () { customElements.define('some-other-element', AnotherCustomElement); },
         'customElements.define must throw a NotSupportedError if the specified class already defines an element');
 
 }, 'customElements.define must throw a NotSupportedError when there is already a custom element with the same class');
@@ -105,7 +105,7 @@ test(function () {
         }
     });
 
-    assert_throws({'name': 'NotSupportedError'}, function () { customElements.define('outer-custom-element', OuterCustomElement); },
+    assert_throws_dom('NotSupportedError', function () { customElements.define('outer-custom-element', OuterCustomElement); },
         'customElements.define must throw a NotSupportedError if the specified class already defines an element');
     assert_array_equals(outerCalls, ['prototype'], 'customElements.define must get "prototype"');
     assert_array_equals(innerCalls, [],
@@ -124,7 +124,7 @@ test(function () {
         }
     });
 
-    assert_throws({'name': 'TypeError'}, function () {
+    assert_throws_js(TypeError, function () {
         customElements.define('element-with-bad-inner-constructor', ElementWithBadInnerConstructor);
     }, 'customElements.define must throw a NotSupportedError if IsConstructor(constructor) is false');
 
@@ -141,7 +141,7 @@ test(function () {
         }
     });
 
-    assert_throws({'name': 'SyntaxError'}, function () {
+    assert_throws_dom('SyntaxError', function () {
         customElements.define('element-with-bad-inner-name', ElementWithBadInnerName);
     }, 'customElements.define must throw a SyntaxError if the specified name is not a valid custom element name');
 
@@ -213,7 +213,7 @@ test(function () {
         }
     });
 
-    assert_throws({'name': 'SyntaxError'}, function () {
+    assert_throws_dom('SyntaxError', function () {
         customElements.define('element-with-bad-inner-name', ElementWithBadInnerName);
     }, 'customElements.define must throw a SyntaxError if the specified name is not a valid custom element name');
 
@@ -233,12 +233,13 @@ test(function () {
 }, 'customElements.define must get "prototype", "disabledFeatures", and "formAssociated" property of the constructor');
 
 test(function () {
+    var err = {name: 'expectedError'}
     var proxy = new Proxy(class extends HTMLElement { }, {
         get: function (target, name) {
-            throw {name: 'expectedError'};
+            throw err;
         }
     });
-    assert_throws({'name': 'expectedError'}, function () { customElements.define('element-with-string-prototype', proxy); });
+    assert_throws_exactly(err, function () { customElements.define('element-with-string-prototype', proxy); });
 }, 'customElements.define must rethrow an exception thrown while getting "prototype" property of the constructor');
 
 test(function () {
@@ -248,16 +249,16 @@ test(function () {
     });
 
     returnedValue = null;
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-string-prototype', proxy); },
+    assert_throws_js(TypeError, function () { customElements.define('element-with-string-prototype', proxy); },
         'customElements.define must throw when "prototype" property of the constructor is null');
     returnedValue = undefined;
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-string-prototype', proxy); },
+    assert_throws_js(TypeError, function () { customElements.define('element-with-string-prototype', proxy); },
         'customElements.define must throw when "prototype" property of the constructor is undefined');
     returnedValue = 'hello';
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-string-prototype', proxy); },
+    assert_throws_js(TypeError, function () { customElements.define('element-with-string-prototype', proxy); },
         'customElements.define must throw when "prototype" property of the constructor is a string');
     returnedValue = 1;
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-string-prototype', proxy); },
+    assert_throws_js(TypeError, function () { customElements.define('element-with-string-prototype', proxy); },
         'customElements.define must throw when "prototype" property of the constructor is a number');
 
 }, 'customElements.define must throw when "prototype" property of the constructor is not an object');
@@ -278,15 +279,16 @@ test(function () {
 test(function () {
     var constructor = function () {}
     var calls = [];
+    var err = {name: 'expectedError'}
     constructor.prototype = new Proxy(constructor.prototype, {
         get: function (target, name) {
             calls.push(name);
             if (name == 'disconnectedCallback')
-                throw {name: 'expectedError'};
+                throw err;
             return target[name];
         }
     });
-    assert_throws({'name': 'expectedError'}, function () { customElements.define('element-with-throwing-callback', constructor); });
+    assert_throws_exactly(err, function () { customElements.define('element-with-throwing-callback', constructor); });
     assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback'],
         'customElements.define must not get callbacks after one of the get throws');
 }, 'customElements.define must rethrow an exception thrown while getting callbacks on the constructor prototype');
@@ -302,7 +304,7 @@ test(function () {
             return target[name];
         }
     });
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-throwing-callback', constructor); });
+    assert_throws_js(TypeError, function () { customElements.define('element-with-throwing-callback', constructor); });
     assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback', 'adoptedCallback'],
         'customElements.define must not get callbacks after one of the conversion throws');
 }, 'customElements.define must rethrow an exception thrown while converting a callback value to Function callback type');
@@ -341,15 +343,16 @@ test(function () {
     var constructor = function () {}
     constructor.prototype.attributeChangedCallback = function () { };
     var calls = [];
+    var err = {name: 'expectedError'};
     var proxy = new Proxy(constructor, {
         get: function (target, name) {
             calls.push(name);
             if (name == 'observedAttributes')
-                throw {name: 'expectedError'};
+                throw err;
             return target[name];
         }
     });
-    assert_throws({'name': 'expectedError'}, function () { customElements.define('element-with-throwing-observed-attributes', proxy); });
+    assert_throws_exactly(err, function () { customElements.define('element-with-throwing-observed-attributes', proxy); });
     assert_array_equals(calls, ['prototype', 'observedAttributes'],
         'customElements.define must get "prototype" and "observedAttributes" on the constructor');
 }, 'customElements.define must rethrow an exception thrown while getting observedAttributes on the constructor prototype');
@@ -366,26 +369,27 @@ test(function () {
             return target[name];
         }
     });
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-invalid-observed-attributes', proxy); });
+    assert_throws_js(TypeError, function () { customElements.define('element-with-invalid-observed-attributes', proxy); });
     assert_array_equals(calls, ['prototype', 'observedAttributes'],
         'customElements.define must get "prototype" and "observedAttributes" on the constructor');
 }, 'customElements.define must rethrow an exception thrown while converting the value of observedAttributes to sequence<DOMString>');
 
-test(function () {
+  test(function () {
+    var err = {name: 'SomeError'};
     var constructor = function () {}
     constructor.prototype.attributeChangedCallback = function () { };
     constructor.observedAttributes = {[Symbol.iterator]: function *() {
         yield 'foo';
-        throw {name: 'SomeError'};
+        throw err;
     }};
-    assert_throws({'name': 'SomeError'}, function () { customElements.define('element-with-generator-observed-attributes', constructor); });
+    assert_throws_exactly(err, function () { customElements.define('element-with-generator-observed-attributes', constructor); });
 }, 'customElements.define must rethrow an exception thrown while iterating over observedAttributes to sequence<DOMString>');
 
 test(function () {
     var constructor = function () {}
     constructor.prototype.attributeChangedCallback = function () { };
     constructor.observedAttributes = {[Symbol.iterator]: 1};
-    assert_throws({'name': 'TypeError'}, function () { customElements.define('element-with-observed-attributes-with-uncallable-iterator', constructor); });
+    assert_throws_js(TypeError, function () { customElements.define('element-with-observed-attributes-with-uncallable-iterator', constructor); });
 }, 'customElements.define must rethrow an exception thrown while retrieving Symbol.iterator on observedAttributes');
 
 test(function () {
@@ -397,15 +401,16 @@ test(function () {
 test(function () {
     var constructor = function () {}
     var calls = [];
+    var err = {name: 'expectedError'}
     var proxy = new Proxy(constructor, {
         get: function (target, name) {
             calls.push(name);
             if (name == 'disabledFeatures')
-                throw {name: 'expectedError'};
+                throw err;
             return target[name];
         }
     });
-    assert_throws({'name': 'expectedError'}, () => customElements.define('element-with-throwing-disabled-features', proxy));
+    assert_throws_exactly(err, () => customElements.define('element-with-throwing-disabled-features', proxy));
     assert_array_equals(calls, ['prototype', 'disabledFeatures'],
         'customElements.define must get "prototype" and "disabledFeatures" on the constructor');
 }, 'customElements.define must rethrow an exception thrown while getting disabledFeatures on the constructor prototype');
@@ -421,38 +426,40 @@ test(function () {
             return target[name];
         }
     });
-    assert_throws({'name': 'TypeError'}, () => customElements.define('element-with-invalid-disabled-features', proxy));
+    assert_throws_js(TypeError, () => customElements.define('element-with-invalid-disabled-features', proxy));
     assert_array_equals(calls, ['prototype', 'disabledFeatures'],
         'customElements.define must get "prototype" and "disabledFeatures" on the constructor');
 }, 'customElements.define must rethrow an exception thrown while converting the value of disabledFeatures to sequence<DOMString>');
 
 test(function () {
     var constructor = function () {}
+    var err = {name: 'SomeError'};
     constructor.disabledFeatures = {[Symbol.iterator]: function *() {
         yield 'foo';
-        throw {name: 'SomeError'};
+        throw err;
     }};
-    assert_throws({'name': 'SomeError'}, () => customElements.define('element-with-generator-disabled-features', constructor));
+    assert_throws_exactly(err, () => customElements.define('element-with-generator-disabled-features', constructor));
 }, 'customElements.define must rethrow an exception thrown while iterating over disabledFeatures to sequence<DOMString>');
 
 test(function () {
     var constructor = function () {}
     constructor.disabledFeatures = {[Symbol.iterator]: 1};
-    assert_throws({'name': 'TypeError'}, () => customElements.define('element-with-disabled-features-with-uncallable-iterator', constructor));
+    assert_throws_js(TypeError, () => customElements.define('element-with-disabled-features-with-uncallable-iterator', constructor));
 }, 'customElements.define must rethrow an exception thrown while retrieving Symbol.iterator on disabledFeatures');
 
 test(function () {
     var constructor = function () {}
     var calls = [];
+    var err = {name: 'expectedError'};
     var proxy = new Proxy(constructor, {
         get: function (target, name) {
             calls.push(name);
             if (name == 'formAssociated')
-                throw {name: 'expectedError'};
+                throw err;
             return target[name];
         }
     });
-    assert_throws({'name': 'expectedError'},
+    assert_throws_exactly(err,
         () => customElements.define('element-with-throwing-form-associated', proxy));
     assert_array_equals(calls, ['prototype', 'disabledFeatures', 'formAssociated'],
         'customElements.define must get "prototype", "disabledFeatures", and ' +
@@ -503,15 +510,16 @@ test(function () {
         }
     });
     var calls = [];
+    var err = {name: 'expectedError'};
     constructor.prototype = new Proxy(constructor.prototype, {
         get: function (target, name) {
             calls.push(name);
             if (name == 'formDisabledCallback')
-                throw {name: 'expectedError'};
+                throw err;
             return target[name];
         }
     });
-    assert_throws({'name': 'expectedError'},
+    assert_throws_exactly(err,
         () => customElements.define('element-with-throwing-callback-2', proxy));
     assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback',
                                 'adoptedCallback', 'attributeChangedCallback',
@@ -528,7 +536,7 @@ test(function () {
             return target[name];
         }
     });
-    assert_throws({'name': 'TypeError'},
+    assert_throws_js(TypeError,
         () => customElements.define('element-with-throwing-callback-3', proxy));
     assert_array_equals(calls2, ['connectedCallback', 'disconnectedCallback',
                                  'adoptedCallback', 'attributeChangedCallback',

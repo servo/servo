@@ -12,7 +12,7 @@ test(function() {
   assert_own_property(window,'DragEvent');
 }, 'window.DragEvent should be exposed' );
 test(function() {
-  assert_throws('NOT_SUPPORTED_ERR', function() {
+  assert_throws_dom('NOT_SUPPORTED_ERR', function() {
     var evt = document.createEvent('DragEvent');
   });
 }, 'createEvent should not be able to create a DragEvent' );
@@ -52,7 +52,7 @@ test(function() {
   assert_true(ranlistener);
 }, 'DragEvent constructor with undefined as the dataTransfer parameter should be able to fire the event' );
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     var evt = new DragEvent('dragstart', {dataTransfer:{}});
   });
 }, 'DragEvent constructor with custom object as the dataTransfer parameter should throw TypeError' );

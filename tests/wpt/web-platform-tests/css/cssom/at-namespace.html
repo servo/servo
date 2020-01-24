@@ -11,11 +11,11 @@
 <div>Should be green</div>
 <script>
 test(function() {
-  assert_throws("InvalidStateError", function() {
+  assert_throws_dom("InvalidStateError", function() {
     s.sheet.insertRule('@namespace myhtml url("http://www.w3.org/1999/xhtml")', 0);
   });
   assert_equals(s.sheet.cssRules.length, 1, "Shouldn't have been inserted");
-  assert_throws("SyntaxError", function() {
+  assert_throws_dom("SyntaxError", function() {
     s.sheet.insertRule("myhtml|div { color: red !important }", 0);
   });
   assert_equals(s.sheet.cssRules.length, 1);

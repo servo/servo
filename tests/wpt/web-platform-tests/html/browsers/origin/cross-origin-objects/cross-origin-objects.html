@@ -135,7 +135,7 @@ function addPromiseThenTest(func, desc) {
 }
 
 /*
- * Basic sanity testing.
+ * Basic smoke tests for same-origin and cross-origin behaviors.
  */
 
 addTest(function(win) {
@@ -145,7 +145,7 @@ addTest(function(win) {
   assert_equals(B.parent, window, "window.parent works same-origin");
   assert_equals(win.parent, window, "window.parent works cross-origin");
   assert_equals(B.location.pathname, path, "location.href works same-origin");
-  assert_throws("SecurityError", function() { win.location.pathname; }, "location.pathname throws cross-origin");
+  assert_throws_dom("SecurityError", function() { win.location.pathname; }, "location.pathname throws cross-origin");
   assert_equals(B.frames, 'override', "Overrides visible in the same-origin case");
   assert_equals(win.frames, win, "Overrides invisible in the cross-origin case");
   assert_equals(B.focus, 'override', "Overrides visible in the same-origin case");
@@ -154,14 +154,14 @@ addTest(function(win) {
 }, "Basic sanity-checking");
 
 /*
- * Whitelist behavior.
+ * Tests regarding which properties are allowed cross-origin.
  *
  * Also tests for [[GetOwnProperty]] and [[HasOwnProperty]] behavior.
  */
 
-var whitelistedSymbols = [Symbol.toStringTag, Symbol.hasInstance,
+var allowedSymbols = [Symbol.toStringTag, Symbol.hasInstance,
                           Symbol.isConcatSpreadable];
-var windowWhitelists = {
+var windowAllowlists = {
   namedFrames: ['donotleakme'],
   indices: ['0', '1'],
   getters: ['location', 'window', 'frames', 'self', 'top', 'parent',
@@ -174,22 +174,22 @@ var windowWhitelists = {
   // otherwise throw. They are not, however, cross-origin accessible.
   promiseMethods: ['createImageBitmap', 'fetch'],
 }
-windowWhitelists.propNames = Array.from(new Set([...windowWhitelists.indices,
-                                                 ...windowWhitelists.getters,
-                                                 ...windowWhitelists.setters,
-                                                 ...windowWhitelists.methods,
+windowAllowlists.propNames = Array.from(new Set([...windowAllowlists.indices,
+                                                 ...windowAllowlists.getters,
+                                                 ...windowAllowlists.setters,
+                                                 ...windowAllowlists.methods,
                                                  'then'])).sort();
-windowWhitelists.props = windowWhitelists.propNames.concat(whitelistedSymbols);
+windowAllowlists.props = windowAllowlists.propNames.concat(allowedSymbols);
 
-var locationWhitelists = {
+var locationAllowlists = {
   getters: [],
   setters: ['href'],
   methods: ['replace'],
   promiseMethods: [],
 }
-locationWhitelists.propNames = Array.from(new Set([...locationWhitelists.getters,
-                                                   ...locationWhitelists.setters,
-                                                   ...locationWhitelists.methods,
+locationAllowlists.propNames = Array.from(new Set([...locationAllowlists.getters,
+                                                   ...locationAllowlists.setters,
+                                                   ...locationAllowlists.methods,
                                                    'then'])).sort();
 
 // Define various sets of arguments to call cross-origin methods with. Arguments
@@ -216,21 +216,21 @@ var methodArgs = new Map(Object.entries({
 
 addTest(function(win) {
   for (var prop in window) {
-    if (windowWhitelists.props.indexOf(prop) != -1) {
+    if (windowAllowlists.props.indexOf(prop) != -1) {
       win[prop]; // Shouldn't throw.
       Object.getOwnPropertyDescriptor(win, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win, prop), "hasOwnProperty for " + String(prop));
     } else {
-      assert_throws("SecurityError", function() { win[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
-      assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(win, prop); },
+      assert_throws_dom("SecurityError", function() { win[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
+      assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win, prop); },
                     "Should throw when accessing property descriptor for " + prop + " on Window");
-      assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(win, prop); },
+      assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win, prop); },
                     "Should throw when invoking hasOwnProperty for " + prop + " on Window");
     }
     if (prop != 'location')
-      assert_throws("SecurityError", function() { win[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
+      assert_throws_dom("SecurityError", function() { win[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
   }
-  for (var prop of windowWhitelists.namedFrames) {
+  for (var prop of windowAllowlists.namedFrames) {
     win[prop]; // Shouldn't throw.
     Object.getOwnPropertyDescriptor(win, prop); // Shouldn't throw.
     assert_true(Object.prototype.hasOwnProperty.call(win, prop), "hasOwnProperty for " + String(prop));
@@ -240,27 +240,27 @@ addTest(function(win) {
       win.location[prop]; // Shouldn't throw.
       Object.getOwnPropertyDescriptor(win.location, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win.location, prop), "hasOwnProperty for " + prop);
-      assert_throws("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
     }
     else if (prop == 'href') {
       Object.getOwnPropertyDescriptor(win.location, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win.location, prop), "hasOwnProperty for " + prop);
-      assert_throws("SecurityError", function() { win.location[prop] },
+      assert_throws_dom("SecurityError", function() { win.location[prop] },
                     "Should throw reading href on Location");
     }
     else {
-      assert_throws("SecurityError", function() { win.location[prop]; }, "Should throw when accessing " + prop + " on Location");
-      assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(win.location, prop); },
+      assert_throws_dom("SecurityError", function() { win.location[prop]; }, "Should throw when accessing " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win.location, prop); },
                     "Should throw when accessing property descriptor for " + prop + " on Location");
-      assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(win.location, prop); },
+      assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win.location, prop); },
                     "Should throw when invoking hasOwnProperty for " + prop + " on Location");
-      assert_throws("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
     }
   }
-}, "Only whitelisted properties are accessible cross-origin");
+}, "Only certain properties are accessible cross-origin");
 
 addPromiseTest(async function(win, test_obj) {
-  async function checkProperties(objName, whitelists) {
+  async function checkProperties(objName, allowedlists) {
     var localObj = window[objName];
     var otherObj = win[objName];
 
@@ -273,12 +273,12 @@ addPromiseTest(async function(win, test_obj) {
 
       if ("value" in desc) {
         if (typeof desc.value === "function" && String(desc.value).includes("[native code]")) {
-          if (whitelists.promiseMethods.includes(prop)) {
+          if (allowedlists.promiseMethods.includes(prop)) {
             await promise_rejects(test_obj, "SecurityError", desc.value.call(otherObj),
                                   `Should throw when calling ${objName}.${prop} with cross-origin this object`);
-          } else if (!whitelists.methods.includes(prop)) {
+          } else if (!allowedlists.methods.includes(prop)) {
             for (let args of methodArgs.get(prop) || [[]]) {
-              assert_throws("SecurityError", desc.value.bind(otherObj, ...args),
+              assert_throws_dom("SecurityError", desc.value.bind(otherObj, ...args),
                             `Should throw when calling ${objName}.${prop} with cross-origin this object`);
             }
 
@@ -290,18 +290,18 @@ addPromiseTest(async function(win, test_obj) {
         }
       } else {
         if (desc.get) {
-          if (whitelists.getters.includes(prop)) {
+          if (allowedlists.getters.includes(prop)) {
             desc.get.call(otherObj); // Shouldn't throw.
           } else {
-            assert_throws("SecurityError", desc.get.bind(otherObj),
+            assert_throws_dom("SecurityError", desc.get.bind(otherObj),
                           `Should throw when calling ${objName}.${prop} getter with cross-origin this object`);
           }
         }
         if (desc.set) {
-          if (whitelists.setters.includes(prop)) {
+          if (allowedlists.setters.includes(prop)) {
             desc.set.call(otherObj, "javascript:undefined"); // Shouldn't throw.
           } else {
-            assert_throws("SecurityError", desc.set.bind(otherObj, "foo"),
+            assert_throws_dom("SecurityError", desc.set.bind(otherObj, "foo"),
                           `Should throw when calling ${objName}.${prop} setter with cross-origin this object`);
           }
         }
@@ -309,9 +309,9 @@ addPromiseTest(async function(win, test_obj) {
     }
   }
 
-  await checkProperties("location", locationWhitelists);
-  await checkProperties("window", windowWhitelists);
-}, "Only whitelisted properties are usable as cross-origin this objects");
+  await checkProperties("location", locationAllowlists);
+  await checkProperties("window", windowAllowlists);
+}, "Only certain properties are usable as cross-origin this objects");
 
 /*
  * ES Internal Methods.
@@ -326,8 +326,8 @@ addTest(function(win) {
   var protoGetter = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get;
   assert_equals(protoGetter.call(win), null, "cross-origin Window proto is null");
   assert_equals(protoGetter.call(win.location), null, "cross-origin Location proto is null (__proto__)");
-  assert_throws("SecurityError", function() { win.__proto__; }, "__proto__ property not available cross-origin");
-  assert_throws("SecurityError", function() { win.location.__proto__; }, "__proto__ property not available cross-origin");
+  assert_throws_dom("SecurityError", function() { win.__proto__; }, "__proto__ property not available cross-origin");
+  assert_throws_dom("SecurityError", function() { win.location.__proto__; }, "__proto__ property not available cross-origin");
 
 }, "[[GetPrototypeOf]] should return null");
 
@@ -335,14 +335,14 @@ addTest(function(win) {
  * [[SetPrototypeOf]]
  */
 addTest(function(win) {
-  assert_throws("SecurityError", function() { win.__proto__ = new Object(); }, "proto set on cross-origin Window");
-  assert_throws("SecurityError", function() { win.location.__proto__ = new Object(); }, "proto set on cross-origin Location");
+  assert_throws_dom("SecurityError", function() { win.__proto__ = new Object(); }, "proto set on cross-origin Window");
+  assert_throws_dom("SecurityError", function() { win.location.__proto__ = new Object(); }, "proto set on cross-origin Location");
   var setters = [Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set];
   if (Object.setPrototypeOf)
     setters.push(function(p) { Object.setPrototypeOf(this, p); });
   setters.forEach(function(protoSetter) {
-    assert_throws(new TypeError, function() { protoSetter.call(win, new Object()); }, "proto setter |call| on cross-origin Window");
-    assert_throws(new TypeError, function() { protoSetter.call(win.location, new Object()); }, "proto setter |call| on cross-origin Location");
+    assert_throws_js(TypeError, function() { protoSetter.call(win, new Object()); }, "proto setter |call| on cross-origin Window");
+    assert_throws_js(TypeError, function() { protoSetter.call(win.location, new Object()); }, "proto setter |call| on cross-origin Location");
   });
   // Hack to avoid "duplicate test name" harness issues.
   setters.forEach(function(protoSetter) {
@@ -375,9 +375,9 @@ addTest(function(win) {
  * [[PreventExtensions]]
  */
 addTest(function(win) {
-  assert_throws(new TypeError, function() { Object.preventExtensions(win) },
+  assert_throws_js(TypeError, function() { Object.preventExtensions(win) },
                 "preventExtensions on cross-origin Window should throw");
-  assert_throws(new TypeError, function() { Object.preventExtensions(win.location) },
+  assert_throws_js(TypeError, function() { Object.preventExtensions(win.location) },
                 "preventExtensions on cross-origin Location should throw");
 }, "[[PreventExtensions]] should throw for cross-origin objects");
 
@@ -418,14 +418,14 @@ function checkPropertyDescriptor(desc, propName, expectWritable) {
 }
 
 addTest(function(win) {
-  windowWhitelists.props.forEach(function(prop) {
+  windowAllowlists.props.forEach(function(prop) {
     var desc = Object.getOwnPropertyDescriptor(win, prop);
     checkPropertyDescriptor(desc, prop, prop == 'location');
   });
   checkPropertyDescriptor(Object.getOwnPropertyDescriptor(win.location, 'replace'), 'replace', false);
   checkPropertyDescriptor(Object.getOwnPropertyDescriptor(win.location, 'href'), 'href', true);
   assert_equals(typeof Object.getOwnPropertyDescriptor(win.location, 'href').get, 'undefined', "Cross-origin location should have no href getter");
-  whitelistedSymbols.forEach(function(prop) {
+  allowedSymbols.forEach(function(prop) {
     var desc = Object.getOwnPropertyDescriptor(win.location, prop);
     checkPropertyDescriptor(desc, prop, false);
   });
@@ -443,7 +443,7 @@ addThenTest(function(win) {
 addTest(function(win) {
   assert_equals(typeof Object.getOwnPropertyDescriptor(win, '0').value, "object");
   assert_equals(typeof Object.getOwnPropertyDescriptor(win, '1').value, "object");
-  assert_throws("SecurityError", function() {
+  assert_throws_dom("SecurityError", function() {
     Object.getOwnPropertyDescriptor(win, '2');
   });
 }, "[[GetOwnProperty]] - Should be able to get a property descriptor for an indexed property only if it corresponds to a child window.");
@@ -452,17 +452,17 @@ addTest(function(win) {
  * [[Delete]]
  */
 addTest(function(win) {
-  assert_throws("SecurityError", function() { delete win[0]; }, "Can't delete cross-origin indexed property");
-  assert_throws("SecurityError", function() { delete win[100]; }, "Can't delete cross-origin indexed property");
-  assert_throws("SecurityError", function() { delete win.location; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.parent; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.length; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.document; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.foopy; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.href; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.replace; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.port; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.foopy; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win[0]; }, "Can't delete cross-origin indexed property");
+  assert_throws_dom("SecurityError", function() { delete win[100]; }, "Can't delete cross-origin indexed property");
+  assert_throws_dom("SecurityError", function() { delete win.location; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.parent; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.length; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.document; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.foopy; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.href; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.replace; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.port; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.foopy; }, "Can't delete cross-origin property");
 }, "[[Delete]] Should throw on cross-origin objects");
 
 /*
@@ -471,8 +471,8 @@ addTest(function(win) {
 function checkDefine(obj, prop) {
   var valueDesc = { configurable: true, enumerable: false, writable: false, value: 2 };
   var accessorDesc = { configurable: true, enumerable: false, get: function() {} };
-  assert_throws("SecurityError", function() { Object.defineProperty(obj, prop, valueDesc); }, "Can't define cross-origin value property " + prop);
-  assert_throws("SecurityError", function() { Object.defineProperty(obj, prop, accessorDesc); }, "Can't define cross-origin accessor property " + prop);
+  assert_throws_dom("SecurityError", function() { Object.defineProperty(obj, prop, valueDesc); }, "Can't define cross-origin value property " + prop);
+  assert_throws_dom("SecurityError", function() { Object.defineProperty(obj, prop, accessorDesc); }, "Can't define cross-origin accessor property " + prop);
 }
 addTest(function(win) {
   checkDefine(win, 'length');
@@ -494,9 +494,9 @@ addTest(function(win) {
   let i = 0;
   for (var prop in win) {
     i++;
-    assert_true(windowWhitelists.indices.includes(prop), prop + " is not safelisted for a cross-origin Window");
+    assert_true(windowAllowlists.indices.includes(prop), prop + " is not safelisted for a cross-origin Window");
   }
-  assert_equals(i, windowWhitelists.indices.length, "Enumerate all enumerable safelisted cross-origin Window properties");
+  assert_equals(i, windowAllowlists.indices.length, "Enumerate all enumerable safelisted cross-origin Window properties");
   i = 0;
   for (var prop in win.location) {
     i++;
@@ -510,48 +510,48 @@ addTest(function(win) {
 
 addTest(function(win) {
   assert_array_equals(Object.getOwnPropertyNames(win).sort(),
-                      windowWhitelists.propNames,
+                      windowAllowlists.propNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Window");
   assert_array_equals(Object.keys(win).sort(),
-                      windowWhitelists.indices,
+                      windowAllowlists.indices,
                       "Object.keys() gives the right answer for cross-origin Window");
   assert_array_equals(Object.getOwnPropertyNames(win.location).sort(),
-                      locationWhitelists.propNames,
+                      locationAllowlists.propNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Location");
   assert_equals(Object.keys(win.location).length, 0,
                       "Object.keys() gives the right answer for cross-origin Location");
 }, "[[OwnPropertyKeys]] should return all properties from cross-origin objects");
 
 addTest(function(win) {
-  assert_array_equals(Object.getOwnPropertySymbols(win), whitelistedSymbols,
+  assert_array_equals(Object.getOwnPropertySymbols(win), allowedSymbols,
     "Object.getOwnPropertySymbols() should return the three symbol-named properties that are exposed on a cross-origin Window");
   assert_array_equals(Object.getOwnPropertySymbols(win.location),
-                      whitelistedSymbols,
+                      allowedSymbols,
     "Object.getOwnPropertySymbols() should return the three symbol-named properties that are exposed on a cross-origin Location");
 }, "[[OwnPropertyKeys]] should return the right symbol-named properties for cross-origin objects");
 
 addTest(function(win) {
   var allWindowProps = Reflect.ownKeys(win);
-  indexedWindowProps = allWindowProps.slice(0, windowWhitelists.indices.length);
-  stringWindowProps = allWindowProps.slice(0, -1 * whitelistedSymbols.length);
-  symbolWindowProps = allWindowProps.slice(-1 * whitelistedSymbols.length);
+  indexedWindowProps = allWindowProps.slice(0, windowAllowlists.indices.length);
+  stringWindowProps = allWindowProps.slice(0, -1 * allowedSymbols.length);
+  symbolWindowProps = allWindowProps.slice(-1 * allowedSymbols.length);
   // stringWindowProps should have "then" last in this case.  Do this
   // check before we call stringWindowProps.sort() below.
   assert_equals(stringWindowProps[stringWindowProps.length - 1], "then",
                 "'then' property should be added to the end of the string list if not there");
-  assert_array_equals(indexedWindowProps, windowWhitelists.indices,
+  assert_array_equals(indexedWindowProps, windowAllowlists.indices,
                       "Reflect.ownKeys should start with the indices exposed on the cross-origin window.");
-  assert_array_equals(stringWindowProps.sort(), windowWhitelists.propNames,
+  assert_array_equals(stringWindowProps.sort(), windowAllowlists.propNames,
                       "Reflect.ownKeys should continue with the cross-origin window properties for a cross-origin Window.");
-  assert_array_equals(symbolWindowProps, whitelistedSymbols,
+  assert_array_equals(symbolWindowProps, allowedSymbols,
                       "Reflect.ownKeys should end with the cross-origin symbols for a cross-origin Window.");
 
   var allLocationProps = Reflect.ownKeys(win.location);
-  stringLocationProps = allLocationProps.slice(0, -1 * whitelistedSymbols.length);
-  symbolLocationProps = allLocationProps.slice(-1 * whitelistedSymbols.length);
-  assert_array_equals(stringLocationProps.sort(), locationWhitelists.propNames,
+  stringLocationProps = allLocationProps.slice(0, -1 * allowedSymbols.length);
+  symbolLocationProps = allLocationProps.slice(-1 * allowedSymbols.length);
+  assert_array_equals(stringLocationProps.sort(), locationAllowlists.propNames,
                       "Reflect.ownKeys should start with the cross-origin window properties for a cross-origin Location.")
-  assert_array_equals(symbolLocationProps, whitelistedSymbols,
+  assert_array_equals(symbolLocationProps, allowedSymbols,
                       "Reflect.ownKeys should end with the cross-origin symbols for a cross-origin Location.")
 }, "[[OwnPropertyKeys]] should place the symbols after the property names after the subframe indices");
 
@@ -670,10 +670,10 @@ addTest(function(win) {
 
   // Check that applying it to a cross-origin window throws instead of doing
   // the [LenientThis] behavior.
-  assert_throws("SecurityError", () => {
+  assert_throws_dom("SecurityError", () => {
     desc.get.call(win);
   }, "Should throw when getting cross-origin");
-  assert_throws("SecurityError", () => {
+  assert_throws_dom("SecurityError", () => {
     desc.set.call(win, f);
   }, "Should throw when setting cross-origin");
 }, "LenientThis behavior");

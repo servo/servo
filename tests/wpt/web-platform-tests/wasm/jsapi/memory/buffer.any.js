@@ -22,7 +22,7 @@ test(() => {
   assert_equals(typeof desc.set, "undefined");
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => getter.call(thisValue), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => getter.call(thisValue), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -56,7 +56,7 @@ test(() => {
   const memory2 = new WebAssembly.Memory(argument);
   const buffer = memory.buffer;
   assert_not_equals(buffer, memory2.buffer, "Need two distinct buffers");
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     "use strict";
     memory.buffer = memory2.buffer;
   });

@@ -41,8 +41,8 @@ span::-webkit-something-invalid, #test, ::-WeBkIt-sOmEtHiNg-NoNeXiSt123, ::-webk
   test(() => {
     let sheet = document.getElementById("style").sheet;
     assert_equals(sheet.cssRules.length, 2);
-    assert_throws("SyntaxError", () => document.querySelector("span::-webkitfoo"));
-    assert_throws("SyntaxError", () => document.querySelectorAll("span::-webkitfoo"));
+    assert_throws_dom("SyntaxError", () => document.querySelector("span::-webkitfoo"));
+    assert_throws_dom("SyntaxError", () => document.querySelectorAll("span::-webkitfoo"));
   }, "webkit-prefix without dash is invalid");
 </script>
 </body>

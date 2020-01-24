@@ -122,14 +122,14 @@ testActionToast((toast, action) => {
 
 testToastElement((toast) => {
     const text = document.createTextNode('some text');
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
         toast.action = text;
     });
 }, 'setting the action to an invalid type (Text node) throws an error');
 
 testToastElement((toast) => {
     const text = 'some text';
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
         toast.action = text;
     });
 }, 'setting the action to an invalid type (string) throws an error');
@@ -171,7 +171,7 @@ test(() => {
 
         const fakeElement = {};
         const toast = showToast('Message');
-        assert_throws(new TypeError(), () => toast.action = fakeElement);
+        assert_throws_js(TypeError, () => toast.action = fakeElement);
     } finally {
         delete Element[Symbol.hasInstance];
     }

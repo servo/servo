@@ -8,7 +8,7 @@
 <script>
 test(function() {
   var text = document.createTextNode("camembert");
-  assert_throws("INDEX_SIZE_ERR", function () { text.splitText(10) });
+  assert_throws_dom("INDEX_SIZE_ERR", function () { text.splitText(10) });
 }, "Split text after end of data");
 
 test(function() {

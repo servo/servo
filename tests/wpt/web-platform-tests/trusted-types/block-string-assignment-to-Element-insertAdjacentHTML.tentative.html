@@ -45,16 +45,16 @@
     var d = document.createElement('div');
     container.appendChild(d);
 
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforebegin', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterbegin', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforeend', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterend', "<p>Fail</p>");
     });
 
@@ -72,16 +72,16 @@
     var d = document.createElement('div');
     container.appendChild(d);
 
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforebegin', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterbegin', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforeend', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterend', null);
     });
 

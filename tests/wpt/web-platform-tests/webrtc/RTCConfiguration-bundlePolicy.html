@@ -88,12 +88,12 @@
   }, `setConfiguration({ bundlePolicy: 'max-bundle' }) with initial bundlePolicy max-bundle should succeed`);
 
   test(() => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       new RTCPeerConnection({ bundlePolicy: null }));
   }, `new RTCPeerConnection({ bundlePolicy: null }) should throw TypeError`);
 
   test(() => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       new RTCPeerConnection({ bundlePolicy: 'invalid' }));
   }, `new RTCPeerConnection({ bundlePolicy: 'invalid' }) should throw TypeError`);
 
@@ -107,7 +107,7 @@
     const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
     assert_idl_attribute(pc, 'setConfiguration');
 
-    assert_throws('InvalidModificationError', () =>
+    assert_throws_dom('InvalidModificationError', () =>
       pc.setConfiguration({ bundlePolicy: 'max-compat' }));
   }, `setConfiguration({ bundlePolicy: 'max-compat' }) with initial bundlePolicy max-bundle should throw InvalidModificationError`);
 
@@ -116,7 +116,7 @@
     assert_idl_attribute(pc, 'setConfiguration');
 
     // the default value for bundlePolicy is balanced
-    assert_throws('InvalidModificationError', () =>
+    assert_throws_dom('InvalidModificationError', () =>
       pc.setConfiguration({}));
   }, `setConfiguration({}) with initial bundlePolicy max-bundle should throw InvalidModificationError`);
 

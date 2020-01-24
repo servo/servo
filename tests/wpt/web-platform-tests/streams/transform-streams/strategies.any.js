@@ -86,13 +86,13 @@ promise_test(t => {
 }, 'default readable strategy should be equivalent to { highWaterMark: 0 }');
 
 test(() => {
-  assert_throws(new RangeError(), () => new TransformStream(undefined, { highWaterMark: -1 }),
+  assert_throws_js(RangeError, () => new TransformStream(undefined, { highWaterMark: -1 }),
                 'should throw RangeError for negative writableHighWaterMark');
-  assert_throws(new RangeError(), () => new TransformStream(undefined, undefined, { highWaterMark: -1 }),
+  assert_throws_js(RangeError, () => new TransformStream(undefined, undefined, { highWaterMark: -1 }),
                 'should throw RangeError for negative readableHighWaterMark');
-  assert_throws(new RangeError(), () => new TransformStream(undefined, { highWaterMark: NaN }),
+  assert_throws_js(RangeError, () => new TransformStream(undefined, { highWaterMark: NaN }),
                 'should throw RangeError for NaN writableHighWaterMark');
-  assert_throws(new RangeError(), () => new TransformStream(undefined, undefined, { highWaterMark: NaN }),
+  assert_throws_js(RangeError, () => new TransformStream(undefined, undefined, { highWaterMark: NaN }),
                 'should throw RangeError for NaN readableHighWaterMark');
 }, 'a RangeError should be thrown for an invalid highWaterMark');
 
@@ -129,7 +129,7 @@ promise_test(t => {
   const ts = new TransformStream({
     transform(chunk, controller) {
       // This assert has the important side-effect of catching the error, so transform() does not throw.
-      assert_throws(new RangeError(), () => controller.enqueue(chunk), 'enqueue should throw');
+      assert_throws_js(RangeError, () => controller.enqueue(chunk), 'enqueue should throw');
     }
   }, undefined, {
     size() {

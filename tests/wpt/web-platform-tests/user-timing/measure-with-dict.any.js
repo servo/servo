@@ -96,16 +96,16 @@ async_test(function (t) {
 
 test(function() {
     this.add_cleanup(cleanupPerformanceTimeline);
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       self.performance.measure("optionsAndNumberEnd", {'start': 2}, 12);
     }, "measure should throw a TypeError when passed an options object and an end time");
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       self.performance.measure("optionsAndMarkEnd", {'start': 2}, 'mark1');
     }, "measure should throw a TypeError when passed an options object and an end mark");
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       self.performance.measure("negativeStartInOptions", {'start': -1});
     }, "measure cannot have a negative time stamp.");
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       self.performance.measure("negativeEndInOptions", {'end': -1});
     }, "measure cannot have a negative time stamp for end.");
 }, "measure should throw a TypeError when passed an invalid argument combination");

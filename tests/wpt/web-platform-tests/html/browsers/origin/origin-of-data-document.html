@@ -17,7 +17,7 @@
 
         window.addEventListener("message", t.step_func_done(function (e) {
           assert_equals(e.origin, "null", "Messages sent from a 'data:' URL should have an opaque origin (which serializes to 'null').");
-          assert_throws("SecurityError", function () {
+          assert_throws_dom("SecurityError", function () {
             var couldAccessCrossOriginProperty = e.source.location.href;
           }, "The 'data:' frame should be cross-origin: 'window.location.href'");
           assert_equals(i.contentDocument, null, "The 'data:' iframe should be unable to access its contentDocument.");

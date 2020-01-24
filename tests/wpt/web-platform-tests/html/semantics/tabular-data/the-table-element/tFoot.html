@@ -46,11 +46,11 @@ test(function() {
     assert_equals(t.tFoot.previousSibling, tbody2);
     assert_equals(t.tFoot.nextSibling, null);
 
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
         t.tFoot = document.createElement("div");
     });
 
-    assert_throws("HierarchyRequestError", function(){
+    assert_throws_dom("HierarchyRequestError", function(){
         t.tFoot = document.createElement("thead");
     });
 })

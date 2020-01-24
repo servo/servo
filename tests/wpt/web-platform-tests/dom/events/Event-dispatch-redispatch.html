@@ -23,7 +23,7 @@ var waitForLoad = new Promise(resolve => {
 document.addEventListener("DOMContentLoaded", event => {
   contentLoadedEvent = event;
   test_redispatching_of_dispatching_event.step(() => {
-    assert_throws("InvalidStateError", () => {
+    assert_throws_dom("InvalidStateError", () => {
       document.dispatchEvent(contentLoadedEvent);
     }, "Trusted DOMContentLoaded event");
   });
@@ -37,7 +37,7 @@ window.addEventListener("load", loadEvent => {
       assert_false(untrustedContentLoadedEvent.isTrusted, "Redispatched DOMContentLoaded event shouldn't be trusted");
     });
     test_redispatching_of_dispatching_event.step(() => {
-      assert_throws("InvalidStateError", () => {
+      assert_throws_dom("InvalidStateError", () => {
         document.dispatchEvent(untrustedContentLoadedEvent);
       }, "Untrusted DOMContentLoaded event");
     });
@@ -60,7 +60,7 @@ async function testMouseUpAndClickEvent() {
       assert_true(mouseupEvent.isTrusted, "First mouseup event should be trusted");
     });
     test_redispatching_of_dispatching_event.step(() => {
-      assert_throws("InvalidStateError", () => {
+      assert_throws_dom("InvalidStateError", () => {
         buttonElement.dispatchEvent(mouseupEvent);
       }, "Trusted mouseup event");
     });
@@ -73,7 +73,7 @@ async function testMouseUpAndClickEvent() {
       assert_true(clickEvent.isTrusted, "First click event should be trusted");
     });
     test_redispatching_of_dispatching_event.step(() => {
-      assert_throws("InvalidStateError", function() {
+      assert_throws_dom("InvalidStateError", function() {
         buttonElement.dispatchEvent(event);
       }, "Trusted click event");
     });
@@ -82,7 +82,7 @@ async function testMouseUpAndClickEvent() {
         assert_false(event.isTrusted, "Redispatched mouseup event shouldn't be trusted");
       });
       test_redispatching_of_dispatching_event.step(() => {
-        assert_throws("InvalidStateError", function() {
+        assert_throws_dom("InvalidStateError", function() {
           buttonElement.dispatchEvent(event);
         }, "Untrusted mouseup event");
       });

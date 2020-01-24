@@ -106,11 +106,11 @@ test(function ()
 
 test(function ()
 {
-    assert_throws(new TypeError(), function () { document.createTreeWalker(); });
-    assert_throws(new TypeError(), function () { document.createTreeWalker(null); });
-    assert_throws(new TypeError(), function () { document.createTreeWalker(undefined); });
-    assert_throws(new TypeError(), function () { document.createTreeWalker(new Object()); });
-    assert_throws(new TypeError(), function () { document.createTreeWalker(1); });
+    assert_throws_js(TypeError, function () { document.createTreeWalker(); });
+    assert_throws_js(TypeError, function () { document.createTreeWalker(null); });
+    assert_throws_js(TypeError, function () { document.createTreeWalker(undefined); });
+    assert_throws_js(TypeError, function () { document.createTreeWalker(new Object()); });
+    assert_throws_js(TypeError, function () { document.createTreeWalker(1); });
 }, 'Give an invalid root node to document.createTreeWalker().');
 
 test(function ()

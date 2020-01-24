@@ -8,7 +8,7 @@ p { color: green; }
 <p id="test">This text should be green.</p>
 <script>
     test(function() {
-        assert_throws("SyntaxError", () => document.styleSheets[0].insertRule("p { color: red; } garbage", 1));
+        assert_throws_dom("SyntaxError", () => document.styleSheets[0].insertRule("p { color: red; } garbage", 1));
         assert_equals(getComputedStyle(document.getElementById("test")).color, "rgb(0, 128, 0)");
     }, "A syntax error in insertRule should throw and not affect the style of the page");
 </script>

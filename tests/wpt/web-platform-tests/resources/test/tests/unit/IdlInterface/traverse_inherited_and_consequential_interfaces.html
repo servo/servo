@@ -35,13 +35,13 @@
     test(function() {
         var context = new IdlArray();
         context.add_idls("interface A { }; A includes B;");
-        assert_throws(new Error(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces(function() {}));
+        assert_throws_js(Error, _ => context.members["A"].traverse_inherited_and_consequential_interfaces(function() {}));
     }, "should throw for interfaces which are extended by another interface which wasn't added to the IdlArray.");
 
     test(function() {
         var context = new IdlArray();
         context.add_idls("interface A { };");
-        assert_throws(new TypeError(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces());
+        assert_throws_js(TypeError, _ => context.members["A"].traverse_inherited_and_consequential_interfaces());
     }, "should throw if not passed a callback");
 
     test(function() {

@@ -58,7 +58,7 @@ test(t => {
 for (const invalid of gBadDelayValues) {
   test(t => {
     const anim = createDiv(t).animate(null);
-    assert_throws({ name: 'TypeError' }, () => {
+    assert_throws_js(TypeError, () => {
       anim.effect.updateTiming({ delay: invalid });
     });
   }, `Throws when setting invalid delay value: ${invalid}`);
@@ -88,14 +88,14 @@ test(t => {
 
 test(t => {
   const anim = createDiv(t).animate(null, 2000);
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     anim.effect.updateTiming({ endDelay: Infinity });
   });
 }, 'Throws when setting the endDelay to infinity');
 
 test(t => {
   const anim = createDiv(t).animate(null, 2000);
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     anim.effect.updateTiming({ endDelay: -Infinity });
   });
 }, 'Throws when setting the endDelay to negative infinity');
@@ -163,7 +163,7 @@ test(t => {
 for (const invalid of gBadIterationStartValues) {
   test(t => {
     const anim = createDiv(t).animate(null);
-    assert_throws({ name: 'TypeError' }, () => {
+    assert_throws_js(TypeError, () => {
       anim.effect.updateTiming({ iterationStart: invalid });
     }, `setting ${invalid}`);
   }, `Throws when setting invalid iterationStart value: ${invalid}`);
@@ -193,7 +193,7 @@ test(t => {
 for (const invalid of gBadIterationsValues) {
   test(t => {
     const anim = createDiv(t).animate(null);
-    assert_throws({ name: 'TypeError' }, () => {
+    assert_throws_js(TypeError, () => {
       anim.effect.updateTiming({ iterations: invalid });
     });
   }, `Throws when setting invalid iterations value: ${invalid}`);
@@ -258,7 +258,7 @@ for (const duration of gGoodDurationValues) {
 
 for (const invalid of gBadDurationValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { duration: invalid });
     });
   }, 'Throws when setting invalid duration: '

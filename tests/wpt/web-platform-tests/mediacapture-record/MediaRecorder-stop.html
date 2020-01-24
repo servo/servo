@@ -83,7 +83,7 @@
 
     promise_test(async t => {
         const recorder = new MediaRecorder(createVideoStream());
-        assert_throws("InvalidStateError", () => { recorder.stop(); });
+        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),
@@ -95,7 +95,7 @@
         recorder.start();
         recorder.stop();
         let event = await new Promise(r => recorder.onstop = r);
-        assert_throws("InvalidStateError", () => { recorder.stop(); });
+        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),
@@ -108,7 +108,7 @@
         recorder.start();
         stream.getVideoTracks()[0].stop();
         let event = await new Promise(r => recorder.onstop = r);
-        assert_throws("InvalidStateError", () => { recorder.stop(); });
+        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),

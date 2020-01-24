@@ -25,5 +25,5 @@ promise_test(async t => {
   const mod = await WebAssembly.compileStreaming(fetch('../incrementer.wasm'));
   const tx = db.transaction(obj_store, 'readwrite');
   const store = tx.objectStore(obj_store);
-  assert_throws("DataCloneError", () => store.put(mod, module_key));
+  assert_throws_dom("DataCloneError", () => store.put(mod, module_key));
 });

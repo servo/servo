@@ -65,7 +65,7 @@ function cloneFailureTest(value) {
     });
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
-    assert_throws('DataCloneError', () => store.put(value, 'key'));
+    assert_throws_dom('DataCloneError', () => store.put(value, 'key'));
   }, 'Not serializable: ' + describe(value));
 }
 

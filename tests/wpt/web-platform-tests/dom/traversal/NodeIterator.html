@@ -64,9 +64,9 @@ test(function() {
     });
   iter.nextNode();
   iter.nextNode();
-  assert_throws("InvalidStateError", function() { iter.nextNode() });
+  assert_throws_dom("InvalidStateError", function() { iter.nextNode() });
   depth--;
-  assert_throws("InvalidStateError", function() { iter.previousNode() });
+  assert_throws_dom("InvalidStateError", function() { iter.previousNode() });
 }, "Recursive filters need to throw");
 
 function testIterator(root, whatToShow, filter) {

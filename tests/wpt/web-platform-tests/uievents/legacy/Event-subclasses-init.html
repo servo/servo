@@ -11,7 +11,7 @@ for (let eventTypeName of ['UIEvent', 'MouseEvent', 'KeyboardEvent', 'Compositio
 
         let event = new eventType('test');
         let initFunction = "init" + eventTypeName;
-        assert_throws(new TypeError(), function() { eventType.prototype[initFunction].call(event) });
+        assert_throws_js(TypeError, function() { eventType.prototype[initFunction].call(event) });
     }, `Call init${eventTypeName} without parameters`);
 }
 </script>

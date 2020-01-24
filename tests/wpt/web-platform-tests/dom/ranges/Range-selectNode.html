@@ -14,17 +14,17 @@ function testSelectNode(range, node) {
         range.collapsed;
     } catch (e) {
         // Range is detached
-        assert_throws("INVALID_STATE_ERR", function () {
+        assert_throws_dom("INVALID_STATE_ERR", function () {
             range.selectNode(node);
         }, "selectNode() on a detached node must throw INVALID_STATE_ERR");
-        assert_throws("INVALID_STATE_ERR", function () {
+        assert_throws_dom("INVALID_STATE_ERR", function () {
             range.selectNodeContents(node);
         }, "selectNodeContents() on a detached node must throw INVALID_STATE_ERR");
         return;
     }
 
     if (!node.parentNode) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
             range.selectNode(node);
         }, "selectNode() on a node with no parent must throw INVALID_NODE_TYPE_ERR");
     } else {
@@ -45,7 +45,7 @@ function testSelectNode(range, node) {
     }
 
     if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function () {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function () {
             range.selectNodeContents(node);
         }, "selectNodeContents() on a doctype must throw INVALID_NODE_TYPE_ERR");
     } else {

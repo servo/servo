@@ -332,7 +332,7 @@ test(() => {
     + ' propagated');
 
 test(() => {
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(null, createIterable([
       { done: false, value: { left: '100px' } },
       { done: false, value: 1234 },
@@ -415,7 +415,7 @@ test(() => {
       return 42;  // Not an object.
     },
   };
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(null, keyframe_obj);
   });
 }, 'A non-object returned from the Symbol.iterator property should cause a'

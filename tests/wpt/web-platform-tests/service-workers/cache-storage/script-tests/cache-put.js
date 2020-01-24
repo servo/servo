@@ -293,7 +293,7 @@ cache_test(function(cache) {
     var response = new Response(test_body);
     return cache.put(new Request(test_url), response)
       .then(function() {
-          assert_throws(new TypeError(), () => response.body.getReader());
+          assert_throws_js(TypeError, () => response.body.getReader());
       });
   }, 'getReader() after Cache.put');
 

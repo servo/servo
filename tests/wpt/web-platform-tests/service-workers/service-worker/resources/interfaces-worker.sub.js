@@ -51,13 +51,13 @@ test(function() {
     assert_equals(
       new ExtendableEvent('ExtendableEvent').type,
       'ExtendableEvent', 'Type of ExtendableEvent should be ExtendableEvent');
-    assert_throws(new TypeError, function() {
+    assert_throws_js(TypeError, function() {
         new FetchEvent('FetchEvent');
     }, 'FetchEvent constructor with one argument throws');
-    assert_throws(new TypeError, function() {
+    assert_throws_js(TypeError, function() {
         new FetchEvent('FetchEvent', {});
     }, 'FetchEvent constructor with empty init dict throws');
-    assert_throws(new TypeError, function() {
+    assert_throws_js(TypeError, function() {
         new FetchEvent('FetchEvent', {request: null});
     }, 'FetchEvent constructor with null request member throws');
     assert_equals(

@@ -6,7 +6,7 @@ function createEmptyWasmModule() {
 }
 
 test(() => {
-  assert_throws("DataCloneError", () => {
+  assert_throws_dom("DataCloneError", () => {
     new Notification("Bob: Hi", { data: createEmptyWasmModule() });
   })
 }, "WebAssembly.Module cloning via the Notifications API's data member: basic case");
@@ -15,7 +15,7 @@ test(() => {
   let getter1Called = false;
   let getter2Called = false;
 
-  assert_throws("DataCloneError", () => {
+  assert_throws_dom("DataCloneError", () => {
     new Notification("Bob: Hi", { data: [
       { get x() { getter1Called = true; return 5; } },
       createEmptyWasmModule(),

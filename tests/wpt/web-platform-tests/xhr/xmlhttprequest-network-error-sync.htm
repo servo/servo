@@ -20,7 +20,7 @@
       test(function() {
         var client = new XMLHttpRequest()
         client.open("GET", "resources/infinite-redirects.py", false)
-        assert_throws("NetworkError", function() { client.send(null) }, "send")
+        assert_throws_dom("NetworkError", function() { client.send(null) }, "send")
         assert_equals(client.status, 0, "status")
         assert_equals(client.statusText, "", "statusText")
         assert_equals(client.getAllResponseHeaders(), "", "getAllResponseHeaders")

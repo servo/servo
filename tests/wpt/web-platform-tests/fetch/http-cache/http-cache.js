@@ -59,7 +59,7 @@ function makeFetchFunctions(requests, uuid) {
             .then(makeCheckResponse(idx, config))
             .then(makeCheckResponseBody(config, uuid), function (reason) {
               if ('expected_type' in config && config.expected_type === 'error') {
-                assert_throws(new TypeError(), function () { throw reason })
+                assert_throws_js(TypeError, function () { throw reason })
               } else {
                 throw reason
               }

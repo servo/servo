@@ -7,7 +7,9 @@ def main():
     '''Formats spec.src.json.'''
     script_directory = os.path.dirname(os.path.abspath(__file__))
     for dir in [
-            'mixed-content', 'referrer-policy', 'upgrade-insecure-requests'
+            'mixed-content', 'referrer-policy', 'referrer-policy/4K-1',
+            'referrer-policy/4K', 'referrer-policy/4K+1',
+            'upgrade-insecure-requests'
     ]:
         filename = os.path.join(script_directory, '..', '..', '..', dir,
                                 'spec.src.json')

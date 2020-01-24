@@ -121,14 +121,14 @@
                     test(function() {
                         //trigger a security error by replacing the host of the current url with a fake one that is cross-domain
                         var testurl = testframe1.contentWindow.location.href.toString().replace(testframe1.contentWindow.location.host, "fakelocation-push");
-                        assert_throws("SECURITY_ERR", function() { history.pushState(null, null, testurl); }, "Security_Err 18 should be thrown");
+                        assert_throws_dom("SECURITY_ERR", function() { history.pushState(null, null, testurl); }, "Security_Err 18 should be thrown");
                     }, "history.pushState throws DOMException with code SECURITY_ERR (18)");
                 },
 
                 function() {
                     test(function() {
                         //trigger a data clone error by passing invalid SCA data into the function
-                        assert_throws("DATA_CLONE_ERR", function() { history.pushState(document.body, null); }, "pushState should throw an exception DATA_CLONE_ERR with code 25");
+                        assert_throws_dom("DATA_CLONE_ERR", function() { history.pushState(document.body, null); }, "pushState should throw an exception DATA_CLONE_ERR with code 25");
                     }, "history.pushState throws DATA_CLONE_ERR(25) for bad state parameter");
                 },
 
@@ -200,14 +200,14 @@
                     test(function() {
                         //trigger a security error by replacing the host of the current url with a fake one that is cross-domain
                         var testurl = testframe1.contentWindow.location.href.toString().replace(testframe1.contentWindow.location.host, "fakelocation-replace");
-                        assert_throws("SECURITY_ERR", function() { history.replaceState(null, null, testurl); }, "Security_Err 18 should be thrown");
+                        assert_throws_dom("SECURITY_ERR", function() { history.replaceState(null, null, testurl); }, "Security_Err 18 should be thrown");
                     }, "history.replaceState throws DOMException with code SECURITY_ERR (18)");
                 },
 
                 function() {
                     test(function() {
                         //trigger a data clone error by passing invalid SCA data into the function
-                        assert_throws("DATA_CLONE_ERR", function() {history.replaceState(document.body, null);}, "replaceState should throw an exception DATA_CLONE_ERR with code 25");
+                        assert_throws_dom("DATA_CLONE_ERR", function() {history.replaceState(document.body, null);}, "replaceState should throw an exception DATA_CLONE_ERR with code 25");
                     }, "history.replaceState throws DATA_CLONE_ERR(25) for bad state parameter");
                 },
 
