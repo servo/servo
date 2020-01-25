@@ -826,6 +826,8 @@ impl HTMLImageElement {
             // Step 8
             Some(data) => data,
             None => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
@@ -843,11 +845,6 @@ impl HTMLImageElement {
                         if src_present || Self::uses_srcset_or_picture(elem) {
                             this.upcast::<EventTarget>().fire_event(atom!("error"));
                         }
-                        // FIXME(nox): According to the spec, setting the current
-                        // request to the broken state is done prior to queuing a
-                        // task, why is this here?
-                        this.abort_request(State::Broken, ImageRequestPhase::Current);
-                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
                     }),
                     window.upcast(),
                 );
@@ -864,6 +861,8 @@ impl HTMLImageElement {
                 self.prepare_image_request(&url, &src, pixel_density);
             },
             Err(_) => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 12.1-12.5.
                 let src = src.0;
                 // FIXME(nox): Why are errors silenced here?
@@ -877,11 +876,6 @@ impl HTMLImageElement {
                         }
                         this.upcast::<EventTarget>().fire_event(atom!("error"));
 
-                        // FIXME(nox): According to the spec, setting the current
-                        // request to the broken state is done prior to queuing a
-                        // task, why is this here?
-                        this.abort_request(State::Broken, ImageRequestPhase::Current);
-                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
                     }),
                     window.upcast(),
                 );

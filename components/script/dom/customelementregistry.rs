@@ -20,6 +20,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -543,6 +544,14 @@ impl CustomElementDefinition {
             }
         }
 
+        // https://heycam.github.io/webidl/#construct-a-callback-function
+        // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
+        if is_execution_stack_empty() {
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_microtask_checkpoint();
+        }
+
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
             match unsafe { DomRoot::from_jsval(*cx, element_val.handle(), ()) } {
@@ -690,6 +699,15 @@ fn run_upgrade_constructor(
         } {
             return Err(Error::JSFailed);
         }
+
+        // https://heycam.github.io/webidl/#construct-a-callback-function
+        // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
+        if is_execution_stack_empty() {
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_microtask_checkpoint();
+        }
+
         // Step 8.3
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
