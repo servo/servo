@@ -693,6 +693,12 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
             pip install --user virtualenv
         """)
 
+    def with_python3(self):
+        return self.with_early_script("""
+            python3 -m ensurepip --user
+            python3 -m pip install --user virtualenv
+        """)
+
     def with_rustup(self):
         return self.with_early_script("""
             export PATH="$HOME/.cargo/bin:$PATH"
