@@ -240,6 +240,44 @@ impl<T> flow_relative::Sides<T> {
     {
         self.block_start + self.block_end
     }
+
+    pub fn to_physical(&self, mode: WritingMode) -> PhysicalSides<T>
+    where
+        T: Clone,
+    {
+        let top;
+        let right;
+        let bottom;
+        let left;
+        if mode.is_vertical() {
+            if mode.is_vertical_lr() {
+                left = self.block_start.clone();
+                right = self.block_end.clone();
+            } else {
+                right = self.block_start.clone();
+                left = self.block_end.clone();
+            }
+
+            if mode.is_inline_tb() {
+                top = self.inline_start.clone();
+                bottom = self.inline_end.clone();
+            } else {
+                bottom = self.inline_start.clone();
+                top = self.inline_end.clone();
+            }
+        } else {
+            top = self.block_start.clone();
+            bottom = self.block_end.clone();
+            if mode.is_bidi_ltr() {
+                left = self.inline_start.clone();
+                right = self.inline_end.clone();
+            } else {
+                right = self.inline_start.clone();
+                left = self.inline_end.clone();
+            }
+        }
+        PhysicalSides::new(top, right, bottom, left)
+    }
 }
 
 impl flow_relative::Sides<LengthPercentage> {
@@ -340,5 +378,17 @@ impl ToWebRender for PhysicalRect<Length> {
     type Type = webrender_api::units::LayoutRect;
     fn to_webrender(&self) -> Self::Type {
         webrender_api::units::LayoutRect::new(self.origin.to_webrender(), self.size.to_webrender())
+    }
+}
+
+impl ToWebRender for PhysicalSides<Length> {
+    type Type = webrender_api::units::LayoutSideOffsets;
+    fn to_webrender(&self) -> Self::Type {
+        webrender_api::units::LayoutSideOffsets::new(
+            self.top.px(),
+            self.right.px(),
+            self.bottom.px(),
+            self.left.px(),
+        )
     }
 }
