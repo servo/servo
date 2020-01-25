@@ -12,7 +12,7 @@ use webrender_api::{self as wr, units};
 pub(super) fn build(
     style: &ComputedValues,
     gradient: &Gradient,
-    layer: &super::background::Layer,
+    layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
     let extend_mode = if gradient.repeating {
@@ -47,7 +47,7 @@ pub(super) fn build_linear(
     items: &[GradientItem],
     line_direction: &LineDirection,
     extend_mode: wr::ExtendMode,
-    layer: &super::background::Layer,
+    layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
     use style::values::specified::position::HorizontalPositionKeyword::*;
@@ -102,7 +102,7 @@ pub(super) fn build_linear(
 
             // `{ x, y }` is now a vector of arbitrary length
             // with the same direction as the gradient line.
-
+            // This normalizes the length to 1.0:
             Vec2::new(x, y).normalize()
         },
     };
@@ -128,7 +128,7 @@ pub(super) fn build_linear(
     let start_point = center - half_gradient_line;
     let end_point = center + half_gradient_line;
 
-    let stops = stops_fixup(style, items, Length::new(gradient_line_length));
+    let stops = fixup_stops(style, items, Length::new(gradient_line_length));
     let linear_gradient = builder
         .wr
         .create_gradient(start_point, end_point, stops, extend_mode);
@@ -148,7 +148,7 @@ pub(super) fn build_radial(
     shape: &EndingShape,
     center: &Position,
     extend_mode: wr::ExtendMode,
-    layer: &super::background::Layer,
+    layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
     let gradient_box = layer.tile_size;
@@ -228,7 +228,7 @@ pub(super) fn build_radial(
     //  where the gradient line intersects the ending shape.”
     let gradient_line_length = radii.width;
 
-    let stops = stops_fixup(style, items, Length::new(gradient_line_length));
+    let stops = fixup_stops(style, items, Length::new(gradient_line_length));
     let radial_gradient = builder
         .wr
         .create_radial_gradient(center, radii, stops, extend_mode);
@@ -242,7 +242,7 @@ pub(super) fn build_radial(
 }
 
 /// https://drafts.csswg.org/css-images-4/#color-stop-fixup
-fn stops_fixup(
+fn fixup_stops(
     style: &ComputedValues,
     items: &[GradientItem],
     gradient_line_length: Length,

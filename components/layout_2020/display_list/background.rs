@@ -12,7 +12,7 @@ use style::values::specified::background::BackgroundRepeat as RepeatXY;
 use style::values::specified::background::BackgroundRepeatKeyword as Repeat;
 use webrender_api::{self as wr, units};
 
-pub(super) struct Layer {
+pub(super) struct BackgroundLayer {
     pub common: wr::CommonItemProperties,
     pub bounds: units::LayoutRect,
     pub tile_size: units::LayoutSize,
@@ -24,6 +24,7 @@ struct Layout1DResult {
     repeat: bool,
     bounds_origin: f32,
     bounds_size: f32,
+    tile_spacing: f32,
 }
 
 fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
@@ -55,7 +56,7 @@ pub(super) fn layout_layer(
     builder: &mut super::DisplayListBuilder,
     layer_index: usize,
     intrinsic: IntrinsicSizes,
-) -> Option<Layer> {
+) -> Option<BackgroundLayer> {
     let b = fragment_builder.fragment.style.get_background();
     let (painting_area, common) = painting_area(fragment_builder, builder, layer_index);
 
@@ -141,11 +142,9 @@ pub(super) fn layout_layer(
         return None;
     }
 
-    let mut tile_spacing = units::LayoutSize::zero();
     let RepeatXY(repeat_x, repeat_y) = *get_cyclic(&b.background_repeat.0, layer_index);
     let result_x = layout_1d(
         &mut tile_size.width,
-        &mut tile_spacing.width,
         repeat_x,
         get_cyclic(&b.background_position_x.0, layer_index),
         painting_area.origin.x - positioning_area.origin.x,
@@ -154,7 +153,6 @@ pub(super) fn layout_layer(
     );
     let result_y = layout_1d(
         &mut tile_size.height,
-        &mut tile_spacing.height,
         repeat_y,
         get_cyclic(&b.background_position_y.0, layer_index),
         painting_area.origin.y - positioning_area.origin.y,
@@ -165,8 +163,9 @@ pub(super) fn layout_layer(
         positioning_area.origin + Vector2D::new(result_x.bounds_origin, result_y.bounds_origin),
         Size2D::new(result_x.bounds_size, result_y.bounds_size),
     );
+    let tile_spacing = units::LayoutSize::new(result_x.tile_spacing, result_y.tile_spacing);
 
-    Some(Layer {
+    Some(BackgroundLayer {
         common,
         bounds,
         tile_size,
@@ -179,7 +178,6 @@ pub(super) fn layout_layer(
 /// Coordinates (0, 0) for the purpose of this function are the positioning area’s origin.
 fn layout_1d(
     tile_size: &mut f32,
-    tile_spacing: &mut f32,
     mut repeat: Repeat,
     position: &LengthPercentage,
     painting_area_origin: f32,
@@ -194,6 +192,7 @@ fn layout_1d(
     let mut position = position
         .percentage_relative_to(Length::new(positioning_area_size - *tile_size))
         .px();
+    let mut tile_spacing = 0.0;
     // https://drafts.csswg.org/css-backgrounds/#background-repeat
     if let Repeat::Space = repeat {
         // The most entire tiles we can fit
@@ -204,7 +203,7 @@ fn layout_1d(
             // touch the edges of the positioning area:
             let total_space = positioning_area_size - *tile_size * tile_count;
             let spaces_count = tile_count - 1.0;
-            *tile_spacing = total_space / spaces_count;
+            tile_spacing = total_space / spaces_count;
         } else {
             repeat = Repeat::NoRepeat
         }
@@ -225,7 +224,7 @@ fn layout_1d(
             //
             // * Its bottom-right is the bottom-right of `clip_rect`
             // * Its top-left is the top-left of first tile.
-            let tile_stride = *tile_size + *tile_spacing;
+            let tile_stride = *tile_size + tile_spacing;
             let offset = position - painting_area_origin;
             let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
             let bounds_size = painting_area_size - bounds_origin - painting_area_origin;
@@ -233,6 +232,7 @@ fn layout_1d(
                 repeat: true,
                 bounds_origin,
                 bounds_size,
+                tile_spacing,
             }
         },
         Repeat::NoRepeat => {
@@ -244,6 +244,7 @@ fn layout_1d(
                 repeat: false,
                 bounds_origin: position,
                 bounds_size: *tile_size,
+                tile_spacing: 0.0,
             }
         },
     }
