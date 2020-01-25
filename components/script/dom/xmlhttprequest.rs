@@ -758,7 +758,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             }
         }
         // Step 3
-        self.ready_state.set(XMLHttpRequestState::Unsent);
+        if self.ready_state.get() == XMLHttpRequestState::Done {
+            self.change_ready_state(XMLHttpRequestState::Unsent);
+            self.response_status.set(Err(()));
+            self.response.borrow_mut().clear();
+            self.response_headers.borrow_mut().clear();
+        }
     }
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
@@ -961,13 +966,15 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
-        let event = Event::new(
-            &self.global(),
-            atom!("readystatechange"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::Cancelable,
-        );
-        event.fire(self.upcast());
+        if rs != XMLHttpRequestState::Unsent {
+            let event = Event::new(
+                &self.global(),
+                atom!("readystatechange"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::Cancelable,
+            );
+            event.fire(self.upcast());
+        }
     }
 
     fn process_headers_available(
