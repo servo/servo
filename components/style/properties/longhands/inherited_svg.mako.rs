@@ -17,6 +17,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/css-inline-3/#propdef-dominant-baseline",
+    gecko_enum_prefix="StyleDominantBaseline",
 )}
 
 ${helpers.single_keyword(
