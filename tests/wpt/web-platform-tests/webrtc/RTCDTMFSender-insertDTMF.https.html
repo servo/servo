@@ -75,15 +75,15 @@
   promise_test(t => {
     return createDtmfSender()
     .then(dtmfSender => {
-      assert_throws('InvalidCharacterError', () =>
+      assert_throws_dom('InvalidCharacterError', () =>
         // 'F' is invalid
         dtmfSender.insertDTMF('123FFABC'));
 
-      assert_throws('InvalidCharacterError', () =>
+      assert_throws_dom('InvalidCharacterError', () =>
         // 'E' is invalid
         dtmfSender.insertDTMF('E'));
 
-      assert_throws('InvalidCharacterError', () =>
+      assert_throws_dom('InvalidCharacterError', () =>
         // ' ' is invalid
         dtmfSender.insertDTMF('# *'));
     });
@@ -99,7 +99,7 @@
     const dtmfSender = transceiver.sender.dtmf;
 
     transceiver.stop();
-    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+    assert_throws_dom('InvalidStateError', () => dtmfSender.insertDTMF(''));
 
   }, 'insertDTMF() should throw InvalidStateError if transceiver is stopped');
 
@@ -127,7 +127,7 @@
     await callee.setLocalDescription(answer);
     await caller.setRemoteDescription(answer);
     assert_equals(transceiver.currentDirection, 'recvonly');
-    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+    assert_throws_dom('InvalidStateError', () => dtmfSender.insertDTMF(''));
   }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is recvonly');
 
   promise_test(async t => {
@@ -142,7 +142,7 @@
     const answer = await generateAnswer(offer);
     await pc.setRemoteDescription(answer);
     assert_equals(transceiver.currentDirection, 'inactive');
-    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+    assert_throws_dom('InvalidStateError', () => dtmfSender.insertDTMF(''));
   }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is inactive');
 
   /*
@@ -180,7 +180,7 @@
         dtmfSender = sender.dtmf;
         pc.removeTrack(sender);
         pc.close();
-        assert_throws('InvalidStateError', () =>
+        assert_throws_dom('InvalidStateError', () =>
                       dtmfSender.insertDTMF('123'));
       });
   }, 'insertDTMF() after remove and close should reject');

@@ -6,7 +6,7 @@ async_test(t => {
   document.domain = document.domain;
   frame.src = "/common/blank.html";
   frame.onload = t.step_func(() => {
-    assert_throws("SecurityError", () => window[0].document);
+    assert_throws_dom("SecurityError", () => window[0].document);
     frame.src = "about:blank";
     frame.onload = t.step_func_done(() => {
       // Ensure we can access the child browsing context after navigation to non-initial about:blank

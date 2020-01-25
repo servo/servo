@@ -3,6 +3,8 @@ import re
 import subprocess
 import tempfile
 
+from six.moves import range
+
 from .. import vcs
 from ..vcs import git, hg
 
@@ -16,7 +18,7 @@ def get_unique_name(existing, initial):
     :param initial: Name, or name prefix, to use"""
     if initial not in existing:
         return initial
-    for i in xrange(len(existing) + 1):
+    for i in range(len(existing) + 1):
         test = "%s_%s" % (initial, i + 1)
         if test not in existing:
             return test

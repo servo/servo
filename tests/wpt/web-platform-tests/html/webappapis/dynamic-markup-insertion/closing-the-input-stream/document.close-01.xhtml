@@ -10,7 +10,7 @@
 <div id="log"></div>
 <script>
 test(function() {
-  assert_throws("INVALID_STATE_ERR", function() {
+  assert_throws_dom("INVALID_STATE_ERR", function() {
     document.close();
   }, "document.close in XHTML should throw an INVALID_STATE_ERR ");
 }, "document.close in XHTML");

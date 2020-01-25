@@ -20,7 +20,7 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-assert_throws("SYNTAX_ERR", function() { ctx.createPattern(offscreenCanvas, undefined); });
+assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(offscreenCanvas, undefined); });
 t.done();
 
 });

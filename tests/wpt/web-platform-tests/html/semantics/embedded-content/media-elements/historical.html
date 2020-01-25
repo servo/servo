@@ -39,7 +39,7 @@ t('mozSrcObject'); // never in the spec
 
 // TextTrackCue constructor: added in r5723, removed in r7742.
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new TextTrackCue(0, 0, '');
   });
 }, 'TextTrackCue constructor should not be supported');

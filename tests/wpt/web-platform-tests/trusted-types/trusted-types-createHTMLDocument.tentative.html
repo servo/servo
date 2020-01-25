@@ -35,7 +35,7 @@ function doc_test(doc_type, test_fn, description) {
 
 for (let doc_type in doc_types) {
   doc_test(doc_type, doc => {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   _ => { doc.createElement("script").textContent = "2+2"; });
   }, "Trusted Type assignment is blocked." );
 
@@ -44,7 +44,7 @@ for (let doc_type in doc_types) {
     const value = policy.createHTML("hello");
     doc.body.innerHTML = value;
     assert_equals(doc.body.textContent, "hello");
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   _ => { doc.body.innerHTML = "world"; });
   }, "Trusted Type instances created in the main doc can be used.");
 }

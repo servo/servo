@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/" />
+<meta name="assert" content="Tests that certain dynamic changes don't lead to a flex item being sized as zero, instead of its stretched size." />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; width: 100px; height: 100px; background: red;">
+  <div style="contain: layout size; height: 100px; flex: 1; background: green;">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.width = '1px';
+</script>

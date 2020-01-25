@@ -43,7 +43,7 @@
     const { sender } = transceiver;
 
     pc.close();
-    assert_throws('InvalidStateError', () => pc.removeTrack(sender));
+    assert_throws_dom('InvalidStateError', () => pc.removeTrack(sender));
   }, 'addTransceiver - Calling removeTrack when connection is closed should throw InvalidStateError');
 
   promise_test(async t => {
@@ -56,7 +56,7 @@
     const sender = pc.addTrack(track, stream);
 
     pc.close();
-    assert_throws('InvalidStateError', () => pc.removeTrack(sender));
+    assert_throws_dom('InvalidStateError', () => pc.removeTrack(sender));
   }, 'addTrack - Calling removeTrack when connection is closed should throw InvalidStateError');
 
   promise_test(async t => {
@@ -70,7 +70,7 @@
 
     const pc2 = new RTCPeerConnection();
     pc2.close();
-    assert_throws('InvalidStateError', () => pc2.removeTrack(sender));
+    assert_throws_dom('InvalidStateError', () => pc2.removeTrack(sender));
   }, 'addTransceiver - Calling removeTrack on different connection that is closed should throw InvalidStateError');
 
   promise_test(async t => {
@@ -84,7 +84,7 @@
 
     const pc2 = new RTCPeerConnection();
     pc2.close();
-    assert_throws('InvalidStateError', () => pc2.removeTrack(sender));
+    assert_throws_dom('InvalidStateError', () => pc2.removeTrack(sender));
   }, 'addTrack - Calling removeTrack on different connection that is closed should throw InvalidStateError');
 
   /*
@@ -102,7 +102,7 @@
 
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
-    assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
+    assert_throws_dom('InvalidAccessError', () => pc2.removeTrack(sender));
   }, 'addTransceiver - Calling removeTrack on different connection should throw InvalidAccessError');
 
   promise_test(async t => {
@@ -116,7 +116,7 @@
 
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
-    assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
+    assert_throws_dom('InvalidAccessError', () => pc2.removeTrack(sender));
   }, 'addTrack - Calling removeTrack on different connection should throw InvalidAccessError')
 
   /*

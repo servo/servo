@@ -18,12 +18,12 @@
     }, "IDBKeyRange.only() - returns an IDBKeyRange and the properties are set correctly");
 
     test( function() {
-        assert_throws('DataError', function() { IDBKeyRange.only(undefined); }, 'undefined is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.only(null); }, 'null is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.only({}); }, 'Object is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.only(Symbol()); }, 'Symbol is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.only(true); }, 'boolean is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.only(() => {}); }, 'function is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only(undefined); }, 'undefined is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only(null); }, 'null is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only({}); }, 'Object is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only(Symbol()); }, 'Symbol is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only(true); }, 'boolean is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.only(() => {}); }, 'function is not a valid key');
     }, "IDBKeyRange.only() - throws on invalid keys");
 
     // lowerBound
@@ -42,12 +42,12 @@
     }, "IDBKeyRange.lowerBound() - 'open' parameter has correct default set");
 
     test( function() {
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound(undefined); }, 'undefined is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound(null); }, 'null is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound({}); }, 'Object is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound(Symbol()); }, 'Symbol is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound(true); }, 'boolean is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.lowerBound(() => {}); }, 'function is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound(undefined); }, 'undefined is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound(null); }, 'null is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound({}); }, 'Object is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound(Symbol()); }, 'Symbol is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound(true); }, 'boolean is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.lowerBound(() => {}); }, 'function is not a valid key');
     }, "IDBKeyRange.lowerBound() - throws on invalid keys");
 
     // upperBound
@@ -66,12 +66,12 @@
     }, "IDBKeyRange.upperBound() - 'open' parameter has correct default set");
 
     test( function() {
-        assert_throws('DataError', function() { IDBKeyRange.upperBound(undefined); }, 'undefined is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.upperBound(null); }, 'null is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.upperBound({}); }, 'Object is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.upperBound(Symbol()); }, 'Symbol is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.upperBound(true); }, 'boolean is not a valid key');
-        assert_throws('DataError', function() { IDBKeyRange.upperBound(() => {}); }, 'function is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound(undefined); }, 'undefined is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound(null); }, 'null is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound({}); }, 'Object is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound(Symbol()); }, 'Symbol is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound(true); }, 'boolean is not a valid key');
+        assert_throws_dom('DataError', function() { IDBKeyRange.upperBound(() => {}); }, 'function is not a valid key');
     }, "IDBKeyRange.upperBound() - throws on invalid keys");
 
     // bound

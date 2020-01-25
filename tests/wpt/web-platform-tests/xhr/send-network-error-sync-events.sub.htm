@@ -19,7 +19,7 @@
 
             xhr.open("POST", "http://nonexistent.{{host}}:{{ports[http][0]}}", false);
 
-            assert_throws("NetworkError", function()
+            assert_throws_dom("NetworkError", function()
             {
                 xhr.send("Test Message");
             });
@@ -33,7 +33,7 @@
 
             xhr.open("GET", "data:text/html;charset=utf-8;base64,PT0NUWVBFIGh0bWw%2BDQo8", false);
 
-            assert_throws("NetworkError", function()
+            assert_throws_dom("NetworkError", function()
             {
                 xhr.send("Test Message");
             });

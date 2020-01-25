@@ -3,7 +3,7 @@ function test_stringifier_attribute(aObject, aAttribute, aIsUnforgeable) {
   // Step 1.
   test(function() {
     [null, undefined].forEach(function(v) {
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         aObject.toString.call(v);
       });
     });
@@ -15,7 +15,7 @@ function test_stringifier_attribute(aObject, aAttribute, aIsUnforgeable) {
   test(function() {
     assert_false("Window" in window && aObject instanceof window.Window);
     [{}, window].forEach(function(v) {
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         aObject.toString.call(v)
       });
     });

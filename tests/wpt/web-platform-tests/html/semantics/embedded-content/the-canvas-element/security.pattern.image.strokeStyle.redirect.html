@@ -22,8 +22,8 @@ _addTest(function(canvas, ctx) {
 var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
 ctx.strokeStyle = p;
 ctx.strokeStyle = 'red';
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
-assert_throws("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
+assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
+assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
 
 
 });

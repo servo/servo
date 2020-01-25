@@ -76,7 +76,7 @@ test(() => {
 }, 'WritableStream.prototype.getWriter enforces a brand check');
 
 test(() => {
-  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(fakeWS()), 'constructor should throw');
+  assert_throws_js(TypeError, () => new WritableStreamDefaultWriter(fakeWS()), 'constructor should throw');
 }, 'WritableStreamDefaultWriter constructor enforces a brand check');
 
 test(() => {

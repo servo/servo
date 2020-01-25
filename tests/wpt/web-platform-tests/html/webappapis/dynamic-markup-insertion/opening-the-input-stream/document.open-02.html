@@ -20,7 +20,7 @@ test(function() {
   var parser = new DOMParser();
   var doc = parser.parseFromString("", "text/html");
   assert_equals(doc.defaultView, null);
-  assert_throws("INVALID_ACCESS_ERR", function() {
+  assert_throws_dom("INVALID_ACCESS_ERR", function() {
     doc.open("/resources/testharness.js", "", "");
   });
 }, "document.open should throw when it has no window and is called with three arguments");

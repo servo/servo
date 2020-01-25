@@ -12,7 +12,7 @@
 
 test(t => {
   const styleMap = createDeclaredStyleMap(t);
-  assert_throws(new TypeError(), () => styleMap.get('lemon'));
+  assert_throws_js(TypeError, () => styleMap.get('lemon'));
 }, 'Calling StylePropertyMap.get with an unsupported property throws a TypeError');
 
 </script>

@@ -25,7 +25,7 @@
   if (!testable)
     return;
 
-  const expectTypeError = TypeError.prototype;
+  const expectTypeError = testWindow.TypeError;
   // Following errors are DOMException, not JavaScript errors.
   const expectSyntaxError = 'SYNTAX_ERR';
   const expectNotSupportedError = 'NOT_SUPPORTED_ERR';
@@ -33,12 +33,12 @@
   // 1. If IsConstructor(constructor) is false,
   // then throw a TypeError and abort these steps.
   test(() =>  {
-    assert_throws(expectTypeError, () =>  {
+    assert_throws_js(expectTypeError, () =>  {
       customElements.define();
     });
   }, 'If no arguments, should throw a TypeError');
   test(() =>  {
-    assert_throws(expectTypeError, () =>  {
+    assert_throws_js(expectTypeError, () =>  {
       customElements.define('test-define-one-arg');
     });
   }, 'If one argument, should throw a TypeError');
@@ -51,7 +51,7 @@
     [ 'method', ({ m() { } }).m ], // IsConstructor returns false for methods
   ].forEach(t =>  {
     test(() =>  {
-      assert_throws(expectTypeError, () =>  {
+      assert_throws_js(expectTypeError, () =>  {
         customElements.define(`test-define-constructor-${t[0]}`, t[1]);
       });
     }, `If constructor is ${t[0]}, should throw a TypeError`);
@@ -105,7 +105,7 @@
   });
   invalidCustomElementNames.forEach(name =>  {
     test(() =>  {
-      assert_throws(expectSyntaxError, () =>  {
+      assert_throws_dom(expectSyntaxError, () =>  {
         customElements.define(name, class {});
       });
     }, `Element names: defining an element named ${name} should throw a SyntaxError`);
@@ -115,7 +115,7 @@
   // then throw a NotSupportedError and abort these steps.
   test(() =>  {
     customElements.define('test-define-dup-name', class {});
-    assert_throws(expectNotSupportedError, () =>  {
+    assert_throws_dom(expectNotSupportedError, () =>  {
       customElements.define('test-define-dup-name', class {});
     });
   }, 'If the name is already defined, should throw a NotSupportedError');
@@ -125,7 +125,7 @@
   test(() =>  {
     class TestDupConstructor {};
     customElements.define('test-define-dup-constructor', TestDupConstructor);
-    assert_throws(expectNotSupportedError, () =>  {
+    assert_throws_dom(expectNotSupportedError, () =>  {
       customElements.define('test-define-dup-ctor2', TestDupConstructor);
     });
   }, 'If the constructor is already defined, should throw a NotSupportedError');
@@ -134,7 +134,7 @@
   // then throw a NotSupportedError.
   validCustomElementNames.forEach(name =>  {
     test(() =>  {
-      assert_throws(expectNotSupportedError, () =>  {
+      assert_throws_dom(expectNotSupportedError, () =>  {
         customElements.define('test-define-extend-valid-name', class {}, { extends: name });
       });
     }, `If extends is ${name}, should throw a NotSupportedError`);
@@ -154,20 +154,20 @@
     'elementnametobeunknownelement',
   ].forEach(name =>  {
     test(() =>  {
-      assert_throws(expectNotSupportedError, () =>  {
+      assert_throws_dom(expectNotSupportedError, () =>  {
         customElements.define('test-define-extend-' + name, class {}, { extends: name });
       });
     }, `If extends is ${name}, should throw a NotSupportedError`);
   });
 
   // 12.1. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
+  const err = new Error('check this is rethrown');
+  err.name = 'rethrown';
   function assert_rethrown(func, description) {
-    assert_throws({ name: 'rethrown' }, func, description);
+    assert_throws_exactly(err, func, description);
   }
   function throw_rethrown_error() {
-    const e = new Error('check this is rethrown');
-    e.name = 'rethrown';
-    throw e;
+    throw err;
   }
   test(() =>  {
     // Hack for prototype to throw while IsConstructor is true.
@@ -184,14 +184,14 @@
   // then throw a TypeError exception.
   test(() =>  {
     const c = (function () { }).bind({}); // prototype is undefined.
-    assert_throws(expectTypeError, () =>  {
+    assert_throws_js(expectTypeError, () =>  {
       customElements.define('test-define-constructor-prototype-undefined', c);
     });
   }, 'If Type(constructor.prototype) is undefined, should throw a TypeError');
   test(() =>  {
     function c() {};
     c.prototype = 'string';
-    assert_throws(expectTypeError, () =>  {
+    assert_throws_js(expectTypeError, () =>  {
       customElements.define('test-define-constructor-prototype-string', c);
     });
   }, 'If Type(constructor.prototype) is string, should throw a TypeError');
@@ -232,7 +232,7 @@
         if (data.success) {
           customElements.define(`test-define-${name.toLowerCase()}-${data.name}`, C);
         } else {
-          assert_throws(expectTypeError, () => {
+          assert_throws_js(expectTypeError, () => {
             customElements.define(`test-define-${name.toLowerCase()}-${data.name}`, C);
           });
         }

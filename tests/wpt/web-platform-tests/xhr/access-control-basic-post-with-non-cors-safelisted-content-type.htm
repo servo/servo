@@ -29,7 +29,7 @@
 
       xhr.setRequestHeader("Content-Type", "application/xml");
 
-      assert_throws("NetworkError", () => xhr.send());
+      assert_throws_dom("NetworkError", () => xhr.send());
       assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
     }, "CORS request with non-safelisted content type sends preflight and fails");
     </script>

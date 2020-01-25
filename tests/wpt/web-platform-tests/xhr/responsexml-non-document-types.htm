@@ -20,12 +20,12 @@
           client.onload = function(){
             test.step(function(){
                 if(type !== 'document'){
-                  assert_throws("InvalidStateError", function() {
+                  assert_throws_dom("InvalidStateError", function() {
                     var x = client.responseXML;
                   }, 'responseXML throw for '+type)
                 }
                 if(type !== 'text'){
-                  assert_throws("InvalidStateError", function() {
+                  assert_throws_dom("InvalidStateError", function() {
                     var x = client.responseText;
                   }, 'responseText throws for '+type)
                 }

@@ -11,7 +11,7 @@
         document.domain = document.domain.replace(/^\w+\./, "");
         var client = new XMLHttpRequest();
         client.open("GET", location.protocol + "//" + document.domain + location.pathname.replace(/[^\/]*$/, "") + "status.py?content=hello3", false);
-        assert_throws("NetworkError", function() {
+        assert_throws_dom("NetworkError", function() {
           client.send(null);
         });
       }, "loading documents from the origin document.domain was set to should throw");

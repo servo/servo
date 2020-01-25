@@ -5,7 +5,7 @@ from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
 from six import ensure_str, ensure_text, iteritems, iterkeys, itervalues, text_type
-from six.moves import intern
+from six.moves import intern, range
 
 from . import manifestupdate
 from . import testloader
@@ -199,7 +199,7 @@ class InternedData(object):
         return obj
 
     def __iter__(self):
-        for i in xrange(1, len(self._data[0])):
+        for i in range(1, len(self._data[0])):
             yield self.get(i)
 
 

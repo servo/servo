@@ -12,7 +12,7 @@
     createdb(async_test()).onupgradeneeded = function(e) {
         var store = e.target.result.createObjectStore("store");
 
-        assert_throws('InvalidAccessError', function() {
+        assert_throws_dom('InvalidAccessError', function() {
             store.createIndex('actors', ['name'], { multiEntry: true })
         });
 

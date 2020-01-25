@@ -24,7 +24,7 @@
         var index = tx.objectStore('store').index('index');
         tx.abort();
 
-        assert_throws("TransactionInactiveError", function(){
+        assert_throws_dom("TransactionInactiveError", function(){
             index.getKey("data");
         });
         t.done();

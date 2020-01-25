@@ -52,6 +52,6 @@ promise_test(async (t) => {
 
   // ... the opaque image taints the canvas.
   context.drawImage(opaqueImage, 0, 0);
-  assert_throws('SecurityError', () => { canvas.toDataURL(); });
+  assert_throws_dom('SecurityError', () => { canvas.toDataURL(); });
 }, 'canvas is tainted after writing both a non-opaque image and an opaque image from the same URL');
 </script>

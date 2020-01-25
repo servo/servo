@@ -49,12 +49,12 @@ promise_test(async () => {
 
 test(() => {
   const scriptURL = 'http://invalid:123$';
-  assert_throws('SyntaxError', () => new Worker(scriptURL, { type: 'module' }));
+  assert_throws_dom('SyntaxError', () => new Worker(scriptURL, { type: 'module' }));
 }, 'Worker construction for an invalid URL should throw an exception.');
 
 test(() => {
   const scriptURL = 'file:///static-import-worker.js';
-  assert_throws('SecurityError', () => new Worker(scriptURL, { type: 'module' }));
+  assert_throws_dom('SecurityError', () => new Worker(scriptURL, { type: 'module' }));
 }, 'Worker construction for a file URL should throw an exception.');
 
 </script>

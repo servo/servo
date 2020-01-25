@@ -20,10 +20,10 @@ function checkStartTime(values, t) {
 }
 
 function checkHasNoCurrentInterval(t) {
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animationElements[0].getStartTime()
   }, 'no interval @ ' + t);
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animationElements[1].getStartTime()
   }, 'no interval @ ' + t);
 }

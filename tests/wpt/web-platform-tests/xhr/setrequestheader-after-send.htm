@@ -15,7 +15,7 @@
         client.open("GET", "resources/delay.py?ms=0")
         client.onreadystatechange = function() {
           test.step(function() {
-            assert_throws("InvalidStateError", function() { client.setRequestHeader("x-test", "test") })
+            assert_throws_dom("InvalidStateError", function() { client.setRequestHeader("x-test", "test") })
             if(client.readyState == 4)
               test.done()
           })

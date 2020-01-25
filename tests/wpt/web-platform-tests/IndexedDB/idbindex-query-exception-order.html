@@ -29,7 +29,7 @@
       store2.deleteIndex('i');
 
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'InvalidStateError', () => { index[method]('key'); },
           '"has been deleted" check (InvalidStateError) should precede ' +
           '"not active" check (TransactionInactiveError)');
@@ -52,7 +52,7 @@
       const index = store.index('i');
 
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'TransactionInactiveError', () => { index[method]({}); },
           '"not active" check (TransactionInactiveError) should precede ' +
           'query check (DataError)');

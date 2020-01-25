@@ -9,10 +9,10 @@ setup(function() {
 });
 
 test(function() {
-    assert_throws('InvalidStateError', function() { animationElement.getStartTime() });
+    assert_throws_dom('InvalidStateError', function() { animationElement.getStartTime() });
 }, document.title+', getStartTime throws with unresolved interval.');
 
 test(function() {
-    assert_throws('NotSupportedError', function() { animationElement.getSimpleDuration() });
+    assert_throws_dom('NotSupportedError', function() { animationElement.getSimpleDuration() });
 }, document.title+', getSimpleDuration throws with undefined simple duration.');
 </script>

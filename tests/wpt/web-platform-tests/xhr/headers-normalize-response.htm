@@ -9,7 +9,7 @@ function error(val) {
   test(() => {
     const client = new XMLHttpRequest();
     client.open("GET", "resources/parse-headers.py?my-custom-header="+encodeURIComponent(val), false);
-    assert_throws("NetworkError", () => client.send());
+    assert_throws_dom("NetworkError", () => client.send());
   }, "Header value: " + val.replace("\0", "\\0"));
 }
 

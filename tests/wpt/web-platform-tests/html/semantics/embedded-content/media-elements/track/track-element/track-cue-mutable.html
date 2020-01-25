@@ -70,8 +70,8 @@
                 // On setting, if the new value is negative or greater than 100,
                 // then throw an IndexSizeError exception.
                 // Otherwise, set the text track cue text position to the new value.
-                assert_throws("IndexSizeError", function() { textCue.position = -200; });
-                assert_throws("IndexSizeError", function() { textCue.position = 110; });
+                assert_throws_dom("IndexSizeError", function() { textCue.position = -200; });
+                assert_throws_dom("IndexSizeError", function() { textCue.position = 110; });
                 textCue.position = 11;
                 assert_equals(textCue.position, 11);
 
@@ -79,8 +79,8 @@
                 // On setting, if the new value is negative or greater than 100,
                 // then throw an IndexSizeError exception.
                 // Otherwise, set the text track cue size to the new value.
-                assert_throws("IndexSizeError", function() { textCue.size = -200 });
-                assert_throws("IndexSizeError", function() { textCue.size = 110 });
+                assert_throws_dom("IndexSizeError", function() { textCue.size = -200 });
+                assert_throws_dom("IndexSizeError", function() { textCue.size = 110 });
                 textCue.size = 57;
                 assert_equals(textCue.size, 57);
 

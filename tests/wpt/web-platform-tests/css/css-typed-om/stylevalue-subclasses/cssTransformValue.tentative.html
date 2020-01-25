@@ -10,8 +10,8 @@
 'use strict';
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSTransformValue());
-  assert_throws(new TypeError(), () => new CSSTransformValue([]));
+  assert_throws_js(TypeError, () => new CSSTransformValue());
+  assert_throws_js(TypeError, () => new CSSTransformValue([]));
 }, 'Constructing a CSSTransformValue with no components throws TypeError');
 
 test(() => {
@@ -78,7 +78,7 @@ test(() => {
 
 test(() => {
   let transform = new CSSTransformValue([new CSSScale(1, 2)]);
-  assert_throws(new TypeError(), () => transform.is2D = false);
+  assert_throws_js(TypeError, () => transform.is2D = false);
   assert_equals(transform.is2D, true);
 }, 'CSSTransformValue.is2D is readonly');
 

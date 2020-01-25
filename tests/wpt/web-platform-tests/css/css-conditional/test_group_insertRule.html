@@ -34,7 +34,7 @@
        "rule_length");
 
   test(function() {
-         assert_throws("HIERARCHY_REQUEST_ERR",
+         assert_throws_dom("HIERARCHY_REQUEST_ERR",
                        function() {
                          grouping_rule.insertRule("@import url(foo.css);", 0);
                        },
@@ -43,7 +43,7 @@
        "insert_import_throws");
 
   test(function() {
-         assert_throws("INDEX_SIZE_ERR",
+         assert_throws_dom("INDEX_SIZE_ERR",
                        function() {
                          grouping_rule.insertRule("p { color: green }", 1);
                        },
@@ -60,7 +60,7 @@
          grouping_rule.insertRule("p { color: aqua }", 1);
          assert_equals(grouping_rule.cssRules.length, 3,
                        "Modified cssRules.length of @media rule");
-         assert_throws("INDEX_SIZE_ERR",
+         assert_throws_dom("INDEX_SIZE_ERR",
                        function() {
                          grouping_rule.insertRule("p { color: green }", 4);
                        },
@@ -96,7 +96,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("@media bad syntax;", 0);
                        },
@@ -109,7 +109,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("", 0);
                        },
@@ -122,7 +122,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("@media print {} foo", 0);
                        },
@@ -135,7 +135,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("p { color: yellow } foo", 0);
                        },
@@ -148,7 +148,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("@media print {} @media print {}", 0);
                        },
@@ -161,7 +161,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("p { color: yellow } @media print {}", 0);
                        },
@@ -174,7 +174,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("@media print {} p { color: yellow }", 0);
                        },
@@ -187,7 +187,7 @@
          while (grouping_rule.cssRules.length > 0) {
            grouping_rule.deleteRule(0);
          }
-         assert_throws("SYNTAX_ERR",
+         assert_throws_dom("SYNTAX_ERR",
                        function() {
                          grouping_rule.insertRule("p { color: yellow } p { color: yellow }", 0);
                        },

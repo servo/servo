@@ -31,7 +31,7 @@
             }
             doc.body.appendChild(ifr);
           } else if(1 == count) {
-            assert_throws("InvalidStateError", function() { client.open("GET", "...") })
+            assert_throws_dom("InvalidStateError", function() { client.open("GET", "...") })
             test.done()
           }
         })

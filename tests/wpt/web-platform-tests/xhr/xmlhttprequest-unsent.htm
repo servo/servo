@@ -20,8 +20,8 @@
     <script>
       test(function() {
         var client = new XMLHttpRequest()
-        assert_throws("InvalidStateError", function() { client.setRequestHeader("x-test", "test") }, "setRequestHeader")
-        assert_throws("InvalidStateError", function() { client.send(null) }, "send")
+        assert_throws_dom("InvalidStateError", function() { client.setRequestHeader("x-test", "test") }, "setRequestHeader")
+        assert_throws_dom("InvalidStateError", function() { client.send(null) }, "send")
         assert_equals(client.status, 0, "status")
         assert_equals(client.statusText, "", "statusText")
         assert_equals(client.getAllResponseHeaders(), "", "getAllResponseHeaders")

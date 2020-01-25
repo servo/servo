@@ -1,7 +1,3 @@
-try:
-    import html
-except ImportError:
-    import cgi as html
 import json
 import os
 import sys
@@ -16,6 +12,11 @@ from .ranges import RangeParser
 from .request import Authentication
 from .response import MultipartContent
 from .utils import HTTPException
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 __all__ = ["file_handler", "python_script_handler",
            "FunctionHandler", "handler", "json_handler",
@@ -79,7 +80,7 @@ class DirectoryHandler(object):
 <ul>
 %(items)s
 </ul>
-""" % {"path": html.escape(url_path),
+""" % {"path": escape(url_path),
        "items": "\n".join(self.list_items(url_path, path))}  # noqa: E122
 
     def list_items(self, base_path, path):
@@ -105,18 +106,18 @@ class DirectoryHandler(object):
             items.append([item, None])
             prev_item = item
         for item, dot_headers in items:
-            link = html.escape(quote(item))
+            link = escape(quote(item))
             dot_headers_markup = ""
             if dot_headers is not None:
                 dot_headers_markup = (""" (<a href="%(link)s">.headers</a>)""" %
-                                      {"link": html.escape(quote(dot_headers))})
+                                      {"link": escape(quote(dot_headers))})
             if os.path.isdir(os.path.join(path, item)):
                 link += "/"
                 class_ = "dir"
             else:
                 class_ = "file"
             yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a>%(headers)s</li>""" %
-                   {"link": link, "name": html.escape(item), "class": class_,
+                   {"link": link, "name": escape(item), "class": class_,
                     "headers": dot_headers_markup})
 
 

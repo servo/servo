@@ -32,7 +32,7 @@ Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
       canvas.width = img_element.width;
       canvas.height = img_element.height;
       context.drawImage(img_element, 0, 0);
-      assert_throws('SecurityError', () => canvas.toDataURL());
+      assert_throws_dom('SecurityError', () => canvas.toDataURL());
     })
   ).catch(t.unreached_func("The image load should not fail, trying to load with CORS headers set."));
   }, "Test that when deferred image is loaded, it uses the crossorigin attribute specified at parse time.");

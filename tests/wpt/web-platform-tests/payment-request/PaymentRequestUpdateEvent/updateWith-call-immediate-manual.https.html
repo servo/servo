@@ -148,7 +148,7 @@ function testRecycleEvents({ textContent: testName }) {
 
     // Here, we try to be sneaky, and reuse the addressChangeEvent to perform the update.
     // However, addressChangeEvent [[waitingForUpdate]] is true, so it throws.
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         addressChangeEvent.updateWith(validDetails);
@@ -159,7 +159,7 @@ function testRecycleEvents({ textContent: testName }) {
     // But optionChangeEvent is still usable tho, so...
     optionChangeEvent.updateWith(validDetails);
 
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         optionChangeEvent.updateWith(validDetails);

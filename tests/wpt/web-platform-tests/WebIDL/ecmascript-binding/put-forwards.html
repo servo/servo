@@ -77,7 +77,7 @@ test(() => {
     set: descriptor.set
   });
 
-  assert_throws(new SyntaxError(), () => {
+  assert_throws_js(SyntaxError, () => {
     element.style = "color: green";
   });
 }, "Exception propagation from getter of [PutForwards] attribute");
@@ -94,7 +94,7 @@ test(() => {
     }
   });
 
-  assert_throws(new SyntaxError(), () => {
+  assert_throws_js(SyntaxError, () => {
     element.style = "color: green";
   });
 }, "Exception propagation from setter of [PutForwards] target attribute");
@@ -110,7 +110,7 @@ test(() => {
     set: descriptor.set
   });
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     element.style = "color: green";
   });
 }, "TypeError when getter of [PutForwards] attribute returns non-object");

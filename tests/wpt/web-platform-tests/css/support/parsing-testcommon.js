@@ -79,7 +79,7 @@ function test_invalid_selector(selector) {
     const stringifiedSelector = JSON.stringify(selector);
 
     test(function(){
-        assert_throws(
+        assert_throws_dom(
           DOMException.SYNTAX_ERR,
           () => document.querySelector(selector),
           stringifiedSelector + " should throw in querySelector");
@@ -89,7 +89,7 @@ function test_invalid_selector(selector) {
         const {sheet} = style;
         document.head.removeChild(style);
 
-        assert_throws(
+        assert_throws_dom(
           DOMException.SYNTAX_ERR,
           () => sheet.insertRule(selector + "{}"),
           stringifiedSelector + " should throw in insertRule");

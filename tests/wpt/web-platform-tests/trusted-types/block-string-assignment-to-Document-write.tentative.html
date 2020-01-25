@@ -29,7 +29,7 @@
   // String assignments throw.
   test(t => {
     const old = document.body.innerText;
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       document.write('A string');
     });
     assert_equals(document.body.innerText, old);
@@ -38,7 +38,7 @@
   // String assignments throw. (Now for writeln.)
   test(t => {
     const old = document.body.innerText;
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       document.writeln('A string');
     });
     assert_equals(document.body.innerText, old);
@@ -47,7 +47,7 @@
   // Null assignment throws.
   test(t => {
     const old = document.body.innerText;
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       document.write(null);
     });
     assert_equals(document.body.innerText, old);
@@ -56,7 +56,7 @@
   // Null assignment throws. (Now for writeln.)
   test(t => {
     const old = document.body.innerText;
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       document.writeln(null);
     });
     assert_equals(document.body.innerText, old);

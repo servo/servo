@@ -10,7 +10,7 @@
 'use strict';
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     return new CSSTranslate(
       new CSSUnitValue(1, 'px'),
       new CSSUnitValue(1, 'em')
@@ -19,7 +19,7 @@ test(() => {
 }, 'CSSTranslate.toMatrix() containing relative units throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     return new CSSPerspective(new CSSUnitValue(1, 'em')).toMatrix();
   });
 }, 'CSSPerspective.toMatrix() containing relative units throws TypeError');

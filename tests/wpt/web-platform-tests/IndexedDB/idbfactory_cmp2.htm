@@ -9,31 +9,31 @@
 <div id=log></div>
 <script>
     test( function() {
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             indexedDB.cmp();
         });
     }, "IDBFactory.cmp() - no argument");
 
     test( function() {
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(null, null);
         });
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(1, null);
         });
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(null, 1);
         });
     }, "IDBFactory.cmp() - null");
 
     test( function() {
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(NaN, NaN);
         });
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(1, NaN);
         });
-        assert_throws("DataError", function() {
+        assert_throws_dom("DataError", function() {
             indexedDB.cmp(NaN, 1);
         });
     }, "IDBFactory.cmp() - NaN");

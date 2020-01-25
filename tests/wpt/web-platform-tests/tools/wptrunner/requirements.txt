@@ -3,7 +3,7 @@ mozinfo==1.1.0
 mozlog==5.0
 mozdebug==0.1.1
 # Pillow 7 requires Python 3
-pillow==6.2.1  # pyup: <7.0
+pillow==6.2.2  # pyup: <7.0
 urllib3[secure]==1.25.8
 requests==2.22.0
 six==1.14.0

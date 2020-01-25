@@ -17,7 +17,7 @@ promise_test(async testCase => {
     enumerable: true,
     get: testCase.step_func(() => {
       getterCalled = true;
-      assert_throws('TransactionInactiveError', () => {
+      assert_throws_dom('TransactionInactiveError', () => {
         objectStore.get('key');
       }, 'transaction should not be active during structured clone');
       return 'value that should not be used';
@@ -45,7 +45,7 @@ promise_test(async testCase => {
     enumerable: true,
     get: testCase.step_func(() => {
       getterCalled = true;
-      assert_throws('TransactionInactiveError', () => {
+      assert_throws_dom('TransactionInactiveError', () => {
         objectStore.get('key');
       }, 'transaction should not be active during structured clone');
       return 'value that should not be used';
@@ -75,7 +75,7 @@ promise_test(async testCase => {
     enumerable: true,
     get: testCase.step_func(() => {
       getterCalled = true;
-      assert_throws('TransactionInactiveError', () => {
+      assert_throws_dom('TransactionInactiveError', () => {
         objectStore.get('key');
       }, 'transaction should not be active during structured clone');
       return 'value that should not be used';

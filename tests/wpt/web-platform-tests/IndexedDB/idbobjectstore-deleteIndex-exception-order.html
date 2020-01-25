@@ -17,7 +17,7 @@ indexeddb_test(
     const store = tx.objectStore('s');
 
     setTimeout(t.step_func(() => {
-      assert_throws(
+      assert_throws_dom(
         'InvalidStateError', () => { store.deleteIndex('i'); },
         '"running an upgrade transaction" check (InvalidStateError) ' +
         'should precede "not active" check (TransactionInactiveError)');
@@ -36,7 +36,7 @@ indexeddb_test(
     db.deleteObjectStore('s');
 
     setTimeout(t.step_func(() => {
-      assert_throws(
+      assert_throws_dom(
         'InvalidStateError', () => { store.deleteIndex('i'); },
         '"deleted" check (InvalidStateError) ' +
         'should precede "not active" check (TransactionInactiveError)');
@@ -53,7 +53,7 @@ indexeddb_test(
     const store = db.createObjectStore('s');
 
     setTimeout(t.step_func(() => {
-      assert_throws(
+      assert_throws_dom(
         'TransactionInactiveError', () => { store.deleteIndex('nope'); },
         '"not active" check (TransactionInactiveError) should precede ' +
         '"name in store" check (NotFoundError)');

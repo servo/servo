@@ -19,19 +19,19 @@ test(() => {
 }, "ClipboardItem() succeeds with empty options");
 
 test(() => {
-  assert_throws(new TypeError(), () => {new ClipboardItem({});});
+  assert_throws_js(TypeError, () => {new ClipboardItem({});});
 }, "ClipboardItem({}) fails with empty dictionary input");
 
 test(() => {
-  assert_throws(new TypeError(), () => {new ClipboardItem(blob);});
+  assert_throws_js(TypeError, () => {new ClipboardItem(blob);});
 }, "ClipboardItem(Blob) fails");
 
 test(() => {
-  assert_throws(new TypeError(), () => {new ClipboardItem(null);});
+  assert_throws_js(TypeError, () => {new ClipboardItem(null);});
 }, "ClipboardItem() fails with null input");
 
 test(() => {
-  assert_throws(new TypeError(), () => {new ClipboardItem();});
+  assert_throws_js(TypeError, () => {new ClipboardItem();});
 }, "ClipboardItem() fails with no input");
 
 test(() => {

@@ -30,7 +30,7 @@ open_rq.onerror = function(e) {
     assert_true(!!db)
     assert_equals(db.version, 1)
     assert_equals(db.objectStoreNames.length, 1)
-    assert_throws("InvalidStateError", function() { db.transaction('os') })
+    assert_throws_dom("InvalidStateError", function() { db.transaction('os') })
 
     this.done()
 }

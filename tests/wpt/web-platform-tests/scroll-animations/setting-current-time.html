@@ -53,7 +53,7 @@
 
     await animation.ready;
 
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
       animation.currentTime = null;
     });
   }, 'Setting animation current time to null throws TypeError.');

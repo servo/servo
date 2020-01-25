@@ -20,13 +20,13 @@ function testSharedWorkerHelper(t, script) {
       assert_true(e instanceof Event);
     });
   } catch (e) {
-    assert_throws("SecurityError", () => {throw e}, "DOMExceptions thrown on cross-origin SharedWorker construction must be SecurityErrors");
+    assert_throws_dom("SecurityError", () => {throw e}, "DOMExceptions thrown on cross-origin SharedWorker construction must be SecurityErrors");
     t.done();
   }
 }
 
 test(function() {
-  assert_throws("SecurityError", function() { new SharedWorker('unsupported:', ''); });
+  assert_throws_dom("SecurityError", function() { new SharedWorker('unsupported:', ''); });
 }, "unsupported_scheme");
 
 async_test(function() {

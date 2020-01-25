@@ -47,9 +47,10 @@ test(function() {
 }, "createNodeIterator() with undefined as arguments");
 
 test(function() {
+  var err = {name: "failed"};
   var iter = document.createNodeIterator(document, NodeFilter.SHOW_ALL,
-                                        function() { throw {name: "failed"} });
-  assert_throws({name: "failed"}, function() { iter.nextNode() });
+                                         function() { throw err; });
+  assert_throws_exactly(err, function() { iter.nextNode() });
 }, "Propagate exception from filter function");
 
 test(function() {
@@ -64,9 +65,9 @@ test(function() {
     });
   iter.nextNode();
   iter.nextNode();
-  assert_throws("InvalidStateError", function() { iter.nextNode() });
+  assert_throws_dom("InvalidStateError", function() { iter.nextNode() });
   depth--;
-  assert_throws("InvalidStateError", function() { iter.previousNode() });
+  assert_throws_dom("InvalidStateError", function() { iter.previousNode() });
 }, "Recursive filters need to throw");
 
 function testIterator(root, whatToShow, filter) {

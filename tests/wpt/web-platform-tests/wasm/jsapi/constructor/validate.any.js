@@ -7,7 +7,7 @@ setup(() => {
 });
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.validate());
+  assert_throws_js(TypeError, () => WebAssembly.validate());
 }, "Missing argument");
 
 test(() => {
@@ -24,7 +24,7 @@ test(() => {
     Array.from(emptyModuleBinary),
   ];
   for (const argument of invalidArguments) {
-    assert_throws(new TypeError(), () => WebAssembly.validate(argument),
+    assert_throws_js(TypeError, () => WebAssembly.validate(argument),
                   `validate(${format_value(argument)})`);
   }
 }, "Invalid arguments");

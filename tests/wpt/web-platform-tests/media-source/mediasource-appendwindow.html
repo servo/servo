@@ -114,11 +114,11 @@
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
               mediaSource.removeSourceBuffer(sourceBuffer);
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { sourceBuffer.appendWindowStart = 100.0; },
                   "set appendWindowStart throws an exception when mediasource object is not associated with a buffer.");
 
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { sourceBuffer.appendWindowEnd = 500.0; },
                   "set appendWindowEnd throws an exception when mediasource object is not associated with a buffer.");
               test.done();
@@ -131,11 +131,11 @@
               sourceBuffer.appendBuffer(mediaData);
               assert_true(sourceBuffer.updating, "updating attribute is true");
 
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { sourceBuffer.appendWindowStart = 100.0; },
                   "set appendWindowStart throws an exception when there is a pending append.");
 
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { sourceBuffer.appendWindowEnd = 500.0; },
                   "set appendWindowEnd throws an exception when there is a pending append.");
 

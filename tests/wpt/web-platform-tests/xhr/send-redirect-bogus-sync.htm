@@ -13,7 +13,7 @@
         test(function() {
           var client = new XMLHttpRequest()
           client.open("GET", "resources/redirect.py?location=" + location + "&code=" + code, false)
-          assert_throws("NetworkError", function() { client.send(null) })
+          assert_throws_dom("NetworkError", function() { client.send(null) })
         }, document.title + " (" + code + ": " + location + ")")
       }
       redirect("301", "foobar://abcd")

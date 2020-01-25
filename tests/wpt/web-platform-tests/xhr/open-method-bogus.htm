@@ -12,7 +12,7 @@
       function method(method) {
         test(function() {
           var client = new XMLHttpRequest()
-          assert_throws("SyntaxError", function() { client.open(method, "...") })
+          assert_throws_dom("SyntaxError", function() { client.open(method, "...") })
         }, document.title + " (" + method + ")")
       }
       method("")

@@ -70,7 +70,7 @@
     let p = Promise.resolve()
         .then(promise_violation("require-trusted-types-for 'script'"))
         .then(promise_flush());
-    assert_throws(new EvalError(),
+    assert_throws_js(EvalError,
                   _ => eval('beacon="should not run"'));
     assert_equals(beacon, 'never_overwritten');
     flush();

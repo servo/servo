@@ -69,7 +69,7 @@ types.forEach(function(type) {
         if (isIgnoredType(type)) {
           xhr.responseType = type;
         } else {
-          assert_throws("InvalidStateError", function() {
+          assert_throws_dom("InvalidStateError", function() {
             xhr.responseType = type;
           });
         }
@@ -90,7 +90,7 @@ types.forEach(function(type) {
         if (isIgnoredType(type)) {
           xhr.responseType = type;
         } else {
-          assert_throws("InvalidStateError", function() {
+          assert_throws_dom("InvalidStateError", function() {
             xhr.responseType = type;
           });
         }
@@ -112,7 +112,7 @@ types.forEach(function(type) {
       xhr.responseType = type;
       assert_equals(xhr.responseType, expectedType(type));
     } else {
-      assert_throws("InvalidAccessError", function() {
+      assert_throws_dom("InvalidAccessError", function() {
         xhr.responseType = type;
       });
     }
@@ -126,7 +126,7 @@ types.forEach(function(type) {
     if (isIgnoredType(type)) {
       xhr.responseType = type;
     } else {
-      assert_throws("InvalidStateError", function() {
+      assert_throws_dom("InvalidStateError", function() {
         xhr.responseType = type;
       });
     }

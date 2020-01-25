@@ -256,7 +256,7 @@ promise_test(() => {
   const stream = new WritableStream();
   const writer = stream.getWriter();
   const WritableStreamDefaultWriter = writer.constructor;
-  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
+  assert_throws_js(TypeError, () => new WritableStreamDefaultWriter(stream),
                 'should not be able to construct on locked stream');
   // If stream.[[writer]] no longer points to |writer| then the closed Promise
   // won't work properly.

@@ -36,12 +36,12 @@ test(function(){
     'use strict';
     var cues = t1.cues;
     assert_equals(cues[0], undefined);
-    assert_throws(new TypeError(), function() { cues[0] = 'foo'; });
+    assert_throws_js(TypeError, function() { cues[0] = 'foo'; });
     assert_equals(cues[0], undefined);
     var c1 = new VTTCue(0, 1, 'text1');
     t1.addCue(c1);
     assert_equals(cues[0], c1);
-    assert_throws(new TypeError(), function() { cues[0] = 'foo'; });
+    assert_throws_js(TypeError, function() { cues[0] = 'foo'; });
     assert_equals(cues[0], c1);
     t1.removeCue(c1);
 }, document.title+', no indexed set/create (strict)');

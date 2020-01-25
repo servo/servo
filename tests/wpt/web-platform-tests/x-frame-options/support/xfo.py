@@ -2,7 +2,10 @@ def main(request, response):
     headers = [("Content-Type", "text/html"), ("X-Frame-Options", request.GET.first("value"))]
 
     if "value2" in request.GET:
-      headers.append(("X-Frame-Options", request.GET.first("value2")))
+        headers.append(("X-Frame-Options", request.GET.first("value2")))
+
+    if "csp_value" in request.GET:
+        headers.append(("Content-Security-Policy", request.GET.first("csp_value")))
 
     body = """<!DOCTYPE html>
         <html>
@@ -16,5 +19,3 @@ def main(request, response):
         </html>
     """
     return (headers, body)
-
-

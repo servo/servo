@@ -9,7 +9,7 @@
 <script>
   var el = document.createElement("div");
   test(function(){
-    assert_throws("SyntaxError", function() {
+    assert_throws_dom("SyntaxError", function() {
       el.contentEditable = "foobar";
     });
   }, "setting contentEditable to an invalid value throws a SyntaxError Exception");

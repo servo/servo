@@ -12,7 +12,7 @@ test(function() {
         this.set_status(this.NOTRUN, "You must allow notifications for this"
             + " origin before running this test.")
     }
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
         new Notification()
     })
 }, "Called the notification constructor with no arguments.")

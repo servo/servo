@@ -15,16 +15,16 @@ test(() => {
   var span = tmpl.content.querySelector('span');
 
   // Hierarchy checks at various combinations.
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     tmpl.content.appendChild(parent);
   }, 'Template content should throw if any of ancestor is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     tmpl.content.appendChild(tmpl);
   }, 'Template content should throw if its host is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     span.appendChild(parent);
   }, 'Template content child should throw if any of ancestor is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     span.appendChild(tmpl);
   }, 'Template content child should throw template\'s host is being appended.');
 }, "Template content should throw when its ancestor is being appended.");
@@ -52,16 +52,16 @@ test(() => {
   assert_equals(tmpl.content.ownerDocument, tmplContentNodeDocument);
 
   // Hierarchy checks at various combinations.
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     tmpl.content.appendChild(parent);
   }, 'Template content should throw if any of ancestor is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     tmpl.content.appendChild(tmpl);
   }, 'Template content should throw if its host is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     span.appendChild(parent);
   }, 'Template content child should throw if any of ancestor is being appended.');
-  assert_throws('HierarchyRequestError', () => {
+  assert_throws_dom('HierarchyRequestError', () => {
     span.appendChild(tmpl);
   }, 'Template content child should throw template\'s host is being appended.');
 

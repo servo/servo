@@ -8,27 +8,27 @@
 'use strict';
 
 test(() => {
-  assert_throws(new SyntaxError(), () => CSS.px(1).toSum('px', 'lemon'));
+  assert_throws_dom("SyntaxError", () => CSS.px(1).toSum('px', 'lemon'));
 }, 'Converting a CSSNumericValue to a sum with invalid units throws SyntaxError');
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSMathMax(1, CSS.px(1)).toSum('number'));
+  assert_throws_js(TypeError, () => new CSSMathMax(1, CSS.px(1)).toSum('number'));
 }, 'Converting a CSSNumericValue with an invalid sum value to a sum throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSMathProduct(CSS.px(1), CSS.px(1)).to('px'));
+  assert_throws_js(TypeError, () => new CSSMathProduct(CSS.px(1), CSS.px(1)).to('px'));
 }, 'Converting a CSSNumericValue with compound units to a sum throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSS.px(1).toSum('number'));
+  assert_throws_js(TypeError, () => CSS.px(1).toSum('number'));
 }, 'Converting a CSSNumericValue to a sum with an incompatible unit throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSS.px(1).toSum('px', 's'));
+  assert_throws_js(TypeError, () => CSS.px(1).toSum('px', 's'));
 }, 'Converting a CSSNumericValue to a sum with units that are not addable throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSMathSum(CSS.px(1), CSS.em(1)).toSum('px'));
+  assert_throws_js(TypeError, () => new CSSMathSum(CSS.px(1), CSS.em(1)).toSum('px'));
 }, 'Converting a CSSNumericValue with leftover units to a sum throws TypeError');
 
 test(() => {

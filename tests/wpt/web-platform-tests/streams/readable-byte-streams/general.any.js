@@ -7,7 +7,7 @@ const error1 = new Error('error1');
 error1.name = 'error1';
 
 test(() => {
-  assert_throws(new TypeError(), () => new ReadableStream().getReader({ mode: 'byob' }));
+  assert_throws_js(TypeError, () => new ReadableStream().getReader({ mode: 'byob' }));
 }, 'getReader({mode: "byob"}) throws on non-bytes streams');
 
 
@@ -179,7 +179,7 @@ promise_test(t => {
   const reader = stream.getReader();
 
   return reader.closed.then(() => {
-    assert_throws(new TypeError(), () => stream.getReader(), 'getReader() must throw');
+    assert_throws_js(TypeError, () => stream.getReader(), 'getReader() must throw');
   });
 }, 'ReadableStream with byte source: Test that closing a stream does not release a reader automatically');
 
@@ -195,7 +195,7 @@ promise_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
 
   return reader.closed.then(() => {
-    assert_throws(new TypeError(), () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
+    assert_throws_js(TypeError, () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
   });
 }, 'ReadableStream with byte source: Test that closing a stream does not release a BYOB reader automatically');
 
@@ -211,7 +211,7 @@ promise_test(t => {
   const reader = stream.getReader();
 
   return promise_rejects(t, error1, reader.closed, 'closed must reject').then(() => {
-    assert_throws(new TypeError(), () => stream.getReader(), 'getReader() must throw');
+    assert_throws_js(TypeError, () => stream.getReader(), 'getReader() must throw');
   });
 }, 'ReadableStream with byte source: Test that erroring a stream does not release a reader automatically');
 
@@ -227,7 +227,7 @@ promise_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
 
   return promise_rejects(t, error1, reader.closed, 'closed must reject').then(() => {
-    assert_throws(new TypeError(), () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
+    assert_throws_js(TypeError, () => stream.getReader({ mode: 'byob' }), 'getReader() must throw');
   });
 }, 'ReadableStream with byte source: Test that erroring a stream does not release a BYOB reader automatically');
 
@@ -238,7 +238,7 @@ test(() => {
 
   const reader = stream.getReader();
   reader.read();
-  assert_throws(new TypeError(), () => reader.releaseLock(), 'reader.releaseLock() must throw');
+  assert_throws_js(TypeError, () => reader.releaseLock(), 'reader.releaseLock() must throw');
 }, 'ReadableStream with byte source: releaseLock() on ReadableStreamReader with pending read() must throw');
 
 promise_test(() => {
@@ -551,7 +551,7 @@ promise_test(() => {
 }, 'ReadableStream with byte source: Push source that doesn\'t understand pull signal');
 
 test(() => {
-  assert_throws(new TypeError(), () => new ReadableStream({
+  assert_throws_js(TypeError, () => new ReadableStream({
     pull: 'foo',
     type: 'bytes'
   }), 'constructor should throw');
@@ -1446,7 +1446,7 @@ promise_test(t => {
 
   const readPromise = reader.read(new Uint16Array(1));
 
-  assert_throws(new TypeError(), () => controller.close(), 'controller.close() must throw');
+  assert_throws_js(TypeError, () => controller.close(), 'controller.close() must throw');
 
   return promise_rejects(t, new TypeError(), readPromise, 'read(view) must fail')
       .then(() => promise_rejects(t, new TypeError(), reader.closed, 'reader.closed must reject'));
@@ -1469,7 +1469,7 @@ test(() => {
   controller.enqueue(view);
   controller.close();
 
-  assert_throws(new TypeError(), () => controller.close(), 'controller.close() must throw');
+  assert_throws_js(TypeError, () => controller.close(), 'controller.close() must throw');
 }, 'ReadableStream with byte source: Throw if close()-ed more than once');
 
 test(() => {
@@ -1488,7 +1488,7 @@ test(() => {
   controller.enqueue(view);
   controller.close();
 
-  assert_throws(new TypeError(), () => controller.enqueue(view), 'controller.close() must throw');
+  assert_throws_js(TypeError, () => controller.enqueue(view), 'controller.close() must throw');
 }, 'ReadableStream with byte source: Throw on enqueue() after close()');
 
 promise_test(() => {
@@ -1973,7 +1973,7 @@ promise_test(() => {
   const reader = rs.getReader({ mode: 'byob' });
   const view = new Uint8Array(16);
   return reader.read(view).then(() => {
-    assert_throws(new TypeError(), () => byobRequest.respond(4), 'respond() should throw a TypeError');
+    assert_throws_js(TypeError, () => byobRequest.respond(4), 'respond() should throw a TypeError');
   });
 }, 'calling respond() twice on the same byobRequest should throw');
 
@@ -1989,7 +1989,7 @@ promise_test(() => {
   });
   const reader = rs.getReader({ mode: 'byob' });
   return reader.read(newView()).then(() => {
-    assert_throws(new TypeError(), () => byobRequest.respondWithNewView(newView()),
+    assert_throws_js(TypeError, () => byobRequest.respondWithNewView(newView()),
                   'respondWithNewView() should throw a TypeError');
   });
 }, 'calling respondWithNewView() twice on the same byobRequest should throw');
@@ -2018,7 +2018,7 @@ promise_test(() => {
     resolvePull();
     byobRequest.respond(0);
     return Promise.all([readPromise, cancelPromise]).then(() => {
-      assert_throws(new TypeError(), () => byobRequest.respond(0), 'respond() should throw');
+      assert_throws_js(TypeError, () => byobRequest.respond(0), 'respond() should throw');
     });
   });
 }, 'calling respond(0) twice on the same byobRequest should throw even when closed');
@@ -2043,7 +2043,7 @@ promise_test(() => {
   return pullCalledPromise.then(() => {
     resolvePull();
     return delay(0).then(() => {
-      assert_throws(new TypeError(), () => reader.releaseLock(), 'releaseLock() should throw');
+      assert_throws_js(TypeError, () => reader.releaseLock(), 'releaseLock() should throw');
     });
   });
 }, 'pull() resolving should not make releaseLock() possible');
@@ -2078,37 +2078,37 @@ test(() => {
 
 test(() => {
   const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
-  assert_throws(new TypeError(), () => new ReadableStreamBYOBReader({}), 'constructor must throw');
+  assert_throws_js(TypeError, () => new ReadableStreamBYOBReader({}), 'constructor must throw');
 }, 'ReadableStreamBYOBReader constructor requires a ReadableStream argument');
 
 test(() => {
   const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
   const stream = new ReadableStream({ type: 'bytes' });
   stream.getReader();
-  assert_throws(new TypeError(), () => new ReadableStreamBYOBReader(stream), 'constructor must throw');
+  assert_throws_js(TypeError, () => new ReadableStreamBYOBReader(stream), 'constructor must throw');
 }, 'ReadableStreamBYOBReader constructor requires an unlocked ReadableStream');
 
 test(() => {
   const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
   const stream = new ReadableStream();
-  assert_throws(new TypeError(), () => new ReadableStreamBYOBReader(stream), 'constructor must throw');
+  assert_throws_js(TypeError, () => new ReadableStreamBYOBReader(stream), 'constructor must throw');
 }, 'ReadableStreamBYOBReader constructor requires a ReadableStream with type "bytes"');
 
 test(() => {
-  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, {
+  assert_throws_js(RangeError, () => new ReadableStream({ type: 'bytes' }, {
     size() {
       return 1;
     }
   }), 'constructor should throw for size function');
 
-  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, { size: null }),
+  assert_throws_js(RangeError, () => new ReadableStream({ type: 'bytes' }, { size: null }),
                 'constructor should throw for size defined');
 
-  assert_throws(new RangeError(),
+  assert_throws_js(RangeError,
                 () => new ReadableStream({ type: 'bytes' }, new CountQueuingStrategy({ highWaterMark: 1 })),
                 'constructor should throw when strategy is CountQueuingStrategy');
 
-  assert_throws(new RangeError(),
+  assert_throws_js(RangeError,
                 () => new ReadableStream({ type: 'bytes' }, new ByteLengthQueuingStrategy({ highWaterMark: 512 })),
                 'constructor should throw when strategy is ByteLengthQueuingStrategy');
 
@@ -2116,6 +2116,6 @@ test(() => {
     size() {}
  }
 
-  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, new HasSizeMethod()),
+  assert_throws_js(RangeError, () => new ReadableStream({ type: 'bytes' }, new HasSizeMethod()),
                 'constructor should throw when size on the prototype chain');
 }, 'ReadableStream constructor should not accept a strategy with a size defined if type is "bytes"');

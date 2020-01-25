@@ -19,7 +19,7 @@
             assert_unreached('No events should fire here')
           })
           client.responseType = type
-          assert_throws("InvalidAccessError", function() { client.open('GET', "...", false) })
+          assert_throws_dom("InvalidAccessError", function() { client.open('GET', "...", false) })
         }, document.title + " (" + type + ")")
       }
       request("arraybuffer")

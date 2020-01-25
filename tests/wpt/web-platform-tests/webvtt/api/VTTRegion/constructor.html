@@ -24,18 +24,27 @@ test(function() {
     assert_equals(region.scroll, "");
 
     checkValues([-1, 101], "IndexSizeError");
-    checkValues([-Infinity, Infinity, NaN], new TypeError);
+    checkValues([-Infinity, Infinity, NaN], TypeError);
+
+    function assert_throws_something(error, func) {
+        if (typeof error == "string") {
+            assert_throws_dom(error, func);
+        } else {
+            assert_throws_js(error, func);
+        }
+    }
+
     function checkValues(invalidValues, exception) {
         for (var value of invalidValues) {
-            assert_throws(exception, function() { region.viewportAnchorX = value; });
+            assert_throws_something(exception, function() { region.viewportAnchorX = value; });
             assert_equals(region.viewportAnchorX, 0);
-            assert_throws(exception, function() { region.viewportAnchorY = value; });
+            assert_throws_something(exception, function() { region.viewportAnchorY = value; });
             assert_equals(region.viewportAnchorY, 100);
-            assert_throws(exception, function() { region.regionAnchorX = value; });
+            assert_throws_something(exception, function() { region.regionAnchorX = value; });
             assert_equals(region.regionAnchorX, 0);
-            assert_throws(exception, function() { region.regionAnchorY = value; });
+            assert_throws_something(exception, function() { region.regionAnchorY = value; });
             assert_equals(region.regionAnchorY, 100);
-            assert_throws(exception, function() { region.width = value; });
+            assert_throws_something(exception, function() { region.width = value; });
             assert_equals(region.width, 100);
         }
     }

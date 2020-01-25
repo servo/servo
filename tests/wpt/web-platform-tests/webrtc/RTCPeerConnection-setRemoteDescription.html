@@ -54,7 +54,7 @@
       await pc.setRemoteDescription({ type: 'bogus', sdp: 'bogus' });
       t.unreached_func("Should have rejected.");
     } catch (e) {
-      assert_throws(new TypeError(), () => { throw e });
+      assert_throws_js(TypeError, () => { throw e });
     }
   }, 'setRemoteDescription with invalid type and invalid SDP should reject with TypeError');
 
@@ -67,7 +67,7 @@
       await pc.setRemoteDescription({ type: 'answer', sdp: 'invalid' });
       t.unreached_func("Should have rejected.");
     } catch (e) {
-      assert_throws('InvalidStateError', () => { throw e });
+      assert_throws_dom('InvalidStateError', () => { throw e });
     }
   }, 'setRemoteDescription() with invalid SDP and stable state should reject with InvalidStateError');
 

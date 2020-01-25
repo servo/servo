@@ -53,11 +53,11 @@ const invalid_urls1 = [
 
 for (const url of invalid_urls1) {
   test(() => {
-    assert_throws('SYNTAX_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
+    assert_throws_dom('SYNTAX_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
   }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SYNTAX_ERR.');
 
   test(() => {
-    assert_throws('SYNTAX_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
+    assert_throws_dom('SYNTAX_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
   }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SYNTAX_ERR.');
 }
 
@@ -72,11 +72,11 @@ const invalid_urls2 = [
 ];
 for (const url of invalid_urls2) {
   test(() => {
-    assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
+    assert_throws_dom('SECURITY_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
   }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
 
   test(() => {
-    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
+    assert_throws_dom('SECURITY_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
   }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
 }
 
@@ -130,11 +130,11 @@ const denylist = [
 ];
 for (const scheme of denylist) {
   test(() => {
-    assert_throws('SECURITY_ERR', () => { navigator.registerProtocolHandler(scheme, location.href + '/%s', 'foo'); });
+    assert_throws_dom('SECURITY_ERR', () => { navigator.registerProtocolHandler(scheme, location.href + '/%s', 'foo'); });
   }, 'registerProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 
   test(() => {
-    assert_throws('SECURITY_ERR', () => { navigator.unregisterProtocolHandler(scheme, location.href + '/%s'); });
+    assert_throws_dom('SECURITY_ERR', () => { navigator.unregisterProtocolHandler(scheme, location.href + '/%s'); });
   }, 'unregisterProtocolHandler: Attempting to override the "' + scheme + '" protocol should throw SECURITY_ERR.');
 }
 

@@ -7,7 +7,7 @@
 <div id="log"></div>
 <script>
 test(function() {
-  assert_throws("NO_MODIFICATION_ALLOWED_ERR", function() {
+  assert_throws_dom("NO_MODIFICATION_ALLOWED_ERR", function() {
     document.documentElement.outerHTML = "<html><p>FAIL: Should have thrown an error<\/p><\/html>";
   })
 });

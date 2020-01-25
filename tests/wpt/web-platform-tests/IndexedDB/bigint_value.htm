@@ -62,7 +62,7 @@ value_test({val: Object(1n)},
 
 function invalidKey(key, name) {
     test(t => {
-        assert_throws("DataError", () => indexedDB.cmp(0, key));
+        assert_throws_dom("DataError", () => indexedDB.cmp(0, key));
     }, "BigInts as keys in IndexedDB - " + name);
 }
 

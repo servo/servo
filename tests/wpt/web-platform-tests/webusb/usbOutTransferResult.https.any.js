@@ -11,9 +11,9 @@ test(t => {
 }, 'Can construct USBOutTransferResult');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBOutTransferResult('invalid_status'));
+  assert_throws_js(TypeError, () => new USBOutTransferResult('invalid_status'));
 }, 'Cannot construct USBOutTransferResult with an invalid status');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBOutTransferResult());
+  assert_throws_js(TypeError, () => new USBOutTransferResult());
 }, 'Cannot construct USBOutTransferResult without a status');

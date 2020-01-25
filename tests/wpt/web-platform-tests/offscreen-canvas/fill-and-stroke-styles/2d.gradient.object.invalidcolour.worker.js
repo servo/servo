@@ -17,11 +17,11 @@ var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
 var g = ctx.createLinearGradient(0, 0, 100, 0);
-assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, ""); });
-assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'null'); });
-assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'undefined'); });
-assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, null); });
-assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, undefined); });
+assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, ""); });
+assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, 'null'); });
+assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, 'undefined'); });
+assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, null); });
+assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, undefined); });
 t.done();
 
 });

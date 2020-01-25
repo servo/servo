@@ -82,7 +82,7 @@
       .then(({result, url}) => {
         assert_equals(result, "test_client_navigate_redirect");
         assert_equals(url, "");
-        assert_throws("SecurityError", function() { return frame.contentWindow.location.href });
+        assert_throws_dom("SecurityError", function() { return frame.contentWindow.location.href });
         frame.remove();
       })
       .catch(unreached_rejection(t))
@@ -108,7 +108,7 @@
       .then(({result, url}) => {
         assert_equals(result, "test_client_navigate_cross_origin");
         assert_equals(url, "");
-        assert_throws("SecurityError", function() { return frame.contentWindow.location.href });
+        assert_throws_dom("SecurityError", function() { return frame.contentWindow.location.href });
         frame.remove();
       })
       .catch(unreached_rejection(t))

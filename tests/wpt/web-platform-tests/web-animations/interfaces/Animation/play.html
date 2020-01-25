@@ -21,7 +21,7 @@ promise_test(t => {
     animation.currentTime = -5 * MS_PER_SEC;
     animation.playbackRate = -1;
 
-    assert_throws('InvalidStateError',
+    assert_throws_dom('InvalidStateError',
                   () => { animation.play(); },
                   'Expected InvalidStateError exception on calling play() ' +
                   'with a negative playbackRate and infinite-duration ' +

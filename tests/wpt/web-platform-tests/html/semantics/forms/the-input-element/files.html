@@ -65,7 +65,7 @@ test(() => {
   i1.files = null;
   assert_equals(i1.files, files, "files cannot be set to null");
 
-  assert_throws(new TypeError(), () => i1.files = [], "files cannot be set to an array");
-  assert_throws(new TypeError(), () => i1.files = [new File([], "x")], "files cannot be set to an array (even when it contains File objects)");
+  assert_throws_js(TypeError, () => i1.files = [], "files cannot be set to an array");
+  assert_throws_js(TypeError, () => i1.files = [new File([], "x")], "files cannot be set to an array (even when it contains File objects)");
 }, "setting <input type=file>.files");
 </script>

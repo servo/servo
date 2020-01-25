@@ -96,12 +96,12 @@ let testFunction =
       coordDict([1.1, 2.1, 3.1, 1.0]));
   checkTransform(transform, "Created with dict");
 
-  assert_throws(new TypeError(), () => new XRRigidTransform(
+  assert_throws_js(TypeError, () => new XRRigidTransform(
       coordDict([1.0, 2.0, 3.0, 0.5]),
       coordDict([1.1, 2.1, 3.1, 1.0])
   ), "Constructor should throw TypeError for non-1 position w values");
 
-  assert_throws("InvalidStateError", () => new XRRigidTransform(
+  assert_throws_dom("InvalidStateError", () => new XRRigidTransform(
       coordDict([1.0, 2.0, 3.0, 1.0]),
       coordDict([0, 0, 0, 0])
   ), "Constructor should throw InvalidStateError for non-normalizeable orientation values");

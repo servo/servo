@@ -138,7 +138,7 @@ function testInsertNode(i, j) {
             throw e;
         }
         if (typeof result == "string") {
-            assert_throws(result, function() {
+            assert_throws_dom(result, function() {
                 try {
                     actualRange.insertNode(actualNode);
                 } catch (e) {

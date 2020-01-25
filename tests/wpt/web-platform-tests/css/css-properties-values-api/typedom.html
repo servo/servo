@@ -44,14 +44,14 @@ function verify_map_set(map, name, value) {
 
 // Verifies that the specified value is NOT accepted by set().
 function verify_map_not_set(map, name, value) {
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
         map.set(name, value);
     });
 }
 
 // Verifies that the specified value is NOT accepted by append().
 function verify_map_no_append(map, name, value) {
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
         map.append(name, value);
     });
 }

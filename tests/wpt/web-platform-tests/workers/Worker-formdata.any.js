@@ -13,7 +13,7 @@ test(() => {
   formData.append('key', blob);
   formData.append('key', blob, 'filename');
 
-  assert_throws("DataCloneError",
+  assert_throws_dom("DataCloneError",
                 function() { postMessage(formData) },
                 "Trying to clone formdata inside a postMessage results in an exception." );
 },'Test FormData interface object');

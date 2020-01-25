@@ -7,7 +7,7 @@
 <script>
 test(function() {
   var obj = Object.create(document.getElementsByTagName("script"));
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     obj.length;
   });
 }, "HTMLCollection as a prototype should not allow getting .length on the base object")

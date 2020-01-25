@@ -4,6 +4,7 @@ import threading
 from multiprocessing.managers import BaseManager
 
 import pytest
+from six import PY3
 
 Stash = pytest.importorskip("wptserve.stash").Stash
 
@@ -57,7 +58,8 @@ def run(process_queue, request_lock, response_lock):
     process_queue.put(thread_queue.get())
 
 
-@pytest.mark.xfail(sys.platform == "win32",
+@pytest.mark.xfail(sys.platform == "win32" or
+                   PY3 and multiprocessing.get_start_method() == "spawn",
                    reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_lock(add_cleanup):
     """Ensure that delays in proxied Lock retrieval do not interfere with
@@ -96,7 +98,8 @@ def test_delayed_lock(add_cleanup):
         "both instances had valid locks")
 
 
-@pytest.mark.xfail(sys.platform == "win32",
+@pytest.mark.xfail(sys.platform == "win32" or
+                   PY3 and multiprocessing.get_start_method() == "spawn",
                    reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_dict(add_cleanup):
     """Ensure that delays in proxied `dict` retrieval do not interfere with

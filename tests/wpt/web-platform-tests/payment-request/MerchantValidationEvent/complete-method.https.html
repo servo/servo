@@ -8,7 +8,7 @@
 <script>
 test(() => {
   const event = new MerchantValidationEvent("test");
-  assert_throws("InvalidStateError", () => {
+  assert_throws_dom("InvalidStateError", () => {
     event.complete("");
   })
 }, "If event's isTrusted attribute is false, then then throw an InvalidStateError DOMException.");

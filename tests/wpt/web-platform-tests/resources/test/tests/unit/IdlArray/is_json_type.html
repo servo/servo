@@ -171,13 +171,13 @@
 
     test(function() {
         var idl = new IdlArray();
-        assert_throws(new Error(), _ => idl.is_json_type(typeFrom("Foo")));
+        assert_throws_js(Error, _ => idl.is_json_type(typeFrom("Foo")));
     }, "should throw if it references a dictionary, enum or interface which wasn't added to the IdlArray");
 
     test(function() {
         var idl = new IdlArray();
         idl.add_untested_idls('interface Foo : Bar { };');
-        assert_throws(new Error(), _ => idl.is_json_type(typeFrom("Foo")));
+        assert_throws_js(Error, _ => idl.is_json_type(typeFrom("Foo")));
     }, "should throw for interfaces which inherit from another interface which wasn't added to the IdlArray");
 
     test(function() {

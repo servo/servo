@@ -7,7 +7,7 @@
 <script>
   //No name given test
   test(t => {
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
     });
   }, "No name list given - policy creation throws");

@@ -56,13 +56,13 @@
     test(
       function() {
         var el = document.getElementById("hidden");
-        assert_throws("InvalidStateError", function() { el.stepDown(); }, "");
+        assert_throws_dom("InvalidStateError", function() { el.stepDown(); }, "");
       }, "stepDown does not apply for hidden");
 
     test(
       function() {
         var el = document.getElementById("hidden");
-        assert_throws("InvalidStateError", function() { el.stepUp(); }, "");
+        assert_throws_dom("InvalidStateError", function() { el.stepUp(); }, "");
       }, "stepUp does not apply for hidden");
 
     test(function(){

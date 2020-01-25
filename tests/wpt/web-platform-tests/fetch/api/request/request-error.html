@@ -15,8 +15,8 @@
       // badRequestArgTests is from response-error.js
       for (const { args, testName } of badRequestArgTests) {
         test(() => {
-          assert_throws(
-            new TypeError(),
+          assert_throws_js(
+            TypeError,
             () => new Request(...args),
             "Expect TypeError exception"
           );

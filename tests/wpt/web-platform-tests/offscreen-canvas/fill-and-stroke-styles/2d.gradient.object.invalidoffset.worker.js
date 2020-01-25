@@ -17,11 +17,11 @@ var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
 var g = ctx.createLinearGradient(0, 0, 100, 0);
-assert_throws("INDEX_SIZE_ERR", function() { g.addColorStop(-1, '#000'); });
-assert_throws("INDEX_SIZE_ERR", function() { g.addColorStop(2, '#000'); });
-assert_throws(new TypeError(), function() { g.addColorStop(Infinity, '#000'); });
-assert_throws(new TypeError(), function() { g.addColorStop(-Infinity, '#000'); });
-assert_throws(new TypeError(), function() { g.addColorStop(NaN, '#000'); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(-1, '#000'); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(2, '#000'); });
+assert_throws_js(TypeError, function() { g.addColorStop(Infinity, '#000'); });
+assert_throws_js(TypeError, function() { g.addColorStop(-Infinity, '#000'); });
+assert_throws_js(TypeError, function() { g.addColorStop(NaN, '#000'); });
 t.done();
 
 });

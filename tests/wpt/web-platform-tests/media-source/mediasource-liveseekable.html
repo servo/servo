@@ -10,7 +10,7 @@ test(function(test)
 {
     var mediaSource = new MediaSource();
     assert_equals(mediaSource.readyState, "closed", "media source is closed.");
-    assert_throws("InvalidStateError", function() { mediaSource.setLiveSeekableRange(0, 1); });
+    assert_throws_dom("InvalidStateError", function() { mediaSource.setLiveSeekableRange(0, 1); });
 }, "setLiveSeekableRange throws an InvalidStateError exception if the readyState attribute is not 'open'");
 
 
@@ -18,7 +18,7 @@ test(function(test)
 {
     var mediaSource = new MediaSource();
     assert_equals(mediaSource.readyState, "closed", "media source is closed.");
-    assert_throws("InvalidStateError", function() { mediaSource.clearLiveSeekableRange(); });
+    assert_throws_dom("InvalidStateError", function() { mediaSource.clearLiveSeekableRange(); });
 }, "clearLiveSeekableRange throws an InvalidStateError exception if the readyState attribute is not 'open'");
 
 

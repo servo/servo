@@ -36,7 +36,7 @@ test(t => {
   t.add_cleanup(() => pc.close());
   const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
   receiver.playoutDelayHint = 0.7
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     receiver.playoutDelayHint = -0.5;
   }, 'audio playoutDelayHint doesn\'t accept negative values');
   assert_equals(receiver.playoutDelayHint, 0.7);
@@ -87,7 +87,7 @@ test(t => {
   t.add_cleanup(() => pc.close());
   const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
   receiver.playoutDelayHint = 0.7
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     receiver.playoutDelayHint = -0.5;
   }, 'video playoutDelayHint doesn\'t accept negative values');
   assert_equals(receiver.playoutDelayHint, 0.7);

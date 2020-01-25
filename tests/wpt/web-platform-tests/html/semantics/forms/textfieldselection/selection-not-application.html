@@ -32,31 +32,31 @@
     }, `selectionDirection on an input[type=${type}] returns null`);
 
     test(() => {
-      assert_throws("InvalidStateError", function(){
+      assert_throws_dom("InvalidStateError", function(){
         el.selectionStart = 0;
       });
     }, `assigning selectionStart on an input[type=${type}] throws InvalidStateError`);
 
     test(() => {
-      assert_throws("InvalidStateError", function(){
+      assert_throws_dom("InvalidStateError", function(){
         el.selectionEnd = 0;
       });
     }, `assigning selectionEnd on an input[type=${type}] throws InvalidStateError`);
 
     test(() => {
-      assert_throws("InvalidStateError", function(){
+      assert_throws_dom("InvalidStateError", function(){
         el.selectionDirection = 'none';
       });
     }, `assigning selectionDirection on an input[type=${type}] throws InvalidStateError`);
 
     test(() => {
-      assert_throws("InvalidStateError", function(){
+      assert_throws_dom("InvalidStateError", function(){
         el.setRangeText("foobar");
       });
     }, `setRangeText on an input[type=${type}] throws InvalidStateError`);
 
     test(() => {
-      assert_throws("InvalidStateError", function(){
+      assert_throws_dom("InvalidStateError", function(){
         el.setSelectionRange(0, 1);
       });
     }, `setSelectionRange on an input[type=${type}] throws InvalidStateError`);

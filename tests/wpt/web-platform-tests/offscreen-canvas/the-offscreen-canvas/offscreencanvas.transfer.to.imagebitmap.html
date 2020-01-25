@@ -99,13 +99,13 @@ async_test(function(t) {
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     worker.postMessage(offscreenCanvas, [offscreenCanvas]);
-    assert_throws("InvalidStateError", function() { offscreenCanvas.transferToImageBitmap(); });
+    assert_throws_dom("InvalidStateError", function() { offscreenCanvas.transferToImageBitmap(); });
     t.done();
 }, "Test that call transferToImageBitmap on a detached OffscreenCanvas throws an exception");
 
 test(function() {
     var offscreenCanvas = new OffscreenCanvas(10, 10);
-    assert_throws("InvalidStateError", function() { offscreenCanvas.transferToImageBitmap(); });
+    assert_throws_dom("InvalidStateError", function() { offscreenCanvas.transferToImageBitmap(); });
 }, "Test that transferToImageBitmap without a context throws an exception");
 
 </script>

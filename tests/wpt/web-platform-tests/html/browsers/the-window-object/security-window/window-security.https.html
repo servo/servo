@@ -139,7 +139,7 @@ function fr_load() {
     ].forEach(function (item) {
       test(function () {
         assert_true(item.name in window, "window." + item.name + " should exist.");
-        assert_throws("SecurityError", function () {
+        assert_throws_dom("SecurityError", function () {
           if (item.isMethod)
             if (item.args)
               fr.contentWindow[item.name](item.args[0], item.args[1]);

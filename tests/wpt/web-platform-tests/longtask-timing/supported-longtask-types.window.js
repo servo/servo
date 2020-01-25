@@ -1,6 +1,5 @@
 test(() => {
-  if (typeof PerformanceObserver.supportedEntryTypes === "undefined")
-    assert_unreached("supportedEntryTypes is not supported.");
+  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
   const types = PerformanceObserver.supportedEntryTypes;
   assert_true(types.includes("longtask"),
     "There should be 'longtask' in PerformanceObserver.supportedEntryTypes");
@@ -20,19 +19,17 @@ function syncWait(waitDuration) {
   return syncWait(waitDuration - (performance.now() - startTime));
 }
 
-if (typeof PerformanceObserver.supportedEntryTypes !== "undefined") {
-  const entryType = "longtask";
-  if (PerformanceObserver.supportedEntryTypes.includes(entryType)) {
-    promise_test(async () => {
-      await new Promise((resolve) => {
-        new PerformanceObserver(function (list, observer) {
-          observer.disconnect();
-          resolve();
-        }).observe({entryTypes: [entryType]});
+const entryType = "longtask";
+promise_test(async () => {
+  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
+  assert_precondition(typeof PerformanceObserver.supportedEntryTypes.includes(entryType), `supportedEntryTypes does not include '${entryType}'`);
+  await new Promise((resolve) => {
+    new PerformanceObserver(function (list, observer) {
+      observer.disconnect();
+      resolve();
+    }).observe({entryTypes: [entryType]});
 
-        // Force the PerformanceEntry.
-        syncWait(50);
-      })
-    }, `'${entryType}' entries should be observable.`)
-  }
-}
+    // Force the PerformanceEntry.
+    syncWait(50);
+  })
+}, `'${entryType}' entries should be observable.`)

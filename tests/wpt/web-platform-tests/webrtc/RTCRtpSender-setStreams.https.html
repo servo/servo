@@ -123,6 +123,6 @@ test(t => {
   const transceiver = pc.addTransceiver('audio');
 
   pc.close();
-  assert_throws('InvalidStateError', () => transceiver.sender.setStreams(stream1, stream2));
+  assert_throws_dom('InvalidStateError', () => transceiver.sender.setStreams(stream1, stream2));
 }, 'setStreams() fires InvalidStateError on a closed peer connection.');
 </script>

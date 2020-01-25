@@ -13,9 +13,9 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader('potato'));
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader({}));
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader());
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader('potato'));
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader({}));
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader());
 
 }, 'ReadableStreamDefaultReader constructor should get a ReadableStream object as argument');
 
@@ -68,7 +68,7 @@ test(() => {
 
   const rs = new ReadableStream();
   new ReadableStreamDefaultReader(rs); // Constructing directly the first time should be fine.
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader(rs),
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader(rs),
                 'constructing directly the second time should fail');
 
 }, 'Constructing a ReadableStreamDefaultReader directly should fail if the stream is already locked (via direct ' +
@@ -78,7 +78,7 @@ test(() => {
 
   const rs = new ReadableStream();
   new ReadableStreamDefaultReader(rs); // Constructing directly should be fine.
-  assert_throws(new TypeError(), () => rs.getReader(), 'getReader() should fail');
+  assert_throws_js(TypeError, () => rs.getReader(), 'getReader() should fail');
 
 }, 'Getting a ReadableStreamDefaultReader via getReader should fail if the stream is already locked (via direct ' +
    'construction)');
@@ -87,7 +87,7 @@ test(() => {
 
   const rs = new ReadableStream();
   rs.getReader(); // getReader() should be fine.
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader(rs), 'constructing directly should fail');
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader(rs), 'constructing directly should fail');
 
 }, 'Constructing a ReadableStreamDefaultReader directly should fail if the stream is already locked (via getReader)');
 
@@ -95,7 +95,7 @@ test(() => {
 
   const rs = new ReadableStream();
   rs.getReader(); // getReader() should be fine.
-  assert_throws(new TypeError(), () => rs.getReader(), 'getReader() should fail');
+  assert_throws_js(TypeError, () => rs.getReader(), 'getReader() should fail');
 
 }, 'Getting a ReadableStreamDefaultReader via getReader should fail if the stream is already locked (via getReader)');
 
@@ -150,7 +150,7 @@ promise_test(() => {
   const rs = new ReadableStream({
     cancel(reason) {
       assert_true(rs.locked, 'the stream should still be locked');
-      assert_throws(new TypeError(), () => rs.getReader(), 'should not be able to get another reader');
+      assert_throws_js(TypeError, () => rs.getReader(), 'should not be able to get another reader');
       assert_equals(reason, passedReason, 'the cancellation reason is passed through to the underlying source');
       cancelCalled = true;
     }
@@ -295,7 +295,7 @@ promise_test(t => {
     promise_rejects(t, theError, reader1.read())
   );
 
-  assert_throws(new TypeError(), () => rs.getReader(), 'trying to get another reader before erroring should throw');
+  assert_throws_js(TypeError, () => rs.getReader(), 'trying to get another reader before erroring should throw');
 
   controller.error(theError);
 
@@ -491,7 +491,7 @@ test(() => {
       return '';
     }
   };
-  assert_throws(new RangeError(), () => rs.getReader({ mode }), 'getReader() should throw');
+  assert_throws_js(RangeError, () => rs.getReader({ mode }), 'getReader() should throw');
   assert_true(toStringCalled, 'toString() should be called');
 }, 'getReader() should call ToString() on mode');
 

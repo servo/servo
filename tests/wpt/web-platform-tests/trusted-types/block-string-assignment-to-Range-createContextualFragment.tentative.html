@@ -20,7 +20,7 @@
   test(t => {
     var range = document.createRange();
     range.selectNodeContents(document.documentElement);
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var result = range.createContextualFragment("A string");
     });
   }, "`range.createContextualFragment(string)` throws.");
@@ -29,7 +29,7 @@
   test(t => {
     var range = document.createRange();
     range.selectNodeContents(document.documentElement);
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var result = range.createContextualFragment(null);
     });
   }, "`range.createContextualFragment(null)` throws.");

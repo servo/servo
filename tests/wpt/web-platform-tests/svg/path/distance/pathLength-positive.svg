@@ -10,8 +10,7 @@
   </metadata>
 
   <defs>
-    <path id="track" stroke="lightblue" fill="none"
-    d="M 50 50 h 200" pathLength="2"/>
+    <path id="track" stroke="lightblue" fill="none" d="M 50 50 h 200" pathLength="2"/>
   </defs>
 
   <g>

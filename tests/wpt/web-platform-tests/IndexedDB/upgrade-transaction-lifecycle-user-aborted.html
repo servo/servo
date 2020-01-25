@@ -25,12 +25,12 @@ promise_test(t => {
         request.transaction, transaction,
         "The open request's transaction should be reset after onabort");
 
-    assert_throws(
+    assert_throws_dom(
         'TransactionInactiveError',
         () => { database.createObjectStore('books2'); },
         'createObjectStore exception should reflect that the transaction is ' +
         'still running');
-    assert_throws(
+    assert_throws_dom(
         'TransactionInactiveError',
         () => { database.deleteObjectStore('books'); },
         'deleteObjectStore exception should reflect that the transaction is' +
@@ -60,12 +60,12 @@ promise_test(t => {
       assert_equals(
           request.transaction, transaction,
           "The open request's transaction should be reset after onabort");
-      assert_throws(
+      assert_throws_dom(
           'TransactionInactiveError',
           () => { database.createObjectStore('books2'); },
           'createObjectStore exception should reflect that the transaction ' +
           'is still running');
-      assert_throws(
+      assert_throws_dom(
           'TransactionInactiveError',
           () => { database.deleteObjectStore('books'); },
           'deleteObjectStore exception should reflect that the transaction ' +
@@ -87,12 +87,12 @@ promise_test(t => {
           assert_equals(
               request.transaction, transaction,
               "The open request's transaction should be reset after onabort");
-          assert_throws(
+          assert_throws_dom(
               'InvalidStateError',
               () => { database.createObjectStore('books2'); },
               'createObjectStore exception should reflect that the ' +
               'transaction is no longer running');
-          assert_throws(
+          assert_throws_dom(
               'InvalidStateError',
               () => { database.deleteObjectStore('books'); },
               'deleteObjectStore exception should reflect that the ' +
@@ -120,12 +120,12 @@ promise_test(t => {
                 request.transaction, null,
                 "The open request's transaction should be reset after " +
                 'onabort microtasks');
-            assert_throws(
+            assert_throws_dom(
                 'InvalidStateError',
                 () => { database.createObjectStore('books2'); },
                 'createObjectStore exception should reflect that the ' +
                 'transaction is no longer running');
-            assert_throws(
+            assert_throws_dom(
                 'InvalidStateError',
                 () => { database.deleteObjectStore('books'); },
                 'deleteObjectStore exception should reflect that the ' +

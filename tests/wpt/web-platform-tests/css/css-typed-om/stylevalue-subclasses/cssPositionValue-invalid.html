@@ -43,13 +43,13 @@ const gTestArguments = [
 
 for (const {value, description} of gTestArguments) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSPositionValue(value, CSS.px(0)));
-    assert_throws(new TypeError(), () => new CSSPositionValue(CSS.px(0), value));
+    assert_throws_js(TypeError, () => new CSSPositionValue(value, CSS.px(0)));
+    assert_throws_js(TypeError, () => new CSSPositionValue(CSS.px(0), value));
   }, `Constructing a CSSPositionValue with ${description} throws a TypeError`);
 
   test(() => {
     let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
-    assert_throws(new TypeError(), () => position.x = value);
+    assert_throws_js(TypeError, () => position.x = value);
 
     assert_equals(position.x.value, 0,
         'X member should not have changed');
@@ -57,7 +57,7 @@ for (const {value, description} of gTestArguments) {
 
   test(() => {
     let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
-    assert_throws(new TypeError(), () => position.y = value);
+    assert_throws_js(TypeError, () => position.y = value);
 
     assert_equals(position.y.value, 0,
         'Y member should not have changed');

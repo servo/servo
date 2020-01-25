@@ -8,7 +8,7 @@
 <script>
   // No name given test
   test(t => {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } ),
       "createPolicy with an empty trusted-types CSP directive");
   }, "No name list given - policy creation fails.");

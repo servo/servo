@@ -71,7 +71,7 @@
 
   test(function(){
     this.add_cleanup(function() { d2.close(); });
-    assert_throws("INVALID_STATE_ERR", function() {
+    assert_throws_dom("INVALID_STATE_ERR", function() {
       d2.showModal();
     });
   }, "showModal() on a <dialog> that already has an open attribute throws an InvalidStateError exception");
@@ -89,7 +89,7 @@
   test(function(){
     var d = document.createElement("dialog");
     this.add_cleanup(function() { d.close(); });
-    assert_throws("INVALID_STATE_ERR", function() {
+    assert_throws_dom("INVALID_STATE_ERR", function() {
       d.showModal();
     });
   }, "showModal() on a <dialog> not in a Document throws an InvalidStateError exception");

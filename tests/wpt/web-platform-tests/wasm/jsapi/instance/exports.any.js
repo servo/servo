@@ -28,7 +28,7 @@ test(() => {
   assert_equals(typeof desc.set, "undefined");
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => getter.call(thisValue), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => getter.call(thisValue), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -58,7 +58,7 @@ test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   const instance = new WebAssembly.Instance(module);
   const exports = instance.exports;
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     "use strict";
     instance.exports = {};
   });

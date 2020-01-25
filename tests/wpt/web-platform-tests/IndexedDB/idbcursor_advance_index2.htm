@@ -35,7 +35,7 @@
             var cursor = e.target.result;
 
             assert_true(cursor != null, "cursor exist");
-            assert_throws(new TypeError(),
+            assert_throws_js(TypeError,
                 function() { cursor.advance(document); });
 
             t.done();

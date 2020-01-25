@@ -276,7 +276,7 @@ test(t => {
     { duration: 1, fill: 'forwards', pseudoElement: '::before' }
   );
 
-  assert_throws('NoModificationAllowedError', () => {
+  assert_throws_dom('NoModificationAllowedError', () => {
     animation.commitStyles();
   });
 }, 'Throws if the target element is a pseudo element');
@@ -292,7 +292,7 @@ test(t => {
   document.body.appendChild(nonStyleElement);
   animation.effect.target = nonStyleElement;
 
-  assert_throws('NoModificationAllowedError', () => {
+  assert_throws_dom('NoModificationAllowedError', () => {
     animation.commitStyles();
   });
 
@@ -308,7 +308,7 @@ test(t => {
 
   div.style.display = 'none';
 
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animation.commitStyles();
   });
 }, 'Throws if the target effect is display:none');
@@ -325,7 +325,7 @@ test(t => {
 
   container.style.display = 'none';
 
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animation.commitStyles();
   });
 }, "Throws if the target effect's ancestor is display:none");
@@ -359,7 +359,7 @@ test(t => {
   div.style.display = 'contents';
   container.style.display = 'none';
 
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animation.commitStyles();
   });
 }, 'Treats display:contents in a display:none subtree as not rendered');
@@ -373,7 +373,7 @@ test(t => {
 
   div.remove();
 
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     animation.commitStyles();
   });
 }, 'Throws if the target effect is disconnected');
@@ -388,7 +388,7 @@ test(t => {
 
   div.remove();
 
-  assert_throws('NoModificationAllowedError', () => {
+  assert_throws_dom('NoModificationAllowedError', () => {
     animation.commitStyles();
   });
 }, 'Checks the pseudo element condition before the not rendered condition');

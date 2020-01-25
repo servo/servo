@@ -71,7 +71,7 @@ function testExtend(endpoints, target) {
     // "If the context object's range is null, throw an InvalidStateError
     // exception and abort these steps."
     if (getSelection().rangeCount == 0) {
-        assert_throws("INVALID_STATE_ERR", function() {
+        assert_throws_dom("INVALID_STATE_ERR", function() {
             selection.extend(node, offset);
         }, "extend() when rangeCount is 0 must throw InvalidStateError");
         return;
@@ -101,7 +101,7 @@ function testExtend(endpoints, target) {
     // From DOM4's "set the start or end of a range": "If node is a doctype,
     // throw an "InvalidNodeTypeError" exception and terminate these steps."
     if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
             selection.extend(node, offset);
         }, "extend() to a doctype must throw InvalidNodeTypeError");
         return;
@@ -114,7 +114,7 @@ function testExtend(endpoints, target) {
     // FIXME: We should be casting offset to an unsigned int per WebIDL.  Until
     // we do, we need the offset < 0 check too.
     if (offset < 0 || offset > getNodeLength(node)) {
-        assert_throws("INDEX_SIZE_ERR", function() {
+        assert_throws_dom("INDEX_SIZE_ERR", function() {
             selection.extend(node, offset);
         }, "extend() to an offset that's greater than node length (" + getNodeLength(node) + ") must throw IndexSizeError");
         return;

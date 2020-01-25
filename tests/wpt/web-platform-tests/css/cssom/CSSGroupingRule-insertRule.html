@@ -68,7 +68,7 @@
         var groupingRule = create(t);
         var first = groupingRule.cssRules[0].cssText;
 
-        assert_throws('IndexSizeError', function() {
+        assert_throws_dom('IndexSizeError', function() {
             // The syntax error is intentional; it verifies that the insertion
             // index is validated prior to the CSS text.
             groupingRule.insertRule('???', 2);
@@ -82,7 +82,7 @@
         var groupingRule = create(t);
         var first = groupingRule.cssRules[0].cssText;
 
-        assert_throws('SyntaxError', function() {
+        assert_throws_dom('SyntaxError', function() {
             groupingRule.insertRule('???', 0);
         });
 
@@ -94,7 +94,7 @@
         var groupingRule = create(t);
         var first = groupingRule.cssRules[0].cssText;
 
-        assert_throws('HierarchyRequestError', function() {
+        assert_throws_dom('HierarchyRequestError', function() {
             groupingRule.insertRule('@import url("foo.css");', 0);
         });
 
@@ -106,7 +106,7 @@
         var groupingRule = create(t);
         var first = groupingRule.cssRules[0].cssText;
 
-        assert_throws('HierarchyRequestError', function() {
+        assert_throws_dom('HierarchyRequestError', function() {
             groupingRule.insertRule('@namespace url(http://www.w3.org/1999/xhtml);', 0);
         });
 

@@ -25,7 +25,7 @@
       var parameters = [null, 1];
       parameters.forEach(function(parameter) {
         test(function() {
-          assert_throws(new TypeError(), function() { new Headers(parameter) });
+          assert_throws_js(TypeError, function() { new Headers(parameter) });
         }, "Create headers with " + parameter + " should throw");
       });
 

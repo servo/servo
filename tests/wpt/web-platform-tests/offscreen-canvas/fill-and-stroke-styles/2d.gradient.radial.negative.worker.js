@@ -16,9 +16,9 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1); });
 t.done();
 
 });

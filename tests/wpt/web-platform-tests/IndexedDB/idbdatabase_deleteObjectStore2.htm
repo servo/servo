@@ -17,7 +17,7 @@ open_rq.onupgradeneeded = function(e)
 
     e.target.transaction.oncomplete = t.step_func(function (e)
     {
-        assert_throws('InvalidStateError',
+        assert_throws_dom('InvalidStateError',
             function() { db.deleteObjectStore("delete_outside"); });
         t.done();
     });

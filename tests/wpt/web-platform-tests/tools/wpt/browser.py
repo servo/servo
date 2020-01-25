@@ -1068,11 +1068,11 @@ class Safari(Browser):
         except subprocess.CalledProcessError:
             self.logger.warning("Failed to call %s --version" % webdriver_binary)
             return None
-        m = re.match(r"Included with Safari (.*)", version_string)
+        m = re.match(br"Included with Safari (.*)", version_string)
         if not m:
             self.logger.warning("Failed to extract version from: %s" % version_string)
             return None
-        return m.group(1)
+        return m.group(1).decode()
 
 
 class Servo(Browser):

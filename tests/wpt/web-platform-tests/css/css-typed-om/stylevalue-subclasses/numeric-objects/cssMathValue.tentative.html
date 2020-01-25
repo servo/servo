@@ -17,7 +17,7 @@ const gVariadicMathValueSubclasses = [
 
 for (const {subclass, operator} of gVariadicMathValueSubclasses) {
   test(() => {
-    assert_throws(new SyntaxError(), () => new subclass());
+    assert_throws_dom("SyntaxError", () => new subclass());
   }, 'Constructing a ' + subclass.name + ' with no arguments throws a SyntaxError');
 
   test(() => {
@@ -35,7 +35,7 @@ for (const {subclass, operator} of gVariadicMathValueSubclasses) {
 
   test(() => {
     let result = new subclass(CSS.number(1), CSS.number(2));
-    assert_throws(new TypeError(), () => result.operator = 'foo');
+    assert_throws_js(TypeError, () => result.operator = 'foo');
   }, subclass.name + '.operator is readonly');
 }
 
@@ -57,7 +57,7 @@ for (const {subclass, operator} of gUnaryMathValueSubclasses) {
 
   test(() => {
     let result = new subclass(CSS.number(1));
-    assert_throws(new TypeError(), () => result.operator = 'foo');
+    assert_throws_js(TypeError, () => result.operator = 'foo');
   }, subclass.name + '.operator is readonly');
 }
 

@@ -99,7 +99,7 @@ test(t => {
 const badReadables = [null, undefined, 0, NaN, true, 'ReadableStream', Object.create(ReadableStream.prototype)];
 for (const readable of badReadables) {
   test(() => {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   ReadableStream.prototype.pipeThrough.bind(readable, uninterestingReadableWritablePair()),
                   'pipeThrough should throw');
   }, `pipeThrough should brand-check this and not allow '${readable}'`);
@@ -108,7 +108,7 @@ for (const readable of badReadables) {
     const rs = new ReadableStream();
     const writable = new WritableStream();
     let writableGetterCalled = false;
-    assert_throws(new TypeError(), () => rs.pipeThrough({
+    assert_throws_js(TypeError, () => rs.pipeThrough({
       get writable() {
         writableGetterCalled = true;
         return new WritableStream();
@@ -129,7 +129,7 @@ for (const writable of badWritables) {
       }
     });
     let readableGetterCalled = false;
-    assert_throws(new TypeError(), () => rs.pipeThrough({
+    assert_throws_js(TypeError, () => rs.pipeThrough({
       get readable() {
         readableGetterCalled = true;
         return new ReadableStream();
@@ -155,9 +155,9 @@ test(t => {
       throw error;
     }
   };
-  assert_throws(error,
-                () => ReadableStream.prototype.pipeThrough.call(rs, throwingWritable, {}),
-                'pipeThrough should rethrow the error thrown by the writable getter');
+  assert_throws_exactly(error,
+                        () => ReadableStream.prototype.pipeThrough.call(rs, throwingWritable, {}),
+                        'pipeThrough should rethrow the error thrown by the writable getter');
 
   const throwingReadable = {
     get readable() {
@@ -165,9 +165,9 @@ test(t => {
     },
     writable: {}
   };
-  assert_throws(error,
-                () => ReadableStream.prototype.pipeThrough.call(rs, throwingReadable, {}),
-                'pipeThrough should rethrow the error thrown by the readable getter');
+  assert_throws_exactly(error,
+                        () => ReadableStream.prototype.pipeThrough.call(rs, throwingReadable, {}),
+                        'pipeThrough should rethrow the error thrown by the readable getter');
 
 }, 'pipeThrough should rethrow errors from accessing readable or writable');
 
@@ -175,7 +175,7 @@ const badSignals = [null, 0, NaN, true, 'AbortSignal', Object.create(AbortSignal
 for (const signal of badSignals) {
   test(() => {
     const rs = new ReadableStream();
-    assert_throws(new TypeError(), () => rs.pipeThrough(uninterestingReadableWritablePair(), { signal }),
+    assert_throws_js(TypeError, () => rs.pipeThrough(uninterestingReadableWritablePair(), { signal }),
                   'pipeThrough should throw');
   }, `invalid values of signal should throw; specifically '${signal}'`);
 }
@@ -190,7 +190,7 @@ test(() => {
 test(() => {
   const rs = new ReadableStream();
   rs.getReader();
-  assert_throws(new TypeError(), () => rs.pipeThrough(uninterestingReadableWritablePair()),
+  assert_throws_js(TypeError, () => rs.pipeThrough(uninterestingReadableWritablePair()),
                 'pipeThrough should throw');
 }, 'pipeThrough should throw if this is locked');
 
@@ -199,7 +199,7 @@ test(() => {
   const writable = new WritableStream();
   const readable = new ReadableStream();
   writable.getWriter();
-  assert_throws(new TypeError(), () => rs.pipeThrough({writable, readable}),
+  assert_throws_js(TypeError, () => rs.pipeThrough({writable, readable}),
                 'pipeThrough should throw');
 }, 'pipeThrough should throw if writable is locked');
 
@@ -258,7 +258,7 @@ test(() => {
   const rs = new ReadableStream();
   const readable = new ReadableStream();
   const writable = new WritableStream();
-  assert_throws(new TypeError(), () => rs.pipeThrough({readable, writable}, {
+  assert_throws_js(TypeError, () => rs.pipeThrough({readable, writable}, {
     get preventAbort() {
       writable.getWriter();
     }

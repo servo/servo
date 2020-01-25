@@ -2,9 +2,8 @@
 
 test(() => {
   let button = document.createElement('button');
-  let typeError = new TypeError();
-  assert_throws(typeError, () => { new SubmitEvent() }, '0 arguments');
-  assert_throws(typeError, () => { new SubmitEvent('foo', { submitter: 'bar' }) }, 'Wrong type of submitter');
+  assert_throws_js(TypeError, () => { new SubmitEvent() }, '0 arguments');
+  assert_throws_js(TypeError, () => { new SubmitEvent('foo', { submitter: 'bar' }) }, 'Wrong type of submitter');
 }, 'Failing SubmitEvent constructor');
 
 test(() => {

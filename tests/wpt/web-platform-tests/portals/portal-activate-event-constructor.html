@@ -20,6 +20,6 @@ test(() => {
 
 test(() => {
   const e = new PortalActivateEvent("portalactivate");
-  assert_throws("InvalidStateError", () => e.adoptPredecessor());
+  assert_throws_dom("InvalidStateError", () => e.adoptPredecessor());
 }, "Invoking adoptPredecessor on a synthetic PortalActivateEvent should throw");
 </script>

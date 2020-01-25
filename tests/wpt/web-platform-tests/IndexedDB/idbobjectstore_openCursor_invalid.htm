@@ -17,13 +17,13 @@ indexeddb_test(
   function(t, db, tx) {
             var idx = db.transaction("test").objectStore("test").index("index");
 
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { idx.openCursor({ lower: "a" }); });
 
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { idx.openCursor({ lower: "a", lowerOpen: false }); });
 
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { idx.openCursor({ lower: "a", lowerOpen: false, upper: null, upperOpen: false }); });
 
             t.done();

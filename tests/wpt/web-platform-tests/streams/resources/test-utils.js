@@ -24,7 +24,7 @@ self.methodRejectsForAll = (t, obj, methodName, targets, args) => {
 self.getterThrows = (obj, getterName, target) => {
   const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
-  assert_throws(new TypeError(), () => getter.call(target), getterName + ' should throw a TypeError');
+  assert_throws_js(TypeError, () => getter.call(target), getterName + ' should throw a TypeError');
 };
 
 self.getterThrowsForAll = (obj, getterName, targets) => {
@@ -35,7 +35,7 @@ self.methodThrows = (obj, methodName, target, args) => {
   const method = obj[methodName];
   assert_equals(typeof method, 'function', methodName + ' should exist');
 
-  assert_throws(new TypeError(), () => method.apply(target, args), methodName + ' should throw a TypeError');
+  assert_throws_js(TypeError, () => method.apply(target, args), methodName + ' should throw a TypeError');
 };
 
 self.methodThrowsForAll = (obj, methodName, targets, args) => {
@@ -43,7 +43,7 @@ self.methodThrowsForAll = (obj, methodName, targets, args) => {
 };
 
 self.constructorThrowsForAll = (constructor, firstArgs) => {
-  firstArgs.forEach(firstArg => assert_throws(new TypeError(), () => new constructor(firstArg),
+  firstArgs.forEach(firstArg => assert_throws_js(TypeError, () => new constructor(firstArg),
                                               'constructor should throw a TypeError'));
 };
 

@@ -79,9 +79,9 @@ test(() => {
     assert_equals(descriptor.value.name, methodName,
       `${methodName} function object should have the right name`);
 
-    assert_throws(new TypeError(), () => descriptor.value.call(StorageArea.prototype),
+    assert_throws_js(TypeError, () => descriptor.value.call(StorageArea.prototype),
       `${methodName} should throw when called on the prototype directly`);
-      assert_throws(new TypeError(), () => descriptor.value.call({}),
+      assert_throws_js(TypeError, () => descriptor.value.call({}),
       `${methodName} should throw when called on an empty object`);
   }
 
@@ -140,29 +140,30 @@ promise_test(async t => {
 
   await frameLoadPromise(iframe);
   const OtherStorageArea = iframe.contentWindow.StorageArea;
+  const TypeError = iframe.contentWindow.TypeError;
 
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
     OtherStorageArea.prototype.set.call(storage, "testkey", "testvalue"),
     `set() must reject cross-realm`);
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
     OtherStorageArea.prototype.get.call(storage, "testkey"),
     `get() must reject cross-realm`);
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
     OtherStorageArea.prototype.delete.call(storage, "testkey"),
     `delete() must reject cross-realm`);
-  await promise_rejects(t, new TypeError(), OtherStorageArea.prototype.clear.call(storage),
+  await promise_rejects_js(t, TypeError, OtherStorageArea.prototype.clear.call(storage),
     `clear() must reject cross-realm`);
 
-  assert_throws(new TypeError(), () => OtherStorageArea.prototype.keys.call(storage),
+  assert_throws_js(TypeError, () => OtherStorageArea.prototype.keys.call(storage),
     `keys() must throw cross-realm`);
-  assert_throws(new TypeError(), () => OtherStorageArea.prototype.values.call(storage),
+  assert_throws_js(TypeError, () => OtherStorageArea.prototype.values.call(storage),
     `values() must throw cross-realm`);
-  assert_throws(new TypeError(), () => OtherStorageArea.prototype.entries.call(storage),
+  assert_throws_js(TypeError, () => OtherStorageArea.prototype.entries.call(storage),
     `entries() must throw cross-realm`);
 
   const otherBackingStoreGetter =
     Object.getOwnPropertyDescriptor(OtherStorageArea.prototype, "backingStore").get;
-  assert_throws(new TypeError(), () => otherBackingStoreGetter.call(storage),
+  assert_throws_js(TypeError, () => otherBackingStoreGetter.call(storage),
     `backingStore must throw cross-realm`);
 }, "Same-realm brand checks");
 
