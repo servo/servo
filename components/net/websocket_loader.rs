@@ -70,6 +70,7 @@ impl<'a> Handler for Client<'a> {
         }
 
         let mut cookie_jar = self.http_state.cookie_jar.write().unwrap();
+        cookie_jar.remove_expired_cookies_for_url(self.resource_url);
         if let Some(cookie_list) = cookie_jar.cookies_for_url(self.resource_url, CookieSource::HTTP)
         {
             req.headers_mut()
