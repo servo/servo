@@ -658,7 +658,7 @@ def macos_wpt():
     priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
     build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
-        task = macos_task(name).with_python2() \
+        task = macos_task(name).with_python2().with_python3() \
             .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
     wpt_chunks(
@@ -734,7 +734,13 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         if this_chunk == 0:
             task.with_script("""
                 ./mach test-wpt-failure
-                time ./mach test-wpt --release --binary-arg=--multiprocess \
+                time python2 ./mach test-wpt --release --binary-arg=--multiprocess \
+                    --processes $PROCESSES \
+                    --log-raw test-wpt-mp.log \
+                    --log-errorsummary wpt-mp-errorsummary.log \
+                    eventsource \
+                    | cat
+                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \

@@ -34,7 +34,7 @@ def run_tests(**kwargs):
     set_defaults(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = \
-        (grouping_formatter.ServoFormatter, "Servo’s grouping output formatter")
+        (grouping_formatter.ServoFormatter, "Servo's grouping output formatter")
     mozlog.commandline.log_formatters["servojson"] = \
         (grouping_formatter.ServoJsonFormatter, "Servo's JSON logger of unexpected results")
 
