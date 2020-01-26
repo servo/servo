@@ -342,6 +342,10 @@ impl Element {
         self.rare_data().as_ref()?.custom_element_definition.clone()
     }
 
+    pub fn clear_custom_element_definition(&self) {
+        self.ensure_rare_data().custom_element_definition = None;
+    }
+
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
         self.ensure_rare_data()
             .custom_element_reaction_queue
