@@ -107,8 +107,8 @@ def download(desc, src, writer, start_byte=0):
         resp = urllib.request.urlopen(req, **get_urlopen_kwargs())
 
         fsize = None
-        if resp.info().getheader('Content-Length'):
-            fsize = int(resp.info().getheader('Content-Length').strip()) + start_byte
+        if resp.info().get('Content-Length'):
+            fsize = int(resp.info().get('Content-Length').strip()) + start_byte
 
         recved = start_byte
         chunk_size = 64 * 1024
