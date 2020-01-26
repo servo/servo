@@ -64,6 +64,16 @@ pub(crate) enum CanvasFillOrStrokeStyle {
     Pattern(Dom<CanvasPattern>),
 }
 
+impl CanvasFillOrStrokeStyle {
+    fn to_fill_or_stroke_style(&self) -> FillOrStrokeStyle {
+        match self {
+            CanvasFillOrStrokeStyle::Color(rgba) => FillOrStrokeStyle::Color(*rgba),
+            CanvasFillOrStrokeStyle::Gradient(gradient) => gradient.to_fill_or_stroke_style(),
+            CanvasFillOrStrokeStyle::Pattern(pattern) => pattern.to_fill_or_stroke_style(),
+        }
+    }
+}
+
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasContextState {
@@ -654,7 +664,8 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
     pub fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect));
+            let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
+            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect, style));
         }
     }
 
@@ -668,7 +679,8 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
     pub fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect));
+            let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
+            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect, style));
         }
     }
 
@@ -756,24 +768,15 @@ impl CanvasState {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
                 if let Ok(rgba) = self.parse_color(canvas, &string) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
-                    self.send_canvas_2d_msg(Canvas2dMsg::SetStrokeStyle(FillOrStrokeStyle::Color(
-                        rgba,
-                    )));
                 }
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().stroke_style =
                     CanvasFillOrStrokeStyle::Gradient(Dom::from_ref(&*gradient));
-                self.send_canvas_2d_msg(Canvas2dMsg::SetStrokeStyle(
-                    gradient.to_fill_or_stroke_style(),
-                ));
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().stroke_style =
                     CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
-                self.send_canvas_2d_msg(Canvas2dMsg::SetStrokeStyle(
-                    pattern.to_fill_or_stroke_style(),
-                ));
                 if !pattern.origin_is_clean() {
                     self.set_origin_unclean();
                 }
@@ -808,24 +811,15 @@ impl CanvasState {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
                 if let Ok(rgba) = self.parse_color(canvas, &string) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
-                    self.send_canvas_2d_msg(Canvas2dMsg::SetFillStyle(FillOrStrokeStyle::Color(
-                        rgba,
-                    )))
                 }
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().fill_style =
                     CanvasFillOrStrokeStyle::Gradient(Dom::from_ref(&*gradient));
-                self.send_canvas_2d_msg(Canvas2dMsg::SetFillStyle(
-                    gradient.to_fill_or_stroke_style(),
-                ));
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().fill_style =
                     CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
-                self.send_canvas_2d_msg(Canvas2dMsg::SetFillStyle(
-                    pattern.to_fill_or_stroke_style(),
-                ));
                 if !pattern.origin_is_clean() {
                     self.set_origin_unclean();
                 }
@@ -995,7 +989,8 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     pub fn fill_text(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
         let parsed_text: String = text.into();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width));
+        let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width, style));
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
@@ -1302,12 +1297,14 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
     pub fn fill(&self, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
-        self.send_canvas_2d_msg(Canvas2dMsg::Fill);
+        let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
+        self.send_canvas_2d_msg(Canvas2dMsg::Fill(style));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     pub fn stroke(&self) {
-        self.send_canvas_2d_msg(Canvas2dMsg::Stroke);
+        let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
+        self.send_canvas_2d_msg(Canvas2dMsg::Stroke(style));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
