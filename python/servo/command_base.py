@@ -1019,7 +1019,7 @@ install them, let us know by filing a bug!")
                 if component.encode("utf-8") not in installed:
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
-            if target and "uwp" not in target and target not in check_output(
+            if target and "uwp" not in target and target.encode("utf-8") not in check_output(
                 ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
             ):
                 check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
