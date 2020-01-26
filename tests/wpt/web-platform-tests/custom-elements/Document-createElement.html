@@ -350,7 +350,7 @@ test(function () {
     };
     customElements.define('throw-custom-element', ThrowCustomElement);
 
-    assert_throws(exceptionToThrow, function () { new ThrowCustomElement; });
+    assert_throws_exactly(exceptionToThrow, function () { new ThrowCustomElement; });
     var instance;
     assert_reports(exceptionToThrow, function () { instance = document.createElement('throw-custom-element'); });
     assert_equals(instance.localName, 'throw-custom-element');
@@ -375,7 +375,7 @@ test(function () {
     };
     customElements.define('throw-custom-builtin-element', ThrowCustomBuiltinElement, { extends: 'div' });
 
-    assert_throws(exceptionToThrow, function () { new ThrowCustomBuiltinElement; });
+    assert_throws_exactly(exceptionToThrow, function () { new ThrowCustomBuiltinElement; });
     var instance;
     assert_reports(exceptionToThrow, function () { instance = document.createElement('div', { is: 'throw-custom-builtin-element' }); });
     assert_equals(instance.localName, 'div');

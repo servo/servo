@@ -6,7 +6,7 @@
 <script>
 test(function(){
     // https://www.w3.org/Bugs/Public/show_bug.cgi?id=17268
-    assert_throws('NOT_SUPPORTED_ERR', function() {
+    assert_throws_dom('NOT_SUPPORTED_ERR', function() {
         var ev = document.createEvent('TrackEvent');
     });
     var ev = new TrackEvent('foo');

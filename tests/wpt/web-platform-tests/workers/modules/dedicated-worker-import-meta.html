@@ -19,7 +19,7 @@ promise_test(() => {
 }, 'Test import.meta.url on the top-level module script.');
 
 promise_test(() => {
-  const script_url = 'import-meta-url-worker.js';
+  const script_url = 'import-meta-url-export.js';
   const worker = new Worker('resources/dynamic-import-given-url-worker.js',
                             { type: 'module' });
   worker.postMessage('./' + script_url);
@@ -35,7 +35,7 @@ promise_test(() => {
 }, 'Test import.meta.url on the imported module script.');
 
 promise_test(() => {
-  const script_url = 'import-meta-url-worker.js';
+  const script_url = 'import-meta-url-export.js';
   const worker = new Worker('resources/dynamic-import-given-url-worker.js',
                             { type: 'module' });
   worker.postMessage('./' + script_url);

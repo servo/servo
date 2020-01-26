@@ -40,12 +40,12 @@
 
       test(function() {
         assert_true(bodyConsumed.bodyUsed , "bodyUsed is true when request is disturbed");
-        assert_throws(new TypeError(), function() { bodyConsumed.clone(); });
+        assert_throws_js(TypeError, function() { bodyConsumed.clone(); });
       }, "Check cloning a disturbed request");
 
       test(function() {
         assert_true(bodyConsumed.bodyUsed , "bodyUsed is true when request is disturbed");
-        assert_throws(new TypeError(), function() { new Request(bodyConsumed); });
+        assert_throws_js(TypeError, function() { new Request(bodyConsumed); });
       }, "Check creating a new request from a disturbed request");
 
       promise_test(function() {
@@ -100,13 +100,13 @@
         assert_false(req.bodyUsed,
                      'Request should not be flagged as used if it has not been ' +
                      'consumed.');
-        assert_throws(new TypeError(),
+        assert_throws_js(TypeError,
           function() { new Request(req, {method: 'GET'}); },
           'A get request may not have body.');
 
         assert_false(req.bodyUsed, 'After the GET case');
 
-        assert_throws(new TypeError(),
+        assert_throws_js(TypeError,
           function() { new Request(req, {method: 'CONNECT'}); },
           'Request() with a forbidden method must throw.');
 

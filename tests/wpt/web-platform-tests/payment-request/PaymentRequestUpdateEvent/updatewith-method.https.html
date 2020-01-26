@@ -43,7 +43,7 @@ test(() => {
     new PaymentRequestUpdateEvent("shippingaddresschange"),
     new PaymentRequestUpdateEvent("shippingoptionchange"),
   ].forEach(ev => {
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         ev.updateWith(Promise.resolve());
@@ -63,7 +63,7 @@ test(() => {
   ].map(ev => {
     request.dispatchEvent(ev); // set .target and dispatch flag
     // unstrusted event.
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         ev.updateWith(Promise.resolve())

@@ -25,7 +25,7 @@ let testFunction = function(session, fakeDeviceController, t) {
     t.step(() => {
       // Frame is active but not an animation frame, so calling getPose is
       // allowed while getViewerPose is not.
-      assert_throws('InvalidStateError', () => frame.getViewerPose(currentReferenceSpace));
+      assert_throws_dom('InvalidStateError', () => frame.getViewerPose(currentReferenceSpace));
       let pose = frame.getPose(xrViewerSpace, currentReferenceSpace);
       assert_not_equals(pose, null);
       assert_true(pose instanceof XRPose);

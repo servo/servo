@@ -21,7 +21,7 @@
 
     open_rq.onsuccess = function (event) {
         t.step(function(){
-            assert_throws("InvalidStateError", function(){
+            assert_throws_dom("InvalidStateError", function(){
                 ostore.createIndex("index", "indexedProperty");
             });
         });

@@ -47,6 +47,6 @@ promise_test(async (t) => {
   const image = await makeMakeHTMLImage(url)();
   const bitmap = await createImageBitmap(image);
 
-  assert_throws('DataCloneError', () => worker.postMessage(bitmap));
+  assert_throws_dom('DataCloneError', () => worker.postMessage(bitmap));
 }, 'Serializing a non-origin-clean ImageBitmap throws.');
 </script>

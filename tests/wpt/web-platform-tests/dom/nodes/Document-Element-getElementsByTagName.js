@@ -23,7 +23,7 @@ function test_getElementsByTagName(context, element) {
 
   test(function() {
     var l = context.getElementsByTagName("nosuchtag")
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       "use strict";
       l[5] = "foopy"
     })

@@ -7,10 +7,10 @@ document.elementsFromPoint() are mandatory and of type double.</title>
 <script>
 function validate_function_parameter_count(testFunc, funcName) {
     test(function() {
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc();
         }, "Called with no parameter");
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc(0);
         }, "Called with 1 parameter");
     }, funcName + ": Parameters are mandatory.");
@@ -18,16 +18,16 @@ function validate_function_parameter_count(testFunc, funcName) {
 
 function validate_function_parameter_type(testFunc, funcName) {
     test(function() {
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc(0, Infinity);
         }, "Passing Infinity as second parameter throws");
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc(Infinity, 0);
         }, "Passing Infinity as first parameter throws");
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc(0, NaN);
         }, "Passing NaN as second parameter throws");
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             testFunc(NaN, 0);
         }, "Passing NaN as first parameter throws");
     }, funcName + ": Parameters should be finite floating point values.");

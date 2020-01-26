@@ -27,7 +27,7 @@ new ReportingObserver(t.step_func_done(check_report_format),
 t.step_func(() => {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", document.location.href, false);
-  assert_throws('NetworkError',
+  assert_throws_dom('NetworkError',
     () => xhr.send(),
     "Synchronous XHR.send should throw an exception when disabled");
 })();

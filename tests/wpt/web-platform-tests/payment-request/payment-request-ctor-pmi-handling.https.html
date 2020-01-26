@@ -111,8 +111,8 @@ test(() => {
     ["visa","mastercard"], // stringifies to "visa,mastercard"
   ];
   for (const invalidMethod of invalidMethods) {
-    assert_throws(
-      new RangeError(),
+    assert_throws_js(
+      RangeError,
       () => {
         const methods = [{ supportedMethods: invalidMethod }];
         new PaymentRequest(methods, defaultDetails);
@@ -135,8 +135,8 @@ test(() => {
     "https://",
   ];
   for (const invalidMethod of invalidMethods) {
-    assert_throws(
-      new RangeError(),
+    assert_throws_js(
+      RangeError,
       () => {
         const methods = [{ supportedMethods: invalidMethod }];
         new PaymentRequest(methods, defaultDetails);

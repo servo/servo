@@ -20,20 +20,20 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStream(null), 'constructor should throw when the source is null');
+  assert_throws_js(TypeError, () => new ReadableStream(null), 'constructor should throw when the source is null');
 
 }, 'ReadableStream can\'t be constructed with garbage');
 
 test(() => {
 
-  assert_throws(new RangeError(), () => new ReadableStream({ type: null }),
+  assert_throws_js(RangeError, () => new ReadableStream({ type: null }),
     'constructor should throw when the type is null');
-  assert_throws(new RangeError(), () => new ReadableStream({ type: '' }),
+  assert_throws_js(RangeError, () => new ReadableStream({ type: '' }),
     'constructor should throw when the type is empty string');
-  assert_throws(new RangeError(), () => new ReadableStream({ type: 'asdf' }),
+  assert_throws_js(RangeError, () => new ReadableStream({ type: 'asdf' }),
     'constructor should throw when the type is asdf');
-  assert_throws(error1, () => new ReadableStream({ type: { get toString() {throw error1;} } }), 'constructor should throw when ToString() throws');
-  assert_throws(error1, () => new ReadableStream({ type: { toString() {throw error1;} } }), 'constructor should throw when ToString() throws');
+  assert_throws_exactly(error1, () => new ReadableStream({ type: { get toString() {throw error1;} } }), 'constructor should throw when ToString() throws');
+  assert_throws_exactly(error1, () => new ReadableStream({ type: { toString() {throw error1;} } }), 'constructor should throw when ToString() throws');
 
 }, 'ReadableStream can\'t be constructed with an invalid type');
 
@@ -86,7 +86,7 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new ReadableStream({ start: 'potato' });
   }, 'constructor should throw when start is not a function');
 
@@ -94,13 +94,13 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStream({ cancel: '2' }), 'constructor should throw');
+  assert_throws_js(TypeError, () => new ReadableStream({ cancel: '2' }), 'constructor should throw');
 
 }, 'ReadableStream constructor will not tolerate initial garbage as cancel argument');
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStream({ pull: { } }), 'constructor should throw');
+  assert_throws_js(TypeError, () => new ReadableStream({ pull: { } }), 'constructor should throw');
 
 }, 'ReadableStream constructor will not tolerate initial garbage as pull argument');
 
@@ -178,7 +178,7 @@ test(() => {
   (new ReadableStream()).getReader(undefined);
   (new ReadableStream()).getReader({});
   (new ReadableStream()).getReader({ mode: undefined, notmode: 'ignored' });
-  assert_throws(new RangeError(), () => (new ReadableStream()).getReader({ mode: 'potato' }));
+  assert_throws_js(RangeError, () => (new ReadableStream()).getReader({ mode: 'potato' }));
 }, 'default ReadableStream getReader() should only accept mode:undefined');
 
 promise_test(() => {
@@ -689,7 +689,7 @@ test(() => {
       assert_equals(c.enqueue('a'), undefined, 'the first enqueue should return undefined');
       c.close();
 
-      assert_throws(new TypeError(), () => c.enqueue('b'), 'enqueue after close should throw a TypeError');
+      assert_throws_js(TypeError, () => c.enqueue('b'), 'enqueue after close should throw a TypeError');
       startCalled = true;
     }
   });
@@ -706,7 +706,7 @@ test(() => {
     start(c) {
       c.close();
 
-      assert_throws(new TypeError(), () => c.enqueue('a'), 'enqueue after close should throw a TypeError');
+      assert_throws_js(TypeError, () => c.enqueue('a'), 'enqueue after close should throw a TypeError');
       startCalled = true;
     }
   });

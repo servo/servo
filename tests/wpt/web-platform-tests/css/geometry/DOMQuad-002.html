@@ -73,15 +73,15 @@
         },'test Constructor with four DOMPoint args');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad(1, 2, 3, 4); });
+            assert_throws_js(TypeError, function() { new DOMQuad(1, 2, 3, 4); });
         },'test Constructor with invaild integer args');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad("1", "2", "3", "4"); });
+            assert_throws_js(TypeError, function() { new DOMQuad("1", "2", "3", "4"); });
         },'test Constructor with invaild string args');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad({}, {}, {}, NaN); });
+            assert_throws_js(TypeError, function() { new DOMQuad({}, {}, {}, NaN); });
         },'test Constructor with NaN');
 
         test(function() {

@@ -35,7 +35,7 @@ function assert_exports(exports, expected) {
 }
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.Module.exports());
+  assert_throws_js(TypeError, () => WebAssembly.Module.exports());
 }, "Missing arguments");
 
 test(() => {
@@ -51,7 +51,7 @@ test(() => {
     WebAssembly.Module.prototype,
   ];
   for (const argument of invalidArguments) {
-    assert_throws(new TypeError(), () => WebAssembly.Module.exports(argument),
+    assert_throws_js(TypeError, () => WebAssembly.Module.exports(argument),
                   `exports(${format_value(argument)})`);
   }
 }, "Non-Module arguments");

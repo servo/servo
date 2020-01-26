@@ -139,7 +139,7 @@
              'unset',
             ].forEach(function(string) {
                 test(function() {
-                    assert_throws('SyntaxError', function() { new self[constr](string); });
+                    assert_throws_dom('SyntaxError', function() { new self[constr](string); });
                 }, `new ${constr}(${format_value(string)})`);
             });
 
@@ -178,7 +178,7 @@
             ['scale(2, 2), translateX(5px) translateY(5px)',
             ].forEach(function(string) {
                 test(function() {
-                    assert_throws("SyntaxError", function() { new self[constr](string); });
+                    assert_throws_dom("SyntaxError", function() { new self[constr](string); });
                 }, `new ${constr}(${format_value(string)})`);
             });
 
@@ -195,7 +195,7 @@
                 [], // 0 elements
             ].forEach(function(sequence) {
                 test(function() {
-                    assert_throws(new TypeError(), function() { new self[constr](sequence); });
+                    assert_throws_js(TypeError, function() { new self[constr](sequence); });
                 }, `new ${constr}(sequence) ${sequence.length} elements`);
             });
         });

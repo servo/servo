@@ -15,7 +15,7 @@
 
   // Duplicate names test
   test(t => {
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
      trustedTypes.createPolicy('SomeName', {} );
     });
   }, "duplicate policy name attempt throws");

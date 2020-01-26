@@ -48,7 +48,7 @@ for (var i = 0; i < testPoints.length; i++) {
       // "If node is a doctype, throw an "InvalidNodeTypeError" exception
       // and terminate these steps."
       if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
           range.isPointInRange(node, offset);
         }, "Must throw InvalidNodeTypeError if node is a doctype");
         return;
@@ -57,7 +57,7 @@ for (var i = 0; i < testPoints.length; i++) {
       // "If offset is greater than node's length, throw an
       // "IndexSizeError" exception and terminate these steps."
       if (normalizedOffset > nodeLength(node)) {
-        assert_throws("INDEX_SIZE_ERR", function() {
+        assert_throws_dom("INDEX_SIZE_ERR", function() {
           range.isPointInRange(node, offset);
         }, "Must throw IndexSizeError if offset is greater than  length");
         return;

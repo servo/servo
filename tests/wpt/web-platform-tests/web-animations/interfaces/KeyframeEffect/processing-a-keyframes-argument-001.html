@@ -320,7 +320,7 @@ test(() => {
 test(() => {
   const test_error = { name: 'test' };
   const bad_keyframe = { get left() { throw test_error; } };
-  assert_throws(test_error, () => {
+  assert_throws_exactly(test_error, () => {
     new KeyframeEffect(null, createIterable([
       { done: false, value: { left: '100px' } },
       { done: false, value: bad_keyframe },
@@ -332,7 +332,7 @@ test(() => {
     + ' propagated');
 
 test(() => {
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(null, createIterable([
       { done: false, value: { left: '100px' } },
       { done: false, value: 1234 },
@@ -390,7 +390,7 @@ test(() => {
       return { next() { throw test_error; } };
     },
   };
-  assert_throws(test_error, () => {
+  assert_throws_exactly(test_error, () => {
     new KeyframeEffect(null, keyframe_obj);
   });
 }, 'If a custom iterator throws from next(), the exception should be rethrown');
@@ -404,7 +404,7 @@ test(() => {
       throw test_error;
     },
   };
-  assert_throws(test_error, () => {
+  assert_throws_exactly(test_error, () => {
     new KeyframeEffect(null, keyframe_obj);
   });
 }, 'Accessing a Symbol.iterator property that throws should rethrow');
@@ -415,7 +415,7 @@ test(() => {
       return 42;  // Not an object.
     },
   };
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(null, keyframe_obj);
   });
 }, 'A non-object returned from the Symbol.iterator property should cause a'

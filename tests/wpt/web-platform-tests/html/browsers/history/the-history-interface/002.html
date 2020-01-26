@@ -87,19 +87,19 @@ function reportload() {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test2' );
         }, 'replaceState must replace the existing state without altering the forward history');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.replaceState('','','//exa mple'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.replaceState('','','//exa mple'); });
         }, 'replaceState must not be allowed to create invalid URLs');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.replaceState('','','http://www.example.com/'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.replaceState('','','http://www.example.com/'); });
         }, 'replaceState must not be allowed to create cross-origin URLs');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.replaceState('','','about:blank'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.replaceState('','','about:blank'); });
         }, 'replaceState must not be allowed to create cross-origin URLs (about:blank)');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.replaceState('','','data:text/html,'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.replaceState('','','data:text/html,'); });
         }, 'replaceState must not be allowed to create cross-origin URLs (data:URI)');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { iframe.contentWindow.history.replaceState('','','http://www.example.com/'); },iframe.contentWindow);
+            assert_throws_dom('SECURITY_ERR',function () { iframe.contentWindow.history.replaceState('','','http://www.example.com/'); },iframe.contentWindow);
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
         test(function () {
             //avoids browsers running .go synchronously when only a hash change is involved
@@ -145,12 +145,12 @@ function reportload() {
             assert_false( hashchng );
         }, 'replaceState must not fire hashchange events');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom( 'DATA_CLONE_ERR', function () {
                 history.replaceState({dummy:function () {}},'');
             } );
         }, 'replaceState must not be able to use a function as data');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom( 'DATA_CLONE_ERR', function () {
                 history.replaceState({dummy:window},'');
             } );
         }, 'replaceState must not be able to use a DOM node as data');
@@ -161,7 +161,7 @@ function reportload() {
             }
         }, 'replaceState must be able to use an error object as data');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom( 'DATA_CLONE_ERR', function () {
                 iframe.contentWindow.history.replaceState(document,'');
             }, iframe.contentWindow );
         }, 'security errors are expected to be thrown in the context of the document that owns the history object (2)');

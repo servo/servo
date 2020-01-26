@@ -14,19 +14,19 @@ test(() => {
   let element = new MyElement1();
   assert_true(element.attachInternals() instanceof ElementInternals,
               'New - 1st call');
-  assert_throws('NotSupportedError', () => { element.attachInternals(); },
+  assert_throws_dom('NotSupportedError', () => { element.attachInternals(); },
                 'New - 2nd call');
 
   element = document.createElement('my-element1');
   assert_true(element.attachInternals() instanceof ElementInternals,
               'createElement - 1st call');
-  assert_throws('NotSupportedError', () => { element.attachInternals(); },
+  assert_throws_dom('NotSupportedError', () => { element.attachInternals(); },
                 'createElement - 2nd call');
 
   container.innerHTML = '<my-element1></my-element1>';
   assert_true(container.firstChild.attachInternals() instanceof ElementInternals,
               'Parser - 1st call');
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     container.firstChild.attachInternals();
   }, 'Parser - 2nd call');
 }, 'Successful attachInternals() and the second call.');
@@ -35,21 +35,21 @@ test(() => {
   class MyDiv extends HTMLDivElement {}
   customElements.define('my-div', MyDiv, { extends: 'div' });
   const customizedBuiltin = document.createElement('div', { is: 'my-div'});
-  assert_throws('NotSupportedError', () => { customizedBuiltin.attachInternals() });
+  assert_throws_dom('NotSupportedError', () => { customizedBuiltin.attachInternals() });
 }, 'attachInternals() throws a NotSupportedError if it is called for ' +
      'a customized built-in element');
 
 test(() => {
   const builtin = document.createElement('div');
-  assert_throws('NotSupportedError', () => { builtin.attachInternals() });
+  assert_throws_dom('NotSupportedError', () => { builtin.attachInternals() });
 
   const doc = document.implementation.createDocument('foo', null);
   const span = doc.appendChild(doc.createElementNS('http://www.w3.org/1999/xhtml', 'html:span'));
   assert_true(span instanceof HTMLElement);
-  assert_throws('NotSupportedError', () => { span.attachInternals(); });
+  assert_throws_dom('NotSupportedError', () => { span.attachInternals(); });
 
   const undefinedCustom = document.createElement('undefined-element');
-  assert_throws('NotSupportedError', () => { undefinedCustom.attachInternals() });
+  assert_throws_dom('NotSupportedError', () => { undefinedCustom.attachInternals() });
 }, 'If a custom element definition for the local name of the element doesn\'t' +
      ' exist, throw an NotSupportedError');
 
@@ -60,13 +60,13 @@ test(() => {
   customElements.define('my-element2', MyElement2);
   const container = document.querySelector('#container');
 
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     (new MyElement2).attachInternals();
   });
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     document.createElement('my-element2').attachInternals();
   });
-  assert_throws('NotSupportedError', () => {
+  assert_throws_dom('NotSupportedError', () => {
     container.innerHTML = '<my-element2></my-element2>';
     container.firstChild.attachInternals();
   });

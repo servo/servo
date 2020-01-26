@@ -11,7 +11,7 @@
 
 for (const method of ["pushState", "replaceState"]) {
   test(() => {
-    assert_throws("DataCloneError", () => {
+    assert_throws_dom("DataCloneError", () => {
       history[method](createEmptyWasmModule(), "dummy title");
     });
   }, `history.${method}(): simple case`);
@@ -19,7 +19,7 @@ for (const method of ["pushState", "replaceState"]) {
   test(() => {
     let getter1Called = false;
     let getter2Called = false;
-    assert_throws("DataCloneError", () => {
+    assert_throws_dom("DataCloneError", () => {
       history[method]([
         { get x() { getter1Called = true; return 5; } },
         createEmptyWasmModule(),

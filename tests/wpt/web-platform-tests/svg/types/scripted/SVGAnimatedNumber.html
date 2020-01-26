@@ -26,15 +26,15 @@ test(function() {
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);
 
   // ECMA-262, 9.3, "ToNumber"
-  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = 'aString'; });
+  assert_throws_js(TypeError, function() { feSpecularLightingElement.surfaceScale.baseVal = 'aString'; });
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);
   feSpecularLightingElement.surfaceScale.baseVal = 0;
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
-  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = NaN; });
+  assert_throws_js(TypeError, function() { feSpecularLightingElement.surfaceScale.baseVal = NaN; });
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
-  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = Infinity; });
+  assert_throws_js(TypeError, function() { feSpecularLightingElement.surfaceScale.baseVal = Infinity; });
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
-  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = feSpecularLightingElement; });
+  assert_throws_js(TypeError, function() { feSpecularLightingElement.surfaceScale.baseVal = feSpecularLightingElement; });
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
   feSpecularLightingElement.surfaceScale.baseVal = 300;
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);

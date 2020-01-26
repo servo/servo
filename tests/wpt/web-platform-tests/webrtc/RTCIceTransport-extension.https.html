@@ -39,7 +39,7 @@ test(() => {
 
 test(t => {
   const iceTransport = makeIceTransport(t);
-  assert_throws(new TypeError(), () =>
+  assert_throws_js(TypeError, () =>
     iceTransport.gather({ iceServers: null }));
 }, 'gather() with { iceServers: null } should throw TypeError');
 
@@ -68,7 +68,7 @@ test(t => {
 test(t => {
   const iceTransport = makeIceTransport(t);
   iceTransport.stop();
-  assert_throws('InvalidStateError', () => iceTransport.gather({}));
+  assert_throws_dom('InvalidStateError', () => iceTransport.gather({}));
 }, 'gather() throws if closed');
 
 test(t => {
@@ -80,7 +80,7 @@ test(t => {
 test(t => {
   const iceTransport = makeIceTransport(t);
   iceTransport.gather({});
-  assert_throws('InvalidStateError', () => iceTransport.gather({}));
+  assert_throws_dom('InvalidStateError', () => iceTransport.gather({}));
 }, 'gather() throws if called twice');
 
 promise_test(async t => {
@@ -133,17 +133,17 @@ const dummyRemoteParameters = {
 test(() => {
   const iceTransport = new RTCIceTransport();
   iceTransport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
     () => iceTransport.start(dummyRemoteParameters));
   assert_equals(iceTransport.getRemoteParameters(), null);
 }, `start() throws if closed`);
 
 test(() => {
   const iceTransport = new RTCIceTransport();
-  assert_throws(new TypeError(), () => iceTransport.start({}));
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError, () => iceTransport.start({}));
+  assert_throws_js(TypeError,
     () => iceTransport.start({ usernameFragment: 'dummy' }));
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
     () => iceTransport.start({ password: 'dummy' }));
   assert_equals(iceTransport.getRemoteParameters(), null);
 }, 'start() throws if usernameFragment or password not set');
@@ -183,14 +183,14 @@ const candidate1 = new RTCIceCandidate({
 test(() => {
   const iceTransport = new RTCIceTransport();
   iceTransport.stop();
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
     () => iceTransport.addRemoteCandidate(candidate1));
   assert_array_equals(iceTransport.getRemoteCandidates(), []);
 }, 'addRemoteCandidate() throws if closed');
 
 test(() => {
   const iceTransport = new RTCIceTransport();
-  assert_throws('OperationError',
+  assert_throws_dom('OperationError',
     () => iceTransport.addRemoteCandidate(
       new RTCIceCandidate({ candidate: 'invalid', sdpMid: '' })));
   assert_array_equals(iceTransport.getRemoteCandidates(), []);
@@ -217,7 +217,7 @@ test(t => {
 test(t => {
   const iceTransport = makeIceTransport(t);
   iceTransport.start(dummyRemoteParameters);
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
     () => iceTransport.start(dummyRemoteParameters, 'controlling'));
 }, 'start() throws if later called with a different role');
 

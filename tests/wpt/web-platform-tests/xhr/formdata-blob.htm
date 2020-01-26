@@ -38,7 +38,7 @@
   // If 3rd argument is given and 2nd is not a Blob, formdata.append() should throw
   var test = async_test('formdata.append() should throw if value is string and file name is given'); // needs to be async just because the others above are
   test.step(function(){
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
       create_formdata('a', 'b', 'c');
     });
   });

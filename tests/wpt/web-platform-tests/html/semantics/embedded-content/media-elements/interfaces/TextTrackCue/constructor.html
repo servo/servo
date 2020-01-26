@@ -13,7 +13,7 @@
             }, "TextTrackCue and VTTCue are separate interfaces");
             test(function()
             {
-                assert_throws(new TypeError(), function()
+                assert_throws_js(TypeError, function()
                 {
                     new TextTrackCue(0, 0, "");
                 });

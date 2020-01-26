@@ -24,14 +24,14 @@ const testArgs = {
   '{}': false,
 
   // certificates
-  '{ certificates: null }': new TypeError,
+  '{ certificates: null }': TypeError,
   '{ certificates: undefined }': false,
   '{ certificates: [] }': false,
-  '{ certificates: [null] }': new TypeError,
-  '{ certificates: [undefined] }': new TypeError,
+  '{ certificates: [null] }': TypeError,
+  '{ certificates: [undefined] }': TypeError,
 
   // iceCandidatePoolSize
-  '{ iceCandidatePoolSize: toNumberThrows }': new TypeError,
+  '{ iceCandidatePoolSize: toNumberThrows }': TypeError,
 }
 
 for (const arg in testArgs) {
@@ -39,7 +39,7 @@ for (const arg in testArgs) {
   test(function() {
     const throws = testArgs[arg];
     if (throws) {
-      assert_throws(throws, function() {
+      assert_throws_js(throws, function() {
         eval(expr);
       });
     } else {

@@ -19,7 +19,7 @@ promise_test(function() {
         // The image should be detached after transferFromImageBitmap.
         assert_equals(image.width, 0);
         assert_equals(image.height, 0);
-        assert_throws("InvalidStateError", function() { dstCtx.transferFromImageBitmap(image); });
+        assert_throws_dom("InvalidStateError", function() { dstCtx.transferFromImageBitmap(image); });
     }
 
     var srcCanvas = document.createElement('canvas');

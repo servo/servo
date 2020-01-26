@@ -6,7 +6,7 @@ var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;
 
 wsocket.addEventListener('open', test.step_func(function(evt) {
-  assert_throws("INVALID_ACCESS_ERR", function() {
+  assert_throws_dom("INVALID_ACCESS_ERR", function() {
     wsocket.close(1005, "1005 - reserved code")
   });
   test.done();

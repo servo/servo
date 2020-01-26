@@ -9,14 +9,14 @@ function testCollapse(range, point, method) {
     }
 
     if (point[0].nodeType == Node.DOCUMENT_TYPE_NODE) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
             selection[method](point[0], point[1]);
         }, "Must throw INVALID_NODE_TYPE_ERR when " + method + "()ing if the node is a DocumentType");
         return;
     }
 
     if (point[1] < 0 || point[1] > getNodeLength(point[0])) {
-        assert_throws("INDEX_SIZE_ERR", function() {
+        assert_throws_dom("INDEX_SIZE_ERR", function() {
             selection[method](point[0], point[1]);
         }, "Must throw INDEX_SIZE_ERR when " + method + "()ing if the offset is negative or greater than the node's length");
         return;

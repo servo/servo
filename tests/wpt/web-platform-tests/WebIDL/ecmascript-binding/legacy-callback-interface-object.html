@@ -23,8 +23,8 @@ test(() => {
 }, "Must have the correct property descriptor");
 
 test(() => {
-  assert_throws(new TypeError(), () => NodeFilter(), "call");
-  assert_throws(new TypeError(), () => new NodeFilter(), "construct");
+  assert_throws_js(TypeError, () => NodeFilter(), "call");
+  assert_throws_js(TypeError, () => new NodeFilter(), "construct");
 }, "Must throw a TypeError when called or constructed")
 
 test(() => {
@@ -59,10 +59,10 @@ test(() => {
 
   // OrdinaryHasInstance throws a TypeError if the right-hand-side doesn't have a .prototype object,
   // which is the case for callback interfaces.
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     (function () { }) instanceof NodeFilter;
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     ({ }) instanceof NodeFilter;
   });
 }, "instanceof must throw but only when we don't bail out early");

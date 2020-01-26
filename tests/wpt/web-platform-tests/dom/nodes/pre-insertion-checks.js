@@ -31,7 +31,7 @@ test(function() {
   var child = document.createElement("div");
   var node = document.createElement("div");
   illegalParents.forEach(function (parent) {
-    assert_throws("HierarchyRequestError", function() {
+    assert_throws_dom("HierarchyRequestError", function() {
       insertFunc.call(parent, node, child);
     });
   });
@@ -44,7 +44,7 @@ test(function() {
   var node = document.createElement("div");
 
   node.appendChild(parent);
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     insertFunc.call(parent, node, child);
   });
 }, "Should check that 'node' is not an ancestor of 'parent' before checking whether 'child' is a child of 'parent'");
@@ -56,7 +56,7 @@ test(function() {
 
   var illegalChildren = getNonInsertableNodes();
   illegalChildren.forEach(function (node) {
-    assert_throws("NotFoundError", function() {
+    assert_throws_dom("NotFoundError", function() {
       insertFunc.call(parent, node, child);
     });
   });
@@ -69,13 +69,13 @@ test(function() {
 
   var node = document.createTextNode("");
   var parent = document.implementation.createDocument(null, "foo", null);
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     insertFunc.call(parent, node, child);
   });
 
   node = document.implementation.createDocumentType("html", "", "");
   getNonDocumentParentNodes().forEach(function (parent) {
-    assert_throws("NotFoundError", function() {
+    assert_throws_dom("NotFoundError", function() {
       insertFunc.call(parent, node, child);
     });
   });
@@ -89,20 +89,20 @@ test(function() {
   var node = document.createDocumentFragment();
   node.appendChild(document.createElement("div"));
   node.appendChild(document.createElement("div"));
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     insertFunc.call(parent, node, child);
   });
 
   node = document.createElement("div");
   parent.appendChild(document.createElement("div"));
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     insertFunc.call(parent, node, child);
   });
 
   parent.firstChild.remove();
   parent.appendChild(document.implementation.createDocumentType("html", "", ""));
   node = document.implementation.createDocumentType("html", "", "")
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     insertFunc.call(parent, node, child);
   });
 }, "Should check whether 'child' is a child of 'parent' before checking whether 'node' can be inserted into the document given the kids the document has right now.");

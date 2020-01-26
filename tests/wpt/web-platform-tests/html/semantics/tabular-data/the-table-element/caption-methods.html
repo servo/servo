@@ -140,7 +140,7 @@
       caption.appendChild(table5)
 
       // Node cannot be inserted at the specified point in the hierarchy
-      assert_throws("HierarchyRequestError", function() {
+      assert_throws_dom("HierarchyRequestError", function() {
         table5.caption = caption;
       });
 
@@ -173,7 +173,7 @@
     test(function() {
       var table8 = document.createElement("table");
       var caption = document.createElement("captİon");
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         table8.caption = caption;
       });
     }, "Assigning a non-caption to table.caption")
@@ -181,7 +181,7 @@
     test(function() {
       var table9 = document.createElement("table");
       var caption = document.createElementNS("http://www.example.com", "caption");
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         table9.caption = caption;
       });
     }, "Assigning a foreign caption to table.caption")

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The content CSS attribute can replace an element's contents dynamically</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="match" href="element-replacement-ref.html" />
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property" />
+<meta name="assert" content"This test checks that the CSS content propertly can replace a normal element's contents when changed dynamically" />
+
+<style>
+#target {
+  content: none;
+}
+#target.replaced {
+  content: url('resources/rect.svg');
+}
+</style>
+
+<div id="target">This text should not be visible</div>
+
+<script>
+const target = document.getElementById("target");
+getComputedStyle(target).width;
+target.className = "replaced";
+</script>

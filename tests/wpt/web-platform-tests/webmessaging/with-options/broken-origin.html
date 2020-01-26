@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 test(function() {
-  assert_throws('SYNTAX_ERR', function() {
+  assert_throws_dom('SYNTAX_ERR', function() {
     postMessage('', {targetOrigin: 'http://foo bar'});
   }, 'should have failed to resolve');
 });

@@ -11,7 +11,7 @@
 test(function() {
   var collection = document.getElementById('form').elements;
   assert_equals(typeof collection, 'object', 'typeof');
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     collection('foo');
   });
 }, 'HTMLFormControlsCollection legacycaller should not be supported');
@@ -19,7 +19,7 @@ test(function() {
 test(function() {
   var collection = document.getElementById('select').options;
   assert_equals(typeof collection, 'object', 'typeof');
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     collection('bar');
   });
 }, 'HTMLOptionsCollection legacycaller should not be supported');

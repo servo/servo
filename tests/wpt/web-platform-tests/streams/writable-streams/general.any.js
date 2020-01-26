@@ -6,7 +6,7 @@ test(() => {
   const writer = ws.getWriter();
   writer.releaseLock();
 
-  assert_throws(new TypeError(), () => writer.desiredSize, 'desiredSize should throw a TypeError');
+  assert_throws_js(TypeError, () => writer.desiredSize, 'desiredSize should throw a TypeError');
 }, 'desiredSize on a released writer');
 
 test(() => {

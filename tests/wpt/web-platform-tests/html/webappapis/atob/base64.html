@@ -87,7 +87,7 @@ function testBtoa(input) {
     var normalizedInput = String(input);
     for (var i = 0; i < normalizedInput.length; i++) {
         if (normalizedInput.charCodeAt(i) > 255) {
-            assert_throws("InvalidCharacterError", function() { btoa(input); },
+            assert_throws_dom("InvalidCharacterError", function() { btoa(input); },
                 "Code unit " + i + " has value " + normalizedInput.charCodeAt(i) + ", which is greater than 255");
             return;
         }
@@ -160,7 +160,7 @@ function runAtobTests(tests) {
           output = allTests[i][1];
     test(() => {
       if(output === null) {
-        assert_throws("InvalidCharacterError", () => window.atob(input));
+        assert_throws_dom("InvalidCharacterError", () => window.atob(input));
       } else {
         const result = window.atob(input);
         for(let ii = 0; ii < output.length; ii++) {

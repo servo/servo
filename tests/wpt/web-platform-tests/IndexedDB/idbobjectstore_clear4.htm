@@ -17,7 +17,7 @@
         db = event.target.result;
         ostore = db.createObjectStore("store", {keyPath:"pKey"});
         db.deleteObjectStore("store");
-        assert_throws("InvalidStateError", function(){
+        assert_throws_dom("InvalidStateError", function(){
             ostore.clear();
         });
         t.done();

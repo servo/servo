@@ -1,7 +1,3 @@
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
 from collections import deque
 import base64
 import gzip as gzip_module
@@ -10,9 +6,14 @@ import os
 import re
 import time
 import uuid
-from six.moves import StringIO
 
+from six.moves import StringIO
 from six import text_type, binary_type
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))

@@ -51,7 +51,7 @@ var bad = [
 
 bad.forEach(function(t) {
     test(function() {
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
             new TextDecoder(t.encoding, {fatal: true}).decode(new Uint8Array(t.input))
         });
     }, 'Fatal flag: ' + t.encoding + ' - ' + t.name);

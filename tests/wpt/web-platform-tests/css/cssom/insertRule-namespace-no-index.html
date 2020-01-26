@@ -20,13 +20,13 @@
     var sheet = document.getElementById("styleElement").sheet;
     test(function() {
         assert_equals(sheet.cssRules.length, 3);
-        assert_throws("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
         assert_equals(sheet.cssRules.length, 3);
     }, "insertRule with namespace and omitted index argument");
 
     test(function() {
         assert_equals(sheet.cssRules.length, 3);
-        assert_throws("HierarchyRequestError", function() { sheet.insertRule("p { color: yellow; }", undefined); });
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: yellow; }", undefined); });
         assert_equals(sheet.cssRules.length, 3);
     }, "insertRule with namespace and undefined index argument");
 

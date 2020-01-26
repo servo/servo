@@ -16,7 +16,7 @@
     };
 
     open_rq.onsuccess = function(e) {
-        assert_throws({ name: 'TypeError' },
+        assert_throws_js(TypeError,
             function() { db.transaction('test', 'whatever'); });
 
         t.done();

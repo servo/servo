@@ -31,4 +31,31 @@
 
     document.body.appendChild(i);
   }, "`XFO: DENY` blocks cross-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/xfo.py?value=DENY&csp_value=default-src%20'self'";
+
+    assert_no_message_from(i, t);
+
+    i.onload = t.step_func_done(_ => {
+      assert_equals(i.contentDocument, null);
+      i.remove();
+    });
+
+    document.body.appendChild(i);
+  }, "`XFO: DENY` blocks framing when CSP is present without a frame-ancestors directive.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/xfo.py?value=DENY&csp_value=frame-ancestors%20'self'";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Loaded");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: DENY` does not blocks framing when CSP is present with a frame-ancestors directive.");
 </script>

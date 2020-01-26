@@ -9,22 +9,22 @@
 
 test(function() {
     assert_equals(RTCDataChannelEvent.length, 2);
-    assert_throws(
-        new TypeError(),
+    assert_throws_js(
+        TypeError,
         function() { new RTCDataChannelEvent('type'); }
     );
 }, 'RTCDataChannelEvent constructor without a required argument.');
 
 test(function() {
-    assert_throws(
-        new TypeError(),
+    assert_throws_js(
+        TypeError,
         function() { new RTCDataChannelEvent('type', { channel: null }); }
     );
 }, 'RTCDataChannelEvent constructor with channel passed as null.');
 
 test(function() {
-    assert_throws(
-        new TypeError(),
+    assert_throws_js(
+        TypeError,
         function() { new RTCDataChannelEvent('type', { channel: undefined }); }
     );
 }, 'RTCDataChannelEvent constructor with a channel passed as undefined.');

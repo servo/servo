@@ -81,7 +81,7 @@
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
     const capabilities = RTCRtpSender.getCapabilities('video');
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(capabilities.codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(capabilities.codecs));
 
   }, `setCodecPreferences() on audio transceiver with codecs returned from getCapabilities('video') should throw InvalidModificationError`);
 
@@ -95,7 +95,7 @@
       sdpFmtpLine: '0-15'
     }];
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with user defined codec with invalid mimeType should throw InvalidModificationError`);
 
@@ -109,7 +109,7 @@
       sdpFmtpLine: '0-15'
     }];
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with user defined codec should throw InvalidModificationError`);
 
@@ -126,7 +126,7 @@
         sdpFmtpLine: '0-15'
       }];
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with user defined codec together with codecs returned from getCapabilities() should throw InvalidModificationError`);
 
@@ -137,7 +137,7 @@
     const codecs = [capabilities.codecs[0]];
     codecs[0].clockRate = codecs[0].clockRate / 2;
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with modified codec clock rate should throw InvalidModificationError`);
 
@@ -148,7 +148,7 @@
     const codecs = [capabilities.codecs[0]];
     codecs[0].channels = codecs[0].channels + 11;
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with modified codec channel count should throw InvalidModificationError`);
 
@@ -159,7 +159,7 @@
     const codecs = [capabilities.codecs[0]];
     codecs[0].sdpFmtpLine = "modifiedparameter=1";
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with modified codec parameters should throw InvalidModificationError`);
 
@@ -176,7 +176,7 @@
     const { channels=2 } = codec;
     codec.channels = channels+1;
 
-    assert_throws('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
 
   }, `setCodecPreferences() with modified codecs returned from getCapabilities() should throw InvalidModificationError`);
 

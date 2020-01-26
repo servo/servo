@@ -6,7 +6,7 @@ test(() => {
 
   const theError = new Error('a unique string');
 
-  assert_throws(theError, () => {
+  assert_throws_exactly(theError, () => {
     new ReadableStream({
       get start() {
         throw theError;
@@ -21,7 +21,7 @@ test(() => {
 
   const theError = new Error('a unique string');
 
-  assert_throws(theError, () => {
+  assert_throws_exactly(theError, () => {
     new ReadableStream({
       start() {
         throw theError;
@@ -35,7 +35,7 @@ test(() => {
 test(() => {
 
   const theError = new Error('a unique string');
-  assert_throws(theError, () => new ReadableStream({
+  assert_throws_exactly(theError, () => new ReadableStream({
     get pull() {
       throw theError;
     }
@@ -117,7 +117,7 @@ promise_test(t => {
 test(() => {
 
   const theError = new Error('a unique string');
-  assert_throws(theError, () => new ReadableStream({
+  assert_throws_exactly(theError, () => new ReadableStream({
     get cancel() {
       throw theError;
     }
@@ -148,7 +148,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError(), () => controller.enqueue('a'), 'Calling enqueue after canceling should throw');
+  assert_throws_js(TypeError, () => controller.enqueue('a'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 
@@ -166,7 +166,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError(), () => controller.enqueue('c'), 'Calling enqueue after canceling should throw');
+  assert_throws_js(TypeError, () => controller.enqueue('c'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 
@@ -177,7 +177,7 @@ promise_test(() => {
   return new ReadableStream({
     start(c) {
       c.close();
-      assert_throws(new TypeError(), () => c.enqueue('a'), 'call to enqueue should throw a TypeError');
+      assert_throws_js(TypeError, () => c.enqueue('a'), 'call to enqueue should throw a TypeError');
     }
   }).getReader().closed;
 
@@ -189,7 +189,7 @@ promise_test(t => {
   const closed = new ReadableStream({
     start(c) {
       c.error(theError);
-      assert_throws(new TypeError(), () => c.enqueue('a'), 'call to enqueue should throw the error');
+      assert_throws_js(TypeError, () => c.enqueue('a'), 'call to enqueue should throw the error');
     }
   }).getReader().closed;
 
@@ -202,7 +202,7 @@ promise_test(() => {
   return new ReadableStream({
     start(c) {
       c.close();
-      assert_throws(new TypeError(), () => c.close(), 'second call to close should throw a TypeError');
+      assert_throws_js(TypeError, () => c.close(), 'second call to close should throw a TypeError');
     }
   }).getReader().closed;
 
@@ -216,7 +216,7 @@ promise_test(() => {
     start(c) {
       c.enqueue('a');
       c.close();
-      assert_throws(new TypeError(), () => c.close(), 'second call to close should throw a TypeError');
+      assert_throws_js(TypeError, () => c.close(), 'second call to close should throw a TypeError');
       startCalled = true;
     }
   }).getReader();
@@ -246,7 +246,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError(), () => controller.close(), 'Calling close after canceling should throw');
+  assert_throws_js(TypeError, () => controller.close(), 'Calling close after canceling should throw');
 
   return rs.getReader().closed.then(() => {
     assert_true(startCalled);
@@ -267,7 +267,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError(), () => controller.close(), 'Calling close after canceling should throw');
+  assert_throws_js(TypeError, () => controller.close(), 'Calling close after canceling should throw');
 
   return rs.getReader().closed.then(() => {
     assert_true(startCalled);
@@ -283,7 +283,7 @@ promise_test(() => {
   const closed = new ReadableStream({
     start(c) {
       c.error(theError);
-      assert_throws(new TypeError(), () => c.close(), 'call to close should throw a TypeError');
+      assert_throws_js(TypeError, () => c.close(), 'call to close should throw a TypeError');
       startCalled = true;
     }
   }).getReader().closed;

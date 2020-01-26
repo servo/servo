@@ -7,7 +7,7 @@
 test(function() {
    var ch = new MessageChannel();
    assert_true(ch.port1 instanceof MessagePort, "MessageChannel's port not an instance of MessagePort");
-   assert_throws(new TypeError(), function () { var p = new MessagePort();}, "MessagePort is [[Callable]]");
+   assert_throws_js(TypeError, function () { var p = new MessagePort();}, "MessagePort is [[Callable]]");
 });
 fetch_tests_from_worker(new Worker("025-1.js"));
 </script>

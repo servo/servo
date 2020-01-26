@@ -13,7 +13,7 @@
 test(() => {
   const a = new CSSUnitValue(0, 'number');
   const b = new CSSUnitValue(0, 'px');
-  assert_throws(new TypeError(), () => new CSSMathSum(a, b));
+  assert_throws_js(TypeError, () => new CSSMathSum(a, b));
 }, 'Adding two types with different non-null percent hints throws TypeError');
 
 test(() => {
@@ -40,7 +40,7 @@ test(() => {
 test(() => {
   const a = new CSSMathProduct(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'px'));
   const b = new CSSUnitValue(0, 'percent');
-  assert_throws(new TypeError(), () => new CSSMathSum(a, b));
+  assert_throws_js(TypeError, () => new CSSMathSum(a, b));
 }, 'Adding a type with percent 2 returns type with percent hint throws TypeError');
 
 test(() => {

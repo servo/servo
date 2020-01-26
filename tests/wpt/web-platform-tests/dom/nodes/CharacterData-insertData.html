@@ -12,16 +12,16 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws("INDEX_SIZE_ERR", function() { node.insertData(5, "x") })
-    assert_throws("INDEX_SIZE_ERR", function() { node.insertData(5, "") })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.insertData(5, "x") })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.insertData(5, "") })
   }, type + ".insertData() out of bounds")
 
   test(function() {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws("INDEX_SIZE_ERR", function() { node.insertData(-1, "x") })
-    assert_throws("INDEX_SIZE_ERR", function() { node.insertData(-0x100000000 + 5, "x") })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.insertData(-1, "x") })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.insertData(-0x100000000 + 5, "x") })
   }, type + ".insertData() negative out of bounds")
 
   test(function() {

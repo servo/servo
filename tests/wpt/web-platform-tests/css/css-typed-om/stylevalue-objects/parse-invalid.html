@@ -11,23 +11,23 @@
 'use strict';
 
 test(() => {
-  assert_throws(new TypeError(), () => CSSStyleValue.parse('', 'auto'));
+  assert_throws_js(TypeError, () => CSSStyleValue.parse('', 'auto'));
 }, 'CSSStyleValue.parse() with empty property name throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSSStyleValue.parse('lemon', 'auto'));
+  assert_throws_js(TypeError, () => CSSStyleValue.parse('lemon', 'auto'));
 }, 'CSSStyleValue.parse() with unsupported property name throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSSStyleValue.parse('width', '10deg'));
+  assert_throws_js(TypeError, () => CSSStyleValue.parse('width', '10deg'));
 }, 'CSSStyleValue.parse() with invalid value for valid property throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSSStyleValue.parse('margin', '10deg'));
+  assert_throws_js(TypeError, () => CSSStyleValue.parse('margin', '10deg'));
 }, 'CSSStyleValue.parse() with invalid value for shorthand property throws TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => CSSStyleValue.parse('--foo', ''));
+  assert_throws_js(TypeError, () => CSSStyleValue.parse('--foo', ''));
 }, 'CSSStyleValue.parse() with invalid value for custom property throws TypeError');
 
 </script>

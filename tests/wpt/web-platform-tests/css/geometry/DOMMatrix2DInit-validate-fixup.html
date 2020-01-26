@@ -51,11 +51,11 @@ var emptyCanvasURL = window.canvas.toDataURL();
 ].forEach(dict => {
   test(() => {
     ctx.resetTransform();
-    assert_throws(new TypeError(), () => ctx.setTransform(dict));
+    assert_throws_js(TypeError, () => ctx.setTransform(dict));
   }, `setTransform(${format_dict(dict)}) (invalid)`);
 
   test(() => {
-    assert_throws(new TypeError(), () => drawRectWithAddPathTransform(ctx, dict));
+    assert_throws_js(TypeError, () => drawRectWithAddPathTransform(ctx, dict));
   }, `addPath(${format_dict(dict)}) (invalid)`);
 });
 

@@ -116,13 +116,13 @@ async_test(t => {
 }, 'passing Infinity as the duration leaves the toast open for at least 50ms');
 
 test(() => {
-    assert_throws(new RangeError(), () => {
+    assert_throws_js(RangeError, () => {
         const toast = showToast('Message', {duration: 0});
     });
 }, 'setting the duration to 0 throws a RangeError');
 
 test(() => {
-    assert_throws(new RangeError(), () => {
+    assert_throws_js(RangeError, () => {
         const toast = showToast('Message', {duration: -5});
     });
 }, 'setting the duration to a negative number throws a RangeError');

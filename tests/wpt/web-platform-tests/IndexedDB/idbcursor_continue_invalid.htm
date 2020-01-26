@@ -39,10 +39,10 @@
             cursor.continue(undefined);
 
             // Second try
-            assert_throws('InvalidStateError',
+            assert_throws_dom('InvalidStateError',
                 function() { cursor.continue(); }, 'second continue');
 
-            assert_throws('InvalidStateError',
+            assert_throws_dom('InvalidStateError',
                 function() { cursor.continue(3); }, 'third continue');
 
             count++;

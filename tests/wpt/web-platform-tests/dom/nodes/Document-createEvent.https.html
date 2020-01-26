@@ -42,7 +42,7 @@ for (var alias in aliases) {
     var plural = alias + "s";
     if (!(plural in aliases)) {
       test(function () {
-        assert_throws("NOT_SUPPORTED_ERR", function () {
+        assert_throws_dom("NOT_SUPPORTED_ERR", function () {
           var evt = document.createEvent(plural);
         });
       }, 'Should throw NOT_SUPPORTED_ERR for pluralized legacy event interface "' + plural + '"');
@@ -51,14 +51,14 @@ for (var alias in aliases) {
 }
 
 test(function() {
-  assert_throws("NOT_SUPPORTED_ERR", function() {
+  assert_throws_dom("NOT_SUPPORTED_ERR", function() {
     var evt = document.createEvent("foo");
   });
-  assert_throws("NOT_SUPPORTED_ERR", function() {
+  assert_throws_dom("NOT_SUPPORTED_ERR", function() {
     // 'LATIN CAPITAL LETTER I WITH DOT ABOVE' (U+0130)
     var evt = document.createEvent("U\u0130Event");
   });
-  assert_throws("NOT_SUPPORTED_ERR", function() {
+  assert_throws_dom("NOT_SUPPORTED_ERR", function() {
     // 'LATIN SMALL LETTER DOTLESS I' (U+0131)
     var evt = document.createEvent("U\u0131Event");
   });
@@ -144,7 +144,7 @@ var someNonCreateableEvents = [
 ];
 someNonCreateableEvents.forEach(function (eventInterface) {
   test(function () {
-    assert_throws("NOT_SUPPORTED_ERR", function () {
+    assert_throws_dom("NOT_SUPPORTED_ERR", function () {
       var evt = document.createEvent(eventInterface);
     });
   }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
@@ -152,7 +152,7 @@ someNonCreateableEvents.forEach(function (eventInterface) {
   // SVGEvents is allowed, other plurals are not
   if (eventInterface !== "SVGEvent") {
     test(function () {
-      assert_throws("NOT_SUPPORTED_ERR", function () {
+      assert_throws_dom("NOT_SUPPORTED_ERR", function () {
         var evt = document.createEvent(eventInterface + "s");
       });
     }, 'Should throw NOT_SUPPORTED_ERR for pluralized non-legacy event interface "' + eventInterface + 's"');

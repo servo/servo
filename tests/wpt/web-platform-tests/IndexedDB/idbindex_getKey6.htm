@@ -20,7 +20,7 @@
         store.add({ key: 1, indexedProperty: "data" });
         store.deleteIndex("index");
 
-        assert_throws("InvalidStateError", function(){
+        assert_throws_dom("InvalidStateError", function(){
             index.getKey("data");
         });
         t.done();

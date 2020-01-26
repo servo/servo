@@ -106,7 +106,7 @@
 
               mediaSource.removeSourceBuffer(sourceBuffer);
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.remove(1, 2);
               }, "remove");
@@ -142,7 +142,7 @@
 
               assert_true(sourceBuffer.updating, "updating");
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.remove(3, 4);
               }, "remove");
@@ -166,7 +166,7 @@
 
               assert_true(sourceBuffer.updating, "updating");
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.abort();
               }, "abort");

@@ -2,7 +2,7 @@
 // META: title=EventSource: constructor (invalid URL)
 
 test(() => {
-  assert_throws('SyntaxError', () => { new EventSource("http://this is invalid/"); });
+  assert_throws_dom('SyntaxError', () => { new EventSource("http://this is invalid/"); });
 });
 
 done();

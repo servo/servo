@@ -88,7 +88,7 @@
         if (!result.type || result.type !== 'error')
           assert_unreached('an InvalidStateError is thrown if the state is "closed"');
         else
-          assert_throws('InvalidStateError', () => {
+          assert_throws_dom('InvalidStateError', () => {
             throw new DOMException(result.message, result.name);
           }, 'an InvalidStateError is thrown if the state is "closed"');
       });

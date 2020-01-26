@@ -56,7 +56,7 @@ function test1() {
 
 function test2() {
   test(() => {
-      assert_throws({name: "TypeError"}, _=> {
+      assert_throws_js(TypeError, _=> {
         let ro = new ResizeObserver(() => {});
         ro.observe({});
       });

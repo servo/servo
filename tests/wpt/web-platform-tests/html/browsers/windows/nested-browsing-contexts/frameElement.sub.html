@@ -41,7 +41,7 @@
 
       var t2 = async_test("The SecurityError must be thrown if the window accesses to frameElement attribute of a Window which does not have the same effective script origin");
       window.addEventListener("load", t2.step_func_done(function() {
-        assert_throws("SecurityError", function() {
+        assert_throws_dom("SecurityError", function() {
             frames["iframe_2"].frameElement;
           },
           "The SecurityError exception should be thrown.");

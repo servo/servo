@@ -64,7 +64,7 @@ test(t => {
 }, "MediaRecorder sets no default mimeType in the constructor for audio/video");
 
 test(t => {
-  assert_throws("NotSupportedError",
+  assert_throws_dom("NotSupportedError",
     () => new MediaRecorder(new MediaStream(), {mimeType: "audio/banana"}));
 }, "MediaRecorder invalid audio mimeType throws");
 
@@ -73,7 +73,7 @@ test(t => {
 }, "MediaRecorder invalid audio mimeType is unsupported");
 
 test(t => {
-  assert_throws("NotSupportedError",
+  assert_throws_dom("NotSupportedError",
     () => new MediaRecorder(new MediaStream(), {mimeType: "video/pineapple"}));
 }, "MediaRecorder invalid video mimeType throws");
 
@@ -108,7 +108,7 @@ for (const mimeType of [
     }, `Supported mimeType ${mimeType} is set immediately after constructing`);
   } else {
     test(t => {
-      assert_throws("NotSupportedError",
+      assert_throws_dom("NotSupportedError",
         () => new MediaRecorder(new MediaStream(), {mimeType}));
     }, `Unsupported mimeType ${mimeType} throws`);
   }

@@ -145,7 +145,7 @@ test(t => {
                                       iterations: Infinity });
   animation.currentTime = -200 * MS_PER_SEC;
 
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
     () => { animation.reverse(); },
     'reverse() should throw InvalidStateError ' +
     'if the playbackRate > 0 and the currentTime < 0 ' +
@@ -230,7 +230,7 @@ test(t => {
   const animation =
     new Animation(new KeyframeEffect(div, null, 100 * MS_PER_SEC), null);
 
-  assert_throws('InvalidStateError', () => { animation.reverse(); });
+  assert_throws_dom('InvalidStateError', () => { animation.reverse(); });
 }, 'Reversing an animation without an active timeline throws an ' +
    'InvalidStateError');
 
@@ -254,7 +254,7 @@ promise_test(async t => {
   await animation.ready;
 
   animation.updatePlaybackRate(2);
-  assert_throws('InvalidStateError', () => { animation.reverse(); });
+  assert_throws_dom('InvalidStateError', () => { animation.reverse(); });
   assert_equals(animation.playbackRate, 1);
 
   await animation.ready;

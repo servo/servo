@@ -22,12 +22,12 @@
   [NaN, Infinity, -Infinity].forEach(num => {
     test(() => {
       const matrix = new self[constr]([1, 0, 0, 1, 0, num]);
-      assert_throws("InvalidStateError", () => String(matrix));
+      assert_throws_dom("InvalidStateError", () => String(matrix));
     }, `${prefix} ${num} (2d)`);
 
     test(() => {
       const matrix = new self[constr]([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, num, 0, 1]);
-      assert_throws("InvalidStateError", () => String(matrix));
+      assert_throws_dom("InvalidStateError", () => String(matrix));
     }, `${prefix} ${num} (3d)`);
   });
 

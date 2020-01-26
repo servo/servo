@@ -20,14 +20,14 @@ const gInvalidTestCases = [
 
 for (const {length, desc} of gInvalidTestCases) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSPerspective(length));
+    assert_throws_js(TypeError, () => new CSSPerspective(length));
   }, 'Constructing a CSSPerspective with ' + desc + ' throws a TypeError');
 }
 
 for (const {length, desc} of gInvalidTestCases) {
   test(() => {
     let perspective = new CSSPerspective(CSS.px(0));
-    assert_throws(new TypeError(), () => perspective.length = length);
+    assert_throws_js(TypeError, () => perspective.length = length);
     assert_style_value_equals(perspective.length, CSS.px(0));
   }, 'Updating CSSPerspective.length with ' + desc + ' throws a TypeError');
 }

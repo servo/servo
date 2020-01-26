@@ -123,7 +123,7 @@ promise_test(t => {
     },
     cancel: t.step_func(reason => {
       assert_equals(reason, error1, 'reason should be error1');
-      assert_throws(new TypeError(), () => controller.enqueue(), 'enqueue() should throw');
+      assert_throws_js(TypeError, () => controller.enqueue(), 'enqueue() should throw');
     })
   }, {
     size() {

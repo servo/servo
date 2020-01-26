@@ -3,23 +3,23 @@
 // META: global=window,worker
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebSocketStream(),
+  assert_throws_js(TypeError, () => new WebSocketStream(),
                 'constructor should throw');
 }, 'constructing with no URL should throw');
 
 test(() => {
-  assert_throws(new SyntaxError(), () => new WebSocketStream('invalid:'),
-                "constructor should throw");
+  assert_throws_dom("SyntaxError", () => new WebSocketStream('invalid:'),
+                    "constructor should throw");
 }, 'constructing with an invalid URL should throw');
 
 test(() => {
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
                 () => new WebSocketStream(`${BASEURL}/`, true),
                 "constructor should throw");
 }, 'constructing with invalid options should throw');
 
 test(() => {
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
                 () => new WebSocketStream(`${BASEURL}/`, {protocols: 'hi'}),
                 "constructor should throw");
 }, 'protocols should be required to be a list');

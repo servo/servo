@@ -17,9 +17,9 @@ var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
 var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
-assert_throws(new TypeError(), function() { ctx.putImageData(imgdata, 0, 0); });
-assert_throws(new TypeError(), function() { ctx.putImageData("cheese", 0, 0); });
-assert_throws(new TypeError(), function() { ctx.putImageData(42, 0, 0); });
+assert_throws_js(TypeError, function() { ctx.putImageData(imgdata, 0, 0); });
+assert_throws_js(TypeError, function() { ctx.putImageData("cheese", 0, 0); });
+assert_throws_js(TypeError, function() { ctx.putImageData(42, 0, 0); });
 t.done();
 
 });

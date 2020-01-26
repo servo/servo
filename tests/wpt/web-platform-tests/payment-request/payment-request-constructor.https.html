@@ -108,7 +108,7 @@ test(() => {
 
 test(() => {
   smokeTest();
-  assert_throws(new TypeError(), () => new PaymentRequest([], defaultDetails));
+  assert_throws_js(TypeError, () => new PaymentRequest([], defaultDetails));
 }, "If the length of the methodData sequence is zero, then throw a TypeError");
 
 test(() => {
@@ -137,7 +137,7 @@ test(() => {
   smokeTest();
   const recursiveDictionary = {};
   recursiveDictionary.foo = recursiveDictionary;
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     const methods = [
       {
         supportedMethods: "https://wpt.fyi/payment-request",
@@ -146,7 +146,7 @@ test(() => {
     ];
     new PaymentRequest(methods, defaultDetails);
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     const methods = [
       {
         supportedMethods: "https://wpt.fyi/payment-request",
@@ -155,8 +155,8 @@ test(() => {
     ];
     new PaymentRequest(methods, defaultDetails);
   });
-  assert_throws(
-    new TypeError(),
+  assert_throws_js(
+    TypeError,
     () => {
       const methods = [
         {
@@ -215,8 +215,8 @@ test(() => {
         },
       },
     };
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         new PaymentRequest(defaultMethods, invalidDetails);
       },
@@ -238,7 +238,7 @@ test(() => {
 
 test(() => {
   smokeTest();
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new PaymentRequest(defaultMethods, {
       total: {
         label: "",
@@ -266,8 +266,8 @@ test(() => {
         },
       ],
     };
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         new PaymentRequest(defaultMethods, invalidDetails);
       },
@@ -372,8 +372,8 @@ test(() => {
     const details = Object.assign({}, defaultDetails, {
       shippingOptions: [invalidShippingOption],
     });
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         new PaymentRequest(defaultMethods, details, { requestShipping: true });
       },
@@ -490,8 +490,8 @@ test(() => {
     null,
     "shippingOption must be null, because requestShipping is false"
   );
-  assert_throws(
-    new TypeError(),
+  assert_throws_js(
+    TypeError,
     () => {
       new PaymentRequest(defaultMethods, details, { requestShipping: true });
     },
@@ -519,8 +519,8 @@ test(() => {
     null,
     "shippingOption must be null, because requestShipping is false"
   );
-  assert_throws(
-    new TypeError(),
+  assert_throws_js(
+    TypeError,
     () => {
       new PaymentRequest(defaultMethods, details, { requestShipping: true });
     },
@@ -542,8 +542,8 @@ test(() => {
         },
       },
     };
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         new PaymentRequest(defaultMethods, {
           modifiers: [invalidModifier],
@@ -571,8 +571,8 @@ test(() => {
         },
       ],
     };
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         new PaymentRequest(defaultMethods, {
           modifiers: [invalidModifier],
@@ -636,7 +636,7 @@ test(() => {
       },
     ],
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new PaymentRequest(defaultMethods, modifiedDetails);
   });
 }, "Rethrow any exceptions of JSON-serializing modifier.data");
@@ -644,7 +644,7 @@ test(() => {
 //Setting ShippingType attribute during construction
 test(() => {
   smokeTest();
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new PaymentRequest(defaultMethods, defaultDetails, {
       shippingType: "invalid",
     });

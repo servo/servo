@@ -21,7 +21,7 @@
         ];
         tests.forEach(function(fun) {
             test(function() {
-                assert_throws(new TypeError(), fun);
+                assert_throws_js(TypeError, fun);
             }, "Should throw TypeError for " + format_value(fun) + ".");
         });
     </script>

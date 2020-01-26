@@ -6,7 +6,12 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib2
+
+try:
+    from urllib.request import urlopen
+    from urllib.error import URLError
+except ImportError:
+    from urllib2 import urlopen, URLError
 
 import pytest
 
@@ -38,6 +43,8 @@ def get_persistent_manifest_path():
 
 @pytest.fixture(scope="module", autouse=True)
 def init_manifest():
+    if sys.version_info >= (3,):
+        pytest.xfail(reason="broken on Py3")
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["manifest", "--no-download",
                        "--path", get_persistent_manifest_path()])
@@ -388,9 +395,9 @@ def test_serve():
             if time.time() - start > 60:
                 assert False, "server did not start responding within 60s"
             try:
-                resp = urllib2.urlopen("http://web-platform.test:8000")
+                resp = urlopen("http://web-platform.test:8000")
                 print(resp)
-            except urllib2.URLError:
+            except URLError:
                 print("URLError")
                 time.sleep(1)
             else:

@@ -42,8 +42,8 @@ test(function() {
   placeholder.width = 2;
   placeholder.height = 2;
   var offscreen = placeholder.transferControlToOffscreen();
-  assert_throws("InvalidStateError", () => { placeholder.width = 1; });
-  assert_throws("InvalidStateError", () => { placeholder.height = 1; });
+  assert_throws_dom("InvalidStateError", () => { placeholder.width = 1; });
+  assert_throws_dom("InvalidStateError", () => { placeholder.height = 1; });
 }, "Verify that writing to the width or height attribute of a placeholder canvas throws an exception");
 
 test(function() {
@@ -51,8 +51,8 @@ test(function() {
   placeholder.width = 1;
   placeholder.height = 1;
   var offscreen = placeholder.transferControlToOffscreen();
-  assert_throws("InvalidStateError", () => { placeholder.width = 1; });
-  assert_throws("InvalidStateError", () => { placeholder.height = 1; });
+  assert_throws_dom("InvalidStateError", () => { placeholder.width = 1; });
+  assert_throws_dom("InvalidStateError", () => { placeholder.height = 1; });
 }, "Verify that writing to the width or height attribute of a placeholder canvas throws an exception even when not changing the value of the attribute.");
 
 test(function() {

@@ -79,8 +79,8 @@ promise_test(t => {
           assert_equals(worker.scriptURL, normalizeURL(script));
           assert_equals(worker.state, 'activated');
           worker.onstatechange = () => { /* empty */ };
-          assert_throws(
-              { name: 'InvalidStateError' },
+          assert_throws_dom(
+              'InvalidStateError',
               () => { worker.postMessage(''); },
               'postMessage on a detached client should throw an exception.');
         });
@@ -117,7 +117,7 @@ test(t => {
     }
     assert_not_equals(get_navigator().serviceWorker, null);
     iframe.remove();
-    assert_throws({name: 'TypeError'}, () => get_navigator());
+    assert_throws_js(TypeError, () => get_navigator());
   }, 'accessing navigator on a removed frame');
 
 // It seems weird that about:blank and blank.html (the test above) have

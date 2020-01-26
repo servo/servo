@@ -81,11 +81,11 @@
     }, 'testFormDataSetToFormNull2');
     test(function() {
         var fd = new FormData(document.getElementById("form"));
-        assert_throws(new TypeError(), () => {fd.set('name', "string", 'filename')});
+        assert_throws_js(TypeError, () => {fd.set('name', "string", 'filename')});
     }, 'testFormDataSetToFormString');
     test(function() {
         var fd = new FormData(document.getElementById("form"));
-        assert_throws(new TypeError(), () => {fd.set('name', new URLSearchParams(), 'filename')});
+        assert_throws_js(TypeError, () => {fd.set('name', new URLSearchParams(), 'filename')});
     }, 'testFormDataSetToFormWrongPlatformObject');
     test(function() {
         var fd = new FormData();

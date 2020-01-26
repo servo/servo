@@ -15,6 +15,6 @@ test(() => {
 test(() => {
   const input = document.querySelector('input');
   // matches() will throw if the selector isn't suppported
-  assert_throws("SyntaxError", () => input.matches(':user-error'));
+  assert_throws_dom("SyntaxError", () => input.matches(':user-error'));
 }, ':user-error selector should not be supported');
 </script>

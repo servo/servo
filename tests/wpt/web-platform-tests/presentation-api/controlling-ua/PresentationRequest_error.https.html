@@ -9,27 +9,27 @@
 <script>
 
   test(() => {
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
       new PresentationRequest();
     }, 'Call PresentationRequest() constructor without presentation URL. TypeError Exception expected.');
 
-    assert_throws('NotSupportedError', () => {
+    assert_throws_dom('NotSupportedError', () => {
       new PresentationRequest([]);
     }, 'Call PresentationRequest constructor with an empty sequence. NotSupportedError Exception expected.');
 
-    assert_throws('SyntaxError', () => {
+    assert_throws_dom('SyntaxError', () => {
       new PresentationRequest('https://@');
     }, 'Call PresentationRequest constructor with an invalid URL. SyntaxError Exception expected.');
 
-    assert_throws('NotSupportedError', () => {
+    assert_throws_dom('NotSupportedError', () => {
         new PresentationRequest('unsupported://example.com');
     }, 'Call PresentationRequest constructor with an unsupported URL. NotSupportedError expected.');
 
-    assert_throws('SyntaxError', function() {
+    assert_throws_dom('SyntaxError', function() {
       new PresentationRequest(['presentation.html', 'https://@']);
     }, 'Call PresentationRequest constructor with a sequence of URLs, one of them invalid. SyntaxError Exception expected.');
 
-    assert_throws('NotSupportedError', function() {
+    assert_throws_dom('NotSupportedError', function() {
       new PresentationRequest(['unsupported://example.com', 'invalid://example.com']);
     }, 'Call PresentationRequest constructor only with a sequence of unsupported URLs. NotSupportedError Exception expected.');
   });

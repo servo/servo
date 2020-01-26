@@ -7,7 +7,7 @@ test(function() {
 }, "Worker MessageChannel's port should be an instance of MessagePort");
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new MessagePort()
   }, "MessagePort is [[Callable]]");
 }, "Worker MessagePort should not be [[Callable]]");

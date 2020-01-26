@@ -17,7 +17,7 @@
         const emptyStream = new MediaStream();
 
         test(function() {
-          assert_throws(
+          assert_throws_dom(
             "InvalidStateError",
             function() {
               ac.createMediaStreamSource(emptyStream);
@@ -28,7 +28,7 @@
         }, "MediaStreamAudioSourceNode created with factory method and MediaStream with no tracks");
 
         test(function() {
-          assert_throws(
+          assert_throws_dom(
             "InvalidStateError",
             function() {
               new MediaStreamAudioSourceNode(ac, { mediaStream: emptyStream });
@@ -43,7 +43,7 @@
         const videoOnlyStream = canvas.captureStream();
 
         test(function() {
-          assert_throws(
+          assert_throws_dom(
             "InvalidStateError",
             function() {
               ac.createMediaStreamSource(videoOnlyStream);
@@ -54,7 +54,7 @@
         }, `MediaStreamAudioSourceNode created with the factory method and MediaStream with only a video track`);
 
         test(function() {
-          assert_throws(
+          assert_throws_dom(
             "InvalidStateError",
             function() {
               new MediaStreamAudioSourceNode(ac, {

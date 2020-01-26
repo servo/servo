@@ -14,7 +14,7 @@
   let p = createScript_policy(window, 1);
   test(t => {
     let a = 0;
-    assert_throws(new EvalError(), _ => {
+    assert_throws_js(EvalError, _ => {
       eval('a="hello there"');
     });
     assert_equals(a, 0);

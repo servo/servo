@@ -11,33 +11,33 @@ interface SpeechSynthesisErrorEvent : SpeechSynthesisErrorEvent {
 };
 */
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisErrorEvent();
   });
 }, "SpeechSynthesisErrorEvent with no arguments throws TypeError");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisErrorEvent("type");
   });
 }, "SpeechSynthesisErrorEvent with no eventInitDict throws TypeError");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisErrorEvent("type", {});
   });
 }, `SpeechSynthesisErrorEvent with empty eventInitDict throws TypeError (requires
     utterance and error)`);
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisErrorEvent("type", {error:"not-allowed"});
   });
 }, `SpeechSynthesisErrorEvent with eventInitDict without utterance throws
     TypeError`);
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new SpeechSynthesisErrorEvent("type", {utterance: new SpeechSynthesisUtterance()});
   });
 }, `SpeechSynthesisErrorEvent with eventInitDict without error throws
@@ -81,8 +81,8 @@ test(() => {
       });
     };
   };
-  assert_throws(new TypeError(), createEventFunc(""));
-  assert_throws(new TypeError(), createEventFunc("foo"));
-  assert_throws(new TypeError(), createEventFunc("bar"));
+  assert_throws_js(TypeError, createEventFunc(""));
+  assert_throws_js(TypeError, createEventFunc("foo"));
+  assert_throws_js(TypeError, createEventFunc("bar"));
 }, "SpeechSynthesisErrorEvent with wrong error enum");
 </script>

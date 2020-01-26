@@ -79,7 +79,7 @@ testCases = [
             // cause InvalidStateError.
             //
             // Note: https://bugs.chromium.org/p/chromium/issues/detail?id=799025
-            assert_throws("InvalidStateError", () => { throw e });
+            assert_throws_dom("InvalidStateError", () => { throw e });
           });
       }
   },

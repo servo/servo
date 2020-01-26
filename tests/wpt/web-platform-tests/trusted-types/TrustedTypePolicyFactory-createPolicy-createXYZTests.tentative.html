@@ -34,7 +34,7 @@
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyHTML5', { createHTML: s => { throw new Error(); }});
-    assert_throws(new Error(), _ => {
+    assert_throws_js(Error, _ => {
       p.createHTML('whatever');
     });
   }, "html = callback that throws");
@@ -58,20 +58,20 @@
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyHTML8', null);
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createHTML('whatever');
     });
   }, "html - calling undefined callback throws");
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyHTML9', { createHTML: createHTMLJS });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScript(INPUTS.SCRIPT);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScriptURL(INPUTS.SCRIPTURL);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createURL(INPUTS.URL);
     });
   }, "createHTML defined - calling undefined callbacks throws");
@@ -108,7 +108,7 @@
     let p = window.trustedTypes.createPolicy('TestPolicyScript5', {
       createScript: s => { throw new Error(); }
     });
-    assert_throws(new Error(), _ => {
+    assert_throws_js(Error, _ => {
       p.createScript('whatever');
     });
   }, "script = callback that throws");
@@ -132,20 +132,20 @@
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyScript8', null);
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScript('whatever');
     });
   }, "script - calling undefined callback throws");
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyScript9', { createScript: createScriptJS });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createHTML(INPUTS.HTML);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScriptURL(INPUTS.SCRIPTURL);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createURL(INPUTS.URL);
     });
   }, "createScript defined - calling undefined callbacks throws");
@@ -183,7 +183,7 @@
     let p = window.trustedTypes.createPolicy('TestPolicyScriptURL5', {
       createScriptURL: s => { throw new Error(); }
     });
-    assert_throws(new Error(), _ => {
+    assert_throws_js(Error, _ => {
       p.createScriptURL(INPUTS.SCRIPTURL);
     });
   }, "script_url = callback that throws");
@@ -207,20 +207,20 @@
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyScriptURL8', null);
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScriptURL(INPUTS.SCRIPTURL);
     });
   }, "script_url - calling undefined callback throws");
 
   test(t => {
     let p = window.trustedTypes.createPolicy('TestPolicyScriptURL9', { createScriptURL: createScriptURLJS });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createHTML(INPUTS.HTML);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createScript(INPUTS.SCRIPT);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       p.createURL(INPUTS.URL);
     });
   }, "createScriptURL defined - calling undefined callbacks throws");

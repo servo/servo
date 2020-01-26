@@ -47,7 +47,7 @@ test(() => {
 
 test(() => {
   let result = new CSSUnparsedValue(['foo', 'bar']);
-  assert_throws(new RangeError(), () => result[3] = 'foo');
+  assert_throws_js(RangeError, () => result[3] = 'foo');
   assert_equals(result[3], undefined, 'fragment does not change');
 }, 'Setting out of range index in CSSUnparsedValue throws RangeError');
 

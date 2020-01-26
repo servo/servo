@@ -41,7 +41,7 @@ testCases.forEach(c => {
   const name = `${c[0]}.${c[1]} `;
   test(t => {
     const element = document.createElement(c[0]);
-    assert_throws(TypeError(), _ => element[c[1]] = "abc");
+    assert_throws_js(TypeError, _ => element[c[1]] = "abc");
     assert_equals(element[c[1]], "");
   }, name + "default");
 });

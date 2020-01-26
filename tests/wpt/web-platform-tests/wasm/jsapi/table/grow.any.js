@@ -8,7 +8,7 @@ function nulls(n) {
 test(() => {
   const argument = { "element": "anyfunc", "initial": 5 };
   const table = new WebAssembly.Table(argument);
-  assert_throws(new TypeError(), () => table.grow());
+  assert_throws_js(TypeError, () => table.grow());
 }, "Missing arguments");
 
 test(t => {
@@ -32,7 +32,7 @@ test(t => {
   const fn = WebAssembly.Table.prototype.grow;
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => fn.call(thisValue, argument), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => fn.call(thisValue, argument), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -61,7 +61,7 @@ test(() => {
   const table = new WebAssembly.Table(argument);
   assert_equal_to_array(table, nulls(2), "before");
 
-  assert_throws(new RangeError(), () => table.grow(4));
+  assert_throws_js(RangeError, () => table.grow(4));
   assert_equal_to_array(table, nulls(2), "after");
 }, "Exceeded maximum");
 
@@ -81,7 +81,7 @@ for (const value of outOfRangeValues) {
   test(() => {
     const argument = { "element": "anyfunc", "initial": 1 };
     const table = new WebAssembly.Table(argument);
-    assert_throws(new TypeError(), () => table.grow(value));
+    assert_throws_js(TypeError, () => table.grow(value));
   }, `Out-of-range argument: ${format_value(value)}`);
 }
 

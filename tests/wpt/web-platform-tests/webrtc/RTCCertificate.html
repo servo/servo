@@ -100,7 +100,7 @@
       expires: 0
     }).then(cert => {
       assert_less_than_equal(cert.expires, Date.now());
-      assert_throws('InvalidAccessError', () =>
+      assert_throws_dom('InvalidAccessError', () =>
         new RTCPeerConnection({ certificates: [cert] }));
     });
   }, 'Constructing RTCPeerConnection with expired certificate should reject with InvalidAccessError');
@@ -126,12 +126,12 @@
         certificates: [cert1]
       });
 
-      assert_throws('InvalidModificationError', () =>
+      assert_throws_dom('InvalidModificationError', () =>
         pc.setConfiguration({
           certificates: [cert2]
         }));
 
-      assert_throws('InvalidModificationError', () =>
+      assert_throws_dom('InvalidModificationError', () =>
         pc.setConfiguration({
           certificates: [cert1, cert2]
         }));

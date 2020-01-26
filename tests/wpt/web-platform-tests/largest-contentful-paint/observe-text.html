@@ -11,9 +11,7 @@ p {
 </style>
 <script>
   async_test(function (t) {
-    if (!window.LargestContentfulPaint) {
-      assert_unreached("LargestContentfulPaint is not implemented");
-    }
+    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeRender;
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {

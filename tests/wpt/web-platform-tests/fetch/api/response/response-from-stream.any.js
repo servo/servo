@@ -5,13 +5,13 @@
 test(() => {
   const stream = new ReadableStream();
   stream.getReader();
-  assert_throws(new TypeError(), () => new Response(stream));
+  assert_throws_js(TypeError, () => new Response(stream));
 }, "Constructing a Response with a stream on which getReader() is called");
 
 test(() => {
   const stream = new ReadableStream();
   stream.getReader().read();
-  assert_throws(new TypeError(), () => new Response(stream));
+  assert_throws_js(TypeError, () => new Response(stream));
 }, "Constructing a Response with a stream on which read() is called");
 
 promise_test(async () => {
@@ -19,5 +19,5 @@ promise_test(async () => {
         reader = stream.getReader();
   await reader.read();
   reader.releaseLock();
-  assert_throws(new TypeError(), () => new Response(stream));
+  assert_throws_js(TypeError, () => new Response(stream));
 }, "Constructing a Response with a stream on which read() and releaseLock() are called");

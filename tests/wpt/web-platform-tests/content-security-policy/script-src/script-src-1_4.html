@@ -19,7 +19,7 @@
 
         var evalRan = false;
 
-        test(function() {assert_throws(new EvalError(), function() { eval('evalRan = true;') })}, "eval() should throw without 'unsafe-eval' keyword source in script-src directive.");
+        test(function() {assert_throws_js(EvalError, function() { eval('evalRan = true;') })}, "eval() should throw without 'unsafe-eval' keyword source in script-src directive.");
 
         test(function() {assert_false(evalRan);})
 

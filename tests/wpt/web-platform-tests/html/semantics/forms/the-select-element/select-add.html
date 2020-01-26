@@ -28,7 +28,7 @@ test(() => {
 test(() => {
   let testselect2 = document.getElementById("testselect2");
   let opt2 = document.getElementById("testoption");
-  assert_throws("HierarchyRequestError", () => {
+  assert_throws_dom("HierarchyRequestError", () => {
     testselect2.add(opt2);
   });
 }, "test that HierarchyRequestError exception must be thrown when element is an ancestor of the element into which it is to be inserted");

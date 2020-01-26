@@ -19,7 +19,7 @@ function testNode(type1, type2) {
   test(function() {
     var node1 = create(type1);
     var node2 = create(type2);
-    assert_throws("HierarchyRequestError", function () {
+    assert_throws_dom("HierarchyRequestError", function () {
       node1.appendChild(node2);
     }, "CharacterData type " + type1 + " must not have children");
   }, type1 + ".appendChild(" + type2 + ")");

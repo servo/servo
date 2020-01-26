@@ -28,7 +28,7 @@
 
             db.deleteObjectStore("store");
             cursor.value.iKey += "_updated";
-            assert_throws("InvalidStateError", function() {
+            assert_throws_dom("InvalidStateError", function() {
                 cursor.update(cursor.value);
             }, "If the cursor's source or effective object store has been deleted, the implementation MUST throw a DOMException of type InvalidStateError");
 

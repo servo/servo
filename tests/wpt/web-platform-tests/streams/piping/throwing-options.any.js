@@ -53,8 +53,8 @@ for (let i = 0; i < checkOrder.length; ++i) {
 
   test(() => {
     const options = new ThrowingOptions(whatShouldThrow);
-    assert_throws(
-        new Error(),
+    assert_throws_js(
+        Error,
         () => new ReadableStream().pipeThrough(new TransformStream(), options),
         'pipeThrough should throw');
     assert_array_equals(

@@ -101,6 +101,15 @@ components:
     install:
       - python3-pip
 
+  tox-python38:
+    env:
+      TOXENV: py38
+      PY_COLORS: 0
+    install:
+      - python3.8
+      - python3.8-distutils
+      - python3.8-dev
+
   tests-affected:
     options:
       browser:
@@ -306,9 +315,9 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ unittests (Python 3):
+  - tools/ unittests (Python 3.6):
       description: >-
-        Unit tests for tools running under Python 3, excluding wptrunner
+        Unit tests for tools running under Python 3.6, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
@@ -320,13 +329,71 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/wpt/ tests:
+  - tools/ unittests (Python 3.8):
+      description: >-
+        Unit tests for tools running under Python 3.8, excluding wptrunner
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python38
+      command: ./tools/ci/ci_tools_unittest.sh
+      env:
+        HYPOTHESIS_PROFILE: ci
+      schedule-if:
+        run-job:
+          - tools_unittest
+
+  - tools/wpt/ tests (Python 2):
       description: >-
         Integration tests for wpt commands
       use:
         - wpt-base
         - trigger-pr
         - tox-python2
+      command: ./tools/ci/ci_wpt.sh
+      install:
+        - libnss3-tools
+      options:
+        oom-killer: true
+        browser:
+          - firefox
+          - chrome
+        channel: experimental
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - wpt_integration
+
+  - tools/wpt/ tests (Python 3.6):
+      description: >-
+        Integration tests for wpt commands
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python3
+      command: ./tools/ci/ci_wpt.sh
+      install:
+        - libnss3-tools
+      options:
+        oom-killer: true
+        browser:
+          - firefox
+          - chrome
+        channel: experimental
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - wpt_integration
+
+  - tools/wpt/ tests (Python 3.8):
+      description: >-
+        Integration tests for wpt commands
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python38
       command: ./tools/ci/ci_wpt.sh
       install:
         - libnss3-tools

@@ -262,7 +262,7 @@ test(() => {
     },
   });
   const it = s.getIterator();
-  assert_throws(new TypeError(), () => s.getIterator(), 'getIterator() should throw');
+  assert_throws_js(TypeError, () => s.getIterator(), 'getIterator() should throw');
 }, 'getIterator() throws if there\'s already a lock');
 
 promise_test(async () => {

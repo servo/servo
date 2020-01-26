@@ -57,7 +57,7 @@ promise_test(testCase => {
             'IDBTransaction.objectStore should return the renamed object ' +
             'store when queried using the new name immediately after the ' +
             'rename');
-        assert_throws(
+        assert_throws_dom(
             'NotFoundError', () => transaction.objectStore('books'),
             'IDBTransaction.objectStore should throw when queried using the ' +
             "renamed object store's old name immediately after the rename");
@@ -114,7 +114,7 @@ promise_test(testCase => {
             'IDBTransaction.objectStore should return the renamed object ' +
             'store when queried using the new name immediately after the ' +
             'rename');
-        assert_throws(
+        assert_throws_dom(
             'NotFoundError', () => transaction.objectStore('books'),
             'IDBTransaction.objectStore should throw when queried using the ' +
             "renamed object store's old name immediately after the rename");

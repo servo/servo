@@ -46,7 +46,7 @@ for (var test_case of test_cases) {
     if (test_case[1]) {
       assert_equals(undefined, importScripts(import_url));
     } else {
-      assert_throws("NetworkError", _ => { importScripts(import_url) })
+      assert_throws_dom("NetworkError", _ => { importScripts(import_url) })
     }
   }, "importScripts() requires scripty MIME types: " + test_case[0] + " is " + (test_case[1] ? "allowed" : "blocked") + ".");
 }

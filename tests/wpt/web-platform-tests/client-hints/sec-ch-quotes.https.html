@@ -14,9 +14,10 @@ promise_test(async (test) => {
     "sec-ch-ua-model",
   ];
 
-  const response = await fetch(`echo_ua_client_hints_received.py`);
+  const response = await fetch("resources/echo-ua-client-hints-received.py");
   client_hint_headers.forEach(header => {
     if(response.headers.get(header+"-recieved")) {
+      // Check that the hints have quotes
       assert_equals(response.headers.get(header+"-recieved").slice(0,1), "\"");
       assert_equals(response.headers.get(header+"-recieved").slice(-1), "\"");
     }

@@ -15,7 +15,7 @@
         test(function() {
           var client = new XMLHttpRequest()
           client.open("GET", "resources/infinite-redirects.py?type="+code, false)
-          assert_throws("NetworkError", function() { client.send(null) })
+          assert_throws_dom("NetworkError", function() { client.send(null) })
         }, document.title + " (" + code + ")")
       }
       redirect("301")

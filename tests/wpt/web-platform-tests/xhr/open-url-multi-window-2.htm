@@ -13,7 +13,7 @@
         test(function() {
           var client = new self[0].XMLHttpRequest()
           document.body.removeChild(document.getElementsByTagName("iframe")[0])
-          assert_throws("InvalidStateError", function() {
+          assert_throws_dom("InvalidStateError", function() {
             client.open("GET", "folder.txt")
           }, "open() when associated document's IFRAME is removed")
           })

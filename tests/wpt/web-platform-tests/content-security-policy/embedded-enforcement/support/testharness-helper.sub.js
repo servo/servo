@@ -129,7 +129,7 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
       setTimeout(t.step_func_done(function () {
         assert_equals(loaded[urlId], undefined);
       }), 500);
-      assert_throws("SecurityError", () => {
+      assert_throws_dom("SecurityError", () => {
         var x = i.contentWindow.location.href;
       });
     });

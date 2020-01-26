@@ -11,25 +11,25 @@ test(function(t) {
 }, "Computed style parent (should be null)");
 
 test(function(t) {
-    assert_throws("NoModificationAllowedError", function() {
+    assert_throws_dom("NoModificationAllowedError", function() {
         document.defaultView.getComputedStyle(document.body, null).color = "blue";
     });
 }, "Exception thrown when trying to change a computed style declaration via property");
 
 test(function(t) {
-    assert_throws("NoModificationAllowedError", function() {
+    assert_throws_dom("NoModificationAllowedError", function() {
         document.defaultView.getComputedStyle(document.body, null).setProperty("color", "blue");
     });
 }, "Exception thrown when trying to change a computed style declaration via setProperty");
 
 test(function(t) {
-    assert_throws("NoModificationAllowedError", function() {
+    assert_throws_dom("NoModificationAllowedError", function() {
         document.defaultView.getComputedStyle(document.body, null).webkitTransition = "";
     });
 }, "Exception thrown when trying to change a computed style alias via property");
 
 test(function(t) {
-    assert_throws("NoModificationAllowedError", function() {
+    assert_throws_dom("NoModificationAllowedError", function() {
         document.defaultView.getComputedStyle(document.body, null).setProperty("webkitTransition", "");
     });
 }, "Exception thrown when trying to change a computed style alias via setProperty");

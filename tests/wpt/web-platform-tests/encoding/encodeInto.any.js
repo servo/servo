@@ -128,14 +128,14 @@
  Float64Array].forEach(view => {
   ["ArrayBuffer", "SharedArrayBuffer"].forEach((arrayBufferOrSharedArrayBuffer) => {
     test(() => {
-      assert_throws(new TypeError(), () => new TextEncoder().encodeInto("", new view(new self[arrayBufferOrSharedArrayBuffer](0))));
+      assert_throws_js(TypeError, () => new TextEncoder().encodeInto("", new view(new self[arrayBufferOrSharedArrayBuffer](0))));
     }, "Invalid encodeInto() destination: " + view.name + ", backed by: " + arrayBufferOrSharedArrayBuffer);
   });
 });
 
 ["ArrayBuffer", "SharedArrayBuffer"].forEach((arrayBufferOrSharedArrayBuffer) => {
   test(() => {
-    assert_throws(new TypeError(), () => new TextEncoder().encodeInto("", new self[arrayBufferOrSharedArrayBuffer](10)));
+    assert_throws_js(TypeError, () => new TextEncoder().encodeInto("", new self[arrayBufferOrSharedArrayBuffer](10)));
   }, "Invalid encodeInto() destination: " + arrayBufferOrSharedArrayBuffer);
 });
 

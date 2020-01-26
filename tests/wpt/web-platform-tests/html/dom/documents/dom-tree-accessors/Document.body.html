@@ -128,20 +128,20 @@ test(function() {
 
 var originalBody = document.body;
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.body = "text"
   })
   assert_equals(document.body, originalBody);
 }, "Setting document.body to a string.")
 test(function() {
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     document.body = document.createElement("div")
   })
   assert_equals(document.body, originalBody);
 }, "Setting document.body to a div element.")
 test(function() {
   var doc = createDocument();
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.body = doc.createElement("body")
   })
   assert_equals(doc.body, null);

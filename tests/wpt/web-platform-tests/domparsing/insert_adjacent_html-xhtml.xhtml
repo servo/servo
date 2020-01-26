@@ -49,9 +49,9 @@ testPositions(content, "without next sibling");
 testPositions(content, "again, with next sibling");
 
 test(function() {
-  assert_throws("SYNTAX_ERR", function() {content.insertAdjacentHTML("bar", "foo")});
-  assert_throws("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforebegİn", "foo")});
-  assert_throws("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforebegın", "foo")});
+  assert_throws_dom("SYNTAX_ERR", function() {content.insertAdjacentHTML("bar", "foo")});
+  assert_throws_dom("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforebegİn", "foo")});
+  assert_throws_dom("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforebegın", "foo")});
 }, "Should throw when inserting with invalid position string");
 
 var parentElement = document.createElement("div");
@@ -82,7 +82,7 @@ testPositions(content2, "test again, now that there's a next sibling");
 
 // XML-only:
 test(function() {
-  assert_throws("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforeend", "<p>")});
+  assert_throws_dom("SYNTAX_ERR", function() {content.insertAdjacentHTML("beforeend", "<p>")});
 });
 
 ]]></script>

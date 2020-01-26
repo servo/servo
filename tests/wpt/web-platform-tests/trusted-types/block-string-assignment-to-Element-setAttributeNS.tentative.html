@@ -52,7 +52,7 @@
       let elem = document.createElementNS(svg, "script");
       const values = [ "abc", null, html, script ];
       for (const v of values) {
-        assert_throws(new TypeError(), _ => {
+        assert_throws_js(TypeError, _ => {
           elem.setAttributeNS(xlink, "href", v);
         });
       }

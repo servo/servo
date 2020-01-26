@@ -16,7 +16,7 @@
 
     function checkConstructionFails(type, language, label, kinds, byteStreamTrackID)
     {
-        assert_throws(new TypeError(),
+        assert_throws_js(TypeError,
             function() { new TrackDefault(type, language, label, kinds, byteStreamTrackID); },
             "TrackDefault construction threw an exception");
     }

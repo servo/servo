@@ -34,10 +34,10 @@ t("transferControlToProxy", canvas);
 t("CanvasProxy", window);
 t("commit", canvas);
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new CanvasRenderingContext2D();
   }, 'no arguments');
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new CanvasRenderingContext2D(1, 1);
   }, 'with arguments');
 }, "CanvasRenderingContext2D constructors");

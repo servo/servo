@@ -59,7 +59,7 @@ Guidelines for writing tests
 
       ```javascript
       test(t => {
-        assert_throws({ name: 'TypeError' }, () => {
+        assert_throws_js(TypeError, () => {
           createDiv(t).animate(null, -1);
         });
       }, 'Setting a negative duration throws a TypeError');

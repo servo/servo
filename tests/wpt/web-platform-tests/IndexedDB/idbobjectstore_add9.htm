@@ -16,7 +16,7 @@
           db = e.target.result,
           objStore = db.createObjectStore("store", { keyPath: "key" });
 
-        assert_throws("DataError",
+        assert_throws_dom("DataError",
             function() { rq = objStore.add(record, 1); });
 
         assert_equals(rq, undefined);

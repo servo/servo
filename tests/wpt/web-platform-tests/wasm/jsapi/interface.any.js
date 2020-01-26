@@ -63,11 +63,11 @@ test(() => {
 }, "WebAssembly: property descriptor");
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly());
+  assert_throws_js(TypeError, () => WebAssembly());
 }, "WebAssembly: calling");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly());
+  assert_throws_js(TypeError, () => new WebAssembly());
 }, "WebAssembly: constructing");
 
 const interfaces = [

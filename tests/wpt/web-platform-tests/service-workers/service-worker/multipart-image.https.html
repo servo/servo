@@ -56,7 +56,7 @@ promise_test(t => {
 promise_test(t => {
     return frame.contentWindow.load_multipart_image('cross-origin-multipart-image-with-no-cors')
       .then(img => {
-        assert_throws('SecurityError', () => frame.contentWindow.get_image_data(img));
+        assert_throws_dom('SecurityError', () => frame.contentWindow.get_image_data(img));
       });
   }, 'cross-origin multipart image with no-cors via SW should not be readable');
 

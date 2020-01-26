@@ -200,7 +200,7 @@
 	test(function(){
 		var style_rule = document.styleSheets[0].cssRules[0].cssRules[1];
 
-		assert_throws(new TypeError(), function() { style_rule.insertRule("@supports (width: 0) { ol { width: 0; } }", 0);} );
+		assert_throws_js(TypeError, function() { style_rule.insertRule("@supports (width: 0) { ol { width: 0; } }", 0);} );
 
 	}, "Inserting an @supports inside a style rule should fail");
 	test(function(){

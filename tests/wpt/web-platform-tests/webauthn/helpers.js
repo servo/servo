@@ -244,7 +244,11 @@ class TestCase {
      * expects the test to fail
      */
     testFails(t, testDesc, expectedErr) {
-        return promise_rejects(t, expectedErr, this.doIt(), "Expected bad parameters to fail");
+        if (typeof expectedErr == "string") {
+            return promise_rejects_dom(t, expectedErr, this.doIt(), "Expected  bad parameters to fail");
+        }
+
+        return promise_rejects_js(t, expectedErr, this.doIt(), "Expected bad parameters to fail");
     }
 
     /**
@@ -589,5 +593,5 @@ function standardSetup(cb) {
 //************* END DELETE AFTER 1/1/2018 *************** //
 
 /* JSHINT */
-/* globals promise_rejects, assert_class_string, assert_equals, assert_idl_attribute, assert_readonly, promise_test */
+/* globals promise_rejects_dom, promise_rejects_js, assert_class_string, assert_equals, assert_idl_attribute, assert_readonly, promise_test */
 /* exported standardSetup, CreateCredentialsTest, GetCredentialsTest */

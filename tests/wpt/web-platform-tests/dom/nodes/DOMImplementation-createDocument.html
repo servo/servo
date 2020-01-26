@@ -36,7 +36,7 @@ test(function() {
      *   the doctype argument
      *   the expected exception, or null if none
      */
-    [null, null, false, new TypeError()],
+    [null, null, false, TypeError],
     [null, "", null, null],
     [undefined, null, undefined, null],
     [undefined, undefined, undefined, null],
@@ -92,7 +92,11 @@ test(function() {
     var namespace = t[0], qualifiedName = t[1], doctype = t[2], expected = t[3]
     test(function() {
       if (expected != null) {
-        assert_throws(expected, function() { document.implementation.createDocument(namespace, qualifiedName, doctype) })
+        if (typeof expected == "string") {
+          assert_throws_dom(expected, function() { document.implementation.createDocument(namespace, qualifiedName, doctype) });
+        } else {
+          assert_throws_js(expected, function() { document.implementation.createDocument(namespace, qualifiedName, doctype) });
+        }
       } else {
         var doc = document.implementation.createDocument(namespace, qualifiedName, doctype)
         assert_equals(doc.nodeType, Node.DOCUMENT_NODE)
@@ -155,11 +159,11 @@ test(function() {
 })
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.implementation.createDocument()
   }, "createDocument() should throw")
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.implementation.createDocument('')
   }, "createDocument('') should throw")
 }, "createDocument with missing arguments");

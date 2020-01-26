@@ -18,12 +18,12 @@ async_test(t => {
     assert_equals(frame.contentWindow, innerSelf);
     assert_equals(frame.contentDocument, innerDocument);
     innerSelf.setDocumentDomain();
-    assert_throws("SecurityError", () => innerSelf.expandosForever);
-    assert_throws("SecurityError", () => innerLocation.expandosForever);
-    assert_throws("SecurityError", () => innerLocation.host);
+    assert_throws_dom("SecurityError", () => innerSelf.expandosForever);
+    assert_throws_dom("SecurityError", () => innerLocation.expandosForever);
+    assert_throws_dom("SecurityError", () => innerLocation.host);
     assert_equals(innerSelf.parent, self);
-    assert_throws("SecurityError", () => innerSelf.frameElement);
-    assert_throws("SecurityError", () => innerLocation.reload());
+    assert_throws_dom("SecurityError", () => innerSelf.frameElement);
+    assert_throws_dom("SecurityError", () => innerLocation.reload());
     assert_equals(frame.contentWindow, innerSelf);
     assert_equals(frame.contentDocument, null);
     // Cross-origin Document object obtained before it became cross-origin has no protections

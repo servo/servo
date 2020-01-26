@@ -3,11 +3,15 @@ parameters:
 
 steps:
 - script: |
-    # `sudo pip install` is not used because some packages (e.g. tox) depend on
-    # system packages (e.g. setuptools) which cannot be upgraded due to System
-    # Integrity Protection, see https://stackoverflow.com/a/33004920.
-    pip install --user ${{ parameters.packages }}
-    echo "##vso[task.prependpath]$HOME/Library/Python/2.7/bin"
+    if [ `which pip` = '/usr/bin/pip' ]; then
+      # `sudo pip install` is not used because some packages (e.g. tox) depend on
+      # system packages (e.g. setuptools) which cannot be upgraded due to System
+      # Integrity Protection, see https://stackoverflow.com/a/33004920.
+      pip install --user ${{ parameters.packages }}
+      echo "##vso[task.prependpath]$HOME/Library/Python/2.7/bin"
+    else
+      pip --disable-pip-version-check install --upgrade ${{ parameters.packages }}
+    fi
   displayName: 'Install Python packages (macOS)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 - script: pip --disable-pip-version-check install --upgrade ${{ parameters.packages }}

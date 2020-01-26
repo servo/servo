@@ -12,18 +12,18 @@ test(function() {
     var t1 = video.addTextTrack('subtitles');
     var t2 = video.addTextTrack('subtitles');
     var c1 = new VTTCue(0, 1, 'text1');
-    assert_throws("NOT_FOUND_ERR", function() {
+    assert_throws_dom("NOT_FOUND_ERR", function() {
         t1.removeCue(c1);
     }, 'standalone');
     t1.addCue(c1);
-    assert_throws("NOT_FOUND_ERR", function() {
+    assert_throws_dom("NOT_FOUND_ERR", function() {
         t2.removeCue(c1);
     }, 'listed in t1, remove from t2');
     t1.removeCue(c1);
-    assert_throws("NOT_FOUND_ERR", function() {
+    assert_throws_dom("NOT_FOUND_ERR", function() {
         t1.removeCue(c1);
     }, 'standalone, remove from t1');
-    assert_throws("NOT_FOUND_ERR", function() {
+    assert_throws_dom("NOT_FOUND_ERR", function() {
         t2.removeCue(c1);
     }, 'standalone, remove from t2');
 }, document.title+', two elementless tracks');
@@ -33,10 +33,10 @@ t.step(function(){
     var track = document.createElement('track');
     track.onload = t.step_func(function(){
         var cue = track.track.cues[0];
-        assert_throws('NOT_FOUND_ERR', function() { t1.removeCue(cue); }, 'listed in track.track, remove from t1');
+        assert_throws_dom('NOT_FOUND_ERR', function() { t1.removeCue(cue); }, 'listed in track.track, remove from t1');
         track.track.removeCue(cue);
-        assert_throws('NOT_FOUND_ERR', function() { track.track.removeCue(cue); }, 'standalone, remove from track.track');
-        assert_throws('NOT_FOUND_ERR', function() { t1.removeCue(cue); }, 'standalone, remove from t1');
+        assert_throws_dom('NOT_FOUND_ERR', function() { track.track.removeCue(cue); }, 'standalone, remove from track.track');
+        assert_throws_dom('NOT_FOUND_ERR', function() { t1.removeCue(cue); }, 'standalone, remove from t1');
         t.done();
     });
     track.onerror = t.step_func(function() {

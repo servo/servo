@@ -15,11 +15,11 @@
         <div id="log"></div>
         <script>
 test(function () {
-    assert_throws(new TypeError(), function () { window.performance.mark() });
+    assert_throws_js(TypeError, function () { window.performance.mark() });
 }, "window.performance.mark() throws a TypeError exception when invoke without a parameter.");
 
 test(function () {
-    assert_throws(new TypeError(), function () { window.performance.measure(); });
+    assert_throws_js(TypeError, function () { window.performance.measure(); });
 }, "window.performance.measure() throws a TypeError exception when invoke without a parameter.");
         </script>
     </body>

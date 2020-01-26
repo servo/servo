@@ -465,12 +465,12 @@ function runGenericSensorTests(sensorName,
 
 //  Re-enable after https://github.com/w3c/sensors/issues/361 is fixed.
 //  test(() => {
-//     assert_throws("NotSupportedError",
+//     assert_throws_dom("NotSupportedError",
 //         () => { new sensorType({invalid: 1}) });
-//     assert_throws("NotSupportedError",
+//     assert_throws_dom("NotSupportedError",
 //         () => { new sensorType({frequency: 60, invalid: 1}) });
 //     if (!expectedRemappedReadings) {
-//       assert_throws("NotSupportedError",
+//       assert_throws_dom("NotSupportedError",
 //           () => { new sensorType({referenceFrame: "screen"}) });
 //     }
 //  }, `${sensorName}: throw 'NotSupportedError' for an unsupported sensor\
@@ -486,7 +486,7 @@ function runGenericSensorTests(sensorName,
       {}
     ];
     invalidFreqs.map(freq => {
-      assert_throws(new TypeError(),
+      assert_throws_js(TypeError,
                     () => { new sensorType({frequency: freq}) },
                     `when freq is ${freq}`);
     });
@@ -538,7 +538,7 @@ function runGenericSensorTests(sensorName,
       true
     ];
     invalidRefFrames.map(refFrame => {
-      assert_throws(new TypeError(),
+      assert_throws_js(TypeError,
                     () => { new sensorType({referenceFrame: refFrame}) },
                     `when refFrame is ${refFrame}`);
     });

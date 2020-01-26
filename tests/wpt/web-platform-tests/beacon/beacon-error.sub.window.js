@@ -13,13 +13,13 @@ test(function() {
 
 test(function() {
     var invalidUrl = "http://invalid:url";
-    assert_throws(new TypeError(), function() { navigator.sendBeacon(invalidUrl, smallPayload); },
+    assert_throws_js(TypeError, function() { navigator.sendBeacon(invalidUrl, smallPayload); },
         `calling 'navigator.sendBeacon()' with an invalid URL '${invalidUrl}' must throw a TypeError`);
 }, "Verify calling 'navigator.sendBeacon()' with an invalid URL throws an exception.");
 
 test(function() {
     var invalidUrl = "nothttp://invalid.url";
-    assert_throws(new TypeError(), function() { navigator.sendBeacon(invalidUrl, smallPayload); },
+    assert_throws_js(TypeError, function() { navigator.sendBeacon(invalidUrl, smallPayload); },
          `calling 'navigator.sendBeacon()' with a non-http(s) URL '${invalidUrl}' must throw a TypeError`);
 }, "Verify calling 'navigator.sendBeacon()' with a URL that is not a http(s) scheme throws an exception.");
 

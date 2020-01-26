@@ -15,7 +15,7 @@
     <script>
 function emit_test(attrName) {
     test(function() {
-        assert_throws("SyntaxError", function() { window.performance.mark(attrName); });
+        assert_throws_dom("SyntaxError", function() { window.performance.mark(attrName); });
     }, "performance.mark should throw if used with timing attribute " + attrName);
 }
 for (var i in timingAttributes) {
