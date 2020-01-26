@@ -734,7 +734,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         if this_chunk == 0:
             task.with_script("""
                 ./mach test-wpt-failure
-                time python2 ./mach test-wpt --release --binary-arg=--multiprocess \
+                time python2.7 ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \
