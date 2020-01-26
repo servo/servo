@@ -25,8 +25,8 @@ promise_test(() => {
 }, 'Test worker construction with the "module" worker type.');
 
 test(() => {
-  assert_throws(
-      new TypeError(),
+  assert_throws_js(
+      TypeError,
       () => {
         new Worker('resources/post-message-on-load-worker.js', { type: '' });
       },
@@ -34,8 +34,8 @@ test(() => {
 }, 'Test worker construction with an empty worker type.');
 
 test(() => {
-  assert_throws(
-      new TypeError(),
+  assert_throws_js(
+      TypeError,
       () => {
         new Worker('resources/post-message-on-load-worker.js',
                    { type: 'unknown' });

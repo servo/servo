@@ -6,9 +6,9 @@
     async_test(t => {
       let i = document.createElement('iframe');
       i.sandbox = "allow-same-origin allow-popups allow-popups-to-escape-sandbox";
-      i.srcdoc = `<a target='_blank'
+      i.srcdoc = `<a target='_blank' rel='opener'
                      href="javascript:window.opener.top.postMessage('FAIL', '*');">Click me!</a>
-                  <a target='_blank'
+                  <a target='_blank' rel='opener'
                      href="./resources/post-done-to-opener.html">Click me next!</a>`;
 
       i.onload = _ => {

@@ -45,10 +45,10 @@ var check_report_format = function(reports, observer) {
 async_test(t => {
   new ReportingObserver(t.step_func(check_report_format),
                         {types: ['feature-policy-violation']}).observe();
-  assert_throws("SecurityError", () => new Accelerometer(), "Constructing sensors should be blocked by policy");
-  assert_throws("SecurityError", () => new AmbientLightSensor(), "Constructing sensors should be blocked by policy");
-  assert_throws("SecurityError", () => new Gyroscope(), "Constructing sensors should be blocked by policy");
-  assert_throws("SecurityError", () => new Magnetometer(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new Accelerometer(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new AmbientLightSensor(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new Gyroscope(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new Magnetometer(), "Constructing sensors should be blocked by policy");
 }, "Generic Sensor Report Format");
     </script>
   </body>

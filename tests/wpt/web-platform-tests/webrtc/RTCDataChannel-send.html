@@ -54,7 +54,7 @@
     const pc = new RTCPeerConnection();
     const channel = pc.createDataChannel('test');
     assert_equals(channel.readyState, 'connecting');
-    assert_throws('InvalidStateError', () => channel.send(helloString));
+    assert_throws_dom('InvalidStateError', () => channel.send(helloString));
   }, 'Calling send() when data channel is in connecting state should throw InvalidStateError');
 
   /*
@@ -313,6 +313,6 @@ promise_test(async t => {
   // "send" method step 4:
   // If the byte size of "data" exceeds the value of maxMessageSize, throw
   // a TypeError.
-  assert_throws('TypeError', () => channel1.send(message));
+  assert_throws_dom('TypeError', () => channel1.send(message));
 }, 'Calling send() up to max size should succeed, above max size should fail');
 </script>

@@ -23,8 +23,8 @@ test(() => {
   assert_equals(typeof setter, "function");
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => getter.call(thisValue), `getter with this=${format_value(thisValue)}`);
-    assert_throws(new TypeError(), () => setter.call(thisValue, 1), `setter with this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => getter.call(thisValue), `getter with this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => setter.call(thisValue, 1), `setter with this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -44,7 +44,7 @@ for (const type of ["i32", "f32", "f64"]) {
       assert_equals(global.value, 0, "initial value");
       assert_equals(global.valueOf(), 0, "initial valueOf");
 
-      assert_throws(new TypeError(), () => global.value = 1);
+      assert_throws_js(TypeError, () => global.value = 1);
 
       assert_equals(global.value, 0, "post-set value");
       assert_equals(global.valueOf(), 0, "post-set valueOf");
@@ -60,7 +60,7 @@ for (const type of ["i32", "f32", "f64"]) {
         valueOf: t.unreached_func("should not call valueOf"),
         toString: t.unreached_func("should not call toString"),
       };
-      assert_throws(new TypeError(), () => global.value = value);
+      assert_throws_js(TypeError, () => global.value = value);
 
       assert_equals(global.value, 0, "post-set value");
       assert_equals(global.valueOf(), 0, "post-set valueOf");
@@ -91,9 +91,9 @@ for (const type of ["i32", "f32", "f64"]) {
 test(() => {
   const argument = { "value": "i64", "mutable": true };
   const global = new WebAssembly.Global(argument);
-  assert_throws(new TypeError(), () => global.value);
-  assert_throws(new TypeError(), () => global.value = 0);
-  assert_throws(new TypeError(), () => global.valueOf());
+  assert_throws_js(TypeError, () => global.value);
+  assert_throws_js(TypeError, () => global.value = 0);
+  assert_throws_js(TypeError, () => global.valueOf());
 }, "i64 with default");
 
 test(t => {
@@ -103,7 +103,7 @@ test(t => {
     valueOf: t.unreached_func("should not call valueOf"),
     toString: t.unreached_func("should not call toString"),
   };
-  assert_throws(new TypeError(), () => global.value = value);
+  assert_throws_js(TypeError, () => global.value = value);
 }, "i64 with ToNumber side-effects");
 
 test(() => {
@@ -115,7 +115,7 @@ test(() => {
   const setter = desc.set;
   assert_equals(typeof setter, "function");
 
-  assert_throws(new TypeError(), () => setter.call(global));
+  assert_throws_js(TypeError, () => setter.call(global));
 }, "Calling setter without argument");
 
 test(() => {

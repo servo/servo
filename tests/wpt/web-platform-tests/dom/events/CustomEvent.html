@@ -19,7 +19,7 @@ test(function() {
 
 test(function() {
     var e = document.createEvent("CustomEvent");
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
         e.initCustomEvent();
     });
 }, "First parameter to initCustomEvent should be mandatory.");

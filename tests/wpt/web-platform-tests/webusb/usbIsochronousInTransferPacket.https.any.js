@@ -18,11 +18,11 @@ test(t => {
 }, 'Can construct a USBIsochronousInTransferPacket without a DataView');
 
 test(t => {
-  assert_throws(TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new USBIsochronousInTransferPacket('invalid_status');
   });
 }, 'Cannot construct USBIsochronousInTransferPacket with an invalid status');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBIsochronousInTransferPacket());
+  assert_throws_js(TypeError, () => new USBIsochronousInTransferPacket());
 }, 'Cannot construct USBIsochronousInTransferPacket without a status');

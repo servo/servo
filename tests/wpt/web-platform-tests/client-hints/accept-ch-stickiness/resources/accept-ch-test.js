@@ -6,16 +6,13 @@ const do_not_expect = "/client-hints/accept-ch-stickiness/resources/do-not-expec
 
 const host_info = get_host_info();
 const run_test = test => {
-  // Test is marked as tentative until https://github.com/whatwg/fetch/issues/726
-  // is resolved.
-
   // First, verify the initial state to make sure that the browser does not have
   // client hints preferences cached from a previous run of the test.
   promise_test(t => {
     return fetch(test.initial_url).then(r => {
       assert_equals(r.status, 200)
       // Verify that the browser did not include client hints in the request
-      // headers when fetching echo_client_hints_received.py.
+      // headers when fetching echo-client-hints-received.py.
       assert_false(r.headers.has("device-memory-received"),
         "device-memory-received");
     });

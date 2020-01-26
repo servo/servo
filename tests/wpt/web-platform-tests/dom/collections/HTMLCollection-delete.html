@@ -21,7 +21,7 @@ test(() => {
 
 test(() => {
   assert_equals(c[0], expected, "before");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete c[0];
   });
@@ -36,7 +36,7 @@ test(() => {
 
 test(() => {
   assert_equals(c.foo, expected, "before");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete c.foo;
   });

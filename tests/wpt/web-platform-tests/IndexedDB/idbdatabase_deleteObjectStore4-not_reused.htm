@@ -29,7 +29,7 @@ open_rq.onupgradeneeded = function(e) {
     assert_false(objStore2.indexNames.contains("idx"), "index exist on new objstore");
     assert_equals(objStore2.keyPath, null, "keyPath");
 
-    assert_throws("NotFoundError", function() { objStore2.index("idx"); });
+    assert_throws_dom("NotFoundError", function() { objStore2.index("idx"); });
 }
 
 open_rq.onsuccess = function(e) {

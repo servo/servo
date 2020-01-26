@@ -12,7 +12,7 @@
       function method(method) {
         test(function() {
           var client = new XMLHttpRequest()
-          assert_throws("SecurityError", function() { client.open(method, "...") })
+          assert_throws_dom("SecurityError", function() { client.open(method, "...") })
         }, document.title + " (" + method + ")")
       }
       method("track")

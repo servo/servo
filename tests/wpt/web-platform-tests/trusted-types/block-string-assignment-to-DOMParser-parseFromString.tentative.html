@@ -18,7 +18,7 @@
   // String assignments throw.
   test(t => {
     var parser = new DOMParser();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var doc = parser.parseFromString("Fail", "text/html");
     });
   }, "`document.innerText = string` throws.");
@@ -26,7 +26,7 @@
   // Null assignment throws.
   test(t => {
     var parser = new DOMParser();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var doc = parser.parseFromString(null, "text/html");
     });
   }, "'document.innerText = null' throws");

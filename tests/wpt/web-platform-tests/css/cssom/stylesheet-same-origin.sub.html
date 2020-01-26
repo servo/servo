@@ -35,18 +35,18 @@
         }
 
         function doOriginDirtyCheck(sheet) {
-            assert_throws("SecurityError",
+            assert_throws_dom("SecurityError",
                 function () {
                     sheet.cssRules;
                 },
                 'stylesheet.cssRules should throw SecurityError.');
-            assert_throws("SecurityError",
+            assert_throws_dom("SecurityError",
                 function () {
                     sheet.insertRule("#test { margin: 10px; }", 1);
                 },
                 'stylesheet.insertRule should throw SecurityError.');
 
-            assert_throws("SecurityError",
+            assert_throws_dom("SecurityError",
                 function () {
                     sheet.deleteRule(0);
                 },

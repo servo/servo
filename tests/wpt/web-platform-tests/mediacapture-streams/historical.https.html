@@ -18,7 +18,7 @@ test(function() {
 
 test(() => {
   const mediaStream = new MediaStream();
-  assert_throws(new TypeError(), () => URL.createObjectURL(mediaStream));
+  assert_throws_js(TypeError, () => URL.createObjectURL(mediaStream));
 }, "Passing MediaStream to URL.createObjectURL() should throw");
 
 test(() => {

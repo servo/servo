@@ -37,7 +37,7 @@ singleByteEncodings.forEach(function(t) {
     for (var i = 0; i < 256; ++i) {
         if (t.bad.indexOf(i) != -1) {
             test(function() {
-                assert_throws(new TypeError(), function() {
+                assert_throws_js(TypeError, function() {
                     new TextDecoder(t.encoding, {fatal: true}).decode(new Uint8Array([i]));
                 });
             }, 'Throw due to fatal flag: ' + t.encoding + ' doesn\'t have a pointer ' + i);

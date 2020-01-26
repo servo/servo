@@ -24,7 +24,7 @@ const gInvalidTestCases = [
 for (const {property, values, desc} of gInvalidTestCases) {
   test(t => {
     let styleMap = createDeclaredStyleMap(t, '');
-    assert_throws(new TypeError(), () => styleMap.append(property, ...values));
+    assert_throws_js(TypeError, () => styleMap.append(property, ...values));
   }, 'Calling StylePropertyMap.append with ' + desc + ' throws TypeError');
 }
 

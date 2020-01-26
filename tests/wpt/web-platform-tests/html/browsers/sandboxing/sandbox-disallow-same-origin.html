@@ -19,7 +19,7 @@
       }
       function loaded() {
         t.step(() => {
-          assert_throws("SecurityError", () => {
+          assert_throws_dom("SecurityError", () => {
             document.getElementById('sandboxedframe').contentWindow.document;
           });
           assert_equals(called, 0);

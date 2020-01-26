@@ -8,7 +8,7 @@
 <script>
 test(function() {
   assert_equals(CSS.escape.length, 1);
-  assert_throws(new TypeError(), function() { CSS.escape(); });
+  assert_throws_js(TypeError, function() { CSS.escape(); });
 }, "Number of arguments");
 
 test(function() {

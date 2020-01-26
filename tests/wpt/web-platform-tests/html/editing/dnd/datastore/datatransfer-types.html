@@ -56,7 +56,7 @@ test(() => {
   // Failing to add a new item via DataTransferItemList does not
   // change the underlying data store.
   old_types = dt.types;
-  assert_throws("NotSupportedError", () => {
+  assert_throws_dom("NotSupportedError", () => {
     dt.items.add("bar", "text/plain");
   }, "Adding an item whose type is already present throws an exception");
   assert_equals(dt.items.length, 1);

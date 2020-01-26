@@ -28,8 +28,8 @@ function runManualTest(button, expected = {}) {
       addr.addressLine instanceof Array,
       "Expected addressLine to be an array"
     );
-    assert_throws(
-      new TypeError(),
+    assert_throws_js(
+      TypeError,
       () => {
         addr.addressLine.push("this must throw");
       },

@@ -21,7 +21,7 @@ prefixes.forEach(function(prefix) {
 
 test(function() {
   var event = new MessageEvent("message");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     event.initMessageEvent();
   }, "Not enough arguments to initMessageEvent");
 }, "initMessageEvent with no arguments");

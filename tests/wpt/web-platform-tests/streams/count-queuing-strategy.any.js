@@ -27,9 +27,9 @@ test(() => {
     get highWaterMark() { throw error; }
   };
 
-  assert_throws({ name: 'TypeError' }, () => new CountQueuingStrategy(), 'construction fails with undefined');
-  assert_throws({ name: 'TypeError' }, () => new CountQueuingStrategy(null), 'construction fails with null');
-  assert_throws({ name: 'Error' }, () => new CountQueuingStrategy(highWaterMarkObjectGetterThrowing),
+  assert_throws_js(TypeError, () => new CountQueuingStrategy(), 'construction fails with undefined');
+  assert_throws_js(TypeError, () => new CountQueuingStrategy(null), 'construction fails with null');
+  assert_throws_js(Error, () => new CountQueuingStrategy(highWaterMarkObjectGetterThrowing),
     'construction fails with an object with a throwing highWaterMark getter');
 
   // Should not fail:

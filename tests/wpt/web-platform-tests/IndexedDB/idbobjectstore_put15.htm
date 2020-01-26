@@ -21,7 +21,7 @@
         var txn = db.transaction("store");
         var ostore = txn.objectStore("store");
         t.step(function(){
-            assert_throws("ReadOnlyError", function(){
+            assert_throws_dom("ReadOnlyError", function(){
                 ostore.put({pKey: "primaryKey_0"});
             });
         });

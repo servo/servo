@@ -14,7 +14,7 @@ test(function() {
   assert_equals(desc.writable, false)
   assert_equals(desc.enumerable, false)
   assert_equals(desc.configurable, false)
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete ProgressEvent.prototype;
   })
@@ -31,7 +31,7 @@ attributes.forEach(function(a) {
     var desc = Object.getOwnPropertyDescriptor(ProgressEvent.prototype, a[1])
     assert_equals(desc.enumerable, true)
     assert_equals(desc.configurable, true)
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       ProgressEvent.prototype[a[1]]
     })
   })

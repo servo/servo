@@ -76,7 +76,7 @@ test(() => {
 test(() => {
   // This example will throw an exception because there are non-finite values in the matrix.
   var matrix = new DOMMatrix([NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]);
-  assert_throws("InvalidStateError", () => { var string = matrix + " Batman!"; });
+  assert_throws_dom("InvalidStateError", () => { var string = matrix + " Batman!"; });
 }, 'DOMMatrix NaN');
 
 test(() => {

@@ -14,7 +14,7 @@ onconnect = function(e) {
   var worker = new SharedWorker(undefined, undefined);
   worker.port.addEventListener('message', this.step_func(function(e) {
     assert_equals(e.data[0], 'undefined', 'first arg');
-    assert_equals(e.data[1], 'undefined', 'second arg');
+    assert_equals(e.data[1], '', 'second arg');
     this.done();
   }), false);
   worker.port.start();

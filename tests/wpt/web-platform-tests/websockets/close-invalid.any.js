@@ -11,7 +11,7 @@
   [true, false].forEach(function(secure) {
     test(function() {
       var ws = CreateWebSocket(secure, false, false);
-      assert_throws("InvalidAccessError", function() {
+      assert_throws_dom("InvalidAccessError", function() {
         ws.close(t[0]);
       });
       wsocket.onerror = this.unreached_func();

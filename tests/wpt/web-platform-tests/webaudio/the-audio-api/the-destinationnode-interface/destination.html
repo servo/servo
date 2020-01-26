@@ -28,12 +28,12 @@
           assert_greater_than_equal(ac.destination.maxChannelCount, 2,
             "maxChannelCount should be >= 2");
 
-          assert_throws("IndexSizeError", function() {
+          assert_throws_dom("IndexSizeError", function() {
               ac.destination.channelCount = ac.destination.maxChannelCount + 1
               }, `Setting the channelCount to something greater than
                   the maxChannelCount should throw IndexSizeError`);
 
-          assert_throws("NotSupportedError", function() {
+          assert_throws_dom("NotSupportedError", function() {
               ac.destination.channelCount = 0;
           }, "Setting the channelCount to 0 should throw NotSupportedError");
 

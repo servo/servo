@@ -32,7 +32,7 @@ async_test(function(t) {
         assert_equals(textCue.align, "center");
 
         // Remove the unadded track, make sure it throws correctly.
-        assert_throws("NotFoundError", function() { trackElement.track.removeCue(textCue); });
+        assert_throws_dom("NotFoundError", function() { trackElement.track.removeCue(textCue); });
 
         // Add the new cue to a track, make sure it is inserted correctly.
         trackElement.track.addCue(textCue);
@@ -73,7 +73,7 @@ async_test(function(t) {
         assert_equals(cues[2].startTime, 121);
 
         // Try to remove the cue again.
-        assert_throws("NotFoundError", function() { trackElement.track.removeCue(textCue); });
+        assert_throws_dom("NotFoundError", function() { trackElement.track.removeCue(textCue); });
 
         // Add a cue before all the existing cues.
         trackElement.track.addCue(new VTTCue(0, 31, "I am first"));

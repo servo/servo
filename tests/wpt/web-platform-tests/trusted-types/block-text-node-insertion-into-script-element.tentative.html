@@ -156,12 +156,12 @@
 
   promise_test(t => {
     const inserted_script = document.getElementById("script1");
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
         inserted_script.innerHTML = "2+2";
     });
 
     let new_script = document.createElement("script");
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       new_script.innerHTML = "2+2";
       container.appendChild(new_script);
     });

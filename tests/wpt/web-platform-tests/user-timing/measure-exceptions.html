@@ -27,7 +27,7 @@
     ];
     eventMarks.forEach(function(name) {
         test(()=>{
-            assert_throws("InvalidAccessError", ()=>{
+            assert_throws_dom("InvalidAccessError", ()=>{
                 window.performance.measure("measuring", name, "mark");
             }, "Should throw");
         }, `Passing '${name}' as a mark to measure API should cause error when the mark is empty.`);
@@ -39,7 +39,7 @@
     ];
     args.forEach(each => {
         test(()=>{
-            assert_throws("SyntaxError", ()=>{
+            assert_throws_dom("SyntaxError", ()=>{
                 window.performance.measure("measuring", each, "mark");
             }, "Should throw");
         }, `Passing ${each} as a mark to measure API should cause error.`);

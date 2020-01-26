@@ -96,7 +96,7 @@
         storage.clear();
 
         storage.setItem("age", "10");
-        assert_throws(test_error, function() {
+        assert_throws_exactly(test_error, function() {
             storage.setItem("age",
                 { toString: function() { throw test_error; } });
         });
@@ -111,7 +111,7 @@
         storage.clear();
 
         storage.setItem("age", "10");
-        assert_throws(test_error, function() {
+        assert_throws_exactly(test_error, function() {
             storage["age"] =
                 { toString: function() { throw test_error; } };
         });

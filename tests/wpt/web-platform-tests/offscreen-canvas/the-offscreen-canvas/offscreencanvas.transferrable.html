@@ -44,7 +44,7 @@ test(function() {
         var worker = makeWorker(document.getElementById("myWorker").textContent);
         var offscreenCanvas = new OffscreenCanvas(10, 10);
         var ctx = offscreenCanvas.getContext(contextType);
-        assert_throws("InvalidStateError", function() {
+        assert_throws_dom("InvalidStateError", function() {
             worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
         });
     }
@@ -56,7 +56,7 @@ test(function() {
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
-    assert_throws("InvalidStateError", function() {
+    assert_throws_dom("InvalidStateError", function() {
         worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
     });
 }, "Test that transfer an OffscreenCanvas twice throws exception.");
@@ -65,7 +65,7 @@ test(function() {
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
-    assert_throws("InvalidStateError", function() {
+    assert_throws_dom("InvalidStateError", function() {
         offscreenCanvas.getContext('2d');
     });
 }, "Test that calling getContext('2d') on a detached OffscreenCanvas throws exception.");
@@ -74,7 +74,7 @@ test(function() {
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
-    assert_throws("InvalidStateError", function() {
+    assert_throws_dom("InvalidStateError", function() {
         offscreenCanvas.getContext('webgl');
     });
 }, "Test that calling getContext('webgl') on a detached OffscreenCanvas throws exception.");

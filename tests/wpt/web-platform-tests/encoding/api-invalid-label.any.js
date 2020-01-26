@@ -19,6 +19,6 @@ setup(function() {
 
 tests.forEach(function(input) {
   test(function() {
-    assert_throws(new RangeError(), function() { new TextDecoder(input); });
+    assert_throws_js(RangeError, function() { new TextDecoder(input); });
   }, 'Invalid label ' + format_value(input) + ' should be rejected by TextDecoder.');
 });

@@ -66,7 +66,7 @@ test(() => {
   addProp('width');
   keyframe.easing = 'easy-peasy';
 
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(target, keyframe);
   });
   assert_equals(propAccessCount, 2,
@@ -92,7 +92,7 @@ test(() => {
   addProp(kf2, 'height');
   addProp(kf2, 'width');
 
-  assert_throws({ name: 'TypeError' }, () => {
+  assert_throws_js(TypeError, () => {
     new KeyframeEffect(target, [ kf1, kf2 ]);
   });
   assert_equals(propAccessCount, 4,

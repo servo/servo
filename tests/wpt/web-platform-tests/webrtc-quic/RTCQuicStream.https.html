@@ -34,13 +34,13 @@ promise_test(async t => {
 
 promise_test(async t => {
   const quicTransport = await makeStandaloneQuicTransport(t);
-  assert_throws('InvalidStateError', () => quicTransport.createStream());
+  assert_throws_dom('InvalidStateError', () => quicTransport.createStream());
 }, 'createStream() throws if the transport is not connected.');
 
 promise_test(async t => {
   const quicTransport = await makeStandaloneQuicTransport(t);
   quicTransport.stop();
-  assert_throws('InvalidStateError', () => quicTransport.createStream());
+  assert_throws_dom('InvalidStateError', () => quicTransport.createStream());
 }, 'createStream() throws if the transport is closed.');
 
 promise_test(async t => {
@@ -91,7 +91,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
   localStream.write({ finish: true });
-  assert_throws('InvalidStateError', () => {
+  assert_throws_dom('InvalidStateError', () => {
     localStream.write({ finish: true });
   });
 }, `write() with finish twice throws InvalidStateError.`);
@@ -200,7 +200,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
     await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
-  assert_throws('NotSupportedError', () =>
+  assert_throws_dom('NotSupportedError', () =>
       localStream.write({ data: new Uint8Array() }));
 }, 'write() without finish and an empty array throws NotSupportedError.');
 
@@ -208,7 +208,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
     await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
-  assert_throws('NotSupportedError', () =>
+  assert_throws_dom('NotSupportedError', () =>
       localStream.write({}));
 }, 'write() without finish and no data throws NotSupportedError.');
 
@@ -248,7 +248,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
       await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
-  assert_throws('OperationError', () => localStream.write({
+  assert_throws_dom('OperationError', () => localStream.write({
     data: new Uint8Array(localStream.maxWriteBufferedAmount + 1)
   }));
   assert_equals(localStream.writeBufferedAmount, 0);
@@ -260,7 +260,7 @@ promise_test(async t => {
   const localStream = localQuicTransport.createStream();
   localStream.write(
       { data: new Uint8Array(10)});
-  assert_throws('OperationError', () => localStream.write({
+  assert_throws_dom('OperationError', () => localStream.write({
     data: new Uint8Array(localStream.maxWriteBufferedAmount)
   }));
   assert_equals(localStream.writeBufferedAmount, 10);
@@ -291,12 +291,12 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
   localStream.write({ finish: true });
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
       () => localStream.write({ data: new Uint8Array([65]) }));
 }, 'write() throws InvalidStateError if write() with finish has been called.');
 
 closed_stream_test(async (t, stream) => {
-  assert_throws('InvalidStateError',
+  assert_throws_dom('InvalidStateError',
   () => stream.write({ data: new Uint8Array([65]) }));
 }, 'write() throws InvalidStateError.');
 
@@ -471,7 +471,7 @@ promise_test(async t => {
 }, 'readInto() on new local stream returns amount 0.');
 
 closed_stream_test(async (t, stream) => {
-  assert_throws('InvalidStateError', () => stream.readInto(new Uint8Array(1)));
+  assert_throws_dom('InvalidStateError', () => stream.readInto(new Uint8Array(1)));
 }, 'readInto() throws InvalidStateError.');
 
 promise_test(async t => {

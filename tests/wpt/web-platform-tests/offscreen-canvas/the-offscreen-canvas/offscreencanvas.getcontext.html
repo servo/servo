@@ -7,7 +7,7 @@
 
 test(function() {
     var offscreenCanvas = new OffscreenCanvas(1, 1);
-    assert_throws(new TypeError(), function() { offscreenCanvas.getContext('3d'); });
+    assert_throws_js(TypeError, function() { offscreenCanvas.getContext('3d'); });
 }, "Test that getContext with un-supported string throws a TypeError.");
 
 test(function() {

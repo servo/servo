@@ -37,7 +37,7 @@ function expect(v) {
     toThrow: expected => {
       if (expected.test && expected.test('not yet implemented')) {
         // We override /not yet implemented/ expectation.
-        assert_throws(TypeError(), v);
+        assert_throws_js(TypeError, v);
       } else {
         assert_throws(expected(), v);
       }

@@ -12,8 +12,8 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws(new TypeError(), function() { node.substringData() })
-    assert_throws(new TypeError(), function() { node.substringData(0) })
+    assert_throws_js(TypeError, function() { node.substringData() })
+    assert_throws_js(TypeError, function() { node.substringData(0) })
   }, type + ".substringData() with too few arguments")
 
   test(function() {
@@ -27,9 +27,9 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws("IndexSizeError", function() { node.substringData(5, 0) })
-    assert_throws("IndexSizeError", function() { node.substringData(6, 0) })
-    assert_throws("IndexSizeError", function() { node.substringData(-1, 0) })
+    assert_throws_dom("IndexSizeError", function() { node.substringData(5, 0) })
+    assert_throws_dom("IndexSizeError", function() { node.substringData(6, 0) })
+    assert_throws_dom("IndexSizeError", function() { node.substringData(-1, 0) })
   }, type + ".substringData() with invalid offset")
 
   test(function() {

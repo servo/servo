@@ -5,7 +5,7 @@ test(() => {
 
   const theError = new Error('a unique string');
 
-  assert_throws(theError, () => {
+  assert_throws_exactly(theError, () => {
     new ReadableStream({}, {
       get size() {
         throw theError;
@@ -37,7 +37,7 @@ promise_test(t => {
     }
   );
 
-  assert_throws(thrownError, () => controller.enqueue('a'), 'enqueue should re-throw the error');
+  assert_throws_exactly(thrownError, () => controller.enqueue('a'), 'enqueue should re-throw the error');
 
   return promise_rejects(t, controllerError, rs.getReader().closed);
 
@@ -63,7 +63,7 @@ promise_test(t => {
     }
   );
 
-  assert_throws(new RangeError(), () => controller.enqueue('a'), 'enqueue should throw a RangeError');
+  assert_throws_js(RangeError, () => controller.enqueue('a'), 'enqueue should throw a RangeError');
 
   return promise_rejects(t, theError, rs.getReader().closed, 'closed should reject with the error');
 
@@ -75,7 +75,7 @@ promise_test(() => {
   const rs = new ReadableStream(
     {
       start(c) {
-        assert_throws(theError, () => c.enqueue('a'), 'enqueue should throw the error');
+        assert_throws_exactly(theError, () => c.enqueue('a'), 'enqueue should throw the error');
       }
     },
     {
@@ -96,7 +96,7 @@ test(() => {
 
   const theError = new Error('a unique string');
 
-  assert_throws(theError, () => {
+  assert_throws_exactly(theError, () => {
     new ReadableStream({}, {
       size() {
         return 1;
@@ -112,7 +112,7 @@ test(() => {
 test(() => {
 
   for (const highWaterMark of [-1, -Infinity, NaN, 'foo', {}]) {
-    assert_throws(new RangeError(), () => {
+    assert_throws_js(RangeError, () => {
       new ReadableStream({}, {
         size() {
           return 1;

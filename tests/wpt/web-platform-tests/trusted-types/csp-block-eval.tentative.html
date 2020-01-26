@@ -14,7 +14,7 @@
 
   test(t => {
     let a = 0;
-    assert_throws(new EvalError(), _ => {
+    assert_throws_js(EvalError, _ => {
       eval('a="hello there"');
     });
     assert_equals(a, 0);
@@ -22,7 +22,7 @@
 
   test(t => {
     let a = 0;
-    assert_throws(new EvalError(), _ => {
+    assert_throws_js(EvalError, _ => {
       eval(p.createScript('a="Hello transformed string"'));
     });
     assert_equals(a, 0);

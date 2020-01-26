@@ -80,7 +80,7 @@
     t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
-    assert_throws(new TypeError(), () => pc.addTransceiver('invalid'));
+    assert_throws_js(TypeError, () => pc.addTransceiver('invalid'));
   }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
 
   /*
@@ -232,7 +232,7 @@
     t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', { direction: 'invalid' }));
   }, `addTransceiver() with invalid direction should throw TypeError`);
 
@@ -324,7 +324,7 @@
     t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', {
         sendEncodings: [{
           rid: '@Invalid!'
@@ -337,7 +337,7 @@
     t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', {
         sendEncodings: [{
           rid: 'a'.repeat(17)

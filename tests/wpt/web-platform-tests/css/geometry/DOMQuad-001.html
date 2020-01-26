@@ -28,19 +28,19 @@
         checkDOMQuad(function() { return new DOMQuad(); }, initial, 'testConstructor0');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad(1); });
+            assert_throws_js(TypeError, function() { new DOMQuad(1); });
         },'testConstructor1');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad(1, 2); });
+            assert_throws_js(TypeError, function() { new DOMQuad(1, 2); });
         },'testConstructor2');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad(1, 2, 3); });
+            assert_throws_js(TypeError, function() { new DOMQuad(1, 2, 3); });
         },'testConstructor3');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad(1, 2, 3, 4); });
+            assert_throws_js(TypeError, function() { new DOMQuad(1, 2, 3, 4); });
         },'testConstructor4');
 
         checkDOMQuad(
@@ -85,7 +85,7 @@
         checkDOMQuad(function() { return new DOMQuad({}, {}, {}, {}, NaN); }, initial, 'testConstructor14');
 
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMQuad({}, {}, {}, NaN); });
+            assert_throws_js(TypeError, function() { new DOMQuad({}, {}, {}, NaN); });
         },'testConstructor15');
 
         checkDOMQuad(function() {

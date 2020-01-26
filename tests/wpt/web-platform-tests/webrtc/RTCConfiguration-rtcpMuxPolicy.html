@@ -71,12 +71,12 @@
   }, `new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' }) may succeed or throw NotSupportedError`);
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ rtcpMuxPolicy: null }));
   }, `with { rtcpMuxPolicy: null } should throw TypeError`);
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ rtcpMuxPolicy: 'invalid' }));
   }, `with { rtcpMuxPolicy: 'invalid' } should throw TypeError`);
 
@@ -89,7 +89,7 @@
   test(() => {
     const pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
     assert_idl_attribute(pc, 'setConfiguration');
-    assert_throws('InvalidModificationError', () =>
+    assert_throws_dom('InvalidModificationError', () =>
       pc.setConfiguration({ rtcpMuxPolicy: 'negotiate' }));
 
   }, `setConfiguration({ rtcpMuxPolicy: 'negotiate' }) with initial rtcpMuxPolicy require should throw InvalidModificationError`);
@@ -109,7 +109,7 @@
     }
 
     assert_idl_attribute(pc, 'setConfiguration');
-    assert_throws('InvalidModificationError', () =>
+    assert_throws_dom('InvalidModificationError', () =>
       pc.setConfiguration({ rtcpMuxPolicy: 'require' }));
 
   }, `setConfiguration({ rtcpMuxPolicy: 'require' }) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);
@@ -130,7 +130,7 @@
 
     assert_idl_attribute(pc, 'setConfiguration');
     // default value for rtcpMuxPolicy is require
-    assert_throws('InvalidModificationError', () =>
+    assert_throws_dom('InvalidModificationError', () =>
       pc.setConfiguration({}));
 
   }, `setConfiguration({}) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);

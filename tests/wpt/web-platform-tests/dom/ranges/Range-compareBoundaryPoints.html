@@ -118,7 +118,7 @@ for (var i = 0; i < testRangesCached.length; i++) {
         && convertedHow != Range.START_TO_END
         && convertedHow != Range.END_TO_END
         && convertedHow != Range.END_TO_START) {
-          assert_throws("NOT_SUPPORTED_ERR", function() {
+          assert_throws_dom("NOT_SUPPORTED_ERR", function() {
             range1.compareBoundaryPoints(how, range2);
           }, "NotSupportedError required if first parameter doesn't convert to 0-3 per WebIDL");
           return;
@@ -128,7 +128,7 @@ for (var i = 0; i < testRangesCached.length; i++) {
         // root, throw a "WrongDocumentError" exception and terminate
         // these steps."
         if (furthestAncestor(range1.startContainer) != furthestAncestor(range2.startContainer)) {
-          assert_throws("WRONG_DOCUMENT_ERR", function() {
+          assert_throws_dom("WRONG_DOCUMENT_ERR", function() {
             range1.compareBoundaryPoints(how, range2);
           }, "WrongDocumentError required if the ranges don't share a root");
           return;

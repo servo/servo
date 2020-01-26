@@ -18,7 +18,7 @@
         user = token()
         client.open("GET", location.protocol+'//'+urlstart + "resources/auth10/auth.py", false, user, 'pass')
         client.setRequestHeader("x-user", user)
-        assert_throws("NetworkError", function(){ client.send(null) })
+        assert_throws_dom("NetworkError", function(){ client.send(null) })
         assert_equals(client.responseText, '')
         assert_equals(client.status, 0)
         assert_equals(client.getResponseHeader('x-challenge'), null)

@@ -31,12 +31,12 @@ test(() => {
 }, "length");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Memory());
+  assert_throws_js(TypeError, () => new WebAssembly.Memory());
 }, "No arguments");
 
 test(() => {
   const argument = { "initial": 0 };
-  assert_throws(new TypeError(), () => WebAssembly.Memory(argument));
+  assert_throws_js(TypeError, () => WebAssembly.Memory(argument));
 }, "Calling");
 
 test(() => {
@@ -53,14 +53,14 @@ test(() => {
     {},
   ];
   for (const invalidArgument of invalidArguments) {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   () => new WebAssembly.Memory(invalidArgument),
                   `new Memory(${format_value(invalidArgument)})`);
   }
 }, "Invalid descriptor argument");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Memory({ "initial": undefined }));
+  assert_throws_js(TypeError, () => new WebAssembly.Memory({ "initial": undefined }));
 }, "Undefined initial value in descriptor");
 
 const outOfRangeValues = [
@@ -74,20 +74,20 @@ const outOfRangeValues = [
 
 for (const value of outOfRangeValues) {
   test(() => {
-    assert_throws(new TypeError(), () => new WebAssembly.Memory({ "initial": value }));
+    assert_throws_js(TypeError, () => new WebAssembly.Memory({ "initial": value }));
   }, `Out-of-range initial value in descriptor: ${format_value(value)}`);
 
   test(() => {
-    assert_throws(new TypeError(), () => new WebAssembly.Memory({ "initial": 0, "maximum": value }));
+    assert_throws_js(TypeError, () => new WebAssembly.Memory({ "initial": 0, "maximum": value }));
   }, `Out-of-range maximum value in descriptor: ${format_value(value)}`);
 }
 
 test(() => {
-  assert_throws(new RangeError(), () => new WebAssembly.Memory({ "initial": 10, "maximum": 9 }));
+  assert_throws_js(RangeError, () => new WebAssembly.Memory({ "initial": 10, "maximum": 9 }));
 }, "Initial value exceeds maximum");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Memory({ "initial": 10, "shared": true }));
+  assert_throws_js(TypeError, () => new WebAssembly.Memory({ "initial": 10, "shared": true }));
 }, "Shared memory without maximum");
 
 test(() => {

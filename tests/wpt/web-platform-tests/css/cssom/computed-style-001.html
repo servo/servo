@@ -36,13 +36,13 @@
     // do not allow modifications to a computed CSSStyleDeclaration
     test(function() {
         innerStyle = window.getComputedStyle(inner);
-        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
+        assert_throws_dom(  "NO_MODIFICATION_ALLOWED_ERR",
                         function() { innerStyle.cssText = "color: blue;"; },
                         "do not allow setting cssText on a readonly CSSStyleDeclaration");
-        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
+        assert_throws_dom(  "NO_MODIFICATION_ALLOWED_ERR",
                         function() { innerStyle.setProperty("color", "blue"); },
                         "do not allow calling setProperty on a readonly CSSStyleDeclaration");
-        assert_throws(  "NO_MODIFICATION_ALLOWED_ERR",
+        assert_throws_dom(  "NO_MODIFICATION_ALLOWED_ERR",
                         function() { innerStyle.color = "blue"; },
                         "do not allow setting a property on a readonly CSSStyleDeclaration");
     }, "read_only");

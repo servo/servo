@@ -11,13 +11,13 @@
       createHTML: s => s,
       createScript: s => s
     });
-    assert_throws(new TypeError(), _ => { p1.createScriptURL("foo"); });
+    assert_throws_js(TypeError, _ => { p1.createScriptURL("foo"); });
 
     const p2 = trustedTypes.createPolicy("policyURLAndScriptURL", {
       createScriptURL: s => s
     });
-    assert_throws(new TypeError(), _ => { p2.createHTML("foo"); });
-    assert_throws(new TypeError(), _ => { p2.createScript("foo"); });
+    assert_throws_js(TypeError, _ => { p2.createHTML("foo"); });
+    assert_throws_js(TypeError, _ => { p2.createScript("foo"); });
   }, "calling undefined callbacks throws");
 
   test(t => {
@@ -35,9 +35,9 @@
 
   test(t => {
     const policy = trustedTypes.createPolicy("nullpolicy", null);
-    assert_throws(new TypeError(), _ => { policy.createScriptURL("foo"); });
-    assert_throws(new TypeError(), _ => { policy.createHTML("foo"); });
-    assert_throws(new TypeError(), _ => { policy.createScript("foo"); });
+    assert_throws_js(TypeError, _ => { policy.createScriptURL("foo"); });
+    assert_throws_js(TypeError, _ => { policy.createHTML("foo"); });
+    assert_throws_js(TypeError, _ => { policy.createScript("foo"); });
   }, "trustedTypes.createPolicy(.., null) creates empty policy.");
 
 
@@ -55,7 +55,7 @@
     [ s => s, "whatever" ],
     [ s => null, "" ],
     [ s => "well, " + s, "well, whatever" ],
-    [ s => { throw new Error() }, new Error() ],
+    [ s => { throw new Error() }, Error ],
     [ s => { aGlobalVarForSideEffectTesting = s; return s }, "whatever" ],
     [ s => aGlobalVarForSideEffectTesting + s, "whateverwhatever" ],
     [ aGlobalFunction.bind(aGlobalObject), "well, whatever" ],
@@ -66,7 +66,7 @@
     [ s => s, INPUTS.SCRIPTURL ],
     [ s => null, "" ],
     [ s => s + "#duck", INPUTS.SCRIPTURL + "#duck" ],
-    [ s => { throw new Error() }, new Error() ],
+    [ s => { throw new Error() }, Error ],
     [ s => s + "#" + aGlobalVarForSideEffectTesting,
       INPUTS.SCRIPTURL + "#global" ],
     [ anotherGlobalFunction.bind(aGlobalObject), INPUTS.SCRIPTURL + "#well," ],
@@ -99,8 +99,8 @@
     for (let [index, [policy_fn, value]] of test_cases.entries()) {
       let subtest_name = "TestPolicy" + trusted_class.name + index;
       test(t => {
-        if (value instanceof Error) {
-          assert_throws(value, () => builder(subtest_name, policy_fn));
+        if (typeof value == "object") {
+          assert_throws_js(value, () => builder(subtest_name, policy_fn));
         } else {
           assert_equals("" + builder(subtest_name, policy_fn), value);
         }

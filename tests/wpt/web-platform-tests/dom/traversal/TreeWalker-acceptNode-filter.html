@@ -88,18 +88,18 @@ test(function()
 test(function()
 {
     var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, {});
-    assert_throws(new TypeError(), function () { walker.firstChild(); });
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(new TypeError(), function () { walker.nextNode(); });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object lacking acceptNode property');
 
 test(function()
 {
     var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, { acceptNode: "foo" });
-    assert_throws(new TypeError(), function () { walker.firstChild(); });
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(new TypeError(), function () { walker.nextNode(); });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with object with non-function acceptNode property');
 
@@ -119,9 +119,9 @@ test(function()
                                            function(node) {
                                                throw test_error;
                                            });
-    assert_throws(test_error, function () { walker.firstChild(); });
+    assert_throws_exactly(test_error, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(test_error, function () { walker.nextNode(); });
+    assert_throws_exactly(test_error, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with filter function that throws');
 
@@ -134,9 +134,9 @@ test(function() {
     };
 
     var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
-    assert_throws(testError, function() { walker.firstChild(); });
+    assert_throws_exactly(testError, function() { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(testError, function() { walker.nextNode(); });
+    assert_throws_exactly(testError, function() { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, "rethrows errors when getting `acceptNode`");
 
@@ -166,9 +166,9 @@ test(function()
                                                    throw test_error;
                                                }
                                            });
-    assert_throws(test_error, function () { walker.firstChild(); });
+    assert_throws_exactly(test_error, function () { walker.firstChild(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
-    assert_throws(test_error, function () { walker.nextNode(); });
+    assert_throws_exactly(test_error, function () { walker.nextNode(); });
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with filter object that throws');
 

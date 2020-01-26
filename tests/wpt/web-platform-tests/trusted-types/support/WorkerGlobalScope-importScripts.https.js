@@ -27,13 +27,13 @@ test(t => {
 
 test(t => {
   let untrusted_url = "player.js";
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
     function() { importScripts(untrusted_url) },
     "importScripts(untrusted_url)");
 }, "importScripts with untrusted URLs throws in " + worker_type);
 
 test(t => {
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
     function() { importScripts(null) },
     "importScripts(null)");
 }, "null is not a trusted script URL throws in " + worker_type);
@@ -49,7 +49,7 @@ test(t => {
 test(t => {
   let untrusted_url = "player.js?variant1";
   let untrusted_url2 = "player.js?variant2";
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
     function() { importScripts(untrusted_url, untrusted_url2) },
     "importScripts(untrusted_url, untrusted_url2)");
 }, "importScripts with two URLs, both strings, in " + worker_type);
@@ -57,7 +57,7 @@ test(t => {
 test(t => {
   let untrusted_url = "player.js";
   let trusted_url = test_policy.createScriptURL(untrusted_url);
-  assert_throws(new TypeError(),
+  assert_throws_js(TypeError,
     function() { importScripts(untrusted_url, trusted_url) },
     "importScripts(untrusted_url, trusted_url)");
 }, "importScripts with two URLs, one trusted, in " + worker_type);

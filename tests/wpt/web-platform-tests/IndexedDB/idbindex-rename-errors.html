@@ -19,7 +19,7 @@ promise_test(testCase => {
         const store = transaction.objectStore('books');
         const index = store.index('by_author');
         store.deleteIndex('by_author');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.name = 'renamed_by_author');
     })).then(database => database.close());
 }, 'IndexedDB deleted index rename throws');
@@ -32,7 +32,7 @@ promise_test(testCase => {
         const store = transaction.objectStore('books');
         const index = store.index('by_author');
 
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.name = 'renamed_by_author');
         database.close();
     });
@@ -46,7 +46,7 @@ promise_test(testCase => {
         const store = transaction.objectStore('books');
         const index = store.index('by_author');
 
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.name = 'renamed_by_author');
         database.close();
     });
@@ -58,7 +58,7 @@ promise_test(testCase => {
         const store = createBooksStore(testCase, database);
         authorIndex = store.index('by_author');
     }).then(database => {
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError',
             () => authorIndex.name = 'renamed_by_author');
         database.close();
@@ -74,7 +74,7 @@ promise_test(testCase => {
         const store = transaction.objectStore('books');
         const index = store.index('by_author');
 
-        assert_throws('ConstraintError', () => index.name = 'by_title');
+        assert_throws_dom('ConstraintError', () => index.name = 'by_title');
         assert_array_equals(
             store.indexNames, ['by_author', 'by_title'],
             'An index rename that throws an exception should not change the ' +
@@ -102,12 +102,12 @@ promise_test(testCase => {
     }).then(() => migrateDatabase(testCase, 2, (database, transaction) => {
         const store = transaction.objectStore('books');
         const index = store.index('by_author');
-
-        assert_throws(
-            { name: 'Custom stringifying error' },
+        const exception = { name: 'Custom stringifying error' };
+        assert_throws_exactly(
+            exception,
             () => {
               index.name = {
-                toString: () => { throw { name: 'Custom stringifying error'}; }
+                toString: () => { throw exception; }
               };
             }, 'IDBObjectStore rename should re-raise toString() exception');
         assert_array_equals(

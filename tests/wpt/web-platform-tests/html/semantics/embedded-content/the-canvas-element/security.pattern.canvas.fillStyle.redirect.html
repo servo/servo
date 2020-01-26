@@ -27,8 +27,8 @@ ctx2.drawImage(document.getElementById('yellow.png'), 0, 0);
 var p = ctx.createPattern(canvas2, 'repeat');
 ctx.fillStyle = p;
 ctx.fillStyle = 'red';
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
-assert_throws("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
+assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
+assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
 
 
 });

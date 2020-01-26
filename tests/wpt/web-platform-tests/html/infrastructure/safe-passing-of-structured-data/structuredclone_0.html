@@ -354,7 +354,7 @@
                 t.step(function() {
                     assert_true(DOMException.hasOwnProperty('DATA_CLONE_ERR'), "DOMException.DATA_CLONE_ERR is present");
                     assert_equals(DOMException.DATA_CLONE_ERR, 25, "DOMException.DATA_CLONE_ERR === 25");
-                    assert_throws('DATA_CLONE_ERR', function() {worker.postMessage(window)});
+                    assert_throws_dom('DATA_CLONE_ERR', function() {worker.postMessage(window)});
                 });
                 t.done();
             },
@@ -365,7 +365,7 @@
                 t.step(function() {
                     assert_true(DOMException.hasOwnProperty('DATA_CLONE_ERR'), "DOMException.DATA_CLONE_ERR is present");
                     assert_equals(DOMException.DATA_CLONE_ERR, 25, "DOMException.DATA_CLONE_ERR === 25");
-                    assert_throws('DATA_CLONE_ERR', function() {worker.postMessage(document)});
+                    assert_throws_dom('DATA_CLONE_ERR', function() {worker.postMessage(document)});
                 });
                 t.done();
             },

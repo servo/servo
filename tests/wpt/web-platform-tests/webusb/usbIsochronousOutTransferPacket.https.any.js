@@ -11,11 +11,11 @@ test(t => {
 }, 'Can construct USBIsochronousOutTransferPacket');
 
 test(t => {
-  assert_throws(TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new USBIsochronousOutTransferPacket('invalid_status');
   });
 }, 'Cannot construct USBIsochronousOutTransferPacket with an invalid status');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBIsochronousOutTransferPacket());
+  assert_throws_js(TypeError, () => new USBIsochronousOutTransferPacket());
 }, 'Cannot construct USBIsochronousOutTransferPacket without a status');

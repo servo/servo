@@ -15,7 +15,7 @@ image.onload = function() {
     const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0, 100, 100);
 
-    assert_throws("SecurityError", () => {
+    assert_throws_dom("SecurityError", () => {
         context.getImageData(0, 0, 100, 100);
     });
     done();

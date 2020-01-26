@@ -35,42 +35,42 @@
     <p>This test checks that the alignment properties align-self and justify-self apply the 'stretch' value correctly on replaced elements.</p>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, default alignment is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
+        <p>The blue image's original size is 100px x 100px, default alignment is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
         <div class="grid">
             <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
         </div>
     </div>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, 'normal' is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
+        <p>The blue image's original size is 100px x 100px, 'normal' is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
         <div class="grid itemsNormal">
             <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
         </div>
     </div>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, but it should be stretched to fill the 500px x 500px grid area it's placed into.</p>
+        <p>The blue image's original size is 100px x 100px, but it should be stretched to fill the 500px x 500px grid area it's placed into.</p>
         <div class="grid alignItemsStretch justifyItemsStretch">
             <img src="/css/support/blue-100.png" data-expected-width="500" data-expected-height="500"/>
         </div>
     </div>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, non-stretch values prevent stretching to be applied.</p>
+        <p>The blue image's original size is 100px x 100px, non-stretch values prevent stretching to be applied.</p>
         <div class="grid itemsCenter">
             <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
         </div>
     </div>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, non-auto sizes prevent stretching to be applied.</p>
+        <p>The blue image's original size is 100px x 100px, non-auto sizes prevent stretching to be applied.</p>
         <div class="grid">
             <img class="fixedSizes" src="/css/support/blue-100.png" data-expected-width="150" data-expected-height="150"/>
         </div>
     </div>
 
     <div style="position: relative">
-        <p>The green image's original size is 100px x 100px, auto-margins prevent stretching to be applied.</p>
+        <p>The blue image's original size is 100px x 100px, auto-margins prevent stretching to be applied.</p>
         <div class="grid">
             <img class="autoMargins" src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
         </div>

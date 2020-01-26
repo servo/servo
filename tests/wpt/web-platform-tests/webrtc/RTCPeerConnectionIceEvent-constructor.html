@@ -20,7 +20,7 @@ interface RTCPeerConnectionIceEvent : Event {
 };
  */
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCPeerConnectionIceEvent();
   });
 }, "RTCPeerConnectionIceEvent with no arguments throws TypeError");
@@ -109,7 +109,7 @@ test(() => {
 
 test(() => {
   const plain = { candidate, sdpMid, sdpMLineIndex, usernameFragment };
-  assert_throws(new TypeError(), () => new RTCPeerConnectionIceEvent("type", { candidate: plain }));
+  assert_throws_js(TypeError, () => new RTCPeerConnectionIceEvent("type", { candidate: plain }));
 }, "RTCPeerConnectionIceEvent with non RTCIceCandidate object throws");
 
 test(() => {

@@ -21,7 +21,7 @@ promise_test(function(t) {
         canvas.height = 16;
 
         const ctx = canvas.getContext("2d");
-        assert_throws("InvalidStateError", function() { ctx.drawImage(imageBitmap, 0, 0); });
+        assert_throws_dom("InvalidStateError", function() { ctx.drawImage(imageBitmap, 0, 0); });
     });
 });
 </script>

@@ -129,8 +129,11 @@ def test_verify_payload():
     ("pr_event.json", True, {".taskcluster.yml",".travis.yml","tools/ci/start.sh"},
      {'lint',
       'tools/ unittests (Python 2)',
-      'tools/ unittests (Python 3)',
-      'tools/wpt/ tests',
+      'tools/ unittests (Python 3.6)',
+      'tools/ unittests (Python 3.8)',
+      'tools/wpt/ tests (Python 2)',
+      'tools/wpt/ tests (Python 3.6)',
+      'tools/wpt/ tests (Python 3.8)',
       'resources/ tests',
       'infrastructure/ tests'}),
     # More tests are affected in the actual PR but it shouldn't affect the scheduled tasks

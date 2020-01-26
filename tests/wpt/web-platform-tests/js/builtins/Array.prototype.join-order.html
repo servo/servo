@@ -11,12 +11,12 @@ var test_error = { name: "test" };
 
 // Step 1.
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     [].join.call(null, {
       toString: function() { assert_unreached(); }
     });
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     [].join.call(undefined, {
       toString: function() { assert_unreached(); }
     });

@@ -20,16 +20,16 @@ const gInvalidCoordTestCases = [
 
 for (const {angle, desc} of gInvalidAngleTestCases) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSRotate(angle));
-    assert_throws(new TypeError(), () => new CSSRotate(0, 0, 0, angle));
+    assert_throws_js(TypeError, () => new CSSRotate(angle));
+    assert_throws_js(TypeError, () => new CSSRotate(0, 0, 0, angle));
   }, 'Constructing a CSSRotate with ' + desc + ' for the angle throws a TypeError');
 }
 
 for (const {coord, desc} of gInvalidCoordTestCases) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSRotate(coord, 0, 0, CSS.deg(0)));
-    assert_throws(new TypeError(), () => new CSSRotate(0, coord, 0, CSS.deg(0)));
-    assert_throws(new TypeError(), () => new CSSRotate(0, 0, coord, CSS.deg(0)));
+    assert_throws_js(TypeError, () => new CSSRotate(coord, 0, 0, CSS.deg(0)));
+    assert_throws_js(TypeError, () => new CSSRotate(0, coord, 0, CSS.deg(0)));
+    assert_throws_js(TypeError, () => new CSSRotate(0, 0, coord, CSS.deg(0)));
   }, 'Constructing a CSSRotate with ' + desc + ' for the coordinates throws a TypeError');
 }
 
@@ -37,7 +37,7 @@ for (const attr of ['x', 'y', 'z']) {
   for (const {value, desc} of gInvalidCoordTestCases) {
     test(() => {
       let result = new CSSRotate(0, 0, 0, CSS.deg(0));
-      assert_throws(new TypeError(), () => result[attr] = value);
+      assert_throws_js(TypeError, () => result[attr] = value);
       assert_style_value_equals(result[attr], CSS.number(0));
     }, 'Updating CSSRotate.' + attr + ' to ' + desc + ' throws a TypeError');
   }
@@ -46,7 +46,7 @@ for (const attr of ['x', 'y', 'z']) {
 for (const {angle, desc} of gInvalidAngleTestCases) {
   test(() => {
     let result = new CSSRotate(CSS.deg(0));
-    assert_throws(new TypeError(), () => result.angle = angle);
+    assert_throws_js(TypeError, () => result.angle = angle);
     assert_style_value_equals(result.angle, CSS.deg(0));
   }, 'Updating CSSRotate.angle to ' + desc + ' throws a TypeError');
 }

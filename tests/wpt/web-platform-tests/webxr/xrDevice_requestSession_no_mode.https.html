@@ -12,7 +12,7 @@
           .then( (controller) => new Promise((resolve) => {
             navigator.xr.test.simulateUserActivation( () => {
               t.step_func(() => {
-                assert_throws(new TypeError(), () => navigator.xr.requestSession())
+                assert_throws_js(TypeError, () => navigator.xr.requestSession())
               })
               resolve()
             });

@@ -23,16 +23,16 @@ test(() => {
   const usp = new URLSearchParams();
   const iteratorProto = Object.getPrototypeOf(usp.entries());
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     iteratorProto.next();
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     iteratorProto.next.call(undefined);
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     iteratorProto.next.call(42);
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     iteratorProto.next.call(new Headers().entries());
   });
 }, "next() throws TypeError when called on ineligible receiver");

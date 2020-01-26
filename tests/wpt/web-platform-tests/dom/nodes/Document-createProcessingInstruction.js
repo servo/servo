@@ -17,7 +17,7 @@ test(function() {
 
   for (var i = 0, il = invalid.length; i < il; i++) {
     test(function() {
-      assert_throws("INVALID_CHARACTER_ERR", function() {
+      assert_throws_dom("INVALID_CHARACTER_ERR", function() {
         document.createProcessingInstruction(invalid[i][0], invalid[i][1])
       })
     }, "Should throw an INVALID_CHARACTER_ERR for target " +

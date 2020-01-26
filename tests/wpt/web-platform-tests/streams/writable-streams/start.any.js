@@ -60,7 +60,7 @@ test(() => {
 
   let writeCalled = false;
   let closeCalled = false;
-  assert_throws(passedError, () => {
+  assert_throws_exactly(passedError, () => {
     // recordingWritableStream cannot be used here because the exception in the
     // constructor prevents assigning the object to a variable.
     new WritableStream({

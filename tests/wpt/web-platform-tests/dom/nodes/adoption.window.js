@@ -47,7 +47,7 @@ test(() => {
     const df = dfTest.creator(doc);
     const child = df.appendChild(new Text('hi'));
     if (dfTest.name === "ShadowRoot") {
-      assert_throws("HierarchyRequestError", () => document.adoptNode(df));
+      assert_throws_dom("HierarchyRequestError", () => document.adoptNode(df));
     } else {
       document.adoptNode(df);
       assert_equals(df.childNodes.length, 1);

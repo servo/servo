@@ -20,14 +20,14 @@ const gInvalidTestCases = [
 
 for (const {value, desc} of gInvalidTestCases) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSSkewX(value));
+    assert_throws_js(TypeError, () => new CSSSkewX(value));
   }, 'Constructing a CSSSkewX with ' + desc + ' throws a TypeError');
 }
 
 for (const {value, desc} of gInvalidTestCases) {
   test(() => {
     let skewX = new CSSSkewX(CSS.deg(0));
-    assert_throws(new TypeError(), () => skewX.ax = value);
+    assert_throws_js(TypeError, () => skewX.ax = value);
     assert_style_value_equals(skewX.ax, CSS.deg(0));
   }, 'Updating CSSSkewX.ax with ' + desc + ' throws a TypeError');
 }

@@ -46,7 +46,7 @@
     const [track] = stream.getTracks();
 
     pc.close();
-    assert_throws('InvalidStateError', () => pc.addTrack(track, stream))
+    assert_throws_dom('InvalidStateError', () => pc.addTrack(track, stream))
   }, 'addTrack when pc is closed should throw InvalidStateError');
 
   /*
@@ -142,7 +142,7 @@
     const [track] = stream.getTracks();
 
     pc.addTrack(track, stream);
-    assert_throws('InvalidAccessError', () => pc.addTrack(track, stream));
+    assert_throws_dom('InvalidAccessError', () => pc.addTrack(track, stream));
   }, 'Adding the same track multiple times should throw InvalidAccessError');
 
   /*

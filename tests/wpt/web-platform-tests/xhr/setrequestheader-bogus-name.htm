@@ -27,14 +27,14 @@
         test(function() {
           var client = new XMLHttpRequest()
           client.open("GET", "...")
-          assert_throws("SyntaxError", function() { client.setRequestHeader(name, 'x-value') })
+          assert_throws_dom("SyntaxError", function() { client.setRequestHeader(name, 'x-value') })
         }, "setRequestHeader should throw with header name " + format_value(invalid_headers[i]) + ".")
       }
       function try_byte_string(name) {
         test(function() {
           var client = new XMLHttpRequest()
           client.open("GET", "...")
-          assert_throws(new TypeError(), function() { client.setRequestHeader(name, 'x-value') })
+          assert_throws_js(TypeError, function() { client.setRequestHeader(name, 'x-value') })
         }, "setRequestHeader should throw with header name " + format_value(invalid_byte_strings[i]) + ".")
       }
       var invalid_headers = ["(", ")", "<", ">", "@", ",", ";", ":", "\\",

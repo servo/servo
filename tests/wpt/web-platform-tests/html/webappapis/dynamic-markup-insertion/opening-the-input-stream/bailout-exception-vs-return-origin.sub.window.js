@@ -14,7 +14,7 @@ async_test(t => {
   iframe.onload = t.step_func_done(() => {
     // Since this is called as an event handler on an element of this window,
     // the entry settings object is that of this browsing context.
-    assert_throws("InvalidStateError", () => {
+    assert_throws_dom("InvalidStateError", () => {
       iframe.contentDocument.open();
     }, "opening an XML document should throw an InvalidStateError");
   });
@@ -39,7 +39,7 @@ async_test(t => {
     // IDL algorithm in "create an element", called by "create an element for a
     // token" in the parser.
     setEntryToTopLevel(t.step_func_done(() => {
-      assert_throws("InvalidStateError", () => {
+      assert_throws_dom("InvalidStateError", () => {
         iframe.contentDocument.open();
       }, "opening a document when the throw-on-dynamic-markup-insertion counter is incremented should throw an InvalidStateError");
     }));
@@ -60,7 +60,7 @@ async_test(t => {
     // "Clean up after running script" is executed when the </script> tag is
     // seen by the HTML parser.
     setEntryToTopLevel(t.step_func_done(() => {
-      assert_throws("SecurityError", () => {
+      assert_throws_dom("SecurityError", () => {
         iframe.contentDocument.open();
       }, "opening a same origin-domain (but not same origin) document should throw a SecurityError");
     }));
@@ -85,7 +85,7 @@ for (const ev of ["beforeunload", "pagehide", "unload"]) {
         // "Clean up after running script" is called in the task that
         // navigates.
         setEntryToTopLevel(t.step_func_done(() => {
-          assert_throws("SecurityError", () => {
+          assert_throws_dom("SecurityError", () => {
             iframe.contentDocument.open();
           }, "opening a same origin-domain (but not same origin) document should throw a SecurityError");
         }));

@@ -314,7 +314,7 @@ test(function () {
   }
 
   for (const invalidValue of ["foo", 10, undefined]) {
-    assert_throws("InvalidStateError", () => {
+    assert_throws_dom("InvalidStateError", () => {
       input.value = invalidValue;
     });
     assert_equals(input.value, "", `input.value is empty after assigning ${invalidValue}`);

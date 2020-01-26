@@ -21,16 +21,16 @@ test(() => {
 }, "length");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Table());
+  assert_throws_js(TypeError, () => new WebAssembly.Table());
 }, "No arguments");
 
 test(() => {
   const argument = { "element": "anyfunc", "initial": 0 };
-  assert_throws(new TypeError(), () => WebAssembly.Table(argument));
+  assert_throws_js(TypeError, () => WebAssembly.Table(argument));
 }, "Calling");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Table({}));
+  assert_throws_js(TypeError, () => new WebAssembly.Table({}));
 }, "Empty descriptor");
 
 test(() => {
@@ -47,18 +47,18 @@ test(() => {
     {},
   ];
   for (const invalidArgument of invalidArguments) {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   () => new WebAssembly.Table(invalidArgument),
                   `new Table(${format_value(invalidArgument)})`);
   }
 }, "Invalid descriptor argument");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": undefined }));
+  assert_throws_js(TypeError, () => new WebAssembly.Table({ "element": "anyfunc", "initial": undefined }));
 }, "Undefined initial value in descriptor");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Table({ "element": undefined, "initial": 0 }));
+  assert_throws_js(TypeError, () => new WebAssembly.Table({ "element": undefined, "initial": 0 }));
 }, "Undefined element value in descriptor");
 
 const outOfRangeValues = [
@@ -72,16 +72,16 @@ const outOfRangeValues = [
 
 for (const value of outOfRangeValues) {
   test(() => {
-    assert_throws(new TypeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": value }));
+    assert_throws_js(TypeError, () => new WebAssembly.Table({ "element": "anyfunc", "initial": value }));
   }, `Out-of-range initial value in descriptor: ${format_value(value)}`);
 
   test(() => {
-    assert_throws(new TypeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": 0, "maximum": value }));
+    assert_throws_js(TypeError, () => new WebAssembly.Table({ "element": "anyfunc", "initial": 0, "maximum": value }));
   }, `Out-of-range maximum value in descriptor: ${format_value(value)}`);
 }
 
 test(() => {
-  assert_throws(new RangeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": 10, "maximum": 9 }));
+  assert_throws_js(RangeError, () => new WebAssembly.Table({ "element": "anyfunc", "initial": 10, "maximum": 9 }));
 }, "Initial value exceeds maximum");
 
 test(() => {

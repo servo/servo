@@ -15,7 +15,7 @@
 
 <script>
 test(()=>{
-    assert_throws("SyntaxError", ()=>{document.querySelector("#123");}, "numeric hash token is invalid in a selector");
+    assert_throws_dom("SyntaxError", ()=>{document.querySelector("#123");}, "numeric hash token is invalid in a selector");
     document.querySelector("#foo\\"); // escaped-EOF in a hash token is valid in a selector
 }, "Escaped EOF turns into a U+FFFD in a hash token, makes it 'ID' type.");
 

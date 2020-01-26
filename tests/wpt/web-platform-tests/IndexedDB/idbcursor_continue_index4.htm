@@ -47,7 +47,7 @@
             case 1:
                 assert_equals(record.pKey, records[1].pKey, "second pKey");
                 assert_equals(record.iKey, records[1].iKey, "second iKey");
-                assert_throws("DataError",
+                assert_throws_dom("DataError",
                     function() { cursor.continue("indexKey_2"); });
                 t.done();
                 break;

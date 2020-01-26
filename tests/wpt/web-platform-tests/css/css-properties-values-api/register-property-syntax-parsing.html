@@ -18,7 +18,7 @@ function assert_valid(syntax, initialValue) {
 function assert_invalid(syntax, initialValue) {
     test(function(){
         var name = '--syntax-test-' + (test_count++);
-        assert_throws(new SyntaxError(),
+        assert_throws_dom("SyntaxError",
             () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false}));
     }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is invalid");
 }

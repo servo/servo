@@ -54,6 +54,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "timeout_multiplier": get_timeout_multiplier(test_type,
                                                          run_info_data,
                                                          **kwargs),
+            "e10s": run_info_data["e10s"],
             # desktop only
             "leak_check": False,
             "stylo_threads": kwargs["stylo_threads"],
@@ -123,6 +124,9 @@ class FirefoxAndroidBrowser(FirefoxBrowser):
             "dom.send_after_paint_to_content": True,
             "network.preload": True,
         })
+
+        if self.e10s:
+            self.profile.set_preferences({"browser.tabs.remote.autostart": True})
 
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")

@@ -85,18 +85,18 @@
   }, `setConfiguration({}) with initial iceTransportPolicy relay should set new value to all`);
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceTransportPolicy: 'invalid' }));
   }, `with invalid iceTransportPolicy should throw TypeError`);
 
   // "none" is in Blink and Gecko's IDL, but not in the spec.
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceTransportPolicy: 'none' }));
   }, `with none iceTransportPolicy should throw TypeError`);
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceTransportPolicy: null }));
   }, `with null iceTransportPolicy should throw TypeError`);
 

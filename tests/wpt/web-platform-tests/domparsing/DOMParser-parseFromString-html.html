@@ -72,7 +72,7 @@ test(function() {
 }, 'DOMParser should handle the content of <noembed> as raw text');
 
 test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
         new DOMParser().parseFromString("", "text/foo-this-is-invalid");
     })
 }, "DOMParser throws on an invalid enum value")

@@ -9,7 +9,7 @@
 
 test(function() {
    selection.removeAllRanges();
-   assert_throws("INVALID_STATE_ERR", function() {
+   assert_throws_dom("INVALID_STATE_ERR", function() {
        selection.collapseToStart();
    });
 }, "Must throw InvalidStateErr if the selection's range is null");

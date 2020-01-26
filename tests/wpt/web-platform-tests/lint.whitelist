@@ -384,7 +384,6 @@ INDENT TABS: css/css-images/support/1x1-green.svg
 INDENT TABS: css/css-masking/*
 INDENT TABS: css/css-multicol/*
 INDENT TABS: css/css-page/*
-INDENT TABS: css/css-regions/*
 INDENT TABS: css/css-round-display/*
 INDENT TABS: css/css-text/*
 INDENT TABS: css/css-text-decor/*
@@ -400,9 +399,6 @@ INDENT TABS: css/WOFF2/*
 
 
 ## Things we're stopping from getting worse
-CONSOLE: css/css-regions/elements/support/Three.js
-CONSOLE: css/css-regions/interactivity/selection/support/js/selection-test-helper.js
-CONSOLE: css/css-regions/stacking-context/javascript-stacking-context-002.html
 CONSOLE: css/css-shapes/shape-outside/supported-shapes/support/test-utils.js
 CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
@@ -475,9 +471,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
 # These are all the current "merge mismatch" errors the build system produces
 CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-scroll-snap/support/common.css
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/contentEditable/support/common.css
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/common.css
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-grg-rgr-grg.png
@@ -492,8 +485,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/solidblue.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox/support/solidblue.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-fuchsia.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-fuchsia.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/util.js
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/resizing/support/util.js
 
 # More duplicated copies of the above
 CSS-COLLIDING-SUPPORT-NAME: css/support/pattern-rgr-grg-rgr.png
@@ -508,7 +499,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/pattern-rgr-grg-rgr.png
@@ -534,7 +524,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/pattern-grg-rgr-grg.png
@@ -574,8 +563,6 @@ CSS-COLLIDING-REF-NAME: css/css-masking/clip-path/reference/clip-path-square-002
 
 # Duplicate filename where there's no actual merging
 # (i.e., we're being more aggressive than the build system at forbidding it)
-CSS-COLLIDING-REF-NAME: css/CSS2/positioning/position-relative-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-regions/positioned-content/reference/position-relative-001-ref.html
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-lowercase-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-lowercase-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-capitalize-003-ref.xht
@@ -678,7 +665,6 @@ MISSING-LINK: css/geometry/*.worker.js
 MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs
-LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
 LAYOUTTESTS APIS: import-maps/common/resources/common-test-helper.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js

@@ -69,7 +69,7 @@ test(t => {
   const pc = new RTCPeerConnection();
   pc.close();
   assert_equals(pc.signalingState, 'closed', 'signaling state');
-  assert_throws('InvalidStateError', () => pc.createDataChannel(''));
+  assert_throws_dom('InvalidStateError', () => pc.createDataChannel(''));
 }, 'createDataChannel with closed connection should throw InvalidStateError');
 
 /*
@@ -597,7 +597,7 @@ test(t => {
   assert_equals(dc2.id, 43,
     'Expect dc2.id to be 43');
 
-  assert_throws('OperationError', () =>
+  assert_throws_dom('OperationError', () =>
     pc.createDataChannel('channel-3', {
       negotiated: true,
       id: 42,
@@ -634,7 +634,7 @@ promise_test(async t => {
 
   assert_equals(dc2.id, 43, 'Expect dc2.id to be 43');
 
-  assert_throws('OperationError', () =>
+  assert_throws_dom('OperationError', () =>
     pc1.createDataChannel('channel-3', {
       negotiated: true,
       id: 42,
@@ -658,7 +658,7 @@ promise_test(async t => {
   assert_not_equals(dc1.id, null,
     'Expect dc1.id to be assigned after remote description has been set');
 
-  assert_throws('OperationError', () =>
+  assert_throws_dom('OperationError', () =>
     pc1.createDataChannel('channel-2', {
       negotiated: true,
       id: dc1.id,

@@ -1,5 +1,4 @@
 from __future__ import print_function
-import ConfigParser
 import argparse
 import os
 import sys
@@ -7,6 +6,7 @@ import sys
 from mozlog import structuredlog
 from mozlog.handlers import BaseHandler, StreamHandler
 from mozlog.formatters import MachFormatter
+from six.moves.configparser import ConfigParser
 from wptrunner import wptcommandline, wptrunner
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -58,7 +58,7 @@ def test_settings():
     }
 
 def read_config():
-    parser = ConfigParser.ConfigParser()
+    parser = ConfigParser()
     parser.read("test.cfg")
 
     rv = {"general":{},

@@ -37,14 +37,14 @@
 
       test(function() {
         var invalidUrl = "http://:This is not an url";
-        assert_throws(new TypeError(), function() { Response.redirect(invalidUrl); },
+        assert_throws_js(TypeError, function() { Response.redirect(invalidUrl); },
           "Expect TypeError exception");
       }, "Check error returned when giving invalid url to redirect()");
 
       var invalidRedirectStatus = [200, 309, 400, 500];
       invalidRedirectStatus.forEach(function(invalidStatus) {
         test(function() {
-          assert_throws(new RangeError() , function() { Response.redirect(url, invalidStatus); },
+          assert_throws_js(RangeError, function() { Response.redirect(url, invalidStatus); },
               "Expect RangeError exception");
         }, "Check error returned when giving invalid status to redirect(), status = " + invalidStatus);
       });

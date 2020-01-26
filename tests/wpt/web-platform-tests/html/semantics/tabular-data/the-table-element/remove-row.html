@@ -25,12 +25,12 @@
 var el = document.getElementById('element');
 
 test(function() {
-  assert_throws("IndexSizeError", function() {
+  assert_throws_dom("IndexSizeError", function() {
     el.deleteRow(-2)
   })
 }, 'deleteRow function invalid argument');
 test(function() {
-  assert_throws("IndexSizeError", function() {
+  assert_throws_dom("IndexSizeError", function() {
     el.deleteRow(el.rows.length)
   })
 }, 'deleteRow function invalid argument bis');
@@ -57,7 +57,7 @@ test(function() {
 
 test(function() {
   assert_equals(el.rows.length, 0);
-  assert_throws("IndexSizeError", function() {
+  assert_throws_dom("IndexSizeError", function() {
     el.deleteRow(0);
   });
 }, 'deleteRow(0) with no rows');

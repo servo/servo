@@ -62,7 +62,7 @@ async_test(t => {
 test(() => {
     const c = new MessageChannel();
     c.port1.close();
-    assert_throws("DataCloneError", () => self.postMessage(null, "*", [c.port1]));
+    assert_throws_dom("DataCloneError", () => self.postMessage(null, "*", [c.port1]));
     self.postMessage(null, "*", [c.port2]);
 }, "close() detaches a MessagePort (but not the one its entangled with)");
 </script>

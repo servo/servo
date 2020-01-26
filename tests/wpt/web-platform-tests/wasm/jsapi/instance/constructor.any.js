@@ -17,7 +17,7 @@ test(() => {
 }, "length");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Instance());
+  assert_throws_js(TypeError, () => new WebAssembly.Instance());
 }, "No arguments");
 
 test(() => {
@@ -33,14 +33,14 @@ test(() => {
     WebAssembly.Module.prototype,
   ];
   for (const argument of invalidArguments) {
-    assert_throws(new TypeError(), () => new WebAssembly.Instance(argument),
+    assert_throws_js(TypeError, () => new WebAssembly.Instance(argument),
                   `new Instance(${format_value(argument)})`);
   }
 }, "Non-Module arguments");
 
 test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
-  assert_throws(new TypeError(), () => WebAssembly.Instance(module));
+  assert_throws_js(TypeError, () => WebAssembly.Instance(module));
 }, "Calling");
 
 for (const [name, fn] of instanceTestFactory) {

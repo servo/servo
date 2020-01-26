@@ -58,7 +58,7 @@
   }, '{} should succeed');
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: null }));
   }, '{ iceServers: null } should throw TypeError');
 
@@ -73,17 +73,17 @@
   }, '{ iceServers: [] } should succeed');
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [null] }));
   }, '{ iceServers: [null] } should throw TypeError');
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [undefined] }));
   }, '{ iceServers: [undefined] } should throw TypeError');
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [{}] }));
   }, '{ iceServers: [{}] } should throw TypeError');
 
@@ -219,14 +219,14 @@
             server.credential are omitted, then throw an InvalidAccessError.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net'
       }] }));
   }, 'with turn server and no credentials should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net',
         username: 'user'
@@ -234,7 +234,7 @@
   }, 'with turn server and only username should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turn:turn.example.net',
         credential: 'cred'
@@ -242,14 +242,14 @@
   }, 'with turn server and only credential should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net'
       }] }));
   }, 'with turns server and no credentials should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net',
         username: 'user'
@@ -257,7 +257,7 @@
   }, 'with turns server and only username should throw InvalidAccessError');
 
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.net',
         credential: 'cred'
@@ -285,56 +285,56 @@
       transport-ext = 1*unreserved
    */
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: ''
       }] }));
   }, 'with "" url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: ['stun:stun1.example.net', '']
       }] }));
   }, 'with ["stun:stun1.example.net", ""] url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: 'relative-url'
       }] }));
   }, 'with relative url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: 'http://example.com'
       }] }));
   }, 'with http url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: 'turn://example.org/foo?x=y'
       }] }));
   }, 'with invalid turn url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: 'stun://example.org/foo?x=y'
       }] }));
   }, 'with invalid stun url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws(new SyntaxError(), () =>
+    assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: []
       }] }));
   }, `with empty urls should throw SyntaxError`);
 
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [{
         urls: [],
         credentialType: 'invalid'
@@ -343,7 +343,7 @@
 
   // token credentialType was removed from the spec since 20170508
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [{
         urls: [],
         credentialType: 'token'
@@ -352,7 +352,7 @@
 
   // Blink and Gecko fall back to url, but it's not in the spec.
   config_test(makePc => {
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       makePc({ iceServers: [{
         url: 'stun:stun1.example.net'
       }] }));
@@ -365,7 +365,7 @@
             and abort these steps.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.org',
         credentialType: 'password',
@@ -384,7 +384,7 @@
             InvalidAccessError and abort these steps.
    */
   config_test(makePc => {
-    assert_throws('InvalidAccessError', () =>
+    assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.org',
         credentialType: 'oauth',

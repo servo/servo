@@ -15,7 +15,7 @@
 from __future__ import unicode_literals
 
 from six import binary_type, text_type, BytesIO, unichr
-from six.moves import xrange
+from six.moves import range
 
 from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,
                    ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
@@ -494,7 +494,7 @@ class Tokenizer(object):
 
     def decode_escape(self, length):
         value = 0
-        for i in xrange(length):
+        for i in range(length):
             c = self.char()
             value *= 16
             value += self.escape_value(c)

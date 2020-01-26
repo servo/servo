@@ -103,7 +103,7 @@
           var expected = INITIAL_VALUE;
           input.type = types[i].type;
           if (types[i].type === "file") {
-            assert_throws("INVALID_STATE_ERR", function() {
+            assert_throws_dom("INVALID_STATE_ERR", function() {
               input.value = expected;
             });
             assert_equals(input.value, "");

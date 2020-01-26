@@ -21,7 +21,7 @@ test(() => {
   xhr = new XMLHttpRequest;
   xhr.open("PUT", url, false);
 
-  assert_throws("NetworkError", () => xhr.send(""));
+  assert_throws_dom("NetworkError", () => xhr.send(""));
 
   xhr = new XMLHttpRequest;
   xhr.open("GET", url + "&command=complete", false);

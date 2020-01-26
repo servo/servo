@@ -28,6 +28,7 @@ promise_test(async (test) => {
     "sec-ch-ua-arch",
     "sec-ch-ua-platform",
     "sec-ch-ua-model",
+    "sec-ch-ua-mobile",
   ];
 
   const response = await fetch(`resources/stale-echo-client-hints.py?token=` + request_token);

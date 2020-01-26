@@ -19,12 +19,12 @@ test(() => {
 }, "length");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Global());
+  assert_throws_js(TypeError, () => new WebAssembly.Global());
 }, "No arguments");
 
 test(() => {
   const argument = { "value": "i32" };
-  assert_throws(new TypeError(), () => WebAssembly.Global(argument));
+  assert_throws_js(TypeError, () => WebAssembly.Global(argument));
 }, "Calling");
 
 test(() => {
@@ -73,7 +73,7 @@ test(() => {
     {},
   ];
   for (const invalidArgument of invalidArguments) {
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
                   () => new WebAssembly.Global(invalidArgument),
                   `new Global(${format_value(invalidArgument)})`);
   }
@@ -83,15 +83,15 @@ test(() => {
   const invalidTypes = ["i16", "i128", "f16", "f128", "u32", "u64", "i32\0"];
   for (const value of invalidTypes) {
     const argument = { value };
-    assert_throws(new TypeError(), () => new WebAssembly.Global(argument));
+    assert_throws_js(TypeError, () => new WebAssembly.Global(argument));
   }
 }, "Invalid type argument");
 
 test(() => {
   const argument = { "value": "i64" };
   const global = new WebAssembly.Global(argument);
-  assert_throws(new TypeError(), () => global.value);
-  assert_throws(new TypeError(), () => global.valueOf());
+  assert_throws_js(TypeError, () => global.value);
+  assert_throws_js(TypeError, () => global.valueOf());
 }, "i64 with default");
 
 for (const type of ["i32", "f32", "f64"]) {

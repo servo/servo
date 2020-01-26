@@ -19,7 +19,7 @@
 
     test(function() {
         var d = dictionaryFrom('dictionary A : B { };');
-        assert_throws(new Error(), _ => d.get_inheritance_stack());
+        assert_throws_js(Error, _ => d.get_inheritance_stack());
     }, "should throw for dictionaries which inherit from another dictionary which wasn't added to the IdlArray");
 
     test(function() {

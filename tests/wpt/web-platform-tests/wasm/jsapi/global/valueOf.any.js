@@ -17,7 +17,7 @@ test(() => {
   const fn = WebAssembly.Global.prototype.valueOf;
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => fn.call(thisValue), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => fn.call(thisValue), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 

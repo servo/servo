@@ -17,7 +17,7 @@ indexeddb_test(
 
     txn.onabort = () => {
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'InvalidStateError', () => { db.createObjectStore('s2'); },
           '"running an upgrade transaction" check (InvalidStateError) ' +
           'should precede "not active" check (TransactionInactiveError)');
@@ -39,7 +39,7 @@ indexeddb_test(
 
     txn.abort();
 
-    assert_throws(
+    assert_throws_dom(
       'TransactionInactiveError',
       () => { db.createObjectStore('s2', {keyPath: '-invalid-'}); },
       '"not active" check (TransactionInactiveError) should precede ' +
@@ -56,7 +56,7 @@ indexeddb_test(
 indexeddb_test(
   (t, db) => {
     db.createObjectStore('s');
-    assert_throws('SyntaxError', () => {
+    assert_throws_dom('SyntaxError', () => {
       db.createObjectStore('s', {keyPath: 'not a valid key path'});
     }, '"Invalid key path" check (SyntaxError) should precede ' +
        '"duplicate store name" check (ConstraintError)');
@@ -70,7 +70,7 @@ indexeddb_test(
 indexeddb_test(
   (t, db) => {
     db.createObjectStore('s');
-    assert_throws('ConstraintError', () => {
+    assert_throws_dom('ConstraintError', () => {
       db.createObjectStore('s', {autoIncrement: true, keyPath: ''});
     }, '"already exists" check (ConstraintError) should precede ' +
        '"autoIncrement vs. keyPath" check (InvalidAccessError)');

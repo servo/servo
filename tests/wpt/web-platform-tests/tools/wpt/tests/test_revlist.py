@@ -1,4 +1,7 @@
+import sys
+
 import mock
+import pytest
 from tools.wpt import revlist
 
 
@@ -10,12 +13,14 @@ def test_calculate_cutoff_date():
     assert revlist.calculate_cutoff_date(3600, 3600, -1) == 3599
 
 
+@pytest.mark.xfail(sys.version_info >= (3,), reason="broken on Py3")
 def test_parse_epoch():
     assert revlist.parse_epoch(b"10h") == 36000
     assert revlist.parse_epoch(b"10d") == 864000
     assert revlist.parse_epoch(b"10w") == 6048000
 
 
+@pytest.mark.xfail(sys.version_info >= (3,), reason="broken on Py3")
 @mock.patch('subprocess.check_output')
 def test_get_epoch_revisions(mocked_check_output):
     # check:

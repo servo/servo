@@ -12,7 +12,7 @@
       var cache = window.applicationCache;
 
       test(function() {
-        assert_throws("INVALID_STATE_ERR", function(){cache.swapCache();});
+        assert_throws_dom("INVALID_STATE_ERR", function(){cache.swapCache();});
       }, "INVALID_STATE_ERR error test")
     </script>
   </body>

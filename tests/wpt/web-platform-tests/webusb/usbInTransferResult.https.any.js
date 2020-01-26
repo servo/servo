@@ -20,9 +20,9 @@ test(t => {
 }, 'Can construct a USBInTransferResult without a DataView');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBInTransferResult('invalid_status'));
+  assert_throws_js(TypeError, () => new USBInTransferResult('invalid_status'));
 }, 'Cannot construct USBInTransferResult with an invalid status');
 
 test(t => {
-  assert_throws(TypeError(), () => new USBInTransferResult());
+  assert_throws_js(TypeError, () => new USBInTransferResult());
 }, 'Cannot construct USBInTransferResult without a status');

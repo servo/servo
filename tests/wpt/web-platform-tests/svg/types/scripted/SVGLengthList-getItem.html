@@ -14,12 +14,12 @@ test(function() {
   assert_equals(xList.numberOfItems, 3);
 
   // Test with various index parameters.
-  assert_throws("IndexSizeError", function() { xList.getItem(-100); });
-  assert_throws("IndexSizeError", function() { xList.getItem(-1); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(-100); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(-1); });
   assert_equals(xList.getItem(0).value, 50);
   assert_equals(xList.getItem(1).value, 100);
   assert_equals(xList.getItem(2).value, 150);
-  assert_throws("IndexSizeError", function() { xList.getItem(3); });
-  assert_throws("IndexSizeError", function() { xList.getItem(100); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(3); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(100); });
 });
 </script>

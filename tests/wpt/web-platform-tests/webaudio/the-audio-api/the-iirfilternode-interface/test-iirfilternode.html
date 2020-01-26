@@ -9,7 +9,7 @@ test(function(t) {
 
   function check_args(arg1, arg2, err, desc) {
     test(function() {
-      assert_throws(err, function() {
+      assert_throws_dom(err, function() {
         ac.createIIRFilter(arg1, arg2)
       })
     }, desc)

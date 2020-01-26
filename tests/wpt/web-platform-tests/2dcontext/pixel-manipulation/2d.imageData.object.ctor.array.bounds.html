@@ -21,12 +21,12 @@ _addTest(function(canvas, ctx) {
 
 _assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
 
-assert_throws("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(0), 1); });
-assert_throws("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(3), 1); });
-assert_throws("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 0); });
-assert_throws("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 1, 2); });
-assert_throws(new TypeError(), function() { new ImageData(new Uint8Array(8), 1, 2); });
-assert_throws(new TypeError(), function() { new ImageData(new Int8Array(8), 1, 2); });
+assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(0), 1); });
+assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(3), 1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 1, 2); });
+assert_throws_js(TypeError, function() { new ImageData(new Uint8Array(8), 1, 2); });
+assert_throws_js(TypeError, function() { new ImageData(new Int8Array(8), 1, 2); });
 
 
 });

@@ -4,10 +4,13 @@ function assert_equals(value, expected) {
   }
 }
 
-function assert_throws(expected_exc, func) {
+function assert_throws_dom(expected_exc, func) {
   try {
     func.call(this);
   } catch(e) {
+    if (e.constructor.name != "DOMException") {
+      throw `Exception ${e.constructor.name || "unknown"} that was not a DOMException was thrown`;
+    }
     var actual = e.name || e.type;
     if (actual != expected_exc) {
       throw "Got wrong exception.\nExpected '" + expected_exc + "',\ngot '" + actual + "'.";

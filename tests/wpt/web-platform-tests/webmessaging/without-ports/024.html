@@ -9,6 +9,6 @@ test(function() {
   var ch = new MessageChannel();
   ch.port1.onmessage = function(){};
   ch.port2.start();
-  assert_throws('DATA_CLONE_ERR', function() { ch.port2.postMessage({obj: obj}); });
+  assert_throws_dom('DATA_CLONE_ERR', function() { ch.port2.postMessage({obj: obj}); });
 });
 </script>

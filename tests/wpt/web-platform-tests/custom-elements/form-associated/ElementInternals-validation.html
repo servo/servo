@@ -115,7 +115,7 @@ test(() => {
   assert_true(validity.valid);
   assert_equals(control.i.validationMessage, '');
 
-  assert_throws(new TypeError(), () => { control.i.setValidity({valueMissing: true}); },
+  assert_throws_js(TypeError, () => { control.i.setValidity({valueMissing: true}); },
       'setValidity() requires the second argument if the first argument contains true');
 }, 'validity and setValidity()');
 
@@ -125,11 +125,11 @@ test(() => {
   const flags = {valueMissing: true};
   const m = 'non-empty message';
 
-  assert_throws('NotFoundError', () => {
+  assert_throws_dom('NotFoundError', () => {
     control.i.setValidity(flags, m, document.body);
   }, 'Not a descendant');
 
-  assert_throws('NotFoundError', () => {
+  assert_throws_dom('NotFoundError', () => {
     control.i.setValidity(flags, m, control);
   }, 'Self');
 

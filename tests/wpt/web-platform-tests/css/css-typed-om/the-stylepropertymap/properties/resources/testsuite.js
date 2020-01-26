@@ -357,7 +357,7 @@ function testPropertyInvalid(propertyName, examples, description) {
   test(t => {
     let styleMap = createInlineStyleMap(t);
     for (const example of examples) {
-      assert_throws(new TypeError(), () => styleMap.set(propertyName, example.input));
+      assert_throws_js(TypeError, () => styleMap.set(propertyName, example.input));
     }
   }, `Setting '${propertyName}' to ${description} throws TypeError`);
 }

@@ -29,7 +29,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 
     mediaSource.removeSourceBuffer(sourceBuffer);
 
-    assert_throws("InvalidStateError", function()
+    assert_throws_dom("InvalidStateError", function()
     {
         sourceBuffer.changeType(MediaSourceUtil.AUDIO_VIDEO_TYPE);
     }, "changeType");
@@ -43,7 +43,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
     sourceBuffer.appendBuffer(new Uint8Array(0));
     assert_true(sourceBuffer.updating, "Updating flag set when a buffer is appended.");
 
-    assert_throws("InvalidStateError", function()
+    assert_throws_dom("InvalidStateError", function()
     {
         sourceBuffer.changeType(MediaSourceUtil.AUDIO_VIDEO_TYPE);
     }, "changeType");
@@ -58,7 +58,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
     var unsupported_type = null;
     assert_false(MediaSource.isTypeSupported(unsupported_type), "null MIME type is not expected to be supported.");
 
-    assert_throws("NotSupportedError", function()
+    assert_throws_dom("NotSupportedError", function()
     {
         sourceBuffer.changeType(unsupported_type);
     }, "changeType");
@@ -73,7 +73,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
     var unsupported_type = 'invalidType';
     assert_false(MediaSource.isTypeSupported(unsupported_type), unsupported_type + " is not expected to be supported.");
 
-    assert_throws("NotSupportedError", function()
+    assert_throws_dom("NotSupportedError", function()
     {
         sourceBuffer.changeType(unsupported_type);
     }, "changeType");

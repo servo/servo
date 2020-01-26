@@ -47,7 +47,7 @@ test(() => {
 }, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: 255");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCPeerConnection({
       iceCandidatePoolSize: -1
     });
@@ -55,7 +55,7 @@ test(() => {
 }, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: -1 (Out Of Range)");
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCPeerConnection({
       iceCandidatePoolSize: 256
     });
@@ -98,7 +98,7 @@ been implemented). Without this check, these tests will pass incorrectly.
 test(() => {
   const pc = new RTCPeerConnection();
   assert_equals(typeof pc.setConfiguration, "function", "RTCPeerConnection.prototype.setConfiguration is not implemented");
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     pc.setConfiguration({
       iceCandidatePoolSize: -1
     });
@@ -108,7 +108,7 @@ test(() => {
 test(() => {
   const pc = new RTCPeerConnection();
   assert_equals(typeof pc.setConfiguration, "function", "RTCPeerConnection.prototype.setConfiguration is not implemented");
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     pc.setConfiguration({
       iceCandidatePoolSize: 256
     });

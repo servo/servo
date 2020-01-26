@@ -15,7 +15,7 @@
 var t = async_test();
 window.onload = t.step_func(function() {
   var foo = window[0].document.documentElement.firstChild;
-  assert_throws('SyntaxError', function() {
+  assert_throws_dom('SyntaxError', function() {
     foo.innerHTML = 'x<\/foo--><\!--y';
     // This is ridiculous.
   });

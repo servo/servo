@@ -12,7 +12,7 @@ file_entry_test('file.txt', (t, entry) => {
   assert_idl_attribute(entry, 'file', 'FileSystemFileEntry has a file() method');
   assert_equals(typeof entry.file, 'function', 'FileSystemFileEntry has a file() method');
 
-  assert_throws(TypeError(), () => entry.file(), 'file() has a required argument');
+  assert_throws_js(TypeError, () => entry.file(), 'file() has a required argument');
   entry.file(t.step_func(file => {
 
     assert_class_string(file, 'File', 'file() should yield a File');

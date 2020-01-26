@@ -9,7 +9,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <a id="link" href="./">link</a>
 <script>
-/* This test ensures that an empty page is painted when there is an invisible visited link (that would be visible if the link was not visited). It's necessary that whether the page is painted or not does not depend on visitedness of the link. Otherwise the paint-timing API could be used to sniff whether a link has been visited or not. */
+/* This test ensures that an empty page is painted when there is an invisible visited link (that
+would be visible if the link was not visited). It's necessary that whether the page is painted or
+not does not depend on visitedness of the link. Otherwise the paint-timing API could be used to
+sniff whether a link has been visited or not. */
 window.onload = function() {
   /* Convenience helper to get the link into the browsing history.
     Using a relative path because some browsers only allow replaceState within the same domain. */
@@ -18,6 +21,7 @@ window.onload = function() {
   history.replaceState({}, "", current_url);
 }
 async_test(function(t) {
+  assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
   function testPaintEntries() {
       const bufferedEntries = performance.getEntriesByType('paint');
       if (bufferedEntries.length < 2) {

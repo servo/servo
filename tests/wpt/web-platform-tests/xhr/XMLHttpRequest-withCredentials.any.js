@@ -23,9 +23,9 @@ async_test(function() {
   var client = new XMLHttpRequest()
   client.open("GET", "resources/delay.py?ms=1000")
   client.send()
-  assert_throws("InvalidStateError", function() { client.withCredentials = true })
+  assert_throws_dom("InvalidStateError", function() { client.withCredentials = true })
   client.onreadystatechange = this.step_func(function() {
-    assert_throws("InvalidStateError", function() { client.withCredentials = true })
+    assert_throws_dom("InvalidStateError", function() { client.withCredentials = true })
     if (client.readyState === 4) {
       this.done()
     }
@@ -36,5 +36,5 @@ test(function() {
   var client = new XMLHttpRequest()
   client.open("GET", "resources/delay.py?ms=1000", false)
   client.send();
-  assert_throws("InvalidStateError", function() { client.withCredentials = true })
+  assert_throws_dom("InvalidStateError", function() { client.withCredentials = true })
 }, "setting withCredentials when in DONE state (synchronous)")

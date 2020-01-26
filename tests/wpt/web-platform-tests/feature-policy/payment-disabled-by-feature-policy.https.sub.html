@@ -15,7 +15,7 @@
     var details = {
       total: { label: 'Test', amount: { currency: 'USD', value: '5.00' } }
     };
-    assert_throws('SecurityError', () => {
+    assert_throws_dom('SecurityError', () => {
       new PaymentRequest(supportedInstruments, details);
     });
   }, header + ' disallows the top-level document.');

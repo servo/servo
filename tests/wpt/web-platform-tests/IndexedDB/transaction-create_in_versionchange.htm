@@ -17,14 +17,14 @@
             .add("versionchange1", 1)
             .addEventListener("success", log("versionchange_add.success"))
 
-        assert_throws('InvalidStateError', function() { db.transaction("store") })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store") })
 
         e.target.transaction
             .objectStore("store")
             .count(2)
             .addEventListener("success", log("versionchange_count.success"))
 
-        assert_throws('InvalidStateError', function() { db.transaction("store", "readwrite") })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readwrite") })
 
         open_rq.transaction
             .objectStore("store")

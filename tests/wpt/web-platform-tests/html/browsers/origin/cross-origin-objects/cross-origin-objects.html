@@ -145,7 +145,7 @@ addTest(function(win) {
   assert_equals(B.parent, window, "window.parent works same-origin");
   assert_equals(win.parent, window, "window.parent works cross-origin");
   assert_equals(B.location.pathname, path, "location.href works same-origin");
-  assert_throws("SecurityError", function() { win.location.pathname; }, "location.pathname throws cross-origin");
+  assert_throws_dom("SecurityError", function() { win.location.pathname; }, "location.pathname throws cross-origin");
   assert_equals(B.frames, 'override', "Overrides visible in the same-origin case");
   assert_equals(win.frames, win, "Overrides invisible in the cross-origin case");
   assert_equals(B.focus, 'override', "Overrides visible in the same-origin case");
@@ -221,14 +221,14 @@ addTest(function(win) {
       Object.getOwnPropertyDescriptor(win, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win, prop), "hasOwnProperty for " + String(prop));
     } else {
-      assert_throws("SecurityError", function() { win[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
-      assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(win, prop); },
+      assert_throws_dom("SecurityError", function() { win[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
+      assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win, prop); },
                     "Should throw when accessing property descriptor for " + prop + " on Window");
-      assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(win, prop); },
+      assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win, prop); },
                     "Should throw when invoking hasOwnProperty for " + prop + " on Window");
     }
     if (prop != 'location')
-      assert_throws("SecurityError", function() { win[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
+      assert_throws_dom("SecurityError", function() { win[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
   }
   for (var prop of windowAllowlists.namedFrames) {
     win[prop]; // Shouldn't throw.
@@ -240,21 +240,21 @@ addTest(function(win) {
       win.location[prop]; // Shouldn't throw.
       Object.getOwnPropertyDescriptor(win.location, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win.location, prop), "hasOwnProperty for " + prop);
-      assert_throws("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
     }
     else if (prop == 'href') {
       Object.getOwnPropertyDescriptor(win.location, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win.location, prop), "hasOwnProperty for " + prop);
-      assert_throws("SecurityError", function() { win.location[prop] },
+      assert_throws_dom("SecurityError", function() { win.location[prop] },
                     "Should throw reading href on Location");
     }
     else {
-      assert_throws("SecurityError", function() { win.location[prop]; }, "Should throw when accessing " + prop + " on Location");
-      assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(win.location, prop); },
+      assert_throws_dom("SecurityError", function() { win.location[prop]; }, "Should throw when accessing " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win.location, prop); },
                     "Should throw when accessing property descriptor for " + prop + " on Location");
-      assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(win.location, prop); },
+      assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win.location, prop); },
                     "Should throw when invoking hasOwnProperty for " + prop + " on Location");
-      assert_throws("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+      assert_throws_dom("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
     }
   }
 }, "Only certain properties are accessible cross-origin");
@@ -278,7 +278,7 @@ addPromiseTest(async function(win, test_obj) {
                                   `Should throw when calling ${objName}.${prop} with cross-origin this object`);
           } else if (!allowedlists.methods.includes(prop)) {
             for (let args of methodArgs.get(prop) || [[]]) {
-              assert_throws("SecurityError", desc.value.bind(otherObj, ...args),
+              assert_throws_dom("SecurityError", desc.value.bind(otherObj, ...args),
                             `Should throw when calling ${objName}.${prop} with cross-origin this object`);
             }
 
@@ -293,7 +293,7 @@ addPromiseTest(async function(win, test_obj) {
           if (allowedlists.getters.includes(prop)) {
             desc.get.call(otherObj); // Shouldn't throw.
           } else {
-            assert_throws("SecurityError", desc.get.bind(otherObj),
+            assert_throws_dom("SecurityError", desc.get.bind(otherObj),
                           `Should throw when calling ${objName}.${prop} getter with cross-origin this object`);
           }
         }
@@ -301,7 +301,7 @@ addPromiseTest(async function(win, test_obj) {
           if (allowedlists.setters.includes(prop)) {
             desc.set.call(otherObj, "javascript:undefined"); // Shouldn't throw.
           } else {
-            assert_throws("SecurityError", desc.set.bind(otherObj, "foo"),
+            assert_throws_dom("SecurityError", desc.set.bind(otherObj, "foo"),
                           `Should throw when calling ${objName}.${prop} setter with cross-origin this object`);
           }
         }
@@ -326,8 +326,8 @@ addTest(function(win) {
   var protoGetter = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get;
   assert_equals(protoGetter.call(win), null, "cross-origin Window proto is null");
   assert_equals(protoGetter.call(win.location), null, "cross-origin Location proto is null (__proto__)");
-  assert_throws("SecurityError", function() { win.__proto__; }, "__proto__ property not available cross-origin");
-  assert_throws("SecurityError", function() { win.location.__proto__; }, "__proto__ property not available cross-origin");
+  assert_throws_dom("SecurityError", function() { win.__proto__; }, "__proto__ property not available cross-origin");
+  assert_throws_dom("SecurityError", function() { win.location.__proto__; }, "__proto__ property not available cross-origin");
 
 }, "[[GetPrototypeOf]] should return null");
 
@@ -335,8 +335,8 @@ addTest(function(win) {
  * [[SetPrototypeOf]]
  */
 addTest(function(win) {
-  assert_throws("SecurityError", function() { win.__proto__ = new Object(); }, "proto set on cross-origin Window");
-  assert_throws("SecurityError", function() { win.location.__proto__ = new Object(); }, "proto set on cross-origin Location");
+  assert_throws_dom("SecurityError", function() { win.__proto__ = new Object(); }, "proto set on cross-origin Window");
+  assert_throws_dom("SecurityError", function() { win.location.__proto__ = new Object(); }, "proto set on cross-origin Location");
   var setters = [Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set];
   if (Object.setPrototypeOf)
     setters.push(function(p) { Object.setPrototypeOf(this, p); });
@@ -443,7 +443,7 @@ addThenTest(function(win) {
 addTest(function(win) {
   assert_equals(typeof Object.getOwnPropertyDescriptor(win, '0').value, "object");
   assert_equals(typeof Object.getOwnPropertyDescriptor(win, '1').value, "object");
-  assert_throws("SecurityError", function() {
+  assert_throws_dom("SecurityError", function() {
     Object.getOwnPropertyDescriptor(win, '2');
   });
 }, "[[GetOwnProperty]] - Should be able to get a property descriptor for an indexed property only if it corresponds to a child window.");
@@ -452,17 +452,17 @@ addTest(function(win) {
  * [[Delete]]
  */
 addTest(function(win) {
-  assert_throws("SecurityError", function() { delete win[0]; }, "Can't delete cross-origin indexed property");
-  assert_throws("SecurityError", function() { delete win[100]; }, "Can't delete cross-origin indexed property");
-  assert_throws("SecurityError", function() { delete win.location; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.parent; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.length; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.document; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.foopy; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.href; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.replace; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.port; }, "Can't delete cross-origin property");
-  assert_throws("SecurityError", function() { delete win.location.foopy; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win[0]; }, "Can't delete cross-origin indexed property");
+  assert_throws_dom("SecurityError", function() { delete win[100]; }, "Can't delete cross-origin indexed property");
+  assert_throws_dom("SecurityError", function() { delete win.location; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.parent; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.length; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.document; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.foopy; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.href; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.replace; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.port; }, "Can't delete cross-origin property");
+  assert_throws_dom("SecurityError", function() { delete win.location.foopy; }, "Can't delete cross-origin property");
 }, "[[Delete]] Should throw on cross-origin objects");
 
 /*
@@ -471,8 +471,8 @@ addTest(function(win) {
 function checkDefine(obj, prop) {
   var valueDesc = { configurable: true, enumerable: false, writable: false, value: 2 };
   var accessorDesc = { configurable: true, enumerable: false, get: function() {} };
-  assert_throws("SecurityError", function() { Object.defineProperty(obj, prop, valueDesc); }, "Can't define cross-origin value property " + prop);
-  assert_throws("SecurityError", function() { Object.defineProperty(obj, prop, accessorDesc); }, "Can't define cross-origin accessor property " + prop);
+  assert_throws_dom("SecurityError", function() { Object.defineProperty(obj, prop, valueDesc); }, "Can't define cross-origin value property " + prop);
+  assert_throws_dom("SecurityError", function() { Object.defineProperty(obj, prop, accessorDesc); }, "Can't define cross-origin accessor property " + prop);
 }
 addTest(function(win) {
   checkDefine(win, 'length');
@@ -670,10 +670,10 @@ addTest(function(win) {
 
   // Check that applying it to a cross-origin window throws instead of doing
   // the [LenientThis] behavior.
-  assert_throws("SecurityError", () => {
+  assert_throws_dom("SecurityError", () => {
     desc.get.call(win);
   }, "Should throw when getting cross-origin");
-  assert_throws("SecurityError", () => {
+  assert_throws_dom("SecurityError", () => {
     desc.set.call(win, f);
   }, "Should throw when setting cross-origin");
 }, "LenientThis behavior");

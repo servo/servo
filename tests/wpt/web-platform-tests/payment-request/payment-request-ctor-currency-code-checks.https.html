@@ -48,7 +48,7 @@ const invalidCurrencyCodes = [
   "ınr",
 ];
 
-const RANGE_ERROR = new RangeError();
+const RANGE_ERROR = RangeError;
 
 const invalidAmount = Object.freeze({
   currency: "¡INVALID!",
@@ -69,7 +69,7 @@ function smokeTest() {
 
 // Process the total:
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const validCurrency of wellFormedCurrencyCodes) {
     const amount = {
       currency: validCurrency,
@@ -93,7 +93,7 @@ test(() => {
 }, "Check and canonicalize valid details.total.amount");
 
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const invalidCurrency of invalidCurrencyCodes) {
     const amount = {
       currency: invalidCurrency,
@@ -106,7 +106,7 @@ test(() => {
     const details = {
       total,
     };
-    assert_throws(
+    assert_throws_js(
       RANGE_ERROR,
       () => {
         new PaymentRequest(defaultMethods, details);
@@ -118,7 +118,7 @@ test(() => {
 
 // If the displayItems member of details is present, then for each item in details.displayItems:
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   const displayItems = [];
   for (const validCurrency of wellFormedCurrencyCodes) {
     const amount = {
@@ -154,7 +154,7 @@ test(() => {
 }, "Check and canonicalize valid details.displayItems amount");
 
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const invalidCurrency of invalidCurrencyCodes) {
     const amount = {
       currency: invalidCurrency,
@@ -168,7 +168,7 @@ test(() => {
       total: defaultTotal,
       displayItems: [displayItem],
     };
-    assert_throws(
+    assert_throws_js(
       RANGE_ERROR,
       () => {
         new PaymentRequest(defaultMethods, details);
@@ -180,7 +180,7 @@ test(() => {
 
 // Process shipping options:
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   const shippingOptions = [];
   for (const validCurrency of wellFormedCurrencyCodes) {
     const shippingOption = {
@@ -213,7 +213,7 @@ test(() => {
 }, "Check and canonicalize valid details.shippingOptions amount.");
 
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const invalidCurrency of invalidCurrencyCodes) {
     const shippingOption = {
       id: "test",
@@ -225,7 +225,7 @@ test(() => {
       total: defaultTotal,
       shippingOptions: [shippingOption],
     };
-    assert_throws(
+    assert_throws_js(
       RANGE_ERROR,
       () => {
         new PaymentRequest(defaultMethods, details, { requestShipping: true });
@@ -237,7 +237,7 @@ test(() => {
 
 // Process payment details modifiers:
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const validCurrency of wellFormedCurrencyCodes) {
     const modifier = {
       supportedMethods: "https://wpt.fyi",
@@ -261,7 +261,7 @@ test(() => {
 }, "Check and canonicalize valid modifiers[n].total amount.");
 
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const invalidCurrency of invalidCurrencyCodes) {
     const modifier = {
       supportedMethods: "https://wpt.fyi",
@@ -274,7 +274,7 @@ test(() => {
       total: defaultTotal,
       modifiers: [modifier],
     };
-    assert_throws(
+    assert_throws_js(
       RANGE_ERROR,
       () => {
         new PaymentRequest(defaultMethods, details);
@@ -286,7 +286,7 @@ test(() => {
 
 // Process payment details modifiers:
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const validCurrency of wellFormedCurrencyCodes) {
     const additionalItem = {
       label: "additionalItem",
@@ -312,7 +312,7 @@ test(() => {
 }, "Check and canonicalize valid modifiers[n].additionaDisplayItem amount.");
 
 test(() => {
-  assert_throws(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
   for (const invalidCurrency of invalidCurrencyCodes) {
     const additionalItem = {
       label: "additionalItem",
@@ -327,7 +327,7 @@ test(() => {
       total: defaultTotal,
       modifiers: [modifier],
     };
-    assert_throws(
+    assert_throws_js(
       RANGE_ERROR,
       () => {
         new PaymentRequest(defaultMethods, details);

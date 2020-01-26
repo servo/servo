@@ -23,7 +23,7 @@ new ReportingObserver(t.step_func_done(check_report_format),
                       {types: ['feature-policy-violation']}).observe();
 
 t.step_func(() => {
-  assert_throws('NotAllowedError',
+  assert_throws_dom('NotAllowedError',
   () => document.write("This should not succeed"),
   "document.write should throw an exception when disabled");
 })();
