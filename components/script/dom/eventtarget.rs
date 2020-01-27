@@ -33,6 +33,7 @@ use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_realm;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
@@ -152,9 +153,9 @@ pub enum CompiledEventListener {
 
 impl CompiledEventListener {
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
-    pub fn call_or_handle_event<T: DomObject>(
+    pub fn call_or_handle_event(
         &self,
-        object: &T,
+        object: &EventTarget,
         event: &Event,
         exception_handle: ExceptionHandling,
     ) {
@@ -167,27 +168,29 @@ impl CompiledEventListener {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
-                            let cx = object.global().get_cx();
-                            rooted!(in(*cx) let error = event.Error(cx));
-                            let return_value = handler.Call_(
-                                object,
-                                EventOrString::String(event.Message()),
-                                Some(event.Filename()),
-                                Some(event.Lineno()),
-                                Some(event.Colno()),
-                                Some(error.handle()),
-                                exception_handle,
-                            );
-                            // Step 4
-                            if let Ok(return_value) = return_value {
-                                rooted!(in(*cx) let return_value = return_value);
-                                if return_value.handle().is_boolean() &&
-                                    return_value.handle().to_boolean() == true
-                                {
-                                    event.upcast::<Event>().PreventDefault();
+                            if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
+                                let cx = object.global().get_cx();
+                                rooted!(in(*cx) let error = event.Error(cx));
+                                let return_value = handler.Call_(
+                                    object,
+                                    EventOrString::String(event.Message()),
+                                    Some(event.Filename()),
+                                    Some(event.Lineno()),
+                                    Some(event.Colno()),
+                                    Some(error.handle()),
+                                    exception_handle,
+                                );
+                                // Step 4
+                                if let Ok(return_value) = return_value {
+                                    rooted!(in(*cx) let return_value = return_value);
+                                    if return_value.handle().is_boolean() &&
+                                        return_value.handle().to_boolean() == true
+                                    {
+                                        event.upcast::<Event>().PreventDefault();
+                                    }
                                 }
+                                return;
                             }
-                            return;
                         }
 
                         let _ = handler.Call_(
