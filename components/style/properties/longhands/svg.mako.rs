@@ -69,6 +69,7 @@ ${helpers.single_keyword(
     "mask-type",
     "luminance alpha",
     engines="gecko",
+    gecko_enum_prefix="StyleMaskType",
     animation_value_type="discrete",
     spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type",
 )}
