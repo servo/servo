@@ -254,6 +254,7 @@ pub enum CompositionStyle {
     Copy,
     Lighter,
     Xor,
+    Clear,
 }
 
 impl FromStr for CompositionStyle {
@@ -272,6 +273,7 @@ impl FromStr for CompositionStyle {
             "copy" => Ok(CompositionStyle::Copy),
             "lighter" => Ok(CompositionStyle::Lighter),
             "xor" => Ok(CompositionStyle::Xor),
+            "clear" => Ok(CompositionStyle::Clear),
             _ => Err(()),
         }
     }
@@ -291,6 +293,7 @@ impl CompositionStyle {
             CompositionStyle::Copy => "copy",
             CompositionStyle::Lighter => "lighter",
             CompositionStyle::Xor => "xor",
+            CompositionStyle::Clear => "clear",
         }
     }
 }

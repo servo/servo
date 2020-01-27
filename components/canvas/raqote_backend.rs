@@ -1002,6 +1002,7 @@ impl ToRaqoteStyle for CompositionStyle {
             CompositionStyle::Copy => raqote::BlendMode::Src,
             CompositionStyle::Lighter => raqote::BlendMode::Add,
             CompositionStyle::Xor => raqote::BlendMode::Xor,
+            CompositionStyle::Clear => raqote::BlendMode::Clear,
         }
     }
 }
