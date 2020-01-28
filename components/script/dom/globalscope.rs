@@ -8,9 +8,9 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
-use crate::dom::bindings::error::{report_pending_exception, ErrorInfo};
+use crate::dom::bindings::error::{report_pending_exception, Error, ErrorInfo};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
@@ -31,10 +31,12 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
+use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
+use crate::realms::enter_realm;
 use crate::script_module::ModuleTree;
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
@@ -69,7 +71,9 @@ use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{BlobId, MessagePortId, MessagePortRouterId, PipelineId};
 use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
+use net_traits::filemanager_thread::{
+    FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
+};
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
@@ -231,6 +235,23 @@ struct TimerListener {
     context: Trusted<GlobalScope>,
 }
 
+/// A wrapper for the handling of file data received by the ipc router
+struct FileListener {
+    /// State should progress as either of:
+    /// - Some(Empty) => Some(Receiving) => None
+    /// - Some(Empty) => None
+    state: Option<FileListenerState>,
+    task_source: FileReadingTaskSource,
+    task_canceller: TaskCanceller,
+}
+
+struct FileListenerCallback(Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>);
+
+enum FileListenerState {
+    Empty(FileListenerCallback, TrustedPromise),
+    Receiving(Vec<u8>, FileListenerCallback, TrustedPromise),
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 /// A holder of a weak reference for a DOM blob or file.
 pub enum BlobTracker {
@@ -384,6 +405,64 @@ impl MessageListener {
                     }),
                     &self.canceller,
                 );
+            },
+        }
+    }
+}
+
+impl FileListener {
+    fn handle(&mut self, msg: FileManagerResult<ReadFileProgress>) {
+        match msg {
+            Ok(ReadFileProgress::Meta(blob_buf)) => match self.state.take() {
+                Some(FileListenerState::Empty(callback, promise)) => {
+                    self.state = Some(FileListenerState::Receiving(
+                        blob_buf.bytes,
+                        callback,
+                        promise,
+                    ));
+                },
+                _ => panic!(
+                    "Unexpected FileListenerState when receiving ReadFileProgress::Meta msg."
+                ),
+            },
+            Ok(ReadFileProgress::Partial(mut bytes_in)) => match self.state.take() {
+                Some(FileListenerState::Receiving(mut bytes, callback, promise)) => {
+                    bytes.append(&mut bytes_in);
+                    self.state = Some(FileListenerState::Receiving(bytes, callback, promise));
+                },
+                _ => panic!(
+                    "Unexpected FileListenerState when receiving ReadFileProgress::Partial msg."
+                ),
+            },
+            Ok(ReadFileProgress::EOF) => match self.state.take() {
+                Some(FileListenerState::Receiving(bytes, callback, trusted_promise)) => {
+                    let _ = self.task_source.queue_with_canceller(
+                        task!(resolve_promise: move || {
+                            let promise = trusted_promise.root();
+                            let _ac = enter_realm(&*promise.global());
+                            callback.0(promise, Ok(bytes));
+                        }),
+                        &self.task_canceller,
+                    );
+                },
+                _ => {
+                    panic!("Unexpected FileListenerState when receiving ReadFileProgress::EOF msg.")
+                },
+            },
+            Err(_) => match self.state.take() {
+                Some(FileListenerState::Receiving(_, callback, trusted_promise)) |
+                Some(FileListenerState::Empty(callback, trusted_promise)) => {
+                    let bytes = Err(Error::Network);
+                    let _ = self.task_source.queue_with_canceller(
+                        task!(reject_promise: move || {
+                            let promise = trusted_promise.root();
+                            let _ac = enter_realm(&*promise.global());
+                            callback.0(promise, bytes);
+                        }),
+                        &self.task_canceller,
+                    );
+                },
+                _ => panic!("Unexpected FileListenerState when receiving Err msg."),
             },
         }
     }
@@ -1251,18 +1330,59 @@ impl GlobalScope {
     }
 
     fn read_file(&self, id: Uuid) -> Result<Vec<u8>, ()> {
+        let recv = self.send_msg(id);
+        GlobalScope::read_msg(recv)
+    }
+
+    pub fn read_file_async(
+        &self,
+        id: Uuid,
+        promise: Rc<Promise>,
+        callback: Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>,
+    ) {
+        let recv = self.send_msg(id);
+
+        let trusted_promise = TrustedPromise::new(promise);
+        let task_canceller = self.task_canceller(TaskSourceName::FileReading);
+        let task_source = self.file_reading_task_source();
+
+        let mut file_listener = FileListener {
+            state: Some(FileListenerState::Empty(
+                FileListenerCallback(callback),
+                trusted_promise,
+            )),
+            task_source,
+            task_canceller,
+        };
+
+        ROUTER.add_route(
+            recv.to_opaque(),
+            Box::new(move |msg| {
+                file_listener.handle(
+                    msg.to()
+                        .expect("Deserialization of file listener msg failed."),
+                );
+            }),
+        );
+    }
+
+    fn send_msg(&self, id: Uuid) -> profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>> {
         let resource_threads = self.resource_threads();
-        let (chan, recv) =
-            profile_ipc::channel(self.time_profiler_chan().clone()).map_err(|_| ())?;
+        let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let origin = get_blob_origin(&self.get_url());
         let check_url_validity = false;
         let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+        recv
+    }
 
+    fn read_msg(
+        receiver: profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>>,
+    ) -> Result<Vec<u8>, ()> {
         let mut bytes = vec![];
 
         loop {
-            match recv.recv().unwrap() {
+            match receiver.recv().unwrap() {
                 Ok(ReadFileProgress::Meta(mut blob_buf)) => {
                     bytes.append(&mut blob_buf.bytes);
                 },
