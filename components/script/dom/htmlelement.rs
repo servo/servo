@@ -516,6 +516,23 @@ impl HTMLElementMethods for HTMLElement {
         // Step 7.
         Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-translate
+    fn Translate(&self) -> bool {
+        self.upcast::<Element>().is_translate_enabled()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-translate
+    fn SetTranslate(&self, yesno: bool) {
+        self.upcast::<Element>().set_string_attribute(
+            // TODO change this to local_name! when html5ever updates
+            &LocalName::from("translate"),
+            match yesno {
+                true => DOMString::from("yes"),
+                false => DOMString::from("no"),
+            },
+        );
+    }
 }
 
 fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment, text: String) {
