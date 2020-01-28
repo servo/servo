@@ -19,7 +19,7 @@ test(t => {
 
   let def = trustedTypes.createPolicy("default", {});
   assert_throws_js(TypeError,
-                _ => trustedTypes.createPolicy("default", {}));
+                   _ => trustedTypes.createPolicy("default", {}));
 }, "policy - duplicate names");
 </script>
 </body>

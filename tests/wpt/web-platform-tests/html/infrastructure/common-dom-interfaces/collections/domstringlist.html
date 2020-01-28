@@ -37,7 +37,7 @@ dsl_test(['a', 'b', 'c'], (t, dsl) => {
   assert_equals(dsl.item(3), null, 'item method out of range');
   assert_equals(dsl.item(-1), null, 'item method out of range');
   assert_throws_js(TypeError, () => dsl.item(),
-                'item method should throw if called without enough args');
+                   'item method should throw if called without enough args');
 }, 'DOMStringList: item() method');
 
 dsl_test(['a', 'b', 'c'], (t, dsl) => {

@@ -48,8 +48,8 @@ test(() => {
   ];
   for (const invalidArgument of invalidArguments) {
     assert_throws_js(TypeError,
-                  () => new WebAssembly.Table(invalidArgument),
-                  `new Table(${format_value(invalidArgument)})`);
+                     () => new WebAssembly.Table(invalidArgument),
+                     `new Table(${format_value(invalidArgument)})`);
   }
 }, "Invalid descriptor argument");
 

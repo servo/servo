@@ -47,7 +47,7 @@ promise_test(async (t) => {
   const bitmap = await createImageBitmap(image);
 
   assert_throws_dom('DataCloneError',
-                () => worker.postMessage(bitmap, [bitmap]));
+                    () => worker.postMessage(bitmap, [bitmap]));
 }, 'Transferring a non-origin-clean ImageBitmap throws.');
 
 </script>

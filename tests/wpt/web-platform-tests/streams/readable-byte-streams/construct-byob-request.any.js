@@ -49,7 +49,7 @@ function runTests(ReadableStreamBYOBRequest) {
       const view = createDummyObject(Uint8Array.prototype, viewType, () => new Uint8Array(16));
       test(() => {
         assert_throws_js(TypeError, () => new ReadableStreamBYOBRequest(controller, view),
-                      'constructor should throw');
+                         'constructor should throw');
       }, `ReadableStreamBYOBRequest constructor should throw when passed a ${controllerType} ` +
          `ReadableByteStreamController and a ${viewType} view`);
     }

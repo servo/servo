@@ -150,7 +150,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => table.set(0, argument),
-                  `set(${format_value(argument)})`);
+                     `set(${format_value(argument)})`);
   }
   assert_equal_to_array(table, [null]);
 }, "Setting non-function");

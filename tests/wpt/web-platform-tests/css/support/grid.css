@@ -86,6 +86,12 @@
   grid-row: 2;
 }
 
+.thirdRowFirstColumn {
+  background-color: green;
+  grid-column: 1;
+  grid-row: 3;
+}
+
 .thirdRowSecondColumn {
   background-color: red;
   grid-column: 2;

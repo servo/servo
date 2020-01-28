@@ -15,7 +15,7 @@ indexeddb_test(
     const tx = db.transaction('store');
     tx.abort();
     assert_throws_dom('InvalidStateError', () => tx.objectStore('store'),
-                  'objectStore() should throw if transaction is finished');
+                      'objectStore() should throw if transaction is finished');
     t.done();
   },
   'IDBTransaction objectStore() behavior when transaction is finished'

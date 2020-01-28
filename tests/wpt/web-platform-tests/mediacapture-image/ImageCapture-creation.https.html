@@ -62,10 +62,10 @@ var testAudio = async_test(function() {
       assert_equals(stream.getAudioTracks().length, 1);
       assert_equals(stream.getVideoTracks().length, 0);
       assert_throws_dom("NotSupportedError",
-                    function() {
-                      var capturer = new ImageCapture(stream.getAudioTracks()[0]);
-                    },
-                    'an ImageCapturer can only be created from a video track');
+                        function() {
+                          var capturer = new ImageCapture(stream.getAudioTracks()[0]);
+                        },
+                        'an ImageCapturer can only be created from a video track');
 
       this.done();
     }))
@@ -83,12 +83,12 @@ var testParameter = test(function() {
     true
   ];
   assert_throws_js(TypeError,
-                function() { var capturer = new ImageCapture(); },
-               'an ImageCapturer can not be created with no parameter');
+                   function() { var capturer = new ImageCapture(); },
+                   'an ImageCapturer cannot be created with no parameter');
   invalidParameters.map(parameter => {
     assert_throws_js(TypeError,
-                  function() { var capturer = new ImageCapture(parameter); },
-                 `an ImageCapturer can not be created with a ${parameter} parameter`);
+                     function() { var capturer = new ImageCapture(parameter); },
+                     `an ImageCapturer cannot be created with a ${parameter} parameter`);
   });
 }, 'throw "TypeError" if parameter is not MediaStreamTrack.');
 

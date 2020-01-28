@@ -9,14 +9,14 @@
 test(t => {
   trustedTypes.createPolicy("a", {}),
   assert_throws_js(TypeError,
-                _ => trustedTypes.createPolicy("a", {}),
-                "Duplicate name");
+                   _ => trustedTypes.createPolicy("a", {}),
+                   "Duplicate name");
 
   trustedTypes.createPolicy("b", {}),
 
   assert_throws_js(TypeError,
-                _ => trustedTypes.createPolicy("d", {}),
-                "Invalid name.");
+                   _ => trustedTypes.createPolicy("d", {}),
+                   "Invalid name.");
 }, "TrustedTypePolicyFactory and policy list in CSP.");
 
 </script>

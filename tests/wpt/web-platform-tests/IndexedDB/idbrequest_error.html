@@ -18,7 +18,7 @@ async_test(t => {
 
     assert_equals(request.readyState, 'pending');
     assert_throws_dom('InvalidStateError', () => request.error,
-                  'IDBRequest.error should throw if request is pending');
+                      'IDBRequest.error should throw if request is pending');
     t.done();
   });
 }, 'IDBRequest.error throws if ready state is pending');

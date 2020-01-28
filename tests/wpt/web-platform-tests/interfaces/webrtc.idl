@@ -229,7 +229,8 @@ interface RTCPeerConnectionIceErrorEvent : Event {
 };
 
 dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
-  DOMString hostCandidate;
+  DOMString? address;
+  unsigned short? port;
   DOMString url;
   required unsigned short errorCode;
   USVString statusText;

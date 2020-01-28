@@ -20,9 +20,7 @@
      PerformanceObserver should observe one and only one entry.
   */
   async_test(function(t) {
-    if (!window.PerformanceEventTiming)
-      assert_unreached("PerformanceEventTiming is not supported");
-
+    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
     let hasObservedFirstInput = false;
     new PerformanceObserver(t.step_func((entryList) => {
         assert_false(hasObservedFirstInput);

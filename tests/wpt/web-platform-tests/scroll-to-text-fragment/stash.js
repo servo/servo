@@ -1,8 +1,10 @@
 // Put test results into Stash
-function stashResults(key, results) {
+function stashResultsThenClose(key, results) {
   fetch(`/scroll-to-text-fragment/stash.py?key=${key}`, {
     method: 'POST',
     body: JSON.stringify(results)
+  }).then(() => {
+    window.close();
   });
 }
 
@@ -18,6 +20,10 @@ function fetchResults(key, resolve, reject) {
       } catch(e) {
         reject();
       }
+    } else {
+      // We keep trying to fetch results as the target page may not have stashed
+      // them yet.
+      fetchResults(key, resolve, reject);
     }
   });
 }

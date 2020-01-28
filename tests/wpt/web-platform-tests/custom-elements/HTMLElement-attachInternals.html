@@ -15,13 +15,13 @@ test(() => {
   assert_true(element.attachInternals() instanceof ElementInternals,
               'New - 1st call');
   assert_throws_dom('NotSupportedError', () => { element.attachInternals(); },
-                'New - 2nd call');
+                    'New - 2nd call');
 
   element = document.createElement('my-element1');
   assert_true(element.attachInternals() instanceof ElementInternals,
               'createElement - 1st call');
   assert_throws_dom('NotSupportedError', () => { element.attachInternals(); },
-                'createElement - 2nd call');
+                    'createElement - 2nd call');
 
   container.innerHTML = '<my-element1></my-element1>';
   assert_true(container.firstChild.attachInternals() instanceof ElementInternals,

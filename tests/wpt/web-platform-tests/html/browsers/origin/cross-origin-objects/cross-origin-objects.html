@@ -223,9 +223,9 @@ addTest(function(win) {
     } else {
       assert_throws_dom("SecurityError", function() { win[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
       assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win, prop); },
-                    "Should throw when accessing property descriptor for " + prop + " on Window");
+                        "Should throw when accessing property descriptor for " + prop + " on Window");
       assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win, prop); },
-                    "Should throw when invoking hasOwnProperty for " + prop + " on Window");
+                        "Should throw when invoking hasOwnProperty for " + prop + " on Window");
     }
     if (prop != 'location')
       assert_throws_dom("SecurityError", function() { win[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
@@ -246,14 +246,14 @@ addTest(function(win) {
       Object.getOwnPropertyDescriptor(win.location, prop); // Shouldn't throw.
       assert_true(Object.prototype.hasOwnProperty.call(win.location, prop), "hasOwnProperty for " + prop);
       assert_throws_dom("SecurityError", function() { win.location[prop] },
-                    "Should throw reading href on Location");
+                        "Should throw reading href on Location");
     }
     else {
       assert_throws_dom("SecurityError", function() { win.location[prop]; }, "Should throw when accessing " + prop + " on Location");
       assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(win.location, prop); },
-                    "Should throw when accessing property descriptor for " + prop + " on Location");
+                        "Should throw when accessing property descriptor for " + prop + " on Location");
       assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(win.location, prop); },
-                    "Should throw when invoking hasOwnProperty for " + prop + " on Location");
+                        "Should throw when invoking hasOwnProperty for " + prop + " on Location");
       assert_throws_dom("SecurityError", function() { win.location[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
     }
   }
@@ -279,7 +279,7 @@ addPromiseTest(async function(win, test_obj) {
           } else if (!allowedlists.methods.includes(prop)) {
             for (let args of methodArgs.get(prop) || [[]]) {
               assert_throws_dom("SecurityError", desc.value.bind(otherObj, ...args),
-                            `Should throw when calling ${objName}.${prop} with cross-origin this object`);
+                                `Should throw when calling ${objName}.${prop} with cross-origin this object`);
             }
 
           } else {
@@ -294,7 +294,7 @@ addPromiseTest(async function(win, test_obj) {
             desc.get.call(otherObj); // Shouldn't throw.
           } else {
             assert_throws_dom("SecurityError", desc.get.bind(otherObj),
-                          `Should throw when calling ${objName}.${prop} getter with cross-origin this object`);
+                              `Should throw when calling ${objName}.${prop} getter with cross-origin this object`);
           }
         }
         if (desc.set) {
@@ -302,7 +302,7 @@ addPromiseTest(async function(win, test_obj) {
             desc.set.call(otherObj, "javascript:undefined"); // Shouldn't throw.
           } else {
             assert_throws_dom("SecurityError", desc.set.bind(otherObj, "foo"),
-                          `Should throw when calling ${objName}.${prop} setter with cross-origin this object`);
+                              `Should throw when calling ${objName}.${prop} setter with cross-origin this object`);
           }
         }
       }
@@ -376,9 +376,9 @@ addTest(function(win) {
  */
 addTest(function(win) {
   assert_throws_js(TypeError, function() { Object.preventExtensions(win) },
-                "preventExtensions on cross-origin Window should throw");
+                   "preventExtensions on cross-origin Window should throw");
   assert_throws_js(TypeError, function() { Object.preventExtensions(win.location) },
-                "preventExtensions on cross-origin Location should throw");
+                   "preventExtensions on cross-origin Location should throw");
 }, "[[PreventExtensions]] should throw for cross-origin objects");
 
 /*

@@ -107,14 +107,14 @@ test(() => {
 test(() => {
 
   assert_throws_js(TypeError, () => new ReadableByteStreamController(fakeRS()),
-                'Constructing a ReadableByteStreamController should throw');
+                   'Constructing a ReadableByteStreamController should throw');
 
 }, 'ReadableByteStreamController enforces a brand check on its arguments');
 
 test(() => {
 
   assert_throws_js(TypeError, () => new ReadableByteStreamController(realRS()),
-                'Constructing a ReadableByteStreamController should throw');
+                   'Constructing a ReadableByteStreamController should throw');
 
 }, 'ReadableByteStreamController can\'t be given a fully-constructed ReadableStream');
 
@@ -175,7 +175,7 @@ promise_test(t => {
   function brandChecks() {
     for (const badController of [fakeRBSController(), realRS(), realRSBYOBReader(), undefined, null]) {
       assert_throws_js(TypeError, () => new ReadableStreamBYOBRequest(badController, new Uint8Array(1)),
-                    'ReadableStreamBYOBRequest constructor must throw for an invalid controller argument');
+                       'ReadableStreamBYOBRequest constructor must throw for an invalid controller argument');
     }
     getterThrowsForAll(ReadableStreamBYOBRequest.prototype, 'view',
                        [fakeRSBYOBRequest(), realRS(), realRSBYOBReader(), realRBSController(), undefined, null]);

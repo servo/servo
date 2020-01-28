@@ -47,10 +47,8 @@
         clickTimeMin.");
   }
 
-  async_test(async function(t) {
-    assert_precondition(window.PerformanceEventTiming,
-        "PerformanceEventTiming is not supported");
-
+  promise_test(async t => {
+    assert_precondition(window.PerformanceEventTiming, "Event Timing is not supported");
     clickTimeMin = performance.now();
     let observedEntries = false;
     const observerPromise = new Promise(resolve => {
@@ -84,7 +82,6 @@
     t.step(() => {
       validateChildFrameEntries(childFrameData);
     });
-    t.done();
   }, "Event Timing: entries should only be observable by its own frame.");
 
 </script>

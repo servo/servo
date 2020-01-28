@@ -52,7 +52,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => WebAssembly.Module.exports(argument),
-                  `exports(${format_value(argument)})`);
+                     `exports(${format_value(argument)})`);
   }
 }, "Non-Module arguments");
 

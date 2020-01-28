@@ -232,7 +232,7 @@ test(function() {
   var el = document.createElement("foo")
   for (var i = 0, il = invalid_names.length; i < il; ++i) {
     assert_throws_dom("INVALID_CHARACTER_ERR",
-                  function() { el.setAttributeNS("a", invalid_names[i], "fail") })
+                      function() { el.setAttributeNS("a", invalid_names[i], "fail") })
   }
 }, "When qualifiedName does not match the Name production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown. (setAttributeNS)")
@@ -253,8 +253,8 @@ test(function() {
   var el = document.createElement("foo")
   for (var i = 0, il = invalid_qnames.length; i < il; ++i) {
     assert_throws_dom("INVALID_CHARACTER_ERR",
-                  function() { el.setAttributeNS("a", invalid_qnames[i], "fail") },
-                  "Expected exception for " + invalid_qnames[i] + ".")
+                      function() { el.setAttributeNS("a", invalid_qnames[i], "fail") },
+                      "Expected exception for " + invalid_qnames[i] + ".")
   }
 }, "When qualifiedName does not match the QName production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown.")
@@ -272,16 +272,16 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS("", "aa:bb", "fail") })
+                    function() { el.setAttributeNS("", "aa:bb", "fail") })
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS(null, "aa:bb", "fail") })
+                    function() { el.setAttributeNS(null, "aa:bb", "fail") })
 }, "A namespace is required to use a prefix.")
 
 // Step 5
 test(function() {
   var el = document.createElement("foo")
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xml:bb", "fail") })
+                    function() { el.setAttributeNS("a", "xml:bb", "fail") })
 }, "The xml prefix should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
@@ -294,12 +294,12 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xmlns:bb", "fail") })
+                    function() { el.setAttributeNS("a", "xmlns:bb", "fail") })
 }, "The xmlns prefix should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xmlns", "fail") })
+                    function() { el.setAttributeNS("a", "xmlns", "fail") })
 }, "The xmlns qualified name should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
@@ -312,9 +312,9 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS(XMLNS, "a:xmlns", "fail") })
+                    function() { el.setAttributeNS(XMLNS, "a:xmlns", "fail") })
   assert_throws_dom("NAMESPACE_ERR",
-                function() { el.setAttributeNS(XMLNS, "b:foo", "fail") })
+                    function() { el.setAttributeNS(XMLNS, "b:foo", "fail") })
 }, "The XMLNS namespace should require xmlns as prefix or qualified name")
 test(function() {
   var el = document.createElement("foo")

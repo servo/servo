@@ -34,7 +34,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => new WebAssembly.Instance(argument),
-                  `new Instance(${format_value(argument)})`);
+                     `new Instance(${format_value(argument)})`);
   }
 }, "Non-Module arguments");
 

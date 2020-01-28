@@ -17,10 +17,10 @@ test(function() {
 
   // No promise is passed.
   assert_throws_js(TypeError,
-                function() {
-                  new PromiseRejectionEvent('eventType', { bubbles: false });
-                },
-                'Cannot construct PromiseRejectionEventInit without promise');
+                   function() {
+                     new PromiseRejectionEvent('eventType', { bubbles: false });
+                   },
+                   'Cannot construct PromiseRejectionEventInit without promise');
 
   // bubbles is passed.
   assert_equals(new PromiseRejectionEvent('eventType', { bubbles: false, promise: p }).bubbles, false);

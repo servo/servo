@@ -39,7 +39,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => new WebAssembly.Module(argument),
-                  `new Module(${format_value(argument)})`);
+                     `new Module(${format_value(argument)})`);
   }
 }, "Invalid arguments");
 

@@ -87,13 +87,13 @@ promise_test(t => {
 
 test(() => {
   assert_throws_js(RangeError, () => new TransformStream(undefined, { highWaterMark: -1 }),
-                'should throw RangeError for negative writableHighWaterMark');
+                   'should throw RangeError for negative writableHighWaterMark');
   assert_throws_js(RangeError, () => new TransformStream(undefined, undefined, { highWaterMark: -1 }),
-                'should throw RangeError for negative readableHighWaterMark');
+                   'should throw RangeError for negative readableHighWaterMark');
   assert_throws_js(RangeError, () => new TransformStream(undefined, { highWaterMark: NaN }),
-                'should throw RangeError for NaN writableHighWaterMark');
+                   'should throw RangeError for NaN writableHighWaterMark');
   assert_throws_js(RangeError, () => new TransformStream(undefined, undefined, { highWaterMark: NaN }),
-                'should throw RangeError for NaN readableHighWaterMark');
+                   'should throw RangeError for NaN readableHighWaterMark');
 }, 'a RangeError should be thrown for an invalid highWaterMark');
 
 const objectThatConvertsTo42 = {

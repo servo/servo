@@ -147,7 +147,7 @@ invalid.forEach(function(arg) {
         testObj.step(function() {
           var doc = getWin(desc).document;
           assert_throws_dom("InvalidCharacterError",
-                        function() { doc.createElement(arg) })
+                            function() { doc.createElement(arg) })
         });
         testObj.done();
       });

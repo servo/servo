@@ -39,10 +39,10 @@ indexeddb_test(
 
       // Second try
       assert_throws_dom('InvalidStateError',
-                    function() { cursor.advance(1); }, 'second advance');
+                        function() { cursor.advance(1); }, 'second advance');
 
       assert_throws_dom('InvalidStateError',
-                    function() { cursor.advance(3); }, 'third advance');
+                        function() { cursor.advance(3); }, 'third advance');
 
       count++;
     });
@@ -60,19 +60,19 @@ indexeddb_test(
       var cursor = e.target.result;
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(document); });
+                       function() { cursor.advance(document); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance({}); });
+                       function() { cursor.advance({}); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance([]); });
+                       function() { cursor.advance([]); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(""); });
+                       function() { cursor.advance(""); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance("1 2"); });
+                       function() { cursor.advance("1 2"); });
 
       t.done();
     });
@@ -91,14 +91,14 @@ indexeddb_test(
       var cursor = e.target.result;
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(null); });
+                       function() { cursor.advance(null); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(undefined); });
+                       function() { cursor.advance(undefined); });
 
       var myvar = null;
       assert_throws_js(TypeError,
-                    function() { cursor.advance(myvar); });
+                       function() { cursor.advance(myvar); });
 
       t.done();
     });
@@ -117,7 +117,7 @@ indexeddb_test(
       var cursor = e.target.result;
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(); });
+                       function() { cursor.advance(); });
 
       t.done();
     });
@@ -135,26 +135,26 @@ indexeddb_test(
       var cursor = e.target.result;
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(-1); });
+                       function() { cursor.advance(-1); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(NaN); });
+                       function() { cursor.advance(NaN); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(0); });
+                       function() { cursor.advance(0); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(-0); });
+                       function() { cursor.advance(-0); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(Infinity); });
+                       function() { cursor.advance(Infinity); });
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(-Infinity); });
+                       function() { cursor.advance(-Infinity); });
 
       var myvar = -999999;
       assert_throws_js(TypeError,
-                    function() { cursor.advance(myvar); });
+                       function() { cursor.advance(myvar); });
 
       t.done();
     });
@@ -179,7 +179,7 @@ indexeddb_test(
         }
 
       assert_throws_js(TypeError,
-                    function() { cursor.advance(0); });
+                       function() { cursor.advance(0); });
 
       cursor.advance(1);
       count++;

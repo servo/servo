@@ -257,7 +257,7 @@ test(function() {
 
   // Returning duplicate keys from ownKeys() throws a TypeError.
   assert_throws_js(TypeError,
-                function() { var h = new Headers(proxy); });
+                   function() { var h = new Headers(proxy); });
 
   assert_equals(log.length, 2);
   // The first thing is the [[Get]] of Symbol.iterator to figure out whether
@@ -280,7 +280,7 @@ test(function() {
     c: "d" };
   var proxy = new Proxy(record, loggingHandler);
   assert_throws_js(TypeError,
-                function() { var h = new Headers(proxy); });
+                   function() { var h = new Headers(proxy); });
 
   assert_equals(log.length, 7);
   // The first thing is the [[Get]] of Symbol.iterator to figure out whether

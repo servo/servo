@@ -208,6 +208,7 @@ class MockRuntime {
     "local-floor": device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
     "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
     "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
+    "hit-test": device.mojom.XRSessionFeature.HIT_TEST,
   };
 
   static sessionModeToMojoMap = {
