@@ -1614,7 +1614,7 @@ where
                     Some(ctx) => ctx.pipeline_id,
                     None => {
                         return warn!(
-                            "LoadUrl for unknow browsing context: {:?}",
+                            "LoadUrl for unknown browsing context: {:?}",
                             top_level_browsing_context_id
                         );
                     },

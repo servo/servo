@@ -170,6 +170,11 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
+    // https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute
+    make_getter!(Dir, "dir");
+    // https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute
+    make_setter!(SetDir, "dir");
+
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 

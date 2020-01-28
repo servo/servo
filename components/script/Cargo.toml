@@ -110,6 +110,7 @@ style_traits = {path = "../style_traits"}
 swapper = "0.1"
 tendril = {version = "0.4.1", features = ["encoding_rs"]}
 time = "0.1.12"
+unicode-bidi = "0.3.4"
 unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"

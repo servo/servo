@@ -22,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{
@@ -171,6 +172,14 @@ impl HTMLTextAreaElement {
             document,
             HTMLTextAreaElementBinding::Wrap,
         )
+    }
+
+    pub fn directionality(&self, element_direction: &str) -> String {
+        if element_direction == "auto" {
+            let value: String = self.Value().to_string();
+            return HTMLInputElement::auto_directionality(&value);
+        }
+        return "ltr".to_owned();
     }
 
     fn update_placeholder_shown_state(&self) {

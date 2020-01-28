@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
@@ -539,6 +540,69 @@ impl Element {
             }
         }
         true // whatwg/html#5239
+    }
+
+        /// https://html.spec.whatwg.org/#the-directionality
+    pub fn directionality(&self) -> String {
+        if self.is::<HTMLElement>() {
+            let htmlElement = self.downcast::<HTMLElement>().unwrap();
+            self.html_element_directionality(&htmlElement.Dir())
+        } else {
+            let node = self.upcast::<Node>();
+            self.parent_directionality(node)
+        }
+    }
+
+    fn html_element_directionality(&self, element_direction: &str) -> String {
+        if element_direction == "ltr" {
+            return "ltr".to_owned();
+        }
+
+        if element_direction == "rtl" {
+            return "rtl".to_owned();
+        }
+
+        if self.is::<HTMLInputElement>() {
+            let input = self.downcast::<HTMLInputElement>().unwrap();
+            return input.directionality(element_direction);
+        }
+
+        if self.is::<HTMLTextAreaElement>() {
+            let area = self.downcast::<HTMLTextAreaElement>().unwrap();
+            return area.directionality(element_direction);
+        }
+
+        // TODO(dmitry.klpv): Implement condition
+        // If the element's dir attribute is in the auto state OR
+        // If the element is a bdi element and the dir attribute is not in a defined state
+        // (i.e. it is not present or has an invalid value)
+        // Requires bdi element implementation (https://html.spec.whatwg.org/#the-bdi-element)
+
+        let node = self.upcast::<Node>();
+        self.parent_directionality(node)
+    }
+
+    fn parent_directionality(&self, node: &Node) -> String {
+        if !node.has_parent() {
+            return "ltr".to_owned();
+        }
+
+        let parent = node.GetParentNode();
+        match parent {
+            Some(parent) => {
+                if parent.is::<Document>() {
+                    return "ltr".to_owned();
+                }
+
+                return if parent.is::<Element>() {
+                    let parentHtml = parent.downcast::<Element>().unwrap();
+                    parentHtml.directionality()
+                } else {
+                    self.parent_directionality(&*parent)
+                };
+            },
+            None => "ltr".to_owned(),
+        }
     }
 }
 
