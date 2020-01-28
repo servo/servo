@@ -452,6 +452,7 @@ ${helpers.single_keyword(
     engines="gecko",
     spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
     animation_value_type="discrete",
+    gecko_enum_prefix="StyleScrollBehavior",
 )}
 
 ${helpers.predefined_type(
