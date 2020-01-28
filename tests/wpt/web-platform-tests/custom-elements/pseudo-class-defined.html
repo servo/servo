@@ -16,6 +16,7 @@ const testList = [
 const neither = 'rgb(255, 0, 0)';
 const defined = 'rgb(255, 165, 0)';
 const not_defined = 'rgb(0, 0, 255)';
+const iframe = document.getElementById("iframe");
 iframe.srcdoc = `<style>
   * { color:${neither}; }
   :defined { color:${defined}; }
