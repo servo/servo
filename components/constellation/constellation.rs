@@ -109,7 +109,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-use compositing::SendableFrameTree;
+use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
@@ -145,9 +145,7 @@ use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceW
 use script_traits::{
     AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, CompositorEvent,
 };
-use script_traits::{
-    ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext,
-};
+use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData, LoadOrigin};
 use script_traits::{HistoryEntryReplacement, IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{

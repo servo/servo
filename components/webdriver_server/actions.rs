@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::Handler;
+use compositing::ConstellationMsg;
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::{ConstellationMsg, MouseButton, MouseEventType, WebDriverCommandMsg};
+use script_traits::{MouseButton, MouseEventType, WebDriverCommandMsg};
 use std::cmp;
 use std::collections::HashSet;
 use std::thread;

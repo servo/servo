@@ -419,7 +419,7 @@ pub enum EventPhase {
 /// helps us to prevent such events from being [sent to the constellation][msg] where it will be
 /// handled once again for page scrolling (which is definitely not what we'd want).
 ///
-/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
+/// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
 ///
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum EventDefault {

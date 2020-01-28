@@ -10,8 +10,7 @@ use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
-use crate::CompositionPipeline;
-use crate::SendableFrameTree;
+use crate::{CompositionPipeline, ConstellationMsg, SendableFrameTree};
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Vector2D};
@@ -28,7 +27,7 @@ use num_traits::FromPrimitive;
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
-use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
+use script_traits::{AnimationState, AnimationTickType, LayoutControlMsg};
 use script_traits::{
     MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta,
 };

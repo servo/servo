@@ -779,6 +779,7 @@ dependencies = [
  "num-traits",
  "pixels",
  "profile_traits",
+ "rust-webvr",
  "script_traits",
  "servo-media",
  "servo_geometry",
@@ -788,7 +789,6 @@ dependencies = [
  "toml",
  "webrender",
  "webrender_api",
- "webvr",
  "webvr_traits",
  "webxr",
 ]
@@ -6585,6 +6585,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "base64",
+ "compositing",
  "cookie",
  "crossbeam-channel",
  "euclid",
@@ -6703,6 +6704,7 @@ name = "webvr"
 version = "0.0.1"
 dependencies = [
  "canvas_traits",
+ "compositing",
  "crossbeam-channel",
  "euclid",
  "ipc-channel",
@@ -6710,7 +6712,6 @@ dependencies = [
  "msg",
  "rust-webvr",
  "rust-webvr-api",
- "script_traits",
  "servo_config",
  "sparkle",
  "webvr_traits",
