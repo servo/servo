@@ -272,7 +272,7 @@ fn set_cookies_from_headers(
     cookie_jar: &RwLock<CookieStorage>,
 ) {
     for cookie in headers.get_all(header::SET_COOKIE) {
-        if let Ok(cookie_str) = cookie.to_str() {
+        if let Ok(cookie_str) = std::str::from_utf8(cookie.as_bytes()) {
             set_cookie_for_url(&cookie_jar, &url, &cookie_str);
         }
     }
