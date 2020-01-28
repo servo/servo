@@ -1293,7 +1293,7 @@ impl HTMLImageElement {
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
             .find(|n| {
                 n.upcast::<Element>()
-                    .get_string_attribute(&LocalName::from("name")) ==
+                    .get_string_attribute(&local_name!("name")) ==
                     last
             });
 
