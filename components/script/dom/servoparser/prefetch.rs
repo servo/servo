@@ -128,7 +128,7 @@ impl TokenSink for PrefetchSink {
                         self.origin.clone(),
                         self.pipeline_id,
                         self.get_cors_settings(tag, local_name!("crossorigin")),
-                        self.get_referrer_policy(tag, LocalName::from("referrerpolicy")),
+                        self.get_referrer_policy(tag, local_name!("referrerpolicy")),
                         FromPictureOrSrcSet::No,
                     );
                     let _ = self
@@ -145,7 +145,7 @@ impl TokenSink for PrefetchSink {
                             let cors_setting =
                                 self.get_cors_settings(tag, local_name!("crossorigin"));
                             let referrer_policy =
-                                self.get_referrer_policy(tag, LocalName::from("referrerpolicy"));
+                                self.get_referrer_policy(tag, local_name!("referrerpolicy"));
                             let integrity_metadata = self
                                 .get_attr(tag, local_name!("integrity"))
                                 .map(|attr| String::from(&attr.value))
