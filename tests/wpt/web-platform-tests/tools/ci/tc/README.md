@@ -40,6 +40,14 @@ top-level properties:
 * `name`: Optional String. Name to use for the task overriding the
   property name. This is useful in combination with substitutions
   described below.
+* `download-artifacts`: Optional Object. An artifact to download from
+  a task that this task depends on. This has the following properties:
+  - `task` - Name of the task producing the artifact
+  - `glob` - A glob pattern for the filename of the artifact
+  - `dest` - A directory reltive to the home directory in which to place
+             the artifact
+  - `extract` - Optional. A boolean indicating whether an archive artifact
+                should be extracted in-place.
 
 ## Task Expansions
 

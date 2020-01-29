@@ -47,7 +47,7 @@ for (const trueValue of [true, 1, {}, [], 'yes']) {
 
 test(() => {
   assert_throws_js(RangeError, () => new TextDecoderStream(''),
-                'the constructor should throw');
+                   'the constructor should throw');
 }, 'constructing with an invalid encoding should throw');
 
 test(() => {
@@ -58,14 +58,14 @@ test(() => {
 
 test(() => {
   assert_throws_js(Error,
-                () => new TextDecoderStream('utf-8', {
-                  get fatal() { throw new Error(); }
-                }), 'the constructor should throw');
+                   () => new TextDecoderStream('utf-8', {
+                     get fatal() { throw new Error(); }
+                   }), 'the constructor should throw');
 }, 'a throwing fatal member should cause the constructor to throw');
 
 test(() => {
   assert_throws_js(Error,
-                () => new TextDecoderStream('utf-8', {
-                  get ignoreBOM() { throw new Error(); }
-                }), 'the constructor should throw');
+                   () => new TextDecoderStream('utf-8', {
+                     get ignoreBOM() { throw new Error(); }
+                   }), 'the constructor should throw');
 }, 'a throwing ignoreBOM member should cause the constructor to throw');

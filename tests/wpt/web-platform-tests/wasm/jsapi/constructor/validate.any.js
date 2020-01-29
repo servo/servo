@@ -25,7 +25,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => WebAssembly.validate(argument),
-                  `validate(${format_value(argument)})`);
+                     `validate(${format_value(argument)})`);
   }
 }, "Invalid arguments");
 

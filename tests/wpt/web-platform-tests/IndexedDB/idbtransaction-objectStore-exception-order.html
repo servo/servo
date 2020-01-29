@@ -15,8 +15,8 @@ indexeddb_test(
     const tx = db.transaction('s');
     tx.oncomplete = t.step_func(() => {
         assert_throws_dom('InvalidStateError', () => { tx.objectStore('nope'); },
-                      '"finished" check (InvalidStateError) should precede ' +
-                      '"name in scope" check (NotFoundError)');
+                          '"finished" check (InvalidStateError) should precede ' +
+                          '"name in scope" check (NotFoundError)');
       t.done();
     });
   },

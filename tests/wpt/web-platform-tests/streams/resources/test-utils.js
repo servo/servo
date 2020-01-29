@@ -44,7 +44,7 @@ self.methodThrowsForAll = (obj, methodName, targets, args) => {
 
 self.constructorThrowsForAll = (constructor, firstArgs) => {
   firstArgs.forEach(firstArg => assert_throws_js(TypeError, () => new constructor(firstArg),
-                                              'constructor should throw a TypeError'));
+                                                 'constructor should throw a TypeError'));
 };
 
 self.garbageCollect = () => {

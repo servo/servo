@@ -46,11 +46,11 @@
       recorder.stop();
       assert_equals(recorder.state, "inactive", "stop() is idempotent");
       assert_throws_dom("InvalidStateError", function() { recorder.pause() },
-                    "recorder cannot be pause()ed in |inactive| state");
+                        "recorder cannot be pause()ed in |inactive| state");
       assert_throws_dom("InvalidStateError", function() { recorder.resume() },
-                    "recorder cannot be resume()d in |inactive| state");
+                        "recorder cannot be resume()d in |inactive| state");
       assert_throws_dom("InvalidStateError", function() { recorder.requestData() },
-                    "cannot requestData() if recorder is in |inactive| state");
+                        "cannot requestData() if recorder is in |inactive| state");
       test.done();
     });
 
@@ -81,28 +81,28 @@
     assert_equals(stream.getVideoTracks()[0].readyState, 'live');
 
     assert_throws_dom("NotSupportedError",
-                  function() {
-                    recorder = new MediaRecorder(
-                      new MediaStream(), {mimeType : "video/invalid"});
-                  },
-                  "recorder should throw() with unsupported mimeType");
+                      function() {
+                        recorder = new MediaRecorder(
+                          new MediaStream(), {mimeType : "video/invalid"});
+                      },
+                      "recorder should throw() with unsupported mimeType");
     let recorder = new MediaRecorder(new MediaStream());
     assert_equals(recorder.state, "inactive");
 
     recorder.stop();
     assert_equals(recorder.state, "inactive", "stop() is idempotent");
     assert_throws_dom("InvalidStateError", function(){recorder.pause()},
-                  "recorder cannot be pause()ed in |inactive| state");
+                      "recorder cannot be pause()ed in |inactive| state");
     assert_throws_dom("InvalidStateError", function(){recorder.resume()},
-                  "recorder cannot be resume()d in |inactive| state");
+                      "recorder cannot be resume()d in |inactive| state");
     assert_throws_dom("InvalidStateError", function(){recorder.requestData()},
-                  "cannot requestData() if recorder is in |inactive| state");
+                      "cannot requestData() if recorder is in |inactive| state");
 
     assert_throws_dom("NotSupportedError",
-                  function() {
-                    recorder.start();
-                  },
-                  "recorder should throw() when starting with inactive stream");
+                      function() {
+                        recorder.start();
+                      },
+                      "recorder should throw() when starting with inactive stream");
 
     recorder.stream.addTrack(stream.getTracks()[0]);
 

@@ -12,9 +12,7 @@
 
 <script>
   async_test(function(t) {
-    if (!window.PerformanceEventTiming)
-      assert_unreached("PerformanceEventTiming is not supported");
-
+    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
     function testEntries() {
       // First callback is not ensured to have the entry.
       if (performance.getEntriesByType('first-input').length === 0) {

@@ -487,8 +487,8 @@ function runGenericSensorTests(sensorName,
     ];
     invalidFreqs.map(freq => {
       assert_throws_js(TypeError,
-                    () => { new sensorType({frequency: freq}) },
-                    `when freq is ${freq}`);
+                       () => { new sensorType({frequency: freq}) },
+                       `when freq is ${freq}`);
     });
   }, `${sensorName}: throw 'TypeError' if frequency is invalid.`);
 
@@ -539,8 +539,8 @@ function runGenericSensorTests(sensorName,
     ];
     invalidRefFrames.map(refFrame => {
       assert_throws_js(TypeError,
-                    () => { new sensorType({referenceFrame: refFrame}) },
-                    `when refFrame is ${refFrame}`);
+                       () => { new sensorType({referenceFrame: refFrame}) },
+                       `when refFrame is ${refFrame}`);
     });
   }, `${sensorName}: throw 'TypeError' if referenceFrame is not one of\
  enumeration values.`);

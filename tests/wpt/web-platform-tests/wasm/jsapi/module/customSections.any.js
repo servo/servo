@@ -43,7 +43,7 @@ test(() => {
   ];
   for (const argument of invalidArguments) {
     assert_throws_js(TypeError, () => WebAssembly.Module.customSections(argument, ""),
-                  `customSections(${format_value(argument)})`);
+                     `customSections(${format_value(argument)})`);
   }
 }, "Non-Module arguments");
 

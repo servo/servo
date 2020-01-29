@@ -10,8 +10,4 @@ def main(request, response):
     else:
         # Request for result data from test page
         value = request.server.stash.take(key, '/scroll-to-text-fragment/')
-        # Poll until data is stashed
-        while value is None:
-          time.sleep(.1)
-          value = request.server.stash.take(key, '/scroll-to-text-fragment/')
         return value

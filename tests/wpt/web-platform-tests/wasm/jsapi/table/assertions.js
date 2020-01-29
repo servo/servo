@@ -7,7 +7,7 @@ function assert_equal_to_array(table, expected, message) {
     assert_equals(table.get(i), expected[i], `${message}: table.get(${i} of ${expected.length})`);
   }
   assert_throws_js(RangeError, () => table.get(expected.length),
-                `${message}: table.get(${expected.length} of ${expected.length})`);
+                   `${message}: table.get(${expected.length} of ${expected.length})`);
   assert_throws_js(RangeError, () => table.get(expected.length + 1),
-                `${message}: table.get(${expected.length + 1} of ${expected.length})`);
+                   `${message}: table.get(${expected.length + 1} of ${expected.length})`);
 }

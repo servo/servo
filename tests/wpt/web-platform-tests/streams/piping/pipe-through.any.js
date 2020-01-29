@@ -100,8 +100,8 @@ const badReadables = [null, undefined, 0, NaN, true, 'ReadableStream', Object.cr
 for (const readable of badReadables) {
   test(() => {
     assert_throws_js(TypeError,
-                  ReadableStream.prototype.pipeThrough.bind(readable, uninterestingReadableWritablePair()),
-                  'pipeThrough should throw');
+                     ReadableStream.prototype.pipeThrough.bind(readable, uninterestingReadableWritablePair()),
+                     'pipeThrough should throw');
   }, `pipeThrough should brand-check this and not allow '${readable}'`);
 
   test(() => {
@@ -176,7 +176,7 @@ for (const signal of badSignals) {
   test(() => {
     const rs = new ReadableStream();
     assert_throws_js(TypeError, () => rs.pipeThrough(uninterestingReadableWritablePair(), { signal }),
-                  'pipeThrough should throw');
+                     'pipeThrough should throw');
   }, `invalid values of signal should throw; specifically '${signal}'`);
 }
 
@@ -191,7 +191,7 @@ test(() => {
   const rs = new ReadableStream();
   rs.getReader();
   assert_throws_js(TypeError, () => rs.pipeThrough(uninterestingReadableWritablePair()),
-                'pipeThrough should throw');
+                   'pipeThrough should throw');
 }, 'pipeThrough should throw if this is locked');
 
 test(() => {
@@ -200,7 +200,7 @@ test(() => {
   const readable = new ReadableStream();
   writable.getWriter();
   assert_throws_js(TypeError, () => rs.pipeThrough({writable, readable}),
-                'pipeThrough should throw');
+                   'pipeThrough should throw');
 }, 'pipeThrough should throw if writable is locked');
 
 test(() => {

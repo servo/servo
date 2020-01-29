@@ -5,14 +5,10 @@ SCRIPT_DIR=$(cd $(dirname "$0") && pwd -P)
 WPT_ROOT=$SCRIPT_DIR/../..
 cd $WPT_ROOT
 
-add_wpt_hosts() {
-    ./wpt make-hosts-file | sudo tee -a /etc/hosts
-}
-
 test_infrastructure() {
     local ARGS="";
     if [ $PRODUCT == "firefox" ]; then
-        ARGS="--install-browser"
+        ARGS="--binary=~/build/firefox/firefox"
     else
         ARGS=$1
     fi
@@ -24,7 +20,6 @@ main() {
     ./wpt manifest --rebuild -p ~/meta/MANIFEST.json
     for PRODUCT in "${PRODUCTS[@]}"; do
         if [[ "$PRODUCT" == "chrome" ]]; then
-            add_wpt_hosts
             test_infrastructure "--binary=$(which google-chrome-unstable) --channel dev"
         else
             test_infrastructure

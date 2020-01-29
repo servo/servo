@@ -1990,7 +1990,7 @@ promise_test(() => {
   const reader = rs.getReader({ mode: 'byob' });
   return reader.read(newView()).then(() => {
     assert_throws_js(TypeError, () => byobRequest.respondWithNewView(newView()),
-                  'respondWithNewView() should throw a TypeError');
+                     'respondWithNewView() should throw a TypeError');
   });
 }, 'calling respondWithNewView() twice on the same byobRequest should throw');
 
@@ -2102,20 +2102,20 @@ test(() => {
   }), 'constructor should throw for size function');
 
   assert_throws_js(RangeError, () => new ReadableStream({ type: 'bytes' }, { size: null }),
-                'constructor should throw for size defined');
+                   'constructor should throw for size defined');
 
   assert_throws_js(RangeError,
-                () => new ReadableStream({ type: 'bytes' }, new CountQueuingStrategy({ highWaterMark: 1 })),
-                'constructor should throw when strategy is CountQueuingStrategy');
+                   () => new ReadableStream({ type: 'bytes' }, new CountQueuingStrategy({ highWaterMark: 1 })),
+                   'constructor should throw when strategy is CountQueuingStrategy');
 
   assert_throws_js(RangeError,
-                () => new ReadableStream({ type: 'bytes' }, new ByteLengthQueuingStrategy({ highWaterMark: 512 })),
-                'constructor should throw when strategy is ByteLengthQueuingStrategy');
+                   () => new ReadableStream({ type: 'bytes' }, new ByteLengthQueuingStrategy({ highWaterMark: 512 })),
+                   'constructor should throw when strategy is ByteLengthQueuingStrategy');
 
   class HasSizeMethod {
     size() {}
  }
 
   assert_throws_js(RangeError, () => new ReadableStream({ type: 'bytes' }, new HasSizeMethod()),
-                'constructor should throw when size on the prototype chain');
+                   'constructor should throw when size on the prototype chain');
 }, 'ReadableStream constructor should not accept a strategy with a size defined if type is "bytes"');

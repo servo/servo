@@ -37,7 +37,7 @@ function readBlobAsPromise(blob) {
   {}
 ].forEach(value => test(t => {
   assert_throws_js(TypeError, () => new Blob([], {endings: value}),
-                'Blob constructor should throw');
+                   'Blob constructor should throw');
 }, `Invalid "endings" value: ${JSON.stringify(value)}`));
 
 test(t => {

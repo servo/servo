@@ -43,6 +43,9 @@ def get_parser():
                         'latest browser release on the selected channel.')
     parser.add_argument('--download-only', action="store_true",
                         help="Download the selected component but don't install it")
+    parser.add_argument('--rename', action="store", default=None,
+                        help="Filename, excluding extension for downloaded archive "
+                        "(only with --download-only)")
     parser.add_argument('-d', '--destination',
                         help='filesystem directory to place the component')
     return parser
@@ -75,10 +78,11 @@ def run(venv, **kwargs):
                                          "No --destination argument, and no default for the environment")
 
     install(browser, kwargs["component"], destination, channel,
-            download_only=kwargs["download_only"])
+            download_only=kwargs["download_only"], rename=kwargs["rename"])
 
 
-def install(name, component, destination, channel="nightly", logger=None, download_only=False):
+def install(name, component, destination, channel="nightly", logger=None, download_only=False,
+            rename=None):
     if logger is None:
         import logging
         logger = logging.getLogger("install")
@@ -90,6 +94,9 @@ def install(name, component, destination, channel="nightly", logger=None, downlo
 
     subclass = getattr(browser, name.title())
     sys.stdout.write('Now installing %s %s...\n' % (name, component))
-    path = getattr(subclass(logger), method)(dest=destination, channel=channel)
+    kwargs = {}
+    if download_only and rename:
+        kwargs["rename"] = rename
+    path = getattr(subclass(logger), method)(dest=destination, channel=channel, **kwargs)
     if path:
         sys.stdout.write('Binary %s as %s\n' % ("downloaded" if download_only else "installed", path,))

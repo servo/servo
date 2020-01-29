@@ -465,7 +465,7 @@ test(function() {
 ].forEach(arg => {
   test(t => {
     assert_throws_js(TypeError, () => new Blob([], arg),
-                  'Blob constructor should throw with invalid property bag');
+                     'Blob constructor should throw with invalid property bag');
   }, `Passing ${JSON.stringify(arg)} for options should throw`);
 });
 

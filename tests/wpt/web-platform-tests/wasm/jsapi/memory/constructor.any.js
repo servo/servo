@@ -54,8 +54,8 @@ test(() => {
   ];
   for (const invalidArgument of invalidArguments) {
     assert_throws_js(TypeError,
-                  () => new WebAssembly.Memory(invalidArgument),
-                  `new Memory(${format_value(invalidArgument)})`);
+                     () => new WebAssembly.Memory(invalidArgument),
+                     `new Memory(${format_value(invalidArgument)})`);
   }
 }, "Invalid descriptor argument");
 

@@ -126,6 +126,7 @@ const ALL_FEATURES = [
     "local-floor",
     "bounded-floor",
     "unbounded",
+    "hit-test",
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {

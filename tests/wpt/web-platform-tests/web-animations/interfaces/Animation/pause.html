@@ -74,9 +74,9 @@ test(t => {
   animation.playbackRate = -1;
 
   assert_throws_dom('InvalidStateError',
-                () => { animation.pause(); },
-                'Expect InvalidStateError exception on calling pause() ' +
-                'from idle with a negative playbackRate and ' +
+                    () => { animation.pause(); },
+                    'Expect InvalidStateError exception on calling pause() ' +
+                    'from idle with a negative playbackRate and ' +
                 'infinite-duration animation');
 }, 'pause() from idle with a negative playbackRate and endless effect');
 

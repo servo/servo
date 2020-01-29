@@ -34,7 +34,7 @@
                     detected_pointertypes[event.pointerType] = true;
                     test_pointerEvent.step(function() {
                       assert_throws_dom("NotFoundError", function(){ listener.setPointerCapture(INVALID_POINTERID); },
-                                    "It should not be possible to capture an invalid pointer id");
+                                        "It should not be possible to capture an invalid pointer id");
                     });
                     test_pointerEvent.done(); // complete test
                 });

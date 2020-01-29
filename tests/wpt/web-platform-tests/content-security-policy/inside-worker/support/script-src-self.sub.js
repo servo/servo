@@ -4,19 +4,19 @@ importScripts("{{location[server]}}/content-security-policy/support/testharness-
 test(t => {
   self.a = false;
   assert_throws_dom("NetworkError",
-                _ => importScripts("http://{{domains[www]}}:{{ports[http][1]}}/content-security-policy/support/var-a.js"),
-                "importScripts should throw `NetworkError`");
+                    _ => importScripts("http://{{domains[www]}}:{{ports[http][1]}}/content-security-policy/support/var-a.js"),
+                    "importScripts should throw `NetworkError`");
   assert_false(self.a);
 }, "Cross-origin `importScripts()` blocked in " + self.location.protocol + self.location.search);
 
 test(t => {
   assert_throws_js(EvalError,
-                _ => eval("1 + 1"),
-                "`eval()` should throw 'EvalError'.");
+                   _ => eval("1 + 1"),
+                   "`eval()` should throw 'EvalError'.");
 
   assert_throws_js(EvalError,
-                _ => new Function("1 + 1"),
-                "`new Function()` should throw 'EvalError'.");
+                   _ => new Function("1 + 1"),
+                   "`new Function()` should throw 'EvalError'.");
 }, "`eval()` blocked in " + self.location.protocol + self.location.search);
 
 async_test(t => {

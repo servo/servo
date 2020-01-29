@@ -12,9 +12,7 @@
   let firstInputSeen = false;
   let eventSeen = false;
   async_test(t => {
-    if (!window.PerformanceEventTiming)
-      assert_unreached("PerformanceEventTiming is not supported");
-
+    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
     const validateEntry = t.step_func(entry => {
       if (entry.entryType === 'first-input')
         firstInputSeen = true;

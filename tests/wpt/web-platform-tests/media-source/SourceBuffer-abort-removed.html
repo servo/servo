@@ -33,10 +33,10 @@ function mediaTest(mime) {
             var sourceBuffer = mediaSource.addSourceBuffer(mime);
             mediaSource.removeSourceBuffer(sourceBuffer);
             assert_throws_dom('InvalidStateError',
-                          function() {
-                              sourceBuffer.abort();
-                          },
-                          'SourceBuffer#abort() after removing the SourceBuffer object');
+                              function() {
+                                  sourceBuffer.abort();
+                              },
+                              'SourceBuffer#abort() after removing the SourceBuffer object');
         }), false);
         var video = document.createElement('video');
         video.src = window.URL.createObjectURL(mediaSource);

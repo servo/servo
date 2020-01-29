@@ -44,8 +44,8 @@
     {
         mediaSource.removeSourceBuffer(sourceBuffer);
         assert_throws_dom("InvalidStateError",
-                      function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
-                      "Exception thrown when setting trackDefaults on SourceBuffer that is removed from MediaSource");
+                          function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
+                          "Exception thrown when setting trackDefaults on SourceBuffer that is removed from MediaSource");
         test.done();
     }, "Test setting trackDefaults on an already-removed SourceBuffer");
 
@@ -57,8 +57,8 @@
         assert_true(sourceBuffer.updating, "SourceBuffer is updating");
 
         assert_throws_dom("InvalidStateError",
-                      function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
-                      "Exception thrown when setting trackDefaults on SourceBuffer that is updating");
+                          function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
+                          "Exception thrown when setting trackDefaults on SourceBuffer that is updating");
 
         test.waitForExpectedEvents(function()
         {

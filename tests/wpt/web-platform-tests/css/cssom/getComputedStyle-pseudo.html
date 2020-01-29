@@ -139,6 +139,6 @@ test(function() {
 test(function() {
   var div = document.getElementById('test');
   assert_throws_js(TypeError, () => getComputedStyle(div, "totallynotapseudo"),
-                "getComputedStyle with an unknown pseudo-element throws");
+                   "getComputedStyle with an unknown pseudo-element throws");
 }, "Unknown pseudo-elements throw");
 </script>

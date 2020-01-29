@@ -181,7 +181,7 @@
         pc.removeTrack(sender);
         pc.close();
         assert_throws_dom('InvalidStateError', () =>
-                      dtmfSender.insertDTMF('123'));
+                          dtmfSender.insertDTMF('123'));
       });
   }, 'insertDTMF() after remove and close should reject');
 

@@ -38,9 +38,6 @@ const fakeDeviceInitParams = {
 // |refSpaceName| - XRReferenceSpaceType - either 'local', 'local-floor' or 'viewer'.
 let testFunctionGenerator = function(ray, entityTypes, expectedPoses, refSpaceName) {
   const testFunction = function(session, fakeDeviceController, t) {
-    assert_equals(session.mode, 'immersive-ar');
-    assert_not_equals(session.environmentBlendMode, 'opaque');
-
     return Promise.all([
       session.requestReferenceSpace('local'),
       session.requestReferenceSpace('viewer'),
@@ -109,6 +106,9 @@ const localFloorBasedTestFunctionGenerator = function(ray, entityTypes, expected
   return testFunctionGenerator(ray, entityTypes, expectedPoses, 'local-floor');
 };
 
+// All test cases require local-floor and hit-test.
+const sessionInit = { 'requiredFeatures': ['local-floor', 'hit-test'] };
+
 // Pose of the first expected hit test result - straight ahead of the viewer, viewer-facing.
 const pose_1 = {
   position: {x: 0.0, y: 1.0, z: -2.5, w: 1.0},
@@ -125,11 +125,11 @@ const pose_1 = {
 xr_session_promise_test(
   "Ensures subscription to hit test works with viewer space - straight ahead - plane",
   viewerBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_1]),
-  fakeDeviceInitParams, 'immersive-ar', { 'requiredFeatures': ['local-floor'] });
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 xr_session_promise_test("Ensures subscription to hit test works with viewer space - straight up - plane - no results",
   viewerBasedTestFunctionGenerator(new XRRay({}, {x: 0.0, y: 1.0, z : 0.0}), ["plane"], []),
-  fakeDeviceInitParams, 'immersive-ar', { 'requiredFeatures': ['local-floor'] });
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 const pose_2 = {
   position: {x: 0.0, y: 2.0, z: 0.0, w: 1.0},
@@ -142,8 +142,7 @@ const pose_2 = {
 
 xr_session_promise_test("Ensures subscription to hit test works with viewer space - straight up - point",
   viewerBasedTestFunctionGenerator(new XRRay({}, {x: 0.0, y: 1.0, z : 0.0}), ["point"], [pose_2]),
-  fakeDeviceInitParams,
-  'immersive-ar', { 'requiredFeatures': ['local-floor'] });
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 const pose_3 = {
   position: {x: 0.0, y: 0.0, z: -2.5, w: 1.0},
@@ -156,8 +155,7 @@ const pose_3 = {
 
 xr_session_promise_test("Ensures subscription to hit test works with local space",
   localBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_3]),
-  fakeDeviceInitParams,
-  'immersive-ar', { 'requiredFeatures': ['local-floor'] });
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 const pose_4 = {
   position: {x: 0.0, y: 0.25, z: -2.5, w: 1.0},
@@ -170,7 +168,6 @@ const pose_4 = {
 
 xr_session_promise_test("Ensures subscription to hit test works with local-floor space",
   localFloorBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_4]),
-  fakeDeviceInitParams,
-  'immersive-ar', { 'requiredFeatures': ['local-floor'] });
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 </script>
