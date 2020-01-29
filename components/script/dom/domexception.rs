@@ -32,6 +32,7 @@ pub enum DOMErrorName {
     NetworkError = DOMExceptionConstants::NETWORK_ERR,
     AbortError = DOMExceptionConstants::ABORT_ERR,
     TypeMismatchError = DOMExceptionConstants::TYPE_MISMATCH_ERR,
+    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR,
     QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR,
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
@@ -60,6 +61,7 @@ impl DOMErrorName {
             "NetworkError" => Some(DOMErrorName::NetworkError),
             "AbortError" => Some(DOMErrorName::AbortError),
             "TypeMismatchError" => Some(DOMErrorName::TypeMismatchError),
+            "URLMismatchError" => Some(DOMErrorName::URLMismatchError),
             "QuotaExceededError" => Some(DOMErrorName::QuotaExceededError),
             "TimeoutError" => Some(DOMErrorName::TimeoutError),
             "InvalidNodeTypeError" => Some(DOMErrorName::InvalidNodeTypeError),
@@ -102,6 +104,7 @@ impl DOMException {
             DOMErrorName::NetworkError => "A network error occurred.",
             DOMErrorName::AbortError => "The operation was aborted.",
             DOMErrorName::TypeMismatchError => "The given type does not match any expected type.",
+            DOMErrorName::URLMismatchError => "The given URL does not match another URL.",
             DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
             DOMErrorName::TimeoutError => "The operation timed out.",
             DOMErrorName::InvalidNodeTypeError => {
