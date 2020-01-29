@@ -89,5 +89,31 @@ promise_test(async t => {
     'Animation.currentTime is unchanged after pausing');
 }, 'The animation\'s current time remains fixed after pausing');
 
+
+promise_test(async t => {
+
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  const originalReadyPromise = animation.ready;
+  animation.cancel();
+  assert_equals(animation.startTime, null);
+  assert_equals(animation.currentTime, null);
+
+  const readyPromise = animation.ready;
+  assert_true(originalReadyPromise != readyPromise,
+              'Canceling an animation should create a new ready promise');
+
+  animation.pause();
+  assert_equals(animation.playState, 'paused',
+                'Pausing a canceled animation should update the play state');
+  assert_true(animation.pending, 'animation should be pause-pending');
+  await animation.ready;
+  assert_false(animation.pending,
+               'animation should no longer be pause-pending');
+  assert_equals(animation.startTime, null, 'start time should be unresolved');
+  assert_equals(animation.currentTime, 0, 'current time should be set to zero');
+
+}, 'Pausing a canceled animation sets the current time');
+
 </script>
 </body>

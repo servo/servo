@@ -10,22 +10,25 @@ function assert_no_event(test, obj, name) {
   obj.addEventListener(name, test.unreached_func("The '" + name + "' event should not have fired."));
 }
 
-function waitUntilCSPEventForURL(test, url) {
+function waitUntilCSPEventForURLOrLine(test, url, line) {
   return new Promise((resolve, reject) => {
     self.addEventListener("securitypolicyviolation", test.step_func(e => {
-      if (e.blockedURI == url)
+      if (e.blockedURI == url && (!line || line == e.lineNumber))
         resolve(e);
     }));
   });
 }
 
+function waitUntilCSPEventForURL(test, url) {
+  return waitUntilCSPEventForURLOrLine(test, url);
+}
+
 function waitUntilCSPEventForEval(test, line) {
-  return new Promise((resolve, reject) => {
-    self.addEventListener("securitypolicyviolation", test.step_func(e => {
-      if (e.blockedURI == "eval" && e.lineNumber == line)
-        resolve(e);
-    }));
-  });
+  return waitUntilCSPEventForURLOrLine(test, "eval", line);
+}
+
+function waitUntilCSPEventForTrustedTypes(test) {
+  return waitUntilCSPEventForURLOrLine(test, "trusted-types-sink");
 }
 
 function waitUntilEvent(obj, name) {

@@ -303,8 +303,8 @@ test(t => {
                 '#target::before': 'animation: anim1 10s;' });
   const target = addDiv(t, { 'id': 'target' });
   target.style.animation = 'anim1 100s';
-
   const animations = target.getAnimations({ subtree: false });
+
   assert_equals(animations.length, 1,
                 'Should find only the element');
   assert_equals(animations[0].effect.target, target,
@@ -317,8 +317,8 @@ test(t => {
                 '#target::before': 'animation: anim1 10s;' });
   const target = addDiv(t, { 'id': 'target' });
   target.style.animation = 'anim1 100s';
-
   const animations = target.getAnimations({ subtree: true });
+
   assert_equals(animations.length, 3,
                 'getAnimations({ subtree: true }) ' +
                 'should return animations on pseudo-elements');

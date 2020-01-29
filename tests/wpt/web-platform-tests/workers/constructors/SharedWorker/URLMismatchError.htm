@@ -4,28 +4,27 @@
 <link rel="author" title="Intel" href="http://www.intel.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
 setup({ single_test: true });
 
-var counter = 0
-function maybeDone() {
+let counter = 0
+const maybeDone = () => {
   if(counter) {
     done()
   }
   counter++
 }
 
-var worker = new SharedWorker('shared-worker.js', 'name');
+const worker = new SharedWorker('shared-worker.js', 'name');
 worker.port.postMessage("trigger a response")
-worker.port.onmessage = (e) => {
+worker.port.onmessage = e => {
   assert_equals(e.data, "ping")
   maybeDone()
 }
 
 // This used to throw "URLMismatchError", but the standard changed
-var worker2 = new SharedWorker('1', 'name');
-worker2.port.onmessage = (e) => {
+const worker2 = new SharedWorker('1', 'name');
+worker2.port.onmessage = e => {
   assert_array_equals(e.data, ["1", "name"])
   maybeDone()
 }

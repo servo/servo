@@ -138,5 +138,40 @@ promise_test(async t => {
   assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
 }, 'A pending playback rate is used when determining auto-rewind behavior');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+  assert_equals(animation.startTime, null,
+                'Start time should be unresolved');
+
+  animation.play();
+  assert_true(animation.pending, 'Animation should be play-pending');
+
+  await animation.ready;
+
+  assert_false(animation.pending, 'animation should no longer be pending');
+  assert_times_equal(animation.startTime, animation.timeline.currentTime,
+                     'The start time of the playing animation should be set');
+}, 'Playing a canceled animation sets the start time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = -1;
+  // animation.currentTime = 100 * MS_PER_SEC;
+  animation.cancel();
+  assert_equals(animation.startTime, null,
+                'Start time should be unresolved');
+
+  animation.play();
+  assert_true(animation.pending, 'Animation should be play-pending');
+
+  await animation.ready;
+
+  assert_false(animation.pending, 'Animation should no longer be pending');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime + 100 * MS_PER_SEC,
+                     'The start time of a playing animation should be set');
+}, 'Playing a canceled animation backwards sets the start time');
+
 </script>
 </body>

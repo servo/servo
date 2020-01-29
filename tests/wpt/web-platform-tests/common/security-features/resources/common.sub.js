@@ -542,10 +542,10 @@ function requestViaDedicatedWorker(url, options) {
     .then(event => wrapResult(event.data));
 }
 
-function requestViaSharedWorker(url) {
+function requestViaSharedWorker(url, options) {
   var worker;
   try {
-    worker = new SharedWorker(url);
+    worker = new SharedWorker(url, options);
   } catch(e) {
     return Promise.reject(e);
   }
@@ -918,7 +918,11 @@ const subresourceMap = {
   },
   "sharedworker-classic": {
     path: "/common/security-features/subresource/shared-worker.py",
-    invoker: requestViaSharedWorker,
+    invoker: url => requestViaSharedWorker(url),
+  },
+  "sharedworker-module": {
+    path: "/common/security-features/subresource/shared-worker.py",
+    invoker: url => requestViaSharedWorker(url, {type: "module"}),
   },
 
   "websocket": {

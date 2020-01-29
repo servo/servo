@@ -1,27 +1,24 @@
 <!DOCTYPE html>
 <head>
 <title>Performance Paint Timing Test: child ignores parent FCP</title>
+<meta name="timeout" content="long">
 </head>
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="image"></div>
-
+<iframe src='resources/subframe-sending-paint.html' id='child-iframe'></iframe>
+<img src='resources/circles.png'/>
 <script>
 async_test(function (t) {
     assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
-    const iframe = document.createElement('iframe');
-    iframe.id = 'child-iframe';
-    iframe.src = 'resources/subframe-sending-paint.html';
-    document.body.appendChild(iframe);
+
     window.addEventListener('message', t.step_func(e => {
         // Child iframe should not have any paint-timing entries.
         assert_equals(e.data, '0');
         t.done();
     }));
-    const img = document.createElement('IMG');
-    img.src = 'resources/circles.png';
-    img.onload = function() {
+    // Wait for onload to ensure img and iframe have loaded.
+    window.addEventListener('load', function() {
         function testPaintEntries() {
             const bufferedEntries = performance.getEntriesByType('paint');
             if (bufferedEntries.length < 2) {
@@ -40,8 +37,7 @@ async_test(function (t) {
             })
         }
         testPaintEntries();
-    };
-    document.getElementById('image').appendChild(img);
+    });
 }, 'Child iframe ignores paint-timing events fired from parent image rendering.');
 </script>
 </body>

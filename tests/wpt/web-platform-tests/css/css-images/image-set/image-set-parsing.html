@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Image set parsing</title>
+        <link rel="author" title="Noam Rosenthal" href="mailto:noam.j.rosenthal@gmail.com">
+        <link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+        <meta name="assert" content="General image-set parsing  follows CSS Images 4 rules.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+                const tests = [
+                    { property: 'background-image', imageSet: "url(example.png) 1x", valid: true },
+                    { property: 'background-image', imageSet: "url('example.png') 1x", valid: true },
+                    { property: 'background-image', imageSet: "'example.jpg' 1x", valid: true },
+                    { property: 'background-image', imageSet: "url(example.png) 1x, 'example.png' 2x", valid: true },
+                    { property: 'background-image', imageSet: "url(example.png) 1dppx", valid: true },
+                    { property: 'background-image', imageSet: "url(example.png) 1dpi", valid: true },
+                    { property: 'background-image', imageSet: "url(example.png) 1dpcm, 'example.png' 2x", valid: true },
+                    { property: 'background-image', imageSet: "'example.jpeg' 222dpi, url(example.png) 3.5x", valid: true },
+                    { property: 'background-image', imageSet: "linear-gradient(black, white) 1x", valid: true },
+                    { property: 'content', imageSet: "linear-gradient(black, white) 1x, 'example.png' 4x", valid: true },
+                    { property: 'content', imageSet: "url('example.png') 192dpi, linear-gradient(black, white) 1x", valid: true },
+
+                    { property: 'background-image', imageSet: "url(example.png) 0x", valid: false },
+                    { property: 'background-image', imageSet: "url(example.png) -20x", valid: false },
+                    { property: 'background-image', imageSet: "'example.jpeg' 92pid url(example.png) 1x", valid: false },
+                    { property: 'cursor', imageSet: "linear-gradient(black, white) 1x", valid: false }
+                ]
+
+                function check_image_set(tst) {
+                        var div = document.createElement('div');
+                        div.setAttribute("style", `${tst.property}: image-set(${tst.imageSet})`)
+
+                        var inline_style = div.style.getPropertyValue(tst.property);
+                        assert_equals(inline_style.startsWith('image-set'), tst.valid);
+
+                        document.body.appendChild(div);
+                        var computed_style = getComputedStyle(div).getPropertyValue(tst.property);
+                        assert_equals(computed_style.startsWith('image-set'), tst.valid);
+
+                        div.remove();
+                }
+
+                tests.forEach(tst => {
+                        test(() => {
+                                check_image_set(tst);
+                        }, `${tst.property}: image-set(${tst.imageSet}) ${tst.valid ? "[ parsable ]" : "[ unparsable ]"}`)
+                });
+        </script>
+    </body>
+</html>

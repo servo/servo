@@ -1,3 +1,3 @@
-onconnect = function(e) {
+onconnect = e => {
   e.ports[0].postMessage(self.name);
-}
+};

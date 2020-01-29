@@ -1,3 +1,14 @@
+/**
+ * Create an absolute URL from `options` and defaulting unspecified properties to `window.location`.
+ * @param {Object} options - a `Location`-like object
+ * @param {string} options.hostname
+ * @param {string} options.subdomain - prepend subdomain to the hostname
+ * @param {string} options.port
+ * @param {string} options.path
+ * @param {string} options.query
+ * @param {string} options.hash
+ * @returns {string}
+ */
 function make_absolute_url(options) {
     var loc = window.location;
     var protocol = get(options, "protocol", loc.protocol);
@@ -41,6 +52,7 @@ function make_absolute_url(options) {
     return url;
 }
 
+/** @private */
 function get(obj, name, default_val) {
     if (obj.hasOwnProperty(name)) {
         return obj[name];
@@ -48,6 +60,10 @@ function get(obj, name, default_val) {
     return default_val;
 }
 
+/**
+ * Generate a new UUID.
+ * @returns {string}
+ */
 function token() {
     var uuid = [to_hex(rand_int(32), 8),
                 to_hex(rand_int(16), 4),
@@ -57,6 +73,7 @@ function token() {
     return uuid;
 }
 
+/** @private */
 function rand_int(bits) {
     if (bits < 1 || bits > 53) {
         throw new TypeError();
@@ -71,6 +88,7 @@ function rand_int(bits) {
     }
 }
 
+/** @private */
 function to_hex(x, length) {
     var rv = x.toString(16);
     while (rv.length < length) {

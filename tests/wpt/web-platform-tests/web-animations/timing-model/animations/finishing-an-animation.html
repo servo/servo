@@ -300,5 +300,31 @@ promise_test(async t => {
     'finish event should be fired for the animation on an orphaned element');
 }, 'Finishing an animation fires finish event on orphaned element');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  const originalFinishPromise = animation.finished;
+
+  animation.cancel();
+  assert_equals(animation.startTime, null);
+  assert_equals(animation.currentTime, null);
+
+  const resolvedFinishPromise = animation.finished;
+  assert_true(originalFinishPromise != resolvedFinishPromise,
+               'Canceling an animation should create a new finished promise');
+
+  animation.finish();
+  assert_equals(animation.playState, 'finished',
+                'The play state of a canceled animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC,
+                     'The start time of a finished animation should be set');
+  assert_times_equal(animation.currentTime, 100000,
+                     'Hold time should be set to end boundary of the animation');
+
+}, 'Finishing a canceled animation sets the current and start times');
+
 </script>
 </body>
