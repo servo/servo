@@ -218,17 +218,12 @@ impl Performance {
                 let mut obs_entries = observer.entries();
                 obs_entries.append(&mut new_entries);
                 observer.set_entries(obs_entries);
+            }
 
-                // W3C spec as of Jan 24 2020 does not say that we necessarily
-                // queue a notification task here, but WPT tests such as
-                // performance-timeline/multiple-buffered-flag-observers.any.js
-                // assume we do, and we get intermittent race condition
-                // test results if we don't.
-                if !self.pending_notification_observers_task.get() {
-                    self.pending_notification_observers_task.set(true);
-                    let task_source = self.global().performance_timeline_task_source();
-                    task_source.queue_notification(&self.global());
-                }
+            if !self.pending_notification_observers_task.get() {
+                self.pending_notification_observers_task.set(true);
+                let task_source = self.global().performance_timeline_task_source();
+                task_source.queue_notification(&self.global());
             }
         }
         let mut observers = self.observers.borrow_mut();
