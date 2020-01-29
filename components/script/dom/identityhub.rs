@@ -5,7 +5,10 @@
 use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
-    id::{AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
+    id::{
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId,
+        ShaderModuleId,
+    },
     Backend,
 };
 
@@ -17,6 +20,7 @@ pub struct IdentityHub {
     bind_groups: IdentityManager,
     bind_group_layouts: IdentityManager,
     pipeline_layouts: IdentityManager,
+    shader_modules: IdentityManager,
     backend: Backend,
 }
 
@@ -29,6 +33,7 @@ impl IdentityHub {
             bind_groups: IdentityManager::default(),
             bind_group_layouts: IdentityManager::default(),
             pipeline_layouts: IdentityManager::default(),
+            shader_modules: IdentityManager::default(),
             backend,
         }
     }
@@ -55,6 +60,10 @@ impl IdentityHub {
 
     fn create_pipeline_layout_id(&mut self) -> PipelineLayoutId {
         self.pipeline_layouts.alloc(self.backend)
+    }
+
+    fn create_shader_module_id(&mut self) -> ShaderModuleId {
+        self.shader_modules.alloc(self.backend)
     }
 }
 
@@ -133,17 +142,7 @@ impl Identities {
     }
 
     pub fn create_bind_group_id(&mut self, backend: Backend) -> BindGroupId {
-        match backend {
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => self.vk_hub.create_bind_group_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx12 => self.dx12_hub.create_bind_group_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => self.dx11_hub.create_bind_group_id(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => self.metal_hub.create_bind_group_id(),
-            _ => self.dummy_hub.create_bind_group_id(),
-        }
+        self.select(backend).create_bind_group_id()
     }
 
     pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
@@ -152,5 +151,9 @@ impl Identities {
 
     pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
         self.select(backend).create_pipeline_layout_id()
+    }
+
+    pub fn create_shader_module_id(&mut self, backend: Backend) -> ShaderModuleId {
+        self.select(backend).create_shader_module_id()
     }
 }

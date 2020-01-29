@@ -13,9 +13,12 @@ use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{self, GPUDeviceMethods};
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
+use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
+use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString::{String, Uint32Array};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
@@ -23,6 +26,7 @@ use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
+use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
@@ -523,9 +527,36 @@ impl GPUDeviceMethods for GPUDevice {
                 descriptor.layout.id(),
                 bindings,
             ))
-            .expect("Failed to create WebGPU PipelineLayout");
+            .expect("Failed to create WebGPU BindGroup");
 
         let bind_group = receiver.recv().unwrap();
         GPUBindGroup::new(&self.global(), bind_group, valid)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule
+    fn CreateShaderModule(
+        &self,
+        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+    ) -> DomRoot<GPUShaderModule> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let program: Vec<u32> = match &descriptor.code {
+            Uint32Array(program) => program.to_vec(),
+            String(program) => program.chars().map(|c| c as u32).collect::<Vec<u32>>(),
+        };
+        let id = self
+            .global()
+            .wgpu_create_shader_module_id(self.device.0.backend());
+        self.channel
+            .0
+            .send(WebGPURequest::CreateShaderModule(
+                sender,
+                self.device,
+                id,
+                program,
+            ))
+            .expect("Failed to create WebGPU ShaderModule");
+
+        let shader_module = receiver.recv().unwrap();
+        GPUShaderModule::new(&self.global(), shader_module)
     }
 }

@@ -65,6 +65,12 @@ pub enum WebGPURequest {
         wgpu::id::PipelineLayoutId,
         Vec<wgpu::id::BindGroupLayoutId>,
     ),
+    CreateShaderModule(
+        IpcSender<WebGPUShaderModule>,
+        WebGPUDevice,
+        wgpu::id::ShaderModuleId,
+        Vec<u32>,
+    ),
     UnmapBuffer(WebGPUBuffer),
     DestroyBuffer(WebGPUBuffer),
 }
@@ -286,6 +292,24 @@ impl WGPU {
                         )
                     }
                 },
+                WebGPURequest::CreateShaderModule(sender, device, id, program) => {
+                    let global = &self.global;
+                    let descriptor = wgpu_core::pipeline::ShaderModuleDescriptor {
+                        code: wgpu_core::U32Array {
+                            bytes: program.as_ptr(),
+                            length: program.len(),
+                        },
+                    };
+                    let sm_id = gfx_select!(id => global.device_create_shader_module(device.0, &descriptor, id));
+                    let shader_module = WebGPUShaderModule(sm_id);
+
+                    if let Err(e) = sender.send(shader_module) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateShaderModule ({})",
+                            e
+                        )
+                    }
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -319,3 +343,4 @@ webgpu_resource!(WebGPUBuffer, wgpu::id::BufferId);
 webgpu_resource!(WebGPUBindGroup, wgpu::id::BindGroupId);
 webgpu_resource!(WebGPUBindGroupLayout, wgpu::id::BindGroupLayoutId);
 webgpu_resource!(WebGPUPipelineLayout, wgpu::id::PipelineLayoutId);
+webgpu_resource!(WebGPUShaderModule, wgpu::id::ShaderModuleId);

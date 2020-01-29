@@ -324,6 +324,7 @@ pub mod gpubuffer;
 pub mod gpubufferusage;
 pub mod gpudevice;
 pub mod gpupipelinelayout;
+pub mod gpushadermodule;
 pub mod gpushaderstage;
 pub mod hashchangeevent;
 pub mod headers;
