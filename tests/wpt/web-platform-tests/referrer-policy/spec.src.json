@@ -544,7 +544,8 @@
       "subresource": [
         "worker-classic",
         "worker-module",
-        "sharedworker-classic"
+        "sharedworker-classic",
+        "sharedworker-module"
       ],
       "expectation": "*"
     },
@@ -563,7 +564,8 @@
       "subresource": [
         "worker-classic",
         "worker-module",
-        "sharedworker-classic"
+        "sharedworker-classic",
+        "sharedworker-module"
       ],
       "expectation": "*"
     },
@@ -606,7 +608,8 @@
       "subresource": [
         "worker-classic",
         "worker-module",
-        "sharedworker-classic"
+        "sharedworker-classic",
+        "sharedworker-module"
       ],
       "expectation": "*"
     },
@@ -734,6 +737,7 @@
       ],
       "xhr": [],
       "fetch": [],
+      "sharedworker-module": [],
       "worker-module": [],
       "sharedworker-classic": [],
       "worker-classic": []
@@ -944,6 +948,7 @@
       "worker-classic",
       "worker-module",
       "sharedworker-classic",
+      "sharedworker-module",
       "fetch"
     ],
     "expectation": [

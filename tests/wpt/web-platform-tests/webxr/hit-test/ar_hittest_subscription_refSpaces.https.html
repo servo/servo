@@ -32,11 +32,10 @@ const fakeDeviceInitParams = {
 
 // Generates a test function given the parameters for the hit test.
 // |ray| - ray that will be used to subscribe to hit test.
-// |entityTypes| - entity types that will be used for the hit test subscription.
 // |expectedPoses| - array of expected pose objects. The poses are expected to be expressed in local space.
 //                   Null entries in the array mean that the given entry will not be validated.
 // |refSpaceName| - XRReferenceSpaceType - either 'local', 'local-floor' or 'viewer'.
-let testFunctionGenerator = function(ray, entityTypes, expectedPoses, refSpaceName) {
+let testFunctionGenerator = function(ray, expectedPoses, refSpaceName) {
   const testFunction = function(session, fakeDeviceController, t) {
     return Promise.all([
       session.requestReferenceSpace('local'),
@@ -53,7 +52,6 @@ let testFunctionGenerator = function(ray, entityTypes, expectedPoses, refSpaceNa
       const hitTestOptionsInit = {
         space: refSpaceNameToSpace[refSpaceName],
         offsetRay: ray,
-        entityTypes: entityTypes,
       };
 
       return session.requestHitTestSource(hitTestOptionsInit).then(
@@ -90,20 +88,20 @@ let testFunctionGenerator = function(ray, entityTypes, expectedPoses, refSpaceNa
 
 // Generates a test function that will use local space for hit test subscription.
 // See testFunctionGenerator for explanation of other parameters.
-const localBasedTestFunctionGenerator = function(ray, entityTypes, expectedPoses) {
-  return testFunctionGenerator(ray, entityTypes, expectedPoses, 'local');
+const localBasedTestFunctionGenerator = function(ray, expectedPoses) {
+  return testFunctionGenerator(ray, expectedPoses, 'local');
 };
 
 // Generates a test function that will use viewer space for hit test subscription.
 // See testFunctionGenerator for explanation of other parameters.
-const viewerBasedTestFunctionGenerator = function(ray, entityTypes, expectedPoses) {
-  return testFunctionGenerator(ray, entityTypes, expectedPoses, 'viewer');
+const viewerBasedTestFunctionGenerator = function(ray, expectedPoses) {
+  return testFunctionGenerator(ray, expectedPoses, 'viewer');
 };
 
 // Generates a test function that will use local-floor space for hit test subscription.
 // See testFunctionGenerator for explanation of other parameters.
-const localFloorBasedTestFunctionGenerator = function(ray, entityTypes, expectedPoses) {
-  return testFunctionGenerator(ray, entityTypes, expectedPoses, 'local-floor');
+const localFloorBasedTestFunctionGenerator = function(ray, expectedPoses) {
+  return testFunctionGenerator(ray, expectedPoses, 'local-floor');
 };
 
 // All test cases require local-floor and hit-test.
@@ -124,27 +122,14 @@ const pose_1 = {
 
 xr_session_promise_test(
   "Ensures subscription to hit test works with viewer space - straight ahead - plane",
-  viewerBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_1]),
+  viewerBasedTestFunctionGenerator(new XRRay(), [pose_1]),
   fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
-xr_session_promise_test("Ensures subscription to hit test works with viewer space - straight up - plane - no results",
-  viewerBasedTestFunctionGenerator(new XRRay({}, {x: 0.0, y: 1.0, z : 0.0}), ["plane"], []),
+xr_session_promise_test("Ensures subscription to hit test works with viewer space - straight up - no results",
+  viewerBasedTestFunctionGenerator(new XRRay({}, {x: 0.0, y: 1.0, z : 0.0}), []),
   fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 const pose_2 = {
-  position: {x: 0.0, y: 2.0, z: 0.0, w: 1.0},
-  orientation: {x: 0.707, y: 0.0, z: 0.707, w: 0.0 },
-    // See comment for pose_1.orientation for details.
-    // In this case, the hit test pose will have Y axis facing downward ([0,-1,0]),
-    // Z axis to the right ([1,0,0]) and X axis towards world's Z axis ([0,0,1]).
-    // This is equivalent to the rotation around [1, 0, 1] vectir by 180 degrees.
-};
-
-xr_session_promise_test("Ensures subscription to hit test works with viewer space - straight up - point",
-  viewerBasedTestFunctionGenerator(new XRRay({}, {x: 0.0, y: 1.0, z : 0.0}), ["point"], [pose_2]),
-  fakeDeviceInitParams, 'immersive-ar', sessionInit);
-
-const pose_3 = {
   position: {x: 0.0, y: 0.0, z: -2.5, w: 1.0},
   orientation: {x: 0.0, y: -0.707, z: -0.707, w: 0.0},
     // See comment for pose_1.orientation for details.
@@ -154,10 +139,10 @@ const pose_3 = {
 };
 
 xr_session_promise_test("Ensures subscription to hit test works with local space",
-  localBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_3]),
+  localBasedTestFunctionGenerator(new XRRay(), [pose_2]),
   fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
-const pose_4 = {
+const pose_3 = {
   position: {x: 0.0, y: 0.25, z: -2.5, w: 1.0},
   orientation: {x: 0.0, y: -0.707, z: -0.707, w: 0.0},
     // See comment for pose_1.orientation for details.
@@ -167,7 +152,7 @@ const pose_4 = {
 };
 
 xr_session_promise_test("Ensures subscription to hit test works with local-floor space",
-  localFloorBasedTestFunctionGenerator(new XRRay(), ["plane"], [pose_4]),
+  localFloorBasedTestFunctionGenerator(new XRRay(), [pose_3]),
   fakeDeviceInitParams, 'immersive-ar', sessionInit);
 
 </script>

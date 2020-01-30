@@ -128,7 +128,23 @@ test(t => {
   div.style.setProperty('--target', '1');
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.5);
-}, 'Commits variables as their computed values');
+}, 'Commits variable references as their computed values');
+
+
+test(t => {
+  const div = createDiv(t);
+  div.style.setProperty('--target', '0.5');
+  div.style.opacity = 'var(--target)';
+  const animation = div.animate(
+    { '--target': 0.8 },
+    { duration: 1, fill: 'forwards' }
+  );
+  animation.finish();
+  animation.commitStyles();
+  animation.cancel();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0.8);
+}, 'Commits custom variables');
 
 test(t => {
   const div = createDiv(t);

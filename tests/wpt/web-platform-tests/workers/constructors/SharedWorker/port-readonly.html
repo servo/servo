@@ -4,11 +4,10 @@
 <link rel=help href="http://dev.w3.org/2006/webapi/WebIDL/#dfn-attribute-setter">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
-test(function() {
-  var worker = new SharedWorker('empty.js', '');
-  var x = worker.port;
+test(() => {
+  const worker = new SharedWorker('empty.js', '');
+  const x = worker.port;
   worker.port = 1;
   assert_equals(worker.port, x);
 });

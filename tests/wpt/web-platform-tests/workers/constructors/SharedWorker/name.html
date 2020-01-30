@@ -2,14 +2,11 @@
 <title>self.name</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
-(async_test()).step(function() {
-  var worker = new SharedWorker('name.js', 'hello');
-  worker.port.addEventListener('message', this.step_func(function(e) {
+async_test(t => {
+  const worker = new SharedWorker('name.js', 'hello');
+  worker.port.onmessage = t.step_func_done(e => {
     assert_equals(e.data, 'hello');
-    this.done();
-  }), false);
-  worker.port.start();
-});
+  });
+}, 'Test self.name in a shared worker');
 </script>

@@ -15,6 +15,9 @@
 runAnimationEventTests({
   unprefixedType: 'animationiteration',
   prefixedType: 'webkitAnimationIteration',
-  animationCssStyle: '50ms 2',
+  // Use a long duration to avoid missing the animation due to slow machines,
+  // but set a negative delay so that the iteration boundary happens shortly
+  // after the animation starts.
+  animationCssStyle: '100s -99.9s 2',
 });
 </script>

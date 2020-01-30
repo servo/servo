@@ -1,9 +1,3 @@
-// Only test a subset of tests with ?include=Foo or ?exclude=Foo in the URL.
-// Can be used together with <meta name="variant" content="...">
-// Sample usage:
-// for (const test of tests) {
-//   subsetTestByKey("Foo", async_test, test.fn, test.name);
-// }
 (function() {
   var subTestKeyPattern = null;
   var match;
@@ -48,6 +42,11 @@
       });
     }
   }
+  /**
+   * Check if `key` is in the subset specified in the URL.
+   * @param {string} key
+   * @returns {boolean}
+   */
   function shouldRunSubTest(key) {
     if (key && subTestKeyPattern) {
       var found = subTestKeyPattern.test(key);
@@ -58,7 +57,15 @@
     }
     return true;
   }
-  function subsetTestByKey(key, testFunc, ...args) {
+  /**
+   * Only test a subset of tests with `?include=Foo` or `?exclude=Foo` in the URL.
+   * Can be used together with `<meta name="variant" content="...">`
+   * Sample usage:
+   * for (const test of tests) {
+   *   subsetTestByKey("Foo", async_test, test.fn, test.name);
+   * }
+   */
+   function subsetTestByKey(key, testFunc, ...args) {
     if (collectKeys) {
       if (collectCounts && key in keys) {
         keys[key]++;

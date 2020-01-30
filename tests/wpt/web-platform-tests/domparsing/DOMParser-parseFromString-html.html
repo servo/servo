@@ -6,11 +6,9 @@
 // |expected| should be an object indicating the expected type of node.
 function assert_node(actual, expected) {
     assert_true(actual instanceof expected.type,
-                'Node type mismatch: actual = ' + actual.nodeType + ', expected = ' + expected.nodeType);
+                'Node type mismatch: actual = ' + actual.constructor.name + ', expected = ' + expected.type.name);
     if (typeof(expected.id) !== 'undefined')
         assert_equals(actual.id, expected.id, expected.idMessage);
-    if (typeof(expected.nodeValue) !== 'undefined')
-        assert_equals(actual.nodeValue, expected.nodeValue, expected.nodeValueMessage);
 }
 
 var doc;
@@ -31,28 +29,17 @@ test(function() {
 }, 'contentType');
 
 test(function() {
-    assert_equals(doc.characterSet, "UTF-8")
-}, 'characterSet');
+    assert_equals(doc.compatMode, "BackCompat")
+}, 'compatMode');
 
 test(function() {
-    assert_equals(doc.inputEncoding, "UTF-8")
-}, 'inputEncoding');
+    var parser = new DOMParser();
+    var input = '<!DOCTYPE html><html id="root"><head></head><body></body></html>';
+    doc = parser.parseFromString(input, 'text/html');
+    assert_equals(doc.compatMode, "CSS1Compat")
+}, 'compatMode for a proper DOCTYPE');
 
-test(function() {
-    assert_equals(doc.charset, "UTF-8")
-}, 'charset');
-
-test(function() {
-    var url = document.URL;
-    assert_equals(doc.documentURI, url,
-                  'The document must have a URL value equal to the URL of the active document.');
-    assert_equals(doc.URL, url,
-                  'The document must have a URL value equal to the URL of the active document.');
-}, 'URL value');
-
-test(function() {
-    assert_equals(doc.baseURI, document.URL);
-}, 'baseURI value');
+// URL- and encoding-related stuff tested separately.
 
 test(function() {
     assert_equals(doc.location, null,
@@ -83,10 +70,17 @@ test(() => {
 <style>
   @import url(/dummy.css)
 </style>
-<script>x = 8<\/script>
+<script>document.x = 8<\/script>
 </body></html>`, 'text/html');
 
   assert_not_equals(doc.querySelector('script'), null, 'script must be found');
-  assert_equals(doc.x, undefined, 'script must not be executed');
+  assert_equals(doc.x, undefined, 'script must not be executed on the inner document');
+  assert_equals(document.x, undefined, 'script must not be executed on the outer document');
 }, 'script is found synchronously even when there is a css import');
+
+test(() => {
+    const doc = new DOMParser().parseFromString(`<body><noscript><p id="test1">test1<p id="test2">test2</noscript>`, 'text/html');
+    assert_node(doc.body.firstChild.childNodes[0], { type: HTMLParagraphElement, id: 'test1' });
+    assert_node(doc.body.firstChild.childNodes[1], { type: HTMLParagraphElement, id: 'test2' });
+}, 'must be parsed with scripting disabled, so noscript works');
 </script>

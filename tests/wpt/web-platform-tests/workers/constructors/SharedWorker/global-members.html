@@ -2,14 +2,11 @@
 <title>members of SharedWorkerGlobalScope</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
-(async_test()).step(function() {
-  var worker = new SharedWorker('global-members.js');
-  worker.port.addEventListener('message', this.step_func(function(e) {
+async_test(t => {
+  const worker = new SharedWorker('global-members.js');
+  worker.port.onmessage = t.step_func_done(e => {
     assert_equals(e.data, '');
-    this.done();
-  }), false);
-  worker.port.start();
-});
+  });
+}, 'Test if global members exist in a shared worker');
 </script>

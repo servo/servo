@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-021-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#content-property">
+<meta name="assert" content="Checks that non-normal ::marker is not updated when 'list-style-type' changes dynamically.">
+<style>
+::marker {
+  content: "[m]";
+}
+.inside {
+  list-style-position: inside;
+}
+.none {
+  list-style-type: none;
+}
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.roman {
+  list-style-type: lower-roman;
+}
+.string {
+  list-style-type: "string";
+}
+</style>
+<ol class="inside">
+  <li class="none">inside none→symbol</li>
+  <li class="symbol">inside symbol→decimal</li>
+  <li class="decimal">inside decimal→roman</li>
+  <li class="roman">inside roman→string</li>
+  <li class="string">inside string→none</li>
+</ol>
+<ol class="outside">
+  <li class="none">outside none→symbol</li>
+  <li class="symbol">outside symbol→decimal</li>
+  <li class="decimal">outside decimal→roman</li>
+  <li class="roman">outside roman→string</li>
+  <li class="string">outside string→none</li>
+</ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+"use strict";
+// Use a "load" event listener and requestAnimationFrame to ensure that
+// the markers will have been laid out.
+addEventListener("load", function() {
+  requestAnimationFrame(() => {
+    for (let list of document.querySelectorAll("ol")) {
+      // Rotate class names among list items
+      const firstClass = list.firstElementChild.className;
+      for (let item of list.children) {
+        const next = item.nextElementSibling;
+        item.className = next ? next.className : firstClass;
+      }
+    }
+    takeScreenshot();
+  });
+}, {once: true});
+</script>
+</html>

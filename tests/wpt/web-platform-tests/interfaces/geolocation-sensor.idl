@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Geolocation Sensor (https://wicg.github.io/geolocation-sensor/)
+// Source: Geolocation Sensor (https://w3c.github.io/geolocation-sensor/)
 
 [Constructor(optional GeolocationSensorOptions options = {}),
  SecureContext,

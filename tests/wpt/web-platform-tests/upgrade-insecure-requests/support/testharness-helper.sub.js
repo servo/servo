@@ -189,7 +189,7 @@ const testMap = {
 
   "shared-worker":
     test => promise_test(
-        () => requestViaSharedWorker(test.url), test.name),
+        () => requestViaSharedWorker(test.url, {}), test.name),
 
   "audio-worklet":
     test => promise_test(
