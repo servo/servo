@@ -7,8 +7,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <form action="dirname-ltr-iframe.html" method=get target="iframe">
-    <p><label>Comment: <input type=text id="comment-input" name="comment" dirname="comment.dir" required/></label></p>
-    <p><button type=submit>Post Comment</button></p>
+  <p><label>Comment: <input type=text name="comment" dirname="comment.dir" required/></label></p>
+  <p><button type=submit>Post Comment</button></p>
 </form>
 <iframe name="iframe"></iframe>
 <script>
@@ -20,13 +20,18 @@
   }
 
   var t = async_test("submit element directionality");
-  setTimeout(3000, function() {
-    var rtlValue = "مرحبا";
-    document.querySelector("input").value = rtlValue;
-    document.querySelector("button").click();
+  var rtlValue = "مرحبا";
+  document.querySelector("input").value = rtlValue;
+  document.querySelector("button").click();
 
-    document.querySelector("iframe").onload = t.step_func_done(function() {
-      assert_equals(getParameterByName("comment.dir"), "rtl");
-    });
-  }, 3000);
+  var iframe = document.querySelector("iframe");
+  iframe.onload = t.step_func(function() {
+    // The initial about:blank load event can be fired before the form navigation occurs.
+    // See https://github.com/whatwg/html/issues/490 for more information.
+    if(iframe.contentWindow.location.href == "about:blank") { return; }
+
+    assert_equals(getParameterByName("comment.dir"), "rtl");
+
+    t.done();
+  });
 </script>

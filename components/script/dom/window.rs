@@ -2017,7 +2017,6 @@ impl Window {
             }
             // TODO: step 11, navigationType.
             // Step 12, 13
-            println!("ScriptThread::navigate");
             ScriptThread::navigate(pipeline_id, load_data, replace);
         };
     }

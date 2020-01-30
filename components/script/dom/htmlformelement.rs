@@ -745,8 +745,6 @@ impl HTMLFormElement {
                 .map(|field| (&*field.name, field.replace_value(charset))),
         );
 
-        println!("New URL: {url}", url = &load_data.url);
-
         self.plan_to_navigate(load_data, target);
     }
 
@@ -952,22 +950,7 @@ impl HTMLFormElement {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
-
                         data_set.append(&mut input.form_datums(submitter, encoding));
-
-                        // TODO: probably move to input.form_datums(...) function
-                        // 4.10.18.2 https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#submitting-element-directionality:-the-dirname-attribute
-                        let dirname: DOMString = input.DirName();
-                        let dirname_str: &str = &*dirname;
-                        if !dirname_str.is_empty() {
-                            data_set.push(FormDatum {
-                                ty: input.Type(),
-                                name: DOMString::from_string(dirname_str.to_owned()),
-                                value: FormDatumValue::String(DOMString::from(
-                                    input.directionality("auto"),
-                                )),
-                            });
-                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();

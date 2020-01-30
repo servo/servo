@@ -1473,11 +1473,25 @@ impl HTMLInputElement {
         }
 
         // Step 5.12
-        vec![FormDatum {
+        let mut result = vec![FormDatum {
             ty: ty.clone(),
             name: name,
             value: FormDatumValue::String(self.Value()),
-        }]
+        }];
+
+        // 4.10.18.2
+        // https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#submitting-element-directionality:-the-dirname-attribute
+        let dirname: DOMString = self.DirName();
+        let directionality = DOMString::from(self.directionality("auto"));
+        if !dirname.is_empty() {
+            result.push(FormDatum {
+                ty: ty.clone(),
+                name: dirname.clone(),
+                value: FormDatumValue::String(directionality),
+            });
+        }
+
+        result
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
