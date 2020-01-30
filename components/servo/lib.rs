@@ -71,7 +71,7 @@ use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
 };
 use compositing::windowing::{EmbedderMethods, WindowEvent, WindowMethods};
-use compositing::{CompositingReason, IOCompositor, ShutdownState};
+use compositing::{CompositingReason, ConstellationMsg, IOCompositor, ShutdownState};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -106,9 +106,7 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script::JSEngineSetup;
-use script_traits::{
-    ConstellationMsg, SWManagerSenders, ScriptToConstellationChan, WindowSizeData,
-};
+use script_traits::{SWManagerSenders, ScriptToConstellationChan, WindowSizeData};
 use servo_config::opts;
 use servo_config::{pref, prefs};
 use servo_media::player::context::GlContext;

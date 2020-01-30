@@ -5,7 +5,7 @@
 //! Communication with the compositor thread.
 
 use crate::compositor::CompositingReason;
-use crate::SendableFrameTree;
+use crate::{ConstellationMsg, SendableFrameTree};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
@@ -15,7 +15,7 @@ use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult, MouseButton, MouseEventType};
+use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;

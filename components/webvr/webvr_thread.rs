@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl;
+use compositing::ConstellationMsg;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::default::Size2D;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
-use script_traits::ConstellationMsg;
 use servo_config::pref;
 use sparkle::gl::Gl;
 use std::collections::hash_map::Entry;

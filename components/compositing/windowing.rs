@@ -20,10 +20,10 @@ use std::rc::Rc;
 use std::time::Duration;
 use style_traits::DevicePixel;
 
+use rust_webvr::VRServiceManager;
 use webrender_api::units::DevicePoint;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use webrender_api::ScrollLocation;
-use webvr::VRServiceManager;
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Clone)]
