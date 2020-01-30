@@ -78,6 +78,7 @@ ${helpers.single_keyword(
     extra_servo_2013_values="pixelated",
     extra_servo_2020_values="pixelated",
     gecko_aliases="-moz-crisp-edges=crisp-edges",
+    gecko_enum_prefix="StyleImageRendering",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
 )}
