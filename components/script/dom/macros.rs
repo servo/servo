@@ -430,7 +430,9 @@ macro_rules! window_owned_beforeunload_event_handler(
 // As more methods get added, just update them here.
 macro_rules! global_event_handlers(
     () => (
+        // These are special when on body/frameset elements
         event_handler!(blur, GetOnblur, SetOnblur);
+        error_event_handler!(error, GetOnerror, SetOnerror);
         event_handler!(focus, GetOnfocus, SetOnfocus);
         event_handler!(load, GetOnload, SetOnload);
         event_handler!(resize, GetOnresize, SetOnresize);
@@ -460,7 +462,6 @@ macro_rules! global_event_handlers(
         event_handler!(durationchange, GetOndurationchange, SetOndurationchange);
         event_handler!(emptied, GetOnemptied, SetOnemptied);
         event_handler!(ended, GetOnended, SetOnended);
-        error_event_handler!(error, GetOnerror, SetOnerror);
         event_handler!(formdata, GetOnformdata, SetOnformdata);
         event_handler!(input, GetOninput, SetOninput);
         event_handler!(invalid, GetOninvalid, SetOninvalid);

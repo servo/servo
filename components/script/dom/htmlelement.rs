@@ -5,6 +5,7 @@
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -181,6 +182,35 @@ impl HTMLElementMethods for HTMLElement {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-onerror
+    fn GetOnerror(&self) -> Option<Rc<OnErrorEventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnerror()
+            } else {
+                None
+            }
+        } else {
+            self.upcast::<EventTarget>()
+                .get_event_handler_common("error")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onerror
+    fn SetOnerror(&self, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnerror(listener)
+            }
+        } else {
+            // special setter for error
+            self.upcast::<EventTarget>()
+                .set_error_event_handler("error", listener)
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
@@ -206,34 +236,6 @@ impl HTMLElementMethods for HTMLElement {
         } else {
             self.upcast::<EventTarget>()
                 .set_event_handler_common("load", listener)
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
-    fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
-        if self.is_body_or_frameset() {
-            let document = document_from_node(self);
-            if document.has_browsing_context() {
-                document.window().GetOnload()
-            } else {
-                None
-            }
-        } else {
-            self.upcast::<EventTarget>()
-                .get_event_handler_common("resize")
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
-    fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        if self.is_body_or_frameset() {
-            let document = document_from_node(self);
-            if document.has_browsing_context() {
-                document.window().SetOnresize(listener);
-            }
-        } else {
-            self.upcast::<EventTarget>()
-                .set_event_handler_common("resize", listener)
         }
     }
 
@@ -290,6 +292,34 @@ impl HTMLElementMethods for HTMLElement {
         } else {
             self.upcast::<EventTarget>()
                 .set_event_handler_common("focus", listener)
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnresize()
+            } else {
+                None
+            }
+        } else {
+            self.upcast::<EventTarget>()
+                .get_event_handler_common("resize")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnresize(listener)
+            }
+        } else {
+            self.upcast::<EventTarget>()
+                .set_event_handler_common("resize", listener)
         }
     }
 
