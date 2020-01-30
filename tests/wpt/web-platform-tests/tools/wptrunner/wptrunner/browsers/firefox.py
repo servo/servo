@@ -64,6 +64,8 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
     # https://bugzilla.mozilla.org/show_bug.cgi?id=1538725
     elif run_info_data["os"] == "win" and run_info_data["processor"] == "aarch64":
         return 4
+    elif run_info_data.get("ccov"):
+        return 2
     return 1
 
 

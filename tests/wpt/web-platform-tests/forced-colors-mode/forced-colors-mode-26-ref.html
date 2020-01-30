@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - svg defaults reference.
+  Tests that the default colors for svg elements are correct in high contrast.
+</title>
+<style>
+  svg, text, path {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <svg height="600" width="600">
+    <text x="0" y="15" fill="WindowText">
+      This text and the triangle below should have a WindowText fill in forced colors mode.
+    </text>
+    <path fill="WindowText" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</body>

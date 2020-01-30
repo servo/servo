@@ -17,6 +17,7 @@ promise_test(async () => {
     const portal = w.document.createElement('portal');
     portal.src = new URL('resources/simple-portal.html', location.href);
     w.document.body.appendChild(portal);
+    await nextEvent(portal, 'load');
     const pagehideFired = nextEvent(w, 'pagehide');
     const unloadFired = nextEvent(w, 'unload');
     await portal.activate();

@@ -15,6 +15,9 @@
 //   makeIceTransport
 //   makeGatherAndStartTwoIceTransports
 
+const ICE_UFRAG = 'u'.repeat(4);
+const ICE_PWD = 'p'.repeat(22);
+
 test(() => {
   const iceTransport = new RTCIceTransport();
 }, 'RTCIceTransport constructor does not throw');
@@ -126,8 +129,8 @@ promise_test(async t => {
     ' servers');
 
 const dummyRemoteParameters = {
-  usernameFragment: 'dummyUsernameFragment',
-  password: 'dummyPassword',
+  usernameFragment: ICE_UFRAG,
+  password: ICE_PWD,
 };
 
 test(() => {
@@ -142,11 +145,47 @@ test(() => {
   const iceTransport = new RTCIceTransport();
   assert_throws_js(TypeError, () => iceTransport.start({}));
   assert_throws_js(TypeError,
-    () => iceTransport.start({ usernameFragment: 'dummy' }));
+    () => iceTransport.start({ usernameFragment: ICE_UFRAG }));
   assert_throws_js(TypeError,
-    () => iceTransport.start({ password: 'dummy' }));
+    () => iceTransport.start({ password: ICE_PWD }));
   assert_equals(iceTransport.getRemoteParameters(), null);
 }, 'start() throws if usernameFragment or password not set');
+
+test(() => {
+  const TEST_CASES = [
+    {usernameFragment: '2sh', description: 'less than 4 characters long'},
+    {
+      usernameFragment: 'x'.repeat(257),
+      description: 'greater than 256 characters long',
+    },
+    {usernameFragment: '123\n', description: 'illegal character'},
+  ];
+  for (const {usernameFragment, description} of TEST_CASES) {
+    const iceTransport = new RTCIceTransport();
+    assert_throws_dom(
+      'SyntaxError',
+      () => iceTransport.start({ usernameFragment, password: ICE_PWD }),
+      `illegal usernameFragment (${description}) should throw a SyntaxError`);
+  }
+}, 'start() throws if usernameFragment does not conform to syntax');
+
+test(() => {
+  const TEST_CASES = [
+    {password: 'x'.repeat(21), description: 'less than 22 characters long'},
+    {
+      password: 'x'.repeat(257),
+      description: 'greater than 256 characters long',
+    },
+    {password: ('x'.repeat(21) + '\n'), description: 'illegal character'},
+  ];
+  for (const {password, description} of TEST_CASES) {
+    const iceTransport = new RTCIceTransport();
+    assert_throws_dom(
+      'SyntaxError',
+      () => iceTransport.start({ usernameFragment: ICE_UFRAG, password }),
+      `illegal password (${description}) should throw a SyntaxError`);
+  }
+}, 'start() throws if password does not conform to syntax');
 
 const assert_ice_parameters_equals = (a, b) => {
   assert_equals(a.usernameFragment, b.usernameFragment,
@@ -224,13 +263,13 @@ test(t => {
 test(t => {
   const iceTransport = makeIceTransport(t);
   iceTransport.start({
-    usernameFragment: 'user',
-    password: 'pass',
+    usernameFragment: '1'.repeat(4),
+    password: '1'.repeat(22),
   });
   iceTransport.addRemoteCandidate(candidate1);
   const changedRemoteParameters = {
-    usernameFragment: 'user2',
-    password: 'pass',
+    usernameFragment: '2'.repeat(4),
+    password: '2'.repeat(22),
   };
   iceTransport.start(changedRemoteParameters);
   assert_equals(iceTransport.state, 'new');
