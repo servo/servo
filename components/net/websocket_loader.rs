@@ -92,7 +92,7 @@ impl<'a> Handler for Client<'a> {
         let mut jar = self.http_state.cookie_jar.write().unwrap();
         // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
         for cookie in headers.get_all(header::SET_COOKIE) {
-            if let Ok(s) = cookie.to_str() {
+            if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
                 if let Some(cookie) =
                     Cookie::from_cookie_string(s.into(), self.resource_url, CookieSource::HTTP)
                 {
