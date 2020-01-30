@@ -82,6 +82,20 @@ impl Identities {
         }
     }
 
+    fn select(&mut self, backend: Backend) -> &mut IdentityHub {
+        match backend {
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Vulkan => &mut self.vk_hub,
+            #[cfg(target_os = "windows")]
+            Backend::Dx12 => &mut self.dx12_hub,
+            #[cfg(target_os = "windows")]
+            Backend::Dx11 => &mut self.dx11_hub,
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            Backend::Metal => &mut self.metal_hub,
+            _ => &mut self.dummy_hub,
+        }
+    }
+
     fn hubs(&mut self) -> Vec<&mut IdentityHub> {
         vec![
             #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -97,17 +111,7 @@ impl Identities {
     }
 
     pub fn create_device_id(&mut self, backend: Backend) -> DeviceId {
-        match backend {
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => self.vk_hub.create_device_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx12 => self.dx12_hub.create_device_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => self.dx11_hub.create_device_id(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => self.metal_hub.create_device_id(),
-            _ => self.dummy_hub.create_device_id(),
-        }
+        self.select(backend).create_device_id()
     }
 
     pub fn create_adapter_ids(&mut self) -> SmallVec<[AdapterId; 4]> {
@@ -119,44 +123,14 @@ impl Identities {
     }
 
     pub fn create_buffer_id(&mut self, backend: Backend) -> BufferId {
-        match backend {
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => self.vk_hub.create_buffer_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx12 => self.dx12_hub.create_buffer_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => self.dx11_hub.create_buffer_id(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => self.metal_hub.create_buffer_id(),
-            _ => self.dummy_hub.create_buffer_id(),
-        }
+        self.select(backend).create_buffer_id()
     }
 
     pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
-        match backend {
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => self.vk_hub.create_bind_group_layout_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx12 => self.dx12_hub.create_bind_group_layout_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => self.dx11_hub.create_bind_group_layout_id(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => self.metal_hub.create_bind_group_layout_id(),
-            _ => self.dummy_hub.create_bind_group_layout_id(),
-        }
+        self.select(backend).create_bind_group_layout_id()
     }
 
     pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
-        match backend {
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => self.vk_hub.create_pipeline_layout_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx12 => self.dx12_hub.create_pipeline_layout_id(),
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => self.dx11_hub.create_pipeline_layout_id(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => self.metal_hub.create_pipeline_layout_id(),
-            _ => self.dummy_hub.create_pipeline_layout_id(),
-        }
+        self.select(backend).create_pipeline_layout_id()
     }
 }
