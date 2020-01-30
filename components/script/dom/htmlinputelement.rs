@@ -2470,7 +2470,7 @@ impl Activatable for HTMLInputElement {
                 self.form_owner().map(|o| {
                     o.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::InputElement(self.clone()),
+                        FormSubmitter::InputElement(self),
                     )
                 });
             },

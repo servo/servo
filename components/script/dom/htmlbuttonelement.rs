@@ -307,7 +307,7 @@ impl Activatable for HTMLButtonElement {
                 if let Some(owner) = self.form_owner() {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::ButtonElement(self.clone()),
+                        FormSubmitter::ButtonElement(self),
                     );
                 }
             },
