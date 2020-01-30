@@ -152,7 +152,8 @@ use tendril::{StrTendril, TendrilSink};
 use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{
-    WebGPU, WebGPUAdapter, WebGPUBindGroupLayout, WebGPUBuffer, WebGPUDevice, WebGPUPipelineLayout,
+    WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer, WebGPUDevice,
+    WebGPUPipelineLayout,
 };
 use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
@@ -532,6 +533,7 @@ unsafe_no_jsmanaged_fields!(WebGPU);
 unsafe_no_jsmanaged_fields!(WebGPUAdapter);
 unsafe_no_jsmanaged_fields!(WebGPUDevice);
 unsafe_no_jsmanaged_fields!(WebGPUBuffer);
+unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
 unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
 unsafe_no_jsmanaged_fields!(GPUBufferState);

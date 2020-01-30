@@ -98,7 +98,7 @@ use std::sync::Arc;
 use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::wgpu::{
-    id::{AdapterId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
+    id::{AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
     Backend,
 };
 
@@ -2103,6 +2103,10 @@ impl GlobalScope {
 
     pub fn wgpu_create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
         self.gpu_id_hub.borrow_mut().create_adapter_ids()
+    }
+
+    pub fn wgpu_create_bind_group_id(&self, backend: Backend) -> BindGroupId {
+        self.gpu_id_hub.borrow_mut().create_bind_group_id(backend)
     }
 
     pub fn wgpu_create_bind_group_layout_id(&self, backend: Backend) -> BindGroupLayoutId {
