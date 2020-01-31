@@ -1234,7 +1234,10 @@ impl LayoutThread {
                     rw_data.text_index_response = process_text_index_request(node, point_in_node);
                 },
                 &QueryMsg::ClientRectQuery(node) => {
-                    rw_data.client_rect_response = process_node_geometry_request(node);
+                    rw_data.client_rect_response = process_node_geometry_request(
+                        node,
+                        (&*self.fragment_tree_root.borrow()).as_ref(),
+                    );
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
                     rw_data.scroll_area_response = process_node_scroll_area_request(node);
@@ -1383,11 +1386,7 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
         );
 
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        ));
-        fragment_tree.build_display_list(&mut display_list, viewport_size);
+        fragment_tree.build_display_list(&mut display_list);
 
         if self.dump_flow_tree {
             fragment_tree.print();
@@ -1408,6 +1407,10 @@ impl LayoutThread {
         self.paint_time_metrics
             .maybe_observe_paint_time(self, epoch, display_list.is_contentful);
 
+        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
+            self.viewport_size.width.to_f32_px(),
+            self.viewport_size.height.to_f32_px(),
+        ));
         self.webrender_api.send_display_list(
             self.webrender_document,
             epoch,

@@ -10,7 +10,7 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
 use crate::geom::flow_relative::Vec2;
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
@@ -22,7 +22,8 @@ use euclid::default::{Point2D, Rect, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
-use style::properties::ComputedValues;
+use style::dom::OpaqueNode;
+use style::properties::{style_structs, ComputedValues};
 use style::values::computed::Length;
 use style_traits::CSSPixel;
 
@@ -35,8 +36,8 @@ pub struct FragmentTreeRoot {
     /// The scrollable overflow of the root of the fragment tree.
     scrollable_overflow: PhysicalRect<Length>,
 
-    /// The axis-aligned bounding box of the border box of all child fragments
-    bounding_box_of_border_boxes: PhysicalRect<Length>,
+    /// The containing block used in the layout of this fragment tree.
+    initial_containing_block: PhysicalRect<Length>,
 }
 
 impl BoxTreeRoot {
@@ -117,13 +118,18 @@ impl BoxTreeRoot {
         viewport: euclid::Size2D<f32, CSSPixel>,
     ) -> FragmentTreeRoot {
         let style = ComputedValues::initial_values();
+
+        // FIXME: use the document’s mode:
+        // https://drafts.csswg.org/css-writing-modes/#principal-flow
+        let physical_containing_block = PhysicalRect::new(
+            PhysicalPoint::zero(),
+            PhysicalSize::new(Length::new(viewport.width), Length::new(viewport.height)),
+        );
         let initial_containing_block = DefiniteContainingBlock {
             size: Vec2 {
-                inline: Length::new(viewport.width),
-                block: Length::new(viewport.height),
+                inline: physical_containing_block.size.width,
+                block: physical_containing_block.size.height,
             },
-            // FIXME: use the document’s mode:
-            // https://drafts.csswg.org/css-writing-modes/#principal-flow
             style,
         };
 
@@ -142,8 +148,6 @@ impl BoxTreeRoot {
             &mut independent_layout.fragments,
         );
 
-        // FIXME(mrobinson, bug 25564): We should be using the containing block
-        // here to properly convert scrollable overflow to physical geometry.
         let scrollable_overflow =
             independent_layout
                 .fragments
@@ -167,51 +171,18 @@ impl BoxTreeRoot {
                     acc.union(&child_overflow)
                 });
 
-        let containing_block = PhysicalRect::zero();
-        let bounding_box_of_border_boxes =
-            independent_layout
-                .fragments
-                .iter()
-                .fold(PhysicalRect::zero(), |acc, child| {
-                    acc.union(&match child {
-                        Fragment::Box(fragment) => fragment
-                            .border_rect()
-                            .to_physical(fragment.style.writing_mode, &containing_block),
-                        Fragment::Anonymous(fragment) => {
-                            fragment.rect.to_physical(fragment.mode, &containing_block)
-                        },
-                        Fragment::Text(fragment) => fragment
-                            .rect
-                            .to_physical(fragment.parent_style.writing_mode, &containing_block),
-                        Fragment::Image(fragment) => fragment
-                            .rect
-                            .to_physical(fragment.style.writing_mode, &containing_block),
-                    })
-                });
-
         FragmentTreeRoot {
             children: independent_layout.fragments,
             scrollable_overflow,
-            bounding_box_of_border_boxes,
+            initial_containing_block: physical_containing_block,
         }
     }
 }
 
 impl FragmentTreeRoot {
-    pub fn build_display_list(
-        &self,
-        builder: &mut crate::display_list::DisplayListBuilder,
-        viewport_size: webrender_api::units::LayoutSize,
-    ) {
-        let containing_block = PhysicalRect::new(
-            euclid::Point2D::zero(),
-            euclid::Size2D::new(
-                Length::new(viewport_size.width),
-                Length::new(viewport_size.height),
-            ),
-        );
+    pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
         for fragment in &self.children {
-            fragment.build_display_list(builder, &containing_block)
+            fragment.build_display_list(builder, &self.initial_containing_block)
         }
     }
 
@@ -229,15 +200,132 @@ impl FragmentTreeRoot {
         ))
     }
 
-    pub fn bounding_box_of_border_boxes(&self) -> Rect<Au> {
-        let origin = Point2D::new(
-            Au::from_f32_px(self.bounding_box_of_border_boxes.origin.x.px()),
-            Au::from_f32_px(self.bounding_box_of_border_boxes.origin.y.px()),
-        );
-        let size = Size2D::new(
-            Au::from_f32_px(self.bounding_box_of_border_boxes.size.width.px()),
-            Au::from_f32_px(self.bounding_box_of_border_boxes.size.height.px()),
-        );
-        Rect::new(origin, size)
+    fn iterate_through_fragments<F>(&self, process_func: &mut F)
+    where
+        F: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
+    {
+        fn do_iteration<M>(
+            fragment: &Fragment,
+            containing_block: &PhysicalRect<Length>,
+            process_func: &mut M,
+        ) -> bool
+        where
+            M: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
+        {
+            if !process_func(fragment, containing_block) {
+                return false;
+            }
+
+            match fragment {
+                Fragment::Box(fragment) => {
+                    let new_containing_block = fragment
+                        .content_rect
+                        .to_physical(fragment.style.writing_mode, containing_block)
+                        .translate(containing_block.origin.to_vector());
+                    for child in &fragment.children {
+                        do_iteration(child, &new_containing_block, process_func);
+                    }
+                },
+                Fragment::Anonymous(fragment) => {
+                    let new_containing_block = fragment
+                        .rect
+                        .to_physical(fragment.mode, containing_block)
+                        .translate(containing_block.origin.to_vector());
+                    for child in &fragment.children {
+                        do_iteration(child, &new_containing_block, process_func);
+                    }
+                },
+                _ => {},
+            }
+
+            true
+        }
+
+        for child in &self.children {
+            if !do_iteration(child, &self.initial_containing_block, process_func) {
+                break;
+            }
+        }
+    }
+
+    pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
+        let mut rect = PhysicalRect::zero();
+        let mut process = |fragment: &Fragment, containing_block: &PhysicalRect<Length>| {
+            let fragment_relative_rect = match fragment {
+                Fragment::Box(fragment) if fragment.tag == requested_node => fragment
+                    .border_rect()
+                    .to_physical(fragment.style.writing_mode, &containing_block),
+                Fragment::Text(fragment) if fragment.tag == requested_node => fragment
+                    .rect
+                    .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                Fragment::Box(_) |
+                Fragment::Text(_) |
+                Fragment::Image(_) |
+                Fragment::Anonymous(_) => return true,
+            };
+
+            rect = fragment_relative_rect
+                .translate(containing_block.origin.to_vector())
+                .union(&rect);
+            return true;
+        };
+
+        self.iterate_through_fragments(&mut process);
+
+        Rect::new(
+            Point2D::new(
+                Au::from_f32_px(rect.origin.x.px()),
+                Au::from_f32_px(rect.origin.y.px()),
+            ),
+            Size2D::new(
+                Au::from_f32_px(rect.size.width.px()),
+                Au::from_f32_px(rect.size.height.px()),
+            ),
+        )
+    }
+
+    pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
+        let mut border_dimensions = Rect::zero();
+        let mut process = |fragment: &Fragment, containing_block: &PhysicalRect<Length>| {
+            let (style, padding_rect) = match fragment {
+                Fragment::Box(fragment) if fragment.tag == requested_node => {
+                    (&fragment.style, fragment.padding_rect())
+                },
+                Fragment::Box(_) |
+                Fragment::Text(_) |
+                Fragment::Image(_) |
+                Fragment::Anonymous(_) => return true,
+            };
+
+            // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
+            // " If the element has no associated CSS layout box or if the
+            //   CSS layout box is inline, return zero." For this check we
+            // also explicitly ignore the list item portion of the display
+            // style.
+            let display = &style.get_box().display;
+            if display.inside() == style::values::specified::box_::DisplayInside::Flow &&
+                display.outside() == style::values::specified::box_::DisplayOutside::Inline
+            {
+                return false;
+            }
+
+            let style_structs::Border {
+                border_top_width: top_width,
+                border_left_width: left_width,
+                ..
+            } = *style.get_border();
+
+            let padding_rect = padding_rect.to_physical(style.writing_mode, &containing_block);
+            border_dimensions.size.width = padding_rect.size.width.px() as i32;
+            border_dimensions.size.height = padding_rect.size.height.px() as i32;
+            border_dimensions.origin.y = top_width.px() as i32;
+            border_dimensions.origin.x = left_width.px() as i32;
+
+            false
+        };
+
+        self.iterate_through_fragments(&mut process);
+
+        border_dimensions
     }
 }

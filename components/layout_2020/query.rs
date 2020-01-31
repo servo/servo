@@ -165,22 +165,31 @@ impl LayoutRPC for LayoutRPCImpl {
 }
 
 pub fn process_content_box_request(
-    _requested_node: OpaqueNode,
+    requested_node: OpaqueNode,
     fragment_tree_root: Option<&FragmentTreeRoot>,
 ) -> Option<Rect<Au>> {
     let fragment_tree_root = match fragment_tree_root {
         Some(fragment_tree_root) => fragment_tree_root,
         None => return None,
     };
-    Some(fragment_tree_root.bounding_box_of_border_boxes())
+
+    Some(fragment_tree_root.get_content_box_for_node(requested_node))
 }
 
 pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au>> {
     vec![]
 }
 
-pub fn process_node_geometry_request(_requested_node: OpaqueNode) -> Rect<i32> {
-    Rect::zero()
+pub fn process_node_geometry_request(
+    requested_node: OpaqueNode,
+    fragment_tree_root: Option<&FragmentTreeRoot>,
+) -> Rect<i32> {
+    let fragment_tree_root = match fragment_tree_root {
+        Some(fragment_tree_root) => fragment_tree_root,
+        None => return Rect::zero(),
+    };
+
+    fragment_tree_root.get_border_dimensions_for_node(requested_node)
 }
 
 pub fn process_node_scroll_id_request<N: LayoutNode>(
