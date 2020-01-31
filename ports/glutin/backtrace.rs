@@ -13,8 +13,8 @@ use std::fmt::{self, Write};
 use backtrace::{BytesOrWideString, PrintFmt};
 
 #[inline(never)]
-pub(crate) fn print() {
-    println!("{:?}", Print {
+pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {
+    write!(w, "{:?}", Print {
         print_fn_address: print as usize,
     })
 }

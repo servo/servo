@@ -29,6 +29,7 @@ use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
 use servo::servo_config::pref;
 use std::env;
+use std::io::Write;
 use std::panic;
 use std::process;
 use std::thread;
@@ -57,12 +58,14 @@ fn install_crash_handler() {
         use std::sync::atomic;
         static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
         if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
-            print!("Stack trace");
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            let _ = write!(&mut stdout, "Stack trace");
             if let Some(name) = thread::current().name() {
-                print!(" for thread \"{}\"", name);
+                let _ = write!(&mut stdout, " for thread \"{}\"", name);
             }
-            println!();
-            backtrace::print();
+            let _ = write!(&mut stdout, "\n");
+            let _ = backtrace::print(&mut stdout);
         }
         unsafe {
             _exit(sig);
@@ -131,8 +134,11 @@ pub fn main() {
         };
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
+        let stdout = std::io::stdout();
+        let mut stdout = stdout.lock();
         if let Some(location) = info.location() {
-            println!(
+            let _ = writeln!(
+                &mut stdout,
                 "{} (thread {}, at {}:{})",
                 msg,
                 name,
@@ -140,11 +146,12 @@ pub fn main() {
                 location.line()
             );
         } else {
-            println!("{} (thread {})", msg, name);
+            let _ = writeln!(&mut stdout, "{} (thread {})", msg, name);
         }
         if env::var("RUST_BACKTRACE").is_ok() {
-            backtrace::print();
+            let _ = backtrace::print(&mut stdout);
         }
+        drop(stdout);
 
         error!("{}", msg);
     }));
