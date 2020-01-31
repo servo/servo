@@ -324,14 +324,23 @@ impl Element {
     }
 
     pub fn set_custom_element_state(&self, state: CustomElementState) {
-        self.ensure_rare_data().custom_element_state = state;
+        // no need to inflate rare data for uncustomized
+        if state != CustomElementState::Uncustomized || self.rare_data().is_some() {
+            self.ensure_rare_data().custom_element_state = state;
+        }
+        // https://dom.spec.whatwg.org/#concept-element-defined
+        let in_defined_state = match state {
+            CustomElementState::Uncustomized | CustomElementState::Custom => true,
+            _ => false,
+        };
+        self.set_state(ElementState::IN_DEFINED_STATE, in_defined_state)
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
         if let Some(rare_data) = self.rare_data().as_ref() {
             return rare_data.custom_element_state;
         }
-        CustomElementState::Undefined
+        CustomElementState::Uncustomized
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
@@ -3039,6 +3048,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Defined |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
