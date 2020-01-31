@@ -957,48 +957,16 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands}
-                                  align-content justify-content align-self
-                                  justify-self align-items justify-items
-                                  grid-auto-flow">
+                  skip_longhands="${skip_position_longhands} grid-auto-flow">
     % for side in SIDES:
     <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
-
-    % for kind in ["align", "justify"]:
-    ${impl_simple_type_with_conversion(kind + "_content")}
-    ${impl_simple_type_with_conversion(kind + "_self")}
-    % endfor
-    ${impl_simple_type_with_conversion("align_items")}
-
-    pub fn set_justify_items(&mut self, v: longhands::justify_items::computed_value::T) {
-        self.gecko.mSpecifiedJustifyItems = v.specified.into();
-        self.set_computed_justify_items(v.computed);
-    }
-
+    ${impl_simple_type_with_conversion("grid_auto_flow")}
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
         debug_assert_ne!(v.0, crate::values::specified::align::AlignFlags::LEGACY);
-        self.gecko.mJustifyItems = v.into();
+        self.gecko.mJustifyItems.computed = v;
     }
 
-    pub fn reset_justify_items(&mut self, reset_style: &Self) {
-        self.gecko.mJustifyItems = reset_style.gecko.mJustifyItems;
-        self.gecko.mSpecifiedJustifyItems = reset_style.gecko.mSpecifiedJustifyItems;
-    }
-
-    pub fn copy_justify_items_from(&mut self, other: &Self) {
-        self.gecko.mJustifyItems = other.gecko.mJustifyItems;
-        self.gecko.mSpecifiedJustifyItems = other.gecko.mJustifyItems;
-    }
-
-    pub fn clone_justify_items(&self) -> longhands::justify_items::computed_value::T {
-        longhands::justify_items::computed_value::T {
-            computed: self.gecko.mJustifyItems.into(),
-            specified: self.gecko.mSpecifiedJustifyItems.into(),
-        }
-    }
-
-    ${impl_simple_type_with_conversion("grid_auto_flow")}
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +

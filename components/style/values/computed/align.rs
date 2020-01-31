@@ -9,7 +9,7 @@
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 
-pub use super::specified::{AlignContent, AlignItems, JustifyContent, SelfAlignment};
+pub use super::specified::{AlignContent, AlignItems, ContentDistribution, JustifyContent, SelfAlignment};
 pub use super::specified::{AlignSelf, JustifySelf};
 
 /// The computed value for the `justify-items` property.
@@ -34,7 +34,8 @@ pub use super::specified::{AlignSelf, JustifySelf};
 ///
 /// See the discussion in https://bugzil.la/1384542.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss, ToResolvedValue)]
-pub struct JustifyItems {
+#[repr(C)]
+pub struct ComputedJustifyItems {
     /// The specified value for the property. Can contain the bare `legacy`
     /// keyword.
     #[css(skip)]
@@ -44,6 +45,8 @@ pub struct JustifyItems {
     /// keywords like `left`, `right` or `center`.
     pub computed: specified::JustifyItems,
 }
+
+pub use self::ComputedJustifyItems as JustifyItems;
 
 impl JustifyItems {
     /// Returns the `legacy` value.
