@@ -209,8 +209,11 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='append',
                      help='Create an APPX package')
+    @CommandArgument('--ms-app-store',
+                     default=None,
+                     action='store_true')
     def package(self, release=False, dev=False, android=None, magicleap=None, debug=False,
-                debugger=None, target=None, flavor=None, maven=False, uwp=None):
+                debugger=None, target=None, flavor=None, maven=False, uwp=None, ms_app_store=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -234,7 +237,7 @@ class PackageCommands(CommandBase):
         target_dir = path.dirname(binary_path)
         if uwp:
             vs_info = self.vs_dirs()
-            build_uwp(uwp, dev, vs_info['msbuild'])
+            build_uwp(uwp, dev, vs_info['msbuild'], not ms_app_store)
         elif magicleap:
             if platform.system() not in ["Darwin"]:
                 raise Exception("Magic Leap builds are only supported on macOS.")
@@ -739,7 +742,7 @@ class PackageCommands(CommandBase):
         return 0
 
 
-def build_uwp(platforms, dev, msbuild_dir):
+def build_uwp(platforms, dev, msbuild_dir, sign_package):
     if any(map(lambda p: p not in ['x64', 'x86', 'arm64'], platforms)):
         raise Exception("Unsupported appx platforms: " + str(platforms))
     if dev and len(platforms) > 1:
@@ -764,7 +767,8 @@ def build_uwp(platforms, dev, msbuild_dir):
         )
         build_file.close()
         # Generate an appxbundle.
-        subprocess.check_call([msbuild, "/m", build_file.name])
+        sign_package_value = "true" if sign_package else "false"
+        subprocess.check_call([msbuild, "/m", build_file.name, "/p:AppxPackageSigningEnabled=" + sign_package_value])
         os.unlink(build_file.name)
 
     print("Creating ZIP")
