@@ -27,12 +27,15 @@ test(function() {
   var last = window.performance.now();
   assert_greater_than(last, 0);
 
-  // Check that window.performance.now() is monotonically increasing
+  // Check that window.performance.now() is monotonically nondecreasing
+  // and eventually increases
+  var before_loop = window.performance.now();
   for (var i = 0; i < 100; i++) {
     var next = window.performance.now();
-    assert_greater_than(next, last);
+    assert_greater_than_equal(next, last);
     last = next;
   }
+  assert_greater_than(last, before_loop, "If this fails, either performance timing is broken, or Servo JS execution has gotten much faster since this test was written.");
 });
 </script>
 </body>

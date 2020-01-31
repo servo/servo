@@ -401,12 +401,12 @@ impl PerformanceMethods for Performance {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.now())
+        reduce_timing_resolution(self.now())
     }
 
     // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
     fn TimeOrigin(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.navigation_start_precise as f64)
+        reduce_timing_resolution(self.navigation_start_precise as f64)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
@@ -524,4 +524,15 @@ impl PerformanceMethods for Performance {
         GetOnresourcetimingbufferfull,
         SetOnresourcetimingbufferfull
     );
+}
+
+// https://www.w3.org/TR/hr-time-2/#clock-resolution
+pub fn reduce_timing_resolution(exact: f64) -> DOMHighResTimeStamp {
+    // We need a granularity no finer than 5 microseconds.
+    // 5 microseconds isn't an exactly representable f64 so WPT tests
+    // might occasionally corner-case on rounding.
+    // web-platform-tests/wpt#21526 wants us to use an integer number of
+    // microseconds; the next divisor of milliseconds up from 5 microseconds
+    // is 10, which is 1/100th of a millisecond.
+    Finite::wrap((exact * 100.0).floor() / 100.0)
 }

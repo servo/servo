@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding;
 use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::vrpose::VRPose;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
@@ -119,8 +120,8 @@ impl VRFrameData {
 
 impl VRFrameDataMethods for VRFrameData {
     // https://w3c.github.io/webvr/#dom-vrframedata-timestamp
-    fn Timestamp(&self) -> Finite<f64> {
-        Finite::wrap(self.timestamp.get() - self.first_timestamp.get())
+    fn Timestamp(&self) -> DOMHighResTimeStamp {
+        reduce_timing_resolution(self.timestamp.get() - self.first_timestamp.get())
     }
 
     #[allow(unsafe_code)]

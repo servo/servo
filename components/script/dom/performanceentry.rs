@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::performance::reduce_timing_resolution;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -77,12 +78,12 @@ impl PerformanceEntryMethods for PerformanceEntry {
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime
-    fn StartTime(&self) -> Finite<f64> {
-        Finite::wrap(self.start_time)
+    fn StartTime(&self) -> DOMHighResTimeStamp {
+        reduce_timing_resolution(self.start_time)
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-duration
-    fn Duration(&self) -> Finite<f64> {
-        Finite::wrap(self.duration)
+    fn Duration(&self) -> DOMHighResTimeStamp {
+        reduce_timing_resolution(self.duration)
     }
 }

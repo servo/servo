@@ -6,11 +6,11 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeS
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{
     self, PerformanceResourceTimingMethods,
 };
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
 use net_traits::ResourceFetchTiming;
@@ -182,17 +182,17 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart
     fn DomainLookupStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.domain_lookup_start)
+        reduce_timing_resolution(self.domain_lookup_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupend
     fn DomainLookupEnd(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.domain_lookup_end)
+        reduce_timing_resolution(self.domain_lookup_end)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart
     fn SecureConnectionStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.secure_connection_start)
+        reduce_timing_resolution(self.secure_connection_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-transfersize
@@ -212,41 +212,41 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart
     fn RequestStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.request_start)
+        reduce_timing_resolution(self.request_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart
     fn RedirectStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.redirect_start)
+        reduce_timing_resolution(self.redirect_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend
     fn RedirectEnd(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.redirect_end)
+        reduce_timing_resolution(self.redirect_end)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart
     fn ResponseStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.response_start)
+        reduce_timing_resolution(self.response_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     fn FetchStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.fetch_start)
+        reduce_timing_resolution(self.fetch_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectstart
     fn ConnectStart(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.connect_start)
+        reduce_timing_resolution(self.connect_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend
     fn ConnectEnd(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.connect_end)
+        reduce_timing_resolution(self.connect_end)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend
     fn ResponseEnd(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.response_end)
+        reduce_timing_resolution(self.response_end)
     }
 }

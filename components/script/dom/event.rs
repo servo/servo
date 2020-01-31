@@ -10,7 +10,6 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeS
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, DomSlice, MutNullableDom};
@@ -19,6 +18,7 @@ use crate::dom::document::Document;
 use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::Node;
+use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
 use crate::task::TaskOnce;
@@ -333,7 +333,7 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-timestamp
     fn TimeStamp(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(
+        reduce_timing_resolution(
             (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
                 .to_ms(),
         )
