@@ -404,9 +404,15 @@ impl EventTarget {
         });
 
         match idx {
-            Some(idx) => {
-                entries[idx].listener =
-                    EventListenerType::Inline(listener.unwrap_or(InlineEventListener::Null));
+            Some(idx) => match listener {
+                // Replace if there's something to replace with,
+                // but remove entirely if there isn't.
+                Some(listener) => {
+                    entries[idx].listener = EventListenerType::Inline(listener);
+                },
+                None => {
+                    entries.remove(idx);
+                },
             },
             None => {
                 if let Some(listener) = listener {
