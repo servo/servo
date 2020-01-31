@@ -281,7 +281,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let writing_mode = self.style.get_inherited_box().clone_writing_mode();
         let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
 
-        if writing_mode != WritingMode::HorizontalTb &&
+        if matches!(writing_mode, WritingMode::VerticalRl | WritingMode::VerticalLr) &&
             text_combine_upright == TextCombineUpright::All
         {
             self.style.add_flags(ComputedValueFlags::IS_TEXT_COMBINED);
