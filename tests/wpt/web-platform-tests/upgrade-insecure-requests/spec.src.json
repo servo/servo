@@ -108,7 +108,8 @@
       "subresource": [
         "worker-classic",
         "worker-module",
-        "sharedworker-classic"
+        "sharedworker-classic",
+        "sharedworker-module"
       ],
       "origin": [
         "cross-https",
@@ -166,6 +167,8 @@
         "worker-module",
         "worker-import-data",
         "sharedworker-classic",
+        "sharedworker-module",
+        "sharedworker-import-data",
         "worklet-animation",
         "worklet-audio",
         "worklet-layout",
@@ -243,6 +246,8 @@
       "worker-module": [],
       "worker-import-data": [],
       "sharedworker-classic": [],
+      "sharedworker-module": [],
+      "sharedworker-import-data": [],
       "worklet-animation": [],
       "worklet-audio": [],
       "worklet-layout": [],
@@ -363,6 +368,8 @@
       "worker-module",
       "worker-import-data",
       "sharedworker-classic",
+      "sharedworker-module",
+      "sharedworker-import-data",
       "worklet-animation",
       "worklet-audio",
       "worklet-layout",

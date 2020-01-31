@@ -15,7 +15,7 @@
       var testBase = get_host_info().HTTPS_ORIGIN + RESOURCES_DIR;
       testReferrerHeader(testBase, referrerUrl);
       testBase = get_host_info().HTTP_ORIGIN + RESOURCES_DIR;
-      testReferrerHeader(testBase, "");
+      testReferrerHeader(testBase, "", true);
     </script>
   </body>
 </html>

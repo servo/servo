@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="dark">
+<head>
+  <title>CSS Color Adjustment Test: the initial color is affected by color-scheme</title>
+  <link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+  <link rel="stylesheet" href="support/assert-preferred-dark.css">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .dark { color-scheme: dark }
+    .light { color-scheme: light }
+    .initial { color: initial }
+  </style>
+</head>
+<body>
+  <div id="dark" class="dark initial"></div>
+  <div id="light" class="light initial"></div>
+</body>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(dark).color, getComputedStyle(document.documentElement).color);
+    assert_not_equals(getComputedStyle(light).color, getComputedStyle(document.documentElement).color);
+  }, "Check that color:initial resolves to the intial color for the dark color-scheme.");
+
+  test(() => {
+    document.documentElement.className = "light";
+    assert_equals(getComputedStyle(light).color, getComputedStyle(document.documentElement).color);
+    assert_not_equals(getComputedStyle(dark).color, getComputedStyle(document.documentElement).color);
+  }, "Check that color:initial resolves to the intial color for the light color-scheme.");
+</script>

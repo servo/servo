@@ -45,18 +45,63 @@
       });
 
       audit.define('test AudioNodeOptions', (task, should) => {
-        testAudioNodeOptions(should, context, 'ConvolverNode', {
-          channelCount: {
-            value: 2,
-            isFixed: true,
-            exceptionType: 'NotSupportedError'
-          },
-          channelCountMode: {
-            value: 'clamped-max',
-            isFixed: true,
-            exceptionType: 'NotSupportedError'
-          },
+        // Can't use testAudioNodeOptions because the constraints for this node
+        // are not supported there.
+        let node;
+
+        // An array of tests.
+        [{
+          // Test that we can set the channel count to 1 or 2 and that other
+          // channel counts throw an error.
+          attribute: 'channelCount',
+          tests: [
+            {value: 1}, {value: 2}, {value: 0, error: 'NotSupportedError'},
+            {value: 3, error: 'NotSupportedError'},
+            {value: 99, error: 'NotSupportedError'}
+          ]
+        },
+         {
+           // Test channelCountMode.  A mode of "max" is illegal, but others are
+           // ok.  But also throw an error of unknown values.
+           attribute: 'channelCountMode',
+           tests: [
+             {value: 'clamped-max'}, {value: 'explicit'},
+             {value: 'max', error: 'NotSupportedError'},
+             {value: 'foobar', error: TypeError}
+           ]
+         },
+         {
+           // Test channelInterpretation can be set for valid values and an
+           // error is thrown for others.
+           attribute: 'channelInterpretation',
+           tests: [
+             {value: 'speakers'}, {value: 'discrete'},
+             {value: 'foobar', error: TypeError}
+           ]
+         }].forEach(entry => {
+          entry.tests.forEach(testItem => {
+            let options = {};
+            options[entry.attribute] = testItem.value;
+
+            const testFunction = () => {
+              node = new ConvolverNode(context, options);
+            };
+            const testDescription =
+                `new ConvolverNode(c, ${JSON.stringify(options)})`;
+
+            if (testItem.error) {
+              testItem.error === TypeError
+              ? should(testFunction, testDescription).throw(TypeError)
+              : should(testFunction, testDescription)
+                  .throw(DOMException, 'NotSupportedError');
+            } else {
+              should(testFunction, testDescription).notThrow();
+              should(node[entry.attribute], `node.${entry.attribute}`)
+                  .beEqualTo(options[entry.attribute]);
+            }
+          });
         });
+
         task.done();
       });
 

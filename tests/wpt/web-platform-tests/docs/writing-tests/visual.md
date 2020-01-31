@@ -21,3 +21,7 @@ must give a clear pass condition in their rendering).
 Similarly, they should consider the [rendering test guidelines](rendering),
 especially those about color, to ensure those running the test don't
 incorrectly judge its result.
+
+The screenshot for comparison is taken at the same point as when screenshots
+for [reftest comparisons](reftests) are taken, including potentially waiting
+for any `class="reftest-wait"` to be removed from the root element.

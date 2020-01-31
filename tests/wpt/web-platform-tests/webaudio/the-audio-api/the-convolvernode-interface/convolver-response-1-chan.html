@@ -142,6 +142,107 @@
                 .then(() => task.done());
           });
 
+      audit.define(
+          {
+            label: '3-channel input, explicit',
+            description: '3->2 explicit downmix producing 2-channel output'
+          },
+          (task, should) => {
+            downMixTest(
+                {
+                  channelCountMode: 'explicit',
+                  numberOfInputs: 3,
+                  prefix: '3 chan downmix explicit'
+                },
+                should)
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: '4-channel input, explicit',
+            description: '4->2 explicit downmix producing 2-channel output'
+          },
+          (task, should) => {
+            downMixTest(
+                {
+                  channelCountMode: 'explicit',
+                  numberOfInputs: 4,
+                  prefix: '4 chan downmix explicit'
+                },
+                should)
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: '5.1-channel input, explicit',
+            description: '5.1->2 explicit downmix producing 2-channel output'
+          },
+          (task, should) => {
+            downMixTest(
+                {
+                  channelCountMode: 'explicit',
+                  numberOfInputs: 6,
+                  prefix: '5.1 chan downmix explicit'
+                },
+                should)
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: 'mono-upmix-explicit',
+            description: '1->2 upmix, count mode explicit'
+          },
+          (task, should) => {
+            upMixTest(should, {channelCountMode: 'explicit'})
+                .then(buffer => {
+                  let length = buffer.length;
+                  let input = buffer.getChannelData(0);
+                  let out0 = buffer.getChannelData(1);
+                  let out1 = buffer.getChannelData(2);
+
+                  // The convolver is basically a one-sample delay.  Verify that
+                  // that each channel is delayed by one sample.
+                  should(out0.slice(1), '1->2 explicit upmix: channel 0')
+                      .beCloseToArray(
+                          input.slice(0, length - 1),
+                          {absoluteThreshold: 3.577e-7});
+                  should(out1.slice(1), '1->2 explicit upmix: channel 1')
+                      .beCloseToArray(
+                          input.slice(0, length - 1),
+                          {absoluteThreshold: 3.577e-7});
+                })
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: 'mono-upmix-clamped-max',
+            description: '1->2 upmix, count mode clamped-max'
+          },
+          (task, should) => {
+            upMixTest(should, {channelCountMode: 'clamped-max'})
+                .then(buffer => {
+                  let length = buffer.length;
+                  let input = buffer.getChannelData(0);
+                  let out0 = buffer.getChannelData(1);
+                  let out1 = buffer.getChannelData(2);
+
+                  // The convolver is basically a one-sample delay.  With a mono
+                  // input, the count set to 2, and a mode of 'clamped-max', the
+                  // output should be mono
+                  should(out0.slice(1), '1->2 clamped-max upmix: channel 0')
+                      .beCloseToArray(
+                          input.slice(0, length - 1),
+                          {absoluteThreshold: 3.577e-7});
+                  should(out1, '1->2 clamped-max upmix: channel 1')
+                      .beConstantValueOf(0);
+                })
+                .then(() => task.done());
+          });
+
       function downMixTest(options, should) {
         // Create an 4-channel offline context.  The first two channels are for
         // the stereo output of the convolver and the next two channels are for
@@ -166,8 +267,11 @@
         }
 
         // Convolver under test.
-        let conv = new ConvolverNode(
-            context, {disableNormalization: true, buffer: response});
+        let conv = new ConvolverNode(context, {
+          disableNormalization: true,
+          buffer: response,
+          channelCountMode: options.channelCountMode
+        });
         srcMerger.connect(conv);
 
         // Splitter to get individual channels of the convolver output so we can
@@ -224,6 +328,57 @@
           should(actual1, options.prefix + ': Channel 1')
               .beEqualToArray(expected1);
         });
+      }
+
+      function upMixTest(should, options) {
+        // Offline context with 3 channels:  0 = source
+        // 1 = convolver output, left, 2 = convolver output, right.  Context
+        // destination must be discrete so that channels don't get mixed in
+        // unexpected ways.
+        let context = new OfflineAudioContext(3, renderFrames, sampleRate);
+        context.destination.channelInterpretation = 'discrete';
+
+        let merger = new ChannelMergerNode(
+            context, {numberOfInputs: context.destination.maxChannelCount});
+        merger.connect(context.destination);
+
+        let src = new OscillatorNode(context);
+
+        // Mono response for convolver.  Just a simple 1-frame delay.
+        let response =
+            new AudioBuffer({length: 2, sampleRate: context.sampleRate});
+        response.getChannelData(0)[1] = 1;
+
+        // Set mode to explicit and count to 2 so we manually force the
+        // convolver to produce stereo output.  Without this, it would be
+        // mono input with mono response, which produces a mono output.
+        let conv;
+
+        should(
+            () => {conv = new ConvolverNode(context, {
+                     buffer: response,
+                     disableNormalization: true,
+                     channelCount: 2,
+                     channelCountMode: options.channelCountMode
+                   })},
+            `new ConvolverNode({channelCountMode: '${
+                options.channelCountMode}'})`)
+            .notThrow();
+
+        // Split output of convolver into individual channels.
+        let convSplit = new ChannelSplitterNode(context, {numberOfOutputs: 2});
+
+        src.connect(conv);
+        conv.connect(convSplit);
+
+        // Connect signals to destination in the desired way.
+        src.connect(merger, 0, 0);
+        convSplit.connect(merger, 0, 1);
+        convSplit.connect(merger, 1, 2);
+
+        src.start();
+
+        return context.startRendering();
       }
 
       audit.run();

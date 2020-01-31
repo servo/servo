@@ -1,0 +1,92 @@
+<!doctype html>
+<title>round() function</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+</style>
+
+<meta name=author content="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-values-4/#round-func">
+
+<div></div>
+<script>
+const testEl = document.querySelector("div");
+function testRound(testString, expectedString, {base="0px", msg}={}) {
+    test(()=>{
+        testEl.style.width = base;
+        testEl.style.width = testString;
+        const usedValue = getComputedStyle(testEl).width;
+        assert_not_equals(usedValue, base);
+        testEl.style.width = base;
+        testEl.style.width = expectedString;
+        const expectedValue = getComputedStyle(testEl).width;
+        assert_not_equals(expectedValue, base)
+        assert_equal(usedValue, expectedValue);
+    }, msg || `${testString} should round to ${expectedString}`);
+}
+
+// No-op round should be same as nearest
+testRound("round(23px, 10px)", "20px");
+testRound("round(18px, 10px)", "20px");
+testRound("round(15px, 10px)", "20px");
+testRound("round(13px, 10px)", "10px");
+testRound("round(-13px, 10px)", "-10px");
+testRound("round(-18px, 10px)", "-20px");
+
+// Test nearest
+testRound("round(nearest, 23px, 10px)", "20px");
+testRound("round(nearest, 18px, 10px)", "20px");
+testRound("round(nearest, 15px, 10px)", "20px");
+testRound("round(nearest, 13px, 10px)", "10px");
+testRound("round(nearest, -13px, 10px)", "-10px");
+testRound("round(nearest, -18px, 10px)", "-20px");
+
+// Test down
+testRound("round(down, 23px, 10px)", "20px");
+testRound("round(down, 18px, 10px)", "10px");
+testRound("round(down, 15px, 10px)", "10px");
+testRound("round(down, 13px, 10px)", "10px");
+testRound("round(down, -13px, 10px)", "-20px");
+testRound("round(down, -18px, 10px)", "-20px");
+
+// Test up
+testRound("round(up, 23px, 10px)", "30px");
+testRound("round(up, 18px, 10px)", "20px");
+testRound("round(up, 15px, 10px)", "20px");
+testRound("round(up, 13px, 10px)", "20px");
+testRound("round(up, -13px, 10px)", "-10px");
+testRound("round(up, -18px, 10px)", "-10px");
+
+// Test to-zero
+testRound("round(to-zero, 23px, 10px)", "20px");
+testRound("round(to-zero, 18px, 10px)", "10px");
+testRound("round(to-zero, 15px, 10px)", "10px");
+testRound("round(to-zero, 13px, 10px)", "10px");
+testRound("round(to-zero, -13px, 10px)", "-10px");
+testRound("round(to-zero, -18px, 10px)", "-10px");
+
+// Test a negative step
+testRound("round(23px, -10px)", "20px");
+testRound("round(18px, -10px)", "20px");
+testRound("round(15px, -10px)", "20px");
+testRound("round(13px, -10px)", "10px");
+testRound("round(-13px, -10px)", "-10px");
+testRound("round(-18px, -10px)", "-20px");
+
+// Extreme cases:
+
+// 0 step is NaN
+testRound("round(5px, 0px)", "calc(NaN)");
+// both infinite is NaN
+testRound("round(1px/0, 1px/0)", "calc(NaN)");
+// infinite value with finite step is the same infinity
+testRound("round(1px/0, 5px)", "calc(infinity * 1px)");
+testRound("round(1px/0, -5px)", "calc(infinity * 1px)");
+testRound("round(-1px/0, 5px)", "calc(-infinity * 1px)");
+testRound("round(-1px/0, -5px)", "calc(-infinity * 1px)");
+// finite value with infinite step is same-sign 0
+testRound("calc(1/round(5px, 1px/0))", "calc(infinity * 1px)");
+testRound("calc(1/round(5px, -1px/0))", "calc(infinity * 1px)");
+testRound("calc(1/round(-5px, 1px/0))", "calc(-infinity * 1px)");
+testRound("calc(1/round(-5px, -1px/0))", "calc(-infinity * 1px)");
+</script>
