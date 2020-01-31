@@ -52,6 +52,17 @@ impl DOMTokenList {
             slice => Ok(Atom::from(slice)),
         }
     }
+
+    // https://dom.spec.whatwg.org/#concept-dtl-update
+    fn perform_update_steps(&self, atoms: Vec<Atom>) {
+        // Step 1
+        if !self.element.has_attribute(&self.local_name) && atoms.len() == 0 {
+            return;
+        }
+        // step 2
+        self.element
+            .set_atomic_tokenlist_attribute(&self.local_name, atoms)
+    }
 }
 
 // https://dom.spec.whatwg.org/#domtokenlist
@@ -93,8 +104,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 atoms.push(token);
             }
         }
-        self.element
-            .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.perform_update_steps(atoms);
         Ok(())
     }
 
@@ -108,8 +118,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 .position(|atom| *atom == token)
                 .map(|index| atoms.remove(index));
         }
-        self.element
-            .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.perform_update_steps(atoms);
         Ok(())
     }
 
@@ -122,8 +131,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    self.element
-                        .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.perform_update_steps(atoms);
                     Ok(false)
                 },
             },
@@ -131,8 +139,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    self.element
-                        .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.perform_update_steps(atoms);
                     Ok(true)
                 },
             },
@@ -166,14 +173,27 @@ impl DOMTokenListMethods for DOMTokenList {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         let mut result = false;
         if let Some(pos) = atoms.iter().position(|atom| *atom == token) {
-            if !atoms.contains(&new_token) {
-                atoms[pos] = new_token;
+            if let Some(redundant_pos) = atoms.iter().position(|atom| *atom == new_token) {
+                if redundant_pos > pos {
+                    // The replacement is already in the list, later,
+                    // so we perform the replacement and remove the
+                    // later copy.
+                    atoms[pos] = new_token;
+                    atoms.remove(redundant_pos);
+                } else if redundant_pos < pos {
+                    // The replacement is already in the list, earlier,
+                    // so we remove the index where we'd be putting the
+                    // later copy.
+                    atoms.remove(pos);
+                }
+            // else we are replacing the token with itself, nothing to change
             } else {
-                atoms.remove(pos);
+                // The replacement is not in the list already
+                atoms[pos] = new_token;
             }
+
             // Step 5.
-            self.element
-                .set_atomic_tokenlist_attribute(&self.local_name, atoms);
+            self.perform_update_steps(atoms);
             result = true;
         }
         Ok(result)
