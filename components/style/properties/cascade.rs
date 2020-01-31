@@ -263,8 +263,11 @@ where
         builder.build()
     };
 
+
+    let is_root_element =
+        pseudo.is_none() && element.map_or(false, |e| e.is_root());
+
     let mut context = computed::Context {
-        is_root_element: pseudo.is_none() && element.map_or(false, |e| e.is_root()),
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
@@ -275,6 +278,7 @@ where
             pseudo,
             Some(rules.clone()),
             custom_properties,
+            is_root_element,
         ),
         cached_system_font: None,
         in_media_query: false,

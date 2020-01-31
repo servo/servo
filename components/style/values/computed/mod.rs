@@ -126,9 +126,6 @@ pub mod url;
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
 pub struct Context<'a> {
-    /// Whether the current element is the root element.
-    pub is_root_element: bool,
-
     /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
@@ -187,7 +184,6 @@ impl<'a> Context<'a> {
         let provider = get_metrics_provider_for_product();
 
         let context = Context {
-            is_root_element: false,
             builder: StyleBuilder::for_inheritance(device, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
@@ -199,11 +195,6 @@ impl<'a> Context<'a> {
         };
 
         f(&context)
-    }
-
-    /// Whether the current element is the root element.
-    pub fn is_root_element(&self) -> bool {
-        self.is_root_element
     }
 
     /// The current device.

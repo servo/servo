@@ -7,6 +7,7 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::ElementData;
@@ -705,7 +706,7 @@ pub trait MatchMethods: TElement {
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 
         let mut cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
-        if self.is_root() && !self.is_in_native_anonymous_subtree() {
+        if new_primary_style.flags.contains(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE) {
             let device = context.shared.stylist.device();
             let new_font_size = new_primary_style.get_font().clone_font_size();
 

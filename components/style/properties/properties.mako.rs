@@ -28,6 +28,7 @@ use crate::context::QuirksMode;
 #[cfg(feature = "servo")] use crate::computed_values;
 use crate::logical_geometry::WritingMode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::computed_value_flags::*;
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::properties::longhands::system_font::SystemFont;
@@ -45,7 +46,6 @@ use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
 use crate::Zero;
-use self::computed_value_flags::*;
 use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 use std::cell::Cell;
 
@@ -58,8 +58,6 @@ pub use self::cascade::*;
     import os.path
 %>
 
-#[path="${repr(os.path.join(os.path.dirname(__file__), 'computed_value_flags.rs'))[1:-1]}"]
-pub mod computed_value_flags;
 #[path="${repr(os.path.join(os.path.dirname(__file__), 'declaration_block.rs'))[1:-1]}"]
 pub mod declaration_block;
 #[path="${repr(os.path.join(os.path.dirname(__file__), 'cascade.rs'))[1:-1]}"]
@@ -3436,6 +3434,9 @@ pub struct StyleBuilder<'a> {
     /// `StyleAdjuster` did any work.
     modified_reset: bool,
 
+    /// Whether this is the style for the root element.
+    pub is_root_element: bool,
+
     /// The writing mode flags.
     ///
     /// TODO(emilio): Make private.
@@ -3462,6 +3463,7 @@ impl<'a> StyleBuilder<'a> {
         pseudo: Option<<&'a PseudoElement>,
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
+        is_root_element: bool,
     ) -> Self {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
         #[cfg(feature = "gecko")]
@@ -3483,6 +3485,7 @@ impl<'a> StyleBuilder<'a> {
             pseudo,
             rules,
             modified_reset: false,
+            is_root_element,
             custom_properties,
             writing_mode: inherited_style.writing_mode,
             flags: Cell::new(flags),
@@ -3521,6 +3524,7 @@ impl<'a> StyleBuilder<'a> {
             reset_style,
             pseudo: None,
             modified_reset: false,
+            is_root_element: false,
             rules: None,
             custom_properties: style_to_derive_from.custom_properties().cloned(),
             writing_mode: style_to_derive_from.writing_mode,
@@ -3648,6 +3652,7 @@ impl<'a> StyleBuilder<'a> {
             pseudo,
             /* rules = */ None,
             parent.and_then(|p| p.custom_properties().cloned()),
+            /* is_root_element = */ false,
         );
         ret.visited_style = visited_style;
         ret
@@ -3830,9 +3835,9 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 #[allow(missing_docs)]
 mod lazy_static_module {
     use crate::logical_geometry::WritingMode;
+    use create::computed_value_flags::ComputedValueFlags;
     use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs};
-    use super::computed_value_flags::ComputedValueFlags;
 
     lazy_static! {
         /// The initial values for all style structs as defined by the specification.

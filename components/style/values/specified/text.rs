@@ -596,7 +596,7 @@ impl ToComputedValue for TextAlign {
                 // In that case, the default behavior here will set it to left,
                 // but we want to set it to right -- instead set it to the default (`start`),
                 // which will do the right thing in this case (but not the general case)
-                if _context.is_root_element {
+                if _context.builder.is_root_element {
                     return TextAlignKeyword::Start;
                 }
                 let parent = _context

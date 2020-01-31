@@ -5,8 +5,8 @@
 //! A struct to encapsulate all the style fixups and flags propagations
 //! a computed style needs in order for it to adhere to the CSS spec.
 
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
-use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
@@ -189,8 +189,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             };
         }
 
-        let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
-        blockify_if!(is_root);
+        blockify_if!(self.style.is_root_element);
         if !self.skip_item_display_fixup(element) {
             let parent_display = layout_parent_style.get_box().clone_display();
             blockify_if!(parent_display.is_item_container());
@@ -213,7 +212,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         let display = self.style.get_box().clone_display();
-        let blockified_display = display.equivalent_block_display(is_root);
+        let blockified_display = display.equivalent_block_display(self.style.is_root_element);
         if display != blockified_display {
             self.style
                 .mutate_box()
@@ -222,7 +221,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     /// Compute a few common flags for both text and element's style.
-    pub fn set_bits(&mut self) {
+    fn set_bits(&mut self) {
         let display = self.style.get_box().clone_display();
 
         if !display.is_contents() &&
@@ -241,6 +240,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
+        if self.style.is_root_element {
+            self.style.add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
+        }
+
         #[cfg(feature = "servo-layout-2013")]
         {
             if self.style.get_parent_column().is_multicol() {
@@ -257,6 +260,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Note that this, for Gecko, comes through Servo_ComputedValues_Inherit.
     #[cfg(feature = "gecko")]
     pub fn adjust_for_text(&mut self) {
+        debug_assert!(!self.style.is_root_element);
         self.adjust_for_text_combine_upright();
         self.adjust_for_text_in_ruby();
         self.set_bits();

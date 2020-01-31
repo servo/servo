@@ -12,6 +12,7 @@
 
 use crate::Atom;
 use app_units::Au;
+use crate::computed_value_flags::*;
 use crate::custom_properties::CustomPropertiesMap;
 use crate::gecko_bindings::bindings;
 % for style_struct in data.style_structs:
@@ -39,7 +40,6 @@ use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
-use crate::properties::computed_value_flags::*;
 use crate::properties::longhands;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;

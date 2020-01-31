@@ -775,7 +775,7 @@ fn note_children<E, D, F>(
                     child_hint |= RestyleHint::RECASCADE_SELF | RestyleHint::RECASCADE_DESCENDANTS;
                 },
                 ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle => {
-                    use crate::properties::computed_value_flags::ComputedValueFlags;
+                    use crate::computed_value_flags::ComputedValueFlags;
                     if child_data
                         .styles
                         .primary()
