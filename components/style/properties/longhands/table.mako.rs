@@ -12,6 +12,7 @@ ${helpers.single_keyword(
     engines="gecko servo-2013",
     gecko_ffi_name="mLayoutStrategy",
     animation_value_type="discrete",
+    gecko_enum_prefix="StyleTableLayout",
     spec="https://drafts.csswg.org/css-tables/#propdef-table-layout",
     servo_restyle_damage="reflow",
 )}
