@@ -123,7 +123,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
-        integrity_metadata: "".to_owned(),
+        integrity_metadata: request.integrity_metadata.clone(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
