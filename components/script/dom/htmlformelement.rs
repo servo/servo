@@ -48,6 +48,7 @@ use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
 use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
+use crate::dom::submitevent::SubmitEvent;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -604,10 +605,29 @@ impl HTMLFormElement {
             }
         }
         // Step 7
+        // spec calls this "submitterButton" but it doesn't have to be a button,
+        // just not be the form itself
+        let submitter_button = match submitter {
+            FormSubmitter::FormElement(f) => {
+                if f == self {
+                    None
+                } else {
+                    Some(f.upcast::<HTMLElement>())
+                }
+            },
+            FormSubmitter::InputElement(i) => Some(i.upcast::<HTMLElement>()),
+            FormSubmitter::ButtonElement(b) => Some(b.upcast::<HTMLElement>()),
+        };
         if submit_method_flag == SubmittedFrom::NotFromForm {
-            let event = self
-                .upcast::<EventTarget>()
-                .fire_bubbling_cancelable_event(atom!("submit"));
+            let event = SubmitEvent::new(
+                &self.global(),
+                atom!("submit"),
+                true,
+                true,
+                submitter_button.map(|s| DomRoot::from_ref(s)),
+            );
+            let event = event.upcast::<Event>();
+            event.fire(self.upcast::<EventTarget>());
             if event.DefaultPrevented() {
                 return;
             }

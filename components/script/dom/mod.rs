@@ -484,6 +484,7 @@ pub mod storageevent;
 pub mod stylepropertymapreadonly;
 pub mod stylesheet;
 pub mod stylesheetlist;
+pub mod submitevent;
 pub mod svgelement;
 pub mod svggraphicselement;
 pub mod svgsvgelement;
