@@ -34,22 +34,24 @@ impl Console {
 // we're finished with stdout. Since the stderr lock is reentrant, there is
 // no risk of deadlock if the callback ends up trying to write to stderr for
 // any reason.
-fn with_stderr_lock<F>(f: F)
+fn with_stderr_stdout_lock<F>(f: F)
 where
-    F: FnOnce(),
+    F: FnOnce(&mut dyn io::Write),
 {
     let stderr = io::stderr();
+    let stdout = io::stdout();
     let _handle = stderr.lock();
-    f()
+    let mut stdout = stdout.lock();
+    f(&mut stdout)
 }
 
 #[allow(non_snake_case)]
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             for message in messages {
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Log, message);
             }
         })
@@ -57,9 +59,9 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
     pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             for message in messages {
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Debug, message);
             }
         })
@@ -67,9 +69,9 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
     pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             for message in messages {
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Info, message);
             }
         })
@@ -77,9 +79,9 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
     pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             for message in messages {
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Warn, message);
             }
         })
@@ -87,9 +89,9 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
     pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             for message in messages {
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Error, message);
             }
         })
@@ -97,10 +99,10 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     pub fn Assert(global: &GlobalScope, condition: bool, message: Option<DOMString>) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             if !condition {
                 let message = message.unwrap_or_else(|| DOMString::from("no message"));
-                println!("Assertion failed: {}", message);
+                let _ = write!(stdout, "Assertion failed: {}", message);
                 Self::send_to_devtools(global, LogLevel::Error, message);
             }
         })
@@ -108,10 +110,10 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
     pub fn Time(global: &GlobalScope, label: DOMString) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             if let Ok(()) = global.time(label.clone()) {
                 let message = DOMString::from(format!("{}: timer started", label));
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Log, message);
             }
         })
@@ -119,10 +121,10 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
     pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
-        with_stderr_lock(move || {
+        with_stderr_stdout_lock(move |stdout| {
             if let Ok(delta) = global.time_end(&label) {
                 let message = DOMString::from(format!("{}: {}ms", label, delta));
-                println!("{}", message);
+                let _ = write!(stdout, "{}", message);
                 Self::send_to_devtools(global, LogLevel::Log, message);
             };
         })
