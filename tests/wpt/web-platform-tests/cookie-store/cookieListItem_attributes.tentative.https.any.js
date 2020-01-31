@@ -187,7 +187,7 @@ promise_test(async testCase => {
   assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
 }, 'CookieListItem - cookieStore.set with secure set to false');
 
-['strict', 'lax', 'unrestricted'].forEach(sameSiteValue => {
+['strict', 'lax', 'none'].forEach(sameSiteValue => {
   promise_test(async testCase => {
     await cookieStore.delete('cookie-name');
 

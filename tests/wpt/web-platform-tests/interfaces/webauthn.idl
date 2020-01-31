@@ -142,8 +142,7 @@ enum AuthenticatorTransport {
     "usb",
     "nfc",
     "ble",
-    "internal",
-    "lightning"
+    "internal"
 };
 
 typedef long COSEAlgorithmIdentifier;

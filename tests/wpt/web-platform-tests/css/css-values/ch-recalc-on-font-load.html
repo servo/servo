@@ -28,10 +28,10 @@
 
 <script>
 function parseWidthInPx(element) {
-  const value = CSSNumericValue.parse(getComputedStyle(element).width);
-  if (!value || !(value instanceof CSSUnitValue) || value.unit !== 'px')
-    throw 'Cannot parse width in pixels';
-  return value.value;
+  const value = getComputedStyle(element).width;
+  if (!value.endsWith('px'))
+    return NaN;
+  return parseFloat(value);
 }
 
 const testCases = document.querySelectorAll('.test');

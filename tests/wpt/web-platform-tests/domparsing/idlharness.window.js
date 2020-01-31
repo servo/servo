@@ -10,7 +10,6 @@ idl_test(
   ['dom'],
   idlArray => {
     idlArray.add_objects({
-      DOMParser: ['new DOMParser()'],
       Element: ['document.createElement("div")'],
       Range: ['new Range()'],
       XMLSerializer: ['new XMLSerializer()'],

@@ -8,6 +8,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/validator.js"></script>
 <div id="log"></div>
+<form>
+  <input id="messagetest" type="checkbox" required="" disabled="">
+</form>
+
 <script>
   var testElements = [
     {
@@ -170,4 +174,8 @@
   ];
 
   validator.run_test(testElements, "valueMissing");
+
+  test(() => {
+    assert_equals(document.getElementById("messagetest").validationMessage, '');
+  }, 'validationMessage should return empty string when willValidate is false and valueMissing is true');
 </script>
