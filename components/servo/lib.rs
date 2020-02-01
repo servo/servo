@@ -506,7 +506,7 @@ where
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(
-            opts.user_agent.clone(),
+            embedder.default_user_agent_string.clone(),
             opts.config_dir.clone(),
             embedder_proxy.clone(),
             compositor_proxy.clone(),

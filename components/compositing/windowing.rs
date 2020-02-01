@@ -182,6 +182,9 @@ pub trait EmbedderMethods {
 
     /// Register services with a WebXR Registry.
     fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry) {}
+
+    /// Returns the default user agent string
+    fn default_user_agent_string(&self) -> &'static str;
 }
 
 #[derive(Clone, Copy, Debug)]

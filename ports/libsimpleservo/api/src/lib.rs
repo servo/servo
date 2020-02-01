@@ -687,6 +687,47 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         debug!("EmbedderMethods::create_event_loop_waker");
         self.waker.clone()
     }
+
+    fn default_user_agent_string(&self) -> &'static str {
+        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
+        #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+        #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (Windows NT 10.0; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        #[cfg(all(target_os = "macos"))]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        #[cfg(target_os = "android")]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (Android; Mobile; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        #[cfg(target_os = "ios")]
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        #[cfg(not(any(
+            target_os = "linux",
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "android",
+            target_os = "ios"
+        )))]
+        // Use OS X user agent as fallback
+        const UA_STRING: &'static str =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+
+        UA_STRING
+    }
 }
 
 impl WindowMethods for ServoWindowCallbacks {
