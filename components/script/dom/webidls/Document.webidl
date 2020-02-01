@@ -214,6 +214,12 @@ partial interface Document {
 
 Document includes DocumentOrShadowRoot;
 
+// https://w3c.github.io/selection-api/#dom-document
+partial interface Document {
+  Selection? getSelection();
+};
+
+
 // Servo internal API.
 partial interface Document {
   [Throws]

@@ -95,6 +95,12 @@ partial interface mixin GlobalEventHandlers {
            attribute EventHandler ontransitionend;
 };
 
+// https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
+partial interface mixin GlobalEventHandlers {
+          attribute EventHandler onselectstart;
+          attribute EventHandler onselectionchange;
+};
+
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
 [Exposed=Window]
 interface mixin WindowEventHandlers {

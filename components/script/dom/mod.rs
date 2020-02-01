@@ -477,6 +477,7 @@ pub mod rtcpeerconnectioniceevent;
 pub mod rtcsessiondescription;
 pub mod rtctrackevent;
 pub mod screen;
+pub mod selection;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
 pub mod serviceworkerglobalscope;
