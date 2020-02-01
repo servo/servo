@@ -80,7 +80,7 @@ class PostBuildCommands(CommandBase):
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
         env = self.build_env()
-        env["RUST_BACKTRACE"] = "1"
+        env["RUST_BACKTRACE"] = env.get("RUST_BACKTRACE", "1")
 
         # Make --debugger imply --debug
         if debugger:
@@ -207,7 +207,7 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     def rr_record(self, release=False, dev=False, bin=None, nightly=None, params=[]):
         env = self.build_env()
-        env["RUST_BACKTRACE"] = "1"
+        env["RUST_BACKTRACE"] = env.get("RUST_BACKTRACE", "1")
 
         servo_cmd = [bin or self.get_nightly_binary_path(nightly) or
                      self.get_binary_path(release, dev)] + params

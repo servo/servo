@@ -10,6 +10,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "addr2line"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95b06ae5a8a3bae54910c9029a52f83203ce2001c71b10b1faae3a337fee4ab5"
+dependencies = [
+ "fallible-iterator",
+ "gimli",
+ "intervaltree",
+ "lazycell",
+ "smallvec 0.6.10",
+]
+
+[[package]]
 name = "adler32"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -224,9 +237,13 @@ name = "backtrace"
 version = "0.3.40"
 source = "git+https://github.com/MeFisto94/backtrace-rs?branch=fix-strtab-freeing-crash#91a0aa4a5d649151878cddd883b92ba7057ca41c"
 dependencies = [
+ "addr2line",
  "backtrace-sys",
  "cfg-if",
+ "findshlibs",
+ "goblin",
  "libc",
+ "memmap",
  "rustc-demangle",
 ]
 
@@ -733,6 +750,17 @@ dependencies = [
  "foreign-types",
  "libc",
  "objc",
+]
+
+[[package]]
+name = "color-backtrace"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65d13f1078cc63c791d0deba0dd43db37c9ec02b311f10bed10b577016f3a957"
+dependencies = [
+ "atty",
+ "backtrace",
+ "termcolor",
 ]
 
 [[package]]
@@ -1535,6 +1563,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
+
+[[package]]
+name = "findshlibs"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1260d61e4fe2a6ab845ffdc426a0bd68ffb240b91cf0ec5a8d1170cec535bd8"
+dependencies = [
+ "lazy_static",
+ "libc",
+]
+
+[[package]]
 name = "fixedbitset"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1908,6 +1952,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gimli"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "162d18ae5f2e3b90a993d202f1ba17a5633c2484426f8bcae201f86194bacd00"
+dependencies = [
+ "arrayvec 0.4.6",
+ "byteorder",
+ "fallible-iterator",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "git2"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2081,6 +2137,17 @@ dependencies = [
  "glib-sys",
  "libc",
  "pkg-config",
+]
+
+[[package]]
+name = "goblin"
+version = "0.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3fa261d919c1ae9d1e4533c4a2f99e10938603c4208d56c05bec7a872b661b0"
+dependencies = [
+ "log",
+ "plain",
+ "scroll",
 ]
 
 [[package]]
@@ -2685,6 +2752,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "intervaltree"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8254add2ea664734c9d001f8151cc3d7696b135f7e40e5a2efa814a662cb3a44"
+dependencies = [
+ "smallvec 1.0.0",
+]
+
+[[package]]
 name = "io-surface"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3106,6 +3182,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas",
  "canvas_traits",
+ "color-backtrace",
  "compositing",
  "constellation",
  "crossbeam-channel",
@@ -4158,6 +4235,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
 
 [[package]]
+name = "plain"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+
+[[package]]
 name = "plane-split"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4898,6 +4981,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "scroll"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f84d114ef17fd144153d608fba7c446b0145d038985e7a8cc5d08bb0ce20383"
+dependencies = [
+ "rustc_version",
+ "scroll_derive",
+]
+
+[[package]]
+name = "scroll_derive"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1aa96c45e7f5a91cb7fabe7b279f02fea7126239fc40b732316e8b6a2d0fcb"
+dependencies = [
+ "proc-macro2 0.4.26",
+ "quote 0.6.12",
+ "syn 0.15.39",
+]
+
+[[package]]
 name = "selectors"
 version = "0.22.0"
 dependencies = [
@@ -5557,9 +5661,9 @@ dependencies = [
 
 [[package]]
 name = "stable_deref_trait"
-version = "1.0.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15132e0e364248108c5e2c02e3ab539be8d6f5d52a01ca9bbf27ed657316f02b"
+checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
 name = "stb_truetype"

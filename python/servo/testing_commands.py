@@ -278,7 +278,7 @@ class MachCommands(CommandBase):
         packages.discard('stylo')
 
         env = self.build_env(test_unit=True)
-        env["RUST_BACKTRACE"] = "1"
+        env["RUST_BACKTRACE"] = env.get("RUST_BACKTRACE", "1")
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied

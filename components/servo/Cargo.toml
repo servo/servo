@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 [features]
 canvas2d-azure = ["canvas/canvas2d-azure"]
 canvas2d-raqote = ["canvas/canvas2d-raqote"]
+color_backtrace = ["color-backtrace"]
 debugmozjs = ["script/debugmozjs"]
 egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]
@@ -46,6 +47,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas", default-features = false}
 canvas_traits = {path = "../canvas_traits"}
+color-backtrace = {version = "0.3", optional = true}
 compositing = {path = "../compositing", features = ["gl"]}
 constellation = {path = "../constellation"}
 crossbeam-channel = "0.3"
