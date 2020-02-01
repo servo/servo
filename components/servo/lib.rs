@@ -506,7 +506,7 @@ where
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(
-            embedder.default_user_agent_string.clone(),
+            embedder.default_user_agent_string().into(),
             opts.config_dir.clone(),
             embedder_proxy.clone(),
             compositor_proxy.clone(),
@@ -857,7 +857,7 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
-        user_agent,
+        user_agent.clone(),
         devtools_chan.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
@@ -891,6 +891,7 @@ fn create_constellation(
         glplayer_threads,
         player_context,
         event_loop_waker,
+        user_agent,
     };
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
