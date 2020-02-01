@@ -1009,7 +1009,12 @@ install them, let us know by filing a bug!")
             self.ensure_rustup_version()
             toolchain = self.rust_toolchain()
 
-            if toolchain.encode("utf-8") not in check_output(["rustup", "toolchain", "list"]):
+            status = subprocess.call(
+                ["rustup", "run", toolchain.encode("utf-8"), "rustc", "--version"],
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            )
+            if status:
                 check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
 
             installed = check_output(
