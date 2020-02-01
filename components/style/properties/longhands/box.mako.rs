@@ -131,7 +131,6 @@ ${helpers.single_keyword(
         "Overflow",
         "computed::Overflow::Visible",
         engines="gecko servo-2013 servo-2020",
-        servo_2020_pref="layout.2020.unimplemented",
         logical_group="overflow",
         logical=logical,
         animation_value_type="discrete",

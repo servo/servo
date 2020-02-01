@@ -9,7 +9,7 @@ ${helpers.two_properties_shorthand(
     "overflow-x",
     "overflow-y",
     "specified::Overflow::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     flags="SHORTHAND_IN_GETCS",
     needs_context=False,
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow",
