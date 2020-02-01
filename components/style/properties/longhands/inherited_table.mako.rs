@@ -20,7 +20,7 @@ ${helpers.single_keyword(
     "empty-cells",
     "show hide",
     engines="gecko servo-2013",
-    gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
+    gecko_enum_prefix="StyleEmptyCells",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells",
     servo_restyle_damage="rebuild_and_reflow",
