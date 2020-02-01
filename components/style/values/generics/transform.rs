@@ -820,9 +820,8 @@ pub use self::GenericTranslate as Translate;
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(u8)]
 pub enum TransformStyle {
-    #[cfg(feature = "servo")]
-    Auto,
     Flat,
     #[css(keyword = "preserve-3d")]
     Preserve3d,

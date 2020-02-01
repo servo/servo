@@ -53,7 +53,6 @@ use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::image::ImageLayer;
-use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
 
 
@@ -1473,7 +1472,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           clear transition-duration transition-delay
                           transition-timing-function transition-property
-                          transform-style shape-outside -webkit-line-clamp""" %>
+                          shape-outside -webkit-line-clamp""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -1629,25 +1628,6 @@ fn static_assert() {
     pub fn reset_transition_property(&mut self, other: &Self) {
         self.copy_transition_property_from(other)
     }
-
-    // Hand-written because the Mako helpers transform `Preserve3d` into `PRESERVE3D`.
-    pub fn set_transform_style(&mut self, v: TransformStyle) {
-        self.gecko.mTransformStyle = match v {
-            TransformStyle::Flat => structs::NS_STYLE_TRANSFORM_STYLE_FLAT as u8,
-            TransformStyle::Preserve3d => structs::NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D as u8,
-        };
-    }
-
-    // Hand-written because the Mako helpers transform `Preserve3d` into `PRESERVE3D`.
-    pub fn clone_transform_style(&self) -> TransformStyle {
-        match self.gecko.mTransformStyle as u32 {
-            structs::NS_STYLE_TRANSFORM_STYLE_FLAT => TransformStyle::Flat,
-            structs::NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D => TransformStyle::Preserve3d,
-            _ => panic!("illegal transform style"),
-        }
-    }
-
-    ${impl_simple_copy('transform_style', 'mTransformStyle')}
 
     ${impl_transition_count('property', 'Property')}
 

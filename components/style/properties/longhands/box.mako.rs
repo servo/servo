@@ -592,7 +592,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "transform-style",
     "TransformStyle",
-    "computed::TransformStyle::" + ("Flat" if engine == "gecko" else "Auto"),
+    "computed::TransformStyle::Flat",
     engines="gecko servo-2013 servo-2020",
     servo_2020_pref="layout.2020.unimplemented",
     spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
