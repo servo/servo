@@ -87,6 +87,7 @@ impl<'a> CanvasPaintThread<'a> {
                                 Ok(ConstellationCanvasMsg::Exit) => break,
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
+                                    break;
                                 },
                             }
                         }
