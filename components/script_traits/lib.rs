@@ -704,7 +704,6 @@ pub trait ScriptThreadFactory {
         userscripts_path: Option<String>,
         headless: bool,
         replace_surrogates: bool,
-        user_agent: Cow<'static, str>,
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
@@ -862,7 +861,7 @@ pub struct WorkerGlobalScopeInit {
     pub origin: ImmutableOrigin,
     /// True if headless mode
     pub is_headless: bool,
-    /// An optional string allowing the user agnet to be set for testing.
+    /// User agent string
     pub user_agent: Cow<'static, str>,
 }
 

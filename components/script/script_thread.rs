@@ -741,7 +741,6 @@ impl ScriptThreadFactory for ScriptThread {
         userscripts_path: Option<String>,
         headless: bool,
         replace_surrogates: bool,
-        user_agent: Cow<'static, str>,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = unbounded();
 
@@ -763,6 +762,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
+                let user_agent = state.user_agent.clone();
 
                 let script_thread = ScriptThread::new(
                     state,

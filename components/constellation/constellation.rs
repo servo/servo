@@ -160,7 +160,7 @@ use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -491,6 +491,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
+
+    /// User agent string
+    pub user_agent: Cow<'static, str>
 }
 
 /// State needed to construct a constellation.
@@ -547,6 +550,9 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// User agent string
+    pub user_agent: Cow<'static, str>
 }
 
 /// Data needed for webdriver
@@ -980,6 +986,7 @@ where
                     player_context: state.player_context,
                     event_loop_waker: state.event_loop_waker,
                     active_media_session: None,
+                    user_agent: state.user_agent,
                 };
 
                 constellation.run();
@@ -1227,6 +1234,7 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
+            user_agent: self.user_agent.clone()
         });
 
         let pipeline = match result {
