@@ -207,7 +207,7 @@ pub struct InitialPipelineState {
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// User agent string
-    pub user_agent: Cow<'static, str>
+    pub user_agent: Cow<'static, str>,
 }
 
 pub struct NewPipeline {
@@ -311,7 +311,7 @@ impl Pipeline {
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
-                    user_agent: state.user_agent
+                    user_agent: state.user_agent,
                 };
 
                 // Spawn the child process.
@@ -519,7 +519,7 @@ pub struct UnprivilegedPipelineContent {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
-    user_agent: Cow<'static, str>
+    user_agent: Cow<'static, str>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -576,7 +576,7 @@ impl UnprivilegedPipelineContent {
                 layout_is_busy: layout_thread_busy_flag.clone(),
                 player_context: self.player_context.clone(),
                 event_loop_waker,
-                user_agent: self.user_agent
+                user_agent: self.user_agent,
             },
             self.load_data.clone(),
             self.opts.profile_script_events,

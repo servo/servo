@@ -493,7 +493,7 @@ pub struct Constellation<Message, LTF, STF> {
     active_media_session: Option<PipelineId>,
 
     /// User agent string
-    pub user_agent: Cow<'static, str>
+    pub user_agent: Cow<'static, str>,
 }
 
 /// State needed to construct a constellation.
@@ -552,7 +552,7 @@ pub struct InitialConstellationState {
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// User agent string
-    pub user_agent: Cow<'static, str>
+    pub user_agent: Cow<'static, str>,
 }
 
 /// Data needed for webdriver
@@ -1234,7 +1234,7 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
-            user_agent: self.user_agent.clone()
+            user_agent: self.user_agent.clone(),
         });
 
         let pipeline = match result {
