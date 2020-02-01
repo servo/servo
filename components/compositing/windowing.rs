@@ -187,29 +187,29 @@ pub trait EmbedderMethods {
     fn default_user_agent_string(&self) -> &'static str {
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Servo/1.0 Firefox/72.0";
         #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (X11; Linux i686; rv:72.0) Servo/1.0 Firefox/72.0";
 
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Servo/1.0 Firefox/72.0";
         #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (Windows NT 10.0; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (Windows NT 10.0; rv:72.0) Servo/1.0 Firefox/72.0";
 
         #[cfg(all(target_os = "macos"))]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
 
         #[cfg(target_os = "android")]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (Android; Mobile; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (Android; Mobile; rv:68.0) Servo/1.0 Firefox/68.0";
 
         #[cfg(target_os = "ios")]
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X; rv:72.0) Servo/1.0 Firefox/72.0";
 
         #[cfg(not(any(
             target_os = "linux",
@@ -220,7 +220,7 @@ pub trait EmbedderMethods {
         )))]
         // Use OS X user agent as fallback
         const UA_STRING: &'static str =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
 
         UA_STRING
     }
