@@ -683,6 +683,8 @@ pub struct InitialScriptState {
     pub player_context: WindowGLContext,
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+    /// An optional string allowing the user agent to be set for testing.
+    pub user_agent: Cow<'static, str>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
