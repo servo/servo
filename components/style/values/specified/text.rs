@@ -1030,7 +1030,7 @@ pub enum TextDecorationSkipInk {
 }
 
 /// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
-pub type TextDecorationLength = GenericTextDecorationLength<Length>;
+pub type TextDecorationLength = GenericTextDecorationLength<LengthPercentage>;
 
 impl TextDecorationLength {
     /// `Auto` value.
