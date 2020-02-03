@@ -382,9 +382,19 @@ impl CanvasState {
     ) -> ErrorResult {
         let result = match image {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
+                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                if !canvas.is_valid() {
+                    return Err(Error::InvalidState);
+                }
+
                 self.draw_html_canvas_element(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
+                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                if !canvas.is_valid() {
+                    return Err(Error::InvalidState);
+                }
+
                 self.draw_offscreen_canvas(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::HTMLImageElement(ref image) => {

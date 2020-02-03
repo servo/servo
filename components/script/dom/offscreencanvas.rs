@@ -138,6 +138,10 @@ impl OffscreenCanvas {
         ));
         Some(context)
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.Width() != 0 && self.Height() != 0
+    }
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
