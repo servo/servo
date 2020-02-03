@@ -20,8 +20,8 @@ interface GPUDevice : EventTarget {
     GPUBindGroup createBindGroup(GPUBindGroupDescriptor descriptor);
 
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
-    /*GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
-    GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
+    GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
+    /*GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
