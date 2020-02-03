@@ -15,7 +15,7 @@ use smallvec::SmallVec;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
     RequestAdapter(String, WebGPUAdapter, WebGPU),
-    RequestDevice(WebGPUDevice, wgpu::instance::DeviceDescriptor),
+    RequestDevice(WebGPUDevice, WebGPUQueue, wgpu::instance::DeviceDescriptor),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -102,6 +102,7 @@ pub enum WebGPURequest {
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
         // wgpu::command::CommandBufferDescriptor,
     ),
+    Submit(wgpu::id::QueueId, Vec<wgpu::id::CommandBufferId>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -222,9 +223,12 @@ impl WGPU {
                         id
                     ));
                     let device = WebGPUDevice(id);
+                    // Note: (zakorgy) Note sure if sending the queue is needed at all,
+                    // since wgpu-core uses the same id for the device and the queue
+                    let queue = WebGPUQueue(id);
                     self.devices.push(device);
                     if let Err(e) =
-                        sender.send(Ok(WebGPUResponse::RequestDevice(device, descriptor)))
+                        sender.send(Ok(WebGPUResponse::RequestDevice(device, queue, descriptor)))
                     {
                         warn!(
                             "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -407,6 +411,13 @@ impl WGPU {
                         )
                     }
                 },
+                WebGPURequest::Submit(queue_id, command_buffer_ids) => {
+                    let global = &self.global;
+                    let _ = gfx_select!(queue_id => global.queue_submit(
+                        queue_id,
+                        &command_buffer_ids
+                    ));
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -444,3 +455,4 @@ webgpu_resource!(WebGPUPipelineLayout, wgpu::id::PipelineLayoutId);
 webgpu_resource!(WebGPUShaderModule, wgpu::id::ShaderModuleId);
 webgpu_resource!(WebGPUCommandEncoder, wgpu::id::CommandEncoderId);
 webgpu_resource!(WebGPUCommandBuffer, wgpu::id::CommandBufferId);
+webgpu_resource!(WebGPUQueue, wgpu::id::QueueId);
