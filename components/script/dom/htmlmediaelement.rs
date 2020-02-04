@@ -557,27 +557,30 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = window.task_manager().media_element_task_source().queue(
-            task!(notify_about_playing: move || {
-                let this = this.root();
-                if generation_id != this.generation_id.get() {
-                    return;
-                }
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue(
+                task!(notify_about_playing: move || {
+                    let this = this.root();
+                    if generation_id != this.generation_id.get() {
+                        return;
+                    }
 
-                this.fulfill_in_flight_play_promises(|| {
-                    // Step 2.1.
-                    this.upcast::<EventTarget>().fire_event(atom!("playing"));
-                    this.play_media();
+                    this.fulfill_in_flight_play_promises(|| {
+                        // Step 2.1.
+                        this.upcast::<EventTarget>().fire_event(atom!("playing"));
+                        this.play_media();
 
-                    // Step 2.2.
-                    // Done after running this closure in
-                    // `fulfill_in_flight_play_promises`.
-                });
+                        // Step 2.2.
+                        // Done after running this closure in
+                        // `fulfill_in_flight_play_promises`.
+                    });
 
-            }),
-            window.upcast(),
-        );
+                }),
+                window.upcast(),
+            )
+            .expect("Couldn't queue task for media element playing event");
     }
 
     // https://html.spec.whatwg.org/multipage/#ready-states
@@ -603,15 +606,16 @@ impl HTMLMediaElement {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     let this = Trusted::new(self);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = task_source.queue(
-                        task!(media_reached_current_data: move || {
-                            let this = this.root();
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"));
-                            this.delay_load_event(false);
-                        }),
-                        window.upcast(),
-                    );
+                    task_source
+                        .queue(
+                            task!(media_reached_current_data: move || {
+                                let this = this.root();
+                                this.upcast::<EventTarget>().fire_event(atom!("loadeddata"));
+                                this.delay_load_event(false);
+                            }),
+                            window.upcast(),
+                        )
+                        .expect("Couldn't queue task for media element loadeddata event");
                 }
 
                 // Steps for the transition from HaveMetadata to HaveCurrentData
@@ -980,50 +984,53 @@ impl HTMLMediaElement {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported));
-        // FIXME(nox): Why are errors silenced here?
-        let _ = window.task_manager().media_element_task_source().queue(
-            task!(dedicated_media_source_failure_steps: move || {
-                let this = this.root();
-                if generation_id != this.generation_id.get() {
-                    return;
-                }
-
-                this.fulfill_in_flight_play_promises(|| {
-                    // Step 1.
-                    this.error.set(Some(&*MediaError::new(
-                        &window_from_node(&*this),
-                        MEDIA_ERR_SRC_NOT_SUPPORTED,
-                    )));
-
-                    // Step 2.
-                    this.AudioTracks().clear();
-                    this.VideoTracks().clear();
-
-                    // Step 3.
-                    this.network_state.set(NetworkState::NoSource);
-
-                    // Step 4.
-                    this.show_poster.set(true);
-
-                    // Step 5.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"));
-
-                    if let Some(ref player) = *this.player.borrow() {
-                        if let Err(e) = player.lock().unwrap().stop() {
-                            eprintln!("Could not stop player {:?}", e);
-                        }
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue(
+                task!(dedicated_media_source_failure_steps: move || {
+                    let this = this.root();
+                    if generation_id != this.generation_id.get() {
+                        return;
                     }
 
-                    // Step 6.
-                    // Done after running this closure in
-                    // `fulfill_in_flight_play_promises`.
-                });
+                    this.fulfill_in_flight_play_promises(|| {
+                        // Step 1.
+                        this.error.set(Some(&*MediaError::new(
+                            &window_from_node(&*this),
+                            MEDIA_ERR_SRC_NOT_SUPPORTED,
+                        )));
 
-                // Step 7.
-                this.delay_load_event(false);
-            }),
-            window.upcast(),
-        );
+                        // Step 2.
+                        this.AudioTracks().clear();
+                        this.VideoTracks().clear();
+
+                        // Step 3.
+                        this.network_state.set(NetworkState::NoSource);
+
+                        // Step 4.
+                        this.show_poster.set(true);
+
+                        // Step 5.
+                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                        if let Some(ref player) = *this.player.borrow() {
+                            if let Err(e) = player.lock().unwrap().stop() {
+                                eprintln!("Could not stop player {:?}", e);
+                            }
+                        }
+
+                        // Step 6.
+                        // Done after running this closure in
+                        // `fulfill_in_flight_play_promises`.
+                    });
+
+                    // Step 7.
+                    this.delay_load_event(false);
+                }),
+                window.upcast(),
+            )
+            .expect("Couldn't queue task for dedicated media source failure steps");
     }
 
     fn queue_ratechange_event(&self) {
@@ -2139,7 +2146,6 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         let state = self.ready_state.get();
 
         let window = window_from_node(self);
-        // FIXME(nox): Why are errors silenced here?
         let task_source = window.task_manager().media_element_task_source();
         if self.Paused() {
             // Step 6.1.

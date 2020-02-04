@@ -1968,17 +1968,18 @@ impl Window {
                         new_url);
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>());
                 });
-                // FIXME(nox): Why are errors silenced here?
-                let _ = self.script_chan.send(CommonScriptMsg::Task(
-                    ScriptThreadEventCategory::DomEvent,
-                    Box::new(
-                        self.task_manager
-                            .task_canceller(TaskSourceName::DOMManipulation)
-                            .wrap_task(task),
-                    ),
-                    self.pipeline_id(),
-                    TaskSourceName::DOMManipulation,
-                ));
+                self.script_chan
+                    .send(CommonScriptMsg::Task(
+                        ScriptThreadEventCategory::DomEvent,
+                        Box::new(
+                            self.task_manager
+                                .task_canceller(TaskSourceName::DOMManipulation)
+                                .wrap_task(task),
+                        ),
+                        self.pipeline_id(),
+                        TaskSourceName::DOMManipulation,
+                    ))
+                    .expect("Couldn't send hashchange task in load_url");
                 doc.set_url(load_data.url.clone());
                 return;
             }
@@ -2464,19 +2465,20 @@ impl Window {
                 );
             }
         });
-        // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".
         // TODO: When switching to the right task source, update the task_canceller call too.
-        let _ = self.script_chan.send(CommonScriptMsg::Task(
-            ScriptThreadEventCategory::DomEvent,
-            Box::new(
-                self.task_manager
-                    .task_canceller(TaskSourceName::DOMManipulation)
-                    .wrap_task(task),
-            ),
-            self.pipeline_id(),
-            TaskSourceName::DOMManipulation,
-        ));
+        self.script_chan
+            .send(CommonScriptMsg::Task(
+                ScriptThreadEventCategory::DomEvent,
+                Box::new(
+                    self.task_manager
+                        .task_canceller(TaskSourceName::DOMManipulation)
+                        .wrap_task(task),
+                ),
+                self.pipeline_id(),
+                TaskSourceName::DOMManipulation,
+            ))
+            .expect("Couldn't send task to post serialized message");
     }
 }
 

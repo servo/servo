@@ -309,14 +309,15 @@ fn queue_settle_promise_for_job(
 ) {
     let global = job.client.global();
     let promise = TrustedPromise::new(job.promise.clone());
-    // FIXME(nox): Why are errors silenced here?
-    let _ = task_source.queue(
-        task!(settle_promise_for_job: move || {
-            let promise = promise.root();
-            settle_job_promise(&promise, settle)
-        }),
-        &*global,
-    );
+    task_source
+        .queue(
+            task!(settle_promise_for_job: move || {
+                let promise = promise.root();
+                settle_job_promise(&promise, settle)
+            }),
+            &*global,
+        )
+        .expect("Couldn't queue task to settle_job_promise");
 }
 
 // https://w3c.github.io/ServiceWorker/#reject-job-promise-algorithm
