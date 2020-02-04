@@ -113,12 +113,21 @@ fn test_fetch_aboutblank() {
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
     request.referrer = Referrer::NoReferrer;
+
     let fetch_response = fetch(&mut request, None);
+    // We should see an opaque-filtered response.
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
     assert!(!fetch_response.is_network_error());
-    assert_eq!(
-        *fetch_response.body.lock().unwrap(),
-        ResponseBody::Done(vec![])
-    );
+    assert_eq!(fetch_response.headers.len(), 0);
+    let resp_body = fetch_response.body.lock().unwrap();
+    assert_eq!(*resp_body, ResponseBody::Empty);
+
+    // The underlying response behind the filter should
+    // have a 0-byte body.
+    let actual_response = fetch_response.actual_response();
+    assert!(!actual_response.is_network_error());
+    let resp_body = actual_response.body.lock().unwrap();
+    assert_eq!(*resp_body, ResponseBody::Done(vec![]));
 }
 
 #[test]
@@ -176,7 +185,6 @@ fn test_fetch_blob() {
     methods::fetch(&mut request, &mut target, &context);
 
     let fetch_response = receiver.recv().unwrap();
-
     assert!(!fetch_response.is_network_error());
 
     assert_eq!(fetch_response.headers.len(), 2);
@@ -198,25 +206,36 @@ fn test_fetch_blob() {
 }
 
 #[test]
-fn test_fetch_file() {
+fn test_file() {
     let path = Path::new("../../resources/servo.css")
         .canonicalize()
         .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
+
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
 
     let fetch_response = fetch(&mut request, None);
+    // We should see an opaque-filtered response.
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
     assert!(!fetch_response.is_network_error());
-    assert_eq!(fetch_response.headers.len(), 1);
-    let content_type: Mime = fetch_response
+    assert_eq!(fetch_response.headers.len(), 0);
+    let resp_body = fetch_response.body.lock().unwrap();
+    assert_eq!(*resp_body, ResponseBody::Empty);
+
+    // The underlying response behind the filter should
+    // have the file's MIME type and contents.
+    let actual_response = fetch_response.actual_response();
+    assert!(!actual_response.is_network_error());
+    assert_eq!(actual_response.headers.len(), 1);
+    let content_type: Mime = actual_response
         .headers
         .typed_get::<ContentType>()
         .unwrap()
         .into();
     assert_eq!(content_type, mime::TEXT_CSS);
 
-    let resp_body = fetch_response.body.lock().unwrap();
+    let resp_body = actual_response.body.lock().unwrap();
     let file = fs::read(path).unwrap();
 
     match *resp_body {
