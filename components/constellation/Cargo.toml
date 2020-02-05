@@ -10,15 +10,10 @@ publish = false
 name = "constellation"
 path = "lib.rs"
 
-[features]
-canvas2d-azure = ["canvas/canvas2d-azure"]
-canvas2d-raqote = ["canvas/canvas2d-raqote"]
-
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
-canvas = {path = "../canvas", default-features = false}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 crossbeam-channel = "0.3"

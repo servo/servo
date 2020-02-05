@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_data::*;
-use crate::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
+use canvas_traits::ConstellationCanvasMsg;
 use crossbeam_channel::{select, unbounded, Sender};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
