@@ -255,10 +255,13 @@ impl MessageEventMethods for MessageEvent {
             .collect();
         let frozen_ports = to_frozen_array(ports.as_slice(), cx);
 
-        // Cache the Js value.
-        let heap_val = Heap::default();
-        heap_val.set(frozen_ports);
-        *self.frozen_ports.borrow_mut() = Some(heap_val);
+        // Safety: need to create the Heap value in its final memory location before setting it.
+        *self.frozen_ports.borrow_mut() = Some(Heap::default());
+        self.frozen_ports
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .set(frozen_ports);
 
         frozen_ports
     }
