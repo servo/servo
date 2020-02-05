@@ -396,14 +396,14 @@ pub fn process_content_boxes_request(
     iterator.rects
 }
 
-struct FragmentLocatingFragmentIterator {
+struct FragmentClientRectQueryIterator {
     node_address: OpaqueNode,
     client_rect: Rect<i32>,
 }
 
-impl FragmentLocatingFragmentIterator {
-    fn new(node_address: OpaqueNode) -> FragmentLocatingFragmentIterator {
-        FragmentLocatingFragmentIterator {
+impl FragmentClientRectQueryIterator {
+    fn new(node_address: OpaqueNode) -> FragmentClientRectQueryIterator {
+        FragmentClientRectQueryIterator {
             node_address: node_address,
             client_rect: Rect::zero(),
         }
@@ -461,7 +461,7 @@ impl ParentOffsetBorderBoxIterator {
     }
 }
 
-impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
+impl FragmentBorderBoxIterator for FragmentClientRectQueryIterator {
     fn process(&mut self, fragment: &Fragment, _: i32, border_box: &Rect<Au>) {
         let style_structs::Border {
             border_top_width: top_width,
@@ -679,11 +679,11 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-pub fn process_node_geometry_request(
+pub fn process_client_rect_query(
     requested_node: OpaqueNode,
     layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
-    let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
+    let mut iterator = FragmentClientRectQueryIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
 }

@@ -51,10 +51,10 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
+use layout::query::{process_client_rect_query, process_element_inner_text_query};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
-use layout::query::{process_element_inner_text_query, process_node_geometry_request};
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
 use layout::query::{
     process_offset_parent_query, process_resolved_style_request, process_style_query,
@@ -1292,7 +1292,7 @@ impl LayoutThread {
                         &QueryMsg::NodesFromPointQuery(..) => {
                             rw_data.nodes_from_point_response = Vec::new();
                         },
-                        &QueryMsg::NodeGeometryQuery(_) => {
+                        &QueryMsg::ClientRectQuery(_) => {
                             rw_data.client_rect_response = Rect::zero();
                         },
                         &QueryMsg::NodeScrollGeometryQuery(_) => {
@@ -1618,8 +1618,8 @@ impl LayoutThread {
                     rw_data.text_index_response =
                         TextIndexResponse(rw_data.indexable_text.text_index(node, point_in_node));
                 },
-                &QueryMsg::NodeGeometryQuery(node) => {
-                    rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
+                &QueryMsg::ClientRectQuery(node) => {
+                    rw_data.client_rect_response = process_client_rect_query(node, root_flow);
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
                     rw_data.scroll_area_response =
