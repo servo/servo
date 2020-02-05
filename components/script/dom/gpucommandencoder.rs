@@ -87,14 +87,14 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .insert(DomRoot::from_ref(destination));
         self.channel
             .0
-            .send(WebGPURequest::CopyBufferToBuffer(
-                self.encoder.0,
-                source.id().0,
+            .send(WebGPURequest::CopyBufferToBuffer {
+                command_encoder_id: self.encoder.0,
+                source_id: source.id().0,
                 source_offset,
-                destination.id().0,
+                destination_id: destination.id().0,
                 destination_offset,
                 size,
-            ))
+            })
             .expect("Failed to send CopyBufferToBuffer");
     }
 
@@ -103,12 +103,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         let (sender, receiver) = ipc::channel().unwrap();
         self.channel
             .0
-            .send(WebGPURequest::CommandEncoderFinish(
+            .send(WebGPURequest::CommandEncoderFinish {
                 sender,
-                self.encoder.0,
+                command_encoder_id: self.encoder.0,
                 // TODO(zakorgy): We should use `_descriptor` here after it's not empty
                 // and the underlying wgpu-core struct is serializable
-            ))
+            })
             .expect("Failed to send Finish");
 
         let buffer = receiver.recv().unwrap();

@@ -144,11 +144,11 @@ impl GPUBufferMethods for GPUBuffer {
                     Ok(array_buffer) => {
                         self.channel
                             .0
-                            .send(WebGPURequest::UnmapBuffer(
-                                self.device.0,
-                                self.id(),
-                                array_buffer.to_vec(),
-                            ))
+                            .send(WebGPURequest::UnmapBuffer {
+                                device_id: self.device.0,
+                                buffer_id: self.id().0,
+                                array_buffer: array_buffer.to_vec(),
+                            })
                             .unwrap();
                         // Step 3.2
                         unsafe {
@@ -187,7 +187,7 @@ impl GPUBufferMethods for GPUBuffer {
         };
         self.channel
             .0
-            .send(WebGPURequest::DestroyBuffer(self.buffer))
+            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
             .unwrap();
         *self.state.borrow_mut() = GPUBufferState::Destroyed;
     }
@@ -241,13 +241,13 @@ impl GPUBufferMethods for GPUBuffer {
         if self
             .channel
             .0
-            .send(WebGPURequest::MapReadAsync(
+            .send(WebGPURequest::MapReadAsync {
                 sender,
-                self.buffer.0,
-                self.device.0,
-                self.usage,
-                self.size,
-            ))
+                buffer_id: self.buffer.0,
+                device_id: self.device.0,
+                usage: self.usage,
+                size: self.size,
+            })
             .is_err()
         {
             promise.reject_error(Error::Operation);

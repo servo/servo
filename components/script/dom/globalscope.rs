@@ -91,9 +91,8 @@ use script_traits::{
 };
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
-use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::CString;
@@ -104,13 +103,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::{get_time, Timespec};
 use uuid::Uuid;
-use webgpu::wgpu::{
-    id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, ShaderModuleId,
-    },
-    Backend,
-};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -2429,50 +2421,8 @@ impl GlobalScope {
         None
     }
 
-    pub fn wgpu_create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
-        self.gpu_id_hub.borrow_mut().create_adapter_ids()
-    }
-
-    pub fn wgpu_create_bind_group_id(&self, backend: Backend) -> BindGroupId {
-        self.gpu_id_hub.borrow_mut().create_bind_group_id(backend)
-    }
-
-    pub fn wgpu_create_bind_group_layout_id(&self, backend: Backend) -> BindGroupLayoutId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_bind_group_layout_id(backend)
-    }
-
-    pub fn wgpu_create_buffer_id(&self, backend: Backend) -> BufferId {
-        self.gpu_id_hub.borrow_mut().create_buffer_id(backend)
-    }
-
-    pub fn wgpu_create_device_id(&self, backend: Backend) -> DeviceId {
-        self.gpu_id_hub.borrow_mut().create_device_id(backend)
-    }
-
-    pub fn wgpu_create_pipeline_layout_id(&self, backend: Backend) -> PipelineLayoutId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_pipeline_layout_id(backend)
-    }
-
-    pub fn wgpu_create_shader_module_id(&self, backend: Backend) -> ShaderModuleId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_shader_module_id(backend)
-    }
-
-    pub fn wgpu_create_compute_pipeline_id(&self, backend: Backend) -> ComputePipelineId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_compute_pipeline_id(backend)
-    }
-
-    pub fn wgpu_create_command_encoder_id(&self, backend: Backend) -> CommandEncoderId {
-        self.gpu_id_hub
-            .borrow_mut()
-            .create_command_encoder_id(backend)
+    pub fn wgpu_id_hub(&self) -> RefMut<Identities> {
+        self.gpu_id_hub.borrow_mut()
     }
 }
 

@@ -91,11 +91,17 @@ impl GPUAdapterMethods for GPUAdapter {
         };
         let id = self
             .global()
-            .wgpu_create_device_id(self.adapter.0.backend());
+            .wgpu_id_hub()
+            .create_device_id(self.adapter.0.backend());
         if self
             .channel
             .0
-            .send(WebGPURequest::RequestDevice(sender, self.adapter, desc, id))
+            .send(WebGPURequest::RequestDevice {
+                sender,
+                adapter_id: self.adapter,
+                descriptor: desc,
+                device_id: id,
+            })
             .is_err()
         {
             promise.reject_error(Error::Operation);
@@ -107,7 +113,11 @@ impl GPUAdapterMethods for GPUAdapter {
 impl AsyncWGPUListener for GPUAdapter {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestDevice(device_id, queue_id, _descriptor) => {
+            WebGPUResponse::RequestDevice {
+                device_id,
+                queue_id,
+                _descriptor,
+            } => {
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
