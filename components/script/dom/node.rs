@@ -165,12 +165,11 @@ bitflags! {
 
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
         const HAS_DIRTY_DESCENDANTS = 1 << 1;
-        // TODO: find a better place to keep this (#4105)
-        // https://critic.hoppipolla.co.uk/showcomment?chain=8873
-        // Perhaps using a Set in Document?
+
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
         const CLICK_IN_PROGRESS = 1 << 2;
+
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 1 << 3;
