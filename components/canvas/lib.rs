@@ -4,10 +4,6 @@
 
 #![deny(unsafe_code)]
 
-use canvas_traits::canvas::CanvasId;
-use crossbeam_channel::Sender;
-use euclid::default::Size2D;
-
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -26,13 +22,3 @@ pub mod canvas_paint_thread;
 mod webgl_limits;
 mod webgl_mode;
 pub mod webgl_thread;
-
-pub enum ConstellationCanvasMsg {
-    Create {
-        id_sender: Sender<CanvasId>,
-        size: Size2D<u64>,
-        webrender_sender: webrender_api::RenderApiSender,
-        antialias: bool,
-    },
-    Exit,
-}

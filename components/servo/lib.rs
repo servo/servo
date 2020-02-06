@@ -892,6 +892,9 @@ fn create_constellation(
         player_context,
         event_loop_waker,
     };
+
+    let (canvas_chan, ipc_canvas_chan) = canvas::canvas_paint_thread::CanvasPaintThread::start();
+
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
         layout_thread::LayoutThread,
@@ -904,6 +907,8 @@ fn create_constellation(
         opts.is_running_problem_test,
         opts.hard_fail,
         opts.enable_canvas_antialiasing,
+        canvas_chan,
+        ipc_canvas_chan,
     );
 
     if let Some(webvr_constellation_sender) = webvr_constellation_sender {

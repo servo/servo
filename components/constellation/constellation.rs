@@ -103,10 +103,9 @@ use crate::timer_scheduler::TimerScheduler;
 use background_hang_monitor::HangMonitorRegister;
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::CanvasPaintThread;
-use canvas::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
+use canvas_traits::ConstellationCanvasMsg;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
@@ -811,6 +810,8 @@ where
         is_running_problem_test: bool,
         hard_fail: bool,
         enable_canvas_antialiasing: bool,
+        canvas_chan: Sender<ConstellationCanvasMsg>,
+        ipc_canvas_chan: IpcSender<CanvasMsg>,
     ) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = unbounded();
 
@@ -900,8 +901,6 @@ where
                         )
                     }),
                 );
-
-                let (canvas_chan, ipc_canvas_chan) = CanvasPaintThread::start();
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                     namespace_receiver,

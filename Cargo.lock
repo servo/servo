@@ -534,6 +534,7 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
+ "crossbeam-channel",
  "cssparser",
  "euclid",
  "ipc-channel",
@@ -806,7 +807,6 @@ dependencies = [
  "background_hang_monitor",
  "backtrace",
  "bluetooth_traits",
- "canvas",
  "canvas_traits",
  "compositing",
  "crossbeam-channel",
