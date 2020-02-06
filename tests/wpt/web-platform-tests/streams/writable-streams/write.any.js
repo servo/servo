@@ -165,7 +165,7 @@ promise_test(t => {
 
   return promise_rejects(t, error1, writer.write('a'),
                          'write() should reject with the error returned from the sink\'s write method')
-      .then(() => promise_rejects(t, new TypeError(), writer.close(), 'close() should be rejected'));
+      .then(() => promise_rejects_js(t, TypeError, writer.close(), 'close() should be rejected'));
 }, 'when sink\'s write throws an error, the stream should become errored and the promise should reject');
 
 promise_test(t => {
@@ -280,5 +280,5 @@ promise_test(t => {
   const ws = new WritableStream();
   const writer = ws.getWriter();
   writer.releaseLock();
-  return promise_rejects(t, new TypeError(), writer.write(), 'write should reject');
+  return promise_rejects_js(t, TypeError, writer.write(), 'write should reject');
 }, 'writing to a released writer should reject the returned promise');

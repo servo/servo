@@ -70,7 +70,7 @@ promise_test(t => {
   const view = new Uint8Array([4, 5, 6]);
   return reader.read(view).then(() => {
     // view is now detached
-    return promise_rejects(t, new TypeError(), reader.read(view),
+    return promise_rejects_js(t, TypeError, reader.read(view),
       'read(view) must reject when given an already-detached buffer');
   });
 }, 'ReadableStream with byte source: reading into an already-detached buffer rejects');

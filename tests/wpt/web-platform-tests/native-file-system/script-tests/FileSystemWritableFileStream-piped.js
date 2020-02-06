@@ -128,7 +128,7 @@ directory_test(async (t, root) => {
   await abortController.abort();
 
   await promise_rejects(t, 'AbortError', promise, 'stream is aborted');
-  await promise_rejects(t, TypeError(), wfs.close(), 'stream cannot be closed to flush writes');
+  await promise_rejects_js(t, TypeError, wfs.close(), 'stream cannot be closed to flush writes');
 
   assert_equals(await getFileContents(handle), '');
   assert_equals(await getFileSize(handle), 0);

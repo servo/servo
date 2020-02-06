@@ -515,7 +515,7 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
         assert len(ports) == {"http": 2}.get(scheme, 1)
 
         # If trying to start HTTP/2.0 server, check compatibility
-        if scheme == 'http2' and not http2_compatible():
+        if scheme == 'h2' and not http2_compatible():
             logger.error('Cannot start HTTP/2.0 server as the environment is not compatible. ' +
                          'Requires Python 2.7.10+ (< 3.0) and OpenSSL 1.0.2+')
             continue
@@ -525,7 +525,7 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
                 continue
             init_func = {"http": start_http_server,
                          "https": start_https_server,
-                         "http2": start_http2_server,
+                         "h2": start_http2_server,
                          "ws": start_ws_server,
                          "wss": start_wss_server}[scheme]
 
@@ -705,8 +705,11 @@ def iter_procs(servers):
 def build_config(override_path=None, **kwargs):
     rv = ConfigBuilder()
 
-    if kwargs.get("h2"):
-        rv._default["ports"]["http2"] = [9000]
+    enable_http2 = kwargs.get("h2")
+    if enable_http2 is None:
+        enable_http2 = True
+    if enable_http2:
+        rv._default["ports"]["h2"] = [9000]
 
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
@@ -845,9 +848,10 @@ def get_parser():
                         help="Path to WebSockets document root. Overrides config.")
     parser.add_argument("--alias_file", action="store", dest="alias_file",
                         help="File with entries for aliases/multiple doc roots. In form of `/ALIAS_NAME/, DOC_ROOT\\n`")
-    parser.add_argument("--h2", action="store_true", dest="h2",
-                        help="Flag for enabling the HTTP/2.0 server")
-    parser.set_defaults(h2=False)
+    parser.add_argument("--h2", action="store_true", dest="h2", default=None,
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
+                        help="Disable the HTTP/2.0 server")
     return parser
 
 

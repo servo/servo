@@ -13,7 +13,7 @@ setup(() => {
 });
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), WebAssembly.compile());
+  return promise_rejects_js(t, TypeError, WebAssembly.compile());
 }, "Missing argument");
 
 promise_test(t => {
@@ -30,7 +30,7 @@ promise_test(t => {
     Array.from(emptyModuleBinary),
   ];
   return Promise.all(invalidArguments.map(argument => {
-    return promise_rejects(t, new TypeError(), WebAssembly.compile(argument),
+    return promise_rejects_js(t, TypeError, WebAssembly.compile(argument),
                            `compile(${format_value(argument)})`);
   }));
 }, "Invalid arguments");

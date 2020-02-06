@@ -25,7 +25,7 @@ for (const invalidSignal of [null, 'AbortSignal', true, -1, Object.create(AbortS
   promise_test(t => {
     const rs = recordingReadableStream(errorOnPull, hwm0);
     const ws = recordingWritableStream();
-    return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { signal: invalidSignal }), 'pipeTo should reject')
+    return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { signal: invalidSignal }), 'pipeTo should reject')
         .then(() => {
           assert_equals(rs.events.length, 0, 'no ReadableStream methods should have been called');
           assert_equals(ws.events.length, 0, 'no WritableStream methods should have been called');

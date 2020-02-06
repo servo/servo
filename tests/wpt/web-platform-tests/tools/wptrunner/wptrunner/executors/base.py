@@ -271,7 +271,8 @@ class TestExecutor(object):
         self.runner.send_message("test_ended", test, result)
 
     def server_url(self, protocol):
-        return "%s://%s:%s" % (protocol,
+        scheme = "https" if protocol == "h2" else protocol
+        return "%s://%s:%s" % (scheme,
                                self.server_config["browser_host"],
                                self.server_config["ports"][protocol][0])
 

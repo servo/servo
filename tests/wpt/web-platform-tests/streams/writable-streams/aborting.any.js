@@ -51,7 +51,7 @@ promise_test(t => {
 
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(), writer.abort(), 'abort() should reject with a TypeError');
+  return promise_rejects_js(t, TypeError, writer.abort(), 'abort() should reject with a TypeError');
 }, 'abort() on a released writer rejects');
 
 promise_test(t => {
@@ -638,9 +638,9 @@ promise_test(t => {
     writer.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.ready,
+      promise_rejects_js(t, TypeError, writer.ready,
                       'writer.ready must be rejected with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.closed,
+      promise_rejects_js(t, TypeError, writer.closed,
                       'writer.closed must be rejected with an error indicating release')
     ]);
   });
@@ -735,9 +735,9 @@ promise_test(t => {
     writer.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.ready,
+      promise_rejects_js(t, TypeError, writer.ready,
                       'writer.ready must be rejected with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.closed,
+      promise_rejects_js(t, TypeError, writer.closed,
                       'writer.closed must be rejected with an error indicating release')
     ]);
   });
@@ -781,7 +781,7 @@ promise_test(t => {
     });
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.close(),
+      promise_rejects_js(t, TypeError, writer.close(),
         'writer.close() must reject with an error indicating already closing'),
       promise_rejects(t, error1, writer.ready, 'writer.ready must reject with the error from abort'),
       flushAsyncEvents()
@@ -792,7 +792,7 @@ promise_test(t => {
     controller.error(error2);
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.close(),
+      promise_rejects_js(t, TypeError, writer.close(),
         'writer.close() must reject with an error indicating already closing'),
       promise_rejects(t, error1, writer.ready,
                       'writer.ready must be still rejected with the error indicating abort'),
@@ -817,7 +817,7 @@ promise_test(t => {
                         'closedPromise, abortPromise and writer.closed must fulfill');
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.close(),
+      promise_rejects_js(t, TypeError, writer.close(),
         'writer.close() must reject with an error indicating already closing'),
       promise_rejects(t, error1, writer.ready,
                       'writer.ready must be still rejected with the error indicating abort')
@@ -826,11 +826,11 @@ promise_test(t => {
     writer.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.close(),
+      promise_rejects_js(t, TypeError, writer.close(),
         'writer.close() must reject with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.ready,
+      promise_rejects_js(t, TypeError, writer.ready,
                       'writer.ready must be rejected with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.closed,
+      promise_rejects_js(t, TypeError, writer.closed,
                       'writer.closed must be rejected with an error indicating release')
     ]);
   });
@@ -924,9 +924,9 @@ promise_test(t => {
     writer.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.ready,
+      promise_rejects_js(t, TypeError, writer.ready,
                       'writer.ready must be rejected with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.closed,
+      promise_rejects_js(t, TypeError, writer.closed,
                       'writer.closed must be rejected with an error indicating release')
     ]);
   });
@@ -1001,9 +1001,9 @@ promise_test(t => {
     writer.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), writer.ready,
+      promise_rejects_js(t, TypeError, writer.ready,
                       'writer.ready must be rejected with an error indicating release'),
-      promise_rejects(t, new TypeError(), writer.closed,
+      promise_rejects_js(t, TypeError, writer.closed,
                       'writer.closed must be rejected with an error indicating release')
     ]);
   });
@@ -1028,7 +1028,7 @@ promise_test(t => {
     return Promise.all([
       writePromise,
       abortPromise,
-      promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
+      promise_rejects_js(t, TypeError, closed, 'closed should reject')]);
   });
 }, 'releaseLock() while aborting should reject the original closed promise');
 
@@ -1066,7 +1066,7 @@ promise_test(t => {
       return Promise.all([
         writePromise,
         abortPromise,
-        promise_rejects(t, new TypeError(), closed, 'closed should reject')]);
+        promise_rejects_js(t, TypeError, closed, 'closed should reject')]);
     });
   });
 }, 'releaseLock() during delayed async abort() should reject the writer.closed promise');
@@ -1335,8 +1335,8 @@ promise_test(t => {
     resolveWrite();
     return Promise.all([
       writePromise1,
-      promise_rejects(t, new RangeError(), writePromise2, 'second write() should reject'),
-      promise_rejects(t, new RangeError(), abortPromise, 'abort() should reject')
+      promise_rejects_js(t, RangeError, writePromise2, 'second write() should reject'),
+      promise_rejects_js(t, RangeError, abortPromise, 'abort() should reject')
     ]).then(() => {
       assert_array_equals(ws.events, ['write', 'chunk1'], 'sink abort() should not be called');
     });
@@ -1373,6 +1373,6 @@ promise_test(t => {
 promise_test(t => {
   const ws = new WritableStream();
   const writer = ws.getWriter();
-  return promise_rejects(t, new TypeError(), ws.abort(), 'abort should reject')
+  return promise_rejects_js(t, TypeError, ws.abort(), 'abort should reject')
     .then(() => writer.ready);
 }, 'abort on a locked stream should reject');

@@ -156,6 +156,8 @@ def global_variant_url(url, suffix):
     # the form .https.any.js
     if ".https." in url and suffix.startswith(".https."):
         url = url.replace(".https.", ".")
+    elif ".h2." in url and suffix.startswith(".h2."):
+        url = url.replace(".h2.", ".")
     return replace_end(url, ".js", suffix)
 
 

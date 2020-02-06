@@ -6,17 +6,17 @@
 
 promise_test(async t => {
   const res = uniqueName(t);
-  await promise_rejects(t, new TypeError(), navigator.locks.request());
-  await promise_rejects(t, new TypeError(), navigator.locks.request(res));
+  await promise_rejects_js(t, TypeError, navigator.locks.request());
+  await promise_rejects_js(t, TypeError, navigator.locks.request(res));
 }, 'navigator.locks.request requires a name and a callback');
 
 promise_test(async t => {
   const res = uniqueName(t);
-  await promise_rejects(
-    t, new TypeError(),
+  await promise_rejects_js(
+    t, TypeError,
     navigator.locks.request(res, {mode: 'foo'}, lock => {}));
-  await promise_rejects(
-    t, new TypeError(),
+  await promise_rejects_js(
+    t, TypeError,
     navigator.locks.request(res, {mode: null }, lock => {}));
   assert_equals(await navigator.locks.request(
     res, {mode: 'exclusive'}, lock => lock.mode), 'exclusive',
@@ -66,20 +66,20 @@ promise_test(async t => {
 
 promise_test(async t => {
   const res = uniqueName(t);
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, undefined));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, null));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, 123));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, 'abc'));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, []));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, {}));
-  await promise_rejects(
-    t, new TypeError(), navigator.locks.request(res, new Promise(r => {})));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, undefined));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, null));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, 123));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, 'abc'));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, []));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, {}));
+  await promise_rejects_js(
+    t, TypeError, navigator.locks.request(res, new Promise(r => {})));
 }, 'callback must be a function');
 
 promise_test(async t => {

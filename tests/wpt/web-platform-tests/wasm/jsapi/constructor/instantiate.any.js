@@ -9,7 +9,7 @@ setup(() => {
 });
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), WebAssembly.instantiate());
+  return promise_rejects_js(t, TypeError, WebAssembly.instantiate());
 }, "Missing arguments");
 
 promise_test(() => {
@@ -45,7 +45,7 @@ promise_test(t => {
     Array.from(emptyModuleBinary),
   ];
   return Promise.all(invalidArguments.map(argument => {
-    return promise_rejects(t, new TypeError(), WebAssembly.instantiate(argument),
+    return promise_rejects_js(t, TypeError, WebAssembly.instantiate(argument),
                            `instantiate(${format_value(argument)})`);
   }));
 }, "Invalid arguments");

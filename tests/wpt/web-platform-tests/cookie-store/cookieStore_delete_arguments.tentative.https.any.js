@@ -52,7 +52,7 @@ promise_test(async testCase => {
   const currentDomain = currentUrl.hostname;
   const subDomain = `sub.${currentDomain}`;
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+  await promise_rejects_js(testCase, TypeError, cookieStore.delete(
       { name: 'cookie-name', domain: subDomain }));
 }, 'cookieStore.delete with domain set to a subdomain of the current hostname');
 
@@ -63,7 +63,7 @@ promise_test(async testCase => {
       'this test assumes that the current hostname does not start with .');
   const domainSuffix = currentDomain.substr(1);
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+  await promise_rejects_js(testCase, TypeError, cookieStore.delete(
       { name: 'cookie-name', domain: domainSuffix }));
 }, 'cookieStore.delete with domain set to a non-domain-matching suffix of ' +
    'the current hostname');
@@ -88,7 +88,7 @@ promise_test(async testCase => {
   const currentDomain = currentUrl.hostname;
   const subDomain = `sub.${currentDomain}`;
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+  await promise_rejects_js(testCase, TypeError, cookieStore.delete(
       { name: 'cookie-name', domain: subDomain }));
 }, 'cookieStore.delete with name in options and domain set to a subdomain of ' +
    'the current hostname');
@@ -100,7 +100,7 @@ promise_test(async testCase => {
       'this test assumes that the current hostname does not start with .');
   const domainSuffix = currentDomain.substr(1);
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+  await promise_rejects_js(testCase, TypeError, cookieStore.delete(
       { name: 'cookie-name', domain: domainSuffix }));
 }, 'cookieStore.delete with name in options and domain set to a ' +
    'non-domain-matching suffix of the current hostname');

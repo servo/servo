@@ -10,24 +10,24 @@
   <body>
     <script>
         promise_test(t => {
-          return promise_rejects(t, new TypeError(), navigator.share());
+          return promise_rejects_js(t, TypeError, navigator.share());
         }, 'share with no arguments (same as empty dictionary)');
 
         promise_test(t => {
-          return promise_rejects(t, new TypeError(), navigator.share({}));
+          return promise_rejects_js(t, TypeError, navigator.share({}));
         }, 'share with an empty dictionary');
 
         promise_test(t => {
-          return promise_rejects(t, new TypeError(), navigator.share(undefined));
+          return promise_rejects_js(t, TypeError, navigator.share(undefined));
         }, 'share with a undefined argument (same as empty dictionary)');
 
         promise_test(t => {
-          return promise_rejects(t, new TypeError(), navigator.share(null));
+          return promise_rejects_js(t, TypeError, navigator.share(null));
         }, 'share with a null argument (same as empty dictionary)');
 
         promise_test(t => {
-          return promise_rejects(t,
-              new TypeError(), navigator.share({unused: 'unexpected field'}));
+          return promise_rejects_js(t,
+              TypeError, navigator.share({unused: 'unexpected field'}));
         }, 'share with a dictionary containing only surplus fields');
     </script>
   </body>

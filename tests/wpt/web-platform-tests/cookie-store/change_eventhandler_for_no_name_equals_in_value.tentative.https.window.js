@@ -14,16 +14,16 @@ cookie_test(async t => {
     eventPromise, {changed: [{name: '', value: 'first-value'}]},
     'Observed no-name change');
 
-  await promise_rejects(
+  await promise_rejects_js(
     t,
-    new TypeError(),
+    TypeError,
     cookieStore.set('', 'suspicious-value=resembles-name-and-value'),
     'Expected promise rejection when setting a cookie with' +
       ' no name and "=" in value (via arguments)');
 
-  await promise_rejects(
+  await promise_rejects_js(
     t,
-    new TypeError(),
+    TypeError,
     cookieStore.set(
       {name: '', value: 'suspicious-value=resembles-name-and-value'}),
     'Expected promise rejection when setting a cookie with' +

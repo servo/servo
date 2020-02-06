@@ -15,8 +15,8 @@ promise_test(async t => {
 
   // These cases should not work:
   for (const signal of ['string', 12.34, false, {}, Symbol(), () => {}, self]) {
-    await promise_rejects(
-      t, new TypeError(),
+    await promise_rejects_js(
+      t, TypeError,
       navigator.locks.request(
         res, {signal}, t.unreached_func('callback should not run')),
       'Bindings should throw if the signal option is a not an AbortSignal');

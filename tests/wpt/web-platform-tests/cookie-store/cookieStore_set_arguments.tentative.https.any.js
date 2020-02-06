@@ -160,7 +160,7 @@ promise_test(async testCase => {
   const currentDomain = currentUrl.hostname;
   const subDomain = `sub.${currentDomain}`;
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
       'cookie-name', 'cookie-value', { domain: subDomain }));
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
@@ -173,7 +173,7 @@ promise_test(async testCase => {
       'this test assumes that the current hostname does not start with .');
   const domainSuffix = currentDomain.substr(1);
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
       'cookie-name', 'cookie-value', { domain: domainSuffix }));
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);

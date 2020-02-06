@@ -430,7 +430,7 @@ a=rtcp-rsize
 
     return pc.setRemoteDescription(sessionDesc)
     .then(() =>
-      promise_rejects(t, new TypeError(),
+      promise_rejects_js(t, TypeError,
         pc.addIceCandidate({
           candidate: candidateStr1,
           sdpMid: null,
@@ -445,7 +445,7 @@ a=rtcp-rsize
 
     return pc.setRemoteDescription(sessionDesc)
     .then(() =>
-      promise_rejects(t, new TypeError(),
+      promise_rejects_js(t, TypeError,
         pc.addIceCandidate({
           candidate: candidateStr1
         })));
@@ -458,7 +458,7 @@ a=rtcp-rsize
 
     return pc.setRemoteDescription(sessionDesc)
     .then(() =>
-      promise_rejects(t, new TypeError(),
+      promise_rejects_js(t, TypeError,
         pc.addIceCandidate({
           candidate: invalidCandidateStr,
           sdpMid: null,

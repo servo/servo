@@ -164,9 +164,9 @@ const neutralDetails = Object.freeze({
 function smokeTest() {
   promise_test(async t => {
     const request = new PaymentRequest(validMethods, failDetails);
-    await promise_rejects(
+    await promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       request.show({
         total: "This throws a TypeError",
       }),

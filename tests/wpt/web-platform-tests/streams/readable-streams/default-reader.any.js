@@ -195,7 +195,7 @@ promise_test(t => {
   controller.close();
 
   return Promise.all([
-    promise_rejects(t, new TypeError(), reader1.closed),
+    promise_rejects_js(t, TypeError, reader1.closed),
     reader2.closed
   ]);
 
@@ -270,7 +270,7 @@ promise_test(t => {
   });
 
   return Promise.all([
-    promise_rejects(t, new TypeError(), cancelPromise),
+    promise_rejects_js(t, TypeError, cancelPromise),
     readPromise
   ]);
 

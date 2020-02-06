@@ -62,7 +62,7 @@
     }
 
     function checkBodyFormDataError(test, response) {
-      return promise_rejects(test, new TypeError(), response.formData()).then(function() {
+      return promise_rejects_js(test, TypeError, response.formData()).then(function() {
         assert_false(response.bodyUsed);
       });
     }

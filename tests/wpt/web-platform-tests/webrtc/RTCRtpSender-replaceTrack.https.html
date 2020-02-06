@@ -59,7 +59,7 @@
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
 
-    return promise_rejects(t, new TypeError(),
+    return promise_rejects_js(t, TypeError,
       sender.replaceTrack(track));
   }, 'Calling replaceTrack with track of different kind should reject with TypeError');
 

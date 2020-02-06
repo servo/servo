@@ -1,0 +1,48 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: JS Self-Profiling API (https://wicg.github.io/js-self-profiling/)
+
+[Exposed=(Window,Worker)]
+interface Profiler {
+  readonly attribute DOMHighResTimeStamp sampleInterval;
+  readonly attribute boolean stopped;
+
+  Promise<ProfilerTrace> stop();
+};
+
+typedef DOMString ProfilerResource;
+
+dictionary ProfilerTrace {
+  required sequence<ProfilerResource> resources;
+  required sequence<ProfilerFrame> frames;
+  required sequence<ProfilerStack> stacks;
+  required sequence<ProfilerSample> samples;
+};
+
+dictionary ProfilerSample {
+  required DOMHighResTimeStamp timestamp;
+  unsigned long long stackId;
+};
+
+dictionary ProfilerStack {
+  unsigned long long parentId;
+  required unsigned long long frameId;
+};
+
+dictionary ProfilerFrame {
+  DOMString name;
+  required unsigned long long resourceId;
+  required unsigned long long line;
+  required unsigned long long column;
+};
+
+dictionary ProfilerInitOptions {
+  required DOMHighResTimeStamp sampleInterval;
+  required unsigned long maxBufferSize;
+};
+
+[Exposed=(Window,Worker)]
+partial interface Performance {
+  Promise<Profiler> profile(ProfilerInitOptions options);
+};

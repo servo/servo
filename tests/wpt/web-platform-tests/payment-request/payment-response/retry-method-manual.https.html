@@ -176,9 +176,9 @@ function abortTheUpdate(button) {
     });
     const retryPromise = response.retry();
     await shipOptionChangePromise;
-    await promise_rejects(
+    await promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       retryPromise,
       "retry() aborts with a TypeError, because totals' value is invalid"
     );

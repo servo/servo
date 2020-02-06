@@ -153,7 +153,7 @@ promise_test(t => {
   const reader = stream.getReader();
   reader.releaseLock();
 
-  return promise_rejects(t, new TypeError(), reader.closed, 'closed must reject');
+  return promise_rejects_js(t, TypeError, reader.closed, 'closed must reject');
 }, 'ReadableStream with byte source: getReader(), then releaseLock()');
 
 promise_test(t => {
@@ -164,7 +164,7 @@ promise_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
   reader.releaseLock();
 
-  return promise_rejects(t, new TypeError(), reader.closed, 'closed must reject');
+  return promise_rejects_js(t, TypeError, reader.closed, 'closed must reject');
 }, 'ReadableStream with byte source: getReader() with mode set to byob, then releaseLock()');
 
 promise_test(t => {
@@ -1422,8 +1422,8 @@ promise_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
 
 
-  return promise_rejects(t, new TypeError(), reader.read(new Uint16Array(1)), 'read(view) must fail')
-      .then(() => promise_rejects(t, new TypeError(), reader.closed, 'reader.closed should reject'));
+  return promise_rejects_js(t, TypeError, reader.read(new Uint16Array(1)), 'read(view) must fail')
+      .then(() => promise_rejects_js(t, TypeError, reader.closed, 'reader.closed should reject'));
 }, 'ReadableStream with byte source: read(view) with Uint16Array on close()-d stream with 1 byte enqueue()-d must ' +
    'fail');
 
@@ -1448,8 +1448,8 @@ promise_test(t => {
 
   assert_throws_js(TypeError, () => controller.close(), 'controller.close() must throw');
 
-  return promise_rejects(t, new TypeError(), readPromise, 'read(view) must fail')
-      .then(() => promise_rejects(t, new TypeError(), reader.closed, 'reader.closed must reject'));
+  return promise_rejects_js(t, TypeError, readPromise, 'read(view) must fail')
+      .then(() => promise_rejects_js(t, TypeError, reader.closed, 'reader.closed must reject'));
 }, 'ReadableStream with byte source: A stream must be errored if close()-d before fulfilling read(view) with ' +
    'Uint16Array');
 
@@ -1770,7 +1770,7 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  return promise_rejects(t, new TypeError(), reader.read(), 'read() must fail')
+  return promise_rejects_js(t, TypeError, reader.read(), 'read() must fail')
       .then(() => assert_equals(byobRequest, undefined, 'byobRequest must be undefined'));
 }, 'ReadableStream with byte source: read(view) with passing undefined as view must fail');
 
@@ -1785,7 +1785,7 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  return promise_rejects(t, new TypeError(), reader.read(new Uint8Array(0)), 'read(view) must fail')
+  return promise_rejects_js(t, TypeError, reader.read(new Uint8Array(0)), 'read(view) must fail')
       .then(() => assert_equals(byobRequest, undefined, 'byobRequest must be undefined'));
 }, 'ReadableStream with byte source: read(view) with zero-length view must fail');
 
@@ -1796,7 +1796,7 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  return promise_rejects(t, new TypeError(), reader.read({}), 'read(view) must fail');
+  return promise_rejects_js(t, TypeError, reader.read({}), 'read(view) must fail');
 }, 'ReadableStream with byte source: read(view) with passing an empty object as view must fail');
 
 promise_test(t => {
@@ -1806,7 +1806,7 @@ promise_test(t => {
 
   const reader = stream.getReader({ mode: 'byob' });
 
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          reader.read({ buffer: new ArrayBuffer(10), byteOffset: 0, byteLength: 10 }),
                          'read(view) must fail');
 }, 'ReadableStream with byte source: Even read(view) with passing ArrayBufferView like object as view must fail');

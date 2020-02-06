@@ -29,7 +29,7 @@ promise_test(async t => {
   const reader = new NDEFReader();
   const promises = [];
   invalid_signals.forEach(invalid_signal => {
-    promises.push(promise_rejects(t, new TypeError(),
+    promises.push(promise_rejects_js(t, TypeError,
         reader.scan({ signal: invalid_signal })));
   });
   await Promise.all(promises);
@@ -146,23 +146,32 @@ nfc_test(async (t, mockNFC) => {
   const promise = readerWatcher.wait_for("reading").then(event => {
     controller.abort();
     assert_true(event instanceof NDEFReadingEvent);
-    // The message contains only an external type record.
+
+    // The message in the event contains only the external type record.
     assert_equals(event.message.records.length, 1);
-    assert_equals(event.message.records[0].recordType, 'example.com:payloadIsMessage', 'recordType');
-    // The external type record's payload is a message, which contains only a text record.
-    const embeddedRecords = event.message.records[0].toRecords();
-    assert_equals(embeddedRecords.length, 1);
-    assert_equals(embeddedRecords[0].recordType, 'text', 'recordType');
-    assert_equals(embeddedRecords[0].mediaType, null, 'mediaType');
+    assert_equals(event.message.records[0].recordType, 'example.com:containsLocalRecord',
+        'recordType');
+
+    // The external type record contains only the local type record.
+    assert_equals(event.message.records[0].toRecords().length, 1);
+    assert_equals(event.message.records[0].toRecords()[0].recordType, ':containsTextRecord',
+        'recordType');
+
+    // The local type record contains only the text record.
+    assert_equals(event.message.records[0].toRecords()[0].toRecords()[0].recordType, 'text',
+        'recordType');
     const decoder = new TextDecoder();
-    assert_equals(decoder.decode(embeddedRecords[0].data), test_text_data,
-                    'data has the same content with the original dictionary');
+    assert_equals(decoder.decode(event.message.records[0].toRecords()[0].toRecords()[0].data),
+        test_text_data, 'data has the same content with the original dictionary');
   });
   await reader.scan({signal : controller.signal});
 
-  const payloadMessage = createMessage([createTextRecord(test_text_data)]);
-  const message = createMessage([createRecord('example.com:payloadIsMessage',
-          payloadMessage)]);
+  // An external type record --contains-> a local type record --contains-> a text record.
+  const messageContainText = createMessage([createTextRecord(test_text_data)]);
+  const messageContainLocal= createMessage([createRecord(':containsTextRecord',
+          messageContainText)]);
+  const message = createMessage([createRecord('example.com:containsLocalRecord',
+          messageContainLocal)]);
   mockNFC.setReadingMessage(message);
   await promise;
 }, "NDEFRecord.toRecords returns its embedded records correctly.");

@@ -119,8 +119,8 @@ directory_test(async (t, root) => {
 
   await promise_rejects(
       t, 'InvalidStateError', stream.write({type: 'write', position: 4, data: new Blob(['abc'])}));
-  await promise_rejects(
-      t, TypeError(), stream.close(), 'stream is already closed');
+  await promise_rejects_js(
+      t, TypeError, stream.close(), 'stream is already closed');
 
   assert_equals(await getFileContents(handle), '');
   assert_equals(await getFileSize(handle), 0);
@@ -233,8 +233,8 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(
-      t, TypeError(), stream.write('abc'));
+  await promise_rejects_js(
+      t, TypeError, stream.write('abc'));
 }, 'atomic writes: write() after close() fails');
 
 directory_test(async (t, root) => {
@@ -247,7 +247,7 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(t, TypeError(), stream.truncate(0));
+  await promise_rejects_js(t, TypeError, stream.truncate(0));
 }, 'atomic writes: truncate() after close() fails');
 
 directory_test(async (t, root) => {
@@ -259,7 +259,7 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(t, TypeError(), stream.close());
+  await promise_rejects_js(t, TypeError, stream.close());
 }, 'atomic writes: close() after close() fails');
 
 directory_test(async (t, root) => {
@@ -312,8 +312,8 @@ directory_test(async (t, root) => {
       t, 'content.txt', 'very long string', root);
   const stream = await handle.createWritable();
 
-  await promise_rejects(
-      t, SyntaxError(), stream.write({type: 'truncate'}), 'truncate without size');
+  await promise_rejects_js(
+      t, SyntaxError, stream.write({type: 'truncate'}), 'truncate without size');
 
 }, 'WriteParams: truncate missing size param');
 
@@ -321,8 +321,8 @@ directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'content.txt', root);
   const stream = await handle.createWritable();
 
-  await promise_rejects(
-      t, SyntaxError(), stream.write({type: 'write'}), 'write without data');
+  await promise_rejects_js(
+      t, SyntaxError, stream.write({type: 'write'}), 'write without data');
 
 }, 'WriteParams: write missing data param');
 
@@ -331,7 +331,7 @@ directory_test(async (t, root) => {
       t, 'content.txt', 'seekable', root);
   const stream = await handle.createWritable();
 
-  await promise_rejects(
-      t, SyntaxError(), stream.write({type: 'seek'}), 'seek without position');
+  await promise_rejects_js(
+      t, SyntaxError, stream.write({type: 'seek'}), 'seek without position');
 
 }, 'WriteParams: seek missing position param');

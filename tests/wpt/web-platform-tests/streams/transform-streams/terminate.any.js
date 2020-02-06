@@ -11,7 +11,7 @@ promise_test(t => {
     }
   });
   let pipeToRejected = false;
-  const pipeToPromise = promise_rejects(t, new TypeError(), rs.pipeTo(ts.writable), 'pipeTo should reject').then(() => {
+  const pipeToPromise = promise_rejects_js(t, TypeError, rs.pipeTo(ts.writable), 'pipeTo should reject').then(() => {
     pipeToRejected = true;
   });
   return delay(0).then(() => {
@@ -37,7 +37,7 @@ promise_test(t => {
   return delay(0).then(() => {
     assert_array_equals(ts.events, ['transform', 0], 'transform() should have seen one chunk');
     ts.controller.terminate();
-    return promise_rejects(t, new TypeError(), pipeToPromise, 'pipeTo() should reject');
+    return promise_rejects_js(t, TypeError, pipeToPromise, 'pipeTo() should reject');
   }).then(() => {
     assert_array_equals(ts.events, ['transform', 0], 'transform() should still have seen only one chunk');
   });
@@ -65,7 +65,7 @@ promise_test(t => {
     }
   });
   return Promise.all([
-    promise_rejects(t, new TypeError(), ts.writable.abort(), 'abort() should reject with a TypeError'),
+    promise_rejects_js(t, TypeError, ts.writable.abort(), 'abort() should reject with a TypeError'),
     promise_rejects(t, error1, ts.readable.cancel(), 'cancel() should reject with error1'),
     promise_rejects(t, error1, ts.readable.getReader().closed, 'closed should reject with error1')
   ]);
@@ -79,7 +79,7 @@ promise_test(t => {
     }
   });
   return Promise.all([
-    promise_rejects(t, new TypeError(), ts.writable.abort(), 'abort() should reject with a TypeError'),
+    promise_rejects_js(t, TypeError, ts.writable.abort(), 'abort() should reject with a TypeError'),
     ts.readable.cancel(),
     ts.readable.getReader().closed
   ]);

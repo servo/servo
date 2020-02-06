@@ -72,14 +72,23 @@ const invalid_type_messages =
       // NDEFRecord must have data.
       createMessage([createRecord('w3.org:xyz')]),
 
-      // NDEFRecord.data for external record must be ArrayBuffer.
+      // NDEFRecord.data for external record must be a BufferSource or NDEFMessageInit.
       createMessage([createRecord('w3.org:xyz', test_text_data)]),
       createMessage([createRecord('w3.org:xyz', test_number_data)]),
       createMessage([createRecord('w3.org:xyz', test_json_data)]),
 
+      // https://w3c.github.io/web-nfc/#dfn-map-local-type-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createRecord(':xyz')]),
+
+      // NDEFRecord.data for local type record must be a BufferSource or NDEFMessageInit.
+      createMessage([createRecord(':xyz', test_text_data)]),
+      createMessage([createRecord(':xyz', test_number_data)]),
+      createMessage([createRecord(':xyz', test_json_data)]),
+
       // https://w3c.github.io/web-nfc/#ndef-record-types
       // The record type is neither a known type ('text', 'mime' etc.) nor a
-      // valid custom type for an external type record.
+      // valid external/local type.
       createMessage([createRecord('unmatched_type', test_buffer_data)])
     ];
 
@@ -109,7 +118,7 @@ promise_test(async t => {
   const promises = [];
   invalid_type_messages.forEach(message => {
     promises.push(
-      promise_rejects(t, new TypeError(), writer.write(message)));
+      promise_rejects_js(t, TypeError, writer.write(message)));
   });
   await Promise.all(promises);
 }, "Test that promise is rejected with TypeError if NDEFMessageSource is invalid.");
@@ -181,7 +190,7 @@ promise_test(async t => {
   const writer = new NDEFWriter();
   const promises = [];
   invalid_signals.forEach(invalid_signal => {
-    promises.push(promise_rejects(t, new TypeError(),
+    promises.push(promise_rejects_js(t, TypeError,
         writer.write(test_text_data, { signal: invalid_signal })));
   });
   await Promise.all(promises);
@@ -283,10 +292,13 @@ nfc_test(async (t, mockNFC) => {
 and external records with default NDEFWriteOptions.");
 
 nfc_test(async (t, mockNFC) => {
-  const payloadMessage = createMessage([createTextRecord(test_text_data)]);
-  // Prepare a message containing an external record that uses |payloadMessage| as its payload.
-  const message = createMessage([createRecord('example.com:payloadIsMessage',
-          payloadMessage)]);
+  const messageContainText = createMessage([createTextRecord(test_text_data)]);
+
+  // Prepare a local type record that uses |messageContainText| as its payload.
+  const messageContainLocal = createMessage([createRecord(':containsTextRecord', messageContainText)]);
+
+  // Prepare an external type record that uses |messageContainLocal| as its payload.
+  const message = createMessage([createRecord('example.com:containsLocalRecord', messageContainLocal)]);
 
   const writer = new NDEFWriter();
   await writer.write(message);
@@ -294,11 +306,20 @@ nfc_test(async (t, mockNFC) => {
 
   // The mojom message received by mock nfc contains only the external type record.
   assert_equals(pushed_message.data.length, 1);
-  assert_equals(pushed_message.data[0].recordType, 'example.com:payloadIsMessage', 'recordType');
-  // The external type record's payload is from the original |payloadMessage|.
+  assert_equals(pushed_message.data[0].recordType, 'example.com:containsLocalRecord', 'recordType');
+
+  // The external type record's payload is from the original |messageContainLocal|,
+  // containing only the local type record.
   assert_array_equals(pushed_message.data[0].data, new Uint8Array(0),
       'payloadMessage is used instead');
-  assertNDEFMessagesEqual(payloadMessage, pushed_message.data[0].payloadMessage);
+  assert_equals(pushed_message.data[0].payloadMessage.data.length, 1);
+  assert_equals(pushed_message.data[0].payloadMessage.data[0].recordType, ':containsTextRecord', 'recordType');
+
+  // The local type record's payload is from the original |messageContainText|,
+  // containing only the text record.
+  assert_array_equals(pushed_message.data[0].payloadMessage.data[0].data, new Uint8Array(0),
+      'payloadMessage is used instead');
+  assertNDEFMessagesEqual(messageContainText, pushed_message.data[0].payloadMessage.data[0].payloadMessage);
 }, "NDEFWriter.write NDEFMessage containing embedded records.");
 
 nfc_test(async (t, mockNFC) => {

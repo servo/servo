@@ -93,8 +93,8 @@ promise_test(async function(t) {
 
   await registration.unregister();
 
-  await promise_rejects(
-    t, new TypeError(),
+  await promise_rejects_js(
+    t, TypeError,
     navigator.serviceWorker.register('this-will-404', { scope })
   );
 

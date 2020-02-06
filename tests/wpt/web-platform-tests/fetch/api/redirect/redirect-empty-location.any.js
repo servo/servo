@@ -6,7 +6,7 @@
 const url = RESOURCES_DIR + 'redirect-empty-location.py';
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), fetch(url, {redirect:'follow'}));
+  return promise_rejects_js(t, TypeError, fetch(url, {redirect:'follow'}));
 }, 'redirect response with empty Location, follow mode');
 
 promise_test(t => {

@@ -192,7 +192,7 @@
 
     param.encodings = undefined;
 
-    return promise_rejects(t, new TypeError(),
+    return promise_rejects_js(t, TypeError,
       sender.setParameters(param));
   }, `sender.setParameters() with encodings unset should reject with TypeError`);
 
@@ -232,7 +232,7 @@
     const encoding = getFirstEncoding(param);
 
     encoding.scaleResolutionDownBy = 0.5;
-    return promise_rejects(t, new RangeError(),
+    return promise_rejects_js(t, RangeError,
       sender.setParameters(param));
   }, `setParameters() with encoding.scaleResolutionDownBy field set to less than 1.0 should reject with RangeError`);
 

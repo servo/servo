@@ -102,7 +102,7 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
     writer.close();
     writer.releaseLock();
 
-    return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: truthy })).then(() => {
+    return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { preventCancel: truthy })).then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['close']);
 
@@ -121,7 +121,7 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: true, preventAbort: true }))
+  return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { preventCancel: true, preventAbort: true }))
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['close']);
@@ -140,7 +140,7 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }))
   .then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);

@@ -27,7 +27,7 @@ function preflightTest(succeeds, withCredentials, allowMethod, allowHeader, useM
         assert_equals(resp.headers.get("x-origin"), origin)
       })
     } else {
-      return promise_rejects(t, new TypeError(), fetch(testURL, requestInit))
+      return promise_rejects_js(t, TypeError, fetch(testURL, requestInit))
     }
   }, "CORS that " + (succeeds ? "succeeds" : "fails") + " with credentials: " + withCredentials + "; method: " + useMethod + " (allowed: " + allowMethod + "); header: " + useHeader + " (allowed: " + allowHeader + ")")
 }

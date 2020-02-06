@@ -15,7 +15,7 @@
     let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
     let testFunction = function(session, fakeDeviceController, t) {
-      return promise_rejects(t, new TypeError(), session.requestReferenceSpace('foo'))
+      return promise_rejects_js(t, TypeError, session.requestReferenceSpace('foo'))
         .then(() => Promise.all([
         session.requestReferenceSpace('viewer').then( (referenceSpace) => {
             t.step(() => {

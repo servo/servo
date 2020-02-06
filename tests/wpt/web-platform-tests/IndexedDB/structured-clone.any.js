@@ -1,6 +1,13 @@
-// META: script=support-promises.js
 // META: title=Indexed DB and Structured Serializing/Deserializing
 // META: timeout=long
+// META: script=support-promises.js
+// META: script=/common/subset-tests.js
+// META: variant=?1-20
+// META: variant=?21-40
+// META: variant=?41-60
+// META: variant=?61-80
+// META: variant=?81-100
+// META: variant=?101-last
 
 // Tests Indexed DB coverage of HTML's Safe "passing of structured data"
 // https://html.spec.whatwg.org/multipage/structured-data.html
@@ -20,7 +27,7 @@ function describe(value) {
 }
 
 function cloneTest(value, verifyFunc) {
-  promise_test(async t => {
+  subsetTest(promise_test, async t => {
     const db = await createDatabase(t, db => {
       const store = db.createObjectStore('store');
       // This index is not used, but evaluating key path on each put()
@@ -53,7 +60,7 @@ function cloneObjectTest(value, verifyFunc) {
 }
 
 function cloneFailureTest(value) {
-  promise_test(async t => {
+  subsetTest(promise_test, async t => {
     const db = await createDatabase(t, db => {
       db.createObjectStore('store');
     });

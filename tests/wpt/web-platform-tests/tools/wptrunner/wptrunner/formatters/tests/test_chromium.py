@@ -367,6 +367,78 @@ def test_unexpected_test_fail(capfd):
     # OK->PASS
     assert test_obj["actual"] == "FAIL"
     assert test_obj["expected"] == "PASS"
-    # ..and this test should not be a regression nor unexpected
+    # ..and this test should be a regression and unexpected
+    assert test_obj["is_regression"] is True
+    assert test_obj["is_unexpected"] is True
+
+
+def test_flaky_test_expected(capfd):
+    # Check that a flaky test with multiple possible statuses is seen as
+    # expected if its actual status is one of the possible ones.
+
+    # set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    # Run a test that is known to be flaky
+    logger.suite_start(["t1"], run_info={}, time=123)
+    logger.test_start("t1")
+    logger.test_end("t1", status="ERROR", expected="OK", known_intermittent=["ERROR", "TIMEOUT"])
+    logger.suite_end()
+
+    # check nothing got output to stdout/stderr
+    # (note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # check the actual output of the formatter
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
+    assert test_obj["actual"] == "FAIL"
+    # All the possible statuses are concatenated together into expected.
+    assert test_obj["expected"] == "PASS FAIL TIMEOUT"
+    # ...this is not a regression or unexpected because the actual status is one
+    # of the expected ones
+    assert "is_regression" not in test_obj
+    assert "is_unexpected" not in test_obj
+
+
+def test_flaky_test_unexpected(capfd):
+    # Check that a flaky test with multiple possible statuses is seen as
+    # unexpected if its actual status is NOT one of the possible ones.
+
+    # set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    # Run a test that is known to be flaky
+    logger.suite_start(["t1"], run_info={}, time=123)
+    logger.test_start("t1")
+    logger.test_end("t1", status="ERROR", expected="OK", known_intermittent=["TIMEOUT"])
+    logger.suite_end()
+
+    # check nothing got output to stdout/stderr
+    # (note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # check the actual output of the formatter
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
+    assert test_obj["actual"] == "FAIL"
+    # All the possible statuses are concatenated together into expected.
+    assert test_obj["expected"] == "PASS TIMEOUT"
+    # ...this is a regression and unexpected because the actual status is not
+    # one of the expected ones
     assert test_obj["is_regression"] is True
     assert test_obj["is_unexpected"] is True

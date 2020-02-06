@@ -283,8 +283,8 @@ self.templatedRSEmptyReader = (label, factory) => {
     reader.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), reader.read()),
-      promise_rejects(t, new TypeError(), reader.read())
+      promise_rejects_js(t, TypeError, reader.read()),
+      promise_rejects_js(t, TypeError, reader.read())
     ]);
 
   }, label + ': releasing the lock should cause further read() calls to reject with a TypeError');
@@ -299,7 +299,7 @@ self.templatedRSEmptyReader = (label, factory) => {
 
     assert_equals(closedBefore, closedAfter, 'the closed promise should not change identity');
 
-    return promise_rejects(t, new TypeError(), closedBefore);
+    return promise_rejects_js(t, TypeError, closedBefore);
 
   }, label + ': releasing the lock should cause closed calls to reject with a TypeError');
 
@@ -328,7 +328,7 @@ self.templatedRSEmptyReader = (label, factory) => {
   promise_test(t => {
 
     const stream = factory().stream;
-    return promise_rejects(t, new TypeError(), stream.cancel());
+    return promise_rejects_js(t, TypeError, stream.cancel());
 
   }, label + ': canceling via the stream should fail');
 };
@@ -391,7 +391,7 @@ self.templatedRSClosedReader = (label, factory) => {
 
     return Promise.all([
       closedBefore.then(v => assert_equals(v, undefined, 'reader.closed acquired before release should fulfill')),
-      promise_rejects(t, new TypeError(), closedAfter)
+      promise_rejects_js(t, TypeError, closedAfter)
     ]);
 
   }, label + ': releasing the lock should cause closed to reject and change identity');
@@ -436,7 +436,7 @@ self.templatedRSErroredReader = (label, factory, error) => {
       const closedAfter = reader.closed;
       assert_not_equals(closedBefore, closedAfter, 'the closed promise should change identity');
 
-      return promise_rejects(t, new TypeError(), closedAfter);
+      return promise_rejects_js(t, TypeError, closedAfter);
     });
 
   }, label + ': releasing the lock should cause closed to reject and change identity');
@@ -599,9 +599,9 @@ self.templatedRSTwoChunksClosedReader = function (label, factory, chunks) {
     reader.releaseLock();
 
     return Promise.all([
-      promise_rejects(t, new TypeError(), reader.read()),
-      promise_rejects(t, new TypeError(), reader.read()),
-      promise_rejects(t, new TypeError(), reader.read())
+      promise_rejects_js(t, TypeError, reader.read()),
+      promise_rejects_js(t, TypeError, reader.read()),
+      promise_rejects_js(t, TypeError, reader.read())
     ]);
 
   }, label + ': releasing the lock should cause further read() calls to reject with a TypeError');

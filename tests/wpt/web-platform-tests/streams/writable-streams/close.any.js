@@ -215,7 +215,7 @@ promise_test(t => {
     writer.releaseLock();
     return Promise.all([
       closePromise,
-      promise_rejects(t, new TypeError(), closedPromise, '.closed promise should be rejected')
+      promise_rejects_js(t, TypeError, closedPromise, '.closed promise should be rejected')
     ]);
   });
 }, 'releaseLock() should not change the result of sync close()');
@@ -233,7 +233,7 @@ promise_test(t => {
     writer.releaseLock();
     return Promise.all([
       closePromise,
-      promise_rejects(t, new TypeError(), closedPromise, '.closed promise should be rejected')
+      promise_rejects_js(t, TypeError, closedPromise, '.closed promise should be rejected')
     ]);
   });
 }, 'releaseLock() should not change the result of async close()');
@@ -422,7 +422,7 @@ promise_test(() => {
 promise_test(t => {
   const ws = new WritableStream();
   ws.getWriter();
-  return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+  return promise_rejects_js(t, TypeError, ws.close(), 'close should reject');
 }, 'close() on a locked stream should reject');
 
 promise_test(t => {
@@ -443,7 +443,7 @@ promise_test(t => {
   const writer = ws.getWriter();
   return promise_rejects(t, error1, writer.closed, 'closed should reject with the error').then(() => {
     writer.releaseLock();
-    return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+    return promise_rejects_js(t, TypeError, ws.close(), 'close should reject');
   });
 }, 'close() on an errored stream should reject');
 
@@ -451,7 +451,7 @@ promise_test(t => {
   const ws = new WritableStream();
   const writer = ws.getWriter();
   return writer.close().then(() => {
-    return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+    return promise_rejects_js(t, TypeError, ws.close(), 'close should reject');
   });
 }, 'close() on an closed stream should reject');
 
@@ -466,5 +466,5 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+  return promise_rejects_js(t, TypeError, ws.close(), 'close should reject');
 }, 'close() on a stream with a pending close should reject');

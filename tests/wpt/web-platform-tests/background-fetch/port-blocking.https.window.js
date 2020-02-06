@@ -29,7 +29,7 @@ backgroundFetchTest((t, bgFetch) => {
 }, 'fetch to non-default non-bad port (8080) should register ok');
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(
-      t, new TypeError(),
+  return promise_rejects_js(
+      t, TypeError,
       bgFetch.fetch(uniqueId(), 'https://example.com:587'));
 }, 'fetch to bad port (SMTP) should reject');

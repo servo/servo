@@ -557,7 +557,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
       await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
       localStream.waitForReadable(localStream.maxReadBufferedAmount + 1));
 }, 'waitForReadable() rejects with TypeError if amount is more than ' +
     'maxReadBufferedAmount.');

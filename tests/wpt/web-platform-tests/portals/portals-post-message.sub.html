@@ -169,7 +169,7 @@
 
     promise_test(async t => {
       var portal = await createAndInsertPortal(sameOriginUrl);
-      return promise_rejects(t, new TypeError(),
+      return promise_rejects_js(t, TypeError,
                              postMessage(portal, "test", "*", [null]));
     }, "postMessage should fail with invalid ports");
 
