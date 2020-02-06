@@ -27,11 +27,21 @@ async_test(function(t) {
   };
 
   var p = Promise.reject(e);
-  setTimeout(function() {
-    setTimeout(t.step_func(function() {
+  queueTask(function() {
+    queueTask(t.step_func(function() {
       // This will cause onrejectionhandled
       p.catch(function() {});
-    }), 0);
-  }, 0);
+    }));
+  });
 }, 'Throwing inside an unhandledrejection handler invokes the error handler.');
+
+// This function queues a task in "DOM manipulation task source"
+function queueTask(f) {
+  var d = document.createElement("details");
+  d.ontoggle = function() {
+    f();
+  };
+
+  d.setAttribute("open", "");
+}
 </script>
