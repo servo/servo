@@ -50,6 +50,8 @@ interface HTMLElement : Element {
 
   attribute [LegacyNullToEmptyString] DOMString innerText;
 
+  [Throws] ElementInternals attachInternals();
+
   // command API
   // readonly attribute DOMString? commandType;
   // readonly attribute DOMString? commandLabel;

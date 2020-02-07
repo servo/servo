@@ -3983,22 +3983,7 @@ impl Document {
 
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
-        let node = self.upcast::<Node>();
-        matches!(node.type_id(), NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLOptionElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) if self.disabled_state())
+        self.is_actually_disabled()
     }
 }
 

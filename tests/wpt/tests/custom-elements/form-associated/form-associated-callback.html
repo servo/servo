@@ -122,7 +122,7 @@ test(() => {
     }
   }
   customElements.define('will-be-defined', WillBeDefined);
-  customElements.upgrade(container);
+  customElements.upgrade($('#container'));
 
   controls = $('#form1').elements;
   assert_equals(controls.length, 3, 'form.elements.length');

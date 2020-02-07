@@ -14,6 +14,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFie
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -24,6 +25,7 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -186,33 +188,65 @@ impl VirtualMethods for HTMLFieldSetElement {
                 let fields = children.flat_map(|child| {
                     child
                         .traverse_preorder(ShadowIncluding::No)
-                        .filter(|descendant| {
-                            matches!(
-                                descendant.type_id(),
-                                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                    HTMLElementTypeId::HTMLButtonElement,
-                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                    HTMLElementTypeId::HTMLInputElement,
-                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                    HTMLElementTypeId::HTMLSelectElement,
-                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                    HTMLElementTypeId::HTMLTextAreaElement,
-                                ))
-                            )
+                        .filter(|descendant| match descendant.type_id() {
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLButtonElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLInputElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLSelectElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLTextAreaElement,
+                            )) => true,
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLElement,
+                            )) => descendant
+                                .downcast::<HTMLElement>()
+                                .unwrap()
+                                .is_form_associated_custom_element(),
+                            _ => false,
                         })
                 });
                 if disabled_state {
                     for field in fields {
                         let el = field.downcast::<Element>().unwrap();
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
+                        if el.enabled_state() {
+                            el.set_disabled_state(true);
+                            el.set_enabled_state(false);
+                            if el
+                                .downcast::<HTMLElement>()
+                                .map_or(false, |h| h.is_form_associated_custom_element())
+                            {
+                                ScriptThread::enqueue_callback_reaction(
+                                    el,
+                                    CallbackReaction::FormDisabled(true),
+                                    None,
+                                );
+                            }
+                        }
                         el.update_sequentially_focusable_status();
                     }
                 } else {
                     for field in fields {
                         let el = field.downcast::<Element>().unwrap();
-                        el.check_disabled_attribute();
-                        el.check_ancestors_disabled_state_for_form_control();
+                        if el.disabled_state() {
+                            el.check_disabled_attribute();
+                            el.check_ancestors_disabled_state_for_form_control();
+                            // Fire callback only if this has actually enabled the custom element
+                            if el.enabled_state() &&
+                                el.downcast::<HTMLElement>()
+                                    .map_or(false, |h| h.is_form_associated_custom_element())
+                            {
+                                ScriptThread::enqueue_callback_reaction(
+                                    el,
+                                    CallbackReaction::FormDisabled(false),
+                                    None,
+                                );
+                            }
+                        }
                         el.update_sequentially_focusable_status();
                     }
                 }

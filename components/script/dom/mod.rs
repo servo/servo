@@ -299,6 +299,7 @@ pub mod domstringmap;
 pub mod domtokenlist;
 pub mod dynamicmoduleowner;
 pub mod element;
+pub mod elementinternals;
 pub mod errorevent;
 pub mod event;
 pub mod eventsource;

@@ -27,6 +27,7 @@ use crate::dom::window::Window;
 pub struct ValidationFlags(u32);
 
 bitflags! {
+    #[derive(JSTraceable, MallocSizeOf)]
     impl ValidationFlags: u32 {
         const VALUE_MISSING    = 0b0000000001;
         const TYPE_MISMATCH    = 0b0000000010;
