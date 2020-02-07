@@ -244,51 +244,14 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder) {
-        let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
-        if hit_info.is_some() {
-            let mut common = builder.common_properties(self.border_rect);
-            common.hit_info = hit_info;
-            if let Some(clip_id) = self.border_edge_clip(builder) {
-                common.clip_id = clip_id
-            }
-            builder.wr.push_hit_test(&common)
-        }
-
-        self.build_background(builder);
-        self.build_border(builder);
-
         builder.clipping_and_scrolling_scope(|builder| {
-            let overflow_x = self.fragment.style.get_box().overflow_x;
-            let overflow_y = self.fragment.style.get_box().overflow_y;
-            let original_scroll_and_clip_info = builder.current_space_and_clip;
-            if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
-                // TODO(mrobinson): We should use the correct fragment type, once we generate
-                // fragments from ::before and ::after generated content selectors.
-                let id = combine_id_with_fragment_type(
-                    self.fragment.tag.id() as usize,
-                    FragmentType::FragmentBody,
-                ) as u64;
-                let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
+            self.build_hit_test(builder);
+            self.build_background(builder);
+            self.build_border(builder);
 
-                let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
-                    ComputedOverflow::Hidden == overflow_y
-                {
-                    wr::ScrollSensitivity::Script
-                } else {
-                    wr::ScrollSensitivity::ScriptAndInputEvents
-                };
-
-                builder.current_space_and_clip = builder.wr.define_scroll_frame(
-                    &original_scroll_and_clip_info,
-                    Some(external_id),
-                    self.fragment.scrollable_overflow().to_webrender(),
-                    *self.padding_rect(),
-                    vec![], // complex_clips
-                    None,   // image_mask
-                    sensitivity,
-                    wr::units::LayoutVector2D::zero(),
-                );
-            }
+            // We want to build the scroll frame after the background and border, because
+            // they shouldn't scroll with the rest of the box content.
+            self.build_scroll_frame_if_necessary(builder);
 
             let content_rect = self
                 .fragment
@@ -299,6 +262,52 @@ impl<'a> BuilderForBoxFragment<'a> {
                 child.build_display_list(builder, &content_rect)
             }
         });
+    }
+
+    fn build_scroll_frame_if_necessary(&self, builder: &mut DisplayListBuilder) {
+        let overflow_x = self.fragment.style.get_box().overflow_x;
+        let overflow_y = self.fragment.style.get_box().overflow_y;
+        let original_scroll_and_clip_info = builder.current_space_and_clip;
+        if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
+            // TODO(mrobinson): We should use the correct fragment type, once we generate
+            // fragments from ::before and ::after generated content selectors.
+            let id = combine_id_with_fragment_type(
+                self.fragment.tag.id() as usize,
+                FragmentType::FragmentBody,
+            ) as u64;
+            let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
+
+            let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
+                ComputedOverflow::Hidden == overflow_y
+            {
+                wr::ScrollSensitivity::Script
+            } else {
+                wr::ScrollSensitivity::ScriptAndInputEvents
+            };
+
+            builder.current_space_and_clip = builder.wr.define_scroll_frame(
+                &original_scroll_and_clip_info,
+                Some(external_id),
+                self.fragment.scrollable_overflow().to_webrender(),
+                *self.padding_rect(),
+                vec![], // complex_clips
+                None,   // image_mask
+                sensitivity,
+                wr::units::LayoutVector2D::zero(),
+            );
+        }
+    }
+
+    fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
+        let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
+        if hit_info.is_some() {
+            let mut common = builder.common_properties(self.border_rect);
+            common.hit_info = hit_info;
+            if let Some(clip_id) = self.border_edge_clip(builder) {
+                common.clip_id = clip_id
+            }
+            builder.wr.push_hit_test(&common)
+        }
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
