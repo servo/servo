@@ -13,6 +13,7 @@ use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCal
 use crate::values::specified::{Angle, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
+use smallvec::SmallVec;
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
@@ -30,6 +31,15 @@ pub enum MathFunction {
     Clamp,
 }
 
+/// Whether we're a `min` or `max` function.
+#[derive(Copy, Clone, Debug)]
+pub enum MinMaxOp {
+    /// `min()`
+    Min,
+    /// `max()`
+    Max,
+}
+
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
 pub enum CalcNode {
@@ -43,18 +53,11 @@ pub enum CalcNode {
     Percentage(CSSFloat),
     /// `<number>`
     Number(CSSFloat),
-    /// An expression of the form `x + y`
-    Sum(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x - y`
-    Sub(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x * y`
-    Mul(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x / y`
-    Div(Box<CalcNode>, Box<CalcNode>),
-    /// A `min()` function.
-    Min(Box<[CalcNode]>),
-    /// A `max()` function.
-    Max(Box<[CalcNode]>),
+    /// An expression of the form `x + y + ...`. Subtraction is represented by
+    /// the negated expression of the right hand side.
+    Sum(Box<[CalcNode]>),
+    /// A `min()` / `max()` function.
+    MinMax(Box<[CalcNode]>, MinMaxOp),
     /// A `clamp()` function.
     Clamp {
         /// The minimum value.
@@ -183,26 +186,12 @@ macro_rules! impl_generic_to_type {
         }
 
         Ok(match *$self {
-            Self::Sub(ref a, ref b) => $from_float(a.$to_self()?.$to_float() - b.$to_self()?.$to_float()),
-            Self::Sum(ref a, ref b) => $from_float(a.$to_self()?.$to_float() + b.$to_self()?.$to_float()),
-            Self::Mul(ref a, ref b) => match a.$to_self() {
-                Ok(lhs) => {
-                    let rhs = b.to_number()?;
-                    $from_float(lhs.$to_float() * rhs)
-                },
-                Err(..) => {
-                    let lhs = a.to_number()?;
-                    let rhs = b.$to_self()?;
-                    $from_float(lhs * rhs.$to_float())
-                },
-            },
-            Self::Div(ref a, ref b) => {
-                let lhs = a.$to_self()?;
-                let rhs = b.to_number()?;
-                if rhs == 0. {
-                    return Err(());
+            Self::Sum(ref expressions) => {
+                let mut sum = 0.;
+                for sub in &**expressions {
+                    sum += sub.$to_self()?.$to_float();
                 }
-                $from_float(lhs.$to_float() / rhs)
+                $from_float(sum)
             },
             Self::Clamp { ref min, ref center, ref max } => {
                 let min = min.$to_self()?;
@@ -221,25 +210,21 @@ macro_rules! impl_generic_to_type {
                 }
                 result
             },
-            Self::Min(ref nodes) => {
-                let mut min = nodes[0].$to_self()?;
+            Self::MinMax(ref nodes, op) => {
+                let mut result = nodes[0].$to_self()?;
                 for node in nodes.iter().skip(1) {
                     let candidate = node.$to_self()?;
-                    if candidate.$to_float() < min.$to_float() {
-                        min = candidate;
+                    let candidate_float = candidate.$to_float();
+                    let result_float = result.$to_float();
+                    let candidate_wins = match op {
+                        MinMaxOp::Min => candidate_float < result_float,
+                        MinMaxOp::Max => candidate_float > result_float,
+                    };
+                    if candidate_wins {
+                        result = candidate;
                     }
                 }
-                min
-            },
-            Self::Max(ref nodes) => {
-                let mut max = nodes[0].$to_self()?;
-                for node in nodes.iter().skip(1) {
-                    let candidate = node.$to_self()?;
-                    if candidate.$to_float() > max.$to_float() {
-                        max = candidate;
-                    }
-                }
-                max
+                result
             },
             Self::Length(..) |
             Self::Angle(..) |
@@ -251,6 +236,62 @@ macro_rules! impl_generic_to_type {
 }
 
 impl CalcNode {
+    fn negate(&mut self) {
+        self.mul_by(-1.);
+    }
+
+    fn mul_by(&mut self, scalar: f32) {
+        match *self {
+            Self::Length(ref mut l) => {
+                // FIXME: For consistency this should probably convert absolute
+                // lengths into pixels.
+                *l = *l * scalar;
+            },
+            Self::Number(ref mut n) => {
+                *n *= scalar;
+            },
+            Self::Angle(ref mut a) => {
+                *a = Angle::from_calc(a.degrees() * scalar);
+            },
+            Self::Time(ref mut t) => {
+                *t = Time::from_calc(t.seconds() * scalar);
+            },
+            Self::Percentage(ref mut p) => {
+                *p *= scalar;
+            },
+            // Multiplication is distributive across this.
+            Self::Sum(ref mut children) => {
+                for node in &mut **children {
+                    node.mul_by(scalar);
+                }
+            },
+            // This one is a bit trickier.
+            Self::MinMax(ref mut children, ref mut op) => {
+                for node in &mut **children {
+                    node.mul_by(scalar);
+                }
+
+                // For negatives we need to invert the operation.
+                if scalar < 0. {
+                    *op = match *op {
+                        MinMaxOp::Min => MinMaxOp::Max,
+                        MinMaxOp::Max => MinMaxOp::Min,
+                    }
+                }
+            },
+            // Multiplication is distributive across these.
+            Self::Clamp { ref mut min, ref mut center, ref mut max } => {
+                min.mul_by(scalar);
+                center.mul_by(scalar);
+                max.mul_by(scalar);
+                // For negatives we need to swap min / max.
+                if scalar < 0. {
+                    std::mem::swap(min, max);
+                }
+            },
+        }
+    }
+
     /// Tries to parse a single element in the expression, that is, a
     /// `<length>`, `<angle>`, `<time>`, `<percentage>`, according to
     /// `expected_unit`.
@@ -354,11 +395,13 @@ impl CalcNode {
                         Self::parse_argument(context, input, expected_unit)
                     })?.into_boxed_slice();
 
-                    Ok(match function {
-                        MathFunction::Min => Self::Min(arguments),
-                        MathFunction::Max => Self::Max(arguments),
+                    let op = match function {
+                        MathFunction::Min => MinMaxOp::Min,
+                        MathFunction::Max => MinMaxOp::Max,
                         _ => unreachable!(),
-                    })
+                    };
+
+                    Ok(Self::MinMax(arguments, op))
                 }
             }
         })
@@ -369,7 +412,8 @@ impl CalcNode {
         input: &mut Parser<'i, 't>,
         expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
-        let mut root = Self::parse_product(context, input, expected_unit)?;
+        let mut sum = SmallVec::<[CalcNode; 1]>::new();
+        sum.push(Self::parse_product(context, input, expected_unit)?);
 
         loop {
             let start = input.state();
@@ -380,14 +424,12 @@ impl CalcNode {
                     }
                     match *input.next()? {
                         Token::Delim('+') => {
-                            let rhs = Self::parse_product(context, input, expected_unit)?;
-                            let new_root = CalcNode::Sum(Box::new(root), Box::new(rhs));
-                            root = new_root;
+                            sum.push(Self::parse_product(context, input, expected_unit)?);
                         },
                         Token::Delim('-') => {
-                            let rhs = Self::parse_product(context, input, expected_unit)?;
-                            let new_root = CalcNode::Sub(Box::new(root), Box::new(rhs));
-                            root = new_root;
+                            let mut rhs = Self::parse_product(context, input, expected_unit)?;
+                            rhs.negate();
+                            sum.push(rhs);
                         },
                         ref t => {
                             let t = t.clone();
@@ -402,7 +444,11 @@ impl CalcNode {
             }
         }
 
-        Ok(root)
+        Ok(if sum.len() == 1 {
+            sum.drain(..).next().unwrap()
+        } else {
+            Self::Sum(sum.into_boxed_slice())
+        })
     }
 
     /// Parse a top-level `calc` expression, and all the products that may
@@ -419,20 +465,36 @@ impl CalcNode {
         input: &mut Parser<'i, 't>,
         expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
-        let mut root = Self::parse_one(context, input, expected_unit)?;
+        let mut node = Self::parse_one(context, input, expected_unit)?;
 
         loop {
             let start = input.state();
             match input.next() {
                 Ok(&Token::Delim('*')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
-                    let new_root = CalcNode::Mul(Box::new(root), Box::new(rhs));
-                    root = new_root;
+                    if let Ok(rhs) = rhs.to_number() {
+                        node.mul_by(rhs);
+                    } else if let Ok(number) = node.to_number() {
+                        node = rhs;
+                        node.mul_by(number);
+                    } else {
+                        // One of the two parts of the multiplication has to be
+                        // a number, at least until we implement unit math.
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
                 },
                 Ok(&Token::Delim('/')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
-                    let new_root = CalcNode::Div(Box::new(root), Box::new(rhs));
-                    root = new_root;
+                    // Dividing by units is not ok.
+                    //
+                    // TODO(emilio): Eventually it should be.
+                    let number = match rhs.to_number() {
+                        Ok(n) if n != 0. => n,
+                        _ => {
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                        },
+                    };
+                    node.mul_by(1. / number);
                 },
                 _ => {
                     input.reset(&start);
@@ -441,7 +503,7 @@ impl CalcNode {
             }
         }
 
-        Ok(root)
+        Ok(node)
     }
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
@@ -510,32 +572,12 @@ impl CalcNode {
                 },
                 NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
             },
-            CalcNode::Sub(ref a, ref b) => {
-                a.add_length_or_percentage_to(ret, factor)?;
-                b.add_length_or_percentage_to(ret, factor * -1.0)?;
-            },
-            CalcNode::Sum(ref a, ref b) => {
-                a.add_length_or_percentage_to(ret, factor)?;
-                b.add_length_or_percentage_to(ret, factor)?;
-            },
-            CalcNode::Mul(ref a, ref b) => match b.to_number() {
-                Ok(rhs) => {
-                    a.add_length_or_percentage_to(ret, factor * rhs)?;
-                },
-                Err(..) => {
-                    let lhs = a.to_number()?;
-                    b.add_length_or_percentage_to(ret, factor * lhs)?;
-                },
-            },
-            CalcNode::Div(ref a, ref b) => {
-                let new_factor = b.to_number()?;
-                if new_factor == 0. {
-                    return Err(());
+            CalcNode::Sum(ref children) => {
+                for child in &**children {
+                    child.add_length_or_percentage_to(ret, factor)?;
                 }
-                a.add_length_or_percentage_to(ret, factor / new_factor)?;
             },
-            CalcNode::Max(..) |
-            CalcNode::Min(..) |
+            CalcNode::MinMax(..) |
             CalcNode::Clamp { .. } => {
                 // FIXME(emilio): Implement min/max/clamp for length-percentage.
                 return Err(())
