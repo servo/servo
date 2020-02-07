@@ -187,6 +187,21 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
         os.chmod(extracted, mode)
         return extracted
 
+    # For Python 3.x
+    def _extract_member(self, member, targetpath, pwd):
+        if sys.version_info[0] >= 3:
+            if not isinstance(member, zipfile.ZipInfo):
+                member = self.getinfo(member)
+
+            targetpath = super()._extract_member(member, targetpath, pwd)
+
+            attr = member.external_attr >> 16
+            if attr != 0:
+                os.chmod(targetpath, attr)
+            return targetpath
+        else:
+            return super(ZipFileWithUnixPermissions, self)._extract_member(member, targetpath, pwd)
+
 
 def extract(src, dst, movedir=None, remove=True):
     assert src.endswith(".zip")
