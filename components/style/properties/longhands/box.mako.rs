@@ -47,6 +47,7 @@ ${helpers.single_keyword(
     values="static absolute relative fixed ${'sticky' if engine in ['gecko', 'servo-2013'] else ''}"
     engines="gecko servo-2013 servo-2020"
     animation_value_type="discrete"
+    gecko_enum_prefix="StylePositionProperty"
     flags="CREATES_STACKING_CONTEXT ABSPOS_CB"
     spec="https://drafts.csswg.org/css-position/#position-property"
     servo_restyle_damage="rebuild_and_reflow"
