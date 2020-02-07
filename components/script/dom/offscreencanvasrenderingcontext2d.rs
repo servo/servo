@@ -210,7 +210,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         &self,
         image: CanvasImageSource,
         repetition: DOMString,
-    ) -> Fallible<DomRoot<CanvasPattern>> {
+    ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.canvas_state
             .borrow()
             .create_pattern(&self.global(), image, repetition)
