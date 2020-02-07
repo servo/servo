@@ -6,6 +6,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
@@ -46,4 +47,6 @@ pub struct ElementRareData {
     /// The "name" content attribute; not used as frequently as id, but used
     /// in named getter loops so it's worth looking up quickly when present
     pub name_attribute: Option<Atom>,
+    /// <https://html.spec.whatwg.org/multipage#elementinternals>,
+    pub element_internals: Option<Dom<ElementInternals>>,
 }

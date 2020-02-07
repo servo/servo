@@ -294,6 +294,7 @@ pub mod domstringlist;
 pub mod domstringmap;
 pub mod domtokenlist;
 pub mod element;
+pub mod elementinternals;
 pub mod errorevent;
 pub mod event;
 pub mod eventsource;

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
@@ -147,6 +148,14 @@ fn create_html_element(
                     return match definition.create_element(document, prefix.clone()) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
+                            if definition.form_associated {
+                                // Spec only describes a sense of "not disabled"
+                                // and doesn't mention setting anything here,
+                                // but in Servo we have effectively a tri-state
+                                // of enabled/disabled/not-form-control and
+                                // becoming a form control is a change.
+                                element.upcast::<Element>().set_enabled_state(true);
+                            }
                             element
                         },
                         Err(error) => {
