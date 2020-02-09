@@ -6,9 +6,9 @@
 <script>
 var controller = opener || parent;
 var t = controller.t;
-var assert_equals = controller.asset_equals;
+var assert_equals = controller.assert_equals;
 var assert_unreached = controller.assert_unreached ;
-var uuid = controller.token;
+var uuid = controller.uuid;
 t.add_cleanup(function() {delete sessionStorage[uuid];});
 t.step(function() {
   // this test can fail if the document is unloaded on navigation e.g. due to OOM

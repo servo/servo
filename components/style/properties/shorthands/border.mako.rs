@@ -5,19 +5,28 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import to_rust_ident, ALL_SIDES, PHYSICAL_SIDES, maybe_moz_logical_alias %>
 
-${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::Color::parse",
-                               spec="https://drafts.csswg.org/css-backgrounds/#border-color",
-                               allow_quirks="Yes")}
+${helpers.four_sides_shorthand(
+    "border-color",
+    "border-%s-color",
+    "specified::Color::parse",
+    engines="gecko servo-2013 servo-2020",
+    spec="https://drafts.csswg.org/css-backgrounds/#border-color",
+    allow_quirks="Yes",
+)}
 
 ${helpers.four_sides_shorthand(
     "border-style",
     "border-%s-style",
     "specified::BorderStyle::parse",
+    engines="gecko servo-2013 servo-2020",
     needs_context=False,
     spec="https://drafts.csswg.org/css-backgrounds/#border-style",
 )}
 
-<%helpers:shorthand name="border-width" sub_properties="${
+<%helpers:shorthand
+    name="border-width"
+    engines="gecko servo-2013 servo-2020"
+    sub_properties="${
         ' '.join('border-%s-width' % side
                  for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
@@ -101,11 +110,12 @@ pub fn parse_border<'i, 't>(
     %>
     <%helpers:shorthand
         name="border-${side}"
+        engines="gecko servo-2013 servo-2020"
         sub_properties="${' '.join(
             'border-%s-%s' % (side, prop)
             for prop in ['color', 'style', 'width']
         )}"
-        alias="${maybe_moz_logical_alias(product, (side, logical), '-moz-border-%s')}"
+        alias="${maybe_moz_logical_alias(engine, (side, logical), '-moz-border-%s')}"
         spec="${spec}">
 
     pub fn parse_value<'i, 't>(
@@ -135,6 +145,7 @@ pub fn parse_border<'i, 't>(
 % endfor
 
 <%helpers:shorthand name="border"
+    engines="gecko servo-2013 servo-2020"
     sub_properties="${' '.join('border-%s-%s' % (side, prop)
         for side in PHYSICAL_SIDES
         for prop in ['color', 'style', 'width'])}
@@ -168,6 +179,16 @@ pub fn parse_border<'i, 't>(
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            use crate::properties::longhands;
+
+            // If any of the border-image longhands differ from their initial specified values we should not
+            // invoke serialize_directional_border(), so there is no point in continuing on to compute all_equal.
+            % for name in "outset repeat slice source width".split():
+                if *self.border_image_${name} != longhands::border_image_${name}::get_initial_specified_value() {
+                    return Ok(());
+                }
+            % endfor
+
             let all_equal = {
                 % for side in PHYSICAL_SIDES:
                   let border_${side}_width = self.border_${side}_width;
@@ -216,10 +237,16 @@ pub fn parse_border<'i, 't>(
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="border-radius" sub_properties="${' '.join(
-    'border-%s-radius' % (corner)
-     for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
-)}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
+<%helpers:shorthand
+    name="border-radius"
+    engines="gecko servo-2013 servo-2020"
+    sub_properties="${' '.join(
+        'border-%s-radius' % (corner)
+         for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
+    )}"
+    extra_prefixes="webkit"
+    spec="https://drafts.csswg.org/css-backgrounds/#border-radius"
+>
     use crate::values::generics::rect::Rect;
     use crate::values::generics::border::BorderCornerRadius;
     use crate::values::specified::border::BorderRadius;
@@ -256,10 +283,14 @@ pub fn parse_border<'i, 't>(
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="border-image" sub_properties="border-image-outset
-    border-image-repeat border-image-slice border-image-source border-image-width"
+<%helpers:shorthand
+    name="border-image"
+    engines="gecko servo-2013"
+    sub_properties="border-image-outset
+        border-image-repeat border-image-slice border-image-source border-image-width"
     extra_prefixes="moz:layout.css.prefixes.border-image webkit"
-    spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
+    spec="https://drafts.csswg.org/css-backgrounds-3/#border-image"
+>
     use crate::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
     use crate::properties::longhands::{border_image_source, border_image_width};
 
@@ -362,6 +393,7 @@ pub fn parse_border<'i, 't>(
             spec = "https://drafts.csswg.org/css-logical/#propdef-border-%s-%s" % (axis, prop)
         %>
         <%helpers:shorthand
+            engines="gecko servo-2013 servo-2020"
             name="border-${axis}-${prop}"
             sub_properties="${' '.join(
                 'border-%s-%s-%s' % (axis, side, prop)
@@ -407,6 +439,7 @@ pub fn parse_border<'i, 't>(
     %>
     <%helpers:shorthand
         name="border-${axis}"
+        engines="gecko servo-2013 servo-2020"
         sub_properties="${' '.join(
             'border-%s-%s-width' % (axis, side)
             for side in ['start', 'end']

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <meta charset="utf-8">
 <title>CSS Containment Test: Size containment on select</title>
 <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
@@ -19,5 +20,7 @@ select {
 <script>
   window.requestAnimationFrame( () => {
     target.style.contain = "size";
+    document.documentElement.removeAttribute("class");
   });
 </script>
+</html>

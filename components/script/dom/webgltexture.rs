@@ -10,8 +10,9 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
+use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
@@ -39,7 +40,7 @@ pub struct WebGLTexture {
     is_deleted: Cell<bool>,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_malloc_size_of = "Arrays are cumbersome"]
-    image_info_array: DomRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
+    image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
     face_count: Cell<u8>,
     base_mipmap_level: u32,
@@ -48,6 +49,8 @@ pub struct WebGLTexture {
     mag_filter: Cell<u32>,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
+    /// Framebuffer that this texture is attached to.
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
 }
 
 impl WebGLTexture {
@@ -61,8 +64,9 @@ impl WebGLTexture {
             base_mipmap_level: 0,
             min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
             mag_filter: Cell::new(constants::LINEAR),
-            image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
+            image_info_array: DomRefCell::new([None; MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             attached_to_dom: Cell::new(false),
+            attached_framebuffer: Default::default(),
         }
     }
 
@@ -131,13 +135,17 @@ impl WebGLTexture {
             width: width,
             height: height,
             depth: depth,
-            internal_format: Some(internal_format),
-            is_initialized: true,
+            internal_format: internal_format,
             data_type: data_type,
         };
 
         let face_index = self.face_index_for_target(&target);
         self.set_image_infos_at_level_and_face(level, face_index, image_info);
+
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
         Ok(())
     }
 
@@ -150,10 +158,7 @@ impl WebGLTexture {
             },
         };
 
-        let base_image_info = self.base_image_info();
-        if !base_image_info.is_initialized() {
-            return Err(WebGLError::InvalidOperation);
-        }
+        let base_image_info = self.base_image_info().ok_or(WebGLError::InvalidOperation)?;
 
         let is_cubic = target == constants::TEXTURE_CUBE_MAP;
         if is_cubic && !self.is_cube_complete() {
@@ -180,7 +185,7 @@ impl WebGLTexture {
         self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -201,10 +206,15 @@ impl WebGLTexture {
             let currently_bound_framebuffer =
                 self.upcast::<WebGLObject>().context().bound_framebuffer();
             if let Some(fb) = currently_bound_framebuffer {
-                fb.detach_texture(self);
+                let _ = fb.detach_texture(self);
             }
 
-            context.send_command(WebGLCommand::DeleteTexture(self.id));
+            let cmd = WebGLCommand::DeleteTexture(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -294,10 +304,9 @@ impl WebGLTexture {
     }
 
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
-        let base_image_info = self.image_info_at_face(0, first_level);
-        if !base_image_info.is_initialized() {
-            return Err(WebGLError::InvalidOperation);
-        }
+        let base_image_info = self
+            .image_info_at_face(0, first_level)
+            .ok_or(WebGLError::InvalidOperation)?;
 
         let mut ref_width = base_image_info.width;
         let mut ref_height = base_image_info.height;
@@ -319,7 +328,6 @@ impl WebGLTexture {
                 height: ref_height,
                 depth: 0,
                 internal_format: base_image_info.internal_format,
-                is_initialized: base_image_info.is_initialized(),
                 data_type: base_image_info.data_type,
             };
 
@@ -331,19 +339,19 @@ impl WebGLTexture {
     fn is_cube_complete(&self) -> bool {
         debug_assert_eq!(self.face_count.get(), 6);
 
-        let image_info = self.base_image_info();
-        if !image_info.is_defined() {
-            return false;
-        }
+        let image_info = match self.base_image_info() {
+            Some(info) => info,
+            None => return false,
+        };
 
         let ref_width = image_info.width;
         let ref_format = image_info.internal_format;
 
         for face in 0..self.face_count.get() {
-            let current_image_info = self.image_info_at_face(face, self.base_mipmap_level);
-            if !current_image_info.is_defined() {
-                return false;
-            }
+            let current_image_info = match self.image_info_at_face(face, self.base_mipmap_level) {
+                Some(info) => info,
+                None => return false,
+            };
 
             // Compares height with width to enforce square dimensions
             if current_image_info.internal_format != ref_format ||
@@ -369,12 +377,12 @@ impl WebGLTexture {
         }
     }
 
-    pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> ImageInfo {
+    pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
         let face_index = self.face_index_for_target(&target);
         self.image_info_at_face(face_index, level)
     }
 
-    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    pub fn image_info_at_face(&self, face: u8, level: u32) -> Option<ImageInfo> {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -388,10 +396,10 @@ impl WebGLTexture {
     fn set_image_infos_at_level_and_face(&self, level: u32, face: u8, image_info: ImageInfo) {
         debug_assert!(face < self.face_count.get());
         let pos = (level * self.face_count.get() as u32) + face as u32;
-        self.image_info_array.borrow_mut()[pos as usize] = image_info;
+        self.image_info_array.borrow_mut()[pos as usize] = Some(image_info);
     }
 
-    fn base_image_info(&self) -> ImageInfo {
+    fn base_image_info(&self) -> Option<ImageInfo> {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
         self.image_info_at_face(0, self.base_mipmap_level)
@@ -400,11 +408,19 @@ impl WebGLTexture {
     pub fn set_attached_to_dom(&self) {
         self.attached_to_dom.set(true);
     }
+
+    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+        self.attached_framebuffer.set(Some(fb));
+    }
+
+    pub fn detach_from_framebuffer(&self) {
+        self.attached_framebuffer.set(None);
+    }
 }
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(true);
     }
 }
 
@@ -413,23 +429,11 @@ pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
-    internal_format: Option<TexFormat>,
-    is_initialized: bool,
+    internal_format: TexFormat,
     data_type: Option<TexDataType>,
 }
 
 impl ImageInfo {
-    fn new() -> ImageInfo {
-        ImageInfo {
-            width: 0,
-            height: 0,
-            depth: 0,
-            internal_format: None,
-            is_initialized: false,
-            data_type: None,
-        }
-    }
-
     pub fn width(&self) -> u32 {
         self.width
     }
@@ -438,7 +442,7 @@ impl ImageInfo {
         self.height
     }
 
-    pub fn internal_format(&self) -> Option<TexFormat> {
+    pub fn internal_format(&self) -> TexFormat {
         self.internal_format
     }
 
@@ -452,14 +456,6 @@ impl ImageInfo {
             self.depth.is_power_of_two()
     }
 
-    pub fn is_initialized(&self) -> bool {
-        self.is_initialized
-    }
-
-    fn is_defined(&self) -> bool {
-        self.internal_format.is_some()
-    }
-
     fn get_max_mimap_levels(&self) -> u32 {
         let largest = cmp::max(cmp::max(self.width, self.height), self.depth);
         if largest == 0 {
@@ -470,10 +466,7 @@ impl ImageInfo {
     }
 
     fn is_compressed_format(&self) -> bool {
-        match self.internal_format {
-            Some(format) => format.is_compressed(),
-            None => false,
-        }
+        self.internal_format.is_compressed()
     }
 }
 

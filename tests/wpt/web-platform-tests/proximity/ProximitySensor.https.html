@@ -5,10 +5,28 @@
 <link rel="help" href="https://w3c.github.io/proximity/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-tests.js"></script>
-<div id="log"></div>
+
 <script>
 
-runGenericSensorTests('ProximitySensor');
+'use strict';
+
+// near: 0 stands for false, 1 stands for true, which will be convert to boolean
+// in mock sensor
+const kReadings = {
+    readings: [
+        [1.12345, 2.12345, 1]
+    ],
+    expectedReadings: [
+        [1.12345, 2.12345, true]
+    ]
+};
+
+runGenericSensorTests(
+    'ProximitySensor',
+    kReadings,
+    verifyProximitySensorReading,
+    ['proximity']);
 
 </script>

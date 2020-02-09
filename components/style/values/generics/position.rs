@@ -41,6 +41,43 @@ impl<H, V> Position<H, V> {
     }
 }
 
+/// A generic type for representing an `Auto | <position>`.
+/// This is used by <offset-anchor> for now.
+/// https://drafts.fxtf.org/motion-1/#offset-anchor-property
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericPositionOrAuto<Pos> {
+    /// The <position> value.
+    Position(Pos),
+    /// The keyword `auto`.
+    Auto,
+}
+
+pub use self::GenericPositionOrAuto as PositionOrAuto;
+
+impl<Pos> PositionOrAuto<Pos> {
+    /// Return `auto`.
+    #[inline]
+    pub fn auto() -> Self {
+        PositionOrAuto::Auto
+    }
+}
+
 /// A generic value for the `z-index` property.
 #[derive(
     Animate,

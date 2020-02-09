@@ -1,0 +1,21 @@
+{
+  "name": "Other invalid addresses",
+  "tests": {
+    "should ignore unprefixed strings that are not absolute URLs": {
+      "importMap": {
+        "imports": {
+          "foo1": "bar",
+          "foo2": "\\bar",
+          "foo3": "~bar",
+          "foo4": "#bar",
+          "foo5": "?bar"
+        }
+      },
+      "importMapBaseURL": "https://base.example/path1/path2/path3",
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    }
+  }
+}

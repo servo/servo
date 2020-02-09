@@ -11,6 +11,7 @@ from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor,  # noqa: F401
                                              ServoWebDriverRefTestExecutor)  # noqa: F401
+from ..process import cast_env
 
 here = os.path.join(os.path.split(__file__)[0])
 
@@ -63,7 +64,7 @@ def env_options():
 
 
 def update_properties():
-    return ["debug", "os", "version", "processor", "bits"], None
+    return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
 
 
 def write_hosts_file(config):
@@ -130,11 +131,11 @@ class ServoWebDriverBrowser(Browser):
         if not self.debug_info or not self.debug_info.interactive:
             self.proc = ProcessHandler(self.command,
                                        processOutputLine=[self.on_output],
-                                       env=env,
+                                       env=cast_env(env),
                                        storeOutput=False)
             self.proc.run()
         else:
-            self.proc = subprocess.Popen(self.command, env=env)
+            self.proc = subprocess.Popen(self.command, env=cast_env(env))
 
         self.logger.debug("Servo Started")
 
@@ -163,9 +164,7 @@ class ServoWebDriverBrowser(Browser):
                                    command=" ".join(self.command))
 
     def is_alive(self):
-        if self.runner:
-            return self.runner.is_running()
-        return False
+        return self.proc.poll() is None
 
     def cleanup(self):
         self.stop()

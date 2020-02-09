@@ -10,11 +10,12 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
-    is_gles, webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
+    webgl_channel, GlType, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
 };
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -28,6 +29,7 @@ pub struct WebGLRenderbuffer {
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     is_initialized: Cell<bool>,
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
 }
 
 impl WebGLRenderbuffer {
@@ -40,6 +42,7 @@ impl WebGLRenderbuffer {
             internal_format: Cell::new(None),
             size: Cell::new(None),
             is_initialized: Cell::new(false),
+            attached_framebuffer: Default::default(),
         }
     }
 
@@ -89,7 +92,7 @@ impl WebGLRenderbuffer {
             .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
 
@@ -103,12 +106,16 @@ impl WebGLRenderbuffer {
             let currently_bound_framebuffer =
                 self.upcast::<WebGLObject>().context().bound_framebuffer();
             if let Some(fb) = currently_bound_framebuffer {
-                fb.detach_renderbuffer(self);
+                let _ = fb.detach_renderbuffer(self);
             }
 
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
+            let context = self.upcast::<WebGLObject>().context();
+            let cmd = WebGLCommand::DeleteRenderbuffer(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -120,7 +127,15 @@ impl WebGLRenderbuffer {
         self.ever_bound.get()
     }
 
-    pub fn storage(&self, internal_format: u32, width: i32, height: i32) -> WebGLResult<()> {
+    pub fn storage(
+        &self,
+        api_type: GlType,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+    ) -> WebGLResult<()> {
+        let is_gles = api_type == GlType::Gles;
+
         // Validate the internal_format, and save it for completeness
         // validation.
         let actual_format = match internal_format {
@@ -131,7 +146,7 @@ impl WebGLRenderbuffer {
             constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
-                if is_gles() {
+                if is_gles {
                     constants::RGB5_A1
                 } else {
                     WebGL2RenderingContextConstants::RGBA8
@@ -139,7 +154,7 @@ impl WebGLRenderbuffer {
             },
             constants::RGB565 => {
                 // RGB565 is not supported on desktop GL.
-                if is_gles() {
+                if is_gles {
                     constants::RGB565
                 } else {
                     WebGL2RenderingContextConstants::RGB8
@@ -174,6 +189,10 @@ impl WebGLRenderbuffer {
         self.internal_format.set(Some(internal_format));
         self.is_initialized.set(false);
 
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
         self.upcast::<WebGLObject>()
             .context()
             .send_command(WebGLCommand::RenderbufferStorage(
@@ -187,10 +206,18 @@ impl WebGLRenderbuffer {
 
         Ok(())
     }
+
+    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+        self.attached_framebuffer.set(Some(fb));
+    }
+
+    pub fn detach_from_framebuffer(&self) {
+        self.attached_framebuffer.set(None);
+    }
 }
 
 impl Drop for WebGLRenderbuffer {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(true);
     }
 }

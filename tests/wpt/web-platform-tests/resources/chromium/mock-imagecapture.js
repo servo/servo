@@ -6,7 +6,7 @@ var ImageCaptureTest = (() => {
   class MockImageCapture {
     constructor() {
       this.interceptor_ = new MojoInterfaceInterceptor(
-        media.mojom.ImageCapture.name);
+        media.mojom.ImageCapture.name, "context", true);
       this.interceptor_.oninterfacerequest =
         e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();
@@ -91,6 +91,20 @@ var ImageCaptureTest = (() => {
             step: 1.0
           },
 
+          pan: {
+            min: 0.0,
+            max: 10.0,
+            current: 5.0,
+            step: 2.0
+          },
+
+          tilt: {
+            min: 0.0,
+            max: 10.0,
+            current: 5.0,
+            step: 2.0
+          },
+
           zoom: {
             min: 0.0,
             max: 10.0,
@@ -140,6 +154,10 @@ var ImageCaptureTest = (() => {
         this.state_.state.height.current = settings.height;
       if (settings.hasWidth)
         this.state_.state.width.current = settings.width;
+      if (settings.hasPan)
+        this.state_.state.pan.current = settings.pan;
+      if (settings.hasTilt)
+        this.state_.state.tilt.current = settings.tilt;
       if (settings.hasZoom)
         this.state_.state.zoom.current = settings.zoom;
       if (settings.hasFocusMode)

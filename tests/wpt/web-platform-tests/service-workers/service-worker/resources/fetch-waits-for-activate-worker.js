@@ -6,9 +6,23 @@ addEventListener('activate', function(evt) {
   }));
 });
 
-addEventListener('message', function(evt) {
-  if (typeof activatePromiseResolve === 'function') {
-    activatePromiseResolve();
+addEventListener('message', async function(evt) {
+  switch (evt.data) {
+    case 'CLAIM':
+      evt.waitUntil(new Promise(async resolve => {
+        await clients.claim();
+        evt.source.postMessage('CLAIMED');
+        resolve();
+      }));
+      break;
+    case 'ACTIVATE':
+      if (typeof activatePromiseResolve !== 'function') {
+        throw new Error('Not activating!');
+      }
+      activatePromiseResolve();
+      break;
+    default:
+      throw new Error('Unknown message!');
   }
 });
 

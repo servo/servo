@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#window
-[PrimaryGlobal]
+[Global=Window, Exposed=Window /*, LegacyUnenumerableNamedProperties */]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
   [Unforgeable] readonly attribute WindowProxy window;
@@ -40,7 +40,7 @@
   // https://github.com/whatwg/html/issues/2115
   [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
-  WindowProxy? open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
+  WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank",
                     optional DOMString features = "");
   //getter WindowProxy (unsigned long index);
 
@@ -63,14 +63,15 @@
   unsigned long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(unsigned long handle);
 
-  //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
   [Throws]
-  void postMessage(any message, DOMString targetOrigin);
+  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  [Throws]
+  void postMessage(any message, optional WindowPostMessageOptions options = {});
 
   // also has obsolete members
 };
-Window implements GlobalEventHandlers;
-Window implements WindowEventHandlers;
+Window includes GlobalEventHandlers;
+Window includes WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
@@ -118,11 +119,11 @@ partial interface Window {
   [Replaceable] readonly attribute long pageXOffset;
   [Replaceable] readonly attribute long scrollY;
   [Replaceable] readonly attribute long pageYOffset;
-  void scroll(optional ScrollToOptions options);
+  void scroll(optional ScrollToOptions options = {});
   void scroll(unrestricted double x, unrestricted double y);
-  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(optional ScrollToOptions options = {});
   void scrollTo(unrestricted double x, unrestricted double y);
-  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(optional ScrollToOptions options = {});
   void scrollBy(unrestricted double x, unrestricted double y);
 
   // client
@@ -148,18 +149,16 @@ partial interface Window {
 };
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
-[NoInterfaceObject]
-interface WindowSessionStorage {
+interface mixin WindowSessionStorage {
   readonly attribute Storage sessionStorage;
 };
-Window implements WindowSessionStorage;
+Window includes WindowSessionStorage;
 
 // https://html.spec.whatwg.org/multipage/#dom-localstorage
-[NoInterfaceObject]
-interface WindowLocalStorage {
+interface mixin WindowLocalStorage {
   readonly attribute Storage localStorage;
 };
-Window implements WindowLocalStorage;
+Window includes WindowLocalStorage;
 
 // http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
@@ -174,4 +173,8 @@ partial interface Window {
 partial interface Window {
    [Pref="css.animations.testing.enabled"]
    readonly attribute unsigned long runningAnimationCount;
+};
+
+dictionary WindowPostMessageOptions : PostMessageOptions {
+   USVString targetOrigin = "/";
 };

@@ -1,0 +1,31 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let t = async_test("Cached cross-origin response doesn't hang");
+
+  onload = t.step_func(function() {
+      let complete = 0;
+      function check() {
+          complete++;
+          if (complete == 2) {
+              t.done();
+          }
+      }
+
+      const url = "http://{{hosts[][www]]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/is-script-goal.js?pipe=trickle(d5)|header(Cache-Control,max-age=3600)|header(Pragma,)|header(Expires,36000)";
+
+      function loadScript() {
+          let script = document.createElement('script');
+          document.body.appendChild(script);
+          script.src = url;
+          script.onerror = t.unreached_func();
+          script.onload = t.step_func(check);
+      }
+      // Kick off a load so there's a cache entry with an in progress response.
+      loadScript();
+
+      // Kick off a second load after a slight delay which should end up waiting until
+      // the first load is complete before sharing the existing cached response.
+      t.step_timeout(loadScript, 0);
+  });
+</script>

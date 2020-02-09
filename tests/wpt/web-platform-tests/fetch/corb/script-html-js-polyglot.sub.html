@@ -9,13 +9,13 @@
 <script>
 ["html-js-polyglot.js", "html-js-polyglot2.js"].forEach(polyglot_name => {
   async_test(function(t) {
-    window.polyglot = "not yet set by the script";
+    window[polyglot_name] = false;
     var script = document.createElement("script");
 
     script.onload = t.step_func_done(function(){
       // Verify that the script response wasn't blocked - that script
-      // should have set window.polyglot to |polyglot_name|.
-      assert_equals(window.polyglot, polyglot_name);
+      // should have set window[polyglot_name] to true.
+      assert_true(window[polyglot_name]);
     })
     addEventListener("error",function(e) {
       t.step(function() {

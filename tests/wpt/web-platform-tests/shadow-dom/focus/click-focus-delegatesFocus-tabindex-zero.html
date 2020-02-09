@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: click on shadow host with delegatesFocus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/shadow-utils.js"></script>
+
+<body>
+<div id="host">
+  <div id="slotted">slotted</div>
+</div>
+<div id="outside">outside</div>
+</body>
+
+<script>
+const host = document.getElementById("host");
+const slotted = document.getElementById("slotted");
+
+const shadowRoot = host.attachShadow({ mode: "open", delegatesFocus: true });
+const aboveSlot = document.createElement("div");
+aboveSlot.innerText = "aboveSlot";
+const slot = document.createElement("slot");
+// Add an unfocusable spacer, because test_driver.click will click on the
+// center point of #host, and we don't want the click to land on #aboveSlot
+// or #slot.
+const spacer = document.createElement("div");
+spacer.style = "height: 1000px;";
+shadowRoot.appendChild(spacer);
+shadowRoot.appendChild(aboveSlot);
+shadowRoot.appendChild(slot);
+
+const elementsInFlatTreeOrder = [host, aboveSlot, spacer, slot, slotted, outside];
+
+// Final structure:
+// <div #host> (delegatesFocus=true)
+//    #shadowRoot
+//      <div #spacer>
+//      <div #aboveSlot>
+//      <slot #slot>
+//        (slotted) <div #slotted>
+// <div #outside>
+
+function setAllTabIndex(value) {
+  setTabIndex(elementsInFlatTreeOrder, value);
+}
+
+function removeAllTabIndex() {
+  removeTabIndex(elementsInFlatTreeOrder);
+}
+
+function resetTabIndexAndFocus() {
+  removeAllTabIndex();
+  resetFocus(document);
+  resetFocus(shadowRoot);
+}
+
+promise_test(async () => {
+  resetTabIndexAndFocus();
+  setAllTabIndex(0);
+  removeTabIndex([spacer]);
+  await test_driver.click(host);
+  assert_equals(shadowRoot.activeElement, aboveSlot);
+  assert_equals(document.activeElement, host);
+}, "click on host with delegatesFocus, all tabindex=0 except spacer");
+
+</script>

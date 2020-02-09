@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Position Test Reference: Test position:sticky element with large top in an overflow scroll container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  .scroll {
+    border: 5px solid blue;
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    transform: scale(1);
+  }
+
+  .block {
+    width: 100%;
+    height: 200px;
+    background: yellow;
+    position: absolute;
+    top: 50px;
+  }
+
+  .sticky {
+    position: absolute;
+    background: purple;
+    width: 50px;
+    height: 50px;
+    top: 200px;
+    z-index: 1;
+  }
+  </style>
+  <script>
+  function runTest() {
+    document.getElementById("scroll2").scrollTop = 50;
+  }
+  </script>
+
+  <body onload="runTest();">
+    <div class="scroll">
+      <div class="sticky"></div>
+      <div class="block"></div>
+    </div>
+
+    <div class="scroll" id="scroll2">
+      <div class="sticky"></div>
+      <div class="block"></div>
+    </div>
+  </body>
+</html>

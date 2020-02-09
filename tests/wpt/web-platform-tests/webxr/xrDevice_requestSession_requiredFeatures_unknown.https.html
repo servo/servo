@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <canvas></canvas>
+  <script>
+    xr_promise_test(
+      "Tests requestSession rejects for unknown requiredFeatures",
+      (t) => {
+        return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+          .then( (controller) => new Promise((resolve) => {
+            navigator.xr.test.simulateUserActivation( () => {
+              resolve(promise_rejects(
+                t,
+                "NotSupportedError",
+                navigator.xr.requestSession('immersive-vr',
+                                            {requiredFeatures: ['undefined-unicorns']}),
+                "unexpected requestSession success"
+              ).then(() => {
+                return promise_rejects(
+                  t,
+                  "NotSupportedError",
+                  navigator.xr.requestSession('immersive-vr',
+                                            {requiredFeatures: [{unicorns: "please"}]}),
+                  "unexpected requestSession success with unknown object"
+                );
+              }));
+            });
+          }));
+      });
+
+  </script>
+</body>

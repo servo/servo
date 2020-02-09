@@ -3,14 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#customelementregistry
-[Pref="dom.customelements.enabled"]
+[Exposed=Window, Pref="dom.customelements.enabled"]
 interface CustomElementRegistry {
   [Throws, CEReactions]
-  void define(DOMString name, CustomElementConstructor constructor_, optional ElementDefinitionOptions options);
+  void define(DOMString name, CustomElementConstructor constructor_, optional ElementDefinitionOptions options = {});
 
   any get(DOMString name);
 
   Promise<void> whenDefined(DOMString name);
+
+  [CEReactions] void upgrade(Node root);
 };
 
 callback CustomElementConstructor = HTMLElement();

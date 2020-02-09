@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: in non-secure contexts, import map mappings should fall back</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  assert_false(self.isSecureContext, "This test must run in a non-secure context");
+}, "Prerequisite check");
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "./resources/dummy-module.js": [
+      "std:kv-storage",
+      "./resources/dummy-module.js"
+    ]
+  }
+}
+</script>
+
+<script type="module">
+promise_test(async () => {
+  const result = await import("./resources/dummy-module.js");
+  assert_equals(result.myExport, "not the real KV storage");
+});
+</script>

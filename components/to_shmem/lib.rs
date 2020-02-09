@@ -412,9 +412,10 @@ impl<T: ToShmem, A: Array<Item = T>> ToShmem for SmallVec<A> {
                 SmallVec::from_raw_parts(dest, self.len(), self.len())
             } else {
                 // Place the items inline.
-                let mut inline: A = mem::uninitialized();
-                to_shmem_slice_ptr(self.iter(), inline.ptr_mut(), builder);
-                SmallVec::from_buf_and_len(inline, self.len())
+                let mut s = SmallVec::new();
+                to_shmem_slice_ptr(self.iter(), s.as_mut_ptr(), builder);
+                s.set_len(self.len());
+                s
             }
         };
 

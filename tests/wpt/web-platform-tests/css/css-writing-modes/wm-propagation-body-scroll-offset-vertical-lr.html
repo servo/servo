@@ -18,19 +18,19 @@
 <body>
 <script>
   test(function() {
-    assert_equals(document.documentElement.scrollLeft, 0, "scrollLeft should be 0.");
+    assert_equals(document.scrollingElement.scrollLeft, 0, "scrollLeft should be 0.");
   }, "Check initial scroll position of viewport.");
 
   test(function() {
-    document.documentElement.scrollLeft = -1000;
-    assert_equals(document.documentElement.scrollLeft, 0, "scrollLeft should be 0.");
+    document.scrollingElement.scrollLeft = -1000;
+    assert_equals(document.scrollingElement.scrollLeft, 0, "scrollLeft should be 0.");
   }, "Scroll to scrollLeft = -1000 should not be possible.");
 
   test(function() {
-    document.documentElement.scrollLeft = 1000;
-    assert_equals(document.documentElement.scrollLeft, 1000, "scrollLeft should be 1000.");
+    document.scrollingElement.scrollLeft = 1000;
+    assert_equals(document.scrollingElement.scrollLeft, 1000, "scrollLeft should be 1000.");
   }, "Scroll to scrollLeft = 1000 should be possible.");
 
   // Reset back to horizontal-tb to make the result readable on-screen.
-  document.documentElement.className = "result-wm";
+  document.scrollingElement.className = "result-wm";
 </script>

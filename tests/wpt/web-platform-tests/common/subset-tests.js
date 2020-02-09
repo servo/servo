@@ -1,9 +1,3 @@
-// Only test a subset of tests with, e.g., ?1-10 in the URL.
-// Can be used together with <meta name="variant" content="...">
-// Sample usage:
-// for (const test of tests) {
-//   subsetTest(async_test, test.fn, test.name);
-// }
 (function() {
   var subTestStart = 0;
   var subTestEnd = Infinity;
@@ -37,10 +31,23 @@
       });
     }
   }
+  /**
+   * Check if `currentSubTest` is in the subset specified in the URL.
+   * @param {number} currentSubTest
+   * @returns {boolean}
+   */
   function shouldRunSubTest(currentSubTest) {
     return currentSubTest >= subTestStart && currentSubTest <= subTestEnd;
   }
   var currentSubTest = 0;
+  /**
+   * Only test a subset of tests with, e.g., `?1-10` in the URL.
+   * Can be used together with `<meta name="variant" content="...">`
+   * Sample usage:
+   * for (const test of tests) {
+   *   subsetTest(async_test, test.fn, test.name);
+   * }
+   */
   function subsetTest(testFunc, ...args) {
     currentSubTest++;
     if (shouldRunSubTest(currentSubTest)) {

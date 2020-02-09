@@ -19,7 +19,7 @@
 
         store.add({ key: 1, indexedProperty: "data" });
 
-        assert_throws("DataError", function(){
+        assert_throws_dom("DataError", function(){
             index.openKeyCursor(NaN);
         });
         t.done();

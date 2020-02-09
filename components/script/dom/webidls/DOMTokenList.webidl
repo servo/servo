@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#domtokenlist
+[Exposed=Window]
 interface DOMTokenList {
   [Pure]
   readonly attribute unsigned long length;
@@ -18,11 +19,10 @@ interface DOMTokenList {
   [CEReactions, Throws]
   boolean toggle(DOMString token, optional boolean force);
   [CEReactions, Throws]
-  void replace(DOMString token, DOMString newToken);
+  boolean replace(DOMString token, DOMString newToken);
 
   [CEReactions, Pure]
-           attribute DOMString value;
+  stringifier attribute DOMString value;
 
-  stringifier;
   iterable<DOMString?>;
 };

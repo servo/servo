@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/dictionary-helper.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-svc/
+
+  // Get the first encoding in param.encodings.
+  // Asserts that param.encodings has at least one element.
+  function getFirstEncoding(param) {
+    const { encodings } = param;
+    assert_equals(encodings.length, 1);
+    return encodings[0];
+  }
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video', {
+      sendEncodings: [{scalabilityMode: 'L1T3'}],
+    });
+
+    const param = sender.getParameters();
+    const encoding = getFirstEncoding(param);
+
+    assert_equals(encoding.scalabilityMode, 'L1T3');
+
+  }, `Setting scalabilityMode to a legal value should be accepted`);
+
+  promise_test(async t => {
+    const capabilities = RTCRtpSender.getCapabilities('video');
+    var svcSupported = false;
+    for (const codec of capabilities.codecs) {
+      if ('scalabilityModes' in codec && codec.scalabilityModes.length > 0) {
+        svcSupported = true;
+      }
+    }
+    assert_true(svcSupported);
+  }, `Sender capabilities should include at least some scalability modes`);
+
+</script>

@@ -112,8 +112,8 @@ macro_rules! define_keyword_type {
 #[macro_export]
 macro_rules! profiler_label {
     ($label_type:ident) => {
-        let mut _profiler_label: $crate::gecko_bindings::structs::AutoProfilerLabel =
-            unsafe { ::std::mem::uninitialized() };
+        let mut _profiler_label =
+            ::std::mem::MaybeUninit::<$crate::gecko_bindings::structs::AutoProfilerLabel>::uninit();
         let _profiler_label = if $crate::gecko::profiler::profiler_is_active() {
             unsafe {
                 Some($crate::gecko::profiler::AutoProfilerLabel::new(

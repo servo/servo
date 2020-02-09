@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Test: Bidi reordering with inline boxes</title>
+<link rel="match" href="bidi-span-003-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#direction">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+.container {
+  width: 300px;
+  background: pink;
+}
+div {
+  margin-bottom: 10px;
+}
+.purple {
+  border: purple solid 5px;
+}
+.orange {
+  background: orange;
+}
+</style>
+<body>
+  <div class="container">
+    <div dir=rtl>
+      <span class="purple">inspect</span><span class="orange">pause</span>
+    </div>
+    <div dir=rtl>
+      <span class="purple">inspect</span> <span class="orange">pause</span>
+    </div>
+    <div dir=rtl>
+      <span class="purple">inspect<span class="orange">pause</span></span>
+    </div>
+  </div>
+</body>

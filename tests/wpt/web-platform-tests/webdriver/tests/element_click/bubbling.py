@@ -72,7 +72,7 @@ def test_spin_event_loop(session):
         for (var level = 0; level < elements.length; level++) {
           elements[level].addEventListener("click", function(clickEvent) {
             var target = clickEvent.currentTarget;
-            setTimeout(function() { window.delayedClicks.push(target); }, 100);
+            setTimeout(function() { window.delayedClicks.push(target); }, 0);
           });
         }
         </script>

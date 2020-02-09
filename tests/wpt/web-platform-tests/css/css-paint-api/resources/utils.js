@@ -44,9 +44,8 @@ function expectWorkletValues(target, expected) {
         let serialize = (v) => '[' + v.constructor.name + ' ' + v.toString() + ']';
         let actual = expectedKeys.map(k => styleMap.getAll(k).map(serialize).join(', ')).join(' | ');
         let expected = expectedKeys.map(k => expectedData[k].join(', ')).join(' | ');
-        ctx.strokeStyle = (actual === expected) ? 'green' : 'red';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(0, 0, geom.width, geom.height);
+        ctx.fillStyle = (actual === expected) ? 'green' : 'red';
+        ctx.fillRect(0, 0, geom.width, geom.height);
       }
     });`
 

@@ -6,14 +6,21 @@
 //! [grids](https://drafts.csswg.org/css-grid/).
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 use crate::values::specified::grid::parse_line_names;
 use crate::values::{CSSFloat, CustomIdent};
+use crate::{Atom, Zero};
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use std::{mem, usize};
+use std::{cmp, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+
+/// These are the limits that we choose to clamp grid line numbers to.
+/// http://drafts.csswg.org/css-grid/#overlarge-grids
+/// line_num is clamped to this range at parse time.
+pub const MIN_GRID_LINE: i32 = -10000;
+/// See above.
+pub const MAX_GRID_LINE: i32 = 10000;
 
 /// A `<grid-line>` type.
 ///
@@ -29,36 +36,64 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
     ToResolvedValue,
     ToShmem,
 )]
-pub struct GridLine<Integer> {
-    /// Flag to check whether it's a `span` keyword.
-    pub is_span: bool,
-    /// A custom identifier for named lines.
+#[repr(C)]
+pub struct GenericGridLine<Integer> {
+    /// A custom identifier for named lines, or the empty atom otherwise.
     ///
     /// <https://drafts.csswg.org/css-grid/#grid-placement-slot>
-    pub ident: Option<CustomIdent>,
+    pub ident: Atom,
     /// Denotes the nth grid line from grid item's placement.
-    pub line_num: Option<Integer>,
+    ///
+    /// This is clamped by MIN_GRID_LINE and MAX_GRID_LINE.
+    ///
+    /// NOTE(emilio): If we ever allow animating these we need to either do
+    /// something more complicated for the clamping, or do this clamping at
+    /// used-value time.
+    pub line_num: Integer,
+    /// Flag to check whether it's a `span` keyword.
+    pub is_span: bool,
 }
 
-impl<Integer> GridLine<Integer> {
+pub use self::GenericGridLine as GridLine;
+
+impl<Integer> GridLine<Integer>
+where
+    Integer: PartialEq + Zero,
+{
     /// The `auto` value.
     pub fn auto() -> Self {
         Self {
             is_span: false,
-            line_num: None,
-            ident: None,
+            line_num: Zero::zero(),
+            ident: atom!(""),
         }
     }
 
     /// Check whether this `<grid-line>` represents an `auto` value.
     pub fn is_auto(&self) -> bool {
-        self.ident.is_none() && self.line_num.is_none() && !self.is_span
+        self.ident == atom!("") && self.line_num.is_zero() && !self.is_span
+    }
+
+    /// Check whether this `<grid-line>` represents a `<custom-ident>` value.
+    pub fn is_ident_only(&self) -> bool {
+        self.ident != atom!("") && self.line_num.is_zero() && !self.is_span
+    }
+
+    /// Check if `self` makes `other` omittable according to the rules at:
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-column
+    /// https://drafts.csswg.org/css-grid/#propdef-grid-area
+    pub fn can_omit(&self, other: &Self) -> bool {
+        if self.is_ident_only() {
+            self == other
+        } else {
+            other.is_auto()
+        }
     }
 }
 
 impl<Integer> ToCss for GridLine<Integer>
 where
-    Integer: ToCss,
+    Integer: ToCss + PartialEq + Zero,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -72,18 +107,18 @@ where
             dest.write_str("span")?;
         }
 
-        if let Some(ref i) = self.line_num {
+        if !self.line_num.is_zero() {
             if self.is_span {
                 dest.write_str(" ")?;
             }
-            i.to_css(dest)?;
+            self.line_num.to_css(dest)?;
         }
 
-        if let Some(ref s) = self.ident {
-            if self.is_span || self.line_num.is_some() {
+        if self.ident != atom!("") {
+            if self.is_span || !self.line_num.is_zero() {
                 dest.write_str(" ")?;
             }
-            s.to_css(dest)?;
+            CustomIdent(self.ident.clone()).to_css(dest)?;
         }
 
         Ok(())
@@ -114,25 +149,29 @@ impl Parse for GridLine<specified::Integer> {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                if grid_line.line_num.is_some() || grid_line.ident.is_some() {
+                if !grid_line.line_num.is_zero() || grid_line.ident != atom!("") {
                     val_before_span = true;
                 }
 
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
-                if i.value() == 0 || val_before_span || grid_line.line_num.is_some() {
+                let value = i.value();
+                if value == 0 || val_before_span || !grid_line.line_num.is_zero() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
-                grid_line.line_num = Some(i);
+                grid_line.line_num = specified::Integer::new(cmp::max(
+                    MIN_GRID_LINE,
+                    cmp::min(value, MAX_GRID_LINE),
+                ));
             } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
-                if val_before_span || grid_line.ident.is_some() {
+                if val_before_span || grid_line.ident != atom!("") {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 // NOTE(emilio): `span` is consumed above, so we only need to
                 // reject `auto`.
-                grid_line.ident = Some(CustomIdent::from_ident(location, &name, &["auto"])?);
+                grid_line.ident = CustomIdent::from_ident(location, &name, &["auto"])?.0;
             } else {
                 break;
             }
@@ -143,12 +182,12 @@ impl Parse for GridLine<specified::Integer> {
         }
 
         if grid_line.is_span {
-            if let Some(i) = grid_line.line_num {
-                if i.value() <= 0 {
+            if !grid_line.line_num.is_zero() {
+                if grid_line.line_num.value() <= 0 {
                     // disallow negative integers for grid spans
                     return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-            } else if grid_line.ident.is_none() {
+            } else if grid_line.ident == atom!("") {
                 // integer could be omitted
                 return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
@@ -156,29 +195,6 @@ impl Parse for GridLine<specified::Integer> {
 
         Ok(grid_line)
     }
-}
-
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Animate,
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-pub enum TrackKeyword {
-    Auto,
-    MaxContent,
-    MinContent,
 }
 
 /// A track breadth for explicit grid track sizing. It's generic solely to
@@ -197,15 +213,22 @@ pub enum TrackKeyword {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum TrackBreadth<L> {
+#[repr(C, u8)]
+pub enum GenericTrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
     /// A flex fraction specified in `fr` units.
     #[css(dimension)]
     Fr(CSSFloat),
-    /// One of the track-sizing keywords (`auto`, `min-content`, `max-content`)
-    Keyword(TrackKeyword),
+    /// `auto`
+    Auto,
+    /// `min-content`
+    MinContent,
+    /// `max-content`
+    MaxContent,
 }
+
+pub use self::GenericTrackBreadth as TrackBreadth;
 
 impl<L> TrackBreadth<L> {
     /// Check whether this is a `<fixed-breadth>` (i.e., it only has `<length-percentage>`)
@@ -221,24 +244,52 @@ impl<L> TrackBreadth<L> {
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToResolvedValue, ToShmem)]
-pub enum TrackSize<L> {
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericTrackSize<L> {
     /// A flexible `<track-breadth>`
-    Breadth(TrackBreadth<L>),
+    Breadth(GenericTrackBreadth<L>),
     /// A `minmax` function for a range over an inflexible `<track-breadth>`
     /// and a flexible `<track-breadth>`
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax>
     #[css(function)]
-    Minmax(TrackBreadth<L>, TrackBreadth<L>),
+    Minmax(GenericTrackBreadth<L>, GenericTrackBreadth<L>),
     /// A `fit-content` function.
+    ///
+    /// This stores a TrackBreadth<L> for convenience, but it can only be a
+    /// LengthPercentage.
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content>
     #[css(function)]
-    FitContent(L),
+    FitContent(GenericTrackBreadth<L>),
 }
 
+pub use self::GenericTrackSize as TrackSize;
+
 impl<L> TrackSize<L> {
+    /// The initial value.
+    const INITIAL_VALUE: Self = TrackSize::Breadth(TrackBreadth::Auto);
+
+    /// Returns the initial value.
+    pub const fn initial_value() -> Self {
+        Self::INITIAL_VALUE
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(*self, TrackSize::Breadth(TrackBreadth::Auto)) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+
     /// Check whether this is a `<fixed-size>`
     ///
     /// <https://drafts.csswg.org/css-grid/#typedef-fixed-size>
@@ -266,14 +317,7 @@ impl<L> TrackSize<L> {
 
 impl<L> Default for TrackSize<L> {
     fn default() -> Self {
-        TrackSize::Breadth(TrackBreadth::Keyword(TrackKeyword::Auto))
-    }
-}
-
-impl<L: PartialEq> TrackSize<L> {
-    /// Returns true if current TrackSize is same as default.
-    pub fn is_default(&self) -> bool {
-        *self == TrackSize::default()
+        Self::initial_value()
     }
 }
 
@@ -287,7 +331,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
             TrackSize::Minmax(ref min, ref max) => {
                 // According to gecko minmax(auto, <flex>) is equivalent to <flex>,
                 // and both are serialized as <flex>.
-                if let TrackBreadth::Keyword(TrackKeyword::Auto) = *min {
+                if let TrackBreadth::Auto = *min {
                     if let TrackBreadth::Fr(_) = *max {
                         return max.to_css(dest);
                     }
@@ -308,45 +352,36 @@ impl<L: ToCss> ToCss for TrackSize<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
-    type ComputedValue = TrackSize<L::ComputedValue>;
+/// A `<track-size>+`.
+/// We use the empty slice as `auto`, and always parse `auto` as an empty slice.
+/// This means it's impossible to have a slice containing only one auto item.
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+pub struct GenericImplicitGridTracks<T>(
+    #[css(if_empty = "auto", iterable)] pub crate::OwnedSlice<T>,
+);
 
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            TrackSize::Breadth(TrackBreadth::Fr(ref f)) => {
-                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
-                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
-                // FIXME(nox): This sounds false, the spec just says that <flex>
-                // implies `minmax(auto, <flex>)`, not that it should be changed
-                // into `minmax` at computed value time.
-                TrackSize::Minmax(
-                    TrackBreadth::Keyword(TrackKeyword::Auto),
-                    TrackBreadth::Fr(f.to_computed_value(context)),
-                )
-            },
-            TrackSize::Breadth(ref b) => TrackSize::Breadth(b.to_computed_value(context)),
-            TrackSize::Minmax(ref b1, ref b2) => {
-                TrackSize::Minmax(b1.to_computed_value(context), b2.to_computed_value(context))
-            },
-            TrackSize::FitContent(ref lp) => TrackSize::FitContent(lp.to_computed_value(context)),
-        }
-    }
+pub use self::GenericImplicitGridTracks as ImplicitGridTracks;
 
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            TrackSize::Breadth(ref b) => {
-                TrackSize::Breadth(ToComputedValue::from_computed_value(b))
-            },
-            TrackSize::Minmax(ref b1, ref b2) => TrackSize::Minmax(
-                ToComputedValue::from_computed_value(b1),
-                ToComputedValue::from_computed_value(b2),
-            ),
-            TrackSize::FitContent(ref lp) => {
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lp))
-            },
-        }
+impl<T: fmt::Debug + Default + PartialEq> ImplicitGridTracks<T> {
+    /// Returns true if current value is same as its initial value (i.e. auto).
+    pub fn is_initial(&self) -> bool {
+        debug_assert_ne!(
+            *self,
+            ImplicitGridTracks(crate::OwnedSlice::from(vec![Default::default()]))
+        );
+        self.0.is_empty()
     }
 }
 
@@ -382,6 +417,7 @@ where
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
+#[repr(C, u8)]
 pub enum RepeatCount<Integer> {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -396,18 +432,15 @@ impl Parse for RepeatCount<specified::Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // Maximum number of repeat is 10000. The greater numbers should be clamped.
-        const MAX_LINE: i32 = 10000;
         if let Ok(mut i) = input.try(|i| specified::Integer::parse_positive(context, i)) {
-            if i.value() > MAX_LINE {
-                i = specified::Integer::new(MAX_LINE);
+            if i.value() > MAX_GRID_LINE {
+                i = specified::Integer::new(MAX_GRID_LINE);
             }
-            Ok(RepeatCount::Number(i))
-        } else {
-            try_match_ident_ignore_ascii_case! { input,
-                "auto-fill" => Ok(RepeatCount::AutoFill),
-                "auto-fit" => Ok(RepeatCount::AutoFit),
-            }
+            return Ok(RepeatCount::Number(i));
+        }
+        try_match_ident_ignore_ascii_case! { input,
+            "auto-fill" => Ok(RepeatCount::AutoFill),
+            "auto-fit" => Ok(RepeatCount::AutoFit),
         }
     }
 }
@@ -427,7 +460,8 @@ impl Parse for RepeatCount<specified::Integer> {
     ToShmem,
 )]
 #[css(function = "repeat")]
-pub struct TrackRepeat<L, I> {
+#[repr(C)]
+pub struct GenericTrackRepeat<L, I> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount<I>,
     /// `<line-names>` accompanying `<track_size>` values.
@@ -435,10 +469,12 @@ pub struct TrackRepeat<L, I> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Box<[Box<[CustomIdent]>]>,
+    pub line_names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
     /// `<track-size>` values.
-    pub track_sizes: Vec<TrackSize<L>>,
+    pub track_sizes: crate::OwnedSlice<GenericTrackSize<L>>,
 }
+
+pub use self::GenericTrackRepeat as TrackRepeat;
 
 impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -473,44 +509,6 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
         Ok(())
     }
 }
-impl<L: Clone> TrackRepeat<L, specified::Integer> {
-    /// If the repeat count is numeric, then expand the values and merge accordingly.
-    pub fn expand(&self) -> Self {
-        if let RepeatCount::Number(num) = self.count {
-            let mut line_names = vec![];
-            let mut track_sizes = vec![];
-            let mut prev_names = vec![];
-
-            for _ in 0..num.value() {
-                let mut names_iter = self.line_names.iter();
-                for (size, names) in self.track_sizes.iter().zip(&mut names_iter) {
-                    prev_names.extend_from_slice(&names);
-                    let vec = mem::replace(&mut prev_names, vec![]);
-                    line_names.push(vec.into_boxed_slice());
-                    track_sizes.push(size.clone());
-                }
-
-                if let Some(names) = names_iter.next() {
-                    prev_names.extend_from_slice(&names);
-                }
-            }
-
-            line_names.push(prev_names.into_boxed_slice());
-            TrackRepeat {
-                count: self.count,
-                track_sizes: track_sizes,
-                line_names: line_names.into_boxed_slice(),
-            }
-        } else {
-            // if it's auto-fit/auto-fill, then it's left to the layout.
-            TrackRepeat {
-                count: self.count,
-                track_sizes: self.track_sizes.clone(),
-                line_names: self.line_names.clone(),
-            }
-        }
-    }
-}
 
 /// Track list values. Can be <track-size> or <track-repeat>
 #[derive(
@@ -525,56 +523,81 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum TrackListValue<LengthPercentage, Integer> {
+#[repr(C, u8)]
+pub enum GenericTrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
-    TrackSize(#[animation(field_bound)] TrackSize<LengthPercentage>),
+    TrackSize(#[animation(field_bound)] GenericTrackSize<LengthPercentage>),
     /// A <track-repeat> value.
-    TrackRepeat(#[animation(field_bound)] TrackRepeat<LengthPercentage, Integer>),
+    TrackRepeat(#[animation(field_bound)] GenericTrackRepeat<LengthPercentage, Integer>),
 }
 
-/// The type of a `<track-list>` as determined during parsing.
-///
-/// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
-pub enum TrackListType {
-    /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
-    ///
-    /// If this type exists, then the value at the index in `line_names` field in `TrackList`
-    /// has the `<line-names>?` list that comes before `<auto-repeat>`. If it's a specified value,
-    /// then the `repeat()` function (that follows the line names list) is also at the given index
-    /// in `values` field. On the contrary, if it's a computed value, then the `repeat()` function
-    /// is in the `auto_repeat` field.
-    Auto(u16),
-    /// [`<track-list>`](https://drafts.csswg.org/css-grid/#typedef-track-list)
-    Normal,
-    /// [`<explicit-track-list>`](https://drafts.csswg.org/css-grid/#typedef-explicit-track-list)
-    ///
-    /// Note that this is a subset of the normal `<track-list>`, and so it could be used in place
-    /// of the latter.
-    Explicit,
+pub use self::GenericTrackListValue as TrackListValue;
+
+impl<L, I> TrackListValue<L, I> {
+    // FIXME: can't use TrackSize::initial_value() here b/c rustc error "is not yet stable as a const fn"
+    const INITIAL_VALUE: Self = TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto));
+
+    fn is_repeat(&self) -> bool {
+        matches!(*self, TrackListValue::TrackRepeat(..))
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(
+            *self,
+            TrackListValue::TrackSize(TrackSize::Breadth(TrackBreadth::Auto))
+        ) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+}
+
+impl<L, I> Default for TrackListValue<L, I> {
+    #[inline]
+    fn default() -> Self {
+        Self::INITIAL_VALUE
+    }
 }
 
 /// A grid `<track-list>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToResolvedValue, ToShmem)]
-pub struct TrackList<LengthPercentage, Integer> {
-    /// The type of this `<track-list>` (auto, explicit or general).
-    ///
-    /// In order to avoid parsing the same value multiple times, this does a single traversal
-    /// and arrives at the type of value it has parsed (or bails out gracefully with an error).
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct GenericTrackList<LengthPercentage, Integer> {
+    /// The index in `values` where our `<auto-repeat>` value is, if in bounds.
     #[css(skip)]
-    pub list_type: TrackListType,
+    pub auto_repeat_index: usize,
     /// A vector of `<track-size> | <track-repeat>` values.
-    pub values: Vec<TrackListValue<LengthPercentage, Integer>>,
+    pub values: crate::OwnedSlice<GenericTrackListValue<LengthPercentage, Integer>>,
     /// `<line-names>` accompanying `<track-size> | <track-repeat>` values.
     ///
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Box<[Box<[CustomIdent]>]>,
-    /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
-    pub auto_repeat: Option<TrackRepeat<LengthPercentage, Integer>>,
+    pub line_names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
+}
+
+pub use self::GenericTrackList as TrackList;
+
+impl<L, I> TrackList<L, I> {
+    /// Whether this track list is an explicit track list (that is, doesn't have
+    /// any repeat values).
+    pub fn is_explicit(&self) -> bool {
+        !self.values.iter().any(|v| v.is_repeat())
+    }
+
+    /// Whether this track list has an `<auto-repeat>` value.
+    pub fn has_auto_repeat(&self) -> bool {
+        self.auto_repeat_index < self.values.len()
+    }
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
@@ -582,11 +605,6 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     where
         W: Write,
     {
-        let auto_idx = match self.list_type {
-            TrackListType::Auto(i) => i as usize,
-            _ => usize::MAX,
-        };
-
         let mut values_iter = self.values.iter().peekable();
         let mut line_names_iter = self.line_names.iter().peekable();
 
@@ -594,29 +612,20 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
             let names = line_names_iter.next().unwrap(); // This should exist!
             concat_serialize_idents("[", "]", names, " ", dest)?;
 
-            match self.auto_repeat {
-                Some(ref repeat) if idx == auto_idx => {
+            match values_iter.next() {
+                Some(value) => {
                     if !names.is_empty() {
                         dest.write_str(" ")?;
                     }
 
-                    repeat.to_css(dest)?;
+                    value.to_css(dest)?;
                 },
-                _ => match values_iter.next() {
-                    Some(value) => {
-                        if !names.is_empty() {
-                            dest.write_str(" ")?;
-                        }
-
-                        value.to_css(dest)?;
-                    },
-                    None => break,
-                },
+                None => break,
             }
 
             if values_iter.peek().is_some() ||
                 line_names_iter.peek().map_or(false, |v| !v.is_empty()) ||
-                (idx + 1 == auto_idx)
+                (idx + 1 == self.auto_repeat_index)
             {
                 dest.write_str(" ")?;
             }
@@ -629,7 +638,8 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 /// The `<line-name-list>` for subgrids.
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
-/// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
+///
+/// https://drafts.csswg.org/css-grid-2/#typedef-line-name-list
 #[derive(
     Clone,
     Debug,
@@ -641,11 +651,12 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
-    pub names: Box<[Box<[CustomIdent]>]>,
-    /// Indicates the line name that requires `auto-fill`
-    pub fill_idx: Option<u32>,
+    pub names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
+    /// Indicates the line name that requires `auto-fill`, if in bounds.
+    pub fill_idx: usize,
 }
 
 impl Parse for LineNameList {
@@ -668,13 +679,14 @@ impl Parse for LineNameList {
                     while let Ok(names) = input.try(parse_line_names) {
                         names_list.push(names);
                     }
-
                     Ok((names_list, count))
                 })
             });
 
             if let Ok((mut names_list, count)) = repeat_parse_result {
                 match count {
+                    // FIXME(emilio): we shouldn't expand repeat() at
+                    // parse time for subgrid. (bug 1583429)
                     RepeatCount::Number(num) => line_names.extend(
                         names_list
                             .iter()
@@ -684,6 +696,8 @@ impl Parse for LineNameList {
                     ),
                     RepeatCount::AutoFill if fill_idx.is_none() => {
                         // `repeat(autof-fill, ..)` should have just one line name.
+                        // FIXME(bug 1341507) the above comment is wrong per:
+                        // https://drafts.csswg.org/css-grid-2/#typedef-name-repeat
                         if names_list.len() != 1 {
                             return Err(
                                 input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
@@ -692,7 +706,7 @@ impl Parse for LineNameList {
                         let names = names_list.pop().unwrap();
 
                         line_names.push(names);
-                        fill_idx = Some(line_names.len() as u32 - 1);
+                        fill_idx = Some(line_names.len() - 1);
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
@@ -703,9 +717,13 @@ impl Parse for LineNameList {
             }
         }
 
+        if line_names.len() > MAX_GRID_LINE as usize {
+            line_names.truncate(MAX_GRID_LINE as usize);
+        }
+
         Ok(LineNameList {
-            names: line_names.into_boxed_slice(),
-            fill_idx: fill_idx,
+            names: line_names.into(),
+            fill_idx: fill_idx.unwrap_or(usize::MAX),
         })
     }
 }
@@ -716,7 +734,7 @@ impl ToCss for LineNameList {
         W: Write,
     {
         dest.write_str("subgrid")?;
-        let fill_idx = self.fill_idx.map(|v| v as usize).unwrap_or(usize::MAX);
+        let fill_idx = self.fill_idx;
         for (i, names) in self.names.iter().enumerate() {
             if i == fill_idx {
                 dest.write_str(" repeat(auto-fill,")?;
@@ -743,8 +761,6 @@ impl ToCss for LineNameList {
 }
 
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
-/// Subgrid deferred to Level 2 spec due to lack of implementation.
-/// But it's implemented in gecko, so we have to as well.
 #[derive(
     Animate,
     Clone,
@@ -757,7 +773,8 @@ impl ToCss for LineNameList {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum GridTemplateComponent<L, I> {
+#[repr(C, u8)]
+pub enum GenericGridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
@@ -766,20 +783,37 @@ pub enum GridTemplateComponent<L, I> {
         #[compute(field_bound)]
         #[resolve(field_bound)]
         #[shmem(field_bound)]
-        TrackList<L, I>,
+        Box<GenericTrackList<L, I>>,
     ),
     /// A `subgrid <line-name-list>?`
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
-    Subgrid(LineNameList),
+    Subgrid(Box<LineNameList>),
 }
 
+pub use self::GenericGridTemplateComponent as GridTemplateComponent;
+
 impl<L, I> GridTemplateComponent<L, I> {
+    /// The initial value.
+    const INITIAL_VALUE: Self = Self::None;
+
     /// Returns length of the <track-list>s <track-size>
     pub fn track_list_len(&self) -> usize {
         match *self {
             GridTemplateComponent::TrackList(ref tracklist) => tracklist.values.len(),
             _ => 0,
         }
+    }
+
+    /// Returns true if `self` is the initial value.
+    pub fn is_initial(&self) -> bool {
+        matches!(*self, Self::None) // FIXME: can't use Self::INITIAL_VALUE here yet: https://github.com/rust-lang/rust/issues/66585
+    }
+}
+
+impl<L, I> Default for GridTemplateComponent<L, I> {
+    #[inline]
+    fn default() -> Self {
+        Self::INITIAL_VALUE
     }
 }

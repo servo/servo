@@ -1,9 +1,38 @@
 // Copyright © 2018 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang).
 
 function findSupportedChangeTypeTestTypes(cb) {
+  // Changetype test media metadata.
+  // type: fully specified mime type (and codecs substring if the bytestream
+  //   format does not forbid codecs parameter). This is required for use with
+  //   isTypeSupported, and if supported, should work with both addSourceBuffer
+  //   and changeType (unless implementation has restrictions).
+  //
+  // relaxed_type: possibly ambiguous mime type/subtype without any codecs
+  //   substring. This is the same as type minus any codecs substring.
+  //
+  // mime_subtype: the subtype of the mime type in type and relaxed_type. Across
+  //   types registered in the bytestream format registry
+  //   (https://www.w3.org/TR/mse-byte-stream-format-registry/), this is
+  //   currently sufficient to describe uniquely which test media share the same
+  //   bytestream format for use in implicit changeType testing.
+  //
+  // is_video: All test media currently is single track. This describes whether
+  //   or not the track is video.
+  //
+  // url: Relative location of the test media file.
+  //
+  // The next two items enable more reliable test media splicing test logic that
+  // prevents buffered range gaps at the splice points.
+  // start_time: Some test media begins at a time later than 0.0 seconds. This
+  //   is the start time of the media.
+  // keyframe_interval: Some test media contains out-of-order PTS versus DTS
+  //   coded frames. In those cases, a constant keyframe_interval is needed to
+  //   prevent severely truncating out-of-order GOPs at splice points.
   let CHANGE_TYPE_MEDIA_LIST = [
     {
       type: 'video/webm; codecs="vp8"',
+      relaxed_type: 'video/webm',
+      mime_subtype: 'webm',
       is_video: true,
       url: 'webm/test-v-128k-320x240-24fps-8kfr.webm',
       start_time: 0.0
@@ -12,6 +41,8 @@ function findSupportedChangeTypeTestTypes(cb) {
     },
     {
       type: 'video/webm; codecs="vp9"',
+      relaxed_type: 'video/webm',
+      mime_subtype: 'webm',
       is_video: true,
       url: 'webm/test-vp9.webm',
       start_time: 0.0
@@ -20,6 +51,8 @@ function findSupportedChangeTypeTestTypes(cb) {
     },
     {
       type: 'video/mp4; codecs="avc1.4D4001"',
+      relaxed_type: 'video/mp4',
+      mime_subtype: 'mp4',
       is_video: true,
       url: 'mp4/test-v-128k-320x240-24fps-8kfr.mp4',
       start_time: 0.083333,
@@ -27,6 +60,8 @@ function findSupportedChangeTypeTestTypes(cb) {
     },
     {
       type: 'audio/webm; codecs="vorbis"',
+      relaxed_type: 'audio/webm',
+      mime_subtype: 'webm',
       is_video: false,
       url: 'webm/test-a-128k-44100Hz-1ch.webm',
       start_time: 0.0
@@ -36,6 +71,8 @@ function findSupportedChangeTypeTestTypes(cb) {
     },
     {
       type: 'audio/mp4; codecs="mp4a.40.2"',
+      relaxed_type: 'audio/mp4',
+      mime_subtype: 'mp4',
       is_video: false,
       url: 'mp4/test-a-128k-44100Hz-1ch.mp4',
       start_time: 0.0
@@ -45,6 +82,8 @@ function findSupportedChangeTypeTestTypes(cb) {
     },
     {
       type: 'audio/mpeg',
+      relaxed_type: 'audio/mpeg',
+      mime_subtype: 'mpeg',
       is_video: false,
       url: 'mp3/sound_5.mp3',
       start_time: 0.0
@@ -77,21 +116,26 @@ function appendBuffer(test, sourceBuffer, data) {
   sourceBuffer.appendBuffer(data);
 }
 
-function trimBuffered(test, mediaElement, sourceBuffer, minimumPreviousDuration, newDuration) {
-  assert_less_than(newDuration, minimumPreviousDuration);
-  assert_less_than(minimumPreviousDuration, mediaElement.duration);
+function trimBuffered(test, mediaElement, sourceBuffer, minimumPreviousDuration, newDuration, skip_duration_prechecks) {
+  if (!skip_duration_prechecks) {
+    assert_less_than(newDuration, minimumPreviousDuration);
+    assert_less_than(minimumPreviousDuration, mediaElement.duration);
+  }
   test.expectEvent(sourceBuffer, "update");
   test.expectEvent(sourceBuffer, "updateend");
   sourceBuffer.remove(newDuration, Infinity);
 }
 
-function trimDuration(test, mediaElement, mediaSource, newDuration) {
-  assert_less_than(newDuration, mediaElement.duration);
+function trimDuration(test, mediaElement, mediaSource, newDuration, skip_duration_prechecks) {
+  if (!skip_duration_prechecks) {
+    assert_less_than(newDuration, mediaElement.duration);
+  }
   test.expectEvent(mediaElement, "durationchange");
   mediaSource.duration = newDuration;
 }
 
-function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, metadataB, dataB) {
+function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, dataA, metadataB, typeB, dataB,
+                           implicit_changetype, negative_test) {
   // Some streams, like the MP4 video stream, contain presentation times for
   // frames out of order versus their decode times. If we overlap-append the
   // latter part of such a stream's GOP presentation interval, a significant
@@ -104,6 +148,14 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
   // splice-overlapping such GOP sequences that aren't SAP-Type-1.
   // TODO(wolenetz): https://github.com/w3c/media-source/issues/160 could
   // greatly simplify this problem by allowing us play through these small gaps.
+  //
+  // typeA and typeB may be underspecified for use with isTypeSupported, but
+  // this helper does not use isTypeSupported. typeA and typeB must work (even
+  // if missing codec specific substrings) with addSourceBuffer (just typeA) and
+  // changeType (both typeA and typeB).
+  //
+  // See also mediaSourceChangeTypeTest's options argument for the meanings of
+  // implicit_changetype and negative_test.
 
   function findSafeOffset(targetTime, overlappedMediaMetadata, overlappedStartTime, overlappingMediaMetadata) {
     assert_greater_than_equal(targetTime, overlappedStartTime);
@@ -130,8 +182,18 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
     return { "offset": offset, "adjustedTime": adjustedTime };
   }
 
-  let sourceBuffer = mediaSource.addSourceBuffer(metadataA.type);
+  // Note, none of the current negative changeType tests should fail the initial addSourceBuffer.
+  let sourceBuffer = mediaSource.addSourceBuffer(typeA);
 
+  // Add error event listeners to sourceBuffer. The caller of this helper may
+  // also have installed error event listeners on mediaElement.
+  if (negative_test) {
+    sourceBuffer.addEventListener("error", test.step_func_done());
+  } else {
+    sourceBuffer.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+  }
+
+  // In either negative test or not, the first appendBuffer should succeed.
   appendBuffer(test, sourceBuffer, dataA);
   let lastStart = metadataA["start_time"];
   if (lastStart == null) {
@@ -144,7 +206,14 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
   test.waitForExpectedEvents(() => {
     let safeOffset = findSafeOffset(0.5, metadataA, lastStart, metadataB);
     lastStart = safeOffset["adjustedTime"];
-    sourceBuffer.changeType(metadataB.type);
+    if (!implicit_changetype) {
+      try { sourceBuffer.changeType(typeB); } catch(err) {
+        if (negative_test)
+          test.done();
+        else
+          throw err;
+      }
+    }
     sourceBuffer.timestampOffset = safeOffset["offset"];
     appendBuffer(test, sourceBuffer, dataB);
   });
@@ -155,7 +224,14 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
     assert_less_than(lastStart, 1.0);
     let safeOffset = findSafeOffset(1.0, metadataB, lastStart, metadataB);
     lastStart = safeOffset["adjustedTime"];
-    sourceBuffer.changeType(metadataB.type);
+    if (!implicit_changetype) {
+      try { sourceBuffer.changeType(typeB); } catch(err) {
+        if (negative_test)
+          test.done();
+        else
+          throw err;
+      }
+    }
     sourceBuffer.timestampOffset = safeOffset["offset"];
     appendBuffer(test, sourceBuffer, dataB);
   });
@@ -167,7 +243,14 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
     let safeOffset = findSafeOffset(1.5, metadataB, lastStart, metadataA);
     // Retain the previous lastStart because the next block will append data
     // which begins between that start time and this block's start time.
-    sourceBuffer.changeType(metadataA.type);
+    if (!implicit_changetype) {
+      try { sourceBuffer.changeType(typeA); } catch(err) {
+        if (negative_test)
+          test.done();
+        else
+          throw err;
+      }
+    }
     sourceBuffer.timestampOffset = safeOffset["offset"];
     appendBuffer(test, sourceBuffer, dataA);
   });
@@ -179,18 +262,27 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
     // Our next append will begin by overlapping some of metadataB, then some of
     // metadataA.
     let safeOffset = findSafeOffset(1.3, metadataB, lastStart, metadataA);
-    sourceBuffer.changeType(metadataA.type);
+    if (!implicit_changetype) {
+      try { sourceBuffer.changeType(typeA); } catch(err) {
+        if (negative_test)
+          test.done();
+        else
+          throw err;
+      }
+    }
     sourceBuffer.timestampOffset = safeOffset["offset"];
     appendBuffer(test, sourceBuffer, dataA);
   });
 
   // Trim duration to 2 seconds, then play through to end.
   test.waitForExpectedEvents(() => {
-    trimBuffered(test, mediaElement, sourceBuffer, 2.1, 2);
+    // If negative testing, then skip fragile assertions.
+    trimBuffered(test, mediaElement, sourceBuffer, 2.1, 2, negative_test);
   });
 
   test.waitForExpectedEvents(() => {
-    trimDuration(test, mediaElement, mediaSource, 2);
+    // If negative testing, then skip fragile assertions.
+    trimDuration(test, mediaElement, mediaSource, 2, negative_test);
   });
 
   test.waitForExpectedEvents(() => {
@@ -203,17 +295,56 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, me
   });
 
   test.waitForExpectedEvents(() => {
-    test.done();
+    if (negative_test)
+      assert_unreached("Received 'ended' while negative testing.");
+    else
+      test.done();
   });
 }
 
-function mediaSourceChangeTypeTest(metadataA, metadataB, description) {
+// options.use_relaxed_mime_types : boolean (defaults to false).
+//   If true, the initial addSourceBuffer and any changeType calls will use the
+//   relaxed_type in metadataA and metadataB instead of the full type in the
+//   metadata.
+// options.implicit_changetype : boolean (defaults to false).
+//   If true, no changeType calls will be used. Instead, the test media files
+//   are expected to begin with an initialization segment and end at a segment
+//   boundary (no abort() call is issued by this test to reset the
+//   SourceBuffer's parser).
+// options.negative_test : boolean (defaults to false).
+//   If true, the test is expected to hit error amongst one of the following
+//   areas: addSourceBuffer, appendBuffer (synchronous or asynchronous error),
+//   changeType, playback to end of buffered media. If 'ended' is received
+//   without error otherwise already occurring, then fail the test. Otherwise,
+//   pass the test on receipt of error. Continue to consider timeouts as test
+//   failures.
+function mediaSourceChangeTypeTest(metadataA, metadataB, description, options = {}) {
   mediasource_test((test, mediaElement, mediaSource) => {
+    let typeA = metadataA.type;
+    let typeB = metadataB.type;
+    if (options.hasOwnProperty("use_relaxed_mime_types") &&
+        options.use_relaxed_mime_types === true) {
+      typeA = metadataA.relaxed_type;
+      typeB = metadataB.relaxed_type;
+    }
+    let implicit_changetype = options.hasOwnProperty("implicit_changetype") &&
+        options.implicit_changetype === true;
+    let negative_test = options.hasOwnProperty("negative_test") &&
+        options.negative_test === true;
+
     mediaElement.pause();
-    mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+    if (negative_test) {
+      mediaElement.addEventListener("error", test.step_func_done());
+    } else {
+      mediaElement.addEventListener("error",
+          test.unreached_func("Unexpected event 'error'"));
+    }
     MediaSourceUtil.loadBinaryData(test, metadataA.url, (dataA) => {
       MediaSourceUtil.loadBinaryData(test, metadataB.url, (dataB) => {
-        runChangeTypeTest(test, mediaElement, mediaSource, metadataA, dataA, metadataB, dataB);
+        runChangeTypeTest(
+            test, mediaElement, mediaSource,
+            metadataA, typeA, dataA, metadataB, typeB, dataB,
+            implicit_changetype, negative_test);
       });
     });
   }, description);

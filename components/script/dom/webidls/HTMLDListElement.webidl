@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldlistelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLDListElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // also has obsolete members
 };
 

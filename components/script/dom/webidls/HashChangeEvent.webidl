@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
-[Constructor(DOMString type, optional HashChangeEventInit eventInitDict),
- Exposed=Window]
+[Exposed=Window]
 interface HashChangeEvent : Event {
+  [Throws] constructor(DOMString type, optional HashChangeEventInit eventInitDict = {});
   readonly attribute USVString oldURL;
   readonly attribute USVString newURL;
 };

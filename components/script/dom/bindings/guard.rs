@@ -4,7 +4,9 @@
 
 //! Machinery to conditionally expose things.
 
-use js::jsapi::JSContext;
+use crate::dom::bindings::codegen::InterfaceObjectMap;
+use crate::dom::bindings::interface::is_exposed_in;
+use crate::script_runtime::JSContext;
 use js::rust::HandleObject;
 use servo_config::prefs;
 
@@ -26,8 +28,8 @@ impl<T: Clone + Copy> Guard<T> {
     /// Expose the value if the condition is satisfied.
     ///
     /// The passed handle is the object on which the value may be exposed.
-    pub unsafe fn expose(&self, cx: *mut JSContext, obj: HandleObject) -> Option<T> {
-        if self.condition.is_satisfied(cx, obj) {
+    pub fn expose(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> Option<T> {
+        if self.condition.is_satisfied(cx, obj, global) {
             Some(self.value)
         } else {
             None
@@ -38,18 +40,21 @@ impl<T: Clone + Copy> Guard<T> {
 /// A condition to expose things.
 pub enum Condition {
     /// The condition is satisfied if the function returns true.
-    Func(unsafe fn(*mut JSContext, HandleObject) -> bool),
+    Func(fn(JSContext, HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
+    // The condition is satisfied if the interface is exposed in the global.
+    Exposed(InterfaceObjectMap::Globals),
     /// The condition is always satisfied.
     Satisfied,
 }
 
 impl Condition {
-    unsafe fn is_satisfied(&self, cx: *mut JSContext, obj: HandleObject) -> bool {
+    fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
         match *self {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
+            Condition::Exposed(globals) => is_exposed_in(global, globals),
             Condition::Satisfied => true,
         }
     }

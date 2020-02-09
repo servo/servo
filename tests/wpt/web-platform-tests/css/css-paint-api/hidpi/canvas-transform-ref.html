@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="canvas" width="540" height="550"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+// In the test page, the paint worklet canvas has a size of width of 270 CSS
+// pixels, and height of 275. To divided by 2 is to match the canvas size.
+canvas.style.width = (canvas.width / 2) + 'px';
+canvas.style.height = (canvas.height / 2) + 'px';
+var ctx = canvas.getContext("2d");
+var fillW = 250;
+var fillH = 50;
+ctx.setTransform(2 * devicePixelRatio, 0, 0, 2 * devicePixelRatio, 0, 200);
+ctx.beginPath();
+ctx.rect(0, 0, fillW, fillH);
+ctx.closePath();
+ctx.clip();
+ctx.fillStyle = 'green';
+ctx.fillRect(0, 0, fillW, fillH);
+</script>
+</body>
+</html>

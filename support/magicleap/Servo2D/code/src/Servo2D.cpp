@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include <Servo2D.h>
+#include <Servo2D/Servo2D.h>
 #include <lumin/node/RootNode.h>
-#include <lumin/node/QuadNode.h>
 #include <lumin/ui/Cursor.h>
 #include <ml_logging.h>
-#include <scenesGen.h>
-#include <SceneDescriptor.h>
+#include <scenes.h>
+#include <PrismSceneManager.h>
+
+#include <Servo2D.h>
+#include <lumin/node/QuadNode.h>
 #include <lumin/ui/Keyboard.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
@@ -16,22 +18,22 @@
 #include <string.h>
 
 // The viewport dimensions (in px).
-const int VIEWPORT_W = 500;
-const int VIEWPORT_H = 500;
+const int VIEWPORT_W = 852;
+const int VIEWPORT_H = 480;
 
 // The hidpi factor.
 const float HIDPI = 1.0;
 
 // The prism dimensions (in m).
-const float PRISM_W = 2.0;
-const float PRISM_H = 0.75;
-const float PRISM_D = 2.0;
+const float PRISM_W = 1.50;
+const float PRISM_H = 1;
+const float PRISM_D = 0.05;
 
 // The length of the laser pointer (in m).
 const float LASER_LENGTH = 10.0;
 
 // The width of the keyboard
-const float KEYBOARD_W = 0.666;
+const float KEYBOARD_W = 1.333;
 
 // The home page
 const char* HOME_PAGE = "https://servo.org/ml-home";
@@ -90,30 +92,26 @@ Servo2D::~Servo2D() {
   ML_LOG(Debug, "Servo2D Destructor.");
 }
 
-// The prism dimensions
-const glm::vec3 Servo2D::getInitialPrismExtents() const {
+const glm::vec3 Servo2D::getInitialPrismSize() const {
   return glm::vec3(PRISM_W, PRISM_H, PRISM_D);
 }
 
-// Create the prism for Servo
-int Servo2D::createInitialPrism() {
-  prism_ = requestNewPrism(getInitialPrismExtents());
+void Servo2D::createInitialPrism() {
+  prism_ = requestNewPrism(getInitialPrismSize());
   if (!prism_) {
     ML_LOG(Error, "Servo2D Error creating default prism.");
-    return 1;
+    abort();
   }
-  return 0;
+  prismSceneManager_ = new PrismSceneManager(prism_);
 }
 
-// Initialize a Servo instance
 int Servo2D::init() {
 
   ML_LOG(Debug, "Servo2D Initializing.");
 
-  // Set up the prism
   createInitialPrism();
   lumin::ui::Cursor::SetScale(prism_, 0.03f);
-  instanceInitialScenes();
+  spawnInitialScenes();
 
   // Check privileges
   if (checkPrivilege(lumin::PrivilegeId::kInternet) != lumin::PrivilegeResult::kGranted) {
@@ -135,7 +133,7 @@ int Servo2D::init() {
     return 1;
   }
 
-  std::string content_node_id = Servo2D_exportedNodes::content;
+  std::string content_node_id = scenes::Servo2D::externalNodes::content;
   content_node_ = lumin::QuadNode::CastFrom(prism_->findNode(content_node_id, root_node));
   if (!content_node_) {
     ML_LOG(Error, "Servo2D Failed to get content node");
@@ -144,7 +142,9 @@ int Servo2D::init() {
   }
   content_node_->setTriggerable(true);
 
-  content_panel_ = lumin::ui::UiPanel::CastFrom(prism_->findNode(Servo2D_exportedNodes::contentPanel, root_node));
+  content_panel_ = lumin::ui::UiPanel::CastFrom(
+    prism_->findNode(scenes::Servo2D::externalNodes::contentPanel, root_node)
+  );
   if (!content_panel_) {
     ML_LOG(Error, "Servo2D Failed to get content panel");
     abort();
@@ -152,7 +152,7 @@ int Servo2D::init() {
   }
   lumin::ui::UiPanel::RequestFocus(content_panel_);
 
-  lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId();
+  lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId(VIEWPORT_W, VIEWPORT_H);
   if (!plane_id) {
     ML_LOG(Error, "Servo2D Failed to create EGL resource");
     abort();
@@ -173,6 +173,15 @@ int Servo2D::init() {
   EGLSurface surf = plane_->getEGLSurface();
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
+  // Set up gstreamer
+  auto tmpdir = getTempPath();
+  auto bindir = getPackagePath() + "bin";
+  auto registry = getWritablePath() + "gstreamer-registry.bin";
+  setenv("GIO_MODULE_DIR", bindir.c_str(), 1);
+  setenv("GST_PLUGIN_SYSTEM_PATH", bindir.c_str(), 1);
+  setenv("GST_REGISTRY", registry.c_str(), 1);
+  setenv("XDG_CACHE_HOME", tmpdir.c_str(), 1);
+
   // Hook into servo
   servo_ = init_servo(ctx, surf, dpy, true,
                       this, logger, history, url, keyboard, uri_, args_,
@@ -184,7 +193,7 @@ int Servo2D::init() {
   }
 
   // Add a callback to the back button
-  std::string back_button_id = Servo2D_exportedNodes::backButton;
+  std::string back_button_id = scenes::Servo2D::externalNodes::backButton;
   back_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(back_button_id, root_node));
   if (!back_button_) {
     ML_LOG(Error, "Servo2D Failed to get back button");
@@ -194,7 +203,7 @@ int Servo2D::init() {
   back_button_->onActivateSub(std::bind(traverse_servo, servo_, -1));
 
   // Add a callback to the forward button
-  std::string fwd_button_id = Servo2D_exportedNodes::fwdButton;
+  std::string fwd_button_id = scenes::Servo2D::externalNodes::fwdButton;
   fwd_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(fwd_button_id, root_node));
   if (!fwd_button_) {
     ML_LOG(Error, "Servo2D Failed to get forward button");
@@ -204,7 +213,7 @@ int Servo2D::init() {
   fwd_button_->onActivateSub(std::bind(traverse_servo, servo_, +1));
 
   // Add a callback to the URL bar
-  std::string url_bar_id = Servo2D_exportedNodes::urlBar;
+  std::string url_bar_id = scenes::Servo2D::externalNodes::urlBar;
   url_bar_ = lumin::ui::UiTextEdit::CastFrom(prism_->findNode(url_bar_id, root_node));
   if (!url_bar_) {
     ML_LOG(Error, "Servo2D Failed to get URL bar");
@@ -217,14 +226,6 @@ int Servo2D::init() {
   url_bar_->setKeyboardProperties(keyboard_properties);
   url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
 
-  // Add the laser pointer
-  laser_ = lumin::LineNode::CastFrom(prism_->findNode(Servo2D_exportedNodes::laser, root_node));
-  if (!laser_) {
-    ML_LOG(Error, "Servo2D Failed to get laser");
-    abort();
-    return 1;
-  }
-
   return 0;
 }
 
@@ -235,45 +236,27 @@ int Servo2D::deInit() {
   return 0;
 }
 
-lumin::Node* Servo2D::instanceScene(const SceneDescriptor& scene) {
-  // Load resources.
-  if (!prism_->loadResourceModel(scene.getResourceModelPath())) {
-    ML_LOG(Info, "No resource model loaded");
-  }
+void Servo2D::spawnInitialScenes() {
 
-  // Load a scene file.
-  std::string editorObjectModelName;
-  if (!prism_->loadObjectModel(scene.getSceneGraphPath(), editorObjectModelName)) {
-    ML_LOG(Error, "Servo2D Failed to load object model");
-    abort();
-    return nullptr;
-  }
-
-  // Add scene to this prism.
-  lumin::Node* newTree = prism_->createAll(editorObjectModelName);
-  if (!prism_->getRootNode()->addChild(newTree)) {
-    ML_LOG(Error, "Servo2D Failed to add newTree to the prism root node");
-    abort();
-    return nullptr;
-  }
-
-  return newTree;
-}
-
-void Servo2D::instanceInitialScenes() {
   // Iterate over all the exported scenes
-  for (auto& exportedSceneEntry : scenes::exportedScenes ) {
+  for (auto& exportedSceneEntry : scenes::externalScenes ) {
 
     // If this scene was marked to be instanced at app initialization, do it
     const SceneDescriptor &sd = exportedSceneEntry.second;
-    if (sd.getInitiallyInstanced()) {
-      instanceScene(sd);
+    if (sd.getInitiallySpawned()) {
+      lumin::Node* const spawnedRoot = prismSceneManager_->spawn(sd);
+      if (spawnedRoot) {
+        if (!prism_->getRootNode()->addChild(spawnedRoot)) {
+          ML_LOG(Error, "Servo2D Failed to add spawnedRoot to the prism root node");
+          abort();
+        }
+      }
     }
   }
 }
 
 bool Servo2D::updateLoop(float fDelta) {
-  glm::vec2 pos = redrawLaser();
+  glm::vec2 pos = laserPosition();
   move_servo(servo_, pos.x, pos.y);
   heartbeat_servo(servo_);
   return true;
@@ -320,7 +303,7 @@ bool Servo2D::pose6DofEventListener(lumin::ControlPose6DofInputEventData* event)
   return false;
 }
 
-glm::vec2 Servo2D::redrawLaser() {
+glm::vec2 Servo2D::laserPosition() {
   // Return (-1, -1) if the laser doesn't intersect z=0
   glm::vec2 result = glm::vec2(-1.0, -1.0);
 
@@ -342,18 +325,9 @@ glm::vec2 Servo2D::redrawLaser() {
     float ratio = 1.0 / (1.0 - (endpoint.z / position.z));
     // The intersection point
     glm::vec3 intersection = ((1 - ratio) * position) + (ratio * endpoint);
-    // Is the intersection inside the viewport?
     result = viewportPosition(intersection);
-    if (pointInsideViewport(result)) {
-      color = glm::vec4(0.0, 1.0, 0.0, 1.0);
-      endpoint = intersection;
-    }
   }
 
-  laser_->clearPoints();
-  laser_->addPoints(position);
-  laser_->addPoints(endpoint);
-  laser_->setColor(color);
   return result;
 }
 
@@ -365,7 +339,7 @@ bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
   }
 
   // Only respond to trigger down if the laser is currently in the viewport
-  glm::vec2 pos = redrawLaser();
+  glm::vec2 pos = laserPosition();
   if ((typ == lumin::input::GestureType::TriggerDown) && !pointInsideViewport(pos)) {
     return false;
   }

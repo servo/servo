@@ -64,7 +64,7 @@ test(() => {
 
 test(() => {
   const validationURL = "http://\u005B"; // invalid URL
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new MerchantValidationEvent("test", { validationURL });
   });
 }, "Must throw TypeError if initialized with an invalid URL.");
@@ -78,6 +78,20 @@ test(() => {
     assert_equals(event.validationURL, expected);
   }
 }, "Relative validationURLs use the document as the base.");
+
+test(() => {
+  const validationURL = "pass";
+  const base = document.createElement("base");
+  base.href = "https://pass.com";
+  document.head.append(base);
+  const event = new MerchantValidationEvent("test", { validationURL });
+  try {
+    assert_idl_attribute(event, "validationURL");
+    assert_equals(event.validationURL, "https://pass.com/pass");
+  } finally {
+    base.remove();
+  }
+}, "Relative validationURLs use the document.baseURI as the base.");
 
 test(() => {
   const methodName = "https://pass.com";
@@ -121,8 +135,8 @@ test(() => {
     "unknown://example.com/pay",
   ];
   for (const methodName of invalidPMIs) {
-    assert_throws(
-      new RangeError(),
+    assert_throws_js(
+      RangeError,
       () => {
         const event = new MerchantValidationEvent("test", { methodName });
       },

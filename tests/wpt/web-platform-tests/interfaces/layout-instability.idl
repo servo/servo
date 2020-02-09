@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Layout Instability API (https://wicg.github.io/layout-instability/)
+
+[Exposed=Window]
+interface LayoutShift : PerformanceEntry {
+  readonly attribute long value;
+  readonly attribute boolean hadRecentInput;
+  readonly attribute DOMHighResTimeStamp lastInputTime;
+  [Default] object toJSON();
+};

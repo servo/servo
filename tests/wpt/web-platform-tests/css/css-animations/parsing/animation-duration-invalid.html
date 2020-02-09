@@ -15,6 +15,9 @@ test_invalid_value("animation-duration", '-3s');
 test_invalid_value("animation-duration", '0');
 test_invalid_value("animation-duration", 'infinite');
 test_invalid_value("animation-duration", '1s 2s');
+
+test_invalid_value("animation-duration", 'initial, 1s');
+test_invalid_value("animation-duration", '1s, initial');
 </script>
 </body>
 </html>

@@ -49,7 +49,7 @@ impl HTMLHeadElement {
     pub fn set_document_referrer(&self) {
         let doc = document_from_node(self);
 
-        if doc.GetHead().deref() != Some(self) {
+        if doc.GetHead().as_deref() != Some(self) {
             return;
         }
 

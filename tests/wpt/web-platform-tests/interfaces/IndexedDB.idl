@@ -28,9 +28,9 @@ interface IDBOpenDBRequest : IDBRequest {
   attribute EventHandler onupgradeneeded;
 };
 
-[Exposed=(Window,Worker),
- Constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict)]
+[Exposed=(Window,Worker)]
 interface IDBVersionChangeEvent : Event {
+  constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict = {});
   readonly attribute unsigned long long oldVersion;
   readonly attribute unsigned long long? newVersion;
 };
@@ -67,11 +67,13 @@ interface IDBDatabase : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
 
   [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
-                                         optional IDBTransactionMode mode = "readonly");
+                                         optional IDBTransactionMode mode = "readonly",
+                                         optional IDBTransactionOptions options = {});
   void close();
 
-  [NewObject] IDBObjectStore createObjectStore(DOMString name,
-                                               optional IDBObjectStoreParameters options);
+  [NewObject] IDBObjectStore createObjectStore(
+    DOMString name,
+    optional IDBObjectStoreParameters options = {});
   void deleteObjectStore(DOMString name);
 
   // Event handlers:
@@ -79,6 +81,12 @@ interface IDBDatabase : EventTarget {
   attribute EventHandler onclose;
   attribute EventHandler onerror;
   attribute EventHandler onversionchange;
+};
+
+enum IDBTransactionDurability { "default", "strict", "relaxed" };
+
+dictionary IDBTransactionOptions {
+  IDBTransactionDurability durability = "default";
 };
 
 dictionary IDBObjectStoreParameters {
@@ -115,7 +123,7 @@ interface IDBObjectStore {
 
   [NewObject] IDBIndex createIndex(DOMString name,
                                    (DOMString or sequence<DOMString>) keyPath,
-                                   optional IDBIndexParameters options);
+                                   optional IDBIndexParameters options = {});
   void deleteIndex(DOMString name);
 };
 
@@ -162,7 +170,7 @@ interface IDBKeyRange {
                                        optional boolean lowerOpen = false,
                                        optional boolean upperOpen = false);
 
-  boolean _includes(any key);
+  boolean includes(any key);
 };
 
 [Exposed=(Window,Worker)]
@@ -197,8 +205,9 @@ interface IDBCursorWithValue : IDBCursor {
 interface IDBTransaction : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
   readonly attribute IDBTransactionMode mode;
+  readonly attribute IDBTransactionDurability durability;
   [SameObject] readonly attribute IDBDatabase db;
-  readonly attribute DOMException error;
+  readonly attribute DOMException? error;
 
   IDBObjectStore objectStore(DOMString name);
   void commit();

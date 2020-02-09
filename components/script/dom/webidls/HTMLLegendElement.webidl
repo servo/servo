@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmllegendelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLLegendElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   readonly attribute HTMLFormElement? form;
 
   // also has obsolete members

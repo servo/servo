@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: baseline align a display:block item with a display:grid item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 Ahem; padding:0; margin:0;
+}
+
+.grid {
+  display: grid;
+  grid: 20px repeat(4, auto) 30px / 30px repeat(4, auto) 20px;
+  place-content: start;
+  place-items: baseline start;
+  border: 1px solid;
+  text-decoration: underline blue;
+}
+
+.inner-grid {
+  background: lightgrey;
+  grid-column: 2;
+  grid-row: 3;
+  min-width: 10px;
+  min-height: 0;
+  border: 0 solid lightblue;
+  border-top-width: 10px;
+  border-bottom-width: 40px;
+  padding-bottom: 20px;
+}
+
+x, z {
+  display: block;
+  min-width: 40px;
+  min-height: 10px;
+  font-size: 10em;
+  background: silver;
+}
+z {
+  width: 40px;
+  height: 10px;
+}
+
+  </style>
+</head>
+<body>
+
+<div class="grid">
+<y style="grid-area:3/1">A&nbsp;</y>
+<div class="inner-grid">
+  <x>&nbsp;A</x><z></z>
+</div>
+</div>
+
+<div class="grid" style="align-items:last baseline">
+<y style="grid-area:3/1">A&nbsp;</y>
+<div class="inner-grid">
+  <z></z><x>&nbsp;A</x>
+</div>
+</div>
+
+</body>
+</html>

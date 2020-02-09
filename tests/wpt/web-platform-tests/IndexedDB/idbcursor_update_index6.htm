@@ -33,7 +33,7 @@
             var cursor = e.target.result;
             assert_true(cursor instanceof IDBCursor);
 
-            assert_throws(new TypeError(), function() { cursor.update(); });
+            assert_throws_js(TypeError, function() { cursor.update(); });
             t.done();
         });
     }

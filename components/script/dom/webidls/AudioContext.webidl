@@ -13,7 +13,7 @@ enum AudioContextLatencyCategory {
 };
 
 dictionary AudioContextOptions {
-  AudioContextLatencyCategory latencyHint = "interactive";
+  (AudioContextLatencyCategory or double) latencyHint = "interactive";
   float sampleRate;
 };
 
@@ -22,9 +22,9 @@ dictionary AudioTimestamp {
   DOMHighResTimeStamp performanceTime;
 };
 
-[Exposed=Window,
- Constructor(optional AudioContextOptions contextOptions)]
+[Exposed=Window]
 interface AudioContext : BaseAudioContext {
+  [Throws] constructor(optional AudioContextOptions contextOptions = {});
   readonly attribute double baseLatency;
   readonly attribute double outputLatency;
 
@@ -33,7 +33,7 @@ interface AudioContext : BaseAudioContext {
   Promise<void> suspend();
   Promise<void> close();
 
-  // MediaElementAudioSourceNode createMediaElementSource(HTMLMediaElement mediaElement);
+  [Throws] MediaElementAudioSourceNode createMediaElementSource(HTMLMediaElement mediaElement);
   // MediaStreamAudioSourceNode createMediaStreamSource(MediaStream mediaStream);
   // MediaStreamTrackAudioSourceNode createMediaStreamTrackSource(MediaStreamTrack mediaStreamTrack);
   // MediaStreamAudioDestinationNode createMediaStreamDestination();

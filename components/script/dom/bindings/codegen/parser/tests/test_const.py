@@ -12,9 +12,6 @@ expected = [
     ("::TestConsts::ll", "ll", "LongLong", -8),
     ("::TestConsts::t", "t", "Boolean", True),
     ("::TestConsts::f", "f", "Boolean", False),
-    ("::TestConsts::n", "n", "BooleanOrNull", None),
-    ("::TestConsts::nt", "nt", "BooleanOrNull", True),
-    ("::TestConsts::nf", "nf", "BooleanOrNull", False),
     ("::TestConsts::fl", "fl", "Float", 0.2),
     ("::TestConsts::db", "db", "Double", 0.2),
     ("::TestConsts::ufl", "ufl", "UnrestrictedFloat", 0.2),
@@ -39,9 +36,6 @@ def WebIDLTest(parser, harness):
           const long long ll = -010;
           const boolean t = true;
           const boolean f = false;
-          const boolean? n = null;
-          const boolean? nt = true;
-          const boolean? nf = false;
           const float fl = 0.2;
           const double db = 0.2;
           const unrestricted float ufl = 0.2;
@@ -78,3 +72,16 @@ def WebIDLTest(parser, harness):
                       "Const's value has the same type as the type")
         harness.check(const.value.value, value, "Const value has the right value.")
 
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+          interface TestConsts {
+            const boolean? zero = 0;
+          };
+        """)
+        parser.finish()
+    except:
+        threw = True
+    harness.ok(threw, "Nullable types are not allowed for consts.")

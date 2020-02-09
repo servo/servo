@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
-[Pref="dom.gamepad.enabled"]
+[Exposed=Window, Pref="dom.gamepad.enabled"]
 interface GamepadButton {
     readonly attribute boolean pressed;
     readonly attribute boolean touched;

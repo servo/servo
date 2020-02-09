@@ -12,7 +12,7 @@
 <body>
 <script>
   promise_test(function(test) {
-	const path = encodeURIComponent("{{domains[www1]}}:{{ports[http][0]}}/");
+    const path = encodeURIComponent("{{domains[www1]}}:{{ports[http][0]}}/");
     return fetch(
       "/cookies/resources/set-cookie.py?name=cspViolationReportCookie1&path=" + path,
       {mode: 'no-cors', credentials: 'include'})

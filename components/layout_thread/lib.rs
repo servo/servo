@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// Work around https://github.com/rust-lang/rust/issues/62132
+#![recursion_limit = "128"]
+
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
@@ -25,7 +28,7 @@ use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNod
 use app_units::Au;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
-use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
+use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
@@ -42,7 +45,7 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
-use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
+use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
@@ -80,16 +83,16 @@ use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, Scr
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
-use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, IFrameSizeMsg, PaintWorkletError, WindowSizeType};
-use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::{Painter, WebrenderIpcSender};
+use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
-use servo_geometry::{DeviceIndependentPixel, MaxRect};
+use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -213,7 +216,7 @@ pub struct LayoutThread {
 
     /// The size of the viewport. This may be different from the size of the screen due to viewport
     /// constraints.
-    viewport_size: Size2D<Au>,
+    viewport_size: UntypedSize2D<Au>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutThread modify them.
@@ -227,7 +230,7 @@ pub struct LayoutThread {
     registered_painters: RegisteredPaintersImpl,
 
     /// Webrender interface.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: WebrenderIpcSender,
 
     /// Webrender document.
     webrender_document: webrender_api::DocumentId,
@@ -243,20 +246,13 @@ pub struct LayoutThread {
     layout_query_waiting_time: Histogram,
 
     /// The sizes of all iframes encountered during the last layout operation.
-    last_iframe_sizes: RefCell<HashMap<BrowsingContextId, TypedSize2D<f32, CSSPixel>>>,
+    last_iframe_sizes: RefCell<HashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
 
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
 
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     load_webfonts_synchronously: bool,
-
-    /// The initial request size of the window
-    initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-
-    /// The ratio of device pixels per px at the default scale.
-    /// If unspecified, will use the platform default setting.
-    device_pixels_per_px: Option<f32>,
 
     /// Dumps the display list form after a layout.
     dump_display_list: bool,
@@ -303,14 +299,12 @@ impl LayoutThreadFactory for LayoutThread {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
-        content_process_shutdown_chan: Option<IpcSender<()>>,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        window_size: WindowSizeData,
         dump_display_list: bool,
         dump_display_list_json: bool,
         dump_style_tree: bool,
@@ -358,8 +352,7 @@ impl LayoutThreadFactory for LayoutThread {
                         paint_time_metrics,
                         busy,
                         load_webfonts_synchronously,
-                        initial_window_size,
-                        device_pixels_per_px,
+                        window_size,
                         dump_display_list,
                         dump_display_list_json,
                         dump_style_tree,
@@ -379,9 +372,6 @@ impl LayoutThreadFactory for LayoutThread {
                         sender,
                         Msg::CollectReports,
                     );
-                }
-                if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
-                    let _ = content_process_shutdown_chan.send(());
                 }
             })
             .expect("Thread spawning failed");
@@ -527,13 +517,12 @@ impl LayoutThread {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        window_size: WindowSizeData,
         dump_display_list: bool,
         dump_display_list_json: bool,
         dump_style_tree: bool,
@@ -543,12 +532,13 @@ impl LayoutThread {
         trace_layout: bool,
         dump_flow_tree: bool,
     ) -> LayoutThread {
-        // The device pixel ratio is incorrect (it does not have the hidpi value),
-        // but it will be set correctly when the initial reflow takes place.
+        // Let webrender know about this pipeline by sending an empty display list.
+        webrender_api.send_initial_transaction(webrender_document, id.to_webrender());
+
         let device = Device::new(
             MediaType::screen(),
-            initial_window_size.to_f32() * TypedScale::new(1.0),
-            TypedScale::new(device_pixels_per_px.unwrap_or(1.0)),
+            window_size.initial_viewport,
+            window_size.device_pixel_ratio,
         );
 
         // Create the channel on which new animations can be sent.
@@ -589,9 +579,10 @@ impl LayoutThread {
             document_shared_lock: None,
             running_animations: ServoArc::new(RwLock::new(Default::default())),
             expired_animations: ServoArc::new(RwLock::new(Default::default())),
-            epoch: Cell::new(Epoch(0)),
+            // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
+            epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
-            webrender_api: webrender_api_sender.create_api(),
+            webrender_api,
             webrender_document,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             rw_data: Arc::new(Mutex::new(LayoutThreadData {
@@ -610,6 +601,7 @@ impl LayoutThread {
                 text_index_response: TextIndexResponse(None),
                 nodes_from_point_response: vec![],
                 element_inner_text_response: String::new(),
+                inner_window_dimensions_response: None,
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
             timer: if pref!(layout.animations.test.enabled) {
@@ -622,8 +614,6 @@ impl LayoutThread {
             last_iframe_sizes: Default::default(),
             busy,
             load_webfonts_synchronously,
-            initial_window_size,
-            device_pixels_per_px,
             dump_display_list,
             dump_display_list_json,
             dump_style_tree,
@@ -660,6 +650,7 @@ impl LayoutThread {
 
         LayoutContext {
             id: self.id,
+            origin: self.url.origin(),
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -828,14 +819,12 @@ impl LayoutThread {
                     .insert(state.scroll_id, state.scroll_offset);
 
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-                let mut txn = webrender_api::Transaction::new();
-                txn.scroll_node_with_id(
-                    webrender_api::LayoutPoint::from_untyped(&point),
+                self.webrender_api.send_scroll_node(
+                    self.webrender_document,
+                    webrender_api::units::LayoutPoint::from_untyped(point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
             },
             Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
                 drop_style_and_layout_data(dead_data)
@@ -948,14 +937,12 @@ impl LayoutThread {
             self.font_cache_thread.clone(),
             self.time_profiler_chan.clone(),
             self.mem_profiler_chan.clone(),
-            info.content_process_shutdown_chan,
-            self.webrender_api.clone_sender(),
+            self.webrender_api.clone(),
             self.webrender_document,
             info.paint_time_metrics,
             info.layout_is_busy,
             self.load_webfonts_synchronously,
-            self.initial_window_size,
-            self.device_pixels_per_px,
+            info.window_size,
             self.dump_display_list,
             self.dump_display_list_json,
             self.dump_style_tree,
@@ -1135,8 +1122,13 @@ impl LayoutThread {
                     rw_data.display_list.is_none()
                 {
                     if reflow_goal.needs_display_list() {
-                        let mut build_state =
-                            sequential::build_display_list_for_subtree(layout_root, layout_context);
+                        let background_color = get_root_flow_background_color(layout_root);
+                        let mut build_state = sequential::build_display_list_for_subtree(
+                            layout_root,
+                            layout_context,
+                            background_color,
+                            data.page_clip_rect.size,
+                        );
 
                         debug!("Done building display list.");
 
@@ -1200,7 +1192,7 @@ impl LayoutThread {
                             &mut build_state.indexable_text,
                             IndexableText::default(),
                         );
-                        rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+                        rw_data.display_list = Some(build_state.to_display_list());
                     }
                 }
 
@@ -1217,7 +1209,8 @@ impl LayoutThread {
                 if let Some(document) = document {
                     document.will_paint();
                 }
-                let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
+
+                let display_list = rw_data.display_list.as_mut().unwrap();
 
                 if self.dump_display_list {
                     display_list.print();
@@ -1229,11 +1222,7 @@ impl LayoutThread {
                 debug!("Layout done!");
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let builder = rw_data
-                    .display_list
-                    .as_ref()
-                    .unwrap()
-                    .convert_to_webrender(self.id);
+                let (builder, is_contentful) = display_list.convert_to_webrender(self.id);
 
                 let viewport_size = Size2D::new(
                     self.viewport_size.width.to_f32_px(),
@@ -1244,25 +1233,20 @@ impl LayoutThread {
                 epoch.next();
                 self.epoch.set(epoch);
 
-                let viewport_size = webrender_api::LayoutSize::from_untyped(&viewport_size);
+                let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
                 // Progressive Web Metrics.
                 self.paint_time_metrics
-                    .maybe_observe_paint_time(self, epoch, &*display_list);
+                    .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                let mut txn = webrender_api::Transaction::new();
-                txn.set_display_list(
-                    webrender_api::Epoch(epoch.0),
-                    Some(get_root_flow_background_color(layout_root)),
+                self.webrender_api.send_display_list(
+                    self.webrender_document,
+                    epoch,
                     viewport_size,
                     builder.finalize(),
-                    true,
                 );
-                txn.generate_frame();
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
             },
         );
     }
@@ -1331,6 +1315,9 @@ impl LayoutThread {
                         },
                         &QueryMsg::ElementInnerTextQuery(_) => {
                             rw_data.element_inner_text_response = String::new();
+                        },
+                        &QueryMsg::InnerWindowDimensionsQuery(_) => {
+                            rw_data.inner_window_dimensions_response = None;
                         },
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
@@ -1497,11 +1484,10 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
 
+        let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
-            (
-                STYLE_THREAD_POOL.style_thread_pool.as_ref(),
-                STYLE_THREAD_POOL.num_threads,
-            )
+            pool = STYLE_THREAD_POOL.pool();
+            (pool.as_ref(), STYLE_THREAD_POOL.num_threads)
         } else {
             (None, 1)
         };
@@ -1666,7 +1652,7 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         self.webrender_document,
                         Some(self.id.to_webrender()),
@@ -1684,6 +1670,13 @@ impl LayoutThread {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.element_inner_text_response =
                         process_element_inner_text_query(node, &rw_data.indexable_text);
+                },
+                &QueryMsg::InnerWindowDimensionsQuery(browsing_context_id) => {
+                    rw_data.inner_window_dimensions_response = self
+                        .last_iframe_sizes
+                        .borrow()
+                        .get(&browsing_context_id)
+                        .cloned();
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
@@ -1859,8 +1852,10 @@ impl LayoutThread {
                 || {
                     let profiler_metadata = self.profiler_metadata();
 
+                    let pool;
                     let thread_pool = if self.parallel_flag {
-                        STYLE_THREAD_POOL.style_thread_pool.as_ref()
+                        pool = STYLE_THREAD_POOL.pool();
+                        pool.as_ref()
                     } else {
                         None
                     };
@@ -2128,8 +2123,8 @@ impl RegisteredSpeculativePainter for RegisteredPainterImpl {
 impl Painter for RegisteredPainterImpl {
     fn draw_a_paint_image(
         &self,
-        size: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+        size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
         properties: Vec<(Atom, String)>,
         arguments: Vec<String>,
     ) -> Result<DrawAPaintImageResult, PaintWorkletError> {

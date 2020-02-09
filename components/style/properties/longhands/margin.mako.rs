@@ -16,13 +16,13 @@
         "margin-%s" % side[0],
         "LengthPercentageOrAuto",
         "computed::LengthPercentageOrAuto::zero()",
-        alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
+        engines="gecko servo-2013 servo-2020",
+        alias=maybe_moz_logical_alias(engine, side, "-moz-margin-%s"),
         allow_quirks="No" if side[1] else "Yes",
         animation_value_type="ComputedValue",
         logical=side[1],
         logical_group="margin",
         spec=spec,
-        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
         allowed_in_page_rule=True,
         servo_restyle_damage="reflow"
     )}
@@ -33,12 +33,10 @@
         "scroll-margin-%s" % side[0],
         "Length",
         "computed::Length::zero()",
-        products="gecko",
-        gecko_pref="layout.css.scroll-snap-v1.enabled",
+        engines="gecko",
         logical=side[1],
         logical_group="scroll-margin",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-%s" % side[0],
-        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE",
         animation_value_type="ComputedValue",
     )}
 % endfor

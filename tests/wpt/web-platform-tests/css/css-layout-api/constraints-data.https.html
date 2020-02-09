@@ -35,11 +35,10 @@ const DATA = {
 };
 
 registerLayout('parent', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout([child], edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout([child], edges, constraints, styleMap) {
 
-    const childFragment = yield child.layoutNextFragment({data: DATA});
+    const childFragment = await child.layoutNextFragment({data: DATA});
 
     // If the child's block-size is 100 the structured cloning worked.
     if (childFragment.blockSize === 100) {
@@ -51,9 +50,8 @@ registerLayout('parent', class {
 });
 
 registerLayout('child', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     // Use JSON.stringify to make sure the structured cloning worked.
     if (constraints.data !== DATA &&
         JSON.stringify(constraints.data) === JSON.stringify(DATA)) {

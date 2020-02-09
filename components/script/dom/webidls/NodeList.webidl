@@ -6,6 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-nodelist
  */
 
+[Exposed=Window]
 interface NodeList {
   [Pure]
   getter Node? item(unsigned long index);

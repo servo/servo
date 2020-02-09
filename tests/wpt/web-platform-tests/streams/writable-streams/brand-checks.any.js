@@ -14,6 +14,7 @@ function fakeWS() {
   return Object.setPrototypeOf({
     get locked() { return false; },
     abort() { return Promise.resolve(); },
+    close() { return Promise.resolve(); },
     getWriter() { return fakeWSDefaultWriter(); }
   }, WritableStream.prototype);
 }
@@ -64,13 +65,18 @@ promise_test(t => {
                              [fakeWS(), realWSDefaultWriter(), realWSDefaultController(), undefined, null]);
 }, 'WritableStream.prototype.abort enforces a brand check');
 
+promise_test(t => {
+  return methodRejectsForAll(t, WritableStream.prototype, 'close',
+                             [fakeWS(), realWSDefaultWriter(), realWSDefaultController(), undefined, null]);
+}, 'WritableStream.prototype.close enforces a brand check');
+
 test(() => {
   methodThrowsForAll(WritableStream.prototype, 'getWriter',
                      [fakeWS(), realWSDefaultWriter(), realWSDefaultController(), undefined, null]);
 }, 'WritableStream.prototype.getWriter enforces a brand check');
 
 test(() => {
-  assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(fakeWS()), 'constructor should throw');
+  assert_throws_js(TypeError, () => new WritableStreamDefaultWriter(fakeWS()), 'constructor should throw');
 }, 'WritableStreamDefaultWriter constructor enforces a brand check');
 
 test(() => {

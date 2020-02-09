@@ -12,31 +12,33 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-azure_backend = ["canvas/azure_backend"]
+canvas2d-azure = ["canvas/canvas2d-azure"]
+canvas2d-raqote = ["canvas/canvas2d-raqote"]
 debugmozjs = ["script/debugmozjs"]
+egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]
 profilemozjs = ["script/profilemozjs"]
 googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
+layout-2013 = ["layout_thread_2013"]
+layout-2020 = ["layout_thread_2020"]
 max_log_level = ["log/release_max_level_info"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no_wgl = ["canvas/no_wgl"]
-raqote_backend = ["canvas/raqote_backend"]
-uwp = ["servo_config/uwp"]
+no-wgl = ["canvas/no-wgl"]
+uwp = ["servo_config/uwp", "script/uwp"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
 oculusvr = ["webvr/oculusvr"]
-unstable = [
-    "euclid/unstable",
-    "profile/unstable",
-    "script/unstable",
-]
+refcell_backtrace = ["script/refcell_backtrace"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
+vslatestinstalled = ["script/vslatestinstalled"]
+media-dummy = ["servo-media-dummy"]
+media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 
 [dependencies]
 background_hang_monitor = {path = "../background_hang_monitor"}
@@ -52,13 +54,15 @@ devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}
 env_logger = "0.6"
-euclid = "0.19"
+euclid = "0.20"
 gfx = {path = "../gfx"}
 gleam = "0.6"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 keyboard-types = "0.4"
-layout_thread = {path = "../layout_thread"}
+layout_thread_2013 = {path = "../layout_thread", optional = true}
+layout_thread_2020 = {path = "../layout_thread_2020", optional = true}
 log = "0.4"
+media = {path = "../media"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
@@ -70,23 +74,26 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo-media = {git = "https://github.com/servo/media"}
+servo-media-dummy = {git = "https://github.com/servo/media", optional = true}
+servo-media-gstreamer = {git = "https://github.com/servo/media", optional = true}
 servo_url = {path = "../url"}
+sparkle = "0.1"
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
+webgpu = {path = "../webgpu"}
 webrender = {git = "https://github.com/servo/webrender"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
+webrender_traits = {path = "../webrender_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
+webxr-api = {git = "https://github.com/servo/webxr"}
+webxr = {git = "https://github.com/servo/webxr"}
+surfman = { version = "0.1", features = ["sm-osmesa"] }
+gstreamer = { version = "0.14.5", optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
-gaol = {git = "https://github.com/servo/gaol"}
-
-[target.'cfg(any(all(target_os = "android", target_arch = "arm"), target_arch = "x86_64"))'.dependencies.servo-media-gstreamer]
-git = "https://github.com/servo/media"
-
-[target.'cfg(not(any(all(target_os = "android", target_arch = "arm"), target_arch = "x86_64")))'.dependencies.servo-media-dummy]
-git = "https://github.com/servo/media"
+gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-mozangle = { version = "0.2", features = ["egl"] }
+mozangle = {version = "0.2"}

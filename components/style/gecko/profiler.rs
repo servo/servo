@@ -29,15 +29,15 @@ impl<'a> AutoProfilerLabel<'a> {
     /// stack.
     #[inline]
     pub unsafe fn new(
-        label: &mut structs::AutoProfilerLabel,
+        label: &mut std::mem::MaybeUninit<structs::AutoProfilerLabel>,
         label_type: ProfilerLabel,
     ) -> AutoProfilerLabel {
         let category_pair = match label_type {
             ProfilerLabel::Style => structs::JS::ProfilingCategoryPair_LAYOUT_StyleComputation,
             ProfilerLabel::Parse => structs::JS::ProfilingCategoryPair_LAYOUT_CSSParsing,
         };
-        structs::Gecko_Construct_AutoProfilerLabel(label, category_pair);
-        AutoProfilerLabel(label)
+        structs::Gecko_Construct_AutoProfilerLabel(label.as_mut_ptr(), category_pair);
+        AutoProfilerLabel(&mut *label.as_mut_ptr())
     }
 }
 

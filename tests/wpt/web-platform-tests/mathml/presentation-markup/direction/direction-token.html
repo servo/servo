@@ -4,6 +4,8 @@
     <meta charset="utf-8"/>
     <title>Verify dir attribute on token elements</title>
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#token-elements">
     <meta name="assert" content="Verify dir attribute on various token elements.">
     <link rel="match" href="direction-token-ref.html">
   </head>
@@ -18,6 +20,9 @@
    <p><math><mo dir="rtl">חוק \left חסר או חוק \right מיותר</mo></math></p>
    <p><math><mi dir="rtl">חוק \left חסר או חוק \right מיותר</mi></math></p>
    <p><math><mn dir="rtl">חוק \left חסר או חוק \right מיותר</mn></math></p>
+
+   <script src="/mathml/support/feature-detection.js"></script>
+   <script>MathMLFeatureDetection.ensure_for_match_reftest("has_dir");</script>
 
   </body>
 </html>

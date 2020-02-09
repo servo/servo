@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlinputelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLInputElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute DOMString accept;
   [CEReactions]
@@ -37,7 +39,7 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean indeterminate;
   // [CEReactions]
   //          attribute DOMString inputMode;
-  // readonly attribute HTMLElement? list;
+  readonly attribute HTMLElement? list;
   [CEReactions]
            attribute DOMString max;
   [CEReactions, SetterThrows]
@@ -70,15 +72,15 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString defaultValue;
   [CEReactions, SetterThrows]
            attribute [TreatNullAs=EmptyString] DOMString value;
-  //          attribute Date? valueAsDate;
-  //          attribute unrestricted double valueAsNumber;
-  //          attribute double valueLow;
-  //          attribute double valueHigh;
+  [SetterThrows]
+           attribute object? valueAsDate;
+  [SetterThrows]
+           attribute unrestricted double valueAsNumber;
   // [CEReactions]
   //          attribute unsigned long width;
 
-  //void stepUp(optional long n = 1);
-  //void stepDown(optional long n = 1);
+  [Throws] void stepUp(optional long n = 1);
+  [Throws] void stepDown(optional long n = 1);
 
   //readonly attribute boolean willValidate;
   //readonly attribute ValidityState validity;
@@ -87,7 +89,7 @@ interface HTMLInputElement : HTMLElement {
   //boolean reportValidity();
   //void setCustomValidity(DOMString error);
 
-  readonly attribute NodeList labels;
+  readonly attribute NodeList? labels;
 
   void select();
   [SetterThrows]
@@ -109,7 +111,6 @@ interface HTMLInputElement : HTMLElement {
   // Select with file-system paths for testing purpose
   [Pref="dom.testing.htmlinputelement.select_files.enabled"]
   void selectFiles(sequence<DOMString> path);
-
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial

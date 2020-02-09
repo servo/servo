@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This changes the target of an animation while its running</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<rect id="target1" width="150" height="100" fill="green"/>
+<rect id="target2" y="150" width="150" height="100" fill="green"/>
+
+<!-- an1: Change width by -100 in 4s on target1. The embedder script will change the target to 'target2' at 2s. -->
+<!-- target1 should be 100px at 2s and remain this way. target2 should be 50px and remain this way. -->
+<animate id="an1" xlink:href="#target1" attributeType="XML" attributeName="width" fill="freeze" by="-100" begin="0s" dur="4s"/>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect1.width.animVal.value, 150, epsilon);
+    assert_equals(rect1.width.baseVal.value, 150);
+
+    assert_approx_equals(rect2.width.animVal.value, 150, epsilon);
+    assert_equals(rect2.width.baseVal.value, 150);
+}
+
+function sample2() {
+    assert_approx_equals(rect1.width.animVal.value, 100, epsilon);
+    assert_equals(rect1.width.baseVal.value, 150);
+
+    assert_approx_equals(rect2.width.animVal.value, 150, epsilon);
+    assert_equals(rect2.width.baseVal.value, 150);
+
+    // Switch to new target while animation is running.
+    // The effect is that rect1 is now reset to the initial state, before any animation was applied to it.
+    // Compatible with FF. In Opera it only works when not driving the timeline using setCurrentTime.
+    rootSVGElement.ownerDocument.getElementById("an1").setAttributeNS(xlinkNS, "xlink:href", "#target2");
+}
+
+function sample3() {
+    assert_approx_equals(rect1.width.animVal.value, 150, epsilon);
+    assert_equals(rect1.width.baseVal.value, 150);
+
+    assert_approx_equals(rect2.width.animVal.value, 100, epsilon);
+    assert_equals(rect2.width.baseVal.value, 150);
+}
+
+function sample4() {
+    assert_approx_equals(rect1.width.animVal.value, 150, epsilon);
+    assert_equals(rect1.width.baseVal.value, 150);
+
+    assert_approx_equals(rect2.width.animVal.value, 50, epsilon);
+    assert_equals(rect2.width.baseVal.value, 150);
+}
+
+function sample5() {
+    assert_equals(rect1.width.animVal.value, 150);
+    assert_equals(rect1.width.baseVal.value, 150);
+
+    assert_equals(rect2.width.animVal.value, 50);
+    assert_equals(rect2.width.baseVal.value, 150);
+}
+
+smil_async_test((t) => {
+    var rects = rootSVGElement.ownerDocument.getElementsByTagName("rect");
+    rect1 = rects[0];
+    rect2 = rects[1];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,   sample1],
+        ["an1", 2.0,   sample2],
+        ["an1", 2.001, sample3],
+        ["an1", 3.999, sample4],
+        ["an1", 4.001, sample5],
+        ["an1", 60.0,  sample5]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

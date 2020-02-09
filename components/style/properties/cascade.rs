@@ -15,7 +15,7 @@ use crate::properties::{LonghandId, LonghandIdSet, CSSWideKeyword};
 use crate::properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
 use crate::properties::CASCADE_PROPERTY;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use crate::stylesheets::{Origin, PerOrigin};
 use servo_arc::Arc;
@@ -134,11 +134,15 @@ where
     let restriction = pseudo.and_then(|p| p.property_restriction());
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
-            let cascade_level = node.cascade_level();
+            let origin = node.cascade_level().origin();
             let node_importance = node.importance();
+            let guard = match origin {
+                Origin::Author => guards.author,
+                Origin::User | Origin::UserAgent => guards.ua_or_user,
+            };
             let declarations = match node.style_source() {
                 Some(source) => source
-                    .read(cascade_level.guard(guards))
+                    .read(guard)
                     .declaration_importance_iter(),
                 None => DeclarationImportanceIterator::new(&[], &empty),
             };
@@ -153,14 +157,14 @@ where
                         // longhands are only allowed if they have our
                         // restriction flag set.
                         if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(restriction) {
+                            if !id.flags().contains(restriction) && origin != Origin::UserAgent {
                                 return None;
                             }
                         }
                     }
 
                     if declaration_importance == node_importance {
-                        Some((declaration, cascade_level))
+                        Some((declaration, origin))
                     } else {
                         None
                     }
@@ -223,7 +227,7 @@ pub fn apply_declarations<'a, E, F, I>(
 where
     E: TElement,
     F: Fn() -> I,
-    I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
+    I: Iterator<Item = (&'a PropertyDeclaration, Origin)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     debug_assert_eq!(
@@ -242,17 +246,17 @@ where
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
-    let mut declarations = SmallVec::<[(&_, CascadeLevel); 32]>::new();
+    let mut declarations = SmallVec::<[(&_, Origin); 32]>::new();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(
             inherited_style.custom_properties(),
             device.environment(),
         );
 
-        for (declaration, cascade_level) in iter_declarations() {
-            declarations.push((declaration, cascade_level));
+        for (declaration, origin) in iter_declarations() {
+            declarations.push((declaration, origin));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, cascade_level.origin());
+                builder.cascade(declaration, origin);
             }
         }
 
@@ -332,7 +336,7 @@ where
 fn should_ignore_declaration_when_ignoring_document_colors(
     device: &Device,
     longhand_id: LonghandId,
-    cascade_level: CascadeLevel,
+    origin: Origin,
     pseudo: Option<&PseudoElement>,
     declaration: &mut Cow<PropertyDeclaration>,
 ) -> bool {
@@ -340,31 +344,35 @@ fn should_ignore_declaration_when_ignoring_document_colors(
         return false;
     }
 
-    let is_ua_or_user_rule =
-        matches!(cascade_level.origin(), Origin::User | Origin::UserAgent);
+    let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
         return false;
     }
 
-    let is_style_attribute = matches!(
-        cascade_level,
-        CascadeLevel::StyleAttributeNormal | CascadeLevel::StyleAttributeImportant
-    );
-
-    // Don't override colors on pseudo-element's style attributes. The
-    // background-color on ::-moz-color-swatch is an example. Those are set
-    // as an author style (via the style attribute), but it's pretty
-    // important for it to show up for obvious reasons :)
-    if pseudo.is_some() && is_style_attribute {
+    // Don't override background-color on ::-moz-color-swatch. It is set as an
+    // author style (via the style attribute), but it's pretty important for it
+    // to show up for obvious reasons :)
+    if pseudo.map_or(false, |p| p.is_color_swatch()) && longhand_id == LonghandId::BackgroundColor {
         return false;
     }
 
     // Treat background-color a bit differently.  If the specified color is
     // anything other than a fully transparent color, convert it into the
     // Device's default background color.
+    // Also: for now, we treat background-image a bit differently, too.
+    // background-image is marked as ignored, but really, we only ignore
+    // it when backplates are disabled (since then text may be unreadable over
+    // a background image, if we're ignoring document colors).
+    // Here we check backplate status to decide if ignoring background-image
+    // is the right decision.
     {
         let background_color = match **declaration {
             PropertyDeclaration::BackgroundColor(ref color) => color,
+            // In the future, if/when we remove the backplate pref, we can remove this
+            // special case along with the 'ignored_when_colors_disabled=True' mako line
+            // for the "background-image" property.
+            #[cfg(feature = "gecko")]
+            PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
             _ => return true,
         };
 
@@ -441,7 +449,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         declarations: I,
     ) where
         Phase: CascadePhase,
-        I: Iterator<Item = (&'decls PropertyDeclaration, CascadeLevel)>,
+        I: Iterator<Item = (&'decls PropertyDeclaration, Origin)>,
     {
         let apply_reset = apply_reset == ApplyResetProperties::Yes;
 
@@ -454,9 +462,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
 
-        for (declaration, cascade_level) in declarations {
+        for (declaration, origin) in declarations {
             let declaration_id = declaration.id();
-            let origin = cascade_level.origin();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
@@ -504,7 +511,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 let should_ignore = should_ignore_declaration_when_ignoring_document_colors(
                     self.context.builder.device,
                     longhand_id,
-                    cascade_level,
+                    origin,
                     self.context.builder.pseudo,
                     &mut declaration,
                 );
@@ -639,13 +646,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         #[cfg(feature = "servo")]
         {
-            // TODO(emilio): Use get_font_if_mutated instead.
-            if self.seen.contains(LonghandId::FontStyle) ||
-                self.seen.contains(LonghandId::FontWeight) ||
-                self.seen.contains(LonghandId::FontStretch) ||
-                self.seen.contains(LonghandId::FontFamily)
-            {
-                builder.mutate_font().compute_font_hash();
+            if let Some(font) = builder.get_font_if_mutated() {
+                font.compute_font_hash();
             }
         }
     }
@@ -678,7 +680,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     #[inline]
     #[cfg(feature = "gecko")]
     fn recompute_default_font_family_type_if_needed(&mut self) {
-        use crate::gecko_bindings::{bindings, structs};
+        use crate::gecko_bindings::bindings;
         use crate::values::computed::font::GenericFontFamily;
 
         if !self.seen.contains(LonghandId::XLang) &&
@@ -686,7 +688,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
-        let use_document_fonts = unsafe { structs::StaticPrefs_sVarCache_browser_display_use_document_fonts != 0 };
+        let use_document_fonts = static_prefs::pref!("browser.display.use_document_fonts") != 0;
         let builder = &mut self.context.builder;
         let (default_font_type, prioritize_user_fonts) = {
             let font = builder.get_font().gecko();
@@ -741,6 +743,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     fn recompute_keyword_font_size_if_needed(&mut self) {
         use crate::values::computed::ToComputedValue;
         use crate::values::specified;
+        use app_units::Au;
 
         if !self.seen.contains(LonghandId::XLang) &&
            !self.seen.contains(LonghandId::FontFamily) {
@@ -757,7 +760,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 None => return,
             };
 
-            if font.gecko().mScriptUnconstrainedSize == new_size.size().0 {
+            if font.gecko().mScriptUnconstrainedSize == Au::from(new_size.size()).0 {
                 return;
             }
 

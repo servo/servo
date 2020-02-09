@@ -90,7 +90,7 @@ impl NetworkListener {
         }
     }
 
-    fn check_redirect(&mut self, message: Result<(FetchMetadata), NetworkError>) {
+    fn check_redirect(&mut self, message: Result<FetchMetadata, NetworkError>) {
         match message {
             Ok(res_metadata) => {
                 let metadata = match res_metadata {

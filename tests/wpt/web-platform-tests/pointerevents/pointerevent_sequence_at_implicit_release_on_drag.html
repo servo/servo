@@ -27,13 +27,16 @@
         var test_pointer_event = setup_pointerevent_test("Event sequence at implicit release on drag", ["touch"]);
 
         var button = document.getElementById("done");
-        var clickIsReceived = false;
+        var actions_promise;
         on_event(document.getElementById("done"), "click", function() {
           test_pointer_event.step(function () {
             var expected_events = "pointercancel, lostpointercapture, pointerout, pointerleave";
             assert_equals(event_log.join(", "), expected_events);
           });
-          clickIsReceived = true;
+          // Make sure the test finishes after all the input actions are completed.
+          actions_promise.then( () => {
+              test_pointer_event.done();
+          });
         });
 
         var target = document.getElementById("target");
@@ -55,13 +58,8 @@
         });
 
         // Inject touch inputs.
-        pointerDragInTarget("touch", target, 'right').then(function() {
+        actions_promise = pointerDragInTarget("touch", target, 'right').then(function() {
           return clickInTarget("touch", button);
-        }).then(function() {
-          test_pointer_event.step(function () {
-            assert_true(clickIsReceived, "click should be received before the test finishes");
-          }, "click should be received before the test finishes");
-          test_pointer_event.done();
         });
       }
     </script>

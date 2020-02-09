@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webvr/#interface-vrfieldofview
 
-[Pref="dom.webvr.enabled"]
+[Exposed=Window, Pref="dom.webvr.enabled"]
 interface VRFieldOfView {
   readonly attribute double upDegrees;
   readonly attribute double rightDegrees;

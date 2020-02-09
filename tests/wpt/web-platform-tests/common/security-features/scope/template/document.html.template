@@ -2,7 +2,7 @@
 <html>
   <head>
     %(meta)s
-    <script src="/common/security-features/resources/common.js"></script>
+    <script src="/common/security-features/resources/common.sub.js"></script>
     <script>
     // Receive a message from the parent and start the test.
     function onMessageFromParent(event) {

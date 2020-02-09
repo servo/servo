@@ -30,6 +30,7 @@ pub struct BluetoothAdvertisingEvent {
     rssi: Option<i8>,
 }
 
+#[allow(non_snake_case)]
 impl BluetoothAdvertisingEvent {
     pub fn new_inherited(
         device: &BluetoothDevice,

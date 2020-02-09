@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
 use crate::dom::bindings::error::{report_pending_exception, Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
@@ -26,37 +25,40 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
+use crate::realms::InRealm;
+use crate::script_runtime::JSContext;
 use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoRealm, JSContext};
+use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, ParentRuntime};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
-use script_traits::{TimerEvent, TimerEventId};
 use servo_url::{MutableOrigin, ServoUrl};
-use std::cell::Ref;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use time::precise_time_ns;
+use uuid::Uuid;
 
 pub fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -70,7 +72,7 @@ pub fn prepare_workerscope_init(
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
         scheduler_chan: global.scheduler_chan().clone(),
-        worker_id: global.get_next_worker_id(),
+        worker_id: WorkerId(Uuid::new_v4()),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         is_headless: global.is_headless(),
@@ -119,9 +121,10 @@ impl WorkerGlobalScope {
         worker_url: ServoUrl,
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-        timer_event_chan: IpcSender<TimerEvent>,
         closing: Option<Arc<AtomicBool>>,
     ) -> Self {
+        // Install a pipeline-namespace in the current thread.
+        PipelineNamespace::auto_install();
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.pipeline_id,
@@ -131,7 +134,6 @@ impl WorkerGlobalScope {
                 init.script_to_constellation_chan,
                 init.scheduler_chan,
                 init.resource_threads,
-                timer_event_chan,
                 MutableOrigin::new(init.origin),
                 runtime.microtask_queue.clone(),
                 init.is_headless,
@@ -164,8 +166,9 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
-        self.runtime.cx()
+    #[allow(unsafe_code)]
+    pub fn get_cx(&self) -> JSContext {
+        unsafe { JSContext::from_ptr(self.runtime.cx()) }
     }
 
     pub fn is_closing(&self) -> bool {
@@ -288,34 +291,20 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         base64_atob(atob)
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(
+    fn SetTimeout(
         &self,
-        _cx: *mut JSContext,
-        callback: Rc<Function>,
+        _cx: JSContext,
+        callback: StringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::FunctionTimerCallback(callback),
-            args,
-            timeout,
-            IsInterval::NonInterval,
-        )
-    }
-
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(
-        &self,
-        _cx: *mut JSContext,
-        callback: DOMString,
-        timeout: i32,
-        args: Vec<HandleValue>,
-    ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::StringTimerCallback(callback),
+            callback,
             args,
             timeout,
             IsInterval::NonInterval,
@@ -328,34 +317,20 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             .clear_timeout_or_interval(handle);
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(
+    fn SetInterval(
         &self,
-        _cx: *mut JSContext,
-        callback: Rc<Function>,
+        _cx: JSContext,
+        callback: StringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
+        let callback = match callback {
+            StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
+            StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
+        };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::FunctionTimerCallback(callback),
-            args,
-            timeout,
-            IsInterval::Interval,
-        )
-    }
-
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(
-        &self,
-        _cx: *mut JSContext,
-        callback: DOMString,
-        timeout: i32,
-        args: Vec<HandleValue>,
-    ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
-            TimerCallback::StringTimerCallback(callback),
+            callback,
             args,
             timeout,
             IsInterval::Interval,
@@ -367,13 +342,19 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         self.ClearTimeout(handle);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-queuemicrotask
+    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
+        self.upcast::<GlobalScope>()
+            .queue_function_as_microtask(callback);
+    }
+
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         fetch::Fetch(self.upcast(), input, init, comp)
     }
@@ -457,6 +438,14 @@ impl WorkerGlobalScope {
         PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
     }
 
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        PortMessageQueue(self.script_chan(), self.pipeline_id())
+    }
+
+    pub fn timer_task_source(&self) -> TimerTaskSource {
+        TimerTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
     }
@@ -480,14 +469,10 @@ impl WorkerGlobalScope {
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
                 let path_seg = format!("url({})", self.get_url());
-                let reports = get_reports(cx, path_seg);
+                let reports = get_reports(*cx, path_seg);
                 reports_chan.send(reports);
             },
         }
-    }
-
-    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.upcast::<GlobalScope>().fire_timer(timer_id);
     }
 
     pub fn close(&self) {

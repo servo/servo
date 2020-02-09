@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/wake-lock/#the-wakelockpermissiondescriptor-dictionary">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Checking for the permission status requires testdriver.js support for permissions.
+// See https://github.com/web-platform-tests/wpt/issues/5671.
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.permissions.query({ name:'wake-lock' }));
+}, "WakeLockPermissionDescriptor's type attribute is required");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.permissions.query({ name: 'wake-lock', type: 'foo' }));
+}, "WakeLockPermissionDescriptor's type attribute must be a WakeLockType");
+</script>

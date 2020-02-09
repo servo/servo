@@ -7,7 +7,7 @@
 <meta name="assert" content="When an orthogonal flow's parent doesn't have a definite block size and the nearest ancestor scroller does a have fixed height, use that whole height, even if some other content already consumes some of it.">
 <meta name="flags" content="">
 <style>
-body > div {
+#scroller {
   font-family: monospace; /* to be able to reliably measure things in ch*/
   font-size: 20px;
   height: 8ch;
@@ -17,8 +17,8 @@ body > div {
   position: relative; /* to act as a container of #red */
 }
 
-div > div { padding-bottom: 2ch; } /* so that the content height of the parent and of the fixed size scrolling ancestor are different */
-div > div > div { writing-mode: vertical-rl; }
+#parent { padding-bottom: 2ch; } /* so that the content height of the parent and of the fixed size scrolling ancestor are different */
+#ortho { writing-mode: vertical-rl; }
 
 span {
   background: green;
@@ -41,9 +41,12 @@ span {
 
 <p>Test passes if there is a <strong>green rectangle</strong> below and <strong>no red</strong>.
 
-<div>
+<div id=scroller>
   <aside id="red">0</aside>
-  <div><aside id="spacer"></aside><div>0 0 0 0 <span>0</span> 0 0 0</div></div>
+  <div id=parent>
+    <aside id=spacer></aside>
+    <div id=ortho>0 0 0 0 <span>0</span> 0 0 0</div>
+  </div>
   <!-- If the inner div take its height from the height of its scrollable
   ancestor, it should wrap just right for the green 0 to overlap with the red
   one. If instead it takes it size from the remaining height after having

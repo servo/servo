@@ -9,7 +9,13 @@
     async_test(function(t) {
         var video = document.querySelector("video");
         var track = document.querySelector("track");
-        track.onload = t.step_func(trackLoaded);
+        if (track.readyState != HTMLTrackElement.LOADED) {
+            assert_not_equals(track.readyState, HTMLTrackElement.ERROR,
+                              "track failed to load resource.");
+            track.onload = t.step_func(trackLoaded);
+        } else {
+            trackLoaded();
+        }
 
         var cueCount = 0;
         var textTrack;

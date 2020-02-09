@@ -13,6 +13,8 @@
         <p>This test validates that all of the window.performance.getEntriesByType("navigation") attributes remain unchanged after an in document navigation (URL fragment change).</p>
 
         <script>
+            setup({ single_test: true });
+
             var navTiming2Attributes = [
                 'connectEnd',
                 'connectStart',

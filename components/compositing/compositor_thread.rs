@@ -5,19 +5,22 @@
 //! Communication with the compositor thread.
 
 use crate::compositor::CompositingReason;
-use crate::SendableFrameTree;
+use crate::{ConstellationMsg, SendableFrameTree};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
+use euclid::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult};
+use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
-use webrender_api::{self, DeviceIntPoint, DeviceIntSize};
+use style_traits::CSSPixel;
+use webrender_api;
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 /// Sends messages to the compositor.
@@ -79,7 +82,7 @@ pub enum Msg {
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(IpcSender<Option<Image>>),
+    CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
@@ -105,6 +108,10 @@ pub enum Msg {
     PendingPaintMetric(PipelineId, Epoch),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
+    /// WebDriver mouse button event
+    WebDriverMouseButtonEvent(MouseEventType, MouseButton, f32, f32),
+    /// WebDriver mouse move event
+    WebDriverMouseMoveEvent(f32, f32),
 
     /// Get Window Informations size and position.
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
@@ -118,7 +125,9 @@ impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
-            Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
+            Msg::ChangeRunningAnimationsState(_, state) => {
+                write!(f, "ChangeRunningAnimationsState({:?})", state)
+            },
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
@@ -131,6 +140,8 @@ impl Debug for Msg {
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
+            Msg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
@@ -155,4 +166,5 @@ pub struct InitialCompositorState {
     pub webrender_document: webrender_api::DocumentId,
     pub webrender_api: webrender_api::RenderApi,
     pub webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
+    pub webxr_main_thread: webxr::MainThreadRegistry,
 }

@@ -46,7 +46,7 @@ async_test(t => {
   // The first notification should be sent without delay.
   waitForNotification(t, t.step_func(step0));
 
-  function waitForDelay(timerExpiredBeforeLastFrame) {
+  function waitForDelay(timerExpiredBeforeLastFrame, nextStep) {
     requestAnimationFrame(t.step_func(() => {
       if (timerExpiredBeforeLastFrame) {
         // New notifications should have been generated during the previous
@@ -54,11 +54,11 @@ async_test(t => {
         assert_equals(entries.length, 2);
         assert_greater_than(entries[1].time - entries[0].time, delay);
         assert_false(entries[1].isVisible);
-        t.done();
+        nextStep();
       } else {
         // Observer may not have updated yet. Wait for next frame.
         let timerExpired = performance.now() - entries[0].time >= delay;
-        waitForDelay(timerExpired);
+        waitForDelay(timerExpired, nextStep);
       }
     }));
   }
@@ -69,7 +69,20 @@ async_test(t => {
     // This should trigger a notification on the next run.
     occluder.style.marginTop = "-10px";
     // Enter a rAF loop until the delay timer expires.
-    waitForDelay(false);
+    waitForDelay(false, step1);
+  }
+
+  function step1() {
+    occluder.style.marginTop = "10px";
+    // This style invalidation should cause a frame to run before the observer
+    // can generate a notification (due to delay parameter). Make sure the
+    // notification will still be generated even if we don't force more frames
+    // with a rAF loop.
+    t.step_timeout(() => {
+      assert_equals(entries.length, 3);
+      assert_true(entries[0].isVisible);
+      t.done();
+    }, 2 * delay);
   }
 
 }, "'delay' parameter throttles frequency of notifications.");

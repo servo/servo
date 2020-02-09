@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use crate::dom::bindings::inheritance::Castable;
@@ -15,8 +15,7 @@ use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId,
 };
 use dom_struct::dom_struct;
-use ref_filter_map::ref_filter_map;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLVertexArrayObjectOES {
@@ -57,16 +56,20 @@ impl WebGLVertexArrayObjectOES {
         self.is_deleted.get()
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, fallible: bool) {
         assert!(self.id.is_some());
         if self.is_deleted.get() {
             return;
         }
         self.is_deleted.set(true);
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteVertexArray(self.id.unwrap()));
+        let context = self.upcast::<WebGLObject>().context();
+        let cmd = WebGLCommand::DeleteVertexArray(self.id.unwrap());
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
 
         for attrib_data in &**self.vertex_attribs.borrow() {
             if let Some(buffer) = attrib_data.buffer() {
@@ -248,13 +251,13 @@ impl WebGLVertexArrayObjectOES {
 impl Drop for WebGLVertexArrayObjectOES {
     fn drop(&mut self) {
         if self.id.is_some() {
-            self.delete();
+            self.delete(true);
         }
     }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct VertexAttribData {
     pub enabled_as_array: bool,
     pub size: u8,

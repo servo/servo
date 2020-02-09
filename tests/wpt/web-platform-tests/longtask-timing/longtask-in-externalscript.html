@@ -10,10 +10,7 @@
 <div id="log"></div>
 <script>
   async_test(function (t) {
-    if (typeof PerformanceLongTaskTiming === 'undefined') {
-        assert_unreached("Longtasks are not supported.");
-        t.done();
-    }
+    assert_precondition(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
             const entries = entryList.getEntries();
@@ -32,6 +29,7 @@
             assert_equals(attribution.name, 'unknown');
             assert_equals(attribution.duration, 0);
             assert_equals(attribution.startTime, 0);
+            assert_equals(attribution.containerType, 'window');
             assert_equals(attribution.containerId, '');
             assert_equals(attribution.containerName, '');
             assert_equals(attribution.containerSrc, '');

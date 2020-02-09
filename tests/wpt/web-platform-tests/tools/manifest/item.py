@@ -1,4 +1,3 @@
-from copy import copy
 from inspect import isabstract
 from six import iteritems, with_metaclass
 from six.moves.urllib.parse import urljoin, urlparse
@@ -31,14 +30,14 @@ class ManifestItemMeta(ABCMeta):
     attribute, and otherwise behaves like an ABCMeta."""
 
     def __new__(cls, name, bases, attrs):
-        # type: (Type[ManifestItemMeta], str, Tuple[ManifestItemMeta, ...], Dict[str, Any]) -> type
-        rv = ABCMeta.__new__(cls, name, bases, attrs)
+        # type: (Type[ManifestItemMeta], str, Tuple[ManifestItemMeta, ...], Dict[str, Any]) -> ManifestItemMeta
+        rv = super(ManifestItemMeta, cls).__new__(cls, name, bases, attrs)
         if not isabstract(rv):
             assert issubclass(rv, ManifestItem)
             assert isinstance(rv.item_type, str)
             item_types[rv.item_type] = rv
 
-        return rv
+        return rv  # type: ignore
 
 
 class ManifestItem(with_metaclass(ManifestItemMeta)):
@@ -51,7 +50,7 @@ class ManifestItem(with_metaclass(ManifestItemMeta)):
 
     @abstractproperty
     def id(self):
-        # type: () -> Hashable
+        # type: () -> Text
         """The test's id (usually its url)"""
         pass
 
@@ -78,7 +77,7 @@ class ManifestItem(with_metaclass(ManifestItemMeta)):
 
     def __repr__(self):
         # type: () -> str
-        return "<%s.%s id=%s, path=%s>" % (self.__module__, self.__class__.__name__, self.id, self.path)
+        return "<%s.%s id=%r, path=%r>" % (self.__module__, self.__class__.__name__, self.id, self.path)
 
     def to_json(self):
         # type: () -> Tuple[Any, ...]
@@ -196,8 +195,10 @@ class TestharnessTest(URLManifestItem):
         return rv
 
 
-class RefTestBase(URLManifestItem):
+class RefTest(URLManifestItem):
     __slots__ = ("references",)
+
+    item_type = "reftest"
 
     def __init__(self,
                  tests_root,  # type: Text
@@ -207,7 +208,7 @@ class RefTestBase(URLManifestItem):
                  references=None,  # type: Optional[List[Tuple[Text, Text]]]
                  **extras  # type: Any
                  ):
-        super(RefTestBase, self).__init__(tests_root, path, url_base, url, **extras)
+        super(RefTest, self).__init__(tests_root, path, url_base, url, **extras)
         if references is None:
             self.references = []  # type: List[Tuple[Text, Text]]
         else:
@@ -266,7 +267,7 @@ class RefTestBase(URLManifestItem):
                   path,  # type: Text
                   obj  # type: Tuple[Text, List[Tuple[Text, Text]], Dict[Any, Any]]
                   ):
-        # type: (...) -> RefTestBase
+        # type: (...) -> RefTest
         tests_root = manifest.tests_root
         assert tests_root is not None
         path = to_os_path(path)
@@ -277,38 +278,6 @@ class RefTestBase(URLManifestItem):
                    url,
                    references,
                    **extras)
-
-    def to_RefTest(self):
-        # type: () -> RefTest
-        if type(self) == RefTest:
-            assert isinstance(self, RefTest)
-            return self
-        rv = copy(self)
-        rv.__class__ = RefTest
-        assert isinstance(rv, RefTest)
-        return rv
-
-    def to_RefTestNode(self):
-        # type: () -> RefTestNode
-        if type(self) == RefTestNode:
-            assert isinstance(self, RefTestNode)
-            return self
-        rv = copy(self)
-        rv.__class__ = RefTestNode
-        assert isinstance(rv, RefTestNode)
-        return rv
-
-
-class RefTestNode(RefTestBase):
-    __slots__ = ()
-
-    item_type = "reftest_node"
-
-
-class RefTest(RefTestBase):
-    __slots__ = ()
-
-    item_type = "reftest"
 
 
 class ManualTest(URLManifestItem):
@@ -329,10 +298,15 @@ class VisualTest(URLManifestItem):
     item_type = "visual"
 
 
-class Stub(URLManifestItem):
+class CrashTest(URLManifestItem):
     __slots__ = ()
 
-    item_type = "stub"
+    item_type = "crashtest"
+
+    @property
+    def timeout(self):
+        # type: () -> Optional[Text]
+        return None
 
 
 class WebDriverSpecTest(URLManifestItem):

@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Remove and add an animation element while the animation is repeating</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <animate id="anim" attributeName="visibility" to="visible" begin="0s" dur="2s" repeatCount="4"/>
+  <rect x="0" y="0" width="50" height="50" fill="lime">
+    <set attributeName="fill" to="red" begin="anim.repeat(0)"/>
+  </rect>
+  <rect x="50" y="0" width="50" height="50" fill="red">
+    <set attributeName="fill" to="lime" begin="anim.repeat(1)"/>
+  </rect>
+  <rect x="0" y="50" width="50" height="50" fill="red">
+    <set attributeName="fill" to="lime" begin="anim.repeat(2)"/>
+  </rect>
+  <rect x="50" y="50" width="50" height="50" fill="red">
+    <set attributeName="fill" to="lime" begin="anim.repeat(3)"/>
+  </rect>
+</svg>
+<script>
+  function recreate(anim) {
+    anim.parentNode.removeChild(anim);
+    return document.querySelector('svg').appendChild(anim.cloneNode());
+  }
+
+  function waitFrame() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(resolve);
+    });
+  }
+
+  function checkSetElements(setElements, expected) {
+    let fillValues = Array.from(setElements).map(set => {
+      return getComputedStyle(set.targetElement, '').fill;
+    });
+    let remappedExpected = expected.map(color => {
+      const colorMap = {'red': 'rgb(255, 0, 0)', 'lime': 'rgb(0, 255, 0)'};
+      return colorMap[color];
+    })
+    assert_array_equals(fillValues, remappedExpected);
+  }
+
+  promise_test(t => {
+    let svg = document.querySelector('svg');
+    let anim = document.getElementById('anim');
+    let animWatcher = new EventWatcher(t, anim, ['beginEvent', 'repeatEvent']);
+    // Wait for #anims 'beginEvent' and then step through the
+    // 'repeatEvents' one at a time.
+    let stepsPromise = animWatcher.wait_for('beginEvent').then(() => {
+      checkSetElements(setElements, ['lime', 'red', 'red', 'red']);
+      svg.setCurrentTime(1.999);
+      return animWatcher.wait_for('repeatEvent');
+    }).then(() => {
+      return waitFrame();
+    }).then(() => {
+      checkSetElements(setElements, ['lime', 'lime', 'red', 'red']);
+      svg.setCurrentTime(2.999);
+      return waitFrame();
+    }).then(() => {
+      checkSetElements(setElements, ['lime', 'lime', 'red', 'red']);
+      svg.setCurrentTime(3.999);
+      return animWatcher.wait_for('repeatEvent');
+    }).then(() => {
+      return waitFrame();
+    }).then(() => {
+      checkSetElements(setElements, ['lime', 'lime', 'lime', 'red']);
+      let newAnim = recreate(anim);
+      let animWatcher = new EventWatcher(t, newAnim, ['repeatEvent']);
+      svg.setCurrentTime(5.999);
+      return animWatcher.wait_for('repeatEvent');
+    }).then(() => {
+      return waitFrame();
+    }).then(() => {
+      checkSetElements(setElements, ['lime', 'lime', 'lime', 'lime']);
+    });
+    let setElements = document.getElementsByTagName('set');
+    let setBeginWatchers = Array.from(setElements).map(element => {
+      return new EventWatcher(t, element, 'beginEvent');
+    });
+    // Expect 'beginEvent' to be dispatched once for all but the first 'set' element.
+    let setPromises = setBeginWatchers.slice(1).map(watcher => {
+      return watcher.wait_for('beginEvent').then(evt => {
+        let target = evt.target.targetElement;
+        assert_equals(getComputedStyle(target, '').fill, 'rgb(0, 255, 0)');
+      });
+    });
+    return Promise.all([stepsPromise, ...setPromises]);
+  });
+</script>

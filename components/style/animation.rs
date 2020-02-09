@@ -16,8 +16,8 @@ use crate::properties::animated_properties::AnimatedProperty;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
-use crate::rule_tree::CascadeLevel;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
+use crate::stylesheets::Origin;
 use crate::timer::Timer;
 use crate::values::computed::box_::TransitionProperty;
 use crate::values::computed::Time;
@@ -491,7 +491,7 @@ where
                 guard
                     .normal_declaration_iter()
                     .filter(|declaration| declaration.is_animatable())
-                    .map(|decl| (decl, CascadeLevel::Animations))
+                    .map(|decl| (decl, Origin::Author))
             };
 
             // This currently ignores visited styles, which seems acceptable,

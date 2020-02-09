@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Intra-level whitespace pairing</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+<p><ruby>
+  <rb>a</rb><rb pseudo><span> </span></rb><rb>b</rb>
+  <rt>x</rt><rt pseudo><span> </span></rt><rt>y</rt>
+</ruby></p>
+<p><ruby>
+  <rb>a</rb><rb pseudo><span> </span></rb><rb>b</rb>
+  <rt>x</rt><rt></rt><rt>y</rt>
+</ruby></p>
+<p><ruby>
+  <rb>a</rb><rb pseudo></rb><rb>b</rb>
+  <rt>x</rt><rt pseudo><span> </span></rt><rt>y</rt>
+</ruby></p>

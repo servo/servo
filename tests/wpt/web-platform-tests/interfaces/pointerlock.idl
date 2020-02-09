@@ -14,7 +14,7 @@ partial interface Document {
 };
 
 partial interface mixin DocumentOrShadowRoot {
-  readonly attribute Element? pointerLockElement;
+  readonly attribute Element ? pointerLockElement;
 };
 
 partial interface MouseEvent {

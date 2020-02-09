@@ -25,23 +25,22 @@ promise_test(() => {
 }, 'Test worker construction with the "module" worker type.');
 
 test(() => {
-  try {
-    new Worker('resources/post-message-on-load-worker.js', { type: '' });
-    assert_unreached(
-        'Worker construction with an empty type should throw an exception');
-  } catch (e) {
-    assert_equals(e.name, 'TypeError');
-  }
+  assert_throws_js(
+      TypeError,
+      () => {
+        new Worker('resources/post-message-on-load-worker.js', { type: '' });
+      },
+      'Worker construction with an empty type should throw an exception');
 }, 'Test worker construction with an empty worker type.');
 
 test(() => {
-  try {
-    new Worker('resources/post-message-on-load-worker.js', { type: 'unknown' });
-    assert_unreached(
-        'Worker construction with an unknown type should throw an exception');
-  } catch (e) {
-    assert_equals(e.name, 'TypeError');
-  }
+  assert_throws_js(
+      TypeError,
+      () => {
+        new Worker('resources/post-message-on-load-worker.js',
+                   { type: 'unknown' });
+      },
+      'Worker construction with an unknown type should throw an exception');
 }, 'Test worker construction with an unknown worker type.');
 
 </script>

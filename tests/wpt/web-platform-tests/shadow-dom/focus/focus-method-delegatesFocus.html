@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focus() on shadow host with delegatesFocus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/shadow-utils.js"></script>
+
+<body>
+<div id="host">
+  <div id="slottedToSecondSlot" slot="secondSlot">slottedToSecondSlot</div>
+  <div id="slottedToFirstSlot" slot="firstSlot">slottedToFirstSlot</div>
+</div>
+<div id="outside">outside</div>
+</body>
+
+<script>
+const host = document.getElementById("host");
+const slottedToSecondSlot = document.getElementById("slottedToSecondSlot");
+const slottedToFirstSlot = document.getElementById("slottedToFirstSlot");
+const outside = document.getElementById("outside");
+
+const shadowRoot = host.attachShadow({ mode: "open", delegatesFocus: true });
+const aboveSlots = document.createElement("div");
+aboveSlots.innerText = "aboveSlots";
+const firstSlot = document.createElement("slot");
+firstSlot.name = "firstSlot";
+const secondSlot = document.createElement("slot");
+secondSlot.name = "secondSlot";
+const belowSlots = document.createElement("div");
+belowSlots.innerText = "belowSlots";
+shadowRoot.appendChild(aboveSlots);
+shadowRoot.appendChild(firstSlot);
+shadowRoot.appendChild(secondSlot);
+shadowRoot.appendChild(belowSlots);
+
+const elementsInFlatTreeOrder = [host, aboveSlots, firstSlot,
+  slottedToFirstSlot, secondSlot, slottedToSecondSlot, belowSlots, outside];
+
+// Final structure:
+// <div #host> (delegatesFocus=true)
+//    #shadowRoot
+//      <div #aboveSlots>
+//      <slot #firstSlot>
+//        (slotted) <div #slottedToFirstSlot>
+//      <slot #secondSlot>
+//        (slotted) <div #slottedToSecondSlot>
+//      <div #belowSlots>
+// <div #outside>
+
+
+function setAllTabIndex(value) {
+  setTabIndex(elementsInFlatTreeOrder, value);
+}
+
+function removeAllTabIndex() {
+  removeTabIndex(elementsInFlatTreeOrder);
+}
+
+function resetTabIndexAndFocus() {
+  removeAllTabIndex();
+  resetFocus(document);
+  resetFocus(shadowRoot);
+}
+
+test(() => {
+  resetTabIndexAndFocus();
+  setAllTabIndex(0);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots> tabindex=0
+  //      <slot #firstSlot> tabindex=0
+  //        (slotted) <div #slottedToFirstSlot> tabindex=0
+  //      <slot #secondSlot> tabindex=0
+  //        (slotted) <div #slottedToSecondSlot> tabindex=0
+  //      <div #belowSlots> tabindex=0
+  // <div #outside> tabindex=0
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus, all tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setAllTabIndex(0);
+  setTabIndex([host], -1);
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & tabindex =-1, all other tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setTabIndex([aboveSlots, slottedToFirstSlot, slottedToSecondSlot, belowSlots], 0);
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & no tabindex, all other tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setAllTabIndex(-1);
+  setTabIndex([host], 0);
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & tabindex = 0, all other tabindex=-1");
+
+test(() => {
+  resetTabIndexAndFocus();
+  removeAllTabIndex();
+  // No focusable element under #host in the flat tree.
+  host.focus();
+  assert_equals(shadowRoot.activeElement, null);
+  assert_equals(document.activeElement, document.body);
+}, "focus() on host with delegatesFocus, all without tabindex");
+
+test(() => {
+  resetTabIndexAndFocus();
+  // First focusable = #aboveSlots
+  setAllTabIndex(-1);
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus, all tabindex=-1");
+
+test(() => {
+  resetTabIndexAndFocus();
+  removeAllTabIndex();
+  setTabIndex([host, belowSlots], 0);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots>
+  //      <slot #firstSlot>
+  //        (slotted) <div #slottedToFirstSlot>
+  //      <slot #secondSlot>
+  //        (slotted) <div #slottedToSecondSlot>
+  //      <div #belowSlots> tabindex=0
+  // <div #outside>
+  // First focusable = #belowSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, belowSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & tabindex=0, #belowSlots with tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  removeAllTabIndex();
+  setTabIndex([host, outside], 0);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots>
+  //      <slot #firstSlot>
+  //        (slotted) <div #slottedToFirstSlot>
+  //      <slot #secondSlot>
+  //        (slotted) <div #slottedToSecondSlot>
+  //      <div #belowSlots>
+  // <div #outside> tabindex=0
+  // No focusable element under #host in the flat tree.
+  host.focus();
+  assert_equals(shadowRoot.activeElement, null);
+  assert_equals(document.activeElement, document.body);
+}, "focus() on host with delegatesFocus & tabindex=0, #outside with tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setTabIndex([host, aboveSlots, belowSlots], 0);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots> tabindex=0
+  //      <slot #firstSlot>
+  //        (slotted) <div #slottedToFirstSlot>
+  //      <slot #secondSlot>
+  //        (slotted) <div #slottedToSecondSlot>
+  //      <div #belowSlots> tabindex=0
+  // <div #outside>
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & tabindex=0, #aboveSlots and #belowSlots with tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setTabIndex([host, aboveSlots], 0);
+  setTabIndex([belowSlots], 1);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots> tabindex=0
+  //      <slot #firstSlot>
+  //        (slotted) <div #slottedToFirstSlot>
+  //      <slot #secondSlot>
+  //        (slotted) <div #slottedToSecondSlot>
+  //      <div #belowSlots> tabindex=1
+  // <div #outside>
+  // First focusable = #aboveSlots
+  host.focus();
+  assert_equals(shadowRoot.activeElement, aboveSlots);
+  assert_equals(document.activeElement, host);
+}, "focus() on host with delegatesFocus & tabindex=0, #aboveSlots with tabindex=0 and #belowSlots with tabindex=1");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setTabIndex([host, slottedToFirstSlot, slottedToSecondSlot, belowSlots], 0);
+  // Structure:
+  // <div #host> (delegatesFocus=true) tabindex=0
+  //    #shadowRoot
+  //      <div #aboveSlots>
+  //      <slot #firstSlot>
+  //        (slotted) <div #slottedToFirstSlot> tabindex=0
+  //      <slot #secondSlot>
+  //        (slotted) <div #slottedToSecondSlot> tabindex=0
+  //      <div #belowSlots> tabindex=0
+  // <div #outside>
+  // First focusable = #slottedToFirstSlot
+  host.focus();
+  assert_equals(shadowRoot.activeElement, null);
+  assert_equals(document.activeElement, slottedToFirstSlot);
+}, "focus() on host with delegatesFocus & tabindex=0, #slottedToFirstSlot, #slottedToSecondSlot, #belowSlots  with tabindex=0");
+
+test(() => {
+  resetTabIndexAndFocus();
+  setTabIndex([aboveSlots, belowSlots], 0);
+  belowSlots.focus();
+  host.focus();
+  assert_equals(shadowRoot.activeElement, belowSlots);
+}, "focus() on host with delegatesFocus and already-focused non-first shadow descendant");
+
+function createNestedHosts(innerDelegatesFocus) {
+  // Structure:
+  // <div> outerHost
+  //   <input> outerLightChild
+  //   #shadowRoot outerShadow delegatesFocus=true
+  //     <span> innerHost
+  //       #shadowRoot inneShadow delegatesFocus=true/false
+  //         <input> innerShadowChild
+  //     <input> outerShadowChild
+  const outerHost = document.createElement('div');
+  const outerLightChild = document.createElement('input');
+  outerHost.appendChild(outerLightChild);
+  const innerHost = document.createElement('span');
+  const outerShadow = outerHost.attachShadow({mode: 'closed', delegatesFocus:true});
+  outerShadow.appendChild(innerHost);
+  const outerShadowChild = document.createElement('input');
+  outerShadow.appendChild(outerShadowChild);
+
+  const innerShadow = innerHost.attachShadow({mode: 'closed', delegatesFocus:innerDelegatesFocus});
+  const innerShadowChild = document.createElement('input');
+  innerShadow.appendChild(innerShadowChild);
+
+  document.body.insertBefore(outerHost, document.body.firstChild);
+  return {outerHost: outerHost,
+      outerLightChild: outerLightChild,
+      outerShadow: outerShadow,
+      outerShadowChild: outerShadowChild,
+      innerHost: innerHost,
+      innerShadow: innerShadow,
+      innerShadowChild: innerShadowChild};
+}
+
+test(() => {
+  const dom = createNestedHosts(false);
+  dom.outerHost.focus();
+  assert_equals(document.activeElement, dom.outerHost);
+  assert_equals(dom.outerShadow.activeElement, dom.innerHost);
+  assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
+}, 'focus() on host with delegatesFocus with another host with no delegatesFocus and a focusable child');
+
+test(() => {
+  const dom = createNestedHosts(true);
+  dom.outerHost.focus();
+  assert_equals(document.activeElement, dom.outerHost);
+  assert_equals(dom.outerShadow.activeElement, dom.innerHost);
+  assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
+}, 'focus() on host with delegatesFocus with another host with delegatesFocus and a focusable child');
+</script>
+

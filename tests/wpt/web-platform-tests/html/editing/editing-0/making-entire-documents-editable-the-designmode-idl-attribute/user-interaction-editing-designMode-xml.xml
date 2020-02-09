@@ -12,20 +12,20 @@
   <script type="text/javascript"><![CDATA[
    test(function() {
     assert_equals(document.designMode, "off", "check for designMode value");
-    assert_throws("InvalidStateError", function() { document.queryCommandSupported("delete") });
-    assert_throws("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
    }, "initial designMode attribute");
    document.designMode="on";
    test(function() {
     assert_equals(document.designMode, "on", "check for designMode value");
-    assert_throws("InvalidStateError", function() { document.queryCommandSupported("delete") });
-    assert_throws("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
    }, "set designMode = \"on\"");
    document.designMode="off";
    test(function() {
     assert_equals(document.designMode,"off", "check for designMode value");
-    assert_throws("InvalidStateError", function() { document.queryCommandSupported("delete") });
-    assert_throws("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
    }, "set designMode = \"off\"");
   ]]></script>
  </body>

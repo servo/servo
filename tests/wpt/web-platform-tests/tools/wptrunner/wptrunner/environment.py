@@ -5,6 +5,7 @@ import signal
 import socket
 import sys
 import time
+from six import iteritems
 
 from mozlog import get_default_logger, handlers, proxy
 
@@ -14,7 +15,7 @@ here = os.path.split(__file__)[0]
 repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
 
 sys.path.insert(0, repo_root)
-from tools import localpaths  # noqa: flake8
+from tools import localpaths  # noqa: F401
 
 from wptserve.handlers import StringHandler
 
@@ -50,9 +51,9 @@ class TestEnvironmentError(Exception):
 
 
 class TestEnvironment(object):
+    """Context manager that owns the test environment i.e. the http and
+    websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler, pause_after_test, debug_info, options, ssl_config, env_extras):
-        """Context manager that owns the test environment i.e. the http and
-        websockets servers"""
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
@@ -98,7 +99,7 @@ class TestEnvironment(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_interrupts()
 
-        for scheme, servers in self.servers.iteritems():
+        for scheme, servers in iteritems(self.servers):
             for port, server in servers:
                 server.kill()
         for cm in self.env_extras_cms:
@@ -191,10 +192,10 @@ class TestEnvironment(object):
             data += fp.read()
         with open(os.path.join(here, "testdriver-extra.js"), "rb") as fp:
             data += fp.read()
-        route_builder.add_handler(b"GET", b"/resources/testdriver.js",
+        route_builder.add_handler("GET", "/resources/testdriver.js",
                                   StringHandler(data, "text/javascript"))
 
-        for url_base, paths in self.test_paths.iteritems():
+        for url_base, paths in iteritems(self.test_paths):
             if url_base == "/":
                 continue
             route_builder.add_mount_point(url_base, paths["tests_path"])
@@ -220,7 +221,7 @@ class TestEnvironment(object):
     def test_servers(self):
         failed = []
         host = self.config["server_host"]
-        for scheme, servers in self.servers.iteritems():
+        for scheme, servers in iteritems(self.servers):
             for port, server in servers:
                 if self.test_server_port:
                     s = socket.socket()

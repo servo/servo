@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: word-break:break-word + white-space:break-spaces</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" title="3. White Space and Wrapping: the white-space property" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="help" title="5.5. Overflow Wrapping: the overflow-wrap/word-wrap property " href="https://drafts.csswg.org/css-text-3/#overflow-wrap-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-anywhere">
+<meta name="flags" content="ahem">
+<link rel="match" href="reference/white-space-break-spaces-005-ref.html">
+<meta name="assert" content="anywhere + break-spaces do allow a break
+between the last character of a word and the first space of a sequence of preserved spaces
+if there are no other wrapping opportunities earlier in the line">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 25px/1 Ahem;
+}
+.expected {
+  position: absolute;
+  color: green;
+  width: 100px;
+  height: 100px;
+  white-space: pre;
+}
+.test {
+  background: green;
+  color: red;
+  width: 4ch;
+
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+<div class="expected">XXXX<br> <br>XXXX<br></div>
+<div class="test">XXXX XXXX </div>

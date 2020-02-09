@@ -21,9 +21,9 @@ let loadChromiumResources = Promise.resolve().then(() => {
   [
     '/gen/layout_test_data/mojo/public/js/mojo_bindings.js',
     '/gen/mojo/public/mojom/base/big_buffer.mojom.js',
-    '/gen/skia/public/interfaces/image_info.mojom.js',
-    '/gen/skia/public/interfaces/bitmap.mojom.js',
-    '/gen/ui/gfx/geometry/mojo/geometry.mojom.js',
+    '/gen/skia/public/mojom/image_info.mojom.js',
+    '/gen/skia/public/mojom/bitmap.mojom.js',
+    '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
     `${prefix}/barcodedetection.mojom.js`,
     `${prefix}/barcodedetection_provider.mojom.js`,
     `${prefix}/facedetection.mojom.js`,

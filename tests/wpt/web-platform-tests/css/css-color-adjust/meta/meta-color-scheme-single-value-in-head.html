@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Color Adjust Test: Single meta color-scheme in head</title>
+<meta name="color-scheme" content="dark">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust-1/#color-scheme-meta">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  assert_root_color_scheme("dark", "Meta color-scheme in head applies.");
+</script>

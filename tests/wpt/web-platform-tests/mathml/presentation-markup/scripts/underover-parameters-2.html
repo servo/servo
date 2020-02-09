@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Underscripts and Overscripts parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mundermover">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <meta name="assert" content="Elements munder, mover, munderover correctly use the stretch stack parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace, mo {
     font-size: 10px;
@@ -37,13 +38,12 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("under00011").top - getBox("ref0001").bottom,
                            v, epsilon, "munder: under shift");
@@ -52,6 +52,8 @@
     }, "StretchStackBottomShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 11000 * emToPx;
       assert_approx_equals(getBox("under00021").top - getBox("ref0002").bottom,
                            v, epsilon, "munder: under gap");
@@ -60,6 +62,8 @@
     }, "StretchStackGapBelowMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 5000 * emToPx;
       assert_approx_equals(getBox("ref0003").top - getBox("over00031").bottom,
                            v, epsilon, "mover: over shift");
@@ -68,6 +72,8 @@
     }, "StretchStackTopShiftUp");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 7000 * emToPx;
       assert_approx_equals(getBox("ref0004").top - getBox("over00041").bottom,
                            v, epsilon, "mover: over shift");

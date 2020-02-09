@@ -23,6 +23,7 @@ pub struct DOMQuad {
     p4: Dom<DOMPoint>,
 }
 
+#[allow(non_snake_case)]
 impl DOMQuad {
     fn new_inherited(p1: &DOMPoint, p2: &DOMPoint, p3: &DOMPoint, p4: &DOMPoint) -> DOMQuad {
         DOMQuad {

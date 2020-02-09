@@ -19,7 +19,7 @@
 
         e.target.transaction.abort();
 
-        assert_throws("InvalidStateError", function(){
+        assert_throws_dom("InvalidStateError", function(){
             index.getKey("data");
         });
         t.done();

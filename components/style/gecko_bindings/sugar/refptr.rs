@@ -304,6 +304,11 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleaseURLExtraDataArbitraryThread
 );
 impl_threadsafe_refcount!(
+    structs::nsIReferrerInfo,
+    bindings::Gecko_AddRefnsIReferrerInfoArbitraryThread,
+    bindings::Gecko_ReleasensIReferrerInfoArbitraryThread
+);
+impl_threadsafe_refcount!(
     structs::nsIURI,
     bindings::Gecko_AddRefnsIURIArbitraryThread,
     bindings::Gecko_ReleasensIURIArbitraryThread

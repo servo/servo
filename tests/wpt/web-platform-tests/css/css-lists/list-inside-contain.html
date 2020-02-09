@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Lists: list inside a contain ul</title>
+  <link rel=help href="https://www.w3.org/TR/CSS22/generate.html#lists">
+  <link rel="help" href="http://crbug.com/1004764">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+    ul { contain: size layout; }
+    li { list-style: inside; columns: 1; background-image: url(#svgvar00008); }
+  </style>
+</head>
+
+<script>
+setup({ single_test: true });
+
+function changeBackground() {
+  document.getElementById("target").style.setProperty("background", "url(data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7) no-repeat scroll top right");
+
+  done();
+}
+</script>
+
+<body onload=requestAnimationFrame(changeBackground)>
+  <p>PASS if no crash or DCHECK failure.</p>
+  <ul>
+    <li id="target">
+    </li>
+  </ul>
+</body>

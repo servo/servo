@@ -23,7 +23,7 @@ for (var i = 0; i < testRanges.length; i++) {
                 : null;
 
             if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-                assert_throws("INVALID_NODE_TYPE_ERR", function() {
+                assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
                     selection.selectAllChildren(node);
                 }, "selectAllChildren() on a DocumentType must throw InvalidNodeTypeError");
                 return;

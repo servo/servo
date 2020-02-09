@@ -3,15 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmllinkelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLLinkElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute USVString href;
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions]
            attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions]
            attribute DOMString media;
   [CEReactions]
@@ -24,7 +26,7 @@ interface HTMLLinkElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLLinkElement implements LinkStyle;
+HTMLLinkElement includes LinkStyle;
 
 // https://html.spec.whatwg.org/multipage/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {

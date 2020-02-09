@@ -11,8 +11,10 @@
  */
 
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLAnchorElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
   attribute DOMString target;
   // [CEReactions]
@@ -21,7 +23,7 @@ interface HTMLAnchorElement : HTMLElement {
   //       attribute USVString ping;
   [CEReactions]
            attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   // [CEReactions]
   //       attribute DOMString hreflang;
   // [CEReactions]
@@ -32,7 +34,7 @@ interface HTMLAnchorElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLAnchorElement implements HTMLHyperlinkElementUtils;
+HTMLAnchorElement includes HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {

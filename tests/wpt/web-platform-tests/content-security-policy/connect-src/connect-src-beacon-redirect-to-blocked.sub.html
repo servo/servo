@@ -16,12 +16,12 @@
     <p>The beacon should not follow the redirect to http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png and send a CSP violation report.</p>
     <p>Verify that a CSP connect-src directive blocks redirects.</p>
     <script>
-       window.addEventListener('securitypolicyviolation', function(e) {
+        window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
-       });
-       
-	     if (typeof navigator.sendBeacon != 'function') {
-	          t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
+        });
+
+        if (typeof navigator.sendBeacon != 'function') {
+            t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
             t_log.phase = t_log.phases.HAS_RESULT;
             t_log.done();
         } else {

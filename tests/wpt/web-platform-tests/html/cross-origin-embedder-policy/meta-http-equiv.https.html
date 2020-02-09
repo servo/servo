@@ -1,0 +1,20 @@
+<!doctype html>
+<meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp"><!-- should not be supported -->
+<title>Cross-Origin-Embedder-Policy in &lt;meta http-equiv></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  frame.src = "/common/blank.html";
+  document.body.append(frame);
+  assert_equals(frame.contentDocument.URL, "about:blank");
+  assert_equals(frame.contentDocument.body.localName, "body");
+  frame.onload = t.step_func_done(() => {
+    assert_equals(frame.contentDocument.URL, `${location.protocol}//${location.host}/common/blank.html`);
+    assert_equals(frame.contentDocument.body.localName, "body");
+  });
+}, `<meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp"> top-level: navigating a frame to "none" should not fail`);
+</script>

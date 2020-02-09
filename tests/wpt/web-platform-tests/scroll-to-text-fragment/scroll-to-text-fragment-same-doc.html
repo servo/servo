@@ -1,0 +1,57 @@
+<!doctype html>
+<title>Navigating to a same-document text fragment directive</title>
+<meta charset=utf-8>
+<link rel="help" href="https://wicg.github.io/ScrollToTextFragment/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+function isInView(element) {
+  let rect = element.getBoundingClientRect();
+  return rect.top >= 0 && rect.top <= window.innerHeight;
+}
+
+function checkScroll(resolve) {
+  let position = 'unknown';
+  if (window.scrollY == 0)
+    position = 'top';
+  else if (isInView(document.getElementById('text')))
+    position = 'text';
+
+  resolve(position);
+}
+
+function runTest() {
+  promise_test(t => new Promise(resolve => {
+    window.location.href = "#:~:text=test";
+    requestAnimationFrame(function() {
+      checkScroll(resolve);
+    });
+  }).then(position => {
+    assert_equals(position, 'top');
+    assert_equals(window.location.href.indexOf(':~:'), -1, 'Expected fragment directive to be stripped from the URL.');
+  }), 'Test that a text fragment directive cannot be activated on a same-document navigation');
+
+  promise_test(t => new Promise(resolve => {
+    window.location.href = "#text";
+    requestAnimationFrame(function() {
+      checkScroll(resolve);
+    });
+  }).then(position => {
+    assert_equals(position, 'text');
+  }), 'Sanity check that the text element can be navigated by element ID');
+}
+</script>
+<style>
+  body {
+    height: 3200px;
+  }
+  #text {
+    position: absolute;
+    top: 3000px;
+  }
+</style>
+<body onload="runTest()">
+  <p id="text">This is a test page</p>
+</body>

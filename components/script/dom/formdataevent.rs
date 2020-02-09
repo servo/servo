@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataEventBinding;
 use crate::dom::bindings::codegen::Bindings::FormDataEventBinding::FormDataEventMethods;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -48,6 +48,7 @@ impl FormDataEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -56,21 +57,12 @@ impl FormDataEvent {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        let form_data = match init.formData {
-            Some(ref form_data) => form_data.clone(),
-            None => {
-                return Err(Error::Type(
-                    "required member formData is undefined".to_string(),
-                ));
-            },
-        };
-
         let event = FormDataEvent::new(
             &window.global(),
             Atom::from(type_),
             bubbles,
             cancelable,
-            &*form_data,
+            &*init.formData.clone(),
         );
 
         Ok(event)

@@ -10,38 +10,47 @@ from decisionlib import CONFIG, SHARED
 
 
 def main(task_for):
+    with decisionlib.make_repo_bundle():
+        tasks(task_for)
+
+
+def tasks(task_for):
     if CONFIG.git_ref.startswith("refs/heads/"):
         branch = CONFIG.git_ref[len("refs/heads/"):]
         CONFIG.treeherder_repository_name = "servo-" + (
             branch if not branch.startswith("try-") else "try"
         )
 
-    if task_for == "github-push":
-        # FIXME https://github.com/servo/servo/issues/22325 implement these:
-        linux_arm32_dev = linux_arm64_dev = lambda: None
+    # Work around a tc-github bug/limitation:
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1548781#c4
+    if task_for.startswith("github"):
+        # https://github.com/taskcluster/taskcluster/blob/21f257dc8/services/github/config.yml#L14
+        CONFIG.routes_for_all_subtasks.append("statuses")
 
+    # The magicleap build is broken until there's a surfman back end
+    magicleap_dev = lambda: None
+    magicleap_nightly = lambda: None
+
+    if task_for == "github-push":
         # FIXME https://github.com/servo/servo/issues/22187
         # In-emulator testing is disabled for now. (Instead we only compile.)
         # This local variable shadows the module-level function of the same name.
         android_x86_wpt = android_x86_release
 
-        # Implemented but disabled for now:
-        linux_wpt = lambda: None  # Shadows the existing top-level function
-
         all_tests = [
-            linux_tidy_unit_docs,
+            linux_tidy_unit,
+            linux_docs_check,
             windows_unit,
-            windows_x86,
             windows_arm64,
+            windows_uwp_x64,
             macos_unit,
             magicleap_dev,
             android_arm32_dev,
             android_arm32_dev_from_macos,
             android_arm32_release,
             android_x86_wpt,
-            linux_arm32_dev,
-            linux_arm64_dev,
             linux_wpt,
+            linux_wpt_layout_2020,
             linux_release,
             macos_wpt,
         ]
@@ -59,11 +68,12 @@ def main(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_tidy_unit_docs, linux_release],
-            "try-windows": [windows_unit, windows_x86, windows_arm64],
+            "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
+            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-magicleap": [magicleap_dev],
-            "try-arm": [linux_arm32_dev, linux_arm64_dev, windows_arm64],
+            "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
+            "try-wpt-2020": [linux_wpt_layout_2020],
             "try-wpt-mac": [macos_wpt],
             "try-wpt-android": [android_x86_wpt],
             "try-android": [
@@ -85,7 +95,12 @@ def main(task_for):
         # https://github.com/servo/servo/pull/22597#issuecomment-451518810
         CONFIG.git_sha_is_current_head()
 
-        tidy_untrusted()
+        linux_tidy_unit_untrusted()
+
+    elif task_for == "try-windows-ami":
+        CONFIG.git_sha_is_current_head()
+        CONFIG.windows_worker_type = os.environ["NEW_AMI_WORKER_TYPE"]
+        windows_unit(cached=False)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -97,6 +112,7 @@ def main(task_for):
         macos_nightly()
         update_wpt()
         magicleap_nightly()
+        uwp_nightly()
 
 
 # These are disabled in a "real" decision task,
@@ -104,7 +120,8 @@ def main(task_for):
 def mocked_only():
     windows_release()
     android_x86_wpt()
-    linux_wpt()
+    magicleap_dev()
+    magicleap_nightly()
     decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
@@ -124,27 +141,24 @@ linux_build_env = {
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
-    "SCCACHE_IDLE_TIMEOUT": "1200",
     "CC": "clang",
     "CXX": "clang++",
+    "SCCACHE_IDLE_TIMEOUT": "1200",
+    # https://github.com/servo/servo/issues/24714#issuecomment-552951519
+    "SCCACHE_MAX_FRAME_LENGTH": str(100 * 1024 * 1024),  # 100 MiB
 }
 macos_build_env = {}
 windows_build_env = {
-    "x86": {
-        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\lib;%LIB%",
-        "GSTREAMER_1_0_ROOT_X86": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86\\",
-    },
     "x86_64": {
-        "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
     },
     "arm64": {
         "PKG_CONFIG_ALLOW_CROSS": "1",
-        # No GStreamer support for arm64 windows yet.
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
         "LINKER": "lld-link.exe",
+        "MOZTOOLS_PATH_PREPEND": "%HOMEDRIVE%%HOMEPATH%\\git\\cmd",
     },
 }
 
@@ -158,48 +172,81 @@ windows_sparse_checkout = [
 ]
 
 
-def tidy_untrusted():
+def linux_tidy_unit_untrusted():
     return (
-        decisionlib.DockerWorkerTask("Tidy")
-        .with_worker_type("servo-docker-untrusted")
-        .with_treeherder("Linux x64", "Tidy")
+        decisionlib.DockerWorkerTask("Tidy + dev build + unit tests")
+        .with_worker_type("docker-untrusted")
+        .with_treeherder("Linux x64", "Tidy+Unit")
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
-        .with_repo()
+        .with_repo_bundle()
         .with_script("""
             ./mach test-tidy --no-progress --all
+            ./mach test-tidy --no-progress --self-test
+            ./mach bootstrap-gstreamer
+            ./mach build --dev
+            ./mach test-unit
+
+            ./etc/ci/lockfile_changed.sh
+            ./etc/memory_reports_over_time.py --test
+            ./etc/ci/check_no_panic.sh
         """)
         .create()
     )
 
 
-def linux_tidy_unit_docs():
+def linux_tidy_unit():
     return (
-        linux_build_task("Tidy + dev build + unit tests + docs")
-        .with_treeherder("Linux x64", "Tidy+Unit+Doc")
+        linux_build_task("Tidy + dev build + unit tests")
+        .with_treeherder("Linux x64", "Tidy+Unit")
+        .with_max_run_time_minutes(75)
         .with_script("""
             ./mach test-tidy --no-progress --all
-            ./mach build --dev
-            ./mach test-unit
-            ./mach package --dev
-            ./mach build --dev --features raqote_backend
-            ./mach build --dev --libsimpleservo
-            ./mach build --dev --no-default-features --features default-except-unstable
-            ./mach test-tidy --no-progress --self-test
+            python3 ./mach test-tidy --no-progress --all --no-wpt
+            python3 ./mach build --dev
+            python3 ./mach test-unit
+            python3 ./mach package --dev
+            python3 ./mach build --dev --features refcell_backtrace
+            python3 ./mach build --dev --features layout-2020
+            python3 ./mach build --dev --libsimpleservo
+            python3 ./mach build --dev -p servo-gst-plugin
+            python3 ./mach build --dev --media-stack=dummy
+            python3 ./mach test-tidy --no-progress --self-test
 
             ./etc/memory_reports_over_time.py --test
             ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
+        """)
+        .find_or_create("linux_unit." + CONFIG.task_id())
+    )
 
+
+def linux_docs_check():
+    return (
+        linux_build_task("Docs + check")
+        .with_treeherder("Linux x64", "Doc+Check")
+        .with_script("""
             RUSTDOCFLAGS="--disable-minification" ./mach doc
-            cd target/doc
-            git init
-            time git add .
-            git -c user.name="Taskcluster" -c user.email="" \
-                commit -q -m "Rebuild Servo documentation"
-            git bundle create docs.bundle HEAD
+            (
+                cd target/doc
+                git init
+                git add .
+                git -c user.name="Taskcluster" -c user.email="" \
+                    commit -q -m "Rebuild Servo documentation"
+                git bundle create docs.bundle HEAD
+            )
+
+        """
+        # Because `rustdoc` needs metadata of dependency crates,
+        # `cargo doc` does almost all of the work that `cargo check` does.
+        # Therefore, when running them in this order the second command does very little
+        # and should finish quickly.
+        # The reverse order would not increase the total amount of work to do,
+        # but would reduce the amount of parallelism available.
+        """
+            ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.task_id())
@@ -216,8 +263,9 @@ def upload_docs():
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/doc.servo.org")
         .with_env(PY="""if 1:
-            import urllib, json
-            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            import urllib, json, os
+            root_url = os.environ["TASKCLUSTER_PROXY_URL"]
+            url = root_url + "/api/secrets/v1/secret/project/servo/doc.servo.org"
             token = json.load(urllib.urlopen(url))["secret"]["token"]
             open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
         """)
@@ -268,7 +316,7 @@ def with_rust_nightly():
 def android_arm32_dev_from_macos():
     return (
         macos_build_task("Dev build (macOS)")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Dev(macOS)")
         .with_script("""
             export HOST_CC="$(brew --prefix llvm)/bin/clang"
             export HOST_CXX="$(brew --prefix llvm)/bin/clang++"
@@ -282,7 +330,7 @@ def android_arm32_dev_from_macos():
 def android_arm32_dev():
     return (
         android_build_task("Dev build")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Dev")
         .with_script("""
             ./mach build --android --dev
             ./etc/ci/lockfile_changed.sh
@@ -295,7 +343,7 @@ def android_arm32_dev():
 def android_nightly():
     return (
         android_build_task("Nightly build and upload")
-        .with_treeherder("Android Nightlies")
+        .with_treeherder("Android", "Nightlies")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         .with_script("""
@@ -344,16 +392,21 @@ def android_x86_release():
 
 def android_x86_wpt():
     build_task = android_x86_release()
-    return (
+    task = (
         linux_task("WPT")
-        .with_treeherder("Android x86")
+        .with_treeherder("Android x86", "WPT")
         .with_provisioner_id("proj-servo")
         .with_worker_type("docker-worker-kvm")
         .with_capabilities(privileged=True)
         .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
         .with_dockerfile(dockerfile_path("run-android-emulator"))
-        .with_repo()
-        .with_curl_artifact_script(build_task, "servoapp.apk", "target/android/i686-linux-android/release")
+        .with_repo_bundle()
+    )
+    apk_dir = "target/android/i686-linux-android/release"
+    return (
+        task
+        .with_script("mkdir -p " + apk_dir)
+        .with_curl_artifact_script(build_task, "servoapp.apk", apk_dir)
         .with_script("""
             ./mach bootstrap-android --accept-all-licences --emulator-x86
             ./mach test-android-startup --release
@@ -365,36 +418,64 @@ def android_x86_wpt():
     )
 
 
-def windows_x86():
-    return (
-        windows_cross_build_task("Dev build", arch="x86", package=True)
-        .with_treeherder("Windows x86")
-        .with_script(
-            "python mach build --dev --target i686-pc-windows-msvc",
-            "python mach package --dev --target i686-pc-windows-msvc",
-        )
-        .with_artifacts("repo/target/i686-pc-windows-msvc/debug/msi/Servo.exe",
-                        "repo/target/i686-pc-windows-msvc/debug/msi/Servo.zip")
-        .find_or_create("build.windows_x86_dev." + CONFIG.task_id())
-    )
+def appx_artifact(debug):
+    return '/'.join([
+        'repo',
+        'support',
+        'hololens',
+        'AppPackages',
+        'ServoApp',
+        'ServoApp_1.0.0.0_%sTest.zip' % ('Debug_' if debug else ''),
+    ])
 
 
 def windows_arm64():
     return (
-        windows_cross_build_task("Dev build", arch="arm64", package=False)
-        .with_treeherder("Windows arm64")
+        windows_build_task("UWP dev build", arch="arm64", package=False)
+        .with_treeherder("Windows arm64", "UWP-Dev")
         .with_script(
-            "python mach build --dev --libsimpleservo \
-              --target aarch64-pc-windows-msvc \
-              --with-raqote \
-              --without-wgl",
+            "python mach build --dev --target=aarch64-uwp-windows-msvc",
+            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
-        .find_or_create("build.windows_arm64_dev." + CONFIG.task_id())
+        .with_artifacts(appx_artifact(debug=True))
+        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
     )
 
 
-def windows_unit():
+def windows_uwp_x64():
     return (
+        windows_build_task("UWP dev build", package=False)
+        .with_treeherder("Windows x64", "UWP-Dev")
+        .with_script(
+            "python mach build --dev --target=x86_64-uwp-windows-msvc",
+            "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
+            "python mach test-tidy --force-cpp --no-wpt",
+        )
+        .with_artifacts(appx_artifact(debug=True))
+        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
+    )
+
+
+def uwp_nightly():
+    return (
+        windows_build_task("Nightly UWP build and upload", package=False)
+        .with_treeherder("Windows x64", "UWP-Nightly")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_script(
+            "python mach build --release --target=x86_64-uwp-windows-msvc",
+            "python mach build --release --target=aarch64-uwp-windows-msvc",
+            "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
+            "mach upload-nightly uwp --secret-from-taskcluster",
+        )
+        .with_artifacts(appx_artifact(debug=False))
+        .with_max_run_time_minutes(3 * 60)
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
+    )
+
+
+def windows_unit(cached=True):
+    task = (
         windows_build_task("Dev build + unit tests")
         .with_treeherder("Windows x64", "Unit")
         .with_script(
@@ -404,13 +485,21 @@ def windows_unit():
 
             "mach build --dev",
             "mach test-unit",
+            "mach smoketest --angle",
             "mach package --dev",
             "mach build --dev --libsimpleservo",
+            # The GStreamer plugin currently doesn't support Windows
+            # https://github.com/servo/servo/issues/25353
+            # "mach build --dev -p servo-gst-plugin",
+
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
-        .find_or_create("build.windows_x64_dev." + CONFIG.task_id())
     )
+    if cached:
+        return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
+    else:
+        return task.create()
 
 
 def windows_release():
@@ -469,26 +558,6 @@ def linux_release():
         .find_or_create("build.linux_x64_release" + CONFIG.task_id())
     )
 
-def linux_wpt():
-    release_build_task = (
-        linux_build_task("Release build, with debug assertions")
-        .with_treeherder("Linux x64", "Release+A")
-        .with_script("""
-            ./mach build --release --with-debug-assertions -p servo
-            ./etc/ci/lockfile_changed.sh
-            tar -czf /target.tar.gz \
-                target/release/servo \
-                target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/lib/gallium
-        """)
-        .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x64_release~assertions" + CONFIG.task_id())
-    )
-    def linux_run_task(name):
-        return linux_task(name).with_dockerfile(dockerfile_path("run"))
-    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               total_chunks=2, processes=24)
-
 
 def macos_nightly():
     return (
@@ -510,28 +579,22 @@ def macos_nightly():
 
 
 def update_wpt():
-    build_task = macos_release_build()
-    update_task = (
-        macos_task("WPT update")
-        .with_python2()
-        .with_treeherder("macOS x64", "WPT update")
+    build_task = linux_release_build_with_debug_assertions(layout_2020=False)
+    return (
+        linux_task("WPT update")
+        .with_treeherder("Linux x64", "WPT-update")
+        .with_dockerfile(dockerfile_path("wpt-update"))
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/wpt-sync")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_max_run_time_minutes(5 * 60)
-    )
-    return (
-        with_homebrew(update_task, [
-            "etc/taskcluster/macos/Brewfile-wpt",
-            "etc/taskcluster/macos/Brewfile-gstreamer",
-        ])
-        # Pushing the new changes to the git remote requires a full repo clone.
-        .with_repo(shallow=False)
+        .with_max_run_time_minutes(8 * 60)
+        # Not using the bundle, pushing the new changes to the git remote requires a full repo.
+        .with_repo()
         .with_curl_artifact_script(build_task, "target.tar.gz")
         .with_script("""
-            export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
             tar -xzf target.tar.gz
-            ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+            # Use `cat` to force wptrunner’s non-interactive mode
+            ./etc/ci/update-wpt-checkout fetch-and-update-expectations | cat
             ./etc/ci/update-wpt-checkout open-pr
             ./etc/ci/update-wpt-checkout cleanup
         """)
@@ -539,47 +602,120 @@ def update_wpt():
     )
 
 
-def macos_release_build():
+def macos_release_build_with_debug_assertions(priority=None):
     return (
-        macos_build_task("Release build")
-        .with_treeherder("macOS x64", "Release")
+        macos_build_task("Release build, with debug assertions")
+        .with_treeherder("macOS x64", "Release+A")
+        .with_priority(priority)
+        .with_script("\n".join([
+            "./mach build --release --verbose --with-debug-assertions",
+            "./etc/ci/lockfile_changed.sh",
+            "tar -czf target.tar.gz" +
+            " target/release/servo" +
+            " target/release/build/osmesa-src-*/output" +
+            " target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs" +
+            " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
+        ]))
+        .with_artifacts("repo/target.tar.gz")
+        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
+    )
+
+
+def linux_release_build_with_debug_assertions(layout_2020):
+    if layout_2020:
+        name_prefix = "Layout 2020 "
+        build_args = "--with-layout-2020"
+        index_key_suffix = "_2020"
+        treeherder_prefix = "2020-"
+    else:
+        name_prefix = ""
+        build_args = ""
+        index_key_suffix = ""
+        treeherder_prefix = ""
+    return (
+        linux_build_task(name_prefix + "Release build, with debug assertions")
+        .with_treeherder("Linux x64", treeherder_prefix + "Release+A")
         .with_script("""
-            ./mach build --release --verbose
+            time ./mach rustc -V
+            time ./mach fetch
+            ./mach build --release --with-debug-assertions %s -p servo
             ./etc/ci/lockfile_changed.sh
-            tar -czf target.tar.gz \
+            tar -czf /target.tar.gz \
                 target/release/servo \
                 target/release/build/osmesa-src-*/output \
-                target/release/build/osmesa-src-*/out/src/gallium/targets/osmesa/.libs \
-                target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs
-        """)
-        .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release." + CONFIG.task_id())
+                target/release/build/osmesa-src-*/out/lib/gallium
+            sccache --show-stats
+        """ % build_args)
+        .with_artifacts("/target.tar.gz")
+        .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
+            index_key_suffix,
+            CONFIG.task_id(),
+        ))
     )
 
 
 def macos_wpt():
-    build_task = macos_release_build()
+    priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
+    build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
-        task = macos_task(name).with_python2()
-        return (
-            with_homebrew(task, ["etc/taskcluster/macos/Brewfile-gstreamer"])
-            .with_script("""
-                export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
-            """)
-        )
-    wpt_chunks("macOS x64", macos_run_task, build_task, repo_dir="repo",
-               total_chunks=6, processes=4)
+        task = macos_task(name).with_python2().with_python3() \
+            .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
+        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
+    wpt_chunks(
+        "macOS x64",
+        macos_run_task,
+        build_task,
+        repo_dir="repo",
+        total_chunks=20,
+        processes=8,
+    )
+
+
+def linux_wpt():
+    linux_wpt_common(total_chunks=4, layout_2020=False)
+
+
+def linux_wpt_layout_2020():
+    linux_wpt_common(total_chunks=1, layout_2020=True)
+
+
+def linux_wpt_common(total_chunks, layout_2020):
+    release_build_task = linux_release_build_with_debug_assertions(layout_2020)
+    def linux_run_task(name):
+        return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
+    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
+               processes=20, total_chunks=total_chunks, layout_2020=layout_2020)
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all"):
+               repo_dir, chunks="all", layout_2020=False):
+    if layout_2020:
+        start = 1  # Skip the "extra" WPT testing, a.k.a. chunk 0
+        name_prefix = "Layout 2020 "
+        job_id_prefix = "2020-"
+        args = "--layout-2020"
+    else:
+        start = 0
+        name_prefix = ""
+        job_id_prefix = ""
+        args = ""
+
     if chunks == "all":
-        chunks = [n + 1 for n in range(total_chunks)]
+        chunks = range(start, total_chunks + 1)
     for this_chunk in chunks:
         task = (
-            make_chunk_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-            .with_treeherder(platform, "WPT-%s" % this_chunk)
-            .with_repo()
+            make_chunk_task("{}WPT chunk {:0{width}} / {}".format(
+                name_prefix,
+                this_chunk,
+                total_chunks,
+                width=len(str(total_chunks)),
+            ))
+            .with_treeherder(
+                platform,
+                "WPT-%s" % this_chunk,
+                group_symbol=job_id_prefix + "WPT",
+                group_name=name_prefix + "web-platform-tests"
+            )
             .with_curl_artifact_script(build_task, "target.tar.gz")
             .with_script("tar -xzf target.tar.gz")
             .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
@@ -588,15 +724,23 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 TOTAL_CHUNKS=str(total_chunks),
                 THIS_CHUNK=str(this_chunk),
                 PROCESSES=str(processes),
+                WPT_ARGS=args,
                 GST_DEBUG="3",
             )
         )
-        if this_chunk == chunks[-1]:
-            task.name += " + extra"
-            task.extra["treeherder"]["symbol"] += "+"
+        # `test-wpt` is piped into `cat` so that stdout is not a TTY
+        # and wptrunner does not use "interactive mode" formatting:
+        # https://github.com/servo/servo/issues/22438
+        if this_chunk == 0:
             task.with_script("""
                 ./mach test-wpt-failure
-                time ./mach test-wpt --release --binary-arg=--multiprocess \
+                time python2 ./mach test-wpt --release --binary-arg=--multiprocess \
+                    --processes $PROCESSES \
+                    --log-raw test-wpt-mp.log \
+                    --log-errorsummary wpt-mp-errorsummary.log \
+                    eventsource \
+                    | cat
+                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \
@@ -615,45 +759,48 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     | cat
                 time ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
                     --headless --log-raw test-wdspec.log \
-                    --log-errorsummary wdspec-errorsummary.log \
+                    --log-servojson wdspec-jsonsummary.log \
                     --always-succeed \
                     webdriver \
                     | cat
                 ./mach filter-intermittents \
-                    wdspec-errorsummary.log \
+                    wdspec-jsonsummary.log \
                     --log-intermittents intermittents.log \
                     --log-filteredsummary filtered-wdspec-errorsummary.log \
                     --tracker-api default \
                     --reporter-api default
             """)
-        # `test-wpt` is piped into `cat` so that stdout is not a TTY
-        # and wptrunner does not use "interactive mode" formatting:
-        # https://github.com/servo/servo/issues/22438
-        task.with_script("""
-            ./mach test-wpt \
-                --release \
-                --processes $PROCESSES \
-                --total-chunks "$TOTAL_CHUNKS" \
-                --this-chunk "$THIS_CHUNK" \
-                --log-raw test-wpt.log \
-                --log-errorsummary wpt-errorsummary.log \
-                --always-succeed \
-                | cat
-            ./mach filter-intermittents \
-                wpt-errorsummary.log \
-                --log-intermittents intermittents.log \
-                --log-filteredsummary filtered-wpt-errorsummary.log \
-                --tracker-api default \
-                --reporter-api default
-        """)
+        else:
+            task.with_script("""
+                ./mach test-wpt \
+                    --release \
+                    $WPT_ARGS \
+                    --processes $PROCESSES \
+                    --total-chunks "$TOTAL_CHUNKS" \
+                    --this-chunk "$THIS_CHUNK" \
+                    --log-raw test-wpt.log \
+                    --log-servojson wpt-jsonsummary.log \
+                    --always-succeed \
+                    | cat
+                ./mach filter-intermittents \
+                    wpt-jsonsummary.log \
+                    --log-intermittents intermittents.log \
+                    --log-filteredsummary filtered-wpt-errorsummary.log \
+                    --tracker-api default \
+                    --reporter-api default
+            """)
         task.with_artifacts(*[
             "%s/%s" % (repo_dir, word)
             for script in task.scripts
             for word in script.split()
             if word.endswith(".log")
         ])
-        platform_id = platform.replace(" ", "_").lower()
-        task.find_or_create("%s_wpt_%s.%s" % (platform_id, this_chunk, CONFIG.task_id()))
+        task.find_or_create("%s_%swpt_%s.%s" % (
+            platform.replace(" ", "_").lower(),
+            job_id_prefix.replace("-", "_"),
+            this_chunk,
+            CONFIG.task_id(),
+        ))
 
 
 def daily_tasks_setup():
@@ -689,7 +836,7 @@ def dockerfile_path(name):
 def linux_task(name):
     return (
         decisionlib.DockerWorkerTask(name)
-        .with_worker_type("servo-docker-worker")
+        .with_worker_type("docker")
         .with_treeherder_required()
     )
 
@@ -697,23 +844,22 @@ def linux_task(name):
 def windows_task(name):
     return (
         decisionlib.WindowsGenericWorkerTask(name)
-        .with_worker_type("servo-win2016")
+        .with_worker_type(CONFIG.windows_worker_type)
         .with_treeherder_required()
     )
-
 
 
 def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
         .with_provisioner_id("proj-servo")
-        .with_worker_type("macos")
+        .with_worker_type(CONFIG.macos_worker_type)
         .with_treeherder_required()
     )
 
 
 def linux_build_task(name, *, build_env=build_env):
-    return (
+    task = (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
         .with_scopes("docker-worker:cache:servo-*")
@@ -728,8 +874,10 @@ def linux_build_task(name, *, build_env=build_env):
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
-        .with_repo()
+        .with_repo_bundle()
+        .with_script("./mach bootstrap-gstreamer")
     )
+    return task
 
 
 def android_build_task(name):
@@ -738,21 +886,10 @@ def android_build_task(name):
         # file: NDK parses $(file $SHELL) to tell x64 host from x86
         # wget: servo-media-gstreamer’s build script
         .with_script("""
-            apt-get update -q
-            apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
-            ./mach bootstrap-android --accept-all-licences --build
+            time apt-get update -q
+            time apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
+            time ./mach bootstrap-android --accept-all-licences --build
         """)
-    )
-
-
-def windows_cross_build_task(name, arch, package):
-    return (
-        windows_build_task(name, package, arch)
-        .with_env(**{
-            "VCINSTALLDIR_SERVO": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\",
-            "VisualStudioVersion": "15.0",
-            "WindowsSdkDir": "C:\\Program Files (x86)\\Windows Kits\\10\\",
-        })
     )
 
 
@@ -760,16 +897,13 @@ def windows_build_task(name, package=True, arch="x86_64"):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
-            "x86": "fed862659360b4fbc77920bdc28f1a7da56bb953b88044834db5161c0ee05eb3",
         },
         "non-devel": {
             "x86_64": "0744a8ef2a4ba393dacb7927d741df871400a85bab5aecf7905f63bf52c405e4",
-            "x86": "f36df8ba7a3858c2299162312cb939e3fe8ff65c704f988c497405ba8d9cb275",
         },
     }
     prefix = {
         "x86_64": "msvc",
-        "x86": "mingw",
     }
     version = "1.16.0"
     task = (
@@ -780,7 +914,7 @@ def windows_build_task(name, package=True, arch="x86_64"):
             **windows_build_env[arch],
             **windows_build_env["all"]
         )
-        .with_repo(sparse_checkout=windows_sparse_checkout)
+        .with_repo_bundle(sparse_checkout=windows_sparse_checkout)
         .with_python2()
         .with_directory_mount(
             "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
@@ -818,26 +952,19 @@ def windows_build_task(name, package=True, arch="x86_64"):
 
 
 def with_homebrew(task, brewfiles):
-        task = task.with_script("""
-            mkdir -p "$HOME/homebrew"
-            export PATH="$HOME/homebrew/bin:$PATH"
-            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
-                | tar xz --strip 1 -C "$HOME/homebrew"
-        """)
-        for brewfile in brewfiles:
-            task = task.with_script("""
-                time brew bundle install --no-upgrade --file={brewfile}
-            """.format(brewfile=brewfile))
-        return task
+    for brewfile in brewfiles:
+        task.with_script("time brew bundle install --verbose --no-upgrade --file=" + brewfile)
+    return task
 
 
 def macos_build_task(name):
     build_task = (
         macos_task(name)
-        # Allow long runtime in case the cache expired for all those Homebrew dependencies
+        # Stray processes eating CPU can slow things down:
+        # https://github.com/servo/servo/issues/24735
         .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
-        .with_repo()
+        .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         .with_python2()
         .with_rustup()
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
@@ -848,12 +975,13 @@ def macos_build_task(name):
     return (
         with_homebrew(build_task, [
             "etc/taskcluster/macos/Brewfile",
-            "etc/taskcluster/macos/Brewfile-gstreamer",
+            "etc/taskcluster/macos/Brewfile-build",
         ])
         .with_script("""
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
             export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+            export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
         """)
 
         .with_directory_mount(
@@ -885,14 +1013,14 @@ def magicleap_build_task(name, build_type):
             path="magicleap"
         )
         .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/TempSharedCert.zip",
-            sha256="cdc2d26bc87ecf1cd8133df4e72c4eca5df7ddd815d0adf3045460253c1fe123",
+            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-25.zip",
+            sha256="33f9d07b89c206e671f6a5020e52265b131e83aede8fa474be323a8e3345d760",
             path="magicleap"
         )
         # Early script in order to run with the initial $PWD
         .with_early_script("""
             export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
-            export MLCERT="$PWD/magicleap/TempSharedCert.cert"
+            export MLCERT="$PWD/magicleap/servocimlcert.cert"
         """)
         .with_script("""
             unset OPENSSL_INCLUDE_DIR
@@ -924,17 +1052,20 @@ def magicleap_nightly():
             env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
             ./mach upload-nightly magicleap --secret-from-taskcluster
         """)
-        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo2D.mpk")
+        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo.mpk")
         .find_or_create("build.magicleap_nightly." + CONFIG.task_id())
     )
 
 
 CONFIG.task_name_template = "Servo: %s"
-CONFIG.index_prefix = "project.servo.servo"
-CONFIG.docker_image_build_worker_type = "servo-docker-worker"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
+CONFIG.index_prefix = "project.servo"
+CONFIG.default_provisioner_id = "proj-servo"
+CONFIG.docker_image_build_worker_type = "docker"
 
+CONFIG.windows_worker_type = "win2016"
+CONFIG.macos_worker_type = "macos"
 
 if __name__ == "__main__":  # pragma: no cover
     main(task_for=os.environ["TASK_FOR"])

@@ -6,11 +6,12 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[macro_use]
 extern crate sig;
 
 mod app;
+mod backtrace;
 mod browser;
 mod context;
 mod embedder;
@@ -23,10 +24,12 @@ mod skia_symbols;
 mod window_trait;
 
 use app::App;
-use backtrace::Backtrace;
+use getopts::Options;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
+use servo::servo_config::pref;
 use std::env;
+use std::io::Write;
 use std::panic;
 use std::process;
 use std::thread;
@@ -39,28 +42,31 @@ pub mod platform {
     pub mod macos;
 
     #[cfg(not(target_os = "macos"))]
-    pub fn deinit() {}
+    pub fn deinit(_clean_shutdown: bool) {}
 }
 
-#[cfg(any(
-    not(feature = "unstable"),
-    not(any(target_os = "macos", target_os = "linux"))
-))]
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn install_crash_handler() {}
 
-#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn install_crash_handler() {
-    use backtrace::Backtrace;
     use libc::_exit;
     use sig::ffi::Sig;
     use std::thread;
 
     extern "C" fn handler(sig: i32) {
-        let name = thread::current()
-            .name()
-            .map(|n| format!(" for thread \"{}\"", n))
-            .unwrap_or("".to_owned());
-        println!("Stack trace{}\n{:?}", name, Backtrace::new());
+        use std::sync::atomic;
+        static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
+        if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            let _ = write!(&mut stdout, "Stack trace");
+            if let Some(name) = thread::current().name() {
+                let _ = write!(&mut stdout, " for thread \"{}\"", name);
+            }
+            let _ = write!(&mut stdout, "\n");
+            let _ = backtrace::print(&mut stdout);
+        }
         unsafe {
             _exit(sig);
         }
@@ -79,16 +85,40 @@ pub fn main() {
 
     // Parse the command line options and store them globally
     let args: Vec<String> = env::args().collect();
-    let opts_result = opts::from_cmdline_args(&args);
+    let mut opts = Options::new();
+    opts.optflag(
+        "",
+        "angle",
+        "Use ANGLE to create a GL context (Windows-only)",
+    );
+    opts.optflag(
+        "",
+        "clean-shutdown",
+        "Do not shutdown until all threads have finished (macos only)",
+    );
+    opts.optflag(
+        "",
+        "disable-vsync",
+        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
+    );
+    opts.optflag("", "msaa", "Use multisample antialiasing in WebRender.");
+    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
 
-    let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
-        Some(token)
-    } else {
-        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
-            env::set_var("RUST_LOG", "compositing::constellation");
-        }
-
-        None
+    let opts_matches;
+    let content_process_token;
+    match opts::from_cmdline_args(opts, &args) {
+        ArgumentParsingResult::ContentProcess(matches, token) => {
+            opts_matches = matches;
+            content_process_token = Some(token);
+            if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
+                env::set_var("RUST_LOG", "compositing::constellation");
+            }
+        },
+        ArgumentParsingResult::ChromeProcess(matches) => {
+            opts_matches = matches;
+            content_process_token = None;
+        },
     };
 
     // TODO: once log-panics is released, can this be replaced by
@@ -104,8 +134,11 @@ pub fn main() {
         };
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
+        let stdout = std::io::stdout();
+        let mut stdout = stdout.lock();
         if let Some(location) = info.location() {
-            println!(
+            let _ = writeln!(
+                &mut stdout,
                 "{} (thread {}, at {}:{})",
                 msg,
                 name,
@@ -113,11 +146,12 @@ pub fn main() {
                 location.line()
             );
         } else {
-            println!("{} (thread {})", msg, name);
+            let _ = writeln!(&mut stdout, "{} (thread {})", msg, name);
         }
         if env::var("RUST_BACKTRACE").is_ok() {
-            println!("{:?}", Backtrace::new());
+            let _ = backtrace::print(&mut stdout);
         }
+        drop(stdout);
 
         error!("{}", msg);
     }));
@@ -131,7 +165,20 @@ pub fn main() {
         process::exit(0);
     }
 
-    App::run();
+    let angle = opts_matches.opt_present("angle");
+    let clean_shutdown = opts_matches.opt_present("clean-shutdown");
+    let do_not_use_native_titlebar =
+        opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
+    let enable_vsync = !opts_matches.opt_present("disable-vsync");
+    let use_msaa = opts_matches.opt_present("msaa");
+    let device_pixels_per_px = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
+        dppx_str.parse().unwrap_or_else(|err| {
+            error!( "Error parsing option: --device-pixel-ratio ({})", err);
+            process::exit(1);
+        })
+    });
 
-    platform::deinit()
+    App::run(angle, enable_vsync, use_msaa, do_not_use_native_titlebar, device_pixels_per_px);
+
+    platform::deinit(clean_shutdown)
 }

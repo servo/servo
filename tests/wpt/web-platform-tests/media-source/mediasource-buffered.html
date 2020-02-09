@@ -222,7 +222,7 @@
 
                 test.waitForExpectedEvents(function()
                 {
-                    assert_throws("InvalidStateError",
+                    assert_throws_dom("InvalidStateError",
                         function() { sourceBuffer.buffered; },
                         "get sourceBuffer.buffered throws an exception for InvalidStateError.");
                     test.done();

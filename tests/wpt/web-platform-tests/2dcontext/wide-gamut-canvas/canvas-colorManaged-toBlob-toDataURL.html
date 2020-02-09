@@ -140,6 +140,8 @@ function runAllTests() {
         runToDataURLTest(testScenarioSet[i]);
 }
 
-runAllTests();
+test(function() {
+    runAllTests();
+}, "Overall test");
 
 </script>

@@ -190,7 +190,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         if let Some(caption) = new_caption {
             let node = self.upcast::<Node>();
-            node.InsertBefore(caption.upcast(), node.GetFirstChild().deref())
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref())
                 .expect("Insertion failed");
         }
     }
@@ -281,7 +281,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
                 elem.is::<HTMLTableSectionElement>() &&
                     elem.local_name() == &local_name!("tbody") &&
-                    elem.upcast::<Node>().GetParentNode().deref() == Some(root)
+                    elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
             }
         }
 
@@ -303,7 +303,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        node.InsertBefore(tbody.upcast(), reference_element.deref())
+        node.InsertBefore(tbody.upcast(), reference_element.as_deref())
             .expect("Insertion failed");
         tbody
     }

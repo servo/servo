@@ -18,26 +18,26 @@
         <h4>Test Description: This test checks if pointermove event triggers. Move your mouse over the black rectangle or slide it if you are using touchscreen.</h4>
         <div id="target0" style="background:black"></div>
         <script>
-            var eventTested = false;
             var detected_pointertypes = {};
             var test_pointermove = async_test("pointermove event received");
             add_completion_callback(showPointerTypes);
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 // When a pointer changes coordinates, the pointermove event must be dispatched.
                 // TA: 5.3
                 on_event(target0, "pointermove", function (event) {
                     detected_pointertypes[event.pointerType] = true;
-                    if (eventTested == false) {
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
                         test_pointermove.done();
-                        eventTested = true;
-                    }
+                    });
                 });
 
                 // Inject the inputs to run this test.
-                new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
+                actions_promise = new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
             }
         </script>
         <h1>Pointer Events pointermove Tests</h1>

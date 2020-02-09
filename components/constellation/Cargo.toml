@@ -10,31 +10,25 @@ publish = false
 name = "constellation"
 path = "lib.rs"
 
-[features]
-azure_backend = ["canvas/azure_backend"]
-raqote_backend = ["canvas/raqote_backend"]
-no_wgl = ["canvas/no_wgl"]
-
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
-canvas = {path = "../canvas", default-features = false}
-clipboard = "0.5"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 crossbeam-channel = "0.3"
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.19"
+euclid = "0.20"
 embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 http = "0.1"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 layout_traits = {path = "../layout_traits"}
 keyboard-types = "0.4.3"
 log = "0.4"
+media = {path = "../media"}
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}
@@ -48,8 +42,10 @@ servo_geometry = {path = "../geometry"}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
+webgpu = {path = "../webgpu"}
 webvr_traits = {path = "../webvr_traits"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
+webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
-gaol = {git = "https://github.com/servo/gaol"}
+gaol = "0.2.1"

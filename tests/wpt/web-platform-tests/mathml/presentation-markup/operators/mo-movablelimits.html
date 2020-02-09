@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8"/>
     <title>&lt;mo&gt; movablelimits</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#tokenmo">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
     <meta name="assert" content="Verifies effect of movablelimits on mo in both displaystyle modes.">
     <link rel="match" href="mo-movablelimits-ref.html">
   </head>
@@ -15,7 +15,7 @@
       </munder>
       <munder>
         <mo lspace="0px" rspace="0px" movablelimits="false">A</mo>
-        <mi>C</mi>
+        <mi>B</mi>
       </munder>
     </math>
     <math displaystyle="true">
@@ -28,5 +28,7 @@
         <mi>B</mi>
       </munder>
     </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_munderover");</script>
   </body>
 </html>

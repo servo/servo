@@ -40,9 +40,17 @@ pub struct BlobBuf {
 /// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
 pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ()> {
     let url_inner = Url::parse(url.path()).map_err(|_| ())?;
+    let segs = url_inner
+        .path_segments()
+        .map(|c| c.collect::<Vec<_>>())
+        .ok_or(())?;
+
+    if url.query().is_some() || segs.len() > 1 {
+        return Err(());
+    }
+
     let id = {
-        let mut segs = url_inner.path_segments().ok_or(())?;
-        let id = segs.nth(0).ok_or(())?;
+        let id = segs.first().ok_or(())?;
         Uuid::from_str(id).map_err(|_| ())?
     };
     Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner))))

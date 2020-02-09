@@ -14,8 +14,15 @@
 
 <div id="test"></div>
 
+<script id="code" type="text/worklet">
+registerLayout('test', class {
+  async intrinsicSizes() {}
+  async layout() {}
+});
+</script>
+
 <script>
 promise_test(async function() {
-  await importWorklet(CSS.layoutWorklet, {url: 'support/layout-position-child-worklet.js'});
+  await importWorklet(CSS.layoutWorklet, document.getElementById('code').textContent);
 });
 </script>

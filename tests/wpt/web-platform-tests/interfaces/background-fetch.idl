@@ -16,7 +16,7 @@ partial interface ServiceWorkerRegistration {
 
 [Exposed=(Window,Worker)]
 interface BackgroundFetchManager {
-  Promise<BackgroundFetchRegistration> fetch(DOMString id, (RequestInfo or sequence<RequestInfo>) requests, optional BackgroundFetchOptions options);
+  Promise<BackgroundFetchRegistration> fetch(DOMString id, (RequestInfo or sequence<RequestInfo>) requests, optional BackgroundFetchOptions options = {});
   Promise<BackgroundFetchRegistration?> get(DOMString id);
   Promise<sequence<DOMString>> getIds();
 };
@@ -44,8 +44,8 @@ interface BackgroundFetchRegistration : EventTarget {
   attribute EventHandler onprogress;
 
   Promise<boolean> abort();
-  Promise<BackgroundFetchRecord> match(RequestInfo request, optional CacheQueryOptions options);
-  Promise<sequence<BackgroundFetchRecord>> matchAll(optional RequestInfo request, optional CacheQueryOptions options);
+  Promise<BackgroundFetchRecord> match(RequestInfo request, optional CacheQueryOptions options = {});
+  Promise<sequence<BackgroundFetchRecord>> matchAll(optional RequestInfo request, optional CacheQueryOptions options = {});
 };
 
 enum BackgroundFetchResult { "", "success", "failure" };
@@ -72,8 +72,9 @@ interface BackgroundFetchRecord {
   readonly attribute Promise<Response> responseReady;
 };
 
-[Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface BackgroundFetchEvent : ExtendableEvent {
+  constructor(DOMString type, BackgroundFetchEventInit init);
   readonly attribute BackgroundFetchRegistration registration;
 };
 
@@ -81,7 +82,8 @@ dictionary BackgroundFetchEventInit : ExtendableEventInit {
   required BackgroundFetchRegistration registration;
 };
 
-[Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface BackgroundFetchUpdateUIEvent : BackgroundFetchEvent {
-  Promise<void> updateUI(optional BackgroundFetchUIOptions options);
+  constructor(DOMString type, BackgroundFetchEventInit init);
+  Promise<void> updateUI(optional BackgroundFetchUIOptions options = {});
 };

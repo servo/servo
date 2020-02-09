@@ -31,8 +31,8 @@
         promise_test(function(test) {
           var request = new Request("", makeRequestInit(body, "POST"));
           if (body) {
-            assert_throws(new TypeError(), function() { new Request("", makeRequestInit(body, "GET")); });
-            assert_throws(new TypeError(), function() { new Request("", makeRequestInit(body, "HEAD")); });
+            assert_throws_js(TypeError, function() { new Request("", makeRequestInit(body, "GET")); });
+            assert_throws_js(TypeError, function() { new Request("", makeRequestInit(body, "HEAD")); });
           } else {
             new Request("", makeRequestInit(body, "GET")); // should not throw
           }

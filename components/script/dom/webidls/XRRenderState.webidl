@@ -7,11 +7,13 @@
 dictionary XRRenderStateInit {
   double depthNear;
   double depthFar;
-  XRLayer baseLayer;
+  double inlineVerticalFieldOfView;
+  XRWebGLLayer baseLayer;
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"] interface XRRenderState {
   readonly attribute double depthNear;
   readonly attribute double depthFar;
-  readonly attribute XRLayer? baseLayer;
+  readonly attribute double? inlineVerticalFieldOfView;
+  readonly attribute XRWebGLLayer? baseLayer;
 };

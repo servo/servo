@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<script>
+const channelName = new URL(location).searchParams.get("channel");
+const bc = new BroadcastChannel(channelName);
+
+// Handle the close message from the test-cleanup, forwarding it to the
+// top level document, as this iframe and the opening document might not
+// be able to close the popup.
+bc.onmessage = event => {
+  if (event.data == "close") {
+    top.postMessage("close", "*");
+  }
+};
+
+window.addEventListener("message", event => {
+  bc.postMessage(event.data);
+});
+</script>

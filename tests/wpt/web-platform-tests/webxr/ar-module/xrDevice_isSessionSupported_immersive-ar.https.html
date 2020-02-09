@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+  <script>
+    xr_promise_test(
+      "isSessionSupported resolves to true for immersive-ar on a supported device",
+      (t) => {
+        return navigator.xr.test.simulateDeviceConnection(IMMERSIVE_AR_DEVICE)
+          .then( (controller) => {
+            return navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+              t.step(() => {
+                assert_true(supported);
+              });
+            });
+          });
+      });
+
+    xr_promise_test(
+      "isSessionSupported resolves to false for immersive-ar on an unsupported device",
+      (t) => {
+        return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+          .then( (controller) => {
+            return navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+              t.step(() => {
+                assert_false(supported);
+              });
+            });
+          });
+      });
+</script>
+</body>

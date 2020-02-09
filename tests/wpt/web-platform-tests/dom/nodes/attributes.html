@@ -25,30 +25,30 @@ var XMLNS = "http://www.w3.org/2000/xmlns/"
 test(function() {
   var el = document.createElement("foo")
   for (var i = 0; i < invalid_names.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], true) })
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], true) })
   }
   for (var i = 0; i < invalid_names.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i]) })
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i]) })
   }
   for (var i = 0; i < invalid_names.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], false) })
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], false) })
   }
 }, "When qualifiedName does not match the Name production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown. (toggleAttribute)")
 test(function() {
   var el = document.getElementById("test2")
   for (var i = 0; i < el.children.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       el.children[i].toggleAttribute("~", false)
     })
   }
   for (var i = 0; i < el.children.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       el.children[i].toggleAttribute("~")
     })
   }
   for (var i = 0; i < el.children.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       el.children[i].toggleAttribute("~", true)
     })
   }
@@ -147,14 +147,14 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   for (var i = 0; i < invalid_names.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() { el.setAttribute(invalid_names[i], "test") })
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() { el.setAttribute(invalid_names[i], "test") })
   }
 }, "When qualifiedName does not match the Name production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown. (setAttribute)")
 test(function() {
   var el = document.getElementById("test2")
   for (var i = 0; i < el.children.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       el.children[i].setAttribute("~", "test")
     })
   }
@@ -231,8 +231,8 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   for (var i = 0, il = invalid_names.length; i < il; ++i) {
-    assert_throws("INVALID_CHARACTER_ERR",
-                  function() { el.setAttributeNS("a", invalid_names[i], "fail") })
+    assert_throws_dom("INVALID_CHARACTER_ERR",
+                      function() { el.setAttributeNS("a", invalid_names[i], "fail") })
   }
 }, "When qualifiedName does not match the Name production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown. (setAttributeNS)")
@@ -240,7 +240,7 @@ test(function() {
 test(function() {
   var el = document.getElementById("test2")
   for (var i = 0; i < el.children.length; i++) {
-    assert_throws("INVALID_CHARACTER_ERR", function() {
+    assert_throws_dom("INVALID_CHARACTER_ERR", function() {
       el.children[i].setAttributeNS(null, "~", "test")
     })
   }
@@ -252,9 +252,9 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   for (var i = 0, il = invalid_qnames.length; i < il; ++i) {
-    assert_throws("INVALID_CHARACTER_ERR",
-                  function() { el.setAttributeNS("a", invalid_qnames[i], "fail") },
-                  "Expected exception for " + invalid_qnames[i] + ".")
+    assert_throws_dom("INVALID_CHARACTER_ERR",
+                      function() { el.setAttributeNS("a", invalid_qnames[i], "fail") },
+                      "Expected exception for " + invalid_qnames[i] + ".")
   }
 }, "When qualifiedName does not match the QName production, an " +
    "INVALID_CHARACTER_ERR exception is to be thrown.")
@@ -271,17 +271,17 @@ test(function() {
 // Step 4
 test(function() {
   var el = document.createElement("foo")
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS("", "aa:bb", "fail") })
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS(null, "aa:bb", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS("", "aa:bb", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS(null, "aa:bb", "fail") })
 }, "A namespace is required to use a prefix.")
 
 // Step 5
 test(function() {
   var el = document.createElement("foo")
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xml:bb", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS("a", "xml:bb", "fail") })
 }, "The xml prefix should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
@@ -293,13 +293,13 @@ test(function() {
 // Step 6
 test(function() {
   var el = document.createElement("foo")
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xmlns:bb", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS("a", "xmlns:bb", "fail") })
 }, "The xmlns prefix should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS("a", "xmlns", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS("a", "xmlns", "fail") })
 }, "The xmlns qualified name should not be allowed for arbitrary namespaces")
 test(function() {
   var el = document.createElement("foo")
@@ -311,10 +311,10 @@ test(function() {
 // Step 7
 test(function() {
   var el = document.createElement("foo")
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS(XMLNS, "a:xmlns", "fail") })
-  assert_throws("NAMESPACE_ERR",
-                function() { el.setAttributeNS(XMLNS, "b:foo", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS(XMLNS, "a:xmlns", "fail") })
+  assert_throws_dom("NAMESPACE_ERR",
+                    function() { el.setAttributeNS(XMLNS, "b:foo", "fail") })
 }, "The XMLNS namespace should require xmlns as prefix or qualified name")
 test(function() {
   var el = document.createElement("foo")
@@ -607,7 +607,7 @@ test(function() {
   var attr = document.createAttribute("foo");
   assert_equals(el.setAttributeNode(attr), null);
   assert_equals(attr.ownerElement, el);
-  assert_throws("INUSE_ATTRIBUTE_ERR",
+  assert_throws_dom("INUSE_ATTRIBUTE_ERR",
                   function() { other.setAttributeNode(attr) },
                   "Attribute already associated with el")
 }, "If attr’s element is neither null nor element, throw an InUseAttributeError.");
@@ -637,7 +637,7 @@ test(function() {
   el.setAttribute("foo", "bar")
   var attrNode = el.getAttributeNode("foo");
   var el2 = document.createElement("div");
-  assert_throws("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
+  assert_throws_dom("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
 }, "setAttributeNode on bound attribute should throw InUseAttributeError")
 
 // Have to use an async_test to see what a DOMAttrModified listener sees,

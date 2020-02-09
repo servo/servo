@@ -1,7 +1,16 @@
-#!/bin/sh
+#!/bin/bash
+
 # Emit documentation for private items so it is easier to look
 # up internal definitions.
-# 
+#
 # Deny "deny warnings" to ensure documenting the crates
 # succeeds even if new warnings are introduced to the compiler.
-rustdoc -Z "unstable-options" --cap-lints warn --document-private-items "$@"
+
+if [[ "$*" == *--document-private-items* ]]
+then
+    ARGS=""
+else
+    ARGS="--document-private-items"
+fi
+
+rustdoc -Z "unstable-options" --cap-lints warn $ARGS "$@"

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#elementcontenteditable
-[NoInterfaceObject, Exposed=Window]
-interface ElementContentEditable {
+[Exposed=Window]
+interface mixin ElementContentEditable {
   // [CEReactions]
   // attribute DOMString contentEditable;
   // readonly attribute boolean isContentEditable;

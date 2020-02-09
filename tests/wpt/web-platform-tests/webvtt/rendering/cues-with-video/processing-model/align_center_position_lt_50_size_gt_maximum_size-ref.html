@@ -9,20 +9,25 @@ body { margin:0 }
     width: 320px;
     height: 180px;
     position: relative;
-    font-size: 9px;
 }
 .cue {
     position: absolute;
-    bottom: 0;
+    bottom: 0px;
     left: 0px;
-    right: 0;
     width: 64px;
     text-align: center;
+    font: 20px/1 Ahem;
 }
-.cue > span {
-    font-family: Ahem, sans-serif;
+.cueText {
     background: rgba(0,0,0,0.8);
     color: green;
 }
 </style>
-<div class=video><span class=cue><span>Awesome!!!</span></span></div>
+<div class=video>
+    <div class="cue">
+        <div><span class="cueText">Awe</span></div>
+        <div><span class="cueText">som</span></div>
+        <div><span class="cueText">e!!</span></div>
+        <div><span class="cueText">!</span></div>
+    </div>
+</div>

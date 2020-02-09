@@ -8,8 +8,9 @@
  */
 
 // https://w3c.github.io/uievents/#idl-inputevent
-[Constructor(DOMString type, optional InputEventInit eventInitDict)]
+[Exposed=Window]
 interface InputEvent : UIEvent {
+  [Throws] constructor(DOMString type, optional InputEventInit eventInitDict = {});
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;
 };

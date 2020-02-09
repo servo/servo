@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // http://w3c.github.io/touch-events/#idl-def-Touch
+[Exposed=Window]
 interface Touch {
     readonly    attribute long        identifier;
     readonly    attribute EventTarget target;

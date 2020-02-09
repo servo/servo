@@ -5,18 +5,19 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Constructor, Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)]
 interface EventTarget {
+  [Throws] constructor();
   void addEventListener(
     DOMString type,
     EventListener? callback,
-    optional (AddEventListenerOptions or boolean) options
+    optional (AddEventListenerOptions or boolean) options = {}
   );
 
   void removeEventListener(
     DOMString type,
     EventListener? callback,
-    optional (EventListenerOptions or boolean) options
+    optional (EventListenerOptions or boolean) options = {}
   );
 
   [Throws]

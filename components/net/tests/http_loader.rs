@@ -27,11 +27,12 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
+use net::http_loader::determine_request_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
 use net_traits::response::ResponseBody;
-use net_traits::{CookieSource, NetworkError};
+use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
 use std::io::Write;
@@ -256,11 +257,6 @@ fn test_request_and_response_data_with_network_messages() {
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
     );
-    headers.typed_insert(Host::from(
-        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
-            .parse::<Authority>()
-            .unwrap(),
-    ));
 
     headers.insert(
         header::ACCEPT,
@@ -547,7 +543,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
 }
 
 #[test]
-fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
+fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_are_present() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response
             .headers_mut()
@@ -1420,4 +1416,48 @@ fn test_origin_set() {
         .is_success());
 
     let _ = server.close();
+}
+
+#[test]
+fn test_determine_request_referrer_shorter_than_4k() {
+    let mut headers = HeaderMap::new();
+
+    let referrer_source =
+        ServoUrl::parse("http://username:password@example.com/such/short/referer?query#fragment")
+            .unwrap();
+
+    let current_url = ServoUrl::parse("http://example.com/current/url").unwrap();
+
+    let referer = determine_request_referrer(
+        &mut headers,
+        ReferrerPolicy::UnsafeUrl,
+        referrer_source,
+        current_url,
+    );
+
+    assert_eq!(
+        referer.unwrap().as_str(),
+        "http://example.com/such/short/referer?query"
+    );
+}
+
+#[test]
+fn test_determine_request_referrer_longer_than_4k() {
+    let long_url_str = format!(
+        "http://username:password@example.com/such/{}/referer?query#fragment",
+        "long".repeat(1024)
+    );
+
+    let mut headers = HeaderMap::new();
+    let referrer_source = ServoUrl::parse(&long_url_str).unwrap();
+    let current_url = ServoUrl::parse("http://example.com/current/url").unwrap();
+
+    let referer = determine_request_referrer(
+        &mut headers,
+        ReferrerPolicy::UnsafeUrl,
+        referrer_source,
+        current_url,
+    );
+
+    assert_eq!(referer.unwrap().as_str(), "http://example.com/");
 }

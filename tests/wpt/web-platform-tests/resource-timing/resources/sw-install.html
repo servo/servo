@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<script>
+async function service_worker_unregister(scope) {
+  var absoluteScope = (new URL(scope, window.location).href);
+  const registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration && registration.scope === absoluteScope)
+    return registration.unregister();
+}
+
+async function service_worker_unregister_and_register(url, scope, options = {}) {
+  if (!scope || scope.length == 0)
+    return Promise.reject(new Error('tests must define a scope'));
+
+  options.scope = scope;
+  await service_worker_unregister(scope);
+  return navigator.serviceWorker.register(url, options);
+}
+
+function wait_for_state_activated(worker) {
+  if (worker.state === 'activated')
+    return Promise.resolve();
+
+  if (worker.state === 'redundant') {
+    return Promise.reject(new Error('worker is redundant'));
+  }
+
+  return new Promise(function(resolve) {
+      worker.addEventListener('statechange', function() {
+          if (worker.state === 'activated')
+            resolve();
+        });
+    });
+}
+
+(async () => {
+  var script = '/resource-timing/resources/sw.js';
+  var scope = '/resource-timing/resources/';
+  const registration = await service_worker_unregister_and_register(script, scope);
+  await wait_for_state_activated(registration.installing);
+  const opener = window.opener;
+  if (!opener)
+    return;
+
+  opener.postMessage("installed", "*");
+  async function unregister(e) {
+    if (e.data === "unregister") {
+      await registration.unregister();
+      opener.postMessage("unregistered", "*");
+    }
+  }
+  window.addEventListener("message", e => unregister(e));
+})();
+
+</script>

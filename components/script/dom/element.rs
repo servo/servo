@@ -6,7 +6,7 @@
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
@@ -35,7 +35,7 @@ use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
-use crate::dom::document::{Document, LayoutDocumentHelpers};
+use crate::dom::document::{determine_policy_for_token, Document, LayoutDocumentHelpers};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -78,7 +78,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
@@ -97,7 +97,7 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
-use ref_filter_map::ref_filter_map;
+use net_traits::ReferrerPolicy;
 use script_layout_interface::message::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -106,7 +106,7 @@ use selectors::Element as SelectorsElement;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref, RefMut};
+use std::cell::Cell;
 use std::default::Default;
 use std::fmt;
 use std::mem;
@@ -231,13 +231,6 @@ impl FromStr for AdjacentPosition {
     }
 }
 
-/// Whether a shadow root hosts an User Agent widget.
-#[derive(PartialEq)]
-pub enum IsUserAgentWidget {
-    No,
-    Yes,
-}
-
 //
 // Element methods
 //
@@ -331,14 +324,23 @@ impl Element {
     }
 
     pub fn set_custom_element_state(&self, state: CustomElementState) {
-        self.ensure_rare_data().custom_element_state = state;
+        // no need to inflate rare data for uncustomized
+        if state != CustomElementState::Uncustomized || self.rare_data().is_some() {
+            self.ensure_rare_data().custom_element_state = state;
+        }
+        // https://dom.spec.whatwg.org/#concept-element-defined
+        let in_defined_state = match state {
+            CustomElementState::Uncustomized | CustomElementState::Custom => true,
+            _ => false,
+        };
+        self.set_state(ElementState::IN_DEFINED_STATE, in_defined_state)
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
         if let Some(rare_data) = self.rare_data().as_ref() {
             return rare_data.custom_element_state;
         }
-        CustomElementState::Undefined
+        CustomElementState::Uncustomized
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
@@ -347,6 +349,10 @@ impl Element {
 
     pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
         self.rare_data().as_ref()?.custom_element_definition.clone()
+    }
+
+    pub fn clear_custom_element_definition(&self) {
+        self.ensure_rare_data().custom_element_definition = None;
     }
 
     pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
@@ -498,13 +504,24 @@ impl Element {
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
-            .set_containing_shadow_root(&shadow_root);
+            .set_containing_shadow_root(Some(&shadow_root));
 
         if self.is_connected() {
             self.node.owner_doc().register_shadow_root(&*shadow_root);
         }
 
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
         Ok(shadow_root)
+    }
+
+    pub fn detach_shadow(&self) {
+        if let Some(ref shadow_root) = self.shadow_root() {
+            shadow_root.detach();
+            self.ensure_rare_data().shadow_root = None;
+        } else {
+            debug_assert!(false, "Trying to detach a non-attached shadow root");
+        }
     }
 }
 
@@ -1198,6 +1215,7 @@ impl Element {
         }
     }
 
+    #[allow(non_snake_case)]
     pub fn xmlSerialize(&self, traversal_scope: XmlTraversalScope) -> Fallible<DOMString> {
         let mut writer = vec![];
         match xmlSerialize::serialize(
@@ -1331,9 +1349,8 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
     ) {
-        let window = window_from_node(self);
         let attr = Attr::new(
-            &window,
+            &self.node.owner_doc(),
             local_name,
             value,
             name,
@@ -1361,7 +1378,7 @@ impl Element {
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
-        assert!(attr.GetOwnerElement().deref() == Some(self));
+        assert!(attr.GetOwnerElement().as_deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
@@ -1676,12 +1693,12 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().deref()).map(Some)
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().as_deref()).map(Some)
             },
             AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().deref()).map(Some)
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().as_deref()).map(Some)
                 } else {
                     Ok(None)
                 }
@@ -1721,7 +1738,7 @@ impl Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2190,7 +2207,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2240,7 +2257,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2286,7 +2303,7 @@ impl ElementMethods for Element {
         }
 
         // Step 7
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2337,7 +2354,7 @@ impl ElementMethods for Element {
         }
 
         // Step 9
-        if doc.GetBody().deref() == self.downcast::<HTMLElement>() &&
+        if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
             !self.potentially_scrollable()
         {
@@ -2852,7 +2869,7 @@ impl VirtualMethods for Element {
         }
 
         let fullscreen = doc.GetFullscreenElement();
-        if fullscreen.deref() == Some(self) {
+        if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen();
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
@@ -3031,6 +3048,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Defined |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
@@ -3066,6 +3084,14 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_part(&self, _name: &Atom) -> bool {
         false
+    }
+
+    fn exported_part(&self, _: &Atom) -> Option<Atom> {
+        None
+    }
+
+    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+        None
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
@@ -3602,7 +3628,14 @@ pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
     }
 }
 
-pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
+pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {
+    element
+        .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
+        .and_then(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
+        .or_else(|| document_from_node(element).get_referrer_policy())
+}
+
+pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     reflect_cross_origin_attribute(element).map_or(None, |attr| match &*attr {
         "anonymous" => Some(CorsSettings::Anonymous),
         "use-credentials" => Some(CorsSettings::UseCredentials),

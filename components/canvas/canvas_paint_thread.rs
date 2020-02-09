@@ -4,8 +4,11 @@
 
 use crate::canvas_data::*;
 use canvas_traits::canvas::*;
-use euclid::Size2D;
+use canvas_traits::ConstellationCanvasMsg;
+use crossbeam_channel::{select, unbounded, Sender};
+use euclid::default::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::thread;
@@ -30,53 +33,70 @@ impl<'a> CanvasPaintThread<'a> {
 
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
-    pub fn start() -> IpcSender<CanvasMsg> {
-        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+    pub fn start() -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
+        let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
+        let msg_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_receiver);
+        let (create_sender, create_receiver) = unbounded();
         thread::Builder::new()
             .name("CanvasThread".to_owned())
             .spawn(move || {
                 let mut canvas_paint_thread = CanvasPaintThread::new();
                 loop {
-                    match receiver.recv() {
-                        Ok(msg) => match msg {
-                            CanvasMsg::Canvas2d(message, canvas_id) => {
-                                canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
-                            },
-                            CanvasMsg::Close(canvas_id) => {
-                                canvas_paint_thread.canvases.remove(&canvas_id);
-                            },
-                            CanvasMsg::Create(creator, size, webrenderer_api_sender, antialias) => {
-                                let canvas_id = canvas_paint_thread.create_canvas(
+                    select! {
+                        recv(msg_receiver) -> msg => {
+                            match msg {
+                                Ok(CanvasMsg::Canvas2d(message, canvas_id)) => {
+                                    canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
+                                },
+                                Ok(CanvasMsg::Close(canvas_id)) => {
+                                    canvas_paint_thread.canvases.remove(&canvas_id);
+                                },
+                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
+                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
+                                },
+                                Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
+                                    FromScriptMsg::SendPixels(chan) => {
+                                        canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
+                                    },
+                                },
+                                Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
+                                    FromLayoutMsg::SendData(chan) => {
+                                        canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                    },
+                                },
+                                Err(e) => {
+                                    warn!("Error on CanvasPaintThread receive ({})", e);
+                                },
+                            }
+                        }
+                        recv(create_receiver) -> msg => {
+                            match msg {
+                                Ok(ConstellationCanvasMsg::Create {
+                                    id_sender: creator,
                                     size,
-                                    webrenderer_api_sender,
-                                    antialias,
-                                );
-                                creator.send(canvas_id).unwrap();
-                            },
-                            CanvasMsg::Recreate(size, canvas_id) => {
-                                canvas_paint_thread.canvas(canvas_id).recreate(size);
-                            },
-                            CanvasMsg::FromScript(message, canvas_id) => match message {
-                                FromScriptMsg::SendPixels(chan) => {
-                                    canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
+                                    webrender_sender: webrenderer_api_sender,
+                                    antialias
+                                }) => {
+                                    let canvas_id = canvas_paint_thread.create_canvas(
+                                        size,
+                                        webrenderer_api_sender,
+                                        antialias,
+                                    );
+                                    creator.send(canvas_id).unwrap();
                                 },
-                            },
-                            CanvasMsg::FromLayout(message, canvas_id) => match message {
-                                FromLayoutMsg::SendData(chan) => {
-                                    canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                Ok(ConstellationCanvasMsg::Exit) => break,
+                                Err(e) => {
+                                    warn!("Error on CanvasPaintThread receive ({})", e);
+                                    break;
                                 },
-                            },
-                            CanvasMsg::Exit => break,
-                        },
-                        Err(e) => {
-                            warn!("Error on CanvasPaintThread receive ({})", e);
-                        },
+                            }
+                        }
                     }
                 }
             })
             .expect("Thread spawning failed");
 
-        sender
+        (create_sender, ipc_sender)
     }
 
     pub fn create_canvas(
@@ -102,16 +122,29 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
         match message {
-            Canvas2dMsg::FillText(text, x, y, max_width) => {
-                self.canvas(canvas_id).fill_text(text, x, y, max_width)
+            Canvas2dMsg::FillText(text, x, y, max_width, style) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill_text(text, x, y, max_width);
             },
-            Canvas2dMsg::FillRect(ref rect) => self.canvas(canvas_id).fill_rect(rect),
-            Canvas2dMsg::StrokeRect(ref rect) => self.canvas(canvas_id).stroke_rect(rect),
+            Canvas2dMsg::FillRect(rect, style) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill_rect(&rect);
+            },
+            Canvas2dMsg::StrokeRect(rect, style) => {
+                self.canvas(canvas_id).set_stroke_style(style);
+                self.canvas(canvas_id).stroke_rect(&rect);
+            },
             Canvas2dMsg::ClearRect(ref rect) => self.canvas(canvas_id).clear_rect(rect),
             Canvas2dMsg::BeginPath => self.canvas(canvas_id).begin_path(),
             Canvas2dMsg::ClosePath => self.canvas(canvas_id).close_path(),
-            Canvas2dMsg::Fill => self.canvas(canvas_id).fill(),
-            Canvas2dMsg::Stroke => self.canvas(canvas_id).stroke(),
+            Canvas2dMsg::Fill(style) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill();
+            },
+            Canvas2dMsg::Stroke(style) => {
+                self.canvas(canvas_id).set_stroke_style(style);
+                self.canvas(canvas_id).stroke();
+            },
             Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
             Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
@@ -125,7 +158,7 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let data = imagedata.map_or_else(
                     || vec![0; image_size.width as usize * image_size.height as usize * 4],
-                    |bytes| bytes.into(),
+                    |bytes| bytes.into_vec(),
                 );
                 self.canvas(canvas_id).draw_image(
                     data,
@@ -144,7 +177,7 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(source_rect.to_u32(), image_size.to_u32());
+                    .read_pixels(source_rect.to_u64(), image_size.to_u64());
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
                     source_rect.size,
@@ -173,8 +206,6 @@ impl<'a> CanvasPaintThread<'a> {
                 .ellipse(center, radius_x, radius_y, rotation, start, end, ccw),
             Canvas2dMsg::RestoreContext => self.canvas(canvas_id).restore_context_state(),
             Canvas2dMsg::SaveContext => self.canvas(canvas_id).save_context_state(),
-            Canvas2dMsg::SetFillStyle(style) => self.canvas(canvas_id).set_fill_style(style),
-            Canvas2dMsg::SetStrokeStyle(style) => self.canvas(canvas_id).set_stroke_style(style),
             Canvas2dMsg::SetLineWidth(width) => self.canvas(canvas_id).set_line_width(width),
             Canvas2dMsg::SetLineCap(cap) => self.canvas(canvas_id).set_line_cap(cap),
             Canvas2dMsg::SetLineJoin(join) => self.canvas(canvas_id).set_line_join(join),

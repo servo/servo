@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlfieldsetelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLFieldSetElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

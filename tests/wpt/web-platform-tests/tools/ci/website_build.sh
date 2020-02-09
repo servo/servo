@@ -2,7 +2,7 @@
 
 set -ex
 
-neutral_status=78
+neutral_status=0
 source_revision=$(git rev-parse HEAD)
 # The token available in the `GITHUB_TOKEN` variable may be used to push to the
 # repository, but GitHub Pages will not rebuild the website in response to such
@@ -24,20 +24,6 @@ function is_pull_request {
 function targets_master {
   test $(json_property ${GITHUB_EVENT_PATH} ref) == 'refs/heads/master'
 }
-
-function modifies_relevant_files {
-  base_revision=$(json_property ${GITHUB_EVENT_PATH} before)
-
-  git diff --name-only ${base_revision} | \
-    grep -E --silent '^(docs|tools)/'
-}
-
-if ! modifies_relevant_files ; then
-  echo No files related to the website have been modified. Exiting without
-  echo building.
-
-  exit ${neutral_status}
-fi
 
 git config --global user.email "wpt-pr-bot@users.noreply.github.com"
 git config --global user.name "wpt-pr-bot"
@@ -65,6 +51,10 @@ touch .nojekyll
 
 # Publish the website by pushing the built contents to the `gh-pages` branch
 git add .
+
+echo This submission alters the compiled files as follows
+
+git diff --staged
 
 if is_pull_request ; then
   echo Submission comes from a pull request. Exiting without publishing.

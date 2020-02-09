@@ -19,7 +19,7 @@ indexeddb_test(
       r.onsuccess = null;
       const cursor = r.result;
       setTimeout(t.step_func(() => {
-        assert_throws('TransactionInactiveError', () => {
+        assert_throws_dom('TransactionInactiveError', () => {
           cursor.update('value2');
         }, '"Transaction inactive" check (TransactionInactiveError) ' +
            'should precede "read only" check (ReadOnlyError)');
@@ -42,7 +42,7 @@ indexeddb_test(
       r.onsuccess = null;
       const cursor = r.result;
       cursor.continue();
-      assert_throws('ReadOnlyError', () => {
+      assert_throws_dom('ReadOnlyError', () => {
         cursor.update('value2');
       }, '"Read only" check (ReadOnlyError) should precede '+
          '"got value flag" check (InvalidStateError)');
@@ -63,7 +63,7 @@ indexeddb_test(
     r.onsuccess = t.step_func(() => {
       r.onsuccess = null;
       const cursor = r.result;
-      assert_throws('ReadOnlyError', () => {
+      assert_throws_dom('ReadOnlyError', () => {
         cursor.update('value2');
       }, '"Read only" check (ReadOnlyError) should precede '+
          '"key only flag" check (InvalidStateError)');
@@ -85,7 +85,7 @@ indexeddb_test(
       r.onsuccess = null;
       const cursor = r.result;
       cursor.continue();
-      assert_throws('InvalidStateError', () => {
+      assert_throws_dom('InvalidStateError', () => {
         cursor.update({id: 123, data: 'value2'});
       }, '"Got value flag" check (InvalidStateError) should precede ' +
          '"modified key" check (DataError)');

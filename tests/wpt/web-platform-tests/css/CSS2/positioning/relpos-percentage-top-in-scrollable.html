@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#propdef-top">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#relative-positioning">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=908083">
+<p>There should be a green square below.</p>
+<div style="position:relative; width:200px; height:200px;">
+  <div id="container" style="overflow:hidden; position:absolute; top:0; left:0; bottom:0; right:0;">
+    <div style="position:relative; top:100%; width:100px; height:100px; background:green;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  container.scrollTop = 123456;
+  test(()=> {
+      assert_equals(container.scrollTop, 100);
+  }, "Top percentage resolved correctly for overflow contribution");
+</script>

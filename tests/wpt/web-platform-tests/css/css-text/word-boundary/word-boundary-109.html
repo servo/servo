@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-detection:auto(ja) and line breaking</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-detection">
+<link rel="match" href="reference/word-boundary-109-a-ref.html">
+<link rel="match" href="reference/word-boundary-109-b-ref.html">
+<meta name="assert" content="word-boundary-detection:auto(ja) inserts virtual word boundaries at reasonable points, creating soft wrapping opportunities">
+<style>
+@supports (word-boundary-detection:auto(ja)) {
+  .warn { display:none; }
+}
+.wrap {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+  word-break: keep-all;
+}
+.wrap > div {
+  width: 0;
+}
+#test {
+  word-boundary-detection: auto(ja);
+}
+#ref1 {
+  border-color: blue;
+}
+#ref2 {
+  border-color: orange;
+}
+</style>
+
+<p class=warn><strong>This test is not relevant, because this UA does not support <code>word-boundary-detection:auto(ja)</code>.</strong>
+
+<p>Test passes if the black box is identical to either the blue or orange one.
+
+<div id=ref1 class=wrap>
+  <div lang=ja>東京へ<wbr>行きましょう。</div>
+</div>
+<div class=wrap>
+  <div id=test lang=ja>東京へ行きましょう。</div>
+</div>
+<div id=ref2 class=wrap>
+  <div lang=ja>東京<wbr>へ<wbr>行きましょう。</div>
+</div>

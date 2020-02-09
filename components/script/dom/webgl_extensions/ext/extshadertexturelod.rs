@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::EXTShaderTextureLodBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use canvas_traits::webgl::{is_gles, WebGLVersion};
+use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -40,7 +40,7 @@ impl WebGLExtension for EXTShaderTextureLod {
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
         // This extension is always available on desktop GL.
-        !is_gles() || ext.supports_gl_extension("GL_EXT_shader_texture_lod")
+        !ext.is_gles() || ext.supports_gl_extension("GL_EXT_shader_texture_lod")
     }
 
     fn enable(_ext: &WebGLExtensions) {}

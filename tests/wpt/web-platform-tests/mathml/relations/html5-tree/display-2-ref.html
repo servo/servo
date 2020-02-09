@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>display attribute VS legacy mode attribute (reference)</title>
+</head>
+<body>
+  <p>Test passes if you see four green squares, the last one
+    centered and the others left-aligned.</p>
+  <p>
+    <math>
+      <mspace width="100px" height="100px" style="background: green"></mspace>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mspace width="100px" height="100px" style="background: green"></mspace>
+    </math>
+  </p>
+  <p>
+    <math display="inline">
+      <mspace width="100px" height="100px" style="background: green"></mspace>
+    </math>
+  </p>
+  <p>
+    <math display="block">
+      <mspace width="100px" height="100px" style="background: green"></mspace>
+    </math>
+  </p>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>sms on DOMWindow of detached iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const iframe = document.getElementById('iframe');
+  const smsReceiver = iframe.contentWindow.navigator.sms;
+  iframe.parentNode.removeChild(iframe);
+
+  try {
+    await smsReceiver.receive();
+    assert_unreached('Expected NotSupportedError to be thrown.');
+  } catch (error) {
+    assert_equals(error.name, 'NotSupportedError');
+  }
+}, 'Return error when frame is inaccessible');
+
+</script>

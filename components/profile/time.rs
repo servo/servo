@@ -19,7 +19,6 @@ use servo_config::opts::OutputOptions;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
@@ -136,6 +135,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptParseHTML => "Script Parse HTML",
             ProfilerCategory::ScriptParseXML => "Script Parse XML",
             ProfilerCategory::ScriptPlannedNavigation => "Script Planned Navigation",
+            ProfilerCategory::ScriptPortMessage => "Script Port Message",
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
@@ -396,11 +396,7 @@ impl Profiler {
             Some(OutputOptions::FileName(ref filename)) => {
                 let path = Path::new(&filename);
                 let mut file = match File::create(&path) {
-                    Err(e) => panic!(
-                        "Couldn't create {}: {}",
-                        path.display(),
-                        Error::description(&e)
-                    ),
+                    Err(e) => panic!("Couldn't create {}: {}", path.display(), e),
                     Ok(file) => file,
                 };
                 write!(

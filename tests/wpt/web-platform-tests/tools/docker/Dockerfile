@@ -7,6 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # General requirements not in the base image
 RUN apt-get -qqy update \
   && apt-get -qqy install \
+    bridge-utils \
     bzip2 \
     ca-certificates \
     dbus-x11 \
@@ -14,10 +15,17 @@ RUN apt-get -qqy update \
     fluxbox \
     gdebi \
     git \
+    gstreamer1.0-plugins-bad \
+    libosmesa6-dev \
+    libvirt-daemon-system \
+    libvirt-clients \
+    libunwind8 \
     locales \
+    openjdk-8-jre-headless \
     pulseaudio \
     python \
     python-pip \
+    qemu-kvm \
     tzdata \
     sudo \
     unzip \
@@ -39,6 +47,8 @@ RUN apt-get -qqy install \
     libindicator3-7 \
     libindicator7
 
+RUN apt-get -y autoremove
+
 RUN pip install --upgrade pip
 RUN pip install virtualenv
 
@@ -56,6 +66,8 @@ RUN useradd test \
          --shell /bin/bash  \
          --create-home \
   && usermod -a -G sudo test \
+  && usermod -a -G libvirt test \
+  && usermod -a -G libvirt-qemu test \
   && echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers \
   && echo 'test:secret' | chpasswd
 

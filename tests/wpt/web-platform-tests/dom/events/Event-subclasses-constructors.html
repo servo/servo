@@ -172,7 +172,7 @@ Object.keys(expected).forEach(function(iface) {
 });
 
 test(function () {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new UIEvent("x", { view: 7 })
   });
 }, "UIEvent constructor (view argument with wrong type)")

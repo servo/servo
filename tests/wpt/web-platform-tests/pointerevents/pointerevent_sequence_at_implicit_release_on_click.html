@@ -16,6 +16,8 @@
       var detected_pointertypes = {};
       var event_log = [];
       var start_logging = false;
+      var actions_promise;
+      var index = 0;
 
       function resetTestState() {
         detected_eventTypes = {};
@@ -31,7 +33,20 @@
             var expected_events = "pointerup, lostpointercapture, pointerout, pointerleave";
             assert_equals(event_log.join(", "), expected_events);
           });
-          test_pointer_event.done();
+          // Make sure the test finishes after all the input actions are completed.
+          actions_promise.then( () => {
+            if (index == 0) {
+              actions_promise = clickInTarget("touch", target).then(function() {
+                return clickInTarget("touch", button);
+              });
+            } else if (index == 1) {
+              actions_promise = clickInTarget("pen", target).then(function() {
+                return clickInTarget("pen", button);
+              });
+            }
+            index++;
+            test_pointer_event.done();
+          });
         });
 
         var target = document.getElementById("target");
@@ -54,16 +69,8 @@
         });
 
         // Inject pointer inputs.
-        clickInTarget("mouse", target).then(function() {
+        actions_promise = clickInTarget("mouse", target).then(function() {
           return clickInTarget("mouse", button);
-        }).then(function() {
-          return clickInTarget("touch", target);
-        }).then(function() {
-          return clickInTarget("touch", button);
-        }).then(function() {
-          return clickInTarget("pen", target);
-        }).then(function() {
-          return clickInTarget("pen", button);
         });
       }
     </script>

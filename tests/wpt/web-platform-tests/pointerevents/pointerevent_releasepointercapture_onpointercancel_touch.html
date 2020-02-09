@@ -25,13 +25,13 @@
 
         <script type='text/javascript'>
             var pointercancelGot = false;
-            var lostpointercaptureGot = false;
             var count=0;
             var event_log = [];
             var detected_pointertypes = {};
             var test_pointerEvent = async_test("pointer capture is released on pointercancel");
 
             var target0 = document.getElementById('target0');
+            var actions_promise;
 
             add_completion_callback(end_of_test);
             function end_of_test() {
@@ -61,7 +61,10 @@
                     test_pointerEvent.step(function () {
                         assert_true(pointercancelGot, "pointercancel was received before lostpointercapture");
                     });
-                    lostpointercaptureGot = true;
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
                 on_event(target0, 'pointercancel', function(e) {
@@ -69,13 +72,8 @@
                     pointercancelGot = true;
                 });
 
-                // Inject touch inputs and wait for all the actions finish to end the test.
-                touchScrollInTarget(target0, 'down').then(function() {
-                    test_pointerEvent.step(function () {
-                        assert_true(lostpointercaptureGot, "lostpointercapture should be received before the test finishes");
-                    }, "lostpointercapture should be received before the test finishes");
-                    test_pointerEvent.done();
-                });
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
             }
         </script>
         <h1>Pointer Events Capture Test</h1>

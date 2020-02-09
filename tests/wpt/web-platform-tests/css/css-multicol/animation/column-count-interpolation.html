@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>column-count interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#cc">
+<meta name="assert" content="column-count supports animation by computed value">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  column-count: 30;
+}
+.target {
+  column-count: 10;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'column-count',
+  from: neutralKeyframe,
+  to: '20',
+}, [
+  {at: -0.5, expect: '5'},
+  {at: 0, expect: '10'},
+  {at: 0.3, expect: '13'},
+  {at: 0.7, expect: '17'},
+  {at: 1, expect: '20'},
+  {at: 1.5, expect: '25'},
+]);
+
+test_no_interpolation({
+  property: 'column-count',
+  from: 'auto',
+  to: '20',
+});
+
+test_interpolation({
+  property: 'column-count',
+  from: 'inherit',
+  to: '20',
+}, [
+  {at: -0.5, expect: '35'},
+  {at: 0, expect: '30'},
+  {at: 0.3, expect: '27'},
+  {at: 0.7, expect: '23'},
+  {at: 1, expect: '20'},
+  {at: 1.5, expect: '15'},
+]);
+
+test_interpolation({
+  property: 'column-count',
+  from: '10',
+  to: '1'
+}, [
+  {at: -0.5, expect: '15'},
+  {at: 0, expect: '10'},
+  {at: 0.3, expect: '7'},
+  {at: 0.7, expect: '4'},
+  // Only positive integers are valid
+  {at: 1, expect: '1'},
+  {at: 1.5, expect: '1'}
+]);
+
+test_no_interpolation({
+  property: 'column-count',
+  from: 'initial',
+  to: '5',
+});
+
+test_no_interpolation({
+  property: 'column-count',
+  from: 'unset',
+  to: '5',
+});
+</script>

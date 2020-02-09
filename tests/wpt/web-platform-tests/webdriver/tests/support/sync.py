@@ -65,9 +65,8 @@ class Poll(object):
             message if the `until` condition times out.
 
         :param ignored_exceptions: Ignore specific types of exceptions
-            whilst waiting for the condition.  Any exceptions not
-            whitelisted will be allowed to propagate, terminating the
-            wait.
+            whilst waiting for the condition.  Any exceptions not in this list
+            will be allowed to propagate, terminating the wait.
 
         :param clock: Allows overriding the use of the runtime's
             default time library.  See `sync.SystemClock` for

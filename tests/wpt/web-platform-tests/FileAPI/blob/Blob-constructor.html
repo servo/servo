@@ -25,7 +25,7 @@ test(function() {
   assert_equals(blob.type, "");
 }, "Blob constructor with no arguments");
 test(function() {
-  assert_throws(new TypeError(), function() { var blob = Blob(); });
+  assert_throws_js(TypeError, function() { var blob = Blob(); });
 }, "Blob constructor with no arguments, without 'new'");
 test(function() {
   var blob = new Blob;
@@ -59,7 +59,7 @@ test(function() {
     window,
   ];
   args.forEach(function(arg) {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       new Blob(arg);
     }, "Should throw for argument " + format_value(arg) + ".");
   });
@@ -124,7 +124,7 @@ test(function() {
     [Symbol.iterator]: Array.prototype[Symbol.iterator],
     get length() { throw test_error; }
   };
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob(obj);
   });
 }, "The length getter should be invoked and any exceptions should be propagated.");
@@ -137,13 +137,13 @@ test(function() {
   Object.defineProperty(list, "length", {
     get: function() { throw test_error; }
   });
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob(list);
   });
 }, "A platform object that supports indexed properties should be treated as a sequence for the blobParts argument (overwritten 'length'.)");
 
 test(function() {
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     var obj = {
       [Symbol.iterator]: Array.prototype[Symbol.iterator],
       length: {
@@ -153,7 +153,7 @@ test(function() {
     };
     new Blob(obj);
   });
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     var obj = {
       [Symbol.iterator]: Array.prototype[Symbol.iterator],
       length: { valueOf: function() { throw test_error; } }
@@ -196,7 +196,7 @@ test(function() {
       assert_unreached("Should not call the getter for 2 if the getter for 1 threw.");
     }
   };
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob(obj);
   });
   assert_array_equals(received, [
@@ -214,19 +214,19 @@ test(function() {
 // XXX should add tests edge cases of ToLength(length)
 
 test(function() {
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob([{ toString: function() { throw test_error; } }]);
   }, "Throwing toString");
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob([{ toString: undefined, valueOf: function() { throw test_error; } }]);
   }, "Throwing valueOf");
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob([{
       toString: function() { throw test_error; },
       valueOf: function() { assert_unreached("Should not call valueOf if toString is present."); }
     }]);
   }, "Throwing toString and valueOf");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new Blob([{toString: null, valueOf: null}]);
   }, "Null toString and valueOf");
 }, "ToString should be called on elements of the blobParts array and any exceptions should be propagated.");
@@ -423,7 +423,7 @@ test(function() {
 }, "options properties should be accessed in lexicographic order.");
 
 test(function() {
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Blob(
       [{ toString: function() { throw test_error } }],
       {
@@ -464,8 +464,8 @@ test(function() {
   'abc'
 ].forEach(arg => {
   test(t => {
-    assert_throws(new TypeError(), () => new Blob([], arg),
-                  'Blob constructor should throw with invalid property bag');
+    assert_throws_js(TypeError, () => new Blob([], arg),
+                     'Blob constructor should throw with invalid property bag');
   }, `Passing ${JSON.stringify(arg)} for options should throw`);
 });
 

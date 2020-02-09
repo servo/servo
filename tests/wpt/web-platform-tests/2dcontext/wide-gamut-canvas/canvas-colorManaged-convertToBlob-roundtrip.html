@@ -144,6 +144,8 @@ function runAllTests() {
         runConvertToBlobTest(testScenarioSet[i]);
 }
 
-runAllTests();
+test(function() {
+    runAllTests();
+}, "Overall test");
 
 </script>

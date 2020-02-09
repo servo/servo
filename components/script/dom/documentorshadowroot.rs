@@ -13,7 +13,7 @@ use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
@@ -28,7 +28,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::stylesheets::{CssRule, Origin, Stylesheet};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     pub sheet: Arc<Stylesheet>,
@@ -76,7 +76,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 }
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentOrShadowRoot {
     window: Dom<Window>,
@@ -131,7 +131,7 @@ impl DocumentOrShadowRoot {
             .first()
         {
             Some(address) => {
-                let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
+                let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
                 let node = unsafe { node::from_untrusted_node_address(js_runtime, *address) };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node
@@ -167,7 +167,7 @@ impl DocumentOrShadowRoot {
             return vec![];
         }
 
-        let js_runtime = unsafe { JS_GetRuntime(self.window.get_cx()) };
+        let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
 
         // Step 1 and Step 3
         let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);

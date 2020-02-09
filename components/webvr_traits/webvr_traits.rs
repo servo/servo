@@ -26,7 +26,7 @@ pub enum WebVRMsg {
     RequestPresent(PipelineId, u32, IpcSender<WebVRResult<()>>),
     ExitPresent(PipelineId, u32, Option<IpcSender<WebVRResult<()>>>),
     CreateCompositor(u32),
-    CreateMockDisplay,
+    CreateMockDisplay(MockVRInit),
     MessageMockDisplay(MockVRControlMsg),
     GetGamepads(
         Vec<u32>,

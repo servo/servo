@@ -10,13 +10,12 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor,
- // Constructor(DOMString transformList),
- Constructor(sequence<unrestricted double> numberSequence),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+ LegacyWindowAlias=WebKitCSSMatrix]
 interface DOMMatrix : DOMMatrixReadOnly {
+    [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
-    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
+    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
     [NewObject, Throws] static DOMMatrix fromFloat32Array(Float32Array array32);
     [NewObject, Throws] static DOMMatrix fromFloat64Array(Float64Array array64);
 
@@ -46,8 +45,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     inherit attribute unrestricted double m44;
 
     // Mutable transform methods
-    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other);
-    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
+    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other = {});
+    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other = {});
     DOMMatrix translateSelf(optional unrestricted double tx = 0,
                             optional unrestricted double ty = 0,
                             optional unrestricted double tz = 0);

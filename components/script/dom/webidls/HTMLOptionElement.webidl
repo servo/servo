@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptionelement
-[HTMLConstructor/*, NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
+[Exposed=Window, NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
                          optional boolean defaultSelected = false,
-                         optional boolean selected = false)*/]
+                         optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
@@ -20,5 +22,5 @@ interface HTMLOptionElement : HTMLElement {
 
   [CEReactions]
            attribute DOMString text;
-  // readonly attribute long index;
+  readonly attribute long index;
 };

@@ -2835,7 +2835,6 @@
 - name: 2d.pattern.image.incomplete.nosrc
   testing:
     - 2d.pattern.incomplete.image
-  mozilla: { throws }
   code: |
     var img = new Image();
     @assert ctx.createPattern(img, 'repeat') === null;

@@ -65,6 +65,7 @@ trivial_to_resolved_value!(u8);
 trivial_to_resolved_value!(i8);
 trivial_to_resolved_value!(u16);
 trivial_to_resolved_value!(u32);
+trivial_to_resolved_value!(usize);
 trivial_to_resolved_value!(String);
 trivial_to_resolved_value!(Box<str>);
 trivial_to_resolved_value!(cssparser::RGBA);

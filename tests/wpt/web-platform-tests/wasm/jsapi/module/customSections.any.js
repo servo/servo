@@ -24,9 +24,9 @@ setup(() => {
 });
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections());
+  assert_throws_js(TypeError, () => WebAssembly.Module.customSections());
   const module = new WebAssembly.Module(emptyModuleBinary);
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections(module));
+  assert_throws_js(TypeError, () => WebAssembly.Module.customSections(module));
 }, "Missing arguments");
 
 test(() => {
@@ -42,8 +42,8 @@ test(() => {
     WebAssembly.Module.prototype,
   ];
   for (const argument of invalidArguments) {
-    assert_throws(new TypeError(), () => WebAssembly.Module.customSections(argument, ""),
-                  `customSections(${format_value(argument)})`);
+    assert_throws_js(TypeError, () => WebAssembly.Module.customSections(argument, ""),
+                     `customSections(${format_value(argument)})`);
   }
 }, "Non-Module arguments");
 
@@ -81,22 +81,10 @@ test(() => {
   const bytes1 = [87, 101, 98, 65, 115, 115, 101, 109, 98, 108, 121];
   const bytes2 = [74, 83, 65, 80, 73];
 
-  const binary = new Binary;
-  binary.emit_section(kUnknownSectionCode, section => {
-    section.emit_string("name");
-    section.emit_bytes(bytes1);
-  });
-  binary.emit_section(kUnknownSectionCode, section => {
-    section.emit_string("name");
-    section.emit_bytes(bytes2);
-  });
-  binary.emit_section(kUnknownSectionCode, section => {
-    section.emit_string("foo");
-    section.emit_bytes(bytes1);
-  });
-
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary.trunc_buffer());
+  builder.addCustomSection("name", bytes1);
+  builder.addCustomSection("name", bytes2);
+  builder.addCustomSection("foo", bytes1);
   const buffer = builder.toBuffer()
   const module = new WebAssembly.Module(buffer);
 
@@ -119,14 +107,8 @@ test(() => {
   const bytes = [87, 101, 98, 65, 115, 115, 101, 109, 98, 108, 121];
   const name = "yee\uD801\uDC37eey"
 
-  const binary = new Binary;
-  binary.emit_section(kUnknownSectionCode, section => {
-    section.emit_string(name);
-    section.emit_bytes(bytes);
-  });
-
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary.trunc_buffer());
+  builder.addCustomSection(name, bytes);
   const buffer = builder.toBuffer();
   const module = new WebAssembly.Module(buffer);
 
@@ -140,14 +122,8 @@ test(() => {
 test(() => {
   const bytes = [87, 101, 98, 65, 115, 115, 101, 109, 98, 108, 121];
 
-  const binary = new Binary;
-  binary.emit_section(kUnknownSectionCode, section => {
-    section.emit_string("na\uFFFDme");
-    section.emit_bytes(bytes);
-  });
-
   const builder = new WasmModuleBuilder();
-  builder.addExplicitSection(binary.trunc_buffer());
+  builder.addCustomSection("na\uFFFDme", bytes);
   const buffer = builder.toBuffer();
   const module = new WebAssembly.Module(buffer);
 

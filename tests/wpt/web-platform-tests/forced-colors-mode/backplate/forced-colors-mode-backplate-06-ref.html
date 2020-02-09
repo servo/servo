@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate reference.
+  Tests that inline spans with different forced-color-adjust values from their
+  parent element follow the backplate behavior of that parent in forced colors
+  mode.
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    forced-color-adjust: none; /* This turns the backplate feature off in
+                                  forced colors mode. The backplate is
+                                  simulated in testing using a Window
+                                  background-color behind the text.
+                                */
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+</style>
+<body>
+  <div>
+    This text should not have a backplate in forced colors mode.
+    <br>
+    This text should not have a backplate in forced colors mode.
+  </div>
+  <br>
+  <br>
+  <br>
+  <br>
+  <div style="background: Window;">
+    This text should have a backplate in forced colors mode.
+    <br>
+    This text should have a backplate in forced colors mode.
+  </div>
+</body>

@@ -4,11 +4,11 @@
 
 // https://w3c.github.io/webrtc-pc/#interface-definition
 
-[Constructor(optional RTCConfiguration configuration),
- Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCPeerConnection : EventTarget {
-    Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
-    Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options);
+    [Throws] constructor(optional RTCConfiguration configuration = {});
+    Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options = {});
+    Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options = {});
     Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
     readonly attribute RTCSessionDescription? localDescription;
     // readonly attribute RTCSessionDescription? currentLocalDescription;
@@ -17,7 +17,7 @@ interface RTCPeerConnection : EventTarget {
     readonly attribute RTCSessionDescription? remoteDescription;
     // readonly attribute RTCSessionDescription? currentRemoteDescription;
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
-    Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate);
+    Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate = {});
     readonly attribute RTCSignalingState      signalingState;
     readonly attribute RTCIceGatheringState   iceGatheringState;
     readonly attribute RTCIceConnectionState  iceConnectionState;

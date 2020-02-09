@@ -7,17 +7,15 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use crate::display_list::items::{ClipScrollNode, ClipScrollNodeType};
+use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
+use webrender_api::units::LayoutPoint;
 use webrender_api::{
-    self, ClipId, DisplayListBuilder, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId,
+    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
+    PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace,
+    ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
 };
-use webrender_api::{LayoutPoint, PropertyBinding, SpecificDisplayItem};
-
-pub trait WebRenderDisplayListConverter {
-    fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
-}
 
 struct ClipScrollState {
     clip_ids: Vec<Option<ClipId>>,
@@ -26,18 +24,17 @@ struct ClipScrollState {
     active_spatial_id: SpatialId,
 }
 
-trait WebRenderDisplayItemConverter {
-    fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo;
-    fn convert_to_webrender(
-        &self,
-        clip_scroll_nodes: &[ClipScrollNode],
-        state: &mut ClipScrollState,
-        builder: &mut DisplayListBuilder,
-    );
-}
+/// Contentful paint, for the purpose of
+/// https://w3c.github.io/paint-timing/#first-contentful-paint
+/// (i.e. the display list contains items of type text,
+/// image, non-white canvas or SVG). Used by metrics.
+pub struct IsContentful(pub bool);
 
-impl WebRenderDisplayListConverter for DisplayList {
-    fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
+impl DisplayList {
+    pub fn convert_to_webrender(
+        &mut self,
+        pipeline_id: PipelineId,
+    ) -> (DisplayListBuilder, IsContentful) {
         let mut clip_ids = vec![None; self.clip_scroll_nodes.len()];
         let mut spatial_ids = vec![None; self.clip_scroll_nodes.len()];
 
@@ -66,35 +63,24 @@ impl WebRenderDisplayListConverter for DisplayList {
             1024 * 1024, // 1 MB of space
         );
 
-        for item in &self.list {
-            item.convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder);
+        let mut is_contentful = IsContentful(false);
+        for item in &mut self.list {
+            is_contentful.0 |= item
+                .convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder)
+                .0;
         }
 
-        builder
+        (builder, is_contentful)
     }
 }
 
-impl WebRenderDisplayItemConverter for DisplayItem {
-    fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo {
-        let tag = match self.base().metadata.pointing {
-            Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor)),
-            None => None,
-        };
-        webrender_api::LayoutPrimitiveInfo {
-            rect: self.base().bounds,
-            clip_rect: self.base().clip_rect,
-            // TODO(gw): Make use of the WR backface visibility functionality.
-            is_backface_visible: true,
-            tag,
-        }
-    }
-
+impl DisplayItem {
     fn convert_to_webrender(
-        &self,
+        &mut self,
         clip_scroll_nodes: &[ClipScrollNode],
         state: &mut ClipScrollState,
         builder: &mut DisplayListBuilder,
-    ) {
+    ) -> IsContentful {
         // Note: for each time of a display item, if we register one of `clip_ids` or `spatial_ids`,
         // we also register the other one as inherited from the current state or the stack.
         // This is not an ideal behavior, but it is compatible with the old WebRender model
@@ -118,92 +104,94 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             state.active_clip_id = cur_clip_id;
         }
 
-        let space_clip_info = SpaceAndClipInfo {
-            spatial_id: state.active_spatial_id,
-            clip_id: state.active_clip_id,
-        };
         match *self {
-            DisplayItem::Rectangle(ref item) => {
-                builder.push_item(
-                    &SpecificDisplayItem::Rectangle(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+            DisplayItem::Rectangle(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::Rectangle(item.item));
+                IsContentful(false)
             },
-            DisplayItem::Text(ref item) => {
-                builder.push_item(
-                    &SpecificDisplayItem::Text(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+            DisplayItem::Text(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::Text(item.item));
                 builder.push_iter(item.data.iter());
+                IsContentful(true)
             },
-            DisplayItem::Image(ref item) => {
-                builder.push_item(
-                    &SpecificDisplayItem::Image(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+            DisplayItem::Image(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::Image(item.item));
+                IsContentful(true)
             },
-            DisplayItem::Border(ref item) => {
+            DisplayItem::RepeatingImage(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::RepeatingImage(item.item));
+                IsContentful(true)
+            },
+            DisplayItem::Border(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
                 if !item.data.is_empty() {
                     builder.push_stops(item.data.as_ref());
                 }
-                builder.push_item(
-                    &SpecificDisplayItem::Border(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+                builder.push_item(&WrDisplayItem::Border(item.item));
+                IsContentful(false)
             },
-            DisplayItem::Gradient(ref item) => {
+            DisplayItem::Gradient(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(
-                    &SpecificDisplayItem::Gradient(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+                builder.push_item(&WrDisplayItem::Gradient(item.item));
+                IsContentful(false)
             },
-            DisplayItem::RadialGradient(ref item) => {
+            DisplayItem::RadialGradient(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(
-                    &SpecificDisplayItem::RadialGradient(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+                builder.push_item(&WrDisplayItem::RadialGradient(item.item));
+                IsContentful(false)
             },
-            DisplayItem::Line(ref item) => {
-                builder.push_item(
-                    &SpecificDisplayItem::Line(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+            DisplayItem::Line(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::Line(item.item));
+                IsContentful(false)
             },
-            DisplayItem::BoxShadow(ref item) => {
-                builder.push_item(
-                    &SpecificDisplayItem::BoxShadow(item.item),
-                    &self.prim_info(),
-                    &space_clip_info,
-                );
+            DisplayItem::BoxShadow(ref mut item) => {
+                item.item.common = build_common_item_properties(&item.base, state);
+                builder.push_item(&WrDisplayItem::BoxShadow(item.item));
+                IsContentful(false)
             },
-            DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(&self.prim_info(), &space_clip_info, item.shadow);
+            DisplayItem::PushTextShadow(ref mut item) => {
+                let common = build_common_item_properties(&item.base, state);
+                builder.push_shadow(
+                    &SpaceAndClipInfo {
+                        spatial_id: common.spatial_id,
+                        clip_id: common.clip_id,
+                    },
+                    item.shadow,
+                    true,
+                );
+                IsContentful(false)
             },
             DisplayItem::PopAllTextShadows(_) => {
-                builder.pop_all_shadows();
+                builder.push_item(&WrDisplayItem::PopAllShadows);
+                IsContentful(false)
             },
-            DisplayItem::Iframe(ref item) => {
+            DisplayItem::Iframe(ref mut item) => {
+                let common = build_common_item_properties(&item.base, state);
                 builder.push_iframe(
-                    &self.prim_info(),
-                    &space_clip_info,
+                    item.bounds,
+                    common.clip_rect,
+                    &SpaceAndClipInfo {
+                        spatial_id: common.spatial_id,
+                        clip_id: common.clip_id,
+                    },
                     item.iframe.to_webrender(),
                     true,
                 );
+                IsContentful(false)
             },
-            DisplayItem::PushStackingContext(ref item) => {
+            DisplayItem::PushStackingContext(ref mut item) => {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                //let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                let mut bounds = stacking_context.bounds;
                 let spatial_id =
                     if let Some(frame_index) = stacking_context.established_reference_frame {
                         let (transform, ref_frame) =
@@ -216,7 +204,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                 ),
                                 (Some(t), None) => (t, ReferenceFrameKind::Transform),
                                 (Some(t), Some(p)) => (
-                                    t.pre_mul(&p),
+                                    t.pre_transform(&p),
                                     ReferenceFrameKind::Perspective {
                                         scrolling_relative_to: None,
                                     },
@@ -225,7 +213,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             };
 
                         let spatial_id = builder.push_reference_frame(
-                            &stacking_context.bounds,
+                            stacking_context.bounds.origin,
                             state.active_spatial_id,
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
@@ -235,27 +223,40 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
                         state.clip_ids[frame_index.to_index()] = Some(cur_clip_id);
 
-                        info.rect.origin = LayoutPoint::zero();
-                        info.clip_rect.origin = LayoutPoint::zero();
+                        bounds.origin = LayoutPoint::zero();
                         spatial_id
                     } else {
                         state.active_spatial_id
                     };
 
-                builder.push_stacking_context(
-                    &info,
+                if !stacking_context.filters.is_empty() {
+                    builder.push_item(&WrDisplayItem::SetFilterOps);
+                    builder.push_iter(&stacking_context.filters);
+                }
+
+                let wr_item = PushStackingContextDisplayItem {
+                    origin: bounds.origin,
                     spatial_id,
-                    None,
-                    stacking_context.transform_style,
-                    stacking_context.mix_blend_mode,
-                    &stacking_context.filters,
-                    &[],
-                    RasterSpace::Screen,
-                    /* cache_tiles = */ false,
-                );
+                    prim_flags: PrimitiveFlags::default(),
+                    stacking_context: StackingContext {
+                        transform_style: stacking_context.transform_style,
+                        mix_blend_mode: stacking_context.mix_blend_mode,
+                        clip_id: None,
+                        raster_space: RasterSpace::Screen,
+                        // TODO(pcwalton): Enable picture caching?
+                        cache_tiles: false,
+                        is_backdrop_root: false,
+                    },
+                };
+
+                builder.push_item(&WrDisplayItem::PushStackingContext(wr_item));
+                IsContentful(false)
             },
-            DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
-            DisplayItem::DefineClipScrollNode(ref item) => {
+            DisplayItem::PopStackingContext(_) => {
+                builder.pop_stacking_context();
+                IsContentful(false)
+            },
+            DisplayItem::DefineClipScrollNode(ref mut item) => {
                 let node = &clip_scroll_nodes[item.node_index.to_index()];
                 let item_rect = node.clip.main;
 
@@ -291,7 +292,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             node.clip.complex.clone(),
                             None,
                             scroll_sensitivity,
-                            webrender_api::LayoutVector2D::zero(),
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
@@ -306,7 +307,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
-                            webrender_api::LayoutVector2D::zero(),
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         state.spatial_ids[item.node_index.to_index()] = Some(id);
@@ -316,7 +317,26 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         unreachable!("Found DefineClipScrollNode for Placeholder type node.");
                     },
                 };
+                IsContentful(false)
             },
         }
+    }
+}
+
+fn build_common_item_properties(
+    base: &BaseDisplayItem,
+    state: &ClipScrollState,
+) -> CommonItemProperties {
+    let tag = match base.metadata.pointing {
+        Some(cursor) => Some((base.metadata.node.0 as u64, cursor)),
+        None => None,
+    };
+    CommonItemProperties {
+        clip_rect: base.clip_rect,
+        spatial_id: state.active_spatial_id,
+        clip_id: state.active_clip_id,
+        // TODO(gw): Make use of the WR backface visibility functionality.
+        flags: PrimitiveFlags::default(),
+        hit_info: tag,
     }
 }

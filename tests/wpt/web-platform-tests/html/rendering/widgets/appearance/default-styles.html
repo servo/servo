@@ -1,0 +1,96 @@
+<!doctype html>
+<title>HTML: default style for 'appearance'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// namespaces
+const htmlns = 'http://www.w3.org/1999/xhtml';
+const svgns = 'http://www.w3.org/2000/svg';
+
+// auto
+testAppearance(htmlns, 'input', null, 'auto');
+testAppearance(htmlns, 'input', {type: 'text'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'TEXT'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'search'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'tel'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'url'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'email'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'password'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'date'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'month'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'week'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'time'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'datetime-local'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'number'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'range'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'color'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'checkbox'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'radio'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'submit'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'reset'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'button'}, 'auto');
+testAppearance(htmlns, 'input', {type: 'unknowntype'}, 'auto');
+testAppearance(htmlns, 'select', null, 'auto');
+testAppearance(htmlns, 'select', {multiple: ''}, 'auto');
+testAppearance(htmlns, 'select', {size: '2'}, 'auto');
+testAppearance(htmlns, 'button', null, 'auto');
+testAppearance(htmlns, 'textarea', null, 'auto');
+testAppearance(htmlns, 'meter', null, 'auto');
+testAppearance(htmlns, 'progress', null, 'auto');
+
+// none
+testAppearance(htmlns, 'input', {type: 'hidden'}, 'none');
+testAppearance(htmlns, 'input', {type: 'HIDDEN'}, 'none');
+testAppearance(htmlns, 'input', {type: 'file'}, 'none');
+testAppearance(htmlns, 'input', {type: 'image'}, 'none');
+testAppearance(htmlns, 'div', null, 'none');
+testAppearance(htmlns, 'details', null, 'none');
+testAppearance(htmlns, 'summary', null, 'none');
+testAppearance(htmlns, 'video', null, 'none');
+testAppearance(htmlns, 'video', {controls: ''}, 'none');
+testAppearance(htmlns, 'menuitem', null, 'none');
+testAppearance(htmlns, 'marquee', null, 'none');
+testAppearance(htmlns, 'keygen', null, 'none');
+testAppearance(null, 'input', null, 'none');
+testAppearance(svgns, 'input', null, 'none');
+
+test(t => {
+  assertAppearance(document.documentElement, 'none');
+}, 'The html element');
+
+test(t => {
+  assertAppearance(document.body, 'none');
+}, 'The body element');
+
+
+function testAppearance(ns, tag, attributes, expected) {
+  test(t => {
+    const elm = document.createElementNS(ns, tag);
+    for (const att in attributes) {
+      elm.setAttribute(att, attributes[att]);
+    }
+    document.body.appendChild(elm);
+    t.add_cleanup(() => elm.remove());
+    assertAppearance(elm, expected);
+  }, formatTestName(ns, tag, attributes));
+}
+
+function assertAppearance(elm, expected) {
+  const computedStyle = getComputedStyle(elm);
+  assert_equals(computedStyle.getPropertyValue('-webkit-appearance'), expected, '-webkit-appearance');
+  assert_equals(computedStyle.getPropertyValue('appearance'), expected, 'appearance (no prefix)');
+}
+
+function formatTestName(ns, tag, attributes) {
+  let s = `<${tag}`;
+  for (const att in attributes) {
+    s += ` ${att}="${attributes[att]}"`;
+  }
+  s += '>';
+  if (ns !== htmlns) {
+    s += ` (namespace: ${ns})`;
+  }
+  return s;
+}
+</script>

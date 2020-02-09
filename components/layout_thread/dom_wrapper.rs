@@ -514,6 +514,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         false
     }
 
+    fn exports_any_part(&self) -> bool {
+        false
+    }
+
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute())
@@ -951,6 +955,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
+            NonTSPseudoClass::Defined |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
@@ -997,6 +1002,14 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     #[inline]
     fn is_part(&self, _name: &Atom) -> bool {
         false
+    }
+
+    fn exported_part(&self, _: &Atom) -> Option<Atom> {
+        None
+    }
+
+    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+        None
     }
 
     #[inline]
@@ -1397,6 +1410,10 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
             .expect("Unstyled layout node?")
             .borrow()
     }
+
+    fn is_shadow_host(&self) -> bool {
+        self.element.shadow_root().is_some()
+    }
 }
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
@@ -1527,6 +1544,16 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn is_part(&self, _name: &Atom) -> bool {
         debug!("ServoThreadSafeLayoutElement::is_part called");
         false
+    }
+
+    fn exported_part(&self, _: &Atom) -> Option<Atom> {
+        debug!("ServoThreadSafeLayoutElement::exported_part called");
+        None
+    }
+
+    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+        debug!("ServoThreadSafeLayoutElement::imported_part called");
+        None
     }
 
     fn has_class(&self, _name: &Atom, _case_sensitivity: CaseSensitivity) -> bool {

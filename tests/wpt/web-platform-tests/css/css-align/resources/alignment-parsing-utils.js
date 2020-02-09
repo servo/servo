@@ -36,6 +36,8 @@ function checkPlaceShorhand(shorthand, shorthandValue, alignValue, justifyValue)
 
     var resolvedValue = getComputedStyle(div).getPropertyValue(shorthand);
     var expectedResolvedValue = (alignValue + " " + justifyValue).trim();
+    if (alignValue === justifyValue)
+        expectedResolvedValue = alignValue;
 
     assert_equals(div.style[shorthand], specifiedValue, shorthandValue + " specified value");
     // FIXME: We need https://github.com/w3c/csswg-drafts/issues/1041 to clarify which

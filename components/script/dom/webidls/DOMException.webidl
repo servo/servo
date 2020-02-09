@@ -9,10 +9,10 @@
 
 [
   ExceptionClass,
-  Exposed=(Window,Worker),
-  Constructor(optional DOMString message="", optional DOMString name="Error")
+  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)
 ]
 interface DOMException {
+  [Throws] constructor(optional DOMString message="", optional DOMString name="Error");
   const unsigned short INDEX_SIZE_ERR = 1;
   const unsigned short DOMSTRING_SIZE_ERR = 2; // historical
   const unsigned short HIERARCHY_REQUEST_ERR = 3;
@@ -38,7 +38,6 @@ interface DOMException {
   const unsigned short TIMEOUT_ERR = 23;
   const unsigned short INVALID_NODE_TYPE_ERR = 24;
   const unsigned short DATA_CLONE_ERR = 25;
-  const unsigned short NOT_READABLE_ERR = 26;
 
   // Error code as u16
   readonly attribute unsigned short code;
@@ -48,6 +47,4 @@ interface DOMException {
 
   // A custom message set by the thrower.
   readonly attribute DOMString message;
-
-  stringifier;
 };

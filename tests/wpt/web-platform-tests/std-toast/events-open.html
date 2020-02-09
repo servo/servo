@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Toast: Event tests</title>
+<title>Toast: event (open) tests</title>
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -13,9 +13,7 @@ import { testToastElement, EventCollector } from './resources/helpers.js';
 testToastElement((toast) => {
     const counter = new EventCollector();
 
-    toast.addEventListener('show', (e) => {
-        counter.getCallback()(e);
-    });
+    toast.addEventListener('show', counter.getCallback());
     toast.open = true;
 
     assert_equals(counter.getCount(), 1);

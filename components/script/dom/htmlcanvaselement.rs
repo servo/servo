@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
@@ -28,28 +28,28 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
+use crate::euclidext::Size2DExt;
+use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
-use euclid::{Rect, Size2D};
+use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
 use image::png::PNGEncoder;
 use image::ColorType;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
-use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::pref;
-use std::cell::Ref;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum CanvasContext {
     Context2d(Dom<CanvasRenderingContext2D>),
@@ -94,7 +94,9 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         if let Some(ref context) = *self.context.borrow() {
             match *context {
-                CanvasContext::Context2d(ref context) => context.set_bitmap_dimensions(size),
+                CanvasContext::Context2d(ref context) => {
+                    context.set_canvas_bitmap_dimensions(size.to_u64())
+                },
                 CanvasContext::WebGL(ref context) => context.recreate(size),
                 CanvasContext::WebGL2(ref context) => context.recreate(size),
             }
@@ -189,7 +191,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
 
 impl HTMLCanvasElement {
     pub fn context(&self) -> Option<Ref<CanvasContext>> {
-        ref_filter_map::ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D>> {
@@ -206,10 +208,9 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl_context(
+    fn get_or_init_webgl_context(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if let Some(ctx) = self.context() {
@@ -226,10 +227,9 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_or_init_webgl2_context(
+    fn get_or_init_webgl2_context(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         if !pref!(dom.webgl2.enabled) {
@@ -259,20 +259,19 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn get_gl_attributes(
-        cx: *mut JSContext,
-        options: HandleValue,
-    ) -> Option<GLContextAttributes> {
-        match WebGLContextAttributes::new(cx, options) {
-            Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
-            Ok(ConversionResult::Failure(ref error)) => {
-                throw_type_error(cx, &error);
-                None
-            },
-            _ => {
-                debug!("Unexpected error on conversion of WebGLContextAttributes");
-                None
-            },
+    fn get_gl_attributes(cx: JSContext, options: HandleValue) -> Option<GLContextAttributes> {
+        unsafe {
+            match WebGLContextAttributes::new(cx, options) {
+                Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
+                Ok(ConversionResult::Failure(ref error)) => {
+                    throw_type_error(*cx, &error);
+                    None
+                },
+                _ => {
+                    debug!("Unexpected error on conversion of WebGLContextAttributes");
+                    None
+                },
+            }
         }
     }
 
@@ -328,10 +327,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    #[allow(unsafe_code)]
-    unsafe fn GetContext(
+    fn GetContext(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         id: DOMString,
         options: HandleValue,
     ) -> Option<RenderingContext> {
@@ -350,10 +348,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    #[allow(unsafe_code)]
-    unsafe fn ToDataURL(
+    fn ToDataURL(
         &self,
-        _context: *mut JSContext,
+        _context: JSContext,
         _mime_type: Option<DOMString>,
         _quality: HandleValue,
     ) -> Fallible<USVString> {
@@ -447,12 +444,19 @@ pub mod utils {
     use crate::dom::window::Window;
     use net_traits::image_cache::CanRequestImages;
     use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
+    use net_traits::request::CorsSettings;
     use servo_url::ServoUrl;
 
-    pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
+    pub fn request_image_from_cache(
+        window: &Window,
+        url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
+    ) -> ImageResponse {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             url.into(),
+            window.origin().immutable().clone(),
+            cors_setting,
             UsePlaceholder::No,
             CanRequestImages::No,
         );

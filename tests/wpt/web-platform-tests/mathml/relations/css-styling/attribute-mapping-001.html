@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Attribute mapping</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+<meta name="assert" content="Verify that dir, mathcolor, mathbackground and mathsize are mapped to CSS but that deprecated MathML3 attributes are not.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  #container {
+      color: blue;
+      font-size: 50px;
+  }
+</style>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+  function runTests() {
+      var container = document.getElementById("container");
+      for (tag in MathMLFragments) {
+          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+      }
+      Array.from(document.getElementsByClassName("element")).forEach(element => {
+          var tag = element.tagName;
+          var style = window.getComputedStyle(element);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("direction"), "ltr", "no attribute");
+              element.setAttribute("dir", "rtl");
+              assert_equals(style.getPropertyValue("direction"), "rtl", "attribute specified");
+              element.setAttribute("dir", "RtL");
+              assert_equals(style.getPropertyValue("direction"), "rtl", "case insensitive");
+              element.setAttribute("dir", "auto");
+              assert_equals(style.getPropertyValue("direction"), "ltr", "auto");
+              element.setAttribute("dir", "foo");
+              assert_equals(style.getPropertyValue("direction"), "ltr", "random value");
+          }, `dir on the ${tag} element is mapped to CSS direction`)
+
+          test(function() {
+              assert_equals(style.getPropertyValue("color"),
+                            tag === "merror" ?
+                            "rgb(255, 0, 0)" : "rgb(0, 0, 255)",
+                            "no attribute");
+              element.setAttribute("mathcolor", "black");
+              assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 0)", "attribute specified");
+              // The color names are case-insensitive.
+              // See https://www.w3.org/TR/css-color-3/#html4
+              element.setAttribute("mathcolor", "GrEeN");
+              assert_equals(style.getPropertyValue("color"), "rgb(0, 128, 0)", "case insensitive");
+          }, `mathcolor on the ${tag} element is mapped to CSS color`);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("background-color"),
+                            tag === "merror" ?
+                            "rgb(255, 255, 224)" : "rgba(0, 0, 0, 0)",
+                            "no attribute");
+              element.setAttribute("mathbackground", "lightblue");
+              assert_equals(style.getPropertyValue("background-color"), "rgb(173, 216, 230)", "attribute specified");
+              // The color names are case-insensitive.
+              // See https://www.w3.org/TR/css-color-3/#html4
+              element.setAttribute("mathbackground", "YeLlOw");
+              assert_equals(style.getPropertyValue("background-color"), "rgb(255, 255, 0)", "case insensitive");
+          }, `mathbackground on the ${tag} element is mapped to CSS background-color`);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("font-size"), "50px", "no attribute");
+              element.setAttribute("mathsize", "20px");
+              assert_equals(style.getPropertyValue("font-size"), "20px", "attribute specified");
+              // unit identifiers are ASCII case-insensitive.
+              // https://www.w3.org/TR/css-values-3/#typedef-dimension
+              element.setAttribute("mathsize", "30Px");
+              assert_equals(style.getPropertyValue("font-size"), "30px", "case insensitive");
+          }, `mathsize on the ${tag} element is mapped to CSS font-size`);
+
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_mathsize(), "Superseding attributes are supported");
+              var properties = ["background-color", "color", "fontfamily", "font-size", "font-style", "font-weight"];
+              var oldStyle = {};
+              properties.forEach(property => {
+                  oldStyle[property] = style.getPropertyValue(property);
+              });
+              element.setAttribute("background", "red");
+              element.setAttribute("color", "blue");
+              element.setAttribute("fontfamily", "monospace");
+              element.setAttribute("fontsize", "50px");
+              element.setAttribute("fontstyle", "italic");
+              element.setAttribute("fontweight", "bold");
+              properties.forEach(property => {
+                  assert_equals(style.getPropertyValue(property), oldStyle[property], `${property}`);
+              });
+          }, `deprecated MathML3 attributes on the ${tag} element are not mapped to CSS`);
+      });
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <math class="element"></math>
+  </div>
+</body>
+</html>

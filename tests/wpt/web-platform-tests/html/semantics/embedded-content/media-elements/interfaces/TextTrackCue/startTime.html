@@ -14,9 +14,9 @@ test(function(){
     assert_equals(c1.startTime, -1);
     c1.startTime = c1.startTime;
     assert_equals(c1.startTime, -1);
-    assert_throws(new TypeError(), function(){ c1.startTime = NaN; });
-    assert_throws(new TypeError(), function(){ c1.startTime = +Infinity; });
-    assert_throws(new TypeError(), function(){ c1.startTime = -Infinity; });
+    assert_throws_js(TypeError, function(){ c1.startTime = NaN; });
+    assert_throws_js(TypeError, function(){ c1.startTime = +Infinity; });
+    assert_throws_js(TypeError, function(){ c1.startTime = -Infinity; });
 }, document.title+', script-created cue');
 
 var t_parsed = async_test(document.title+', parsed cue');

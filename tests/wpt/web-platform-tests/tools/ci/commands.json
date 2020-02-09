@@ -14,7 +14,7 @@
     "virtualenv": false
   },
   "tc-download": {
-    "path": "tcdownload.py",
+    "path": "tc/download.py",
     "script": "run",
     "parser": "get_parser",
     "parse_known": true,
@@ -23,6 +23,28 @@
     "install": [
       "requests",
       "pygithub"
+    ]
+  },
+  "tc-taskgraph": {
+    "path": "tc/taskgraph.py",
+    "script": "run",
+    "help": "Build the taskgraph",
+    "virtualenv": true,
+    "install": [
+      "requests",
+      "pyyaml"
+    ]
+  },
+  "tc-decision": {
+    "path": "tc/decision.py",
+    "parser": "get_parser",
+    "script": "run",
+    "help": "Run the decision task",
+    "virtualenv": true,
+    "install": [
+        "requests",
+        "pyyaml",
+        "taskcluster"
     ]
   }
 }

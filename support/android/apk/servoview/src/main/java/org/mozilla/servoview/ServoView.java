@@ -45,6 +45,7 @@ public class ServoView extends GLSurfaceView
     private boolean mAnimating;
     private String mServoArgs;
     private String mServoLog;
+    private String mGstDebug;
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
 
@@ -90,9 +91,10 @@ public class ServoView extends GLSurfaceView
         initGestures(context);
     }
 
-    public void setServoArgs(String args, String log) {
+    public void setServoArgs(String args, String log, String gstdebug) {
         mServoArgs = args;
         mServoLog = log;
+        mGstDebug = gstdebug;
     }
 
     public void reload() {
@@ -132,8 +134,12 @@ public class ServoView extends GLSurfaceView
         }
     }
 
+    public void mediaSessionAction(int action) {
+        mServo.mediaSessionAction(action);
+    }
+
     public void flushGLBuffers() {
-      requestRender();
+        requestRender();
     }
 
     // Scroll and click
@@ -176,6 +182,7 @@ public class ServoView extends GLSurfaceView
             String uri = mInitialUri == null ? null : mInitialUri.toString();
             options.url = uri;
             options.logStr = mServoLog;
+            options.gstDebugStr = mGstDebug;
             mServo = new Servo(options, this, this, mClient, mActivity);
         });
     }

@@ -5,7 +5,7 @@
 <div id=log></div>
 <script>
 test(function(t) {
-  assert_throws(new TypeError, () => postMessage('', '*', null));
+  assert_throws_js(TypeError, () => postMessage('', '*', null));
 });
 </script>
 

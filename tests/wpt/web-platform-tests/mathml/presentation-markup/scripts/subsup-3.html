@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Subscripts and Superscripts metrics</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#msubmsup">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
 <meta name="assert" content="Basic metrics for the mmultiscript element with many scripts.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -28,12 +29,16 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       for (var i = 0; i < 5; i++)
         assert_approx_equals(getBox("multi" + i + "base").middle, getBox("baseline").bottom, e, "base " + i + "is placed on the baseline");
     }, "Alignment of the base on the baseline");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 5;
       assert_approx_equals(getBox("multi0").width, 30, e, "width of multi0");
       assert_approx_equals(getBox("multi0").height, 30, e, "height of multi0");
@@ -49,6 +54,8 @@
     }, "Dimensions of the scripted elements");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 3;
       for (var i = 2; i <= 4; i++) {
         var base = getBox("multi" + i + "base");
@@ -66,6 +73,8 @@
     }, "Vertical positions of scripts");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       for (var i = 2; i <= 4; i++) {
         var base = getBox("multi" + i + "base");
@@ -81,6 +90,8 @@
     }, "Horizontal alignment of scripts");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       for (var i = 2; i <= 4; i++) {
         var base = getBox("multi" + i + "base");
         var firstPostScript = getBox("multi" + i + "postsub1");

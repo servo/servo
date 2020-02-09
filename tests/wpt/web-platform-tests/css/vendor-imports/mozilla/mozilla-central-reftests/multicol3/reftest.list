@@ -1,3 +1,9 @@
 == broken-column-rule-1.html broken-column-rule-1-ref.html
 == moz-multicol3-column-balancing-break-inside-avoid-1.html moz-multicol3-column-balancing-break-inside-avoid-1-ref.html
 == multicol-height-002.xht reference/multicol-height-002.xht
+
+# The following lines are duplicates of other lines from further up in this
+# manifest. They're listed again here so we can re-run these tests with
+# column-span enabled. These lines can be removed once the pref becomes
+# default-enabled (Bug 1426010).
+== broken-column-rule-1.html broken-column-rule-1-ref.html

@@ -1,0 +1,5 @@
+{
+  "content_security": {
+    "policies_report_only": ["img-src 'none'"]
+  }
+}

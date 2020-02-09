@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Reftest Reference</title>
+<meta charset=utf-8>
+<style>
+  body > div {
+    border: solid silver;
+    float: left;
+    margin: 1em;
+    text-align: right;
+    font: 20px/1 sans-serif;
+  }
+  span { text-orientation: upright; }
+  hr { clear: both; }
+</style>
+
+<p>Test passes if both rows of boxes are identical (order, orientation, and arrangement of contents).
+
+
+<div style="writing-mode: vertical-rl">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+<div style="writing-mode: vertical-lr">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+
+<div dir=rtl> א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+
+
+<hr>
+
+
+<div style="writing-mode: vertical-rl">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+<div style="writing-mode: vertical-lr">
+<bdo dir=ltr>
+ ז <span>ג ד</span> <span>ה ו</span> ב א<br>
+٧ <span>٣ ٤</span> <span>٥ ٦</span> ٢ ١
+</bdo>
+</div>
+
+<div dir=rtl> א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+ א ב ג ד ה ו ז<br>
+ ١ ٢ ٣ ٤ ٥ ٦ ٧
+</div>

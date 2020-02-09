@@ -92,6 +92,7 @@
                 var target0 = document.getElementById("target0");
 
                 var test_touchaction = async_test("touch-action attribute test");
+                var actions_promise;
 
                 xScr0 = target0.scrollLeft;
                 yScr0 = target0.scrollTop;
@@ -117,18 +118,17 @@
                     }
 
                     if(xScrollIsReceived && yScrollIsReceived) {
+                        // Make sure the test finishes after all the input actions are completed.
+                        actions_promise.then( () => {
+                            test_touchaction.done();
+                        });
                         updateDescriptionComplete();
                     }
                 });
 
                 // Inject touch inputs and wait for all the actions finish to end the test.
-                touchScrollInTarget(target0, 'down').then(function() {
+                actions_promise = touchScrollInTarget(target0, 'down').then(function() {
                     return touchScrollInTarget(target0, 'right');
-                }).then(function() {
-                    test_touchaction.step(function () {
-                        assert_true(xScrollIsReceived && yScrollIsReceived, "x-scroll and y-scroll should be received before the test finishes");
-                    }, "x-scroll and y-scroll should be received before the test finishes");
-                    test_touchaction.done();
                 });
             }
 

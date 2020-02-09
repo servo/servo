@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/test-constants.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
 <script src="resources/webxr_util.js"></script>
-<script src="resources/xr-test-asserts.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
 <canvas></canvas>
 
 <script>
@@ -11,20 +11,9 @@
 let immersiveTestName = "XRView.eye is correct for immersive sessions";
 let nonImmersiveTestName = "XRView.eye is correct for non-immersive sessions";
 
-let fakeDeviceInitParams = { supportsImmersive:true };
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
 let testFunction = function(session, fakeDeviceController, t) {
-  // Need to have a valid pose or input events don't process.
-  fakeDeviceController.setXRPresentationFrameData(VALID_POSE_MATRIX, [{
-      eye:"left",
-      projectionMatrix: VALID_PROJECTION_MATRIX,
-      viewMatrix: VALID_VIEW_MATRIX
-    }, {
-      eye:"right",
-      projectionMatrix: VALID_PROJECTION_MATRIX,
-      viewMatrix: VALID_VIEW_MATRIX
-    }]);
-
   return session.requestReferenceSpace('viewer')
       .then((space) => new Promise((resolve) => {
     function onFrame(time, xrFrame) {

@@ -82,6 +82,7 @@ impl SpecifiedValueInfo for i32 {}
 impl SpecifiedValueInfo for u8 {}
 impl SpecifiedValueInfo for u16 {}
 impl SpecifiedValueInfo for u32 {}
+impl SpecifiedValueInfo for usize {}
 impl SpecifiedValueInfo for str {}
 impl SpecifiedValueInfo for String {}
 impl SpecifiedValueInfo for crate::owned_str::OwnedStr {}

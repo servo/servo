@@ -19,6 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancemark::PerformanceMark;
 use crate::dom::performancemeasure::PerformanceMeasure;
+use crate::dom::performancenavigation::PerformanceNavigation;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
@@ -56,6 +57,7 @@ const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
 /// Performance and PerformanceObserverEntryList interfaces implementations.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct PerformanceEntryList {
+    /// https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer
     entries: DOMPerformanceEntryList,
 }
 
@@ -94,10 +96,10 @@ impl PerformanceEntryList {
         entry_type: Option<DOMString>,
     ) {
         self.entries.retain(|e| {
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+            name.as_ref().map_or(true, |name_| *e.name() != *name_) &&
                 entry_type
                     .as_ref()
-                    .map_or(true, |type_| *e.entry_type() == *type_)
+                    .map_or(true, |type_| *e.entry_type() != *type_)
         });
     }
 
@@ -136,10 +138,13 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     eventtarget: EventTarget,
-    entries: DomRefCell<PerformanceEntryList>,
+    buffer: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
+    /// https://w3c.github.io/performance-timeline/#dfn-maxbuffersize
+    /// The max-size of the buffer, set to 0 once the pipeline exits.
+    /// TODO: have one max-size per entry type.
     resource_timing_buffer_size_limit: Cell<usize>,
     resource_timing_buffer_current_size: Cell<usize>,
     resource_timing_buffer_pending_full_event: Cell<bool>,
@@ -150,7 +155,7 @@ impl Performance {
     fn new_inherited(navigation_start_precise: u64) -> Performance {
         Performance {
             eventtarget: EventTarget::new_inherited(),
-            entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
+            buffer: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
@@ -169,6 +174,15 @@ impl Performance {
         )
     }
 
+    /// Clear all buffered performance entries, and disable the buffer.
+    /// Called as part of the window's "clear_js_runtime" workflow,
+    /// performed when exiting a pipeline.
+    pub fn clear_and_disable_performance_entry_buffer(&self) {
+        let mut buffer = self.buffer.borrow_mut();
+        buffer.entries.clear();
+        self.resource_timing_buffer_size_limit.set(0);
+    }
+
     /// Add a PerformanceObserver to the list of observers with a set of
     /// observed entry types.
     pub fn add_observer(
@@ -178,10 +192,10 @@ impl Performance {
         buffered: bool,
     ) {
         if buffered {
-            let entries = self.entries.borrow();
+            let buffer = self.buffer.borrow();
             let mut new_entries = entry_types
                 .iter()
-                .flat_map(|e| entries.get_entries_by_name_and_type(None, Some(e.clone())))
+                .flat_map(|e| buffer.get_entries_by_name_and_type(None, Some(e.clone())))
                 .collect::<DOMPerformanceEntryList>();
             let mut obs_entries = observer.entries();
             obs_entries.append(&mut new_entries);
@@ -219,9 +233,10 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub fn queue_entry(&self, entry: &PerformanceEntry, add_to_performance_entries_buffer: bool) {
+    pub fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
+        // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
-            return;
+            return None;
         }
 
         // Steps 1-3.
@@ -238,19 +253,18 @@ impl Performance {
         }
 
         // Step 4.
-        // If the "add to performance entry buffer flag" is set, add the
-        // new entry to the buffer.
-        if add_to_performance_entries_buffer {
-            self.entries
-                .borrow_mut()
-                .entries
-                .push(DomRoot::from_ref(entry));
-        }
+        //add the new entry to the buffer.
+        self.buffer
+            .borrow_mut()
+            .entries
+            .push(DomRoot::from_ref(entry));
+
+        let entry_last_index = self.buffer.borrow_mut().entries.len() - 1;
 
         // Step 5.
         // If there is already a queued notification task, we just bail out.
         if self.pending_notification_observers_task.get() {
-            return;
+            return None;
         }
 
         // Step 6.
@@ -258,6 +272,8 @@ impl Performance {
         self.pending_notification_observers_task.set(true);
         let task_source = self.global().performance_timeline_task_source();
         task_source.queue_notification(&self.global());
+
+        Some(entry_last_index)
     }
 
     /// Observers notifications task.
@@ -306,7 +322,7 @@ impl Performance {
                 .borrow_mut()
                 .pop_front();
             if let Some(ref entry) = entry {
-                self.queue_entry(entry, true);
+                self.queue_entry(entry);
             } else {
                 break;
             }
@@ -355,6 +371,12 @@ impl Performance {
             .push_back(DomRoot::from_ref(entry));
         false
     }
+
+    pub fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+        if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
+            *e = DomRoot::from_ref(entry);
+        }
+    }
 }
 
 impl PerformanceMethods for Performance {
@@ -372,6 +394,11 @@ impl PerformanceMethods for Performance {
         unreachable!("Are we trying to expose Performance.timing in workers?");
     }
 
+    // https://w3c.github.io/navigation-timing/#dom-performance-navigation
+    fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
+        PerformanceNavigation::new(&self.global())
+    }
+
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.now())
@@ -384,14 +411,14 @@ impl PerformanceMethods for Performance {
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries
+        self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, None)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries
+        self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, Some(entry_type))
     }
@@ -402,7 +429,7 @@ impl PerformanceMethods for Performance {
         name: DOMString,
         entry_type: Option<DOMString>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries
+        self.buffer
             .borrow()
             .get_entries_by_name_and_type(Some(name), entry_type)
     }
@@ -418,10 +445,7 @@ impl PerformanceMethods for Performance {
         // Steps 2 to 6.
         let entry = PerformanceMark::new(&global, mark_name, self.now(), 0.);
         // Steps 7 and 8.
-        self.queue_entry(
-            &entry.upcast::<PerformanceEntry>(),
-            true, /* buffer performance entry */
-        );
+        self.queue_entry(&entry.upcast::<PerformanceEntry>());
 
         // Step 9.
         Ok(())
@@ -429,7 +453,7 @@ impl PerformanceMethods for Performance {
 
     // https://w3c.github.io/user-timing/#dom-performance-clearmarks
     fn ClearMarks(&self, mark_name: Option<DOMString>) {
-        self.entries
+        self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(mark_name, Some(DOMString::from("mark")));
     }
@@ -444,7 +468,7 @@ impl PerformanceMethods for Performance {
         // Steps 1 and 2.
         let end_time = match end_mark {
             Some(name) => self
-                .entries
+                .buffer
                 .borrow()
                 .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
             None => self.now(),
@@ -453,7 +477,7 @@ impl PerformanceMethods for Performance {
         // Step 3.
         let start_time = match start_mark {
             Some(name) => self
-                .entries
+                .buffer
                 .borrow()
                 .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
             None => 0.,
@@ -468,10 +492,7 @@ impl PerformanceMethods for Performance {
         );
 
         // Step 9 and 10.
-        self.queue_entry(
-            &entry.upcast::<PerformanceEntry>(),
-            true, /* buffer performance entry */
-        );
+        self.queue_entry(&entry.upcast::<PerformanceEntry>());
 
         // Step 11.
         Ok(())
@@ -479,13 +500,13 @@ impl PerformanceMethods for Performance {
 
     // https://w3c.github.io/user-timing/#dom-performance-clearmeasures
     fn ClearMeasures(&self, measure_name: Option<DOMString>) {
-        self.entries
+        self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
     // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
     fn ClearResourceTimings(&self) {
-        self.entries
+        self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
         self.resource_timing_buffer_current_size.set(0);

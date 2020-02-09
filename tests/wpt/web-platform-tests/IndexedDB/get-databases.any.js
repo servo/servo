@@ -1,8 +1,10 @@
 // META: script=support-promises.js
 
 promise_test(async testCase => {
-  assert_true(indexedDB.databases() instanceof Promise,
+  let result = indexedDB.databases();
+  assert_true(result instanceof Promise,
       "databases() should return a promise.");
+  result.catch(() => {});
 }, "Ensure that databases() returns a promise.");
 
 promise_test(async testCase => {

@@ -37,5 +37,41 @@
         }
       });
     }
+    if (test == "adopt-and-activate") {
+      var portal = e.adoptPredecessor();
+      portal.activate();
+    }
+    if (test == "adopt-attach-remove") {
+      var portal = e.adoptPredecessor();
+      document.body.appendChild(portal);
+      setTimeout(() => {
+        document.body.removeChild(portal);
+        var bc_test = new BroadcastChannel(`test-${test}`);
+        bc_test.postMessage("passed");
+        bc_test.close();
+      });
+    }
+    if (test == "adopt-and-discard") {
+      var portal = e.adoptPredecessor();
+      setTimeout(() => {
+        // portal should be inactive and activate should fail.
+        portal.activate().catch(e => {
+          if (e.name == "InvalidStateError") {
+            var bc_test = new BroadcastChannel(`test-${test}`);
+            bc_test.postMessage("passed");
+            bc_test.close();
+          }
+        });
+      });
+    }
+    if (test == "adopt-to-disconnected-node") {
+      var portal = e.adoptPredecessor();
+      document.body.appendChild(portal);
+      var node = document.createElement("div");
+      node.appendChild(portal);
+      var bc_test = new BroadcastChannel(`test-${test}`);
+      bc_test.postMessage("passed");
+      bc_test.close();
+    }
   }
 </script>

@@ -159,6 +159,9 @@ mod gen {
                 },
             },
             dom: {
+                webgpu: {
+                    enabled: bool,
+                },
                 bluetooth: {
                     enabled: bool,
                     testing: {
@@ -296,6 +299,8 @@ mod gen {
                     enabled: bool,
                     #[serde(default)]
                     test: bool,
+                    #[serde(default)]
+                    glwindow: bool,
                 },
                 worklet: {
                     blockingsleep: {
@@ -372,9 +377,6 @@ mod gen {
                             slice_ms: i64,
                         },
                         low_frequency_heap_growth: i64,
-                        per_compartment: {
-                            enabled: bool,
-                        },
                         per_zone: {
                             enabled: bool,
                         },
@@ -446,11 +448,19 @@ mod gen {
                 }
             },
             media: {
+                glvideo: {
+                    enabled: bool,
+                },
                 testing: {
                     enabled: bool,
                 }
             },
             network: {
+                enforce_tls: {
+                    enabled: bool,
+                    localhost: bool,
+                    onion: bool,
+                },
                 http_cache: {
                     #[serde(rename = "network.http-cache.disabled")]
                     disabled: bool,

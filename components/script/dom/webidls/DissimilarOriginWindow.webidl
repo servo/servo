@@ -13,7 +13,7 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#window
-[Global, NoInterfaceObject]
+[Global, Exposed=(Window,DissimilarOriginWindow), NoInterfaceObject]
 interface DissimilarOriginWindow : GlobalScope {
   [Unforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
@@ -25,7 +25,8 @@ interface DissimilarOriginWindow : GlobalScope {
 
   void close();
   readonly attribute boolean closed;
-  [Throws] void postMessage(any message, DOMString targetOrigin);
+  [Throws] void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  [Throws] void postMessage(any message, optional WindowPostMessageOptions options = {});
   attribute any opener;
   void blur();
   void focus();

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en-US">
+<meta charset=utf-8>
+<title>CSS Generated Content test: quotes</title>
+<meta name="assert" content="The quotes property controls quote marks inserted by the q element">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#quotes">
+<link rel=match href="reference/quotes-002-ref.html">
+<style>
+body { font: 32px serif; }
+.test { quotes: "<" ">" ; }
+</style>
+<body>
+Test passes if the word <q>quotes</q> is enclosed in curly quotes,
+and <q class=test>angle brackets</q> in angle brackets.

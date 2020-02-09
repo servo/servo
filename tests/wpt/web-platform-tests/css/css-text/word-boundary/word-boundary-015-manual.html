@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-expansion copy-pasting</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-expansion">
+<meta name="assert" content="word-boundary-expansion does not affect copy and paste">
+<style>
+div, textarea {
+  font-size: 2em;
+  margin: 1em;
+  font-family: monospace;
+  resize: none;
+  overflow: hidden;
+  height: 2em;
+  width: 20ch;
+  padding: 0px;
+}
+#test {
+  border: solid blue;
+  word-boundary-expansion: space;
+}
+#ref {
+  border: solid orange;
+}
+textarea {
+  border: solid pink;
+}
+
+</style>
+
+<p>Copy the text from the blue box, and paste it into the pink one.
+The test passes if the pink and orange boxes are identical.
+
+<div id=test>no<wbr>space&#x200B;here</div>
+<textarea spellcheck="false"></textarea>
+<div id=ref>nospacehere</div>

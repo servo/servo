@@ -13,6 +13,9 @@
     padding: 1px;
     background: black;
   }
+  #reference {
+    text-align: center;
+  }
 </style>
 <body>
   <div id="justify"><span></span></div>
@@ -29,5 +32,5 @@ test(function() {
   const ref_rect = ref_element.firstElementChild.getBoundingClientRect();
   assert_equals(justify_rect.left, ref_rect.left);
   assert_equals(justify_rect.right, ref_rect.right);
-}, 'Left and right edges of empty inlines should align.');
+}, 'content that cannot be justified should be centered when text-align-last is justify');
 </script>

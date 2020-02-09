@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Grid Layout Test Reference: Support for 'grid-auto-columns' and
+      'grid-auto-rows' properties with implicit tracks after and before the
+      explicit grid</title>
+    <style>
+    #wrapper {
+      display: grid;
+      grid-template-columns: 50px 50px 50px 50px;
+    }
+
+    div { position: relative; }
+
+    .item-left3 {
+      width: 3px;
+      height: 3px;
+      background: #ff0;
+    }
+    .item-left2 {
+      width: 2px;
+      height: 2px;
+      background: #ff0;
+    }
+    .item-left1 {
+      width: 3px;
+      height: 3px;
+      background: #ff0;
+    }
+    .item-explicit {
+      width: 5px;
+      height: 5px;
+      background: #f0f;
+    }
+    .item-right1 {
+      width: 2px;
+      height: 2px;
+      background: #0ff;
+    }
+    .item-right2 {
+      width: 3px;
+      height: 3px;
+      background: #0ff;
+    }
+    .item-right3 {
+      width: 2px;
+      height: 2px;
+      background: #0ff;
+    }
+
+    #zero .item-explicit {
+      width: 2px;
+      height: 2px;
+    }
+    #two .item-explicit {
+      width: 10px;
+      height: 10px;
+    }
+    #three .item-explicit {
+      width: 15px;
+      height: 15px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="zero">
+        <div>
+          <div class="item-right1"></div>
+        </div>
+        <div>
+          <div class="item-right1"></div>
+          <div class="item-right2" style="left:2px;"></div>
+        </div>
+        <div>
+          <div class="item-right1"></div>
+          <div class="item-right2" style="left:2px;"></div>
+          <div class="item-right3" style="left:5px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-right1" style="left:3px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-right1" style="left:3px;"></div>
+          <div class="item-right2" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-right1" style="left:3px;"></div>
+          <div class="item-right2" style="left:5px;"></div>
+          <div class="item-right3" style="left:8px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-right1" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-right1" style="left:5px;"></div>
+          <div class="item-right2" style="left:7px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-right1" style="left:5px;"></div>
+          <div class="item-right2" style="left:7px;"></div>
+          <div class="item-right3" style="left:10px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+          <div class="item-right2" style="left:10px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+          <div class="item-right2" style="left:10px;"></div>
+          <div class="item-right3" style="left:13px;"></div>
+        </div>
+      </div>
+
+      <div id="one">
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:5px;"></div>
+          <div class="item-right2" style="left:7px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:5px;"></div>
+          <div class="item-right2" style="left:7px;"></div>
+          <div class="item-right3" style="left:10px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+          <div class="item-right2" style="left:10px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:8px;"></div>
+          <div class="item-right2" style="left:10px;"></div>
+          <div class="item-right3" style="left:13px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:10px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:10px;"></div>
+          <div class="item-right2" style="left:12px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:10px;"></div>
+          <div class="item-right2" style="left:12px;"></div>
+          <div class="item-right3" style="left:15px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+          <div class="item-right2" style="left:15px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+          <div class="item-right2" style="left:15px;"></div>
+          <div class="item-right3" style="left:18px;"></div>
+        </div>
+      </div>
+
+      <div id="two">
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:10px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:10px;"></div>
+          <div class="item-right2" style="left:12px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:10px;"></div>
+          <div class="item-right2" style="left:12px;"></div>
+          <div class="item-right3" style="left:15px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+          <div class="item-right2" style="left:15px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:13px;"></div>
+          <div class="item-right2" style="left:15px;"></div>
+          <div class="item-right3" style="left:18px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:15px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:15px;"></div>
+          <div class="item-right2" style="left:17px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:15px;"></div>
+          <div class="item-right2" style="left:17px;"></div>
+          <div class="item-right3" style="left:20px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+          <div class="item-right2" style="left:20px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+          <div class="item-right2" style="left:20px;"></div>
+          <div class="item-right3" style="left:23px;"></div>
+        </div>
+      </div>
+
+      <div id="three">
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:15px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:15px;"></div>
+          <div class="item-right2" style="left:17px;"></div>
+        </div>
+        <div>
+          <div class="item-explicit"></div>
+          <div class="item-right1" style="left:15px;"></div>
+          <div class="item-right2" style="left:17px;"></div>
+          <div class="item-right3" style="left:20px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+          <div class="item-right2" style="left:20px;"></div>
+        </div>
+        <div>
+          <div class="item-left1"></div>
+          <div class="item-explicit" style="left:3px;"></div>
+          <div class="item-right1" style="left:18px;"></div>
+          <div class="item-right2" style="left:20px;"></div>
+          <div class="item-right3" style="left:23px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:20px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:20px;"></div>
+          <div class="item-right2" style="left:22px;"></div>
+        </div>
+        <div>
+          <div class="item-left2"></div>
+          <div class="item-left1" style="left:2px;"></div>
+          <div class="item-explicit" style="left:5px;"></div>
+          <div class="item-right1" style="left:20px;"></div>
+          <div class="item-right2" style="left:22px;"></div>
+          <div class="item-right3" style="left:25px;"></div>
+        </div>
+
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:23px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:23px;"></div>
+          <div class="item-right2" style="left:25px;"></div>
+        </div>
+        <div>
+          <div class="item-left3"></div>
+          <div class="item-left2" style="left:3px;"></div>
+          <div class="item-left1" style="left:5px;"></div>
+          <div class="item-explicit" style="left:8px;"></div>
+          <div class="item-right1" style="left:23px;"></div>
+          <div class="item-right2" style="left:25px;"></div>
+          <div class="item-right3" style="left:28px;"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

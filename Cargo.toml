@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ports/glutin",
+    "ports/gstplugin",
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
     "ports/libmlservo/",
@@ -27,5 +28,7 @@ opt-level = 3
 
 # Those are here to dedupe winapi since mio is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
-iovec = { git = "https://github.com/servo/iovec.git", branch = "servo" }
-cmake = { git = "https://github.com/alexcrichton/cmake-rs" }
+# https://github.com/retep998/winapi-rs/pull/816
+winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
+spirv_cross = { git = "https://github.com/servo/spirv_cross", branch = "wgpu-servo" }
+backtrace = { git = "https://github.com/MeFisto94/backtrace-rs", branch = "fix-strtab-freeing-crash" }

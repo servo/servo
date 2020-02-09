@@ -1,14 +1,27 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Text level 3 Test: sequence of spaces and ideographic spaces at the end of line must be removed</title>
+<title>CSS Text level 3 Test: sequence of spaces and ideographic spaces at the end of line must hang</title>
 <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
-<link rel="match" href="reference/trailing-ideographic-space-001-ref.html">
-<meta name="assert" content="An sequence ideographic space (U+3000) and regular spaces at the end of the line must be removed.">
+<link rel="match" href="reference/trailing-ideographic-space-002-ref.html">
+<meta name="assert" content="An sequence ideographic space (U+3000) and regular spaces at the end of the line must hang.">
 <style>
-div { width: 2em; }
-span { background: red; } /* If the space hangs instead of being removed, there will be red */
+div {
+  position: absolute;
+  width: max-content;
+  line-height: 1;
+  color: transparent;
+}
+.red { background: red; }
+.green { background: green; }
 </style>
 
-<p>Test passes if the characters below are arranged in a square and if there is no red.
-<div>ああ<span>&#x3000;&#x3000; &#x3000; &#x3000;</span>ああ</div>
+<p>Test passes if the shape below is green and if there is no red.
+<div class=red>ああああ あ あ</div>
+<div class=red>ああ<span class=green>&#x3000;&#x3000; &#x3000; &#x3000;</span><br>ああ</div>
+<div class=green>ああ<br>ああ</div>
+<!-- the trailing sequence of spaces must not be removed,
+  so it should hide all of the first (red) div.
+  However, it should hang and therefore not extend the width of its parent div,
+  which would be visible as red on the second line if it were expanded.
+-->

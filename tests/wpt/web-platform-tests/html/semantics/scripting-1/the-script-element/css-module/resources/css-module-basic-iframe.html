@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+    <script>
+        window.onerror = function (errorMsg, url, lineNumber, column, errorObj)
+        {
+            document.load_error = errorObj.name;
+            return true;
+        };
+    </script>
+    <script type="module">
+        import v from "./basic.css";
+        document.adoptedStyleSheets = [v];
+    </script>
+
+    <div id="test">
+        I am a test div.
+    </div>
+</body>

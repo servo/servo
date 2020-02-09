@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): :focus-visible matches even if preventDefault() is called</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    button {
+      border: 0;
+    }
+
+    #next:focus-visible {
+      outline: darkgreen auto 5px;
+    }
+
+    #next:focus:not(:focus-visible) {
+      background-color: tomato;
+      outline: 0;
+    }
+  </style>
+</head>
+<body>
+  This test checks that <code>:focus-visible</code> matches after a keyboard event,
+  even if the event handler calls preventDefault() on the event.
+  <ul id="instructions">
+    <li>Click "Click here and press right arrow.".</li>
+    <li>Press the right arrow key.</li>
+    <li>If "Focus moves here." has a red background, then the test result is FAILURE.
+        If it has a green outline, then the test result is SUCCESS.</li>
+  </ul>
+  <br />
+  <button id="start" tabindex="0">Click here and press right arrow.</button>
+  <button id="next" tabindex="-1">Focus moves here.</button>
+  <script>
+    start.addEventListener('keydown', (e) => {
+      next.focus();
+    });
+
+    async_test(async function(t) {
+      next.addEventListener("focus", t.step_func(() => {
+        assert_equals(getComputedStyle(next).outlineColor, "rgb(0, 100, 0)");
+        t.done()
+      }));
+
+      // \ue014 -> ARROW_RIGHT
+      test_driver.send_keys(start, "\ue014").catch(t.step_func(() => {
+        assert_true(false, "send_keys not implemented yet");
+        t.done();
+      }));
+    }, ":focus-visible matches even if preventDefault() is called");
+  </script>
+</body>
+</html>

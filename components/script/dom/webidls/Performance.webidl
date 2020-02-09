@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#sec-window.performance-attribute
+ * https://w3c.github.io/hr-time/#sec-performance
  */
 
 typedef double DOMHighResTimeStamp;
@@ -13,7 +13,7 @@ typedef sequence<PerformanceEntry> PerformanceEntryList;
 interface Performance : EventTarget {
   DOMHighResTimeStamp now();
   readonly attribute DOMHighResTimeStamp timeOrigin;
-  // [Default] object toJSON();
+  [Default] object toJSON();
 };
 
 // https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface
@@ -34,18 +34,20 @@ partial interface Performance {
   [Throws]
   void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
   void clearMeasures(optional DOMString measureName);
-
-
 };
+
 //https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
 partial interface Performance {
   void clearResourceTimings ();
   void setResourceTimingBufferSize (unsigned long maxSize);
               attribute EventHandler onresourcetimingbufferfull;
 };
-// FIXME(avada): this should be deprecated, but is currently included for web compat
-// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-[Exposed=(Window)]
+
+// https://w3c.github.io/navigation-timing/#extensions-to-the-performance-interface
+[Exposed=Window]
 partial interface Performance {
-  PerformanceNavigationTiming timing();
+  [SameObject]
+  readonly attribute PerformanceNavigationTiming timing;
+  [SameObject]
+  readonly attribute PerformanceNavigation navigation;
 };

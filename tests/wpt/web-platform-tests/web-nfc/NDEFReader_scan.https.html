@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: NDEFReader.scan tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+"use strict";
+
+const invalid_signals = [
+  "string",
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+];
+
+function waitSyntaxErrorPromise(t, scan_options) {
+  const reader = new NDEFReader();
+  return promise_rejects(t, 'SyntaxError', reader.scan(scan_options));
+}
+
+promise_test(async t => {
+  const reader = new NDEFReader();
+  const promises = [];
+  invalid_signals.forEach(invalid_signal => {
+    promises.push(promise_rejects(t, new TypeError(),
+        reader.scan({ signal: invalid_signal })));
+  });
+  await Promise.all(promises);
+}, "Test that NDEFReader.scan rejects if signal is not an AbortSignal.");
+
+promise_test(async t => {
+  if (window.testRunner) {
+    // Deny nfc permissions for Chromium testrunner.
+    window.testRunner.setPermission('nfc', 'denied',
+                                    location.origin, location.origin);
+  }
+  const reader = new NDEFReader();
+  await promise_rejects(t, 'NotAllowedError', reader.scan());
+}, "NDEFReader.scan should fail if user permission is not granted.");
+
+// We do not provide NFC mock here to simulate that there has no available
+// implementation for NFC Mojo interface.
+promise_test(async t => {
+  if (window.testRunner) {
+    window.testRunner.setPermission('nfc', 'granted',
+                                    location.origin, location.origin);
+  }
+  const reader = new NDEFReader();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("error").then(event => {
+    assert_true(event instanceof ErrorEvent);
+  });
+  await promise_rejects(t, 'NotSupportedError', reader.scan());
+  await promise;
+}, "Test that an error event happens if no implementation for NFC Mojo interface \
+is available.");
+
+nfc_test(async (t, mockNFC) => {
+  mockNFC.setHWStatus(NFCHWStatus.DISABLED);
+  const reader = new NDEFReader();
+  await promise_rejects(t, 'NotReadableError', reader.scan());
+}, "NDEFReader.scan should fail if NFC HW is disabled.");
+
+nfc_test(async (t, mockNFC) => {
+  mockNFC.setHWStatus(NFCHWStatus.NOT_SUPPORTED);
+  const reader = new NDEFReader();
+  await promise_rejects(t, 'NotSupportedError', reader.scan());
+}, "NDEFReader.scan should fail if NFC HW is not supported.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_true(event instanceof NDEFReadingEvent);
+    controller.abort();
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
+  await promise;
+}, "Test that nfc watch success if NFC HW is enabled.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_true(event instanceof NDEFReadingEvent);
+    controller.abort();
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
+  await promise;
+}, "Test that NDEFReader.scan matches any ids if NDEFScanOptions.id is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  controller.abort();
+  await promise_rejects(t, 'AbortError', reader.scan({signal: controller.signal}));
+}, "Test that NDEFReader.scan rejects if NDEFScanOptions.signal is already aborted.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const promise = reader.scan({signal: controller.signal});
+  controller.abort();
+  await promise_rejects(t, 'AbortError', promise);
+}, "Test that NDEFReader.scan rejects if NDEFScanOptions.signal aborts right after \
+the scan invocation.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const message = createMessage([createTextRecord(test_text_data)]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_true(event instanceof NDEFReadingEvent);
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage(message);
+  await promise;
+
+  reader.onreading = t.unreached_func("reading event should not be fired.");
+  mockNFC.setReadingMessage(message);
+  controller.abort();
+  await new Promise((resolve, reject) => {
+    t.step_timeout(resolve, 100);
+  });
+}, "Test that NDEFReader can not get any reading events once the signal aborts.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    controller.abort();
+    assert_true(event instanceof NDEFReadingEvent);
+    // The message contains only an external type record.
+    assert_equals(event.message.records.length, 1);
+    assert_equals(event.message.records[0].recordType, 'example.com:payloadIsMessage', 'recordType');
+    // The external type record's payload is a message, which contains only a text record.
+    const embeddedRecords = event.message.records[0].toRecords();
+    assert_equals(embeddedRecords.length, 1);
+    assert_equals(embeddedRecords[0].recordType, 'text', 'recordType');
+    assert_equals(embeddedRecords[0].mediaType, null, 'mediaType');
+    const decoder = new TextDecoder();
+    assert_equals(decoder.decode(embeddedRecords[0].data), test_text_data,
+                    'data has the same content with the original dictionary');
+  });
+  await reader.scan({signal : controller.signal});
+
+  const payloadMessage = createMessage([createTextRecord(test_text_data)]);
+  const message = createMessage([createRecord('example.com:payloadIsMessage',
+          payloadMessage)]);
+  mockNFC.setReadingMessage(message);
+  await promise;
+}, "NDEFRecord.toRecords returns its embedded records correctly.");
+
+nfc_test(async (t, mockNFC) => {
+  const promises = [];
+
+  const reader1 = new NDEFReader();
+  const readerWatcher1 = new EventWatcher(t, reader1, ["reading", "error"]);
+  const promise1 = readerWatcher1.wait_for("error").then(event => {
+    assert_true(event instanceof ErrorEvent);
+  });
+  promises.push(promise1);
+  await reader1.scan();
+
+  const reader2 = new NDEFReader();
+  const readerWatcher2 = new EventWatcher(t, reader2, ["reading", "error"]);
+  const promise2 = readerWatcher2.wait_for("error").then(event => {
+    assert_true(event instanceof ErrorEvent);
+  });
+  promises.push(promise2);
+  await reader2.scan();
+
+  mockNFC.simulateNonNDEFTagDiscovered();
+  await Promise.all(promises);
+}, "Test that NDEFReader.onerror should be fired if the NFC tag does not \
+expose NDEF technology.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_equals(event.serialNumber, fake_tag_serial_number);
+    assert_equals(event.message.records.length, 0);
+    controller.abort();
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage({ records: [] });
+  await promise;
+}, "Test that NDEFReader.onreading should be fired on an unformatted NFC tag \
+with empty records array for NDEFMessage.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const message = createMessage([createTextRecord(test_text_data),
+                                createMimeRecordFromJson(test_json_data),
+                                createMimeRecord(test_buffer_data),
+                                createUnknownRecord(test_buffer_data),
+                                createUrlRecord(test_url_data),
+                                createUrlRecord(test_url_data, true),
+                                createRecord('w3.org:xyz', test_buffer_data)],
+                                test_message_origin);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assert_equals(event.serialNumber, fake_tag_serial_number);
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
+    controller.abort();
+  });
+  await reader.scan({signal : controller.signal});
+
+  mockNFC.setReadingMessage(message);
+  await promise;
+}, "Test that reading message with multiple records should succeed.");
+
+</script>

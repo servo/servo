@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods, Wrap,
@@ -18,8 +17,9 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::realms::enter_realm;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
@@ -31,8 +31,7 @@ use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
-use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
-use net_traits::request::{RequestBuilder, RequestMode};
+use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -223,10 +222,10 @@ impl EventSourceContext {
         // Steps 4-5
         let event = {
             let _ac = enter_realm(&*event_source);
-            rooted!(in(event_source.global().get_cx()) let mut data = UndefinedValue());
+            rooted!(in(*event_source.global().get_cx()) let mut data = UndefinedValue());
             unsafe {
                 self.data
-                    .to_jsval(event_source.global().get_cx(), data.handle_mut())
+                    .to_jsval(*event_source.global().get_cx(), data.handle_mut())
             };
             MessageEvent::new(
                 &*event_source.global(),
@@ -237,6 +236,7 @@ impl EventSourceContext {
                 DOMString::from(self.origin.clone()),
                 None,
                 event_source.last_event_id.borrow().clone(),
+                Vec::with_capacity(0),
             )
         };
         // Step 7
@@ -488,6 +488,7 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         url: DOMString,
@@ -516,17 +517,14 @@ impl EventSource {
         };
         // Step 8
         // TODO: Step 9 set request's client settings
-        let mut request = RequestBuilder::new(url_record)
-            .origin(global.origin().immutable().clone())
-            .pipeline_id(Some(global.pipeline_id()))
-            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-            .use_url_credentials(true)
-            .mode(RequestMode::CorsMode)
-            .credentials_mode(if cors_attribute_state == CorsSettings::Anonymous {
-                CredentialsMode::CredentialsSameOrigin
-            } else {
-                CredentialsMode::Include
-            });
+        let mut request = create_a_potential_cors_request(
+            url_record,
+            Destination::None,
+            Some(cors_attribute_state),
+            Some(true),
+        )
+        .origin(global.origin().immutable().clone())
+        .pipeline_id(Some(global.pipeline_id()));
 
         // Step 10
         // TODO(eijebong): Replace once typed headers allow it

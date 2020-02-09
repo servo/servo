@@ -55,7 +55,7 @@ function testRequestIsClosed(button) {
     responsePromise.catch(err => err);
     // Set request.[[state]] to closed
     await event.target.abort();
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         event.updateWith(validDetails);
@@ -80,7 +80,7 @@ function testRequestIsUpdating(button) {
     });
     // Set request.[[updating]] to true
     event.updateWith(pendingPromise);
-    assert_throws(
+    assert_throws_dom(
       "InvalidStateError",
       () => {
         event.updateWith(validDetails);

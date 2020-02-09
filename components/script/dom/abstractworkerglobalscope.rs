@@ -75,38 +75,33 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
         };
         match common_msg {
             WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
-            WorkerScriptMsg::DOMMessage(_) => panic!("unexpected worker event message!"),
+            WorkerScriptMsg::DOMMessage { .. } => panic!("unexpected worker event message!"),
         }
     }
 }
 
 pub trait WorkerEventLoopMethods {
-    type TimerMsg: Send;
     type WorkerMsg: QueuedTaskConversion + Send;
     type Event;
-    fn timer_event_port(&self) -> &Receiver<Self::TimerMsg>;
     fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
     fn handle_event(&self, event: Self::Event);
     fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset>;
     fn from_worker_msg(&self, msg: Self::WorkerMsg) -> Self::Event;
-    fn from_timer_msg(&self, msg: Self::TimerMsg) -> Self::Event;
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> Self::Event;
 }
 
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
-pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
+pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
 ) where
-    TimerMsg: Send,
     WorkerMsg: QueuedTaskConversion + Send,
-    T: WorkerEventLoopMethods<TimerMsg = TimerMsg, WorkerMsg = WorkerMsg, Event = Event>
+    T: WorkerEventLoopMethods<WorkerMsg = WorkerMsg, Event = Event>
         + DerivedFrom<WorkerGlobalScope>
         + DerivedFrom<GlobalScope>
         + DomObject,
 {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
-    let timer_event_port = worker_scope.timer_event_port();
     let devtools_port = match scope.from_devtools_sender() {
         Some(_) => Some(scope.from_devtools_receiver()),
         None => None,
@@ -117,7 +112,6 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
             task_queue.take_tasks(msg.unwrap());
             worker_scope.from_worker_msg(task_queue.recv().unwrap())
         },
-        recv(timer_event_port) -> msg => worker_scope.from_timer_msg(msg.unwrap()),
         recv(devtools_port.unwrap_or(&crossbeam_channel::never())) -> msg =>
             worker_scope.from_devtools_msg(msg.unwrap()),
     };
@@ -132,13 +126,10 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.try_recv() {
-            Err(_) => match timer_event_port.try_recv() {
-                Err(_) => match devtools_port.map(|port| port.try_recv()) {
-                    None => {},
-                    Some(Err(_)) => break,
-                    Some(Ok(ev)) => sequential.push(worker_scope.from_devtools_msg(ev)),
-                },
-                Ok(ev) => sequential.push(worker_scope.from_timer_msg(ev)),
+            Err(_) => match devtools_port.map(|port| port.try_recv()) {
+                None => {},
+                Some(Err(_)) => break,
+                Some(Ok(ev)) => sequential.push(worker_scope.from_devtools_msg(ev)),
             },
             Ok(ev) => sequential.push(worker_scope.from_worker_msg(ev)),
         }
@@ -155,4 +146,7 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
             .upcast::<GlobalScope>()
             .perform_a_microtask_checkpoint();
     }
+    worker_scope
+        .upcast::<GlobalScope>()
+        .perform_a_dom_garbage_collection_checkpoint();
 }

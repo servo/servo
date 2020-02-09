@@ -25,12 +25,11 @@
             const suspendTime = context.currentTime;
             const dummy = new AudioWorkletNode(context, 'dummy');
             dummy.connect(context.destination);
-            task.timeout(() => {
+            return task.timeout(() => {
               should(context.currentTime === suspendTime,
                      'context.currentTime did not change after worklet started')
                   .beTrue();
               should(context.state, 'context.state').beEqualTo('suspended');
-              task.done();
             }, 500);
           });
 

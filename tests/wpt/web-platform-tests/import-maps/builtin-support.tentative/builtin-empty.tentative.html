@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+
+<script>
+const importMap = `
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=empty": [ "@std/" ],
+    "../resources/log.js?pipe=sub&name=empty-fallback": [
+      "@std/",
+      "../resources/log.js?pipe=sub&name=empty-fallback"
+    ]
+  }
+}
+`;
+
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Discussions about notations are ongoing, e.g.
+  // https://github.com/tc39/proposal-javascript-standard-library/issues/12
+  // Currently the tests expects two notations are accepted.
+  // TODO: Once the discussions converge, update this and related tests.
+  "std:":
+    [Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+  "@std/":
+    [Result.FETCH_ERROR, Result.PARSE_ERROR, Result.FETCH_ERROR, Result.FETCH_ERROR],
+
+  "../resources/log.js?pipe=sub&name=empty":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+  "../resources/log.js?pipe=sub&name=empty-fallback":
+    [Result.URL, Result.URL, Result.URL, Result.URL],
+};
+
+doTests(importMap, null, tests);
+</script>
+<body>

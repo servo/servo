@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<input id="target" value="This should be focused!" autofocus></input>
+
+<script>
+  let got_focus = false;
+  target.addEventListener("focus", () => got_focus = true);
+
+  window.addEventListener("load", () => {
+    parent.postMessage("grand_child_loaded", "*");
+  });
+
+  window.addEventListener("message", event => {
+    if (event.data == "report_focus_state") {
+      let msg = got_focus ? "grand_child_is_focused" : "grand_child_is_not_focused";
+      parent.postMessage(msg, "*");
+    }
+  });
+</script>

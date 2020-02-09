@@ -46,9 +46,6 @@ include ib-split/reftest.list
 # Image Values and Replaced Content Level 3
 include images3/reftest.list
 
-# Lists and Counters Level 3
-include lists-3/reftest.list
-
 # Masking Level 1
 include masking/reftest.list
 

@@ -3,8 +3,8 @@
 <title>Canvas test: security.drawImage.canvas.cross</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>security.drawImage.canvas.cross</h1>
@@ -25,8 +25,8 @@ canvas2.height = 50;
 var ctx2 = canvas2.getContext('2d');
 ctx2.drawImage(document.getElementById('yellow.png'), 0, 0);
 ctx.drawImage(canvas2, 0, 0);
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
-assert_throws("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
+assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
+assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
 
 
 });

@@ -154,7 +154,7 @@ function make_test(type, info) {
             assert_equals(text, expected_response_text(type, identifier, init, content));
           }, function(reason) {
             if ("response" in info && info.response[idx] === "error") {
-              assert_throws(new TypeError(), function() { throw reason; });
+              assert_throws_js(TypeError, function() { throw reason; });
             } else {
               throw reason;
             }

@@ -10,7 +10,9 @@ use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
@@ -47,9 +49,13 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
+    port_message_queue: PortMessageQueue,
+    #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     remote_event_task_source: RemoteEventTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    timer_task_source: TimerTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     websocket_task_source: WebsocketTaskSource,
 }
@@ -62,8 +68,10 @@ impl TaskManager {
         media_element_task_source: MediaElementTaskSource,
         networking_task_source: NetworkingTaskSource,
         performance_timeline_task_source: PerformanceTimelineTaskSource,
+        port_message_queue: PortMessageQueue,
         user_interaction_task_source: UserInteractionTaskSource,
         remote_event_task_source: RemoteEventTaskSource,
+        timer_task_source: TimerTaskSource,
         websocket_task_source: WebsocketTaskSource,
     ) -> Self {
         TaskManager {
@@ -73,8 +81,10 @@ impl TaskManager {
             media_element_task_source,
             networking_task_source,
             performance_timeline_task_source,
+            port_message_queue,
             user_interaction_task_source,
             remote_event_task_source,
+            timer_task_source,
             websocket_task_source,
             task_cancellers: Default::default(),
         }
@@ -138,10 +148,26 @@ impl TaskManager {
 
     task_source_functions!(
         self,
+        port_message_queue_with_canceller,
+        port_message_queue,
+        PortMessageQueue,
+        PortMessage
+    );
+
+    task_source_functions!(
+        self,
         remote_event_task_source_with_canceller,
         remote_event_task_source,
         RemoteEventTaskSource,
         RemoteEvent
+    );
+
+    task_source_functions!(
+        self,
+        timer_task_source_with_canceller,
+        timer_task_source,
+        TimerTaskSource,
+        Timer
     );
 
     task_source_functions!(

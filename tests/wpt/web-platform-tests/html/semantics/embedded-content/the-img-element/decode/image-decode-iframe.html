@@ -3,7 +3,7 @@
 <meta name="timeout" content="long">
 <title>HTMLImageElement.prototype.decode(), iframe tests.</title>
 <link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
-<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -23,7 +23,7 @@ promise_test(function() {
       // At this point the frame which created the img is removed, so decode() should fail.
       frame.parentNode.removeChild(frame);
       img.decode().then(function() {
-        assert_false(true, "Unexpected success");
+        assert_unreached("Unexpected success");
       }, function() {
         resolve();
       });

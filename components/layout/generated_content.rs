@@ -19,68 +19,54 @@ use crate::traversal::InorderFlowTraversal;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use style::computed_values::display::T as Display;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
+use style::values::specified::list::{QuotePair, Quotes};
+
+lazy_static! {
+    static ref INITIAL_QUOTES: style::ArcSlice<QuotePair> = style::ArcSlice::from_iter_leaked(
+        vec![
+            QuotePair {
+                opening: "\u{201c}".to_owned().into(),
+                closing: "\u{201d}".to_owned().into(),
+            },
+            QuotePair {
+                opening: "\u{2018}".to_owned().into(),
+                closing: "\u{2019}".to_owned().into(),
+            },
+        ]
+        .into_iter()
+    );
+}
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 // TODO(pcwalton): `decimal-leading-zero`
 static ARABIC_INDIC: [char; 10] = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 // TODO(pcwalton): `armenian`, `upper-armenian`, `lower-armenian`
-static BENGALI: [char; 10] = [
-    '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯',
-];
-static CAMBODIAN: [char; 10] = [
-    '០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩',
-];
+static BENGALI: [char; 10] = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+static CAMBODIAN: [char; 10] = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
 // TODO(pcwalton): Suffix for CJK decimal.
-static CJK_DECIMAL: [char; 10] = [
-    '〇', '一', '二', '三', '四', '五', '六', '七', '八', '九',
-];
-static DEVANAGARI: [char; 10] = [
-    '०', '१', '२', '३', '४', '५', '६', '७', '८', '९',
-];
+static CJK_DECIMAL: [char; 10] = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+static DEVANAGARI: [char; 10] = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
 // TODO(pcwalton): `georgian`
-static GUJARATI: [char; 10] = [
-    '૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯',
-];
-static GURMUKHI: [char; 10] = [
-    '੦', '੧', '੨', '੩', '੪', '੫', '੬', '੭', '੮', '੯',
-];
+static GUJARATI: [char; 10] = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+static GURMUKHI: [char; 10] = ['੦', '੧', '੨', '੩', '੪', '੫', '੬', '੭', '੮', '੯'];
 // TODO(pcwalton): `hebrew`
-static KANNADA: [char; 10] = [
-    '೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯',
-];
-static LAO: [char; 10] = [
-    '໐', '໑', '໒', '໓', '໔', '໕', '໖', '໗', '໘', '໙',
-];
-static MALAYALAM: [char; 10] = [
-    '൦', '൧', '൨', '൩', '൪', '൫', '൬', '൭', '൮', '൯',
-];
-static MONGOLIAN: [char; 10] = [
-    '᠐', '᠑', '᠒', '᠓', '᠔', '᠕', '᠖', '᠗', '᠘', '᠙',
-];
-static MYANMAR: [char; 10] = [
-    '၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉',
-];
-static ORIYA: [char; 10] = [
-    '୦', '୧', '୨', '୩', '୪', '୫', '୬', '୭', '୮', '୯',
-];
+static KANNADA: [char; 10] = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
+static LAO: [char; 10] = ['໐', '໑', '໒', '໓', '໔', '໕', '໖', '໗', '໘', '໙'];
+static MALAYALAM: [char; 10] = ['൦', '൧', '൨', '൩', '൪', '൫', '൬', '൭', '൮', '൯'];
+static MONGOLIAN: [char; 10] = ['᠐', '᠑', '᠒', '᠓', '᠔', '᠕', '᠖', '᠗', '᠘', '᠙'];
+static MYANMAR: [char; 10] = ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'];
+static ORIYA: [char; 10] = ['୦', '୧', '୨', '୩', '୪', '୫', '୬', '୭', '୮', '୯'];
 static PERSIAN: [char; 10] = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 // TODO(pcwalton): `lower-roman`, `upper-roman`
-static TELUGU: [char; 10] = [
-    '౦', '౧', '౨', '౩', '౪', '౫', '౬', '౭', '౮', '౯',
-];
-static THAI: [char; 10] = [
-    '๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙',
-];
-static TIBETAN: [char; 10] = [
-    '༠', '༡', '༢', '༣', '༤', '༥', '༦', '༧', '༨', '༩',
-];
+static TELUGU: [char; 10] = ['౦', '౧', '౨', '౩', '౪', '౫', '౬', '౭', '౮', '౯'];
+static THAI: [char; 10] = ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'];
+static TIBETAN: [char; 10] = ['༠', '༡', '༢', '༣', '༤', '༥', '༦', '༧', '༨', '༩'];
 
 // Alphabetic styles per CSS-COUNTER-STYLES § 6.2:
 static LOWER_ALPHA: [char; 26] = [
@@ -94,36 +80,30 @@ static UPPER_ALPHA: [char; 26] = [
 static CJK_EARTHLY_BRANCH: [char; 12] = [
     '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥',
 ];
-static CJK_HEAVENLY_STEM: [char; 10] = [
-    '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸',
-];
+static CJK_HEAVENLY_STEM: [char; 10] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 static LOWER_GREEK: [char; 24] = [
-    'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π',
-    'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω',
+    'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ',
+    'υ', 'φ', 'χ', 'ψ', 'ω',
 ];
 static HIRAGANA: [char; 48] = [
-    'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し', 'す',
-    'せ', 'そ', 'た', 'ち', 'つ', 'て', 'と', 'な', 'に', 'ぬ', 'ね', 'の', 'は',
-    'ひ', 'ふ', 'へ', 'ほ', 'ま', 'み', 'む', 'め', 'も', 'や', 'ゆ', 'よ', 'ら',
-    'り', 'る', 'れ', 'ろ', 'わ', 'ゐ', 'ゑ', 'を', 'ん',
+    'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し', 'す', 'せ', 'そ', 'た',
+    'ち', 'つ', 'て', 'と', 'な', 'に', 'ぬ', 'ね', 'の', 'は', 'ひ', 'ふ', 'へ', 'ほ', 'ま', 'み',
+    'む', 'め', 'も', 'や', 'ゆ', 'よ', 'ら', 'り', 'る', 'れ', 'ろ', 'わ', 'ゐ', 'ゑ', 'を', 'ん',
 ];
 static HIRAGANA_IROHA: [char; 47] = [
-    'い', 'ろ', 'は', 'に', 'ほ', 'へ', 'と', 'ち', 'り', 'ぬ', 'る', 'を', 'わ',
-    'か', 'よ', 'た', 'れ', 'そ', 'つ', 'ね', 'な', 'ら', 'む', 'う', 'ゐ', 'の',
-    'お', 'く', 'や', 'ま', 'け', 'ふ', 'こ', 'え', 'て', 'あ', 'さ', 'き', 'ゆ',
-    'め', 'み', 'し', 'ゑ', 'ひ', 'も', 'せ', 'す',
+    'い', 'ろ', 'は', 'に', 'ほ', 'へ', 'と', 'ち', 'り', 'ぬ', 'る', 'を', 'わ', 'か', 'よ', 'た',
+    'れ', 'そ', 'つ', 'ね', 'な', 'ら', 'む', 'う', 'ゐ', 'の', 'お', 'く', 'や', 'ま', 'け', 'ふ',
+    'こ', 'え', 'て', 'あ', 'さ', 'き', 'ゆ', 'め', 'み', 'し', 'ゑ', 'ひ', 'も', 'せ', 'す',
 ];
 static KATAKANA: [char; 48] = [
-    'ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク', 'ケ', 'コ', 'サ', 'シ', 'ス',
-    'セ', 'ソ', 'タ', 'チ', 'ツ', 'テ', 'ト', 'ナ', 'ニ', 'ヌ', 'ネ', 'ノ', 'ハ',
-    'ヒ', 'フ', 'ヘ', 'ホ', 'マ', 'ミ', 'ム', 'メ', 'モ', 'ヤ', 'ユ', 'ヨ', 'ラ',
-    'リ', 'ル', 'レ', 'ロ', 'ワ', 'ヰ', 'ヱ', 'ヲ', 'ン',
+    'ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク', 'ケ', 'コ', 'サ', 'シ', 'ス', 'セ', 'ソ', 'タ',
+    'チ', 'ツ', 'テ', 'ト', 'ナ', 'ニ', 'ヌ', 'ネ', 'ノ', 'ハ', 'ヒ', 'フ', 'ヘ', 'ホ', 'マ', 'ミ',
+    'ム', 'メ', 'モ', 'ヤ', 'ユ', 'ヨ', 'ラ', 'リ', 'ル', 'レ', 'ロ', 'ワ', 'ヰ', 'ヱ', 'ヲ', 'ン',
 ];
 static KATAKANA_IROHA: [char; 47] = [
-    'イ', 'ロ', 'ハ', 'ニ', 'ホ', 'ヘ', 'ト', 'チ', 'リ', 'ヌ', 'ル', 'ヲ', 'ワ',
-    'カ', 'ヨ', 'タ', 'レ', 'ソ', 'ツ', 'ネ', 'ナ', 'ラ', 'ム', 'ウ', 'ヰ', 'ノ',
-    'オ', 'ク', 'ヤ', 'マ', 'ケ', 'フ', 'コ', 'エ', 'テ', 'ア', 'サ', 'キ', 'ユ',
-    'メ', 'ミ', 'シ', 'ヱ', 'ヒ', 'モ', 'セ', 'ス',
+    'イ', 'ロ', 'ハ', 'ニ', 'ホ', 'ヘ', 'ト', 'チ', 'リ', 'ヌ', 'ル', 'ヲ', 'ワ', 'カ', 'ヨ', 'タ',
+    'レ', 'ソ', 'ツ', 'ネ', 'ナ', 'ラ', 'ム', 'ウ', 'ヰ', 'ノ', 'オ', 'ク', 'ヤ', 'マ', 'ケ', 'フ',
+    'コ', 'エ', 'テ', 'ア', 'サ', 'キ', 'ユ', 'メ', 'ミ', 'シ', 'ヱ', 'ヒ', 'モ', 'セ', 'ス',
 ];
 
 /// The generated content resolution traversal.
@@ -194,7 +174,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
 
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if fragment.style().get_box().display != Display::ListItem {
+        if !fragment.style().get_box().display.is_list_item() {
             list_style_type = ListStyleType::None
         }
 
@@ -310,7 +290,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
 
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if !self.is_block || fragment.style().get_box().display != Display::ListItem {
+        if !self.is_block || !fragment.style().get_box().display.is_list_item() {
             list_style_type = ListStyleType::None
         }
 
@@ -362,14 +342,17 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
     }
 
     fn quote(&self, style: &ComputedValues, close: bool) -> String {
-        let quotes = &style.get_list().quotes;
-        if quotes.0.is_empty() {
+        let quotes = match style.get_list().quotes {
+            Quotes::Auto => &*INITIAL_QUOTES,
+            Quotes::QuoteList(ref list) => &list.0,
+        };
+        if quotes.is_empty() {
             return String::new();
         }
-        let pair = if self.traversal.quote as usize >= quotes.0.len() {
-            quotes.0.last().unwrap()
+        let pair = if self.traversal.quote as usize >= quotes.len() {
+            quotes.last().unwrap()
         } else {
-            &quotes.0[self.traversal.quote as usize]
+            &quotes[self.traversal.quote as usize]
         };
         if close {
             pair.closing.to_string()

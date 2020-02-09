@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-detection:auto(th) and line breaking</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-detection">
+<link rel="match" href="reference/word-boundary-111-ref.html">
+<meta name="assert" content="word-boundary-detection:auto(th) inserts virtual word boundaries at reasonable points, creating soft wrapping opportunities">
+<style>
+.wrap {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+.wrap > div {
+  width: 0;
+}
+#test {
+  word-boundary-detection: auto(th);
+}
+#ref {
+  border-color: blue;
+}
+</style>
+
+<!--
+This test should pass even in UAs that don't support word-boundary-detection:auto(th)
+since allowing south-east-asian languages to wrap is the default behavior.
+-->
+
+<p>Test passes if the black box is identical to either the blue one.
+
+<div class=wrap>
+  <div id=test lang=th>กรุงเทพคือสวยงาม</div>
+</div>
+<div id=ref class=wrap>
+  <div lang=th>กรุงเทพ<wbr>คือ<wbr>สวยงาม</div>
+</div>

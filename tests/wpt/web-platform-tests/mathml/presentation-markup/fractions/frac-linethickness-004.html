@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>fractions linethickness</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
     <meta name="assert" content="Verifies that unitless value of zero causes no fraction bar to be painted">
     <link rel="match" href="frac-linethickness-004-ref.html">
     <style type="text/css">
@@ -26,5 +26,7 @@
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
     </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
   </body>
 </html>

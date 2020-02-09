@@ -9,6 +9,10 @@ function requestDeviceWithOptionsAndConnect(options) {
 
 window.addEventListener('message', (messageEvent) => {
   switch (messageEvent.data.type) {
+    case 'GetAvailability':
+      navigator.bluetooth.getAvailability().then(
+          availability => parent.postMessage(availability, '*'));
+      break;
     case 'RequestDevice':
       navigator.bluetooth
           .requestDevice({filters: [{services: ['generic_access']}]})

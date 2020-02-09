@@ -31,7 +31,7 @@ struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
         (elem.is::<HTMLTableCellElement>()) &&
-            elem.upcast::<Node>().GetParentNode().deref() == Some(root)
+            elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
     }
 }
 

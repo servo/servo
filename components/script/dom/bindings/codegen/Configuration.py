@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import functools
 import os
 
 from WebIDL import IDLExternalInterface, IDLSequenceType, IDLWrapperType, WebIDLError
@@ -15,7 +16,7 @@ class Configuration:
     def __init__(self, filename, parseData):
         # Read the configuration file.
         glbl = {}
-        execfile(filename, glbl)
+        exec(compile(open(filename).read(), filename, 'exec'), glbl)
         config = glbl['DOMInterfaces']
 
         # Build descriptors for all the interfaces we have in the parse data.
@@ -38,11 +39,6 @@ class Configuration:
             iface = thing
             self.interfaces[iface.identifier.name] = iface
             if iface.identifier.name not in config:
-                # Completely skip consequential interfaces with no descriptor
-                # if they have no interface object because chances are we
-                # don't need to do anything interesting with them.
-                if iface.isConsequential() and not iface.hasInterfaceObject():
-                    continue
                 entry = {}
             else:
                 entry = config[iface.identifier.name]
@@ -67,7 +63,8 @@ class Configuration:
                           c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
-        self.descriptors.sort(lambda x, y: cmp(x.name, y.name))
+        cmp = lambda x, y: (x > y) - (x < y)
+        self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
     def getInterface(self, ifname):
         return self.interfaces[ifname]
@@ -223,7 +220,7 @@ class Descriptor(DescriptorProvider):
         self.concreteType = typeName
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
-        self.inCompartmentMethods = [name for name in desc.get('inCompartments', [])]
+        self.inRealmMethods = [name for name in desc.get('inRealms', [])]
         self.bindingPath = 'crate::dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
@@ -250,6 +247,8 @@ class Descriptor(DescriptorProvider):
             'Stringifier': None,
         }
 
+        self.hasDefaultToJSON = False
+
         def addOperation(operation, m):
             if not self.operations[operation]:
                 self.operations[operation] = m
@@ -259,6 +258,8 @@ class Descriptor(DescriptorProvider):
         for m in self.interface.members:
             if m.isMethod() and m.isStringifier():
                 addOperation('Stringifier', m)
+            if m.isMethod() and m.isDefaultToJSON():
+                self.hasDefaultToJSON = True
 
         if self.concrete:
             iface = self.interface
@@ -393,15 +394,19 @@ class Descriptor(DescriptorProvider):
         return (self.interface.getUserData("hasConcreteDescendant", False) or
                 self.interface.getUserData("hasProxyDescendant", False))
 
+    def hasHTMLConstructor(self):
+        ctor = self.interface.ctor()
+        return ctor and ctor.isHTMLConstructor()
+
     def shouldHaveGetConstructorObjectMethod(self):
         assert self.interface.hasInterfaceObject()
         if self.interface.getExtendedAttribute("Inline"):
             return False
         return (self.interface.isCallback() or self.interface.isNamespace() or
-                self.hasDescendants() or self.interface.getExtendedAttribute("HTMLConstructor"))
+                self.hasDescendants() or self.hasHTMLConstructor())
 
     def shouldCacheConstructor(self):
-        return self.hasDescendants() or self.interface.getExtendedAttribute("HTMLConstructor")
+        return self.hasDescendants() or self.hasHTMLConstructor()
 
     def isExposedConditionally(self):
         return self.interface.isExposedConditionally()

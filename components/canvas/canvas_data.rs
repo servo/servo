@@ -5,7 +5,7 @@
 use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
 #[allow(unused_imports)]
@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use webrender::api::DirtyRect;
+use webrender_api::units::RectExt as RectExt_;
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
@@ -83,7 +84,7 @@ pub trait Backend {
 /// azure's and raqote's PathBuilder.
 pub trait GenericPathBuilder {
     fn arc(
-        &self,
+        &mut self,
         origin: Point2D<f32>,
         radius: f32,
         start_angle: f32,
@@ -91,14 +92,14 @@ pub trait GenericPathBuilder {
         anticlockwise: bool,
     );
     fn bezier_curve_to(
-        &self,
+        &mut self,
         control_point1: &Point2D<f32>,
         control_point2: &Point2D<f32>,
         control_point3: &Point2D<f32>,
     );
-    fn close(&self);
+    fn close(&mut self);
     fn ellipse(
-        &self,
+        &mut self,
         origin: Point2D<f32>,
         radius_x: f32,
         radius_y: f32,
@@ -107,32 +108,32 @@ pub trait GenericPathBuilder {
         end_angle: f32,
         anticlockwise: bool,
     );
-    fn get_current_point(&self) -> Point2D<f32>;
-    fn line_to(&self, point: Point2D<f32>);
-    fn move_to(&self, point: Point2D<f32>);
-    fn quadratic_curve_to(&self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
-    fn finish(&self) -> Path;
+    fn get_current_point(&mut self) -> Option<Point2D<f32>>;
+    fn line_to(&mut self, point: Point2D<f32>);
+    fn move_to(&mut self, point: Point2D<f32>);
+    fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
+    fn finish(&mut self) -> Path;
 }
 
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a> {
-    builder: &'a Box<dyn GenericPathBuilder>,
+    builder: &'a mut Box<dyn GenericPathBuilder>,
     transform: Transform2D<f32>,
 }
 
 impl<'a> PathBuilderRef<'a> {
-    fn line_to(&self, pt: &Point2D<f32>) {
-        let pt = self.transform.transform_point(pt);
+    fn line_to(&mut self, pt: &Point2D<f32>) {
+        let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
     }
 
-    fn move_to(&self, pt: &Point2D<f32>) {
-        let pt = self.transform.transform_point(pt);
+    fn move_to(&mut self, pt: &Point2D<f32>) {
+        let pt = self.transform.transform_point(*pt);
         self.builder.move_to(pt);
     }
 
-    fn rect(&self, rect: &Rect<f32>) {
+    fn rect(&mut self, rect: &Rect<f32>) {
         let (first, second, third, fourth) = (
             Point2D::new(rect.origin.x, rect.origin.y),
             Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
@@ -142,38 +143,44 @@ impl<'a> PathBuilderRef<'a> {
             ),
             Point2D::new(rect.origin.x, rect.origin.y + rect.size.height),
         );
-        self.builder.move_to(self.transform.transform_point(&first));
-        self.builder
-            .line_to(self.transform.transform_point(&second));
-        self.builder.line_to(self.transform.transform_point(&third));
-        self.builder
-            .line_to(self.transform.transform_point(&fourth));
-        self.builder.close();
+        self.move_to(&first);
+        self.line_to(&second);
+        self.line_to(&third);
+        self.line_to(&fourth);
+        self.close();
+        self.move_to(&first);
     }
 
-    fn quadratic_curve_to(&self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+    fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.quadratic_curve_to(
-            &self.transform.transform_point(cp),
-            &self.transform.transform_point(endpoint),
+            &self.transform.transform_point(*cp),
+            &self.transform.transform_point(*endpoint),
         )
     }
 
-    fn bezier_curve_to(&self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
+    fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
         self.builder.bezier_curve_to(
-            &self.transform.transform_point(cp1),
-            &self.transform.transform_point(cp2),
-            &self.transform.transform_point(endpoint),
+            &self.transform.transform_point(*cp1),
+            &self.transform.transform_point(*cp2),
+            &self.transform.transform_point(*endpoint),
         )
     }
 
-    fn arc(&self, center: &Point2D<f32>, radius: f32, start_angle: f32, end_angle: f32, ccw: bool) {
-        let center = self.transform.transform_point(center);
+    fn arc(
+        &mut self,
+        center: &Point2D<f32>,
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        ccw: bool,
+    ) {
+        let center = self.transform.transform_point(*center);
         self.builder
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
     pub fn ellipse(
-        &self,
+        &mut self,
         center: &Point2D<f32>,
         radius_x: f32,
         radius_y: f32,
@@ -182,7 +189,7 @@ impl<'a> PathBuilderRef<'a> {
         end_angle: f32,
         ccw: bool,
     ) {
-        let center = self.transform.transform_point(center);
+        let center = self.transform.transform_point(*center);
         self.builder.ellipse(
             center,
             radius_x,
@@ -194,13 +201,19 @@ impl<'a> PathBuilderRef<'a> {
         );
     }
 
-    fn current_point(&self) -> Option<Point2D<f32>> {
+    fn current_point(&mut self) -> Option<Point2D<f32>> {
         let inverse = match self.transform.inverse() {
             Some(i) => i,
             None => return None,
         };
-        let current_point = self.builder.get_current_point();
-        Some(inverse.transform_point(&Point2D::new(current_point.x, current_point.y)))
+        match self.builder.get_current_point() {
+            Some(point) => Some(inverse.transform_point(Point2D::new(point.x, point.y))),
+            None => None,
+        }
+    }
+
+    fn close(&mut self) {
+        self.builder.close();
     }
 }
 
@@ -208,8 +221,13 @@ impl<'a> PathBuilderRef<'a> {
 // This defines required methods for DrawTarget of azure and raqote
 // The prototypes are derived from azure's methods.
 pub trait GenericDrawTarget {
-    fn clear_rect(&self, rect: &Rect<f32>);
-    fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>);
+    fn clear_rect(&mut self, rect: &Rect<f32>);
+    fn copy_surface(
+        &mut self,
+        surface: SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
+    );
     fn create_gradient_stops(
         &self,
         gradient_stops: Vec<GradientStop>,
@@ -228,7 +246,7 @@ pub trait GenericDrawTarget {
         stride: i32,
     ) -> Option<SourceSurface>;
     fn draw_surface(
-        &self,
+        &mut self,
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
@@ -244,24 +262,24 @@ pub trait GenericDrawTarget {
         sigma: f32,
         operator: CompositionOp,
     );
-    fn fill(&self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
-    fn fill_rect(&self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
+    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
+    fn fill_rect(&mut self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
     fn get_format(&self) -> SurfaceFormat;
     fn get_size(&self) -> Size2D<i32>;
     fn get_transform(&self) -> Transform2D<f32>;
-    fn pop_clip(&self);
-    fn push_clip(&self, path: &Path);
-    fn set_transform(&self, matrix: &Transform2D<f32>);
+    fn pop_clip(&mut self);
+    fn push_clip(&mut self, path: &Path);
+    fn set_transform(&mut self, matrix: &Transform2D<f32>);
     fn snapshot(&self) -> SourceSurface;
     fn stroke(
-        &self,
+        &mut self,
         path: &Path,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     );
     fn stroke_line(
-        &self,
+        &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
         pattern: Pattern,
@@ -269,7 +287,7 @@ pub trait GenericDrawTarget {
         draw_options: &DrawOptions,
     );
     fn stroke_rect(
-        &self,
+        &mut self,
         rect: &Rect<f32>,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
@@ -281,93 +299,94 @@ pub trait GenericDrawTarget {
 
 #[derive(Clone)]
 pub enum ExtendMode {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::ExtendMode),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum GradientStop {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::AzGradientStop),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::GradientStop),
 }
 
 pub enum GradientStops {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::GradientStops),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(Vec<raqote::GradientStop>),
 }
 
 #[derive(Clone)]
 pub enum Color {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::Color),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::SolidSource),
 }
 
 #[derive(Clone)]
 pub enum CompositionOp {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::CompositionOp),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::BlendMode),
 }
 
 pub enum SurfaceFormat {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::SurfaceFormat),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum SourceSurface {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::SourceSurface),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
-}
-
-pub enum Path {
-    #[cfg(feature = "azure_backend")]
-    Azure(azure::azure_hl::Path),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(Vec<u8>), // TODO: See if we can avoid the alloc (probably?)
 }
 
 #[derive(Clone)]
-pub enum Pattern {
-    #[cfg(feature = "azure_backend")]
-    Azure(azure::azure_hl::Pattern),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+pub enum Path {
+    #[cfg(feature = "canvas2d-azure")]
+    Azure(azure::azure_hl::Path),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::Path),
+}
+
+#[derive(Clone)]
+pub enum Pattern<'a> {
+    #[cfg(feature = "canvas2d-azure")]
+    Azure(azure::azure_hl::Pattern, PhantomData<&'a ()>),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(crate::raqote_backend::Pattern<'a>),
 }
 
 pub enum DrawSurfaceOptions {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::DrawSurfaceOptions),
-    #[cfg(feature = "raqote_backend")]
+    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum DrawOptions {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::DrawOptions),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(()),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::DrawOptions),
 }
 
 #[derive(Clone)]
 pub enum StrokeOptions<'a> {
-    #[cfg(feature = "azure_backend")]
+    #[cfg(feature = "canvas2d-azure")]
     Azure(azure::azure_hl::StrokeOptions<'a>),
-    #[cfg(feature = "raqote_backend")]
-    Raqote(PhantomData<&'a ()>),
+    #[cfg(feature = "canvas2d-raqote")]
+    Raqote(raqote::StrokeStyle, PhantomData<&'a ()>),
 }
 
 #[derive(Clone, Copy)]
@@ -391,12 +410,12 @@ pub struct CanvasData<'a> {
     pub canvas_id: CanvasId,
 }
 
-#[cfg(feature = "azure_backend")]
+#[cfg(feature = "canvas2d-azure")]
 fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::azure_backend::AzureBackend)
 }
 
-#[cfg(feature = "raqote_backend")]
+#[cfg(feature = "canvas2d-raqote")]
 fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::raqote_backend::RaqoteBackend)
 }
@@ -409,7 +428,7 @@ impl<'a> CanvasData<'a> {
         canvas_id: CanvasId,
     ) -> CanvasData<'a> {
         let backend = create_backend();
-        let draw_target = backend.create_drawtarget(size);;
+        let draw_target = backend.create_drawtarget(size);
         let webrender_api = webrender_api_sender.create_api();
         CanvasData {
             backend,
@@ -426,7 +445,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn draw_image(
-        &self,
+        &mut self,
         image_data: Vec<u8>,
         image_size: Size2D<f64>,
         dest_rect: Rect<f64>,
@@ -437,19 +456,20 @@ impl<'a> CanvasData<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
+            pixels::rgba8_get_rect(&image_data, image_size.to_u64(), source_rect.to_u64()).into()
         } else {
             image_data.into()
         };
 
-        let writer = |draw_target: &dyn GenericDrawTarget| {
+        let draw_options = self.state.draw_options.clone();
+        let writer = |draw_target: &mut dyn GenericDrawTarget| {
             write_image(
                 draw_target,
                 image_data,
                 source_rect.size,
                 dest_rect,
                 smoothing_enabled,
-                &self.state.draw_options,
+                &draw_options,
             );
         };
 
@@ -462,7 +482,7 @@ impl<'a> CanvasData<'a> {
             // TODO(pylbrecht) pass another closure for raqote
             self.draw_with_shadow(&rect, writer);
         } else {
-            writer(&*self.drawtarget);
+            writer(&mut *self.drawtarget);
         }
     }
 
@@ -485,7 +505,7 @@ impl<'a> CanvasData<'a> {
         );
     }
 
-    pub fn fill_rect(&self, rect: &Rect<f32>) {
+    pub fn fill_rect(&mut self, rect: &Rect<f32>) {
         if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
@@ -498,7 +518,7 @@ impl<'a> CanvasData<'a> {
         );
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &dyn GenericDrawTarget| {
+            self.draw_with_shadow(&draw_rect, |new_draw_target: &mut dyn GenericDrawTarget| {
                 new_draw_target.fill_rect(
                     &draw_rect,
                     self.state.fill_style.clone(),
@@ -514,17 +534,17 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn clear_rect(&self, rect: &Rect<f32>) {
+    pub fn clear_rect(&mut self, rect: &Rect<f32>) {
         self.drawtarget.clear_rect(rect);
     }
 
-    pub fn stroke_rect(&self, rect: &Rect<f32>) {
+    pub fn stroke_rect(&mut self, rect: &Rect<f32>) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&rect, |new_draw_target: &dyn GenericDrawTarget| {
+            self.draw_with_shadow(&rect, |new_draw_target: &mut dyn GenericDrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
                     self.state.stroke_style.clone(),
@@ -533,11 +553,13 @@ impl<'a> CanvasData<'a> {
                 );
             });
         } else if rect.size.width == 0. || rect.size.height == 0. {
+            let mut stroke_opts = self.state.stroke_opts.clone();
+            stroke_opts.set_line_cap(LineCapStyle::Butt);
             self.drawtarget.stroke_line(
                 rect.origin,
                 rect.bottom_right(),
                 self.state.stroke_style.clone(),
-                &self.state.stroke_opts,
+                &stroke_opts,
                 &self.state.draw_options,
             );
         } else {
@@ -556,7 +578,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn close_path(&mut self) {
-        self.path_builder().builder.close();
+        self.path_builder().close();
     }
 
     fn ensure_path(&mut self) {
@@ -570,7 +592,7 @@ impl<'a> CanvasData<'a> {
 
         // If a user-space builder exists, create a finished path from it.
         let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref builder, ref mut transform) => {
+            PathState::UserSpacePathBuilder(ref mut builder, ref mut transform) => {
                 Some((builder.finish(), transform.take()))
             },
             PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
@@ -595,8 +617,8 @@ impl<'a> CanvasData<'a> {
 
         // If a device-space builder is present, create a user-space path from its
         // finished path by inverting the initial transformation.
-        let new_state = match self.path_state.as_ref().unwrap() {
-            PathState::DeviceSpacePathBuilder(ref builder) => {
+        let new_state = match *self.path_state.as_mut().unwrap() {
+            PathState::DeviceSpacePathBuilder(ref mut builder) => {
                 let path = builder.finish();
                 let inverse = match self.drawtarget.get_transform().inverse() {
                     Some(m) => m,
@@ -605,7 +627,7 @@ impl<'a> CanvasData<'a> {
                         return;
                     },
                 };
-                let builder = path.transformed_copy_to_builder(&inverse);
+                let mut builder = path.transformed_copy_to_builder(&inverse);
                 Some(builder.finish())
             },
             PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
@@ -631,7 +653,7 @@ impl<'a> CanvasData<'a> {
 
         self.ensure_path();
         self.drawtarget.fill(
-            &self.path(),
+            &self.path().clone(),
             self.state.fill_style.clone(),
             &self.state.draw_options,
         );
@@ -644,7 +666,7 @@ impl<'a> CanvasData<'a> {
 
         self.ensure_path();
         self.drawtarget.stroke(
-            &self.path(),
+            &self.path().clone(),
             self.state.stroke_style.clone(),
             &self.state.stroke_opts,
             &self.state.draw_options,
@@ -653,7 +675,8 @@ impl<'a> CanvasData<'a> {
 
     pub fn clip(&mut self) {
         self.ensure_path();
-        self.drawtarget.push_clip(&self.path());
+        let path = self.path().clone();
+        self.drawtarget.push_clip(&path);
     }
 
     pub fn is_point_in_path(
@@ -695,19 +718,20 @@ impl<'a> CanvasData<'a> {
         // and overwriting path_state in other ones. The following awkward use of duplicate
         // matches works around the resulting borrow errors.
         let new_state = {
-            match self.path_state.as_ref().unwrap() {
-                &PathState::UserSpacePathBuilder(_, None) |
-                &PathState::DeviceSpacePathBuilder(_) => None,
-                &PathState::UserSpacePathBuilder(ref builder, Some(ref transform)) => {
+            match *self.path_state.as_mut().unwrap() {
+                PathState::UserSpacePathBuilder(_, None) | PathState::DeviceSpacePathBuilder(_) => {
+                    None
+                },
+                PathState::UserSpacePathBuilder(ref mut builder, Some(ref transform)) => {
                     let path = builder.finish();
                     Some(PathState::DeviceSpacePathBuilder(
                         path.transformed_copy_to_builder(transform),
                     ))
                 },
-                &PathState::UserSpacePath(ref path, Some(ref transform)) => Some(
+                PathState::UserSpacePath(ref path, Some(ref transform)) => Some(
                     PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform)),
                 ),
-                &PathState::UserSpacePath(ref path, None) => Some(PathState::UserSpacePathBuilder(
+                PathState::UserSpacePath(ref path, None) => Some(PathState::UserSpacePathBuilder(
                     path.copy_to_builder(),
                     None,
                 )),
@@ -717,14 +741,14 @@ impl<'a> CanvasData<'a> {
             // There's a new builder value that needs to be stored.
             Some(state) => self.path_state = Some(state),
             // There's an existing builder value that can be returned immediately.
-            None => match self.path_state.as_ref().unwrap() {
-                &PathState::UserSpacePathBuilder(ref builder, None) => {
+            None => match *self.path_state.as_mut().unwrap() {
+                PathState::UserSpacePathBuilder(ref mut builder, None) => {
                     return PathBuilderRef {
                         builder,
                         transform: Transform2D::identity(),
                     };
                 },
-                &PathState::DeviceSpacePathBuilder(ref builder) => {
+                PathState::DeviceSpacePathBuilder(ref mut builder) => {
                     return PathBuilderRef {
                         builder,
                         transform: self.drawtarget.get_transform(),
@@ -734,16 +758,16 @@ impl<'a> CanvasData<'a> {
             },
         }
 
-        match self.path_state.as_ref().unwrap() {
-            &PathState::UserSpacePathBuilder(ref builder, None) => PathBuilderRef {
+        match *self.path_state.as_mut().unwrap() {
+            PathState::UserSpacePathBuilder(ref mut builder, None) => PathBuilderRef {
                 builder,
                 transform: Transform2D::identity(),
             },
-            &PathState::DeviceSpacePathBuilder(ref builder) => PathBuilderRef {
+            PathState::DeviceSpacePathBuilder(ref mut builder) => PathBuilderRef {
                 builder,
                 transform: self.drawtarget.get_transform(),
             },
-            &PathState::UserSpacePathBuilder(..) | &PathState::UserSpacePath(..) => unreachable!(),
+            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => unreachable!(),
         }
     }
 
@@ -752,6 +776,9 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        if self.path_state.is_none() {
+            self.move_to(cp);
+        }
         self.path_builder().quadratic_curve_to(cp, endpoint);
     }
 
@@ -761,6 +788,9 @@ impl<'a> CanvasData<'a> {
         cp2: &Point2D<f32>,
         endpoint: &Point2D<f32>,
     ) {
+        if self.path_state.is_none() {
+            self.move_to(cp1);
+        }
         self.path_builder().bezier_curve_to(cp1, cp2, endpoint);
     }
 
@@ -779,7 +809,10 @@ impl<'a> CanvasData<'a> {
     pub fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = match self.path_builder().current_point() {
             Some(p) => p,
-            None => return,
+            None => {
+                self.path_builder().move_to(cp1);
+                cp1.clone()
+            },
         };
         let cp1 = *cp1;
         let cp2 = *cp2;
@@ -910,10 +943,10 @@ impl<'a> CanvasData<'a> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
-    pub fn recreate(&mut self, size: Size2D<u32>) {
+    pub fn recreate(&mut self, size: Size2D<u64>) {
         self.drawtarget = self
             .backend
-            .create_drawtarget(Size2D::new(size.width as u64, size.height as u64));
+            .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
@@ -941,7 +974,7 @@ impl<'a> CanvasData<'a> {
         let size = self.drawtarget.get_size();
 
         let descriptor = webrender_api::ImageDescriptor {
-            size: webrender_api::DeviceIntSize::new(size.width, size.height),
+            size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
@@ -980,7 +1013,7 @@ impl<'a> CanvasData<'a> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
+    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u64>) {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
@@ -1024,7 +1057,7 @@ impl<'a> CanvasData<'a> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<dyn GenericDrawTarget> {
-        let draw_target = self.drawtarget.create_similar_draw_target(
+        let mut draw_target = self.drawtarget.create_similar_draw_target(
             &Size2D::new(
                 source_rect.size.width as i32,
                 source_rect.size.height as i32,
@@ -1033,18 +1066,18 @@ impl<'a> CanvasData<'a> {
         );
         let matrix = Transform2D::identity()
             .pre_translate(-source_rect.origin.to_vector().cast())
-            .pre_mul(&self.state.transform);
+            .pre_transform(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target
     }
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
     where
-        F: FnOnce(&dyn GenericDrawTarget),
+        F: FnOnce(&mut dyn GenericDrawTarget),
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
-        let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
-        draw_shadow_source(&*new_draw_target);
+        let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
+        draw_shadow_source(&mut *new_draw_target);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.snapshot(),
             &Point2D::new(
@@ -1065,7 +1098,7 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
+    pub fn read_pixels(&self, read_rect: Rect<u64>, canvas_size: Size2D<u64>) -> Vec<u8> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
@@ -1075,7 +1108,7 @@ impl<'a> CanvasData<'a> {
         }
 
         self.drawtarget.snapshot_data(&|bytes| {
-            pixels::rgba8_get_rect(bytes, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
+            pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
     }
 }
@@ -1098,8 +1131,8 @@ impl<'a> Drop for CanvasData<'a> {
 #[derive(Clone)]
 pub struct CanvasPaintState<'a> {
     pub draw_options: DrawOptions,
-    pub fill_style: Pattern,
-    pub stroke_style: Pattern,
+    pub fill_style: Pattern<'a>,
+    pub stroke_style: Pattern<'a>,
     pub stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
     pub transform: Transform2D<f32>,
@@ -1116,7 +1149,7 @@ pub struct CanvasPaintState<'a> {
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
-    draw_target: &dyn GenericDrawTarget,
+    draw_target: &mut dyn GenericDrawTarget,
     image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,
@@ -1170,5 +1203,37 @@ impl RectToi32 for Rect<f64> {
             Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
             Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
         )
+    }
+}
+
+pub trait Size2DExt {
+    fn to_u64(&self) -> Size2D<u64>;
+}
+
+impl Size2DExt for Size2D<f64> {
+    fn to_u64(&self) -> Size2D<u64> {
+        self.cast()
+    }
+}
+
+impl Size2DExt for Size2D<u32> {
+    fn to_u64(&self) -> Size2D<u64> {
+        self.cast()
+    }
+}
+
+pub trait RectExt {
+    fn to_u64(&self) -> Rect<u64>;
+}
+
+impl RectExt for Rect<f64> {
+    fn to_u64(&self) -> Rect<u64> {
+        self.cast()
+    }
+}
+
+impl RectExt for Rect<u32> {
+    fn to_u64(&self) -> Rect<u64> {
+        self.cast()
     }
 }

@@ -2,18 +2,18 @@ import subprocess
 
 from .base import Browser, ExecutorBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
+from .chrome import executor_kwargs as chrome_executor_kwargs
 from ..webdriver_server import ChromeDriverServer
-from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
-                                          SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
+                                           WebDriverRefTestExecutor)  # noqa: F401
 from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "chrome_android",
                  "check_args": "check_args",
                  "browser": "ChromeAndroidBrowser",
-                 "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor",
+                 "executor": {"testharness": "WebDriverTestharnessExecutor",
+                              "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "ChromeDriverWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
@@ -25,42 +25,39 @@ _wptserve_ports = set()
 
 
 def check_args(**kwargs):
+    require_arg(kwargs, "package_name")
     require_arg(kwargs, "webdriver_binary")
 
 
 def browser_kwargs(test_type, run_info_data, config, **kwargs):
-    return {"binary": kwargs["binary"],
+    return {"package_name": kwargs["package_name"],
+            "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args")}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
-    from selenium.webdriver import DesiredCapabilities
-
-    # Use extend() to modify the global list in place.
+    # Use update() to modify the global list in place.
     _wptserve_ports.update(set(
         server_config['ports']['http'] + server_config['ports']['https'] +
         server_config['ports']['ws'] + server_config['ports']['wss']
     ))
 
-    executor_kwargs = base_executor_kwargs(test_type, server_config, cache_manager, run_info_data,
-                                           **kwargs)
-    executor_kwargs["close_after_done"] = True
-    capabilities = dict(DesiredCapabilities.CHROME.items())
-    capabilities["chromeOptions"] = {}
-    # required to start on mobile
-    capabilities["chromeOptions"]["androidPackage"] = "com.google.android.apps.chrome"
+    executor_kwargs = chrome_executor_kwargs(test_type, server_config,
+                                             cache_manager, run_info_data,
+                                             **kwargs)
+    # Remove unsupported options on mobile.
+    del executor_kwargs["capabilities"]["goog:chromeOptions"]["prefs"]
+    del executor_kwargs["capabilities"]["goog:chromeOptions"]["useAutomationExtension"]
 
-    for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
-        if kwargs[kwarg] is not None:
-            capabilities["chromeOptions"][capability] = kwargs[kwarg]
-    if test_type == "testharness":
-        capabilities["useAutomationExtension"] = False
-        capabilities["excludeSwitches"] = ["enable-automation"]
-    if test_type == "wdspec":
-        capabilities["chromeOptions"]["w3c"] = True
-    executor_kwargs["capabilities"] = capabilities
+    assert kwargs["package_name"], "missing --package-name"
+    executor_kwargs["capabilities"]["goog:chromeOptions"]["androidPackage"] = \
+        kwargs["package_name"]
+    if kwargs.get("device_serial"):
+        executor_kwargs["capabilities"]["goog:chromeOptions"]["androidDeviceSerial"] = \
+            kwargs["device_serial"]
+
     return executor_kwargs
 
 
@@ -69,7 +66,8 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {}
+    # allow the use of host-resolver-rules in lieu of modifying /etc/hosts file
+    return {"server_host": "127.0.0.1"}
 
 
 class ChromeAndroidBrowser(Browser):
@@ -77,24 +75,29 @@ class ChromeAndroidBrowser(Browser):
     ``wptrunner.webdriver.ChromeDriverServer``.
     """
 
-    def __init__(self, logger, binary, webdriver_binary="chromedriver",
-                 webdriver_args=None):
-        """Creates a new representation of Chrome.  The `binary` argument gives
-        the browser binary to use for testing."""
+    def __init__(self, logger, package_name, webdriver_binary="chromedriver",
+                 device_serial=None, webdriver_args=None):
         Browser.__init__(self, logger)
-        self.binary = binary
+        self.package_name = package_name
+        self.device_serial = device_serial
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
                                          args=webdriver_args)
+        self.setup_adb_reverse()
 
     def _adb_run(self, args):
-        self.logger.info('adb ' + ' '.join(args))
-        subprocess.check_call(['adb'] + args)
+        cmd = ['adb']
+        if self.device_serial:
+            cmd.extend(['-s', self.device_serial])
+        cmd.extend(args)
+        self.logger.info(' '.join(cmd))
+        subprocess.check_call(cmd)
 
-    def setup(self):
+    def setup_adb_reverse(self):
         self._adb_run(['wait-for-device'])
         self._adb_run(['forward', '--remove-all'])
         self._adb_run(['reverse', '--remove-all'])
+        # "adb reverse" forwards network connection from device to host.
         for port in _wptserve_ports:
             self._adb_run(['reverse', 'tcp:%d' % port, 'tcp:%d' % port])
 
@@ -111,7 +114,7 @@ class ChromeAndroidBrowser(Browser):
         # TODO(ato): This only indicates the driver is alive,
         # and doesn't say anything about whether a browser session
         # is active.
-        return self.server.is_alive()
+        return self.server.is_alive
 
     def cleanup(self):
         self.stop()

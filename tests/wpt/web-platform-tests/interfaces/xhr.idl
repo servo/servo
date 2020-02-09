@@ -28,9 +28,10 @@ enum XMLHttpRequestResponseType {
   "text"
 };
 
-[Constructor,
- Exposed=(Window,DedicatedWorker,SharedWorker)]
+[Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
+  constructor();
+
   // event handler
   attribute EventHandler onreadystatechange;
 
@@ -64,11 +65,13 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute USVString responseText;
   [Exposed=Window] readonly attribute Document? responseXML;
 };
+
 typedef (File or USVString) FormDataEntryValue;
 
-[Constructor(optional HTMLFormElement form),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface FormData {
+  constructor(optional HTMLFormElement form);
+
   void append(USVString name, USVString value);
   void append(USVString name, Blob blobValue, optional USVString filename);
   void delete(USVString name);
@@ -79,9 +82,11 @@ interface FormData {
   void set(USVString name, Blob blobValue, optional USVString filename);
   iterable<USVString, FormDataEntryValue>;
 };
-[Constructor(DOMString type, optional ProgressEventInit eventInitDict),
- Exposed=(Window,DedicatedWorker,SharedWorker)]
+
+[Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface ProgressEvent : Event {
+  constructor(DOMString type, optional ProgressEventInit eventInitDict = {});
+
   readonly attribute boolean lengthComputable;
   readonly attribute unsigned long long loaded;
   readonly attribute unsigned long long total;

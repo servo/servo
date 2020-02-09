@@ -14,9 +14,7 @@ path = "lib.rs"
 malloc_size_of = { path = "../malloc_size_of", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 to_shmem = { path = "../to_shmem" }
-to_shmem_derive = { path = "../to_shmem_derive" }
 serde = {version = "1.0", features = ["derive"]}
 servo_rand = {path = "../rand"}
-url = "1.2"
-url_serde = {version = "0.2"}
-uuid = {version = "0.7", features = ["v4", "serde"]}
+url = {version = "2.0", features = ["serde"]}
+uuid = {version = "0.8", features = ["v4", "serde"]}

@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script>
+setup({ single_test: true });
 var image = new Image();
 image.onload = function() {
     const canvas = document.createElement("canvas");
@@ -14,7 +15,7 @@ image.onload = function() {
     const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0, 100, 100);
 
-    assert_throws("SecurityError", () => {
+    assert_throws_dom("SecurityError", () => {
         context.getImageData(0, 0, 100, 100);
     });
     done();

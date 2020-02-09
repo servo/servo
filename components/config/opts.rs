@@ -6,8 +6,8 @@
 //! from command line arguments.
 
 use crate::prefs::{self, PrefValue};
-use euclid::TypedSize2D;
-use getopts::Options;
+use euclid::Size2D;
+use getopts::{Matches, Options};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -31,10 +31,6 @@ pub struct Opts {
 
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
-
-    /// The ratio of device pixels per px at the default scale. If unspecified, will use the
-    /// platform default setting.
-    pub device_pixels_per_px: Option<f32>,
 
     /// `None` to disable the time profiler or `Some` to enable it with:
     ///
@@ -77,9 +73,6 @@ pub struct Opts {
     pub load_webfonts_synchronously: bool,
 
     pub headless: bool,
-
-    /// Use ANGLE to create the GL context (Windows-only).
-    pub angle: bool,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -135,7 +128,7 @@ pub struct Opts {
     pub webdriver_port: Option<u16>,
 
     /// The initial requested size of the window.
-    pub initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+    pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
 
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Cow<'static, str>,
@@ -184,12 +177,6 @@ pub struct Opts {
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
 
-    /// Do not use native titlebar
-    pub no_native_titlebar: bool,
-
-    /// Enable vsync in the compositor
-    pub enable_vsync: bool,
-
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -206,9 +193,6 @@ pub struct Opts {
     /// useful when modifying the shaders, to ensure they all compile
     /// after each change is made.
     pub precache_shaders: bool,
-
-    /// True if WebRender should use multisample antialiasing.
-    pub use_msaa: bool,
 
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
@@ -231,9 +215,6 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
-
-    /// Only shutdown once all theads are finished.
-    pub clean_shutdown: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -314,9 +295,6 @@ pub struct DebugOptions {
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     pub load_webfonts_synchronously: bool,
 
-    /// Disable vsync in the compositor
-    pub disable_vsync: bool,
-
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -325,9 +303,6 @@ pub struct DebugOptions {
 
     /// Enable webrender instanced draw call batching.
     pub webrender_disable_batch: bool,
-
-    /// Use multisample antialiasing in WebRender.
-    pub use_msaa: bool,
 
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
@@ -368,11 +343,9 @@ impl DebugOptions {
                 "replace-surrogates" => self.replace_surrogates = true,
                 "gc-profile" => self.gc_profile = true,
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
-                "disable-vsync" => self.disable_vsync = true,
                 "wr-stats" => self.webrender_stats = true,
                 "wr-record" => self.webrender_record = true,
                 "wr-no-batch" => self.webrender_disable_batch = true,
-                "msaa" => self.use_msaa = true,
                 "full-backtraces" => self.full_backtraces = true,
                 "precache-shaders" => self.precache_shaders = true,
                 "signpost" => self.signpost = true,
@@ -462,12 +435,7 @@ fn print_debug_usage(app: &str) -> ! {
         "load-webfonts-synchronously",
         "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
     );
-    print_option(
-        "disable-vsync",
-        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
-    );
     print_option("wr-stats", "Show WebRender profiler on screen.");
-    print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
     print_option("wr-debug", "Display webrender tile borders.");
     print_option("wr-no-batch", "Disable webrender instanced batching.");
@@ -512,28 +480,28 @@ enum UserAgent {
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Servo/1.0 Firefox/72.0";
     #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (X11; Linux i686; rv:72.0) Servo/1.0 Firefox/72.0";
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Servo/1.0 Firefox/72.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 10.0; rv:72.0) Servo/1.0 Firefox/72.0";
 
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
-        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:63.0) Servo/1.0 Firefox/63.0",
+        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:68.0) Servo/1.0 Firefox/68.0",
         UserAgent::iOS => {
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:63.0) Servo/1.0 Firefox/63.0"
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X; rv:72.0) Servo/1.0 Firefox/72.0"
         },
     }
 }
@@ -552,7 +520,6 @@ pub fn default_opts() -> Opts {
         is_running_problem_test: false,
         url: None,
         tile_size: 512,
-        device_pixels_per_px: None,
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
@@ -564,7 +531,6 @@ pub fn default_opts() -> Opts {
         gc_profile: false,
         load_webfonts_synchronously: false,
         headless: false,
-        angle: false,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
@@ -576,7 +542,7 @@ pub fn default_opts() -> Opts {
         debugger_port: None,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: TypedSize2D::new(1024, 740),
+        initial_window_size: Size2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
         random_pipeline_closure_probability: None,
@@ -594,10 +560,7 @@ pub fn default_opts() -> Opts {
         style_sharing_stats: false,
         convert_mouse_to_touch: false,
         exit_after_load: false,
-        no_native_titlebar: false,
-        enable_vsync: true,
         webrender_stats: false,
-        use_msaa: false,
         config_dir: None,
         full_backtraces: false,
         is_printing_version: false,
@@ -609,19 +572,16 @@ pub fn default_opts() -> Opts {
         certificate_path: None,
         unminify_js: false,
         print_pwm: false,
-        clean_shutdown: false,
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
+pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
-    let mut opts = Options::new();
     opts.optflag("c", "cpu", "CPU painting");
     opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
-    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optflagopt(
         "p",
         "profile",
@@ -673,11 +633,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "",
     );
     opts.optflag("z", "headless", "Headless mode");
-    opts.optflag(
-        "",
-        "angle",
-        "Use ANGLE to create a GL context (Windows-only)",
-    );
     opts.optflag(
         "f",
         "hard-fail",
@@ -758,6 +713,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "A preference to set to enable",
         "dom.bluetooth.enabled",
     );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.webgpu.enabled",
+    );
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
@@ -767,17 +728,13 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "config directory following xdg spec on linux platform",
         "",
     );
-    opts.optflag(
-        "",
-        "clean-shutdown",
-        "Do not shutdown until all threads have finished (macos only)",
-    );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
     opts.optopt("", "profiler-db-user", "Profiler database user", "");
     opts.optopt("", "profiler-db-pass", "Profiler database password", "");
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
+    opts.optopt("", "vslogger-level", "Visual Studio logger level", "Warn");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -793,7 +750,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // some dummy options for now.
     if let Some(content_process) = opt_match.opt_str("content-process") {
         MULTIPROCESS.store(true, Ordering::SeqCst);
-        return ArgumentParsingResult::ContentProcess(content_process);
+        return ArgumentParsingResult::ContentProcess(opt_match, content_process);
     }
 
     let mut debug_options = DebugOptions::default();
@@ -835,15 +792,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -s ({})", err))),
         None => 512,
     };
-
-    let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str| {
-        dppx_str.parse().unwrap_or_else(|err| {
-            args_fail(&format!(
-                "Error parsing option: --device-pixel-ratio ({})",
-                err
-            ))
-        })
-    });
 
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
@@ -954,9 +902,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     })
                 })
                 .collect();
-            TypedSize2D::new(res[0], res[1])
+            Size2D::new(res[0], res[1])
         },
-        None => TypedSize2D::new(1024, 740),
+        None => Size2D::new(1024, 740),
     };
 
     if opt_match.opt_present("M") {
@@ -986,9 +934,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         })
         .collect();
 
-    let do_not_use_native_titlebar =
-        opt_match.opt_present("b") || !(pref!(shell.native_titlebar.enabled));
-
     let enable_subpixel_text_antialiasing =
         !debug_options.disable_subpixel_aa && pref!(gfx.subpixel_text_antialiasing.enabled);
 
@@ -998,7 +943,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_running_problem_test: is_running_problem_test,
         url: url_opt,
         tile_size: tile_size,
-        device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,
@@ -1010,7 +954,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
-        angle: opt_match.opt_present("angle"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
@@ -1040,10 +983,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         style_sharing_stats: debug_options.style_sharing_stats,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
-        no_native_titlebar: do_not_use_native_titlebar,
-        enable_vsync: !debug_options.disable_vsync,
         webrender_stats: debug_options.webrender_stats,
-        use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
@@ -1055,7 +995,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
-        clean_shutdown: opt_match.opt_present("clean-shutdown"),
     };
 
     set_options(opts);
@@ -1074,12 +1013,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         set_pref!(layout.threads, layout_threads as i64);
     }
 
-    ArgumentParsingResult::ChromeProcess
+    return ArgumentParsingResult::ChromeProcess(opt_match);
 }
 
 pub enum ArgumentParsingResult {
-    ChromeProcess,
-    ContentProcess(String),
+    ChromeProcess(Matches),
+    ContentProcess(Matches, String),
 }
 
 // Make Opts available globally. This saves having to clone and pass

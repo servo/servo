@@ -7,28 +7,6 @@
 <body>
 <script>
   var testnb = 0;
-  // TrustedURL Assignments
-  const URLTestCases = [
-    [ 'a', 'href' ],
-    [ 'area', 'href' ],
-    [ 'base', 'href' ],
-    [ 'frame', 'src' ],
-    [ 'iframe', 'src' ],
-    [ 'img', 'src' ],
-    [ 'input', 'src' ],
-    [ 'link', 'href' ],
-    [ 'video', 'src' ],
-    [ 'object', 'data' ],
-    [ 'object', 'codeBase' ],
-    [ 'source', 'src' ],
-    [ 'track', 'src' ]
-  ];
-
-  URLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_url(window, ++testnb, t, c[0], c[1], RESULTS.URL);
-    }, c[0] + "." + c[1] + " assigned via policy (successful URL transformation)");
-  });
 
   // TrustedScriptURL Assignments
   const scriptURLTestCases = [

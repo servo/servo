@@ -10,7 +10,7 @@
 /ports/android/libs
 /ports/android/local.properties
 /ports/android/obj
-/python/_virtualenv
+/python/_virtualenv*
 /python/tidy/servo_tidy.egg-info
 /tests/wpt/sync
 *~
@@ -40,7 +40,23 @@ capture_webrender/
 
 # VSCode
 .vscode
-!/.vscode
+!/.vscode/extensions.json
 
 /unminified-js
 
+# Hololens artifacts
+
+support/hololens/x64/
+support/hololens/ARM/
+support/hololens/ARM64/
+support/hololens/ServoApp/x64/
+support/hololens/ServoApp/ARM/
+support/hololens/ServoApp/ARM64/
+support/hololens/ServoApp/Generated\ Files
+support/hololens/ServoApp/BundleArtifacts/
+support/hololens/ServoApp/support/
+support/hololens/ServoApp/Debug/
+support/hololens/ServoApp/Release/
+support/hololens/packages/
+support/hololens/AppPackages/
+support/hololens/.vs/

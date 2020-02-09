@@ -4,7 +4,8 @@
 
 use crate::display_list::ToLayout;
 use app_units::Au;
-use euclid::{Rect, SideOffsets2D, Size2D};
+use euclid::default::{Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D as UntypedSize2D};
+use euclid::{SideOffsets2D, Size2D};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::Border;
 use style::values::computed::NumberOrPercentage;
@@ -12,8 +13,8 @@ use style::values::computed::{BorderCornerRadius, BorderImageWidth};
 use style::values::computed::{BorderImageSideWidth, NonNegativeLengthOrNumber};
 use style::values::generics::rect::Rect as StyleRect;
 use style::values::generics::NonNegative;
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF};
-use webrender_api::{LayoutSideOffsets, LayoutSize, NormalBorder};
+use webrender_api::units::{LayoutSideOffsets, LayoutSize};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, NormalBorder};
 
 /// Computes a border radius size against the containing size.
 ///
@@ -23,7 +24,10 @@ use webrender_api::{LayoutSideOffsets, LayoutSize, NormalBorder};
 /// > Percentages: Refer to corresponding dimension of the border box.
 ///
 /// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
-fn corner_radius(radius: BorderCornerRadius, containing_size: Size2D<Au>) -> Size2D<Au> {
+fn corner_radius(
+    radius: &BorderCornerRadius,
+    containing_size: UntypedSize2D<Au>,
+) -> UntypedSize2D<Au> {
     let w = radius.0.width().to_used_value(containing_size.width);
     let h = radius.0.height().to_used_value(containing_size.height);
     Size2D::new(w, h)
@@ -87,13 +91,13 @@ pub fn radii(abs_bounds: Rect<Au>, border_style: &Border) -> BorderRadius {
     overlapping_radii(
         abs_bounds.size.to_layout(),
         BorderRadius {
-            top_left: corner_radius(border_style.border_top_left_radius, abs_bounds.size)
+            top_left: corner_radius(&border_style.border_top_left_radius, abs_bounds.size)
                 .to_layout(),
-            top_right: corner_radius(border_style.border_top_right_radius, abs_bounds.size)
+            top_right: corner_radius(&border_style.border_top_right_radius, abs_bounds.size)
                 .to_layout(),
-            bottom_right: corner_radius(border_style.border_bottom_right_radius, abs_bounds.size)
+            bottom_right: corner_radius(&border_style.border_bottom_right_radius, abs_bounds.size)
                 .to_layout(),
-            bottom_left: corner_radius(border_style.border_bottom_left_radius, abs_bounds.size)
+            bottom_left: corner_radius(&border_style.border_bottom_left_radius, abs_bounds.size)
                 .to_layout(),
         },
     )
@@ -105,7 +109,7 @@ pub fn radii(abs_bounds: Rect<Au>, border_style: &Border) -> BorderRadius {
 /// the inner radii need to be smaller depending on the line width.
 ///
 /// This is used to determine clipping areas.
-pub fn inner_radii(mut radii: BorderRadius, offsets: SideOffsets2D<Au>) -> BorderRadius {
+pub fn inner_radii(mut radii: BorderRadius, offsets: UntypedSideOffsets2D<Au>) -> BorderRadius {
     fn inner_length(x: f32, offset: Au) -> f32 {
         0.0_f32.max(x - offset.to_f32_px())
     }
@@ -144,7 +148,10 @@ fn side_image_outset(outset: NonNegativeLengthOrNumber, border_width: Au) -> Au 
 }
 
 /// Compute the additional border-image area.
-pub fn image_outset(outset: BorderImageOutset, border: SideOffsets2D<Au>) -> SideOffsets2D<Au> {
+pub fn image_outset(
+    outset: BorderImageOutset,
+    border: UntypedSideOffsets2D<Au>,
+) -> UntypedSideOffsets2D<Au> {
     SideOffsets2D::new(
         side_image_outset(outset.0, border.top),
         side_image_outset(outset.1, border.right),
@@ -154,7 +161,7 @@ pub fn image_outset(outset: BorderImageOutset, border: SideOffsets2D<Au>) -> Sid
 }
 
 fn side_image_width(
-    border_image_width: BorderImageSideWidth,
+    border_image_width: &BorderImageSideWidth,
     border_width: f32,
     total_length: Au,
 ) -> f32 {
@@ -168,13 +175,13 @@ fn side_image_width(
 pub fn image_width(
     width: &BorderImageWidth,
     border: LayoutSideOffsets,
-    border_area: Size2D<Au>,
+    border_area: UntypedSize2D<Au>,
 ) -> LayoutSideOffsets {
     LayoutSideOffsets::new(
-        side_image_width(width.0, border.top, border_area.height),
-        side_image_width(width.1, border.right, border_area.width),
-        side_image_width(width.2, border.bottom, border_area.height),
-        side_image_width(width.3, border.left, border_area.width),
+        side_image_width(&width.0, border.top, border_area.height),
+        side_image_width(&width.1, border.right, border_area.width),
+        side_image_width(&width.2, border.bottom, border_area.height),
+        side_image_width(&width.3, border.left, border_area.width),
     )
 }
 
@@ -185,15 +192,14 @@ fn resolve_percentage(value: NonNegative<NumberOrPercentage>, length: i32) -> i3
     }
 }
 
-pub fn image_slice(
+pub fn image_slice<U>(
     border_image_slice: &StyleRect<NonNegative<NumberOrPercentage>>,
-    width: i32,
-    height: i32,
-) -> SideOffsets2D<i32> {
+    size: Size2D<i32, U>,
+) -> SideOffsets2D<i32, U> {
     SideOffsets2D::new(
-        resolve_percentage(border_image_slice.0, height),
-        resolve_percentage(border_image_slice.1, width),
-        resolve_percentage(border_image_slice.2, height),
-        resolve_percentage(border_image_slice.3, width),
+        resolve_percentage(border_image_slice.0, size.height),
+        resolve_percentage(border_image_slice.1, size.width),
+        resolve_percentage(border_image_slice.2, size.height),
+        resolve_percentage(border_image_slice.3, size.width),
     )
 }

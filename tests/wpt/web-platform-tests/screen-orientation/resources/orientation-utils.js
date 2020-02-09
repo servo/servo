@@ -13,5 +13,5 @@ export async function loadIframe(src = "/screen-orientation/resources/blank.html
 export function getOppositeOrientation() {
   const { type: currentOrientation } = screen.orientation;
   const isPortrait = currentOrientation.includes("portrait");
-  return (newOrientation = `${isPortrait ? "landscape" : "portrait"}`);
+  return isPortrait ? "landscape" : "portrait";
 }

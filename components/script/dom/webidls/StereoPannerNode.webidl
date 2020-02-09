@@ -10,8 +10,8 @@ dictionary StereoPannerOptions: AudioNodeOptions {
   float pan = 0;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional StereoPannerOptions options)]
+[Exposed=Window]
 interface StereoPannerNode : AudioScheduledSourceNode {
+  [Throws] constructor(BaseAudioContext context, optional StereoPannerOptions options = {});
   readonly attribute AudioParam pan;
 };

@@ -19,6 +19,7 @@ pub struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
+#[allow(non_snake_case)]
 impl DOMPoint {
     fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
         DOMPoint {
@@ -38,6 +39,11 @@ impl DOMPoint {
         w: f64,
     ) -> Fallible<DomRoot<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
+    }
+
+    // https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint
+    pub fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new_from_init(global, init)
     }
 
     pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPoint> {

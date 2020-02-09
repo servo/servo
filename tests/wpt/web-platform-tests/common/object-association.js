@@ -2,6 +2,10 @@
 
 // For now this only has per-Window tests, but we could expand it to also test per-Document
 
+/**
+ * Run tests for window[propertyName] after discarding the browsing context, navigating, etc.
+ * @param {string} propertyName
+ */
 window.testIsPerWindow = propertyName => {
   test(t => {
     const iframe = document.createElement("iframe");

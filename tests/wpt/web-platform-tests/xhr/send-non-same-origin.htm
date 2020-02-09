@@ -18,7 +18,7 @@
         test(function() {
           var client = new XMLHttpRequest()
           client.open("GET", url, false)
-          assert_throws("NetworkError", function() { client.send() })
+          assert_throws_dom("NetworkError", function() { client.send() })
         }, document.title + " (" + url + ")")
       }
       url("mailto:test@example.org")

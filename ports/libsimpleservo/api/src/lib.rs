@@ -7,24 +7,28 @@ extern crate log;
 
 pub mod gl_glue;
 
-pub use servo::script_traits::MouseButton;
+pub use servo::embedder_traits::MediaSessionPlaybackState;
+pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 
+use getopts::Options;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
-use servo::embedder_traits::EmbedderMsg;
-use servo::euclid::{TypedPoint2D, TypedRect, TypedScale, TypedSize2D, TypedVector2D};
+use servo::embedder_traits::{EmbedderMsg, MediaSessionEvent};
+use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
-use servo::webrender_api::{DevicePixel, FramebufferPixel, ScrollLocation};
+use servo::webrender_api::units::DevicePixel;
+use servo::webrender_api::ScrollLocation;
 use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
+use servo_media::player::context as MediaPlayerContext;
 use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
@@ -46,7 +50,10 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub vr_init: VRInitOptions,
+    pub xr_discovery: Option<webxr::Discovery>,
     pub enable_subpixel_text_antialiasing: bool,
+    pub gl_context_pointer: Option<*const c_void>,
+    pub native_display_pointer: Option<*const c_void>,
 }
 
 pub enum VRInitOptions {
@@ -57,8 +64,8 @@ pub enum VRInitOptions {
 
 #[derive(Clone, Debug)]
 pub struct Coordinates {
-    pub viewport: TypedRect<i32, DevicePixel>,
-    pub framebuffer: TypedSize2D<i32, FramebufferPixel>,
+    pub viewport: Rect<i32, DevicePixel>,
+    pub framebuffer: Size2D<i32, DevicePixel>,
 }
 
 impl Coordinates {
@@ -71,8 +78,8 @@ impl Coordinates {
         fb_height: i32,
     ) -> Coordinates {
         Coordinates {
-            viewport: TypedRect::new(TypedPoint2D::new(x, y), TypedSize2D::new(width, height)),
-            framebuffer: TypedSize2D::new(fb_width, fb_height),
+            viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
+            framebuffer: Size2D::new(fb_width, fb_height),
         }
     }
 }
@@ -85,6 +92,8 @@ pub trait HostTrait {
     /// Will be called before drawing.
     /// Time to make the targetted GL context current.
     fn make_current(&self);
+    /// javascript window.alert()
+    fn on_alert(&self, msg: String);
     /// Page starts loading.
     /// "Reload button" should be disabled.
     /// "Stop button" should be enabled.
@@ -118,6 +127,16 @@ pub trait HostTrait {
     fn on_shutdown_complete(&self);
     /// A text input is focused.
     fn on_ime_state_changed(&self, show: bool);
+    /// Gets sytem clipboard contents.
+    fn get_clipboard_contents(&self) -> Option<String>;
+    /// Sets system clipboard contents.
+    fn set_clipboard_contents(&self, contents: String);
+    /// Called when we get the media session metadata/
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String);
+    /// Called when the media session playback state changes.
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
+    /// Called when the media session position state is set.
+    fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
 }
 
 pub struct ServoGlue {
@@ -140,6 +159,12 @@ pub fn servo_version() -> String {
     servo::config::servo_version()
 }
 
+/// Test if a url is valid.
+pub fn is_uri_valid(url: &str) -> bool {
+    info!("load_uri: {}", url);
+    ServoUrl::parse(url).is_ok()
+}
+
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
@@ -159,7 +184,7 @@ pub fn init(
             gfx.subpixel_text_antialiasing.enabled,
             init_opts.enable_subpixel_text_antialiasing
         );
-        opts::from_cmdline_args(&args);
+        opts::from_cmdline_args(Options::new(), &args);
     }
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
@@ -178,15 +203,19 @@ pub fn init(
     gl.finish();
 
     let window_callbacks = Rc::new(ServoWindowCallbacks {
-        gl: gl.clone(),
         host_callbacks: callbacks,
+        gl: gl.clone(),
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
+        gl_context_pointer: init_opts.gl_context_pointer,
+        native_display_pointer: init_opts.native_display_pointer,
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
         vr_init: init_opts.vr_init,
+        xr_discovery: init_opts.xr_discovery,
         waker,
+        gl: gl.clone(),
     });
 
     let servo = Servo::new(embedder_callbacks, window_callbacks.clone());
@@ -239,7 +268,9 @@ impl ServoGlue {
         debug!("perform_updates");
         let events = mem::replace(&mut self.events, Vec::new());
         self.servo.handle_events(events);
-        self.handle_servo_events()
+        let r = self.handle_servo_events();
+        debug!("done perform_updates");
+        r
     }
 
     /// In batch mode, Servo won't call perform_updates automatically.
@@ -312,13 +343,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x, y),
-            TouchEventType::Down,
-        );
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Down);
         self.process_event(event)
     }
 
@@ -326,13 +353,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(
-            scroll_location,
-            TypedPoint2D::new(x, y),
-            TouchEventType::Move,
-        );
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Move);
         self.process_event(event)
     }
 
@@ -340,10 +363,9 @@ impl ServoGlue {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
-        let delta = TypedVector2D::new(dx, dy);
+        let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event =
-            WindowEvent::Scroll(scroll_location, TypedPoint2D::new(x, y), TouchEventType::Up);
+        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
     }
 
@@ -352,7 +374,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Down,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -362,7 +384,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Move,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -372,7 +394,7 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Up,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
@@ -382,28 +404,28 @@ impl ServoGlue {
         let event = WindowEvent::Touch(
             TouchEventType::Cancel,
             TouchId(pointer_id),
-            TypedPoint2D::new(x as f32, y as f32),
+            Point2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }
 
     /// Register a mouse movement.
-    pub fn move_mouse(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+    pub fn mouse_move(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowMoveEventClass(point);
         self.process_event(event)
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
         self.process_event(event)
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = TypedPoint2D::new(x, y);
+        let point = Point2D::new(x, y);
         let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
         self.process_event(event)
     }
@@ -428,7 +450,7 @@ impl ServoGlue {
 
     /// Perform a click.
     pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x, y));
+        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, Point2D::new(x, y));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
     }
@@ -449,6 +471,14 @@ impl ServoGlue {
             ..KeyboardEvent::default()
         };
         self.process_event(WindowEvent::Keyboard(key_event))
+    }
+
+    pub fn media_session_action(
+        &mut self,
+        action: MediaSessionActionType,
+    ) -> Result<(), &'static str> {
+        info!("Media session action {:?}", action);
+        self.process_event(WindowEvent::MediaSessionAction(action))
     }
 
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
@@ -483,7 +513,8 @@ impl ServoGlue {
                             .host_callbacks
                             .on_allow_navigation(url.to_string());
                         let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, data);
-                        let _ = self.process_event(window_event);
+                        self.events.push(window_event);
+                        let _ = self.perform_updates();
                     }
                 },
                 EmbedderMsg::HistoryChanged(entries, current) => {
@@ -511,6 +542,7 @@ impl ServoGlue {
                 },
                 EmbedderMsg::Alert(message, sender) => {
                     info!("Alert: {}", message);
+                    self.callbacks.host_callbacks.on_alert(message);
                     let _ = sender.send(());
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
@@ -528,6 +560,13 @@ impl ServoGlue {
                     }
                     self.events.push(WindowEvent::SelectBrowser(new_browser_id));
                 },
+                EmbedderMsg::GetClipboardContents(sender) => {
+                    let contents = self.callbacks.host_callbacks.get_clipboard_contents();
+                    let _ = sender.send(contents.unwrap_or("".to_owned()));
+                },
+                EmbedderMsg::SetClipboardContents(text) => {
+                    self.callbacks.host_callbacks.set_clipboard_contents(text);
+                },
                 EmbedderMsg::CloseBrowser => {
                     // TODO: close the appropriate "tab".
                     let _ = self.browsers.pop();
@@ -542,6 +581,35 @@ impl ServoGlue {
                 EmbedderMsg::Shutdown => {
                     self.callbacks.host_callbacks.on_shutdown_complete();
                 },
+                EmbedderMsg::ShowIME(..) => {
+                    self.callbacks.host_callbacks.on_ime_state_changed(true);
+                },
+                EmbedderMsg::HideIME => {
+                    self.callbacks.host_callbacks.on_ime_state_changed(false);
+                },
+                EmbedderMsg::MediaSessionEvent(event) => {
+                    match event {
+                        MediaSessionEvent::SetMetadata(metadata) => {
+                            self.callbacks.host_callbacks.on_media_session_metadata(
+                                metadata.title,
+                                metadata.artist,
+                                metadata.album,
+                            )
+                        },
+                        MediaSessionEvent::PlaybackStateChange(state) => self
+                            .callbacks
+                            .host_callbacks
+                            .on_media_session_playback_state_change(state),
+                        MediaSessionEvent::SetPositionState(position_state) => self
+                            .callbacks
+                            .host_callbacks
+                            .on_media_session_set_position_state(
+                                position_state.duration,
+                                position_state.position,
+                                position_state.playback_rate,
+                            ),
+                    };
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -551,8 +619,6 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ShowIME(..) |
-                EmbedderMsg::HideIME |
                 EmbedderMsg::Panic(..) |
                 EmbedderMsg::ReportProfile(..) => {},
             }
@@ -563,7 +629,10 @@ impl ServoGlue {
 
 struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
+    xr_discovery: Option<webxr::Discovery>,
     vr_init: VRInitOptions,
+    #[allow(unused)]
+    gl: Rc<dyn gl::Gl>,
 }
 
 struct ServoWindowCallbacks {
@@ -571,6 +640,8 @@ struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
+    gl_context_pointer: Option<*const c_void>,
+    native_display_pointer: Option<*const c_void>,
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
@@ -592,6 +663,26 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         }
     }
 
+    #[cfg(feature = "uwp")]
+    fn register_webxr(&mut self, registry: &mut webxr::MainThreadRegistry) {
+        debug!("EmbedderMethods::register_xr");
+        assert!(
+            self.xr_discovery.is_none(),
+            "UWP builds should not be initialized with a WebXR Discovery object"
+        );
+        let gl = self.gl.clone();
+        let discovery = webxr::openxr::OpenXrDiscovery::new(gl);
+        registry.register(discovery);
+    }
+
+    #[cfg(not(feature = "uwp"))]
+    fn register_webxr(&mut self, registry: &mut webxr::MainThreadRegistry) {
+        debug!("EmbedderMethods::register_xr");
+        if let Some(discovery) = self.xr_discovery.take() {
+            registry.register(discovery);
+        }
+    }
+
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
         debug!("EmbedderMethods::create_event_loop_waker");
         self.waker.clone()
@@ -599,7 +690,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn prepare_for_composite(&self) {
+    fn make_gl_context_current(&self) {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
     }
@@ -615,7 +706,7 @@ impl WindowMethods for ServoWindowCallbacks {
     }
 
     fn set_animation_state(&self, state: AnimationState) {
-        debug!("WindowMethods::set_animation_state");
+        debug!("WindowMethods::set_animation_state: {:?}", state);
         self.host_callbacks
             .on_animating_changed(state == AnimationState::Animating);
     }
@@ -625,11 +716,29 @@ impl WindowMethods for ServoWindowCallbacks {
         EmbedderCoordinates {
             viewport: coords.viewport,
             framebuffer: coords.framebuffer,
-            window: (coords.viewport.size, TypedPoint2D::new(0, 0)),
+            window: (coords.viewport.size, Point2D::new(0, 0)),
             screen: coords.viewport.size,
             screen_avail: coords.viewport.size,
-            hidpi_factor: TypedScale::new(self.density),
+            hidpi_factor: Scale::new(self.density),
         }
+    }
+
+    fn get_gl_context(&self) -> MediaPlayerContext::GlContext {
+        match self.gl_context_pointer {
+            Some(context) => MediaPlayerContext::GlContext::Egl(context as usize),
+            None => MediaPlayerContext::GlContext::Unknown,
+        }
+    }
+
+    fn get_native_display(&self) -> MediaPlayerContext::NativeDisplay {
+        match self.native_display_pointer {
+            Some(display) => MediaPlayerContext::NativeDisplay::Egl(display as usize),
+            None => MediaPlayerContext::NativeDisplay::Unknown,
+        }
+    }
+
+    fn get_gl_api(&self) -> MediaPlayerContext::GlApi {
+        MediaPlayerContext::GlApi::Gles2
     }
 }
 
@@ -661,6 +770,12 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
             Resource::BluetoothBlocklist => {
                 &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
+            },
+            Resource::MediaControlsCSS => {
+                &include_bytes!("../../../../resources/media-controls.css")[..]
+            },
+            Resource::MediaControlsJS => {
+                &include_bytes!("../../../../resources/media-controls.js")[..]
             },
         })
     }

@@ -6,7 +6,7 @@
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
 <script>
 let frame;
-const kScope = 'resources/dummy.html?dest=document';
+const kScope = 'resources/dummy.html?dest=iframe';
 
 // Set up the service worker and the frame.
 promise_test(t => {
@@ -46,6 +46,6 @@ promise_test(async t => {
     document.body.appendChild(f);
     await waitOnMessageFromSW(t);
     add_completion_callback(() => { f.remove(); });
-}, 'iframe fetches with a "document" Request.destination');
+}, 'iframe fetches with a "iframe" Request.destination');
 
 </script>

@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum MediaTrack {
     Video(Dom<VideoTrack>),
@@ -34,6 +34,7 @@ pub struct TrackEvent {
     track: Option<MediaTrack>,
 }
 
+#[allow(non_snake_case)]
 impl TrackEvent {
     #[allow(unrooted_must_root)]
     fn new_inherited(track: &Option<VideoTrackOrAudioTrackOrTextTrack>) -> TrackEvent {
@@ -90,6 +91,7 @@ impl TrackEvent {
     }
 }
 
+#[allow(non_snake_case)]
 impl TrackEventMethods for TrackEvent {
     // https://html.spec.whatwg.org/multipage/#dom-trackevent-track
     fn GetTrack(&self) -> Option<VideoTrackOrAudioTrackOrTextTrack> {

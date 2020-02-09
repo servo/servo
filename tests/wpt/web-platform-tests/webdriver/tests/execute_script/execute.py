@@ -3,6 +3,7 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
+from tests.support.inline import inline
 
 
 def execute_script(session, script, args=None):
@@ -30,6 +31,20 @@ def test_no_browsing_context(session, closed_window):
 def test_ending_comment(session):
     response = execute_script(session, "return 1; // foo")
     assert_success(response, 1)
+
+
+def test_override_listeners(session):
+    session.url = inline("""
+<script>
+called = [];
+window.addEventListener = () => {called.push("Internal addEventListener")}
+window.removeEventListener = () => {called.push("Internal removeEventListener")}
+</script>
+})""")
+    response = execute_script(session, "return !window.onunload");
+    assert_success(response, True);
+    response = execute_script(session, "return called")
+    assert_success(response, [])
 
 
 @pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])

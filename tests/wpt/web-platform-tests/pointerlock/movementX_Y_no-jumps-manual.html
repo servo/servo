@@ -33,14 +33,14 @@
 
     <div id="status-log">Waiting... Click to start loging.</div>
     <div class="data-log">
-	    <table>
-	    	<tr><td></td><td>X</td><td>Y</td></tr>
-	    	<tr><td>client_init:</td><td id="clientX_init-log">X</td><td id="clientY_init-log">Y</td></tr>
-	    	<tr><td>client_last:</td><td id="clientX_last-log">X</td><td id="clientY_last-log">Y</td></tr>
-	    	<tr><td>client_delta:</td><td id="clientX_delta-log">X</td><td id="clientY_delta-log">Y</td></tr>
-	    	<tr><td>movement_sum:</td><td id="movementX_sum-log">X</td><td id="movementY_sum-log">Y</td></tr>
-	    	<tr><td>movement:</td><td id="movementX-log">X</td><td id="movementY-log">Y</td></tr>
-	    </table>
+        <table>
+            <tr><td></td><td>X</td><td>Y</td></tr>
+            <tr><td>client_init:</td><td id="clientX_init-log">X</td><td id="clientY_init-log">Y</td></tr>
+            <tr><td>client_last:</td><td id="clientX_last-log">X</td><td id="clientY_last-log">Y</td></tr>
+            <tr><td>client_delta:</td><td id="clientX_delta-log">X</td><td id="clientY_delta-log">Y</td></tr>
+            <tr><td>movement_sum:</td><td id="movementX_sum-log">X</td><td id="movementY_sum-log">Y</td></tr>
+            <tr><td>movement:</td><td id="movementX-log">X</td><td id="movementY-log">Y</td></tr>
+        </table>
     </div>
     <hr/>
 
@@ -98,10 +98,10 @@
                     movementY_sum = movementY;
                 }
 
-	            movementX_Y_outside_window_Test.step(function() {
-	            	assert_less_than(Math.abs(movementX), 50, "movementX should not have large jumps in value.");
-	            	assert_less_than(Math.abs(movementY), 50, "movementY should not have large jumps in value.");
-	            });
+                movementX_Y_outside_window_Test.step(function() {
+                    assert_less_than(Math.abs(movementX), 50, "movementX should not have large jumps in value.");
+                    assert_less_than(Math.abs(movementY), 50, "movementY should not have large jumps in value.");
+                });
 
                 movementX_sum += movementX;
                 movementY_sum += movementY;
@@ -117,10 +117,10 @@
 
         document.addEventListener("mouseenter", function (e) {
             if(click_counter === 1) {
-	            movementX_Y_outside_window_Test.step(function() {
+                movementX_Y_outside_window_Test.step(function() {
                     assert_greater_than(Math.abs(e.clientX-clientX_last) + Math.abs(e.clientY-clientY_last), 100, "Test requires mouse to be moved at least 100 pixels outside of window.");
-	            });
-	        }
+                });
+            }
         });
 
         function updateData() {

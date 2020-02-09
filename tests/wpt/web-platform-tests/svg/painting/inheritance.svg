@@ -32,7 +32,6 @@ assert_inherited('marker-mid', 'none', 'url("https://example/com/diagram.svg#mar
 assert_inherited('marker-end', 'none', 'url("https://example/com/diagram.svg#marker")');
 assert_inherited('paint-order', 'normal', 'markers stroke');
 assert_inherited('color-interpolation', 'srgb', 'linearrgb');
-assert_inherited('color-rendering', 'auto', 'optimizespeed');
 assert_inherited('shape-rendering', 'auto', 'optimizespeed');
 assert_inherited('text-rendering', 'auto', 'optimizespeed');
 assert_inherited('image-rendering', 'auto', 'optimizequality');

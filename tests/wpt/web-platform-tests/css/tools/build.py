@@ -130,7 +130,12 @@ class Builder(object):
             if not source.isTest():
                 continue
 
-            metaData = source.getMetadata(True)
+            try:
+                metaData = source.getMetadata(True)
+            except Exception as error:
+                self.ui.warn("Exception parsing '", filePath, "': ", error, "\n")
+                continue
+
             if not metaData:
                 if (source.errors):
                     self.ui.warn("Error parsing '", filePath, "': ", ' '.join(source.errors), "\n")

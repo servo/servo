@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8"/>
     <title>form plus/minus</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#tokenmo">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
     <meta name="assert" content="Verifies behavior of form of plus/minus etc.">
     <link rel="match" href="mo-form-minus-plus-ref.html">
   </head>
@@ -83,5 +83,7 @@
     _<math><msqrt><mi>x</mi><mo>∓</mo><mi>y</mi></msqrt></math>_
     _<math><mstyle><mi>x</mi><mo>∓</mo><mi>y</mi></mstyle></math>_
 
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
   </body>
 </html>

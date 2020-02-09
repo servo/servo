@@ -39,7 +39,7 @@
                 var elem = document.getElementById('box');
                 var style = getComputedStyle(elem, 'width');
 
-                assert_throws('NO_MODIFICATION_ALLOWED_ERR', function(){
+                assert_throws_dom('NO_MODIFICATION_ALLOWED_ERR', function(){
                     style.width = '10px';
                 });
 

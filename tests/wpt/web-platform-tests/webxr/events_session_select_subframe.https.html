@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+let testName = "Ensures that an XRInputSources primary input being pressed and "
+  + "released in the space of a single frame properly fires off the right "
+  + "events";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(
+    t, session, ["selectstart", "selectend", "select", "watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(
+    ["selectstart", "selectend", "select", "watcherdone"]);
+
+  function onSessionSelectStart(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+    });
+  }
+
+  function onSessionSelectEnd(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+    });
+  }
+
+  function onSessionSelect(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+    });
+    session.dispatchEvent(watcherDone);
+  }
+  session.addEventListener("selectstart", onSessionSelectStart, false);
+  session.addEventListener("selectend", onSessionSelectEnd, false);
+  session.addEventListener("select", onSessionSelect, false);
+
+  let input_source = fakeDeviceController.simulateInputSourceConnection(VALID_CONTROLLER);
+
+  // Press the primary input button and then release it a short time later.
+  session.requestAnimationFrame((time, xrFrame) => {
+    input_source.simulateSelect();
+
+    session.requestAnimationFrame((time, xrFrame) => {
+      // Need to process one more frame to allow select to propegate.
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

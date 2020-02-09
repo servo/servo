@@ -5,8 +5,8 @@
 //! Geometry in flow-relative space.
 
 use crate::properties::style_structs;
+use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use euclid::num::Zero;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
@@ -26,16 +26,54 @@ pub enum InlineBaseDirection {
 // TODO: improve the readability of the WritingMode serialization, refer to the Debug:fmt()
 bitflags!(
     #[cfg_attr(feature = "servo", derive(MallocSizeOf, Serialize))]
+    #[repr(C)]
     pub struct WritingMode: u8 {
-        const RTL = 1 << 0;
-        const VERTICAL = 1 << 1;
+        /// A vertical writing mode; writing-mode is vertical-rl,
+        /// vertical-lr, sideways-lr, or sideways-rl.
+        const VERTICAL = 1 << 0;
+        /// The inline flow direction is reversed against the physical
+        /// direction (i.e. right-to-left or bottom-to-top); writing-mode is
+        /// sideways-lr or direction is rtl (but not both).
+        ///
+        /// (This bit can be derived from the others, but we store it for
+        /// convenience.)
+        const INLINE_REVERSED = 1 << 1;
+        /// A vertical writing mode whose block progression direction is left-
+        /// to-right; writing-mode is vertical-lr or sideways-lr.
+        ///
+        /// Never set without VERTICAL.
         const VERTICAL_LR = 1 << 2;
-        /// For vertical writing modes only.  When set, line-over/line-under
-        /// sides are inverted from block-start/block-end.  This flag is
-        /// set when sideways-lr is used.
+        /// The line-over/line-under sides are inverted with respect to the
+        /// block-start/block-end edge; writing-mode is vertical-lr.
+        ///
+        /// Never set without VERTICAL and VERTICAL_LR.
         const LINE_INVERTED = 1 << 3;
-        const SIDEWAYS = 1 << 4;
-        const UPRIGHT = 1 << 5;
+        /// direction is rtl.
+        const RTL = 1 << 4;
+        /// All text within a vertical writing mode is displayed sideways
+        /// and runs top-to-bottom or bottom-to-top; set in these cases:
+        ///
+        /// * writing-mode: sideways-rl;
+        /// * writing-mode: sideways-lr;
+        ///
+        /// Never set without VERTICAL.
+        const VERTICAL_SIDEWAYS = 1 << 5;
+        /// Similar to VERTICAL_SIDEWAYS, but is set via text-orientation;
+        /// set in these cases:
+        ///
+        /// * writing-mode: vertical-rl; text-orientation: sideways;
+        /// * writing-mode: vertical-lr; text-orientation: sideways;
+        ///
+        /// Never set without VERTICAL.
+        const TEXT_SIDEWAYS = 1 << 6;
+        /// Horizontal text within a vertical writing mode is displayed with each
+        /// glyph upright; set in these cases:
+        ///
+        /// * writing-mode: vertical-rl; text-orientation: upright;
+        /// * writing-mode: vertical-lr: text-orientation: upright;
+        ///
+        /// Never set without VERTICAL.
+        const UPRIGHT = 1 << 7;
     }
 );
 
@@ -47,33 +85,52 @@ impl WritingMode {
 
         let mut flags = WritingMode::empty();
 
-        match inheritedbox_style.clone_direction() {
+        let direction = inheritedbox_style.clone_direction();
+        let writing_mode = inheritedbox_style.clone_writing_mode();
+
+        match direction {
             Direction::Ltr => {},
             Direction::Rtl => {
                 flags.insert(WritingMode::RTL);
             },
         }
 
-        match inheritedbox_style.clone_writing_mode() {
-            SpecifiedWritingMode::HorizontalTb => {},
+        match writing_mode {
+            SpecifiedWritingMode::HorizontalTb => {
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
+            },
             SpecifiedWritingMode::VerticalRl => {
                 flags.insert(WritingMode::VERTICAL);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             SpecifiedWritingMode::VerticalLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
+                flags.insert(WritingMode::LINE_INVERTED);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             #[cfg(feature = "gecko")]
             SpecifiedWritingMode::SidewaysRl => {
                 flags.insert(WritingMode::VERTICAL);
-                flags.insert(WritingMode::SIDEWAYS);
+                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
+                if direction == Direction::Rtl {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
             #[cfg(feature = "gecko")]
             SpecifiedWritingMode::SidewaysLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
-                flags.insert(WritingMode::LINE_INVERTED);
-                flags.insert(WritingMode::SIDEWAYS);
+                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
+                if direction == Direction::Ltr {
+                    flags.insert(WritingMode::INLINE_REVERSED);
+                }
             },
         }
 
@@ -81,19 +138,30 @@ impl WritingMode {
         {
             use crate::properties::longhands::text_orientation::computed_value::T as TextOrientation;
 
-            // If FLAG_SIDEWAYS is already set, this means writing-mode is
-            // either sideways-rl or sideways-lr, and for both of these values,
-            // text-orientation has no effect.
-            if !flags.intersects(WritingMode::SIDEWAYS) {
-                match inheritedbox_style.clone_text_orientation() {
-                    TextOrientation::Mixed => {},
-                    TextOrientation::Upright => {
-                        flags.insert(WritingMode::UPRIGHT);
-                    },
-                    TextOrientation::Sideways => {
-                        flags.insert(WritingMode::SIDEWAYS);
-                    },
-                }
+            // text-orientation only has an effect for vertical-rl and
+            // vertical-lr values of writing-mode.
+            match writing_mode {
+                SpecifiedWritingMode::VerticalRl | SpecifiedWritingMode::VerticalLr => {
+                    match inheritedbox_style.clone_text_orientation() {
+                        TextOrientation::Mixed => {},
+                        TextOrientation::Upright => {
+                            flags.insert(WritingMode::UPRIGHT);
+
+                            // https://drafts.csswg.org/css-writing-modes-3/#valdef-text-orientation-upright:
+                            //
+                            // > This value causes the used value of direction
+                            // > to be ltr, and for the purposes of bidi
+                            // > reordering, causes all characters to be treated
+                            // > as strong LTR.
+                            flags.remove(WritingMode::RTL);
+                            flags.remove(WritingMode::INLINE_REVERSED);
+                        },
+                        TextOrientation::Sideways => {
+                            flags.insert(WritingMode::TEXT_SIDEWAYS);
+                        },
+                    }
+                },
+                _ => {},
             }
         }
 
@@ -103,6 +171,11 @@ impl WritingMode {
     #[inline]
     pub fn is_vertical(&self) -> bool {
         self.intersects(WritingMode::VERTICAL)
+    }
+
+    #[inline]
+    pub fn is_horizontal(&self) -> bool {
+        !self.is_vertical()
     }
 
     /// Assuming .is_vertical(), does the block direction go left to right?
@@ -115,7 +188,7 @@ impl WritingMode {
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
         // https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical
-        self.intersects(WritingMode::RTL) == self.intersects(WritingMode::LINE_INVERTED)
+        !self.intersects(WritingMode::INLINE_REVERSED)
     }
 
     #[inline]
@@ -125,12 +198,26 @@ impl WritingMode {
 
     #[inline]
     pub fn is_sideways(&self) -> bool {
-        self.intersects(WritingMode::SIDEWAYS)
+        self.intersects(WritingMode::VERTICAL_SIDEWAYS | WritingMode::TEXT_SIDEWAYS)
     }
 
     #[inline]
     pub fn is_upright(&self) -> bool {
         self.intersects(WritingMode::UPRIGHT)
+    }
+
+    /// https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+    ///
+    /// | Return  | line-left is… | line-right is… |
+    /// |---------|---------------|----------------|
+    /// | `true`  | inline-start  | inline-end     |
+    /// | `false` | inline-end    | inline-start   |
+    #[inline]
+    pub fn line_left_is_inline_start(&self) -> bool {
+        // https://drafts.csswg.org/css-writing-modes/#inline-start
+        // “For boxes with a used direction value of ltr, this means the line-left side.
+        //  For boxes with a used direction value of rtl, this means the line-right side.”
+        self.is_bidi_ltr()
     }
 
     #[inline]
@@ -263,7 +350,7 @@ impl fmt::Display for WritingMode {
             } else {
                 write!(formatter, " RL")?;
             }
-            if self.intersects(WritingMode::SIDEWAYS) {
+            if self.is_sideways() {
                 write!(formatter, " Sideways")?;
             }
             if self.intersects(WritingMode::LINE_INVERTED) {
@@ -381,7 +468,7 @@ impl<T: Zero> LogicalSize<T> {
     }
 }
 
-impl<T: Copy> LogicalSize<T> {
+impl<T> LogicalSize<T> {
     #[inline]
     pub fn new(mode: WritingMode, inline: T, block: T) -> LogicalSize<T> {
         LogicalSize {
@@ -399,7 +486,9 @@ impl<T: Copy> LogicalSize<T> {
             LogicalSize::new(mode, size.width, size.height)
         }
     }
+}
 
+impl<T: Copy> LogicalSize<T> {
     #[inline]
     pub fn width(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
@@ -773,7 +862,7 @@ impl<T: Zero> LogicalMargin<T> {
     }
 }
 
-impl<T: Copy> LogicalMargin<T> {
+impl<T> LogicalMargin<T> {
     #[inline]
     pub fn new(
         mode: WritingMode,
@@ -789,11 +878,6 @@ impl<T: Copy> LogicalMargin<T> {
             inline_start: inline_start,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
-    }
-
-    #[inline]
-    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
-        LogicalMargin::new(mode, value, value, value, value)
     }
 
     #[inline]
@@ -829,6 +913,13 @@ impl<T: Copy> LogicalMargin<T> {
             }
         }
         LogicalMargin::new(mode, block_start, inline_end, block_end, inline_start)
+    }
+}
+
+impl<T: Copy> LogicalMargin<T> {
+    #[inline]
+    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
+        LogicalMargin::new(mode, value, value, value, value)
     }
 
     #[inline]

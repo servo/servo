@@ -9,7 +9,7 @@ def WebIDLTest(parser, harness):
         """)
         results = parser.finish()
         harness.ok(False, "Should fail to parse")
-    except Exception, e:
+    except Exception as e:
         harness.ok("Name collision" in e.message,
                    "Should have name collision for interface")
 
@@ -21,7 +21,7 @@ def WebIDLTest(parser, harness):
         """)
         results = parser.finish()
         harness.ok(False, "Should fail to parse")
-    except Exception, e:
+    except Exception as e:
         harness.ok("Name collision" in e.message,
                    "Should have name collision for dictionary")
 
@@ -33,7 +33,7 @@ def WebIDLTest(parser, harness):
         """)
         results = parser.finish()
         harness.ok(False, "Should fail to parse")
-    except Exception, e:
+    except Exception as e:
         harness.ok("Multiple unresolvable definitions" in e.message,
                    "Should have name collision for dictionary")
 

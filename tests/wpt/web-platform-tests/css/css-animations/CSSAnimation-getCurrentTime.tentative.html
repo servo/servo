@@ -56,8 +56,8 @@ promise_test(async t => {
   const animation = div.getAnimations()[0];
   await animation.ready;
 
-  assert_throws(
-    new TypeError(),
+  assert_throws_js(
+    TypeError,
     () => {
       animation.currentTime = null;
     },

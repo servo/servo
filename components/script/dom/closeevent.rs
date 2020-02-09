@@ -23,6 +23,7 @@ pub struct CloseEvent {
     reason: DOMString,
 }
 
+#[allow(non_snake_case)]
 impl CloseEvent {
     pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
@@ -31,14 +32,6 @@ impl CloseEvent {
             code: code,
             reason: reason,
         }
-    }
-
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
-        reflect_dom_object(
-            Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
-            global,
-            CloseEventBinding::Wrap,
-        )
     }
 
     pub fn new(

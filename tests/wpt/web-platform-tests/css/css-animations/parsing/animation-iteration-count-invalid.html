@@ -14,6 +14,9 @@
 test_invalid_value("animation-iteration-count", "auto");
 test_invalid_value("animation-iteration-count", "-2");
 test_invalid_value("animation-iteration-count", "3 4");
+
+test_invalid_value("animation-iteration-count", "initial, 4");
+test_invalid_value("animation-iteration-count", "4, initial");
 </script>
 </body>
 </html>

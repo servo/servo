@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablesectionelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTableSectionElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   readonly attribute HTMLCollection rows;
   [Throws]
   HTMLElement insertRow(optional long index = -1);

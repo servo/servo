@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="two-custom-property-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  animation: expand 5s, clr 5s;
+  /* TODO(crbug.com/987969): the will-change: transform should not be needed. */
+  will-change: transform;
+}
+@keyframes expand {
+  0% { --foo: 0; }
+  0.01% { --foo: 50; }
+  99% { --foo: 50; }
+  100% { --foo: 100; }
+}
+@keyframes clr {
+  0% { --bar: 0; }
+  0.01% { --bar: 200; }
+  99% { --bar: 200; }
+  100% { --bar: 255; }
+}
+
+#canvas-geometry {
+  background-color: blue;
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  static get inputProperties() { return ['--foo', '--bar']; }
+  paint(ctx, geom, properties) {
+    let fooValue = parseFloat(properties.get('--foo').toString());
+    let barValue = parseFloat(properties.get('--bar').toString());
+    let barString = barValue.toString(16);
+    if (barString.length == 1)
+      barString = '0' + barString;
+    ctx.fillStyle = '#9876' + barString;
+    ctx.fillRect(0, 0, fooValue, fooValue);
+  }
+});
+</script>
+
+<script>
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<number>',
+  initialValue: '0',
+  inherits: false
+});
+CSS.registerProperty({
+  name: '--bar',
+  syntax: '<number>',
+  initialValue: '0',
+  inherits: false
+});
+</script>
+
+<script>
+// The test is designed to make sure that when the custom property animation is
+// running on the compositor thread, we are getting the right value.
+// The "importWorkletAndTerminateTestAfterAsyncPaint" has the logic to rAF
+// two frames before taking a screenshot. So the animation is designed to
+// be stable after two frames. That is, the 0.01% of 5s is much less than
+// two frames, and thus after two frames, the value of --foo should be stable.
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

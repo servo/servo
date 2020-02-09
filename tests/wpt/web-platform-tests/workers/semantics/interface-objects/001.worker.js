@@ -15,6 +15,7 @@ var expected = [
   "CanvasGradient",
   "CanvasPattern",
   "CanvasPath",
+  "TextMetrics",
   "Path2D",
   "PromiseRejectionEvent",
   "EventSource",

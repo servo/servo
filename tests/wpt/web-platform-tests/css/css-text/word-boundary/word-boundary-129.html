@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-detection:auto() forbidden</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-detection">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-expansion">
+<link rel="match" href="reference/word-boundary-129-ref.html">
+<meta name=flags content=should>
+<meta name="assert" content="The UA should not insert a virtual word boundary between a typographic letter unit and a preceeding typographic character unit from the [UAX14] PR line breaking class">
+<style>
+@supports (word-boundary-detection:auto(ja)) {
+  .warn { display:none; }
+}
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+</style>
+
+<p class=warn><strong>This test is not relevant, because this UA does not support <code>word-boundary-detection:auto(ja)</code>.</strong>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>東京&nbsp;$へ&nbsp;$行きましょう。</div>
+<div id=ref lang=ja>東京&nbsp;$へ&nbsp;$行きましょう。</div>

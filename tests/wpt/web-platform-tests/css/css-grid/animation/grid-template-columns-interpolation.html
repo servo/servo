@@ -118,6 +118,7 @@
       ]);
 
       // Exercise <track-list> (with <track-repeat>)
+      // https://drafts.csswg.org/css-grid/#repeat-interpolation
       test_no_interpolation({
         property: 'grid-template-columns',
         from: "1fr repeat(2, 2fr 30px) 1fr",
@@ -130,18 +131,11 @@
         to: "2fr repeat(3, 3fr 40px) 2fr"
       });
 
-      test_interpolation({
+      test_no_interpolation({
         property: 'grid-template-columns',
         from: "repeat(2, 2fr 30px)",
         to: "repeat(4, 40px)"
-      }, [
-        {at: -1, expect: "2fr 20px 2fr 20px"},
-        {at: 0, expect: "repeat(2, 2fr 30px)"},
-        {at: 0.4, expect: "2fr 34px 2fr 34px"},
-        {at: 0.6, expect: "40px 36px 40px 36px"},
-        {at: 1, expect: "repeat(4, 40px)"},
-        {at: 2, expect: "40px 50px 40px 50px"}
-      ]);
+      });
 
       test_interpolation({
         property: 'grid-template-columns',

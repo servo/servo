@@ -82,6 +82,7 @@ impl Event {
         event
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,
@@ -263,6 +264,11 @@ impl EventMethods for Event {
         self.target.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-srcelement
+    fn GetSrcElement(&self) -> Option<DomRoot<EventTarget>> {
+        self.target.get()
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
     fn GetCurrentTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.current_target.get()
@@ -413,7 +419,7 @@ pub enum EventPhase {
 /// helps us to prevent such events from being [sent to the constellation][msg] where it will be
 /// handled once again for page scrolling (which is definitely not what we'd want).
 ///
-/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
+/// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
 ///
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum EventDefault {
@@ -485,7 +491,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     // Step 6.
     for object in event_path.iter().rev() {
         invoke(
-            window.deref(),
+            window.as_deref(),
             object,
             event,
             Some(ListenerPhase::Capturing),
@@ -501,7 +507,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     event.phase.set(EventPhase::AtTarget);
 
     // Step 8.
-    invoke(window.deref(), target, event, None);
+    invoke(window.as_deref(), target, event, None);
     if event.stop_propagation.get() {
         return;
     }
@@ -517,7 +523,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 
     // Step 9.2.
     for object in event_path {
-        invoke(window.deref(), object, event, Some(ListenerPhase::Bubbling));
+        invoke(
+            window.as_deref(),
+            object,
+            event,
+            Some(ListenerPhase::Bubbling),
+        );
         if event.stop_propagation.get() {
             return;
         }

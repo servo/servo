@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+let testName = "Calling end during an input callback stops processing at the right time";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let gl = null;
+
+function requestImmersiveSession() {
+  return new Promise((resolve, reject) => {
+    navigator.xr.test.simulateUserActivation(() => {
+      navigator.xr.requestSession('immersive-vr').then((session) => {
+        session.updateRenderState({
+          baseLayer: new XRWebGLLayer(session, gl)
+        });
+
+        resolve(session);
+      }, (err) => {
+        reject(err);
+      });
+    });
+  });
+}
+
+let testFunction = function(session, fakeDeviceController, t, sessionObjects) {
+  gl = sessionObjects.gl;
+  // helper method to send a click and then request a dummy animation frame to
+  // ensure that the click propagates.  We're doing everything in these tests
+  // from event watchers, we just need to trigger the add/click to make the
+  // event listeners callback.
+  function sendClick(session) {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      profiles: [],
+      selectionClicked: true
+    });
+    session.requestAnimationFrame(() => {});
+  }
+
+  function sessionEndTest(endEvent, eventOrder) {
+    return requestImmersiveSession().then((session) => {
+      let eventWatcher = new EventWatcher(t, session,
+        ["inputsourceschange", "selectstart", "select", "selectend", "end"]);
+      let eventPromise = eventWatcher.wait_for(eventOrder);
+
+      session.addEventListener(endEvent, ()=> {
+        session.end();
+      }, false);
+
+      sendClick(session);
+      return eventPromise;
+    });
+  }
+
+  // End our first session, just for simplicity, then make end session calls
+  // during each of our input events, and ensure that events stop processing
+  // and no crashes occur from calling end inside the event callbacks.
+  return session.end().then(() => {
+    return sessionEndTest("inputsourceschange", ["inputsourceschange", "end"]);
+  }).then(() => {
+    return sessionEndTest("selectstart", ["inputsourceschange", "selectstart", "selectend", "end"]);
+  }).then(() => {
+    return sessionEndTest("select", ["inputsourceschange", "selectstart", "select", "selectend", "end"]);
+  }).then(() => {
+    return sessionEndTest("selectend", ["inputsourceschange", "selectstart", "select", "selectend", "end"]);
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

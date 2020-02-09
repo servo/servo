@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This tests additive='sum' support on animate elements with multiple begin times</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+<rect width="100" height="100" fill="green">
+    <animate id="an1" attributeName="y" attributeType="XML" begin="0s" dur="12s" from="100" to="900" fill="freeze" />
+    <animate attributeName="x" attributeType="XML" calcMode="discrete" begin="0s; 2s" from="0" to="400" dur="8s" additive="sum" />
+</rect>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function checkBaseValues() {
+return;
+    assert_equals(rect.x.baseVal.value, 0);
+    assert_equals(rect.y.baseVal.value, 0);
+}
+
+function sample1() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 100, epsilon);
+    checkBaseValues();
+}
+
+function sample2() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 166.67, epsilon);
+    checkBaseValues();
+}
+
+function sample3() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 366.60, epsilon);
+    checkBaseValues();
+}
+
+function sample4() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 366.73, epsilon);
+    checkBaseValues();
+}
+
+function sample5() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 499.93, epsilon);
+    checkBaseValues();
+}
+
+function sample6() {
+    assert_equals(rect.x.animVal.value, 400);
+    assert_approx_equals(rect.y.animVal.value, 500.06, epsilon);
+    checkBaseValues();
+}
+
+function sample7() {
+    assert_equals(rect.x.animVal.value, 400);
+    assert_approx_equals(rect.y.animVal.value, 566.67, epsilon);
+    checkBaseValues();
+}
+
+function sample8() {
+    assert_equals(rect.x.animVal.value, 400);
+    assert_approx_equals(rect.y.animVal.value, 633.33, epsilon);
+    checkBaseValues();
+}
+
+function sample9() {
+    assert_equals(rect.x.animVal.value, 400);
+    assert_approx_equals(rect.y.animVal.value, 700, epsilon);
+    checkBaseValues();
+}
+
+function sample10() {
+    assert_equals(rect.x.animVal.value, 400);
+    assert_approx_equals(rect.y.animVal.value, 766.60, epsilon);
+    checkBaseValues();
+}
+
+function sample11() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 766.67, epsilon);
+    checkBaseValues();
+}
+
+function sample12() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 833.33, epsilon);
+    checkBaseValues();
+}
+
+function sample13() {
+    assert_equals(rect.x.animVal.value, 0);
+    assert_approx_equals(rect.y.animVal.value, 900, epsilon);
+    checkBaseValues();
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    // All animations in the test file use the same duration, so it's not needed to list all sample points individually for an5/an6/an7/an8.
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,    sample1],
+        ["an1", 1.0,    sample2],
+        ["an1", 3.999,  sample3],
+        ["an1", 4.001,  sample4],
+        ["an1", 5.999,  sample5],
+        ["an1", 6.001,  sample6],
+        ["an1", 7.0,    sample7],
+        ["an1", 7.999,  sample8],
+        ["an1", 8.001,  sample8],
+        ["an1", 9.0,    sample9],
+        ["an1", 9.999,  sample10],
+        ["an1", 10.001, sample11],
+        ["an1", 11.0,   sample12],
+        ["an1", 11.999, sample13],
+        ["an1", 12.001, sample13],
+        ["an1", 60.0,   sample13]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

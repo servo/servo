@@ -10,7 +10,7 @@ const check_report_format = ([reports, observer]) => {
   const report = reports[0];
   assert_equals(report.type, "feature-policy-violation");
   assert_equals(report.url, document.location.href);
-  assert_equals(report.body.featureId, "vr");
+  assert_equals(report.body.featureId, "xr-spatial-tracking");
   assert_equals(report.body.sourceFile, document.location.href);
   assert_equals(typeof report.body.lineNumber, "number");
   assert_equals(typeof report.body.columnNumber, "number");
@@ -23,11 +23,12 @@ promise_test(async t => {
                           {types: ['feature-policy-violation']}).observe();
   });
   try {
-    await navigator.xr.supportsSession('inline');
+    let supported = await navigator.xr.isSessionSupported('immersive-vr');
   } catch (err) {
-    // If no XR devices are available, supportsSession() will reject with a
-    // NotSupportedError, but the report should be generated anyway.
-    assert_equals(err.name, 'NotSupportedError');
+    // IsSessionSupported should only throw with a feature policy violation;
+    // however, inline does not trigger the feature policy,
+    // so immersive-vr must be used.
+    assert_unreached("isSessionSupported should not throw in ReportOnly mode");
   }
   check_report_format(await report);
 }, "XR report only mode");

@@ -1,7 +1,3 @@
-<!--
-postMessage('å');
-/*
--->
 <!doctype html>
 <title>encoding, dedicated worker</title>
 <script src="/resources/testharness.js"></script>
@@ -9,13 +5,10 @@ postMessage('å');
 <div id=log></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('001.js');
   worker.onmessage = this.step_func(function(e) {
     assert_equals(e.data, '\u00e5');
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->

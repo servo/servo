@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::create_ssl_connector_builder;
+use crate::connector::{create_tls_config, ALPN_H1};
 use crate::cookie::Cookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
@@ -12,6 +12,7 @@ use headers::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
@@ -69,6 +70,7 @@ impl<'a> Handler for Client<'a> {
         }
 
         let mut cookie_jar = self.http_state.cookie_jar.write().unwrap();
+        cookie_jar.remove_expired_cookies_for_url(self.resource_url);
         if let Some(cookie_list) = cookie_jar.cookies_for_url(self.resource_url, CookieSource::HTTP)
         {
             req.headers_mut()
@@ -90,7 +92,7 @@ impl<'a> Handler for Client<'a> {
         let mut jar = self.http_state.cookie_jar.write().unwrap();
         // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
         for cookie in headers.get_all(header::SET_COOKIE) {
-            if let Ok(s) = cookie.to_str() {
+            if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
                 if let Some(cookie) =
                     Cookie::from_cookie_string(s.into(), self.resource_url, CookieSource::HTTP)
                 {
@@ -98,6 +100,12 @@ impl<'a> Handler for Client<'a> {
                 }
             }
         }
+
+        self.http_state
+            .hsts_list
+            .write()
+            .unwrap()
+            .update_hsts_list_from_response(self.resource_url, &headers);
 
         let _ = self
             .event_sender
@@ -166,8 +174,9 @@ impl<'a> Handler for Client<'a> {
                 WebSocketErrorKind::Protocol,
                 format!("Unable to parse domain from {}. Needed for SSL.", url),
             ))?;
-        let connector = create_ssl_connector_builder(&certs).build();
-        connector
+        let tls_config = create_tls_config(&certs, ALPN_H1);
+        tls_config
+            .build()
             .connect(domain, stream)
             .map_err(WebSocketError::from)
     }
@@ -183,12 +192,23 @@ pub fn init(
     thread::Builder::new()
         .name(format!("WebSocket connection to {}", req_builder.url))
         .spawn(move || {
+            let mut req_builder = req_builder;
             let protocols = match req_builder.mode {
                 RequestMode::WebSocket { protocols } => protocols,
                 _ => panic!(
                     "Received a RequestBuilder with a non-websocket mode in websocket_loader"
                 ),
             };
+
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
+            // By standard, we should work with an http(s):// URL (req_url),
+            // but as ws-rs expects to be called with a ws(s):// URL (net_url)
+            // we upgrade ws to wss, so we don't have to convert http(s) back to ws(s).
+            http_state
+                .hsts_list
+                .read()
+                .unwrap()
+                .apply_hsts_rules(&mut req_builder.url);
 
             let scheme = req_builder.url.scheme();
             let mut req_url = req_builder.url.clone();
@@ -242,8 +262,10 @@ pub fn init(
             let ws_sender = ws.broadcaster();
             let initiated_close = Arc::new(AtomicBool::new(false));
 
-            thread::spawn(move || {
-                while let Ok(dom_action) = dom_action_receiver.recv() {
+            ROUTER.add_route(
+                dom_action_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let dom_action = message.to().expect("Ws dom_action message to deserialize");
                     match dom_action {
                         WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
                             ws_sender.send(Message::text(data)).unwrap();
@@ -265,8 +287,8 @@ pub fn init(
                             }
                         },
                     }
-                }
-            });
+                }),
+            );
 
             if let Err(e) = ws.run() {
                 debug!("Failed to run WebSocket: {:?}", e);

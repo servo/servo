@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS values: max() between pixel and percentage values</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="match" href="reference/200-200-green.html">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<style>
+html, body { margin: 0px; padding: 0px; }
+#parent { width: 400px; }
+#target {
+  width: max(100px, 25% + 100px, 150px + 10%);
+  height: 200px;
+  background: green;
+}
+</style>
+<div id=parent>
+  <div id=target></div>
+</div>

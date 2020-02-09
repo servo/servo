@@ -27,7 +27,6 @@ var formElements = {
     accept: "string",
     alt: "string",
     autocomplete: {type: "string", customGetter: true},
-    autofocus: "boolean",
     defaultChecked: {type: "boolean", domAttrName: "checked"},
     dirName: "string",
     disabled: "boolean",
@@ -65,7 +64,6 @@ var formElements = {
     useMap: "string",
   },
   button: {
-    autofocus: "boolean",
     disabled: "boolean",
     // "formAction" has magic hard-coded in reflection.js
     formAction: "url",
@@ -79,7 +77,6 @@ var formElements = {
   },
   select: {
     autocomplete: {type: "string", customGetter: true},
-    autofocus: "boolean",
     disabled: "boolean",
     multiple: "boolean",
     name: "string",
@@ -99,7 +96,6 @@ var formElements = {
   },
   textarea: {
     autocomplete: {type: "string", customGetter: true},
-    autofocus: "boolean",
     cols: {type: "limited unsigned long with fallback", defaultVal: 20},
     dirName: "string",
     disabled: "boolean",

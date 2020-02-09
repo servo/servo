@@ -36,8 +36,8 @@ dsl_test(['a', 'b', 'c'], (t, dsl) => {
   assert_equals(dsl.item(2), 'c', 'item method');
   assert_equals(dsl.item(3), null, 'item method out of range');
   assert_equals(dsl.item(-1), null, 'item method out of range');
-  assert_throws(TypeError(), () => dsl.item(),
-                'item method should throw if called without enough args');
+  assert_throws_js(TypeError, () => dsl.item(),
+                   'item method should throw if called without enough args');
 }, 'DOMStringList: item() method');
 
 dsl_test(['a', 'b', 'c'], (t, dsl) => {
@@ -54,7 +54,7 @@ dsl_test(['a', 'b', 'c'], (t, dsl) => {
   assert_true(dsl.contains('c'), 'contains method matched');
   assert_false(dsl.contains(''), 'contains method unmatched');
   assert_false(dsl.contains('d'), 'contains method unmatched');
-  assert_throws(TypeError(), () => dsl.contains(),
+  assert_throws_js(TypeError, () => dsl.contains(),
     'contains method should throw if called without enough args');
 }, 'DOMStringList: contains() method');
 

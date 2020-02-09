@@ -61,9 +61,9 @@ This guide only covers the most important options. Be sure to look at all the av
 Even if you have never seen any Rust code, it's not too hard to read Servo's code. But there are some basics things one must know:
 
 - [Match](https://doc.rust-lang.org/stable/rust-by-example/flow_control/match.html) and [Patterns](https://doc.rust-lang.org/book/ch18-00-patterns.html)
-- [Options](https://rustbyexample.com/std/option.html)
-- [Expression](https://rustbyexample.com/expression.html)
-- [Traits](https://rustbyexample.com/trait.html)
+- [Options](https://doc.rust-lang.org/stable/rust-by-example/std/option.html)
+- [Expression](https://doc.rust-lang.org/stable/rust-by-example/expression.html)
+- [Traits](https://doc.rust-lang.org/stable/rust-by-example/trait.html)
 - That doesn't sound important, but be sure to understand how `println!()` works, especially the [formatting traits](https://doc.rust-lang.org/std/fmt/#formatting-traits)
 
 This won't be enough to do any serious work at first, but if you want to navigate the code and fix basic bugs, that should do it. It's a good starting point, and as you dig into Servo source code, you'll learn more.
@@ -71,7 +71,7 @@ This won't be enough to do any serious work at first, but if you want to navigat
 For more exhaustive documentation:
 
 - [doc.rust-lang.org](https://doc.rust-lang.org)
-- [rust by example](https://rustbyexample.com)
+- [rust by example](https://doc.rust-lang.org/stable/rust-by-example)
 
 ## Cargo and Crates
 
@@ -96,7 +96,7 @@ source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e25
 
 This file should not be edited by hand. In a normal Rust project, to update the git revision, you would use `cargo update -p stb_image`, but in Servo, use `./mach cargo-update -p stb_image`. Other arguments to cargo are also understood, e.g. use --precise '0.2.3' to update that crate to version 0.2.3.
 
-See [Cargo's documentation about Cargo.toml and Cargo.lock files](https://doc.crates.io/guide.html#cargotoml-vs-cargolock).
+See [Cargo's documentation about Cargo.toml and Cargo.lock files](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html).
 
 ## Working on a Crate
 
@@ -148,7 +148,7 @@ Before starting the debugger right away, you might want to get some information 
 A typical command might be:
 
 ``` shell
-./mach run -d -- -i -y 1 -t 1 --debug dump-layer-tree /tmp/a.html
+./mach run -d -- -i -y 1 --debug dump-layer-tree /tmp/a.html
 ```
 
 … to avoid using too many threads and make things easier to understand.
@@ -168,7 +168,7 @@ RUST_LOG="debug" ./mach run -d -- /tmp/a.html
 Using `RUST_LOG="debug"` is usually the very first thing you might want to do if you have no idea what to look for. Because this is very verbose, you can combine these with `ts` (`moreutils` package (apt-get, brew)) to add timestamps and `tee` to save the logs (while keeping them in the console):
 
 ```
-RUST_LOG="debug" ./mach run -d -- -i -y 1 -t 1  /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
+RUST_LOG="debug" ./mach run -d -- -i -y 1 /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
 ```
 
 You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](https://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
@@ -190,7 +190,7 @@ usually just works. If it doesn't, maybe some of foobar's properties don't imple
 To run the debugger:
 
 ``` shell
-./mach run -d --debug -- -y 1 -t 1 /tmp/a.html
+./mach run -d --debug -- -y 1 /tmp/a.html
 ```
 
 This will start `lldb` on Mac, and `gdb` on Linux.
@@ -248,6 +248,14 @@ To run a test:
 ./mach test-wpt tests/wpt/yourtest
 ```
 
+For your PR to get accepted, source code also has to satisfy certain tidiness requirements.
+
+To check code tidiness:
+
+```
+./mach test-tidy
+```
+
 ### Updating a test:
 
 In some cases, extensive tests for the feature you're working on already exist under tests/wpt:
@@ -287,13 +295,13 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 
 ## Ask questions
 
-### IRC
-
-IRC channels (irc.mozilla.org):
+### IRC channels (irc.mozilla.org)
 
 - #servo
-- #rust
-- #cargo
+
+### Discord servers
+
+The official [Rust Discord server](https://discordapp.com/invite/rust-lang) is a great place to ask Rust specific questions, including questions related to cargo.
 
 ### Mailing list
 

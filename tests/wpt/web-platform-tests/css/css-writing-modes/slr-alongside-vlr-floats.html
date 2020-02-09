@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS Writing Modes Test: positioning of a sideways-lr block alongside vertical-lr floats</title>
+
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-writing-modes/#block-flow" title="3.2. Block Flow Direction: the writing-mode property">
+  <link rel="match" href="slr-alongside-vlr-floats-ref.html">
+
+  <!-- This test is adapted from Gérard Talbot's "ortho-htb-alongside-vrl-floats-014.xht" -->
+
+  <meta content="image" name="flags">
+  <meta content="This test verifies that the orange block box, which creates a new block formatting context, should flow next to the earliest float that offers sufficient space in the inline-direction." name="assert">
+
+  <style>
+  html {
+    writing-mode: vertical-lr;
+  }
+
+  div {
+    block-size: 100px;
+  }
+
+  div#first-olive-float {
+    background-color: olive;
+    float: left;
+    inline-size: 50%;
+  }
+
+  div#second-blue-float-with-clear {
+    background-color: blue;
+    clear: left;
+    float: left;
+    inline-size: 25%;
+  }
+
+  div#orange-bfc {
+    background-color: orange;
+    inline-size: 75%;
+    writing-mode: sideways-lr; /* Same block direction as <html> */
+  }
+  </style>
+
+  <body>
+    <p><img src="support/ortho-htb-alongside-vrl-floats-002-exp-res.png" width="300" height="36" alt="Image download support must be enabled"></p>
+    <!--
+         The image says:
+         Test passes if the orange rectangle
+         is below the blue rectangle.
+    -->
+
+    <div id="first-olive-float">&nbsp;</div>
+    <div id="second-blue-float-with-clear">&nbsp;</div>
+    <div id="orange-bfc">&nbsp;</div>
+  </body>
+</html>

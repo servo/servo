@@ -705,9 +705,16 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
         let mut legalizer = Legalizer::new();
-        if !node.is_replaced_content() {
+        let is_media_element_with_widget = node.type_id() ==
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) &&
+            node.as_element().unwrap().is_shadow_host();
+        if !node.is_replaced_content() || is_media_element_with_widget {
             for kid in node.children() {
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal {
+                    if node.is_replaced_content() {
+                        // Replaced elements don't have pseudo-elements per spec.
+                        continue;
+                    }
                     self.process(&kid);
                 }
 
@@ -1840,6 +1847,10 @@ where
             node.type_id()
         );
 
+        // FIXME(emilio): This should look at display-outside and
+        // display-inside, but there's so much stuff that goes through the
+        // generic "block" codepath (wrongly).
+        //
         // Switch on display and floatedness.
         match (display, float, positioning) {
             // `display: none` contributes no flow construction result.
@@ -1864,16 +1875,12 @@ where
                 self.set_flow_construction_result(node, construction_result)
             },
 
-            // List items contribute their own special flows.
-            (Display::ListItem, float_value, _) => {
-                let construction_result = self.build_flow_for_list_item(node, float_value);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
             (Display::Inline, _, Position::Absolute) |
-            (Display::InlineBlock, _, Position::Absolute) => {
+            (Display::Inline, _, Position::Fixed) |
+            (Display::InlineBlock, _, Position::Absolute) |
+            (Display::InlineBlock, _, Position::Fixed) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
                 self.set_flow_construction_result(node, construction_result)
@@ -1951,7 +1958,12 @@ where
             // properties separately.
             (_, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
-                let construction_result = self.build_flow_for_block(node, float_kind);
+                // List items contribute their own special flows.
+                let construction_result = if display.is_list_item() {
+                    self.build_flow_for_list_item(node, float_value)
+                } else {
+                    self.build_flow_for_block(node, float_kind)
+                };
                 self.set_flow_construction_result(node, construction_result)
             },
         }

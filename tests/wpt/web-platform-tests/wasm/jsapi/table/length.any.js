@@ -22,7 +22,7 @@ test(() => {
   assert_equals(typeof desc.set, "undefined");
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => getter.call(thisValue), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => getter.call(thisValue), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -52,7 +52,7 @@ test(() => {
   const argument = { "element": "anyfunc", "initial": 2 };
   const table = new WebAssembly.Table(argument);
   assert_equals(table.length, 2, "Initial length");
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     "use strict";
     table.length = 4;
   });

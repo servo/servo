@@ -3,13 +3,17 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Long Tasks API 1 (https://w3c.github.io/longtasks/)
 
+[Exposed=Window]
 interface PerformanceLongTaskTiming : PerformanceEntry {
     readonly attribute FrozenArray<TaskAttributionTiming> attribution;
+    [Default] object toJSON();
 };
 
+[Exposed=Window]
 interface TaskAttributionTiming : PerformanceEntry {
     readonly attribute DOMString containerType;
     readonly attribute DOMString containerSrc;
     readonly attribute DOMString containerId;
     readonly attribute DOMString containerName;
+    [Default] object toJSON();
 };

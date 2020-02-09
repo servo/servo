@@ -59,12 +59,17 @@
     </div>
     <div id="log"></div>
     <script>
+    test(function() {
+      assert_true(
         verifyTextPoints({
                 roundedRect: {x: 100, y: 10, width: 100, height: 100, rx: 50, ry: 50},
                 containerWidth: 200,
                 containerHeight: 200,
                 lineHeight: 10
-        }, 10, 1, "right");
+        }, 10, 1, "right"),
+        "Lines positioned properly around the shape."
+      );
+    });
      </script>
 </body>
 </html>

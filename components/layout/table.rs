@@ -24,7 +24,7 @@ use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, Collapsed
 use crate::table_row::{TableRowFlow, TableRowSizeData};
 use crate::table_wrapper::TableLayout;
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};

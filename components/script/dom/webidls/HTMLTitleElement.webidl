@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltitleelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTitleElement : HTMLElement {
+    [HTMLConstructor] constructor();
+
     [CEReactions, Pure]
     attribute DOMString text;
 };

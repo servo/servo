@@ -6,11 +6,12 @@
 pub mod unrooted_must_root {
     /**
     ```
-    #![feature(plugin)]
+    #![feature(plugin, register_tool)]
     #![plugin(script_plugins)]
+    #![register_tool(unrooted_must_root_lint)]
 
-    #[must_root] struct Foo(i32);
-    #[must_root] struct Bar(Foo);
+    #[unrooted_must_root_lint::must_root] struct Foo(i32);
+    #[unrooted_must_root_lint::must_root] struct Bar(Foo);
 
     fn foo1(_: &Foo) {}
     fn foo2(_: &()) -> &Foo { unimplemented!() }
@@ -22,10 +23,11 @@ pub mod unrooted_must_root {
 
     /**
     ```compile_fail
-    #![feature(plugin)]
+    #![feature(plugin, register_tool)]
     #![plugin(script_plugins)]
+    #![register_tool(unrooted_must_root_lint)]
 
-    #[must_root] struct Foo(i32);
+    #[unrooted_must_root_lint::must_root] struct Foo(i32);
     struct Bar(Foo);
 
     fn main() {}
@@ -35,10 +37,11 @@ pub mod unrooted_must_root {
 
     /**
     ```compile_fail
-    #![feature(plugin)]
+    #![feature(plugin, register_tool)]
     #![plugin(script_plugins)]
+    #![register_tool(unrooted_must_root_lint)]
 
-    #[must_root] struct Foo(i32);
+    #[unrooted_must_root_lint::must_root] struct Foo(i32);
 
     fn foo1(_: Foo) {}
 
@@ -49,10 +52,11 @@ pub mod unrooted_must_root {
 
     /**
     ```compile_fail
-    #![feature(plugin)]
+    #![feature(plugin, register_tool)]
     #![plugin(script_plugins)]
+    #![register_tool(unrooted_must_root_lint)]
 
-    #[must_root] struct Foo(i32);
+    #[unrooted_must_root_lint::must_root] struct Foo(i32);
 
     fn foo2() -> Foo { unimplemented!() }
 

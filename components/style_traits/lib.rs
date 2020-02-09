@@ -22,7 +22,6 @@ extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 extern crate selectors;
-#[cfg(feature = "servo")]
 #[macro_use]
 extern crate serde;
 extern crate servo_arc;
@@ -36,7 +35,7 @@ extern crate to_shmem_derive;
 #[cfg(feature = "servo")]
 extern crate webrender_api;
 #[cfg(feature = "servo")]
-pub use webrender_api::DevicePixel;
+pub use webrender_api::units::DevicePixel;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseErrorKind;
@@ -87,6 +86,7 @@ pub enum CSSPixel {}
 //     / desktop_zoom => CSSPixel
 
 pub mod arc_slice;
+pub mod dom;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;

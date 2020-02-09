@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset=utf-8>
+  <title>Reference baseline alignment of inline-grid with an INPUT type=number item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+
+.grid {
+  display: inline-block;
+  line-height: 0;
+  border: 5px solid;
+  padding: 1px 0 3px 0;
+  margin: 11px 0;
+}
+
+input { -webkit-appearance:none; inline-size:4ch; }
+
+.big {
+ font-size: 4em;
+}
+
+.small {
+  font-size: 0.2em;
+}
+
+.vlr { writing-mode: vertical-lr; }
+  </style>
+</head>
+<body>
+
+<div>
+  <span class="big">B</span>
+  <div class="grid"><input type="number" value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div>
+  <span>B</span>
+  <div class="grid"><input class="big" type="number" value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div class="vlr">
+<div>
+  <span class="big">B</span>
+  <div class="grid"><input type="number" value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div>
+  <span>B</span>
+  <div class="grid"><input class="big" type="number" value="9"></div>
+  <span class="small">B</span>
+</div>
+</div>
+
+</body>
+</html>

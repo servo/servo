@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: parsing counter()/counters() values for the 'content' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#counter-functions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value('content', 'counter(foo, none)');
+test_invalid_value('content', 'counters(foo, "", none)');
+test_invalid_value('content', 'counter(foo, unset)');
+test_invalid_value('content', 'counters(foo, "", unset)');
+test_invalid_value('content', 'counter(foo, initial)');
+test_invalid_value('content', 'counters(foo, "", initial)');
+test_invalid_value('content', 'counter(foo, inherit)');
+test_invalid_value('content', 'counters(foo, "", inherit)');
+
+test_invalid_value('content', '"z" counter(foo, none)');
+test_invalid_value('content', '"z" counters(foo, "", none)');
+test_invalid_value('content', '"z" counter(foo, unset)');
+test_invalid_value('content', '"z" counters(foo, "", unset)');
+test_invalid_value('content', '"z" counter(foo, initial)');
+test_invalid_value('content', '"z" counters(foo, "", initial)');
+test_invalid_value('content', '"z" counter(foo, inherit)');
+test_invalid_value('content', '"z" counters(foo, "", inherit)');
+
+test_invalid_value('content', 'counter(foo, none) "z"');
+test_invalid_value('content', 'counters(foo, "", none) "z"');
+test_invalid_value('content', 'counter(foo, unset) "z"');
+test_invalid_value('content', 'counters(foo, "", unset) "z"');
+test_invalid_value('content', 'counter(foo, initial) "z"');
+test_invalid_value('content', 'counters(foo, "", initial) "z"');
+test_invalid_value('content', 'counter(foo, inherit) "z"');
+test_invalid_value('content', 'counters(foo, "", inherit) "z"');
+</script>
+</body>
+</html>

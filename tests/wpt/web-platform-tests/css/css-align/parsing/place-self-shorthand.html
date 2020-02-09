@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: place-self sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-self">
+<meta name="assert" content="place-self supports the full grammar '<align-self> <justify-self>?'.">
+<meta name="assert" content="<baseline-position> and <baseline-position> start are equivalent.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('place-self', 'normal', {
+  'align-self': 'normal',
+  'justify-self': 'normal'
+});
+
+test_shorthand_value('place-self', 'first baseline', {
+  'align-self': 'baseline',
+  'justify-self': 'baseline'
+});
+
+test_shorthand_value('place-self', 'last baseline flex-start', {
+  'align-self': 'last baseline',
+  'justify-self': 'flex-start'
+});
+
+test_shorthand_value('place-self', 'unsafe self-start stretch', {
+  'align-self': 'unsafe self-start',
+  'justify-self': 'stretch'
+});
+</script>
+</body>
+</html>

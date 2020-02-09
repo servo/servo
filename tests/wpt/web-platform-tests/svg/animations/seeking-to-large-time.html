@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>SVGSVGElement.prototype.setCurrentTime: Large time argument</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="green">
+    <set attributeName="fill" to="red"
+         begin="9223372036854775807" dur="10ms"/>
+  </rect>
+</svg>
+<script>
+  async_test(function(t) {
+    onload = t.step_func(function() {
+      document.querySelector("svg").setCurrentTime(9223372036854775807);
+      requestAnimationFrame(t.step_func(function() {
+        t.step_timeout(function() {
+          let rect = document.querySelector('rect');
+          assert_equals(getComputedStyle(rect).fill, 'rgb(0, 128, 0)');
+          t.done();
+        }, 11);
+      }));
+    });
+  });
+</script>

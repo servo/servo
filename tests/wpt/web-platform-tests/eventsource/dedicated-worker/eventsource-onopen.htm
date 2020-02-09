@@ -1,15 +1,4 @@
-<!--
-try {
-  var source = new EventSource("../resources/message.py")
-  source.onopen = function(e) {
-    postMessage([true, source.readyState, 'data' in e, e.bubbles, e.cancelable])
-    this.close()
-  }
-} catch(e) {
-  postMessage([false, String(e)])
-}
-/*-->
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>dedicated worker - EventSource: onopen (announcing the connection)</title>
@@ -21,7 +10,7 @@ try {
     <script>
       var test = async_test()
       test.step(function() {
-        var worker = new Worker('#')
+        var worker = new Worker('eventsource-onopen.js')
         worker.onmessage = function(e) {
           test.step(function() {
             assert_true(e.data[0], e.data[1])
@@ -36,4 +25,3 @@ try {
     </script>
   </body>
 </html>
-<!--*/ //-->

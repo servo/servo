@@ -20,7 +20,7 @@ promise_test(() => {
 
   const closePromise = writer.close();
   return closePromise.then(value => assert_equals(value, undefined, 'fulfillment value must be undefined'));
-}, 'fulfillment value of ws.close() call must be undefined even if the underlying sink returns a non-undefined ' +
+}, 'fulfillment value of writer.close() call must be undefined even if the underlying sink returns a non-undefined ' +
     'value');
 
 promise_test(() => {
@@ -411,3 +411,60 @@ promise_test(() => {
     return ready;
   });
 }, 'ready promise should be initialised as fulfilled for a writer on a closed stream');
+
+promise_test(() => {
+  const ws = new WritableStream();
+  ws.close();
+  const writer = ws.getWriter();
+  return writer.closed;
+}, 'close() on a writable stream should work');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  ws.getWriter();
+  return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+}, 'close() on a locked stream should reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    start(controller) {
+      controller.error(error1);
+    }
+  });
+  return promise_rejects(t, error1, ws.close(), 'close should reject with error1');
+}, 'close() on an erroring stream should reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    start(controller) {
+      controller.error(error1);
+    }
+  });
+  const writer = ws.getWriter();
+  return promise_rejects(t, error1, writer.closed, 'closed should reject with the error').then(() => {
+    writer.releaseLock();
+    return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+  });
+}, 'close() on an errored stream should reject');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  const writer = ws.getWriter();
+  return writer.close().then(() => {
+    return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+  });
+}, 'close() on an closed stream should reject');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    close() {
+      return new Promise(() => {});
+    }
+  });
+
+  const writer = ws.getWriter();
+  writer.close();
+  writer.releaseLock();
+
+  return promise_rejects(t, new TypeError(), ws.close(), 'close should reject');
+}, 'close() on a stream with a pending close should reject');

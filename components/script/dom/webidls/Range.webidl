@@ -8,8 +8,9 @@
  * http://dvcs.w3.org/hg/csswg/raw-file/tip/cssom-view/Overview.html#extensions-to-the-range-interface
  */
 
-[Constructor]
+[Exposed=Window]
 interface Range {
+  [Throws] constructor();
   [Pure]
   readonly attribute Node startContainer;
   [Pure]

@@ -5,6 +5,7 @@
 <script src=/resources/testharnessreport.js></script>
 <iframe src="Element-getElementsByTagName-change-document-HTMLNess-iframe.xml"></iframe>
 <script>
+  setup({ single_test: true });
   onload = function() {
     var parent = document.createElement("div");
     var child1 = document.createElementNS("http://www.w3.org/1999/xhtml", "a");

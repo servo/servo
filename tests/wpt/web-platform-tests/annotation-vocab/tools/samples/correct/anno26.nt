@@ -1,9 +1,0 @@
-_:b1 <http://www.w3.org/ns/oa#prefix> "this is an " .
-_:b1 <http://www.w3.org/ns/oa#exact> "anotation" .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#TextQuoteSelector> .
-_:b1 <http://www.w3.org/ns/oa#suffix> " that has some" .
-_:b0 <http://www.w3.org/ns/oa#hasSelector> _:b1 .
-_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/page1> .
-<http://example.org/anno26> <http://www.w3.org/ns/oa#hasBody> <http://example.org/comment1> .
-<http://example.org/anno26> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
-<http://example.org/anno26> <http://www.w3.org/ns/oa#hasTarget> _:b0 .

@@ -27,9 +27,9 @@ test(() => {
     get highWaterMark() { throw error; }
   };
 
-  assert_throws({ name: 'TypeError' }, () => new CountQueuingStrategy(), 'construction fails with undefined');
-  assert_throws({ name: 'TypeError' }, () => new CountQueuingStrategy(null), 'construction fails with null');
-  assert_throws({ name: 'Error' }, () => new CountQueuingStrategy(highWaterMarkObjectGetterThrowing),
+  assert_throws_js(TypeError, () => new CountQueuingStrategy(), 'construction fails with undefined');
+  assert_throws_js(TypeError, () => new CountQueuingStrategy(null), 'construction fails with null');
+  assert_throws_js(Error, () => new CountQueuingStrategy(highWaterMarkObjectGetterThrowing),
     'construction fails with an object with a throwing highWaterMark getter');
 
   // Should not fail:
@@ -106,3 +106,26 @@ test(() => {
                 'CountQueuingStrategy.name must be "CountQueuingStrategy"');
 
 }, 'CountQueuingStrategy.name is correct');
+
+class SubClass extends CountQueuingStrategy {
+  size() {
+    return 2;
+  }
+
+  subClassMethod() {
+    return true;
+  }
+}
+
+test(() => {
+
+  const sc = new SubClass({highWaterMark: 77});
+  assert_equals(sc.constructor.name, 'SubClass',
+                'constructor.name should be correct');
+  assert_equals(sc.highWaterMark, 77,
+                'highWaterMark should come from the parent class');
+  assert_equals(sc.size(), 2,
+                'size() on the subclass should override the parent');
+  assert_true(sc.subClassMethod(), 'subClassMethod() should work');
+
+}, 'subclassing CountQueuingStrategy should work correctly');

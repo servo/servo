@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>position interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#position-property">
+<meta name="assert" content="position has discrete animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  position: relative;
+  display: inline-block;
+  height: 10px;
+  margin: 0px;
+}
+.target {
+  width: 10px;
+  height: 10px;
+  background-color: black;
+  left: 10px;
+  position: 10px;
+}
+.expected {
+  background-color: green;
+}
+</style>
+
+<body>
+<template id="target-template">
+  <div class="parent">
+    <div class="target"></div>
+  </div>
+</template>
+</body>
+
+<script>
+test_no_interpolation({
+  property: 'position',
+  from: 'absolute',
+  to: 'static',
+});
+
+// This is still discrete interpolation; this test ensures that the neutral
+// keyframe is defined correctly for position.
+test_interpolation({
+  property: 'position',
+  from: neutralKeyframe,
+  to: 'absolute',
+  method: 'CSS Animations',
+}, [
+  {at: -1, expect: 'static'},
+  {at: 0, expect: 'static'},
+  {at: 0.25, expect: 'static'},
+  {at: 0.5, expect: 'absolute'},
+  {at: 0.75, expect: 'absolute'},
+  {at: 1, expect: 'absolute'},
+  {at: 2, expect: 'absolute'},
+]);
+</script>

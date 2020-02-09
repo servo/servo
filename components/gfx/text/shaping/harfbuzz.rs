@@ -10,7 +10,7 @@ use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
 use harfbuzz_sys::hb_blob_t;

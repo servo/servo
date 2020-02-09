@@ -3,8 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
+
+#[derive(Serialize)]
+struct GetStyleSheetsReply {
+    from: String,
+    styleSheets: Vec<u32>, // TODO: real JSON structure.
+}
 
 pub struct StyleSheetsActor {
     pub name: String,
@@ -16,12 +23,23 @@ impl Actor for StyleSheetsActor {
     }
     fn handle_message(
         &self,
-        _: &ActorRegistry,
-        _: &str,
-        _: &Map<String, Value>,
-        _: &mut TcpStream,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+        Ok(match msg_type {
+            "getStyleSheets" => {
+                let msg = GetStyleSheetsReply {
+                    from: self.name(),
+                    styleSheets: vec![],
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
+            _ => ActorMessageStatus::Ignored,
+        })
     }
 }
 

@@ -78,7 +78,6 @@ extern crate parking_lot;
 extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
-#[cfg(feature = "servo")]
 #[macro_use]
 extern crate serde;
 pub extern crate servo_arc;
@@ -91,6 +90,8 @@ extern crate servo_config;
 extern crate servo_url;
 extern crate smallbitvec;
 extern crate smallvec;
+#[cfg(feature = "gecko")]
+extern crate static_prefs;
 #[cfg(feature = "servo")]
 extern crate string_cache;
 #[macro_use]

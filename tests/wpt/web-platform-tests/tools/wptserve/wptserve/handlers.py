@@ -1,4 +1,3 @@
-import cgi
 import json
 import os
 import sys
@@ -13,6 +12,11 @@ from .ranges import RangeParser
 from .request import Authentication
 from .response import MultipartContent
 from .utils import HTTPException
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 __all__ = ["file_handler", "python_script_handler",
            "FunctionHandler", "handler", "json_handler",
@@ -76,7 +80,7 @@ class DirectoryHandler(object):
 <ul>
 %(items)s
 </ul>
-""" % {"path": cgi.escape(url_path),
+""" % {"path": escape(url_path),
        "items": "\n".join(self.list_items(url_path, path))}  # noqa: E122
 
     def list_items(self, base_path, path):
@@ -92,30 +96,48 @@ class DirectoryHandler(object):
             link = urljoin(base_path, "..")
             yield ("""<li class="dir"><a href="%(link)s">%(name)s</a></li>""" %
                    {"link": link, "name": ".."})
+        items = []
+        prev_item = None
         for item in sorted(os.listdir(path)):
-            link = cgi.escape(quote(item))
+            if prev_item and prev_item + ".headers" == item:
+                items[-1][1] = item
+                prev_item = None
+                continue
+            items.append([item, None])
+            prev_item = item
+        for item, dot_headers in items:
+            link = escape(quote(item))
+            dot_headers_markup = ""
+            if dot_headers is not None:
+                dot_headers_markup = (""" (<a href="%(link)s">.headers</a>)""" %
+                                      {"link": escape(quote(dot_headers))})
             if os.path.isdir(os.path.join(path, item)):
                 link += "/"
                 class_ = "dir"
             else:
                 class_ = "file"
-            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a></li>""" %
-                   {"link": link, "name": cgi.escape(item), "class": class_})
+            yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a>%(headers)s</li>""" %
+                   {"link": link, "name": escape(item), "class": class_,
+                    "headers": dot_headers_markup})
 
 
 def wrap_pipeline(path, request, response):
     query = parse_qs(request.url_parts.query)
+    pipe_string = ""
 
-    pipeline = None
-    if "pipe" in query:
-        pipeline = Pipeline(query["pipe"][-1])
-    elif ".sub." in path:
+    if ".sub." in path:
         ml_extensions = {".html", ".htm", ".xht", ".xhtml", ".xml", ".svg"}
         escape_type = "html" if os.path.splitext(path)[1] in ml_extensions else "none"
-        pipeline = Pipeline("sub(%s)" % escape_type)
+        pipe_string = "sub(%s)" % escape_type
 
-    if pipeline is not None:
-        response = pipeline(request, response)
+    if "pipe" in query:
+        if pipe_string:
+            pipe_string += "|"
+
+        pipe_string += query["pipe"][-1]
+
+    if pipe_string:
+        response = Pipeline(pipe_string)(request, response)
 
     return response
 

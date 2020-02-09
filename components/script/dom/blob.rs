@@ -2,120 +2,60 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::body::{run_array_buffer_data_algorithm, FetchedData};
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::realms::{AlreadyInRealm, InRealm};
 use dom_struct::dom_struct;
-use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
-use net_traits::{CoreResourceMsg, IpcSend};
-use profile_traits::ipc;
-use std::mem;
-use std::ops::Index;
-use std::path::PathBuf;
+use encoding_rs::UTF_8;
+use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
+use net_traits::filemanager_thread::RelativePos;
+use script_traits::serializable::BlobImpl;
+use std::collections::HashMap;
+use std::num::NonZeroU32;
+use std::rc::Rc;
 use uuid::Uuid;
-
-/// File-based blob
-#[derive(JSTraceable)]
-pub struct FileBlob {
-    id: Uuid,
-    name: Option<PathBuf>,
-    cache: DomRefCell<Option<Vec<u8>>>,
-    size: u64,
-}
-
-/// Different backends of Blob
-#[must_root]
-#[derive(JSTraceable)]
-pub enum BlobImpl {
-    /// File-based blob, whose content lives in the net process
-    File(FileBlob),
-    /// Memory-based blob, whose content lives in the script process
-    Memory(Vec<u8>),
-    /// Sliced blob, including parent blob reference and
-    /// relative positions of current slicing range,
-    /// IMPORTANT: The depth of tree is only two, i.e. the parent Blob must be
-    /// either File-based or Memory-based
-    Sliced(Dom<Blob>, RelativePos),
-}
-
-impl BlobImpl {
-    /// Construct memory-backed BlobImpl
-    #[allow(unrooted_must_root)]
-    pub fn new_from_bytes(bytes: Vec<u8>) -> BlobImpl {
-        BlobImpl::Memory(bytes)
-    }
-
-    /// Construct file-backed BlobImpl from File ID
-    pub fn new_from_file(file_id: Uuid, name: PathBuf, size: u64) -> BlobImpl {
-        BlobImpl::File(FileBlob {
-            id: file_id,
-            name: Some(name),
-            cache: DomRefCell::new(None),
-            size: size,
-        })
-    }
-}
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "No clear owner"]
-    blob_impl: DomRefCell<BlobImpl>,
-    /// content-type string
-    type_string: String,
+    blob_id: BlobId,
 }
 
 impl Blob {
-    #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, blob_impl: BlobImpl, typeString: String) -> DomRoot<Blob> {
-        let boxed_blob = Box::new(Blob::new_inherited(blob_impl, typeString));
-        reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
+    pub fn new(global: &GlobalScope, blob_impl: BlobImpl) -> DomRoot<Blob> {
+        let dom_blob = reflect_dom_object(
+            Box::new(Blob {
+                reflector_: Reflector::new(),
+                blob_id: blob_impl.blob_id(),
+            }),
+            global,
+            BlobBinding::Wrap,
+        );
+        global.track_blob(&dom_blob, blob_impl);
+        dom_blob
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(blob_impl: BlobImpl, type_string: String) -> Blob {
+    pub fn new_inherited(blob_impl: &BlobImpl) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            blob_impl: DomRefCell::new(blob_impl),
-            // NOTE: Guarding the format correctness here,
-            // https://w3c.github.io/FileAPI/#dfn-type
-            type_string: normalize_type_string(&type_string),
+            blob_id: blob_impl.blob_id(),
         }
     }
 
-    #[allow(unrooted_must_root)]
-    fn new_sliced(
-        parent: &Blob,
-        rel_pos: RelativePos,
-        relative_content_type: DOMString,
-    ) -> DomRoot<Blob> {
-        let blob_impl = match *parent.blob_impl.borrow() {
-            BlobImpl::File(_) => {
-                // Create new parent node
-                BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
-            },
-            BlobImpl::Memory(_) => {
-                // Create new parent node
-                BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
-            },
-            BlobImpl::Sliced(ref grandparent, ref old_rel_pos) => {
-                // Adjust the slicing position, using same parent
-                BlobImpl::Sliced(grandparent.clone(), old_rel_pos.slice_inner(&rel_pos))
-            },
-        };
-
-        Blob::new(&parent.global(), blob_impl, relative_content_type.into())
-    }
-
     // https://w3c.github.io/FileAPI/#constructorBlob
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
@@ -130,212 +70,107 @@ impl Blob {
             },
         };
 
-        Ok(Blob::new(
-            global,
-            BlobImpl::new_from_bytes(bytes),
-            blobPropertyBag.type_.to_string(),
-        ))
+        let type_string = normalize_type_string(&blobPropertyBag.type_.to_string());
+        let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
+
+        Ok(Blob::new(global, blob_impl))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching
     pub fn get_bytes(&self) -> Result<Vec<u8>, ()> {
-        match *self.blob_impl.borrow() {
-            BlobImpl::File(ref f) => {
-                let (buffer, is_new_buffer) = match *f.cache.borrow() {
-                    Some(ref bytes) => (bytes.clone(), false),
-                    None => {
-                        let bytes = read_file(&self.global(), f.id.clone())?;
-                        (bytes, true)
-                    },
-                };
-
-                // Cache
-                if is_new_buffer {
-                    *f.cache.borrow_mut() = Some(buffer.clone());
-                }
-
-                Ok(buffer)
-            },
-            BlobImpl::Memory(ref s) => Ok(s.clone()),
-            BlobImpl::Sliced(ref parent, ref rel_pos) => parent.get_bytes().map(|v| {
-                let range = rel_pos.to_abs_range(v.len());
-                v.index(range).to_vec()
-            }),
-        }
+        self.global().get_blob_bytes(&self.blob_id)
     }
 
     /// Get a copy of the type_string
     pub fn type_string(&self) -> String {
-        self.type_string.clone()
+        self.global().get_blob_type_string(&self.blob_id)
     }
 
     /// Get a FileID representing the Blob content,
     /// used by URL.createObjectURL
     pub fn get_blob_url_id(&self) -> Uuid {
-        let opt_sliced_parent = match *self.blob_impl.borrow() {
-            BlobImpl::Sliced(ref parent, ref rel_pos) => {
-                Some((
-                    parent.promote(/* set_valid is */ false),
-                    rel_pos.clone(),
-                    parent.Size(),
-                ))
-            },
-            _ => None,
+        self.global().get_blob_url_id(&self.blob_id)
+    }
+}
+
+impl Serializable for Blob {
+    /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
+    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
+        let blob_impls = match sc_holder {
+            StructuredDataHolder::Write { blobs, .. } => blobs,
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
         };
 
-        match opt_sliced_parent {
-            Some((parent_id, rel_pos, size)) => {
-                self.create_sliced_url_id(&parent_id, &rel_pos, size)
-            },
-            None => self.promote(/* set_valid is */ true),
-        }
+        let blob_id = self.blob_id.clone();
+
+        // 1. Get a clone of the blob impl.
+        let blob_impl = self.global().serialize_blob(&blob_id);
+
+        // We clone the data, but the clone gets its own Id.
+        let new_blob_id = blob_impl.blob_id();
+
+        // 2. Store the object at a given key.
+        let blobs = blob_impls.get_or_insert_with(|| HashMap::new());
+        blobs.insert(new_blob_id.clone(), blob_impl);
+
+        let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
+        let BlobIndex(index) = new_blob_id.index;
+        let index = index.get();
+
+        let name_space = name_space.to_ne_bytes();
+        let index = index.to_ne_bytes();
+
+        let storage_key = StorageKey {
+            index: u32::from_ne_bytes(index),
+            name_space: u32::from_ne_bytes(name_space),
+        };
+
+        // 3. Return the storage key.
+        Ok(storage_key)
     }
 
-    /// Promote non-Slice blob:
-    /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
-    /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
-    /// Depending on set_valid, the returned FileID can be part of
-    /// valid or invalid Blob URL.
-    fn promote(&self, set_valid: bool) -> Uuid {
-        let mut bytes = vec![];
-        let global_url = self.global().get_url();
-
-        match *self.blob_impl.borrow_mut() {
-            BlobImpl::Sliced(_, _) => {
-                debug!("Sliced can't have a sliced parent");
-                // Return dummy id
-                return Uuid::new_v4();
-            },
-            BlobImpl::File(ref f) => {
-                if set_valid {
-                    let origin = get_blob_origin(&global_url);
-                    let (tx, rx) =
-                        ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-
-                    let msg =
-                        FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
-                    self.send_to_file_manager(msg);
-
-                    match rx.recv().unwrap() {
-                        Ok(_) => return f.id.clone(),
-                        // Return a dummy id on error
-                        Err(_) => return Uuid::new_v4(),
-                    }
-                } else {
-                    // no need to activate
-                    return f.id.clone();
-                }
-            },
-            BlobImpl::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
-        };
-
-        let origin = get_blob_origin(&global_url);
-
-        let blob_buf = BlobBuf {
-            filename: None,
-            type_string: self.type_string.clone(),
-            size: bytes.len() as u64,
-            bytes: bytes.to_vec(),
-        };
-
-        let id = Uuid::new_v4();
-        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
-        self.send_to_file_manager(msg);
-
-        *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
-            id: id.clone(),
-            name: None,
-            cache: DomRefCell::new(Some(bytes.to_vec())),
-            size: bytes.len() as u64,
-        });
-        id
-    }
-
-    /// Get a FileID representing sliced parent-blob content
-    fn create_sliced_url_id(
-        &self,
-        parent_id: &Uuid,
-        rel_pos: &RelativePos,
-        parent_len: u64,
-    ) -> Uuid {
-        let origin = get_blob_origin(&self.global().get_url());
-
-        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::AddSlicedURLEntry(
-            parent_id.clone(),
-            rel_pos.clone(),
-            tx,
-            origin.clone(),
+    /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
+    fn deserialize(
+        owner: &GlobalScope,
+        sc_holder: &mut StructuredDataHolder,
+        storage_key: StorageKey,
+    ) -> Result<(), ()> {
+        // 1. Re-build the key for the storage location
+        // of the serialized object.
+        let namespace_id = PipelineNamespaceId(storage_key.name_space.clone());
+        let index = BlobIndex(
+            NonZeroU32::new(storage_key.index.clone()).expect("Deserialized blob index is zero"),
         );
-        self.send_to_file_manager(msg);
-        match rx.recv().expect("File manager thread is down") {
-            Ok(new_id) => {
-                *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
-                    id: new_id.clone(),
-                    name: None,
-                    cache: DomRefCell::new(None),
-                    size: rel_pos.to_abs_range(parent_len as usize).len() as u64,
-                });
 
-                // Return the indirect id reference
-                new_id
-            },
-            Err(_) => {
-                // Return dummy id
-                Uuid::new_v4()
-            },
+        let id = BlobId {
+            namespace_id,
+            index,
+        };
+
+        let (blobs, blob_impls) = match sc_holder {
+            StructuredDataHolder::Read {
+                blobs, blob_impls, ..
+            } => (blobs, blob_impls),
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
+        // 2. Get the transferred object from its storage, using the key.
+        let blob_impls_map = blob_impls
+            .as_mut()
+            .expect("The SC holder does not have any blob impls");
+        let blob_impl = blob_impls_map
+            .remove(&id)
+            .expect("No blob to be deserialized found.");
+        if blob_impls_map.is_empty() {
+            *blob_impls = None;
         }
-    }
 
-    /// Cleanups at the time of destruction/closing
-    fn clean_up_file_resource(&self) {
-        if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
-            let origin = get_blob_origin(&self.global().get_url());
+        let deserialized_blob = Blob::new(&*owner, blob_impl);
 
-            let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let blobs = blobs.get_or_insert_with(|| HashMap::new());
+        blobs.insert(storage_key, deserialized_blob);
 
-            let msg = FileManagerThreadMsg::DecRef(f.id.clone(), origin, tx);
-            self.send_to_file_manager(msg);
-            let _ = rx.recv().unwrap();
-        }
-    }
-
-    fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
-        let global = self.global();
-        let resource_threads = global.resource_threads();
-        let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
-    }
-}
-
-impl Drop for Blob {
-    fn drop(&mut self) {
-        self.clean_up_file_resource();
-    }
-}
-
-fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
-    let resource_threads = global.resource_threads();
-    let (chan, recv) = ipc::channel(global.time_profiler_chan().clone()).map_err(|_| ())?;
-    let origin = get_blob_origin(&global.get_url());
-    let check_url_validity = false;
-    let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
-    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
-
-    let mut bytes = vec![];
-
-    loop {
-        match recv.recv().unwrap() {
-            Ok(ReadFileProgress::Meta(mut blob_buf)) => {
-                bytes.append(&mut blob_buf.bytes);
-            },
-            Ok(ReadFileProgress::Partial(mut bytes_in)) => {
-                bytes.append(&mut bytes_in);
-            },
-            Ok(ReadFileProgress::EOF) => {
-                return Ok(bytes);
-            },
-            Err(_) => return Err(()),
-        }
+        Ok(())
     }
 }
 
@@ -372,18 +207,12 @@ pub fn blob_parts_to_bytes(
 impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
-        match *self.blob_impl.borrow() {
-            BlobImpl::File(ref f) => f.size,
-            BlobImpl::Memory(ref v) => v.len() as u64,
-            BlobImpl::Sliced(ref parent, ref rel_pos) => {
-                rel_pos.to_abs_range(parent.Size() as usize).len() as u64
-            },
-        }
+        self.global().get_blob_size(&self.blob_id)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
-        DOMString::from(self.type_string.clone())
+        DOMString::from(self.type_string())
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
@@ -393,8 +222,64 @@ impl BlobMethods for Blob {
         end: Option<i64>,
         content_type: Option<DOMString>,
     ) -> DomRoot<Blob> {
+        let type_string =
+            normalize_type_string(&content_type.unwrap_or(DOMString::from("")).to_string());
         let rel_pos = RelativePos::from_opts(start, end);
-        Blob::new_sliced(self, rel_pos, content_type.unwrap_or(DOMString::from("")))
+        let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id.clone(), type_string);
+        Blob::new(&*self.global(), blob_impl)
+    }
+
+    // https://w3c.github.io/FileAPI/#text-method-algo
+    fn Text(&self) -> Rc<Promise> {
+        let global = self.global();
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let id = self.get_blob_url_id();
+        global.read_file_async(
+            id,
+            p.clone(),
+            Box::new(|promise, bytes| match bytes {
+                Ok(b) => {
+                    let (text, _, _) = UTF_8.decode(&b);
+                    let text = DOMString::from(text);
+                    promise.resolve_native(&text);
+                },
+                Err(e) => {
+                    promise.reject_error(e);
+                },
+            }),
+        );
+        p
+    }
+
+    // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
+    fn ArrayBuffer(&self) -> Rc<Promise> {
+        let global = self.global();
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+
+        let id = self.get_blob_url_id();
+
+        global.read_file_async(
+            id,
+            p.clone(),
+            Box::new(|promise, bytes| {
+                match bytes {
+                    Ok(b) => {
+                        let cx = promise.global().get_cx();
+                        let result = run_array_buffer_data_algorithm(cx, b);
+
+                        match result {
+                            Ok(FetchedData::ArrayBuffer(a)) => promise.resolve_native(&a),
+                            Err(e) => promise.reject_error(e),
+                            _ => panic!("Unexpected result from run_array_buffer_data_algorithm"),
+                        }
+                    },
+                    Err(e) => promise.reject_error(e),
+                };
+            }),
+        );
+        p
     }
 }
 
@@ -403,7 +288,7 @@ impl BlobMethods for Blob {
 /// XXX: We will relax the restriction here,
 /// since the spec has some problem over this part.
 /// see https://github.com/w3c/FileAPI/issues/43
-fn normalize_type_string(s: &str) -> String {
+pub fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
         let s_lower = s.to_ascii_lowercase();
         // match s_lower.parse() as Result<Mime, ()> {

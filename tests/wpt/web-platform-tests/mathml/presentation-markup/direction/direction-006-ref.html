@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>RTL mtable and mtable with frame</title>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math, math * {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p>
+      <math>
+        <mtable>
+          <mtr>
+            <mtd>
+              <mtext>É</mtext>
+            </mtd>
+            <mtd>
+              <mtext>p</mtext>
+            </mtd>
+            <mtd>
+              <mtext>X</mtext>
+            </mtd>
+          </mtr>
+          <mtr>
+            <mtd>
+              <mtext>pÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>XÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>Xp</mtext>
+            </mtd>
+          </mtr>
+        </mtable>
+      </math>
+    </p>
+
+    <p>
+      <math>
+        <mtable frame="solid">
+          <mtr>
+            <mtd>
+              <mtext>É</mtext>
+            </mtd>
+            <mtd>
+              <mtext>p</mtext>
+            </mtd>
+            <mtd>
+              <mtext>X</mtext>
+            </mtd>
+          </mtr>
+          <mtr>
+            <mtd>
+              <mtext>pÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>XÉ</mtext>
+            </mtd>
+            <mtd>
+              <mtext>Xp</mtext>
+            </mtd>
+          </mtr>
+        </mtable>
+      </math>
+    </p>
+
+  </body>
+</html>

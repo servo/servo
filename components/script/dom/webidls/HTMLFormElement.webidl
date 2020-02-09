@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlformelement
-[/*OverrideBuiltins, */HTMLConstructor]
+[Exposed=Window, LegacyUnenumerableNamedProperties]
 interface HTMLFormElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute DOMString acceptCharset;
   [CEReactions]
@@ -27,7 +29,7 @@ interface HTMLFormElement : HTMLElement {
   [SameObject] readonly attribute HTMLFormControlsCollection elements;
   readonly attribute unsigned long length;
   getter Element? (unsigned long index);
-  //getter (RadioNodeList or Element) (DOMString name);
+  getter (RadioNodeList or Element) (DOMString name);
 
   void submit();
   [CEReactions]

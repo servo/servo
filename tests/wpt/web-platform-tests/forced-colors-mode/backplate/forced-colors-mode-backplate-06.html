@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate.
+  Tests that inline spans with different forced-color-adjust values from their
+  parent element follow the backplate behavior of that parent in forced colors
+  mode.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced">
+<link rel=match href="forced-colors-mode-backplate-06-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+</style>
+<body>
+  <div style="forced-color-adjust: none;">
+    This text should not have a backplate in forced colors mode.
+    <br>
+    <span style="forced-color-adjust: auto">
+      This text should not have a backplate in forced colors mode.
+    </span>
+  </div>
+  <br>
+  <br>
+  <br>
+  <br>
+  <div style="forced-color-adjust: auto;">
+    This text should have a backplate in forced colors mode.
+    <br>
+    <span style="forced-color-adjust: none">
+      This text should have a backplate in forced colors mode.
+    </span>
+  </div>
+</body>

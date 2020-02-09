@@ -5,7 +5,9 @@
 <title>CSS basic box model: parsing float with valid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-float">
+<link rel="help" href="https://drafts.csswg.org/css-logical/#float-clear">
 <meta name="assert" content="float supports the full grammar 'left | right | top | bottom | start | end | none | <page-floats>'.">
+<meta name="assert" content="float supports 'inline-start | inline-end'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -15,6 +17,9 @@
 test_valid_value("float", "left");
 test_valid_value("float", "right");
 test_valid_value("float", "none");
+
+test_valid_value("float", "inline-start");
+test_valid_value("float", "inline-end");
 
 // The following are not yet supported by browsers:
 // test_valid_value("float", "top");

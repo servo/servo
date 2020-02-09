@@ -1,6 +1,9 @@
 steps:
-# This is equivalent to `Homebrew/homebrew-cask-versions/google-chrome-dev`,
-# but the raw URL is used to bypass caching.
-- script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/google-chrome-dev.rb
+# The conflicting google-chrome and chromedriver casks are first uninstalled.
+# The raw google-chrome-dev cask URL is used to bypass caching.
+- script: |
+    HOMEBREW_NO_AUTO_UPDATE=1 brew cask uninstall google-chrome || true
+    HOMEBREW_NO_AUTO_UPDATE=1 brew cask uninstall chromedriver || true
+    HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/google-chrome-dev.rb
   displayName: 'Install Chrome Dev'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))

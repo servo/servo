@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
+<body>
+<script>
+  const USER = true;
+  const FORCED = false;
+
+  function create_test(host, expectations) {
+    async_test(t => {
+      assert_precondition("HTMLPortalElement" in window, "Portals are not supported.");
+
+      let p = document.createElement('portal');
+      p.addEventListener('message', t.step_func(e => {
+        assert_header_equals(e.data, expectations, `{{host}} -> ${host} portal`);
+        t.done();
+      }));
+
+      let url = `https://${host}/fetch/metadata/resources/post-to-owner.py`;
+      p.src = url;
+      document.body.appendChild(p);
+    }, `{{host}} -> ${host} portal`);
+  }
+
+  create_test("{{host}}:{{ports[https][0]}}", {
+    "site": "same-origin",
+    "user": "",
+    "mode": "navigate",
+    "dest": "iframe"
+  });
+
+  create_test("{{hosts[][www]}}:{{ports[https][0]}}", {
+    "site": "same-site",
+    "user": "",
+    "mode": "navigate",
+    "dest": "iframe"
+  });
+
+  create_test("{{hosts[alt][www]}}:{{ports[https][0]}}", {
+    "site": "cross-site",
+    "user": "",
+    "mode": "navigate",
+    "dest": "iframe"
+  });
+</script>

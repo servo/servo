@@ -3,12 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlscriptelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLScriptElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute USVString src;
   [CEReactions]
            attribute DOMString type;
+  [CEReactions]
+           attribute boolean noModule;
   [CEReactions]
            attribute DOMString charset;
   [CEReactions]

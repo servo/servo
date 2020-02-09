@@ -8,11 +8,15 @@ use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
-struct ThreadAttachedReply {
+struct ThreadAttached {
     from: String,
     #[serde(rename = "type")]
     type_: String,
     actor: String,
+    frame: u32,
+    error: u32,
+    recordingEndpoint: u32,
+    executionPoint: u32,
     poppedFrames: Vec<PoppedFrameMsg>,
     why: WhyMsg,
 }
@@ -54,6 +58,11 @@ struct SourcesReply {
 #[derive(Serialize)]
 enum Source {}
 
+#[derive(Serialize)]
+struct VoidAttachedReply {
+    from: String,
+}
+
 pub struct ThreadActor {
     name: String,
 }
@@ -78,16 +87,21 @@ impl Actor for ThreadActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {
-                let msg = ThreadAttachedReply {
+                let msg = ThreadAttached {
                     from: self.name(),
                     type_: "paused".to_owned(),
                     actor: registry.new_name("pause"),
+                    frame: 0,
+                    error: 0,
+                    recordingEndpoint: 0,
+                    executionPoint: 0,
                     poppedFrames: vec![],
                     why: WhyMsg {
                         type_: "attached".to_owned(),
                     },
                 };
                 stream.write_json_packet(&msg);
+                stream.write_json_packet(&VoidAttachedReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -97,6 +111,7 @@ impl Actor for ThreadActor {
                     type_: "resumed".to_owned(),
                 };
                 stream.write_json_packet(&msg);
+                stream.write_json_packet(&VoidAttachedReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 

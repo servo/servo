@@ -10,7 +10,7 @@ dictionary ChannelMergerOptions : AudioNodeOptions {
   unsigned long numberOfInputs = 6;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelMergerOptions options)]
+[Exposed=Window]
 interface ChannelMergerNode : AudioNode {
+  [Throws] constructor(BaseAudioContext context, optional ChannelMergerOptions options = {});
 };

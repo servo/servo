@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Attribute mapping</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-mathvariant-attribute">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+<meta name="assert" content="Verify that mathvariant, scriptlevel, displaystyle are mapped to CSS">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+  function runTests() {
+      var container = document.getElementById("container");
+      for (tag in MathMLFragments) {
+          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+      }
+      Array.from(document.getElementsByClassName("element")).forEach(element => {
+          var tag = element.tagName;
+          var style = window.getComputedStyle(element);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("text-transform"),
+                            tag === "mi" ? "math-auto" : "none",
+                            "no attribute");
+              element.setAttribute("mathvariant", "fraktur");
+              assert_equals(style.getPropertyValue("text-transform"), "math-fraktur", "attribute specified");
+              element.setAttribute("mathvariant", "DoUbLe-StRuCk");
+              assert_equals(style.getPropertyValue("text-transform"), "math-double-struck", "case insensitive");
+          }, `mathvariant on the ${tag} element is mapped to CSS text-transform`)
+
+          test(function() {
+              assert_equals(style.getPropertyValue("math-script-level"), "0", "no attribute");
+              element.setAttribute("scriptlevel", "10");
+              assert_equals(style.getPropertyValue("math-script-level"), "10", "attribute specified");
+          }, `scriptlevel on the ${tag} element is mapped to CSS math-script-level`);
+
+          test(function() {
+              assert_equals(style.getPropertyValue("math-style"), "inline", "no attribute");
+              element.setAttribute("displaystyle", "true");
+              assert_equals(style.getPropertyValue("math-style"), "display", "attribute specified");
+              element.setAttribute("displaystyle", "TrUe");
+              assert_equals(style.getPropertyValue("math-style"), "display", "case insensitive");
+          }, `displaystyle on the ${tag} element is mapped to CSS math-style`);
+      });
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <math class="element"></math>
+  </div>
+</body>
+</html>

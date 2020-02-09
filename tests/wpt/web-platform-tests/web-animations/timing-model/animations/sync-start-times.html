@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>sync start times</title>
+<link rel="match" href="sync-start-times-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #box-1, #box-2 {
+    border: 1px solid white;
+    height: 40px;
+    left: 40px;
+    position: absolute;
+    top: 40px;
+    width: 40px;
+  }
+  #box-1 {
+    background: blue;
+    z-index: 1;
+  }
+  #box-2 {
+    background: white;
+    z-index: 2;
+  }
+  #notes {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+</style>
+
+<body>
+  <div id="box-1"></div>
+  <div id="box-2"></div>
+  <p id="notes">
+    This test creates a pair of animations, starts the first animation and then
+    syncs the second animation to align with the first. The test passes if the
+    box associated with the first animation is completely occluded by the
+    second.
+  </p>
+</body>
+<script>
+  onload = function() {
+    function createAnimation(elementId) {
+      const elem = document.getElementById(elementId);
+      const keyframes = [
+        { transform: 'translateX(0px)' },
+        { transform: 'translateX(200px)' }
+      ];
+      const anim = elem.animate(keyframes, { duration: 1000 });
+      anim.pause();
+      return anim;
+    };
+
+    const anim1 = createAnimation('box-1');
+    const anim2 = createAnimation('box-2');
+
+    anim1.currentTime = 500;
+    anim1.play();
+
+    anim1.ready.then(() => {
+      anim2.startTime = anim1.startTime;
+      requestAnimationFrame(() => {
+        takeScreenshot();
+      });
+    });
+  };
+</script>

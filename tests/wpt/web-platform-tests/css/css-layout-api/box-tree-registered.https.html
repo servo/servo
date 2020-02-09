@@ -55,8 +55,8 @@
 
 <script id="code" type="text/worklet">
 registerLayout('registered', class {
-  *intrinsicSizes() {}
-  *layout() { throw Error(); }
+  async intrinsicSizes() {}
+  async layout() { throw Error(); }
 });
 </script>
 

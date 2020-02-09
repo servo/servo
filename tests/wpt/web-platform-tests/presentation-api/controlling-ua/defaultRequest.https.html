@@ -14,7 +14,7 @@
     navigator.presentation.defaultRequest = request;
     assert_equals(navigator.presentation.defaultRequest, request, 'The default presentation request is set to an instance of PresentationRequest.');
 
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
       navigator.presentation.defaultRequest = {};
     }, 'The default presentation request cannot be set to any value but an instance of PresentationRequest or null.');
 

@@ -22,8 +22,8 @@ promise_test(async function(t) {
   t.add_cleanup(() => newRegistration.unregister());
 
   assert_equals(
-    registration.installing.scriptURL,
-    normalizeURL(newWorkerURL),
+    registration.installing,
+    null,
     'before activated registration.installing'
   );
   assert_equals(
@@ -47,13 +47,13 @@ promise_test(async function(t) {
     'before activated newRegistration.waiting'
   );
   assert_equals(
-    newRegistration.active.scriptURL,
-    normalizeURL(worker_url),
+    newRegistration.active,
+    null,
     'before activated newRegistration.active'
   );
   iframe.remove();
 
-  await wait_for_state(t, registration.installing, 'activated');
+  await wait_for_state(t, newRegistration.installing, 'activated');
 
   assert_equals(
     newRegistration.installing,
@@ -129,7 +129,8 @@ promise_test(async function(t) {
 
   assert_equals(registration.installing, null, 'registration.installing');
   assert_equals(registration.waiting, null, 'registration.waiting');
-  assert_equals(registration.active, null, 'registration.active');
+  assert_equals(registration.active.scriptURL, normalizeURL(worker_url),
+                'registration.active');
   assert_not_equals(registration, newRegistration, 'New registration is different');
 }, 'Registering a new script URL that fails to install does not resurrect unregistered registration');
 </script>

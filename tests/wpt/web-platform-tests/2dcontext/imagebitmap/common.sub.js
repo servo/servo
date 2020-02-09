@@ -97,11 +97,11 @@ function makeMakeHTMLImage(src) {
 function makeMakeSVGImage(src) {
     return function() {
         return new Promise((resolve, reject) => {
-            var image = document.createElementNS(NAMESPACES.svg, "image");
+            var image = document.createElementNS("http://www.w3.org/2000/svg", "image");
             image.onload = () => resolve(image);
             image.onerror = reject;
             image.setAttribute("externalResourcesRequired", "true");
-            image.setAttributeNS(NAMESPACES.xlink, 'xlink:href', src);
+            image.setAttributeNS("http://www.w3.org/1999/xlink", 'xlink:href', src);
             document.body.appendChild(image);
         });
     }

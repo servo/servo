@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Reference Overflow recalc after font-size change</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+#scroller {
+  height: 200px;
+  overflow: scroll;
+}
+#wrapper {
+  margin-top: 100px;
+  width: 200px;
+  height: 200px;
+  background: green;
+}
+</style>
+<p>Test passes if there is <strong>no red</strong>.</p>
+<div id="scroller">
+  <div id="wrapper"></div>
+</div>

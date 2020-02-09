@@ -16,15 +16,15 @@ dictionary PerformanceMeasureOptions {
 };
 
 partial interface Performance {
-    PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions);
+    PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions = {});
     void clearMarks(optional DOMString markName);
-    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions, optional DOMString endMark);
+    PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions = {}, optional DOMString endMark);
     void clearMeasures(optional DOMString measureName);
 };
 
-[Exposed=(Window,Worker),
- Constructor(DOMString markName, optional PerformanceMarkOptions markOptions)]
+[Exposed=(Window,Worker)]
 interface PerformanceMark : PerformanceEntry {
+  constructor(DOMString markName, optional PerformanceMarkOptions markOptions = {});
   readonly attribute any detail;
 };
 

@@ -7,8 +7,7 @@
  * https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
  */
 
-[NoInterfaceObject]
-interface DocumentOrShadowRoot {
+interface mixin DocumentOrShadowRoot {
   // Selection? getSelection();
   Element? elementFromPoint (double x, double y);
   sequence<Element> elementsFromPoint (double x, double y);

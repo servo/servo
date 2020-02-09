@@ -12,9 +12,9 @@ usb_test(() => getFakeDevice()
     'Can construct a USBConnectionEvent with a device');
 
 test(t => {
-  assert_throws(TypeError(),
+  assert_throws_js(TypeError,
       () => new USBConnectionEvent('connect', { device: null }));
-  assert_throws(TypeError(),
+  assert_throws_js(TypeError,
       () => new USBConnectionEvent('connect', {}));
 }, 'Cannot construct a USBConnectionEvent without a device');
 

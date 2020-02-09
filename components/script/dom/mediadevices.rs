@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaStreamConstraints;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{self, MediaDevicesMethods};
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrMediaTrackConstraints;
@@ -16,6 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
+use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
 use servo_media::streams::MediaStreamType;
@@ -46,12 +46,8 @@ impl MediaDevices {
 impl MediaDevicesMethods for MediaDevices {
     /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
     #[allow(unsafe_code)]
-    fn GetUserMedia(
-        &self,
-        constraints: &MediaStreamConstraints,
-        comp: InCompartment,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
+    fn GetUserMedia(&self, constraints: &MediaStreamConstraints, comp: InRealm) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(&self.global(), comp);
         let media = ServoMedia::get().unwrap();
         let stream = MediaStream::new(&self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {

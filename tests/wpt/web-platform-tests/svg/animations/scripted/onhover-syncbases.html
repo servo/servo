@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Check if onhover events reset correctly when triggered multiple times</title>
+    <link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#interact-EventAttributes">
+    <link rel="author" title="Edvard Thörnros" href="mailto:edvardt@opera.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <svg>
+      <circle id="circle" cx="150" cy="75" r="50" fill="#F00">
+      <set attributeName="fill" to="#0F0" begin="mouseover"/>
+      <set attributeName="fill" to="#F00" begin="mouseout"/>
+      </circle>
+    </svg>
+    <script>
+async_test(t => {
+  let rounds = 5; // How many times the cursor is moved in and out
+  let circle = document.querySelector("#circle");
+  let delay = 20;
+  function f() {
+    assert_equals(window.getComputedStyle(circle, null).fill,
+      "rgb(255, 0, 0)")
+    if (rounds-- == 0) {
+      t.done();
+      return;
+    }
+
+    circle.dispatchEvent(new Event("mouseover"));
+    t.step_timeout(function() {
+        assert_equals(window.getComputedStyle(circle, null).fill,
+          "rgb(0, 255, 0)")
+        circle.dispatchEvent(new Event("mouseout"))
+        t.step_timeout(f, delay);
+    }, delay);
+  }
+  t.step_timeout(f, 0);
+});
+    </script>
+  </body>
+</html>

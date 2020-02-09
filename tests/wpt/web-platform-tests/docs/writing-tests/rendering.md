@@ -5,10 +5,6 @@ these are especially using for [visual](visual) tests which need to be manually
 judged and following common patterns makes it easier to correctly tell if a
 given test passed or not.
 
-## Make tests self-describing
-
-Tests should make it obvious when they pass and when they fail. It shouldn't be necessary to consult the specification to figure out whether a test has passed of failed.
-
 ## Indicating success
 
 Success is largely indicated by the color green; typically in one of
@@ -24,8 +20,8 @@ two ways:
    renders a green square when it passes; these can mostly be written to
    match [this][ref-filled-green-100px-square] reference. This green square is
    often rendered over a red square, such that when the test fails there is red
-   visible on the page; this can even be done using text by using the [Ahem][]
-   font.
+   visible on the page; this can even be done using text by using the
+   [Ahem][ahem] font.
 
 More occasionally, the entire canvas is rendered green, typically when
 testing parts of CSS that affect the entire page. Care has to be taken
@@ -80,8 +76,9 @@ ways:
  * Silver or light gray is often used for irrelevant content, such as
    filler text.
 
-Obviously, none of this can be taken as absolute rules, as testing of
+None of these rules are absolute because testing
 color-related functionality will necessitate using some of these
 colors!
 
 [ref-filled-green-100px-square]: https://github.com/w3c/csswg-test/blob/master/reference/ref-filled-green-100px-square.xht
+[ahem]: ahem

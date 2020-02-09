@@ -119,8 +119,8 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader(fakeRS()),
-                'Constructing a ReadableStreamDefaultReader should throw');
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultReader(fakeRS()),
+                   'Constructing a ReadableStreamDefaultReader should throw');
 
 }, 'ReadableStreamDefaultReader enforces a brand check on its argument');
 
@@ -154,15 +154,15 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultController(fakeRS()),
-                'Constructing a ReadableStreamDefaultController should throw');
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultController(fakeRS()),
+                   'Constructing a ReadableStreamDefaultController should throw');
 
 }, 'ReadableStreamDefaultController enforces a brand check on its argument');
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStreamDefaultController(realRS()),
-                'Constructing a ReadableStreamDefaultController should throw');
+  assert_throws_js(TypeError, () => new ReadableStreamDefaultController(realRS()),
+                   'Constructing a ReadableStreamDefaultController should throw');
 
 }, 'ReadableStreamDefaultController can\'t be given a fully-constructed ReadableStream');
 

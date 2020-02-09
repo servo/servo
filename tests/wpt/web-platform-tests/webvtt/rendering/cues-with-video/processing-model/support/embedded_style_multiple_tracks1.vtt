@@ -1,0 +1,12 @@
+WEBVTT
+
+NOTE
+The style in this file should not apply to cues from other text tracks.
+
+STYLE
+::cue {
+    color: green;
+}
+
+00:00:00.000 --> 00:00:05.000
+This <i>is</i> a <b>test</b> subtitle

@@ -7,7 +7,8 @@
  *
  */
 
-interface Attr {
+[Exposed=Window]
+interface Attr : Node {
   [Constant]
   readonly attribute DOMString? namespaceURI;
   [Constant]
@@ -16,14 +17,8 @@ interface Attr {
   readonly attribute DOMString localName;
   [Constant]
   readonly attribute DOMString name;
-  [Constant]
-  readonly attribute DOMString nodeName; // historical alias of .name
   [CEReactions, Pure]
            attribute DOMString value;
-  [CEReactions, Pure]
-           attribute DOMString textContent; // historical alias of .value
-  [CEReactions, Pure]
-           attribute DOMString nodeValue; // historical alias of .value
 
   [Pure]
   readonly attribute Element? ownerElement;

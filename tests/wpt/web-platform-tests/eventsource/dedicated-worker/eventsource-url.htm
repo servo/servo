@@ -1,13 +1,4 @@
-<!--
-try {
-  var source = new EventSource("../resources/message.py")
-  postMessage([true, source.url])
-  source.close()
-} catch(e) {
-  postMessage([false, String(e)])
-}
-/*-->
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>dedicated worker - EventSource: url</title>
@@ -20,7 +11,7 @@ try {
       var test = async_test();
       test.step(function() {
         var url = "resources/message.py"
-        var worker = new Worker('#')
+        var worker = new Worker('eventsource-url.js')
         worker.onmessage = function(e) {
           test.step(function() {
             assert_true(e.data[0], e.data[1]);
@@ -32,4 +23,3 @@ try {
     </script>
   </body>
 </html>
-<!--*/ //-->

@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>Referrer Policy: iframes with data url uses no referrer</title>
+    <link rel="help" href="https://www.w3.org/TR/referrer-policy/#referrer-policy-delivery-nested">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="resources/make-html-script.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body onload="runTest()">
+    <h1>Referrer Policy: iframes with data url uses no referrer</h1>
+    <script>
+      let test = async_test("iframes with data url uses no referrer");
+      window.addEventListener("message", test.step_func_done(msg => {
+        assert_equals(msg.data.referrer, undefined);
+      }));
+
+      function runTest() {
+        let iframe = document.createElement("iframe");
+        iframe.src = `data:text/html,${createScriptString(get_host_info().REMOTE_ORIGIN)}`;
+        document.body.appendChild(iframe);
+      }
+    </script>
+    <div id="log"></div>
+  </body>
+</html>

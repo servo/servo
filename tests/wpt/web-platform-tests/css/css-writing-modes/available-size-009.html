@@ -8,7 +8,8 @@
 <meta name="flags" content="">
 <style>
 body { margin-top: 0; margin-bottom: 0; } /* Shouldn't matter, but in some browsers does. -007 tests this aspect specifically. */
-div {
+:root { overflow: hidden; }
+#ortho {
   writing-mode: vertical-rl;
   font-family: monospace;
   font-size: 20px;
@@ -16,7 +17,7 @@ div {
 }
 .spacer { /* using 5 spacers of 20vh each instead of a single large one, so
              that the line would wrap between spacers if it ends up being
-             shorter thatn 100vh*/
+             shorter than 100vh*/
   display: inline-block;
   height: calc(20vh - 0.1px); /*Using this instead of 20vh, to account for accumulation of rounding errors, that might make 5*20vh taller than 100vh in some browsers*/
 }
@@ -37,18 +38,21 @@ span {
   left: 0; top: 0;
 }
 
-section {
+#scroller {
   overflow: hidden;
-  writing-mode: vertical-rl;
+  writing-mode: vertical-lr;
   height: 120vh;
 }
-section > section {
+#parent {
   writing-mode: horizontal-tb;
+  width: 8em; /* avoid triggering intrinsic sizing bugs */
 }
 </style>
 
 <p>Test passes if there is a <strong>green rectangle</strong> below and <strong>no red</strong>.
 
-<section>
-<div><aside id="red">0</aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside> <span>0</span></div>
-</section>
+<div id=scroller>
+  <div id=parent>
+    <div id=ortho><aside id="red">0</aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside> <span>0</span></div>
+  </div>
+</div>

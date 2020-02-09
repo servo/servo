@@ -7,7 +7,7 @@
 <script>
   //No name given test
   test(t => {
-    let policy = window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    let policy = window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
     assert_equals(policy.name, 'SomeName');
   }, "Wildcard given - policy creation works");
 </script>

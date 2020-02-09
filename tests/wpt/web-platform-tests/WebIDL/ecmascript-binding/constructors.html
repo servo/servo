@@ -126,7 +126,7 @@ async_test(function() {
       assert_equals(object_realm(dp), "child window");
     }, "Constructor in child window with bad NewTarget from child window that's a proxy for a parent window function");
   });
-  iframe.src = "constructors-support.html";
+  iframe.src = "support/constructors-support.html";
   document.body.appendChild(iframe);
 });
 </script>

@@ -31,9 +31,6 @@ impl Default for InvalidationMatchingData {
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
 pub struct DocumentStateInvalidationProcessor<'a, E: TElement, I> {
-    // TODO(emilio): We might want to just run everything for every possible
-    // binding along with the document data, or just apply the XBL stuff to the
-    // bound subtrees.
     rules: I,
     matching_context: MatchingContext<'a, E::Impl>,
     document_states_changed: DocumentState,
@@ -82,7 +79,13 @@ where
                     continue;
                 }
 
-                self_invalidations.push(Invalidation::new(&dependency.selector, 0));
+                // We pass `None` as a scope, as document state selectors aren't
+                // affected by the current scope.
+                self_invalidations.push(Invalidation::new(
+                    &dependency.selector,
+                    /* scope = */ None,
+                    0,
+                ));
             }
         }
 

@@ -18,7 +18,7 @@
     open_rq.onsuccess = function(e) {
         db.close();
 
-        assert_throws('InvalidStateError',
+        assert_throws_dom('InvalidStateError',
             function() { db.transaction('test'); });
 
         t.done();

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    window.onmessage = (e) => {
+      if (e.data == 'reportHistoryLength') {
+        e.source.postMessage(history.length, '*');
+      } else if (e.data == 'navigate') {
+        location.href = '#test';
+        e.source.postMessage('Done', '*');
+      }
+    };
+  </script>
+</body>

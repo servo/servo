@@ -47,10 +47,12 @@ pub enum TexImageValidationError {
     InvalidOffsets,
 }
 
-impl std::error::Error for TexImageValidationError {
-    fn description(&self) -> &str {
+impl std::error::Error for TexImageValidationError {}
+
+impl fmt::Display for TexImageValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::TexImageValidationError::*;
-        match *self {
+        let description = match *self {
             InvalidTextureTarget(_) => "Invalid texture target",
             TextureTargetNotBound(_) => "Texture was not bound",
             InvalidCubicTextureDimensions => {
@@ -68,17 +70,8 @@ impl std::error::Error for TexImageValidationError {
             NonPotTexture => "Expected a power of two texture",
             InvalidCompressionFormat => "Unrecognized texture compression format",
             InvalidOffsets => "Invalid X/Y texture offset parameters",
-        }
-    }
-}
-
-impl fmt::Display for TexImageValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "TexImageValidationError({})",
-            std::error::Error::description(self)
-        )
+        };
+        write!(f, "TexImageValidationError({})", description)
     }
 }
 
@@ -613,7 +606,7 @@ impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
             compression,
         } = self.compression_validator.validate()?;
 
-        let tex_info = texture.image_info_for_target(&target, level);
+        let tex_info = texture.image_info_for_target(&target, level).unwrap();
 
         // GL_INVALID_VALUE is generated if:
         //   - xoffset or yoffset is less than 0
@@ -630,7 +623,7 @@ impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
 
         // GL_INVALID_OPERATION is generated if format does not match
         // internal_format.
-        if compression.format != tex_info.internal_format().unwrap() {
+        if compression.format != tex_info.internal_format() {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::TextureFormatMismatch);
         }

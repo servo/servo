@@ -13,8 +13,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::ptr;
 use std::ptr::NonNull;
@@ -39,6 +40,7 @@ impl FileReaderSync {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global))
     }
@@ -87,23 +89,21 @@ impl FileReaderSyncMethods for FileReaderSync {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
-    unsafe fn ReadAsArrayBuffer(
-        &self,
-        cx: *mut JSContext,
-        blob: &Blob,
-    ) -> Fallible<NonNull<JSObject>> {
+    fn ReadAsArrayBuffer(&self, cx: JSContext, blob: &Blob) -> Fallible<NonNull<JSObject>> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
-        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        assert!(ArrayBuffer::create(
-            cx,
-            CreateWith::Slice(&blob_contents),
-            array_buffer.handle_mut()
-        )
-        .is_ok());
+        unsafe {
+            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+            assert!(ArrayBuffer::create(
+                *cx,
+                CreateWith::Slice(&blob_contents),
+                array_buffer.handle_mut()
+            )
+            .is_ok());
 
-        Ok(NonNull::new_unchecked(array_buffer.get()))
+            Ok(NonNull::new_unchecked(array_buffer.get()))
+        }
     }
 }

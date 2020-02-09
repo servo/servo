@@ -10,7 +10,7 @@ setup(() => {
 
 test(() => {
   for (const object of objects) {
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
       Object.setPrototypeOf(object, {});
     });
   }

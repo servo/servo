@@ -15,7 +15,7 @@ promise_test(() => {
 
   return delay(50).then(() => {
     controller.close();
-    assert_throws(new TypeError(), () => controller.close(), 'close should throw a TypeError the second time');
+    assert_throws_js(TypeError, () => controller.close(), 'close should throw a TypeError the second time');
     controller.error();
   });
 
@@ -64,7 +64,7 @@ promise_test(() => {
 
   garbageCollect();
 
-  return delay(50).then(() => assert_throws(new TypeError(), () => rs.getReader(),
+  return delay(50).then(() => assert_throws_js(TypeError, () => rs.getReader(),
     'old reader should still be locking the stream even after garbage collection'));
 
 }, 'Garbage-collecting a ReadableStreamDefaultReader should not unlock its stream');

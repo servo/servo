@@ -59,6 +59,7 @@ impl TestBindingPairIterable {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingPairIterable>> {
         Ok(TestBindingPairIterable::new(global))
     }

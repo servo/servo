@@ -33,3 +33,7 @@ SUPPORT-WRONG-DIR:*
 ## Unnecessary checks ##
 
 WEB-PLATFORM.TEST:*
+
+## Too strict checks ##
+
+AHEM SYSTEM FONT: gfx-rs-gecko/descriptor-ranges.html

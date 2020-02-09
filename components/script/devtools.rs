@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -17,10 +16,9 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::window::Window;
+use crate::realms::enter_realm;
 use crate::script_thread::Documents;
-use devtools_traits::TimelineMarkerType;
-use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
-use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
+use devtools_traits::{AutoMargins, ComputedNodeLayout, TimelineMarkerType};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
@@ -36,7 +34,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
     let result = unsafe {
         let cx = global.get_cx();
         let _ac = enter_realm(global);
-        rooted!(in(cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
         if rval.is_undefined() {
@@ -45,20 +43,20 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
             EvaluateJSReply::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
             EvaluateJSReply::NumberValue(
-                match FromJSValConvertible::from_jsval(cx, rval.handle(), ()) {
+                match FromJSValConvertible::from_jsval(*cx, rval.handle(), ()) {
                     Ok(ConversionResult::Success(v)) => v,
                     _ => unreachable!(),
                 },
             )
         } else if rval.is_string() {
-            EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.to_string())))
+            EvaluateJSReply::StringValue(String::from(jsstring_to_str(*cx, rval.to_string())))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
-            rooted!(in(cx) let obj = rval.to_object());
-            let class_name = CStr::from_ptr(ObjectClassName(cx, obj.handle()));
+            rooted!(in(*cx) let obj = rval.to_object());
+            let class_name = CStr::from_ptr(ObjectClassName(*cx, obj.handle()));
             let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
 
             EvaluateJSReply::ActorValue {
@@ -180,50 +178,6 @@ fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
         bottom: margin.margin_bottom.is_auto(),
         left: margin.margin_left.is_auto(),
     }
-}
-
-pub fn handle_get_cached_messages(
-    _pipeline_id: PipelineId,
-    message_types: CachedConsoleMessageTypes,
-    reply: IpcSender<Vec<CachedConsoleMessage>>,
-) {
-    // TODO: check the messageTypes against a global Cache for console messages and page exceptions
-    let mut messages = Vec::new();
-    if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) {
-        // TODO: make script error reporter pass all reported errors
-        //      to devtools and cache them for returning here.
-        let msg = PageError {
-            type_: "PageError".to_owned(),
-            errorMessage: "page error test".to_owned(),
-            sourceName: String::new(),
-            lineText: String::new(),
-            lineNumber: 0,
-            columnNumber: 0,
-            category: String::new(),
-            timeStamp: 0,
-            error: false,
-            warning: false,
-            exception: false,
-            strict: false,
-            private: false,
-        };
-        messages.push(CachedConsoleMessage::PageError(msg));
-    }
-    if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) {
-        // TODO: do for real
-        let msg = ConsoleAPI {
-            type_: "ConsoleAPI".to_owned(),
-            level: "error".to_owned(),
-            filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
-            lineNumber: 0,
-            functionName: String::new(),
-            timeStamp: 0,
-            private: false,
-            arguments: vec!["console error test".to_owned()],
-        };
-        messages.push(CachedConsoleMessage::ConsoleAPI(msg));
-    }
-    reply.send(messages).unwrap();
 }
 
 pub fn handle_modify_attribute(

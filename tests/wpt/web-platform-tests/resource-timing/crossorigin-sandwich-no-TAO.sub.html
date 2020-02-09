@@ -22,10 +22,7 @@
         test_equals(entries.length, 1, 'There should be one entry.');
         const entry = entries[0];
 
-        test_equals(entry.redirectStart, 0, 'redirectStart == 0 in cross-origin redirect with no Timing-Allow-Origin.');
-        test_equals(entry.redirectEnd, 0, 'redirectEnd == 0 in cross-origin redirect with no Timing-Allow-Origin.');
-        test_greater_than(entry.fetchStart, 0, 'fetchStart > 0 in cross-origin redirect.');
-        test_equals(entry.fetchStart, entry.startTime, 'startTime == fetchStart in cross-origin redirect with no Timing-Allow-Origin.');
+        test_tao_fail(entry);
         done();
     }
 </script>
@@ -37,6 +34,7 @@
     let destUrl = pageOrigin + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' + pageOrigin;
     destUrl += '&cross_origin=' + crossOrigin;
+    destUrl += '&final_resource=' + "/resource-timing/resources/blank-with-tao.html";
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;
     frameContext.src = destUrl;

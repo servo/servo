@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>color</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#text-mtext">
+<link rel="match" href="color-001-ref.html"/>
+<meta name="assert" content="Verify that the color is used for the text of token elements.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px; padding: 1px;">
+    <math><mi style="color: green">1</mi></math>
+    <math><mn style="color: green">2</mn></math>
+    <math><mo style="color: green">3</mo></math>
+    <math><mtext style="color: green">4</mtext></math>
+    <math><ms style="color: green">5</ms></math>
+  </div>
+</body>
+</html>

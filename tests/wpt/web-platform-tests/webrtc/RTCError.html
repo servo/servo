@@ -19,24 +19,24 @@ test(() => {
 }, 'RTCError constructor\'s message argument is optional');
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCError();
   });
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCError({});  // {errorDetail} is missing.
   });
 }, 'RTCError constructor throws TypeError if arguments are missing');
 
 test(() => {
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCError({errorDetail:'invalid-error-detail'}, 'message');
   });
 }, 'RTCError constructor throws TypeError if the errorDetail is invalid');
 
 test(() => {
   const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
-  assert_equals(error.name, 'RTCError');
-}, 'RTCError.name is \'RTCError\'');
+  assert_equals(error.name, 'OperationError');
+}, 'RTCError.name is \'OperationError\'');
 
 test(() => {
   const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
@@ -45,7 +45,7 @@ test(() => {
 
 test(() => {
   const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     error.errorDetail = 'dtls-failure';
   });
 }, 'RTCError.errorDetail is readonly.');
@@ -53,7 +53,7 @@ test(() => {
 test(() => {
   // Infers what are valid RTCErrorInit objects by passing them to the RTCError
   // constructor.
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     new RTCError({}, 'message');
   });
   new RTCError({errorDetail:'data-channel-failure'}, 'message');
@@ -80,7 +80,7 @@ nullableAttributes.forEach(attribute => {
 
   test(() => {
     const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
-    assert_throws(new TypeError(), () => {
+    assert_throws_js(TypeError, () => {
       error[attribute] = 42;
     });
   }, 'RTCError.' + attribute + ' is readonly');

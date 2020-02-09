@@ -1,3 +1,0 @@
-SRCS = \
-    src.gen/scenesGen.cpp \
-    src.gen/SceneDescriptor.cpp \

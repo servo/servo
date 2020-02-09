@@ -35,6 +35,8 @@ image_capture_test(async t => {
                                       sharpness            : 6,
                                       focusDistance        : 7,
 
+                                      pan                  : 8,
+                                      tilt                 : 9,
                                       zoom                 : 3.141592,
 
                                       torch                : true
@@ -89,6 +91,9 @@ image_capture_test(async t => {
 
   assert_equals(constraints.advanced[0].focusDistance, settings.focusDistance,
                 'focusDistance');
+
+  assert_equals(constraints.advanced[0].pan, settings.pan, 'pan');
+  assert_equals(constraints.advanced[0].tilt, settings.tilt, 'tilt');
   assert_equals(constraints.advanced[0].zoom, settings.zoom, 'zoom');
 
   assert_equals(constraints.advanced[0].torch, settings.torch, 'torch');

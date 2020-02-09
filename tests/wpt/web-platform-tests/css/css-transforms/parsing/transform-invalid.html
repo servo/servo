@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <title>CSS Transform Module Level 2: parsing transform with invalid values</title>
-<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-property">
 <meta name="assert" content="transform supports only the grammar 'none | <transform-list>'.">
 <script src="/resources/testharness.js"></script>
@@ -24,10 +23,13 @@ test_invalid_value("transform", "translateX(-4px, 5px)");
 test_invalid_value("transform", "translateY(4%, 5%)");
 
 test_invalid_value("transform", "scale(6, 7, 8)");
+test_invalid_value("transform", "scale(6%, 7%, 8%)");
 
 test_invalid_value("transform", "scaleX(1, 2)");
+test_invalid_value("transform", "scaleX(1%, 2%)");
 
 test_invalid_value("transform", "scaleY(3, 4)");
+test_invalid_value("transform", "scaleY(3%, 4%)");
 
 test_invalid_value("transform", "rotate(0, 0)");
 test_invalid_value("transform", "rotate(0, 0, 0)");

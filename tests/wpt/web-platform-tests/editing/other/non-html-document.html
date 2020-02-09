@@ -17,7 +17,7 @@ test(function() {
          () => xmldoc.queryCommandSupported("bold"),
          () => xmldoc.queryCommandValue("bold"),
        ]) {
-    assert_throws("InvalidStateError", f);
+    assert_throws_dom("InvalidStateError", f);
   }
 }, "editing APIs on an XML document should be disabled");
 

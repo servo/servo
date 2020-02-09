@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>A copy of the corresponding W3C-SVG-1.1 test, which dumps the animation at certain times</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+
+<!--======================================================================-->
+<!--=  Copyright 2000 World Wide Web Consortium, (Massachusetts          =-->
+<!--=  Institute of Technology, Institut National de Recherche en        =-->
+<!--=  Informatique et en Automatique, Keio University). All Rights      =-->
+<!--=  Reserved. See http://www.w3.org/Consortium/Legal/.                =-->
+<!--======================================================================-->
+<!-- =====================================================================-->
+<!--                                                                      -->
+<!-- animation-add-BE-08.svg                                              -->
+<!-- renamed for 1.1 suite to animate-elem-07-f.svg                       -->
+<!-- renamed and split for svgt/b to animate-elem-16-t.svg              -->
+<!--                                                                      -->
+<!-- Test possible values for 'keyTimes'                                  -->
+<!--                                                                      -->
+<!-- Author : Jon Ferraiolo 11-Aug-2000                                   -->
+<!-- Revised for 1.1 : Mathias Larsson Carlander Feb/12/2002              -->
+<!-- Revised for svgt/b: Ola Andersson Jun/26/2002                        -->
+<!--                                                                      -->
+<!-- History:                                                             -->
+<!--  11-Aug-2000, JF: Serial#1 created.                                  -->
+<!--                                                                      -->
+<!-- =====================================================================-->
+<!--======================================================================-->
+<!--= Note. After October 2000, revision history is kept as CVS 'commit' =-->
+<!--= log messages, and therefore is no longer in the preceding preamble.=-->
+<!--======================================================================-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"  id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" version="1.1" baseProfile="tiny">
+   <SVGTestCase xmlns="http://www.w3.org/2000/02/svg/testsuite/description/">
+      <OperatorScript version="$Revision: 1.1 $" testname="animate-elem-07-t-c.svg">
+         <Paragraph>
+            Test 'calcMode'=linear
+         </Paragraph>
+         <Paragraph>
+            One animation has been defined to animate the height of a rectangle. Ruler lines and text are provided
+            to help show what the correct behavior is. The red text shows the values for the 'calcMode' and 'keyTimes' attributes. The
+            black text and ruler lines help show the size and movement of the rectangle over time.
+         </Paragraph>
+         <Paragraph>
+            This test shows an animation with calcMode="linear".
+         </Paragraph>
+      </OperatorScript>
+   </SVGTestCase>
+   <title id="test-title">animate-elem-16-t</title>
+   <desc id="test-desc">Test possible values for 'keyTimes'</desc>
+   <!--======================================================================-->
+   <!--Content of Test Case follows...                  =====================-->
+   <!--======================================================================-->
+   <g id="test-body-content">
+      <text font-family="Arial" fill="red" font-size="40"  x="3" y="45">calcMode="linear"</text>
+      <text font-family="Arial" fill="red" font-size="40"  x="3" y="100">keyTimes="0;.25;.5;1"</text>
+      <g xml:space="preserve" font-family="Arial" font-size="13.5" stroke-width="3" >
+         <g transform="translate(150,140)">
+            <text font-size="36" x="-140" y="140">Time (s):</text>
+            <text font-size="36" x="290" y="140">0</text>
+            <line x1="300" y1="0" x2="300" y2="100" fill="none" stroke="#880000" />
+            <text font-size="36" x="245" y="140">2</text>
+            <line x1="255" y1="0" x2="255" y2="100" fill="none" stroke="#880000" />
+            <text font-size="36" x="170" y="140">4</text>
+            <line x1="180" y1="0" x2="180" y2="100" fill="none" stroke="#880000" />
+            <text font-size="36" x="20" y="140">8</text>
+            <line x1="30" y1="0" x2="30" y2="100" fill="none" stroke="#880000" />
+            <rect x="0" y="0" width="300" height="80" fill="#44AAFF" stroke="#880088" stroke-width="4" >
+               <animate id="an1" attributeName="width" calcMode="linear" values="300;255;180;30" keyTimes="0;.25;.5;1" begin="0s" dur="8s" fill="freeze"/>
+            </rect>
+
+         </g>
+
+      </g>
+
+   </g>
+   <text id="revision" x="10" y="340" font-size="40" stroke="none" fill="black">$Revision: 1.1 $</text>
+   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <script>
+    // Pause the animation at t=0.
+    document.querySelector("svg").pauseAnimations();
+  </script>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() { // From 0s to 2s
+    assert_approx_equals(rect.width.animVal.value, 300, epsilon);
+    assert_equals(rect.width.baseVal.value, 300);
+}
+
+function sample2() { // From 2s to 4s
+    assert_approx_equals(rect.width.animVal.value, 255, epsilon);
+    assert_equals(rect.width.baseVal.value, 300);
+}
+
+function sample3() { // From 4s to 8s
+    assert_approx_equals(rect.width.animVal.value, 180, epsilon);
+    assert_equals(rect.width.baseVal.value, 300);
+}
+
+function sample4() { // From 8s to 8s
+    assert_approx_equals(rect.width.animVal.value, 30, epsilon);
+    assert_equals(rect.width.baseVal.value, 300);
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    // Sampling according to: keyTimes="0;.25;.5;1" begin="0s" dur="8s"
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,    sample1],
+        ["an1", 1.999,  sample2],
+        ["an1", 2.001,  sample2],
+        ["an1", 3.999,  sample3],
+        ["an1", 4.001,  sample3],
+        ["an1", 7.999,  sample4],
+        ["an1", 8.001,  sample4],
+        ["an1", 60.0,   sample4]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - CSSGroupingRule - cssRules</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssgroupingrule-interface">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+    function create(t) {
+        var style = document.createElement('style');
+        style.appendChild(document.createTextNode('@media all { * {} }'));
+        document.head.appendChild(style);
+        t.add_cleanup(function() {
+            document.head.removeChild(style);
+        });
+
+        assert_true(!!style.sheet, 'setup - sheet defined');
+        assert_equals(
+            style.sheet.cssRules.length, 1, 'setup - grouping rule created'
+        );
+        assert_equals(
+            style.sheet.cssRules[0].cssRules.length, 1, 'setup - rule created'
+        );
+        return style.sheet.cssRules[0];
+    }
+
+    test(function (t) {
+        var groupingRule = create(t);
+        groupingRule.cssRules.wptMarker = 'wpt';
+
+        // `insertRule` is used to prompt non-conforming implementations to
+        // create a new CSSRuleList object. Its behavior is verified by a
+        // dedicated test and should not influence the result of this
+        // particular test.
+        try {
+            groupingRule.insertRule('.foo {}', 0);
+            groupingRule.insertRule('.bar {}', 0);
+            groupingRule.insertRule('.baz {}', 0);
+        } catch (err) {}
+
+        assert_equals(groupingRule.cssRules.wptMarker, 'wpt');
+
+        try {
+            groupingRule.deleteRule('.foo {}', 0);
+            groupingRule.deleteRule('.bar {}', 0);
+            groupingRule.deleteRule('.baz {}', 0);
+        } catch (err) {}
+
+        assert_equals(groupingRule.cssRules.wptMarker, 'wpt');
+    }, '[SameObject] is honored');
+    </script>
+</head>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This tests from-by-animations adding to previous underlying values</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- an1: Change width from 10 to 50 in 4s -->
+<!-- an2: Change width from 0 to 100 in 4s starting at 5s -->
+<rect width="10" height="100" fill="green">
+    <animate id="an1" attributeType="XML" attributeName="width" fill="freeze" from="10" by="40" begin="0s" dur="4s"/>
+    <animate id="an2" attributeType="XML" attributeName="width" additive="replace" fill="freeze" from="0" by="100" begin="5s" dur="4s"/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect.width.animVal.value, 10, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample2() {
+    assert_approx_equals(rect.width.animVal.value, 30, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample3() {
+    assert_approx_equals(rect.width.animVal.value, 50, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample4() {
+    assert_approx_equals(rect.width.animVal.value, 0, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample5() {
+    assert_approx_equals(rect.width.animVal.value, 50, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample6() {
+    assert_approx_equals(rect.width.animVal.value, 100, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,   sample1],
+        ["an1", 2.0,   sample2],
+        ["an1", 4.0,   sample3],
+        ["an1", 4.999, sample3],
+        ["an1", 5.001, sample4],
+        ["an1", 7.0,   sample5],
+        ["an1", 9.0,   sample6],
+        ["an1", 60.0,  sample6]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

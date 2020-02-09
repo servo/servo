@@ -447,17 +447,13 @@ where
     }
 }
 
-impl<T> ToAnimatedZero for Box<[T]>
+impl<T> ToAnimatedZero for crate::OwnedSlice<T>
 where
     T: ToAnimatedZero,
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        let v = self
-            .iter()
-            .map(|v| v.to_animated_zero())
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(v.into_boxed_slice())
+        self.iter().map(|v| v.to_animated_zero()).collect()
     }
 }
 

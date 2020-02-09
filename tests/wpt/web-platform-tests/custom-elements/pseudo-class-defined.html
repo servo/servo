@@ -16,6 +16,7 @@ const testList = [
 const neither = 'rgb(255, 0, 0)';
 const defined = 'rgb(255, 165, 0)';
 const not_defined = 'rgb(0, 0, 255)';
+const iframe = document.getElementById("iframe");
 iframe.srcdoc = `<style>
   * { color:${neither}; }
   :defined { color:${defined}; }
@@ -90,4 +91,22 @@ function test_defined(expected, element, description) {
     assert_equals(style.color, expected ? defined : not_defined, 'getComputedStyle');
   }, `${description} should ${expected ? 'be' : 'not be'} :defined`);
 }
+
+test(function () {
+    var log = [];
+    var instance = document.createElement('my-custom-element-2');
+    document.body.appendChild(instance);
+    customElements.define('my-custom-element-2',class extends HTMLElement {
+        constructor() {
+            super();
+            log.push([this, 'begin']);
+            assert_false(this.matches(":defined"), "During construction, this should not match :defined");
+            log.push([this, 'end']);
+        }
+    });
+    assert_equals(log.length, 2);
+    assert_array_equals(log[0], [instance, 'begin']);
+    assert_array_equals(log[1], [instance, 'end']);
+}, 'this.matches(:defined) should not match during an upgrade');
+
 </script>

@@ -10,7 +10,7 @@ dictionary ChannelSplitterOptions : AudioNodeOptions {
   unsigned long numberOfOutputs = 6;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelSplitterOptions options)]
+[Exposed=Window]
 interface ChannelSplitterNode : AudioNode {
+  [Throws] constructor(BaseAudioContext context, optional ChannelSplitterOptions options = {});
 };

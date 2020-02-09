@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>NDEFWriter.write respect page visibility changes</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+promise_test(async t => {
+  const writer = new NDEFWriter();
+  const p1 = writer.write(test_text_data);
+
+  return await new Promise((resolve, reject) => {
+    p1.then(() => {
+      assert_false(document.hidden);
+      resolve();
+    }).catch(e => {
+      reject();
+    });
+  });
+}, "Test NDEFWriter.write operation should be suspend when document is not visible");
+
+</script>
+
+<p>Step1: switch the page to the background, then tap an NFC tag.</p>
+<p>Step2: switch back to the page, then tap the tag again.</p>

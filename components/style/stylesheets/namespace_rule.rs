@@ -7,8 +7,9 @@
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::{Namespace, Prefix};
-use cssparser::SourceLocation;
+use cssparser::{self, SourceLocation};
 use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// A `@namespace` rule.
 #[derive(Clone, Debug, PartialEq, ToShmem)]
@@ -27,13 +28,12 @@ impl ToCssWithGuard for NamespaceRule {
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@namespace ")?;
         if let Some(ref prefix) = self.prefix {
-            dest.write_str(&*prefix.to_string())?;
+            let prefix = prefix.to_string();
+            cssparser::serialize_identifier(&prefix, dest)?;
             dest.write_str(" ")?;
         }
-
-        // FIXME(emilio): Pretty sure this needs some escaping, or something?
-        dest.write_str("url(\"")?;
-        dest.write_str(&*self.url.to_string())?;
-        dest.write_str("\");")
+        dest.write_str("url(")?;
+        self.url.to_string().to_css(&mut CssWriter::new(dest))?;
+        dest.write_str(");")
     }
 }

@@ -61,6 +61,7 @@ impl UIEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -73,7 +74,7 @@ impl UIEvent {
             type_,
             bubbles,
             cancelable,
-            init.view.deref(),
+            init.view.as_deref(),
             init.detail,
         );
         Ok(event)

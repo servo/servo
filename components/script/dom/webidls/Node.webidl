@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-node
  */
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
   const unsigned short ATTRIBUTE_NODE = 2; // historical
@@ -29,10 +29,13 @@ interface Node : EventTarget {
   readonly attribute USVString baseURI;
 
   [Pure]
+  readonly attribute boolean isConnected;
+
+  [Pure]
   readonly attribute Document? ownerDocument;
 
   [Pure]
-  Node getRootNode(optional GetRootNodeOptions options);
+  Node getRootNode(optional GetRootNodeOptions options = {});
 
   [Pure]
   readonly attribute Node? parentNode;

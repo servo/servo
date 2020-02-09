@@ -1,0 +1,235 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTML IDL tests</title>
+<meta name=timeout content=long>
+<meta name="variant" content="?include=(Document|Window)">
+<meta name="variant" content="?include=HTML.*">
+<meta name="variant" content="?exclude=(Document|Window|HTML.*)">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/subset-tests-by-key.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>HTML IDL tests</h1>
+<div id=log></div>
+
+<script>
+"use strict";
+var errorVideo; // used to get a MediaError object
+var iframe; // used to get a Document object (can't use `document` because some test clears the page)
+setup(function() {
+  errorVideo = document.createElement('video');
+  errorVideo.src = 'data:,';
+  errorVideo.preload = 'auto';
+  iframe = document.createElement('iframe');
+  iframe.hidden = true;
+  document.body.appendChild(iframe);
+});
+
+function createInput(type) {
+  var input = document.createElement('input');
+  input.type = type;
+  return input;
+}
+
+const waitForLoad = new Promise(resolve => { addEventListener('load', resolve); })
+
+idl_test(
+  ['html'],
+  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom', 'xhr', 'FileAPI', 'mediacapture-streams'],
+  async idlArray => {
+    self.documentWithHandlers = new Document();
+    const handler = function(e) {};
+    for (const callback of idlArray.members['GlobalEventHandlers'].members) {
+      if (callback.idlType && callback.idlType.idlType === 'EventHandler') {
+        documentWithHandlers[callback.name] = handler;
+      }
+    }
+    idlArray.add_untested_idls('typedef Window WindowProxy;');
+
+    idlArray.add_objects({
+      NodeList: ['document.getElementsByName("name")'],
+      HTMLAllCollection: ['document.all'],
+      HTMLFormControlsCollection: ['document.createElement("form").elements'],
+      RadioNodeList: [],
+      HTMLOptionsCollection: ['document.createElement("select").options'],
+      DOMStringMap: ['document.head.dataset'],
+      Transferable: [],
+      Document: ['iframe.contentDocument', 'new Document()', 'documentWithHandlers'],
+      XMLDocument: ['document.implementation.createDocument(null, "", null)'],
+      HTMLElement: ['document.createElement("noscript")'], // more tests in html/semantics/interfaces.js
+      HTMLUnknownElement: ['document.createElement("bgsound")'], // more tests in html/semantics/interfaces.js
+      HTMLHtmlElement: ['document.createElement("html")'],
+      HTMLHeadElement: ['document.createElement("head")'],
+      HTMLTitleElement: ['document.createElement("title")'],
+      HTMLBaseElement: ['document.createElement("base")'],
+      HTMLLinkElement: ['document.createElement("link")'],
+      HTMLMetaElement: ['document.createElement("meta")'],
+      HTMLStyleElement: ['document.createElement("style")'],
+      HTMLScriptElement: ['document.createElement("script")'],
+      HTMLBodyElement: ['document.createElement("body")'],
+      HTMLHeadingElement: ['document.createElement("h1")'],
+      HTMLParagraphElement: ['document.createElement("p")'],
+      HTMLHRElement: ['document.createElement("hr")'],
+      HTMLPreElement: [
+        'document.createElement("pre")',
+        'document.createElement("listing")',
+        'document.createElement("xmp")',
+      ],
+      HTMLQuoteElement: [
+        'document.createElement("blockquote")',
+        'document.createElement("q")',
+      ],
+      HTMLOlistElement: ['document.createElement("ol")'],
+      HTMLUlistElement: ['document.createElement("ul")'],
+      HTMLLIElement: ['document.createElement("li")'],
+      HTMLDlistElement: ['document.createElement("dl")'],
+      HTMLDivElement: ['document.createElement("div")'],
+      HTMLAnchorElement: ['document.createElement("a")'],
+      HTMLDataElement: ['document.createElement("data")'],
+      HTMLTimeElement: ['document.createElement("time")'],
+      HTMLSpanElement: ['document.createElement("span")'],
+      HTMLBRElement: ['document.createElement("br")'],
+      HTMLModElement: [
+        'document.createElement("ins")',
+        'document.createElement("del")',
+      ],
+      HTMLPictureElement: ['document.createElement("picture")'],
+      HTMLImageElement: ['document.createElement("img")', 'new Image()'],
+      HTMLIframeElement: ['document.createElement("iframe")'],
+      HTMLEmbedElement: ['document.createElement("embed")'],
+      HTMLObjectElement: ['document.createElement("object")'],
+      HTMLParamElement: ['document.createElement("param")'],
+      HTMLVideoElement: ['document.createElement("video")'],
+      HTMLAudioElement: ['document.createElement("audio")', 'new Audio()'],
+      HTMLSourceElement: ['document.createElement("source")'],
+      HTMLTrackElement: ['document.createElement("track")'],
+      HTMLMediaElement: [],
+      MediaError: ['errorVideo.error'],
+      AudioTrackList: [],
+      AudioTrack: [],
+      VideoTrackList: [],
+      VideoTrack: [],
+      TextTrackList: ['document.createElement("video").textTracks'],
+      TextTrack: ['document.createElement("track").track'],
+      TextTrackCueList: ['document.createElement("video").addTextTrack("subtitles").cues'],
+      TextTrackCue: [],
+      DataCue: [],
+      TimeRanges: ['document.createElement("video").buffered'],
+      TrackEvent: ['new TrackEvent("addtrack", {track:document.createElement("track").track})'],
+      HTMLTemplateElement: ['document.createElement("template")'],
+      HTMLSlotElement: ['document.createElement("slot")'],
+      HTMLCanvasElement: ['document.createElement("canvas")'],
+      CanvasRenderingContext2D: ['document.createElement("canvas").getContext("2d")'],
+      CanvasGradient: [],
+      CanvasPattern: [],
+      TextMetrics: [],
+      ImageData: ['new ImageData(10, 10)'],
+      HTMLMapElement: ['document.createElement("map")'],
+      HTMLAreaElement: ['document.createElement("area")'],
+      HTMLTableElement: ['document.createElement("table")'],
+      HTMLTableCaptionElement: ['document.createElement("caption")'],
+      HTMLTableColElement: [
+        'document.createElement("colgroup")',
+        'document.createElement("col")',
+      ],
+      HTMLTableSectionElement: [
+        'document.createElement("tbody")',
+        'document.createElement("thead")',
+        'document.createElement("tfoot")',
+      ],
+      HTMLTableRowElement: ['document.createElement("tr")'],
+      HTMLTableCellElement: [
+        'document.createElement("td")',
+        'document.createElement("th")',
+      ],
+      HTMLFormElement: ['document.createElement("form")'],
+      HTMLFieldsetElement: ['document.createElement("fieldset")'],
+      HTMLLegendElement: ['document.createElement("legend")'],
+      HTMLLabelElement: ['document.createElement("label")'],
+      HTMLInputElement: [
+        'document.createElement("input")',
+        'createInput("text")',
+        'createInput("hidden")',
+        'createInput("search")',
+        'createInput("tel")',
+        'createInput("url")',
+        'createInput("email")',
+        'createInput("password")',
+        'createInput("date")',
+        'createInput("month")',
+        'createInput("week")',
+        'createInput("time")',
+        'createInput("datetime-local")',
+        'createInput("number")',
+        'createInput("range")',
+        'createInput("color")',
+        'createInput("checkbox")',
+        'createInput("radio")',
+        'createInput("file")',
+        'createInput("submit")',
+        'createInput("image")',
+        'createInput("reset")',
+        'createInput("button")'
+      ],
+      HTMLButtonElement: ['document.createElement("button")'],
+      HTMLSelectElement: ['document.createElement("select")'],
+      HTMLDataListElement: ['document.createElement("datalist")'],
+      HTMLOptGroupElement: ['document.createElement("optgroup")'],
+      HTMLOptionElement: ['document.createElement("option")', 'new Option()'],
+      HTMLTextAreaElement: ['document.createElement("textarea")'],
+      HTMLOutputElement: ['document.createElement("output")'],
+      HTMLProgressElement: ['document.createElement("progress")'],
+      HTMLMeterElement: ['document.createElement("meter")'],
+      ValidityState: ['document.createElement("input").validity'],
+      FormDataEvent: ['new FormDataEvent("formdata", { formData: new FormData() })'],
+      HTMLDetailsElement: ['document.createElement("details")'],
+      HTMLMenuElement: ['document.createElement("menu")'],
+      Window: ['window'],
+      BarProp: [],
+      History: ['window.history'],
+      Location: ['window.location'],
+      PopStateEvent: ['new PopStateEvent("popstate", { data: {} })'],
+      HashChangeEvent: [],
+      PageTransitionEvent: [],
+      BeforeUnloadEvent: [],
+      ApplicationCache: ['window.applicationCache'],
+      WindowModal: [],
+      DOMParser: ['new DOMParser()'],
+      Navigator: ['window.navigator'],
+      External: ['window.external'],
+      DataTransfer: [],
+      DataTransferItemList: [],
+      DataTransferItem: [],
+      DragEvent: [],
+      NavigatorUserMediaError: [],
+      MediaStream: [],
+      MediaStreamTrack: [],
+      MediaStreamRecorder: [],
+      PeerConnection: [],
+      MediaStreamEvent: [],
+      ErrorEvent: [],
+      // https://web-platform-tests.org/writing-tests/server-features.html?tests-involving-multiple-origins
+      WebSocket: ['new WebSocket("wss://nonexistent.' + get_host_info().ORIGINAL_HOST + '")'],
+      CloseEvent: ['new CloseEvent("close")'],
+      AbstractWorker: [],
+      Worker: [],
+      SharedWorker: [],
+      MessageEvent: ['new MessageEvent("message", { data: 5 })'],
+      MessageChannel: [],
+      MessagePort: [],
+      HTMLMarqueeElement: ['document.createElement("marquee")'],
+      HTMLFrameSetElement: ['document.createElement("frameset")'],
+      HTMLFrameElement: ['document.createElement("frame")'],
+      HTMLDirectoryElement: ['document.createElement("dir")'],
+      HTMLFontElement: ['document.createElement("font")'],
+      DOMStringList: ['location.ancestorOrigins'],
+    });
+    idlArray.prevent_multiple_testing('HTMLElement');
+    await waitForLoad;
+  }
+);
+
+</script>

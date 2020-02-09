@@ -1,8 +1,0 @@
-{
-  "@context": "http://www.w3.org/ns/anno.jsonld",
-  "id": "not a uri",
-  "label": "bad id",
-  "type": "Annotation",
-  "body": "http://example.org/post1",
-  "target": "http://example.com/page1"
-}

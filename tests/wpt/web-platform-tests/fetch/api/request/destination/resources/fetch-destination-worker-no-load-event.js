@@ -4,7 +4,8 @@ self.addEventListener('fetch', function(event) {
         event.waitUntil(async function() {
             let destination = new URL(url).searchParams.get("dest");
             var result = "FAIL";
-            if (event.request.destination == destination) {
+            if (event.request.destination == destination ||
+                (event.request.destination == "empty" && destination == "")) {
               result = "PASS";
             }
             let cl = await clients.matchAll({includeUncontrolled: true});

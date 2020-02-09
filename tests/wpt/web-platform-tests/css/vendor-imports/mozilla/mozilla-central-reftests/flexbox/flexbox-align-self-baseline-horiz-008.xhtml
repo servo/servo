@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for behavior of 'baseline' and 'last baseline' values
+     for align-items (and align-self, implicitly) for sideways
+     writing modes. This test confirms non-interference between the
+     'baseline' and 'last baseline' items.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Baseline alignment of block flex items with 'baseline' and 'last-baseline' values for 'align-self' against each other.</title>
+    <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#baseline-participation"/>
+    <link rel="match" href="flexbox-align-self-baseline-horiz-008-ref.xhtml"/>
+    <style>
+      .container {
+        float: left;
+        display: flex;
+        writing-mode: sideways-rl;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+        width: 80px;
+      }
+
+      .reverse { flex-flow: row wrap-reverse; }
+
+      .base     { align-self: baseline; }
+      .lastbase { align-self: last baseline; }
+
+      .offset { margin-right: 10px;
+                margin-left: 3px; }
+
+      .lime   { background: lime;   }
+      .yellow { background: yellow; }
+      .orange { background: orange; }
+      .pink   { background: pink;   }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="lime base">one line (first)</div>
+      <div class="yellow lastbase">one line (last)</div>
+      <div class="orange offset lastbase">two<br/>lines and offset (last)</div>
+      <div class="pink offset base">offset (first)</div>
+    </div>
+    <div class="container reverse">
+      <div class="lime base">one line (first)</div>
+      <div class="yellow lastbase">one line (last)</div>
+      <div class="orange offset lastbase">two<br/>lines and offset (last)</div>
+      <div class="pink offset base">offset (first)</div>
+    </div>
+  </body>
+</html>

@@ -9,7 +9,7 @@ client.onreadystatechange = test.step_func( function() {
   if (client.readyState !== 4) return;
   var text = client.responseText;
   assert_not_equals(text, "");
-  assert_throws("InvalidStateError", function() { client.overrideMimeType('application/xml;charset=Shift-JIS'); });
+  assert_throws_dom("InvalidStateError", function() { client.overrideMimeType('application/xml;charset=Shift-JIS'); });
   if (GLOBAL.isWindow()) {
     assert_equals(client.responseXML, null);
   }

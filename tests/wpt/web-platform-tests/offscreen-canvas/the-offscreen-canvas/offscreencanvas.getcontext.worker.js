@@ -1,11 +1,11 @@
 // spec link: https://html.spec.whatwg.org/#dom-offscreencanvas-getcontext
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 test(function() {
     var offscreenCanvas = new OffscreenCanvas(1, 1);
-    assert_throws(new TypeError(), function() { offscreenCanvas.getContext('3d'); });
+    assert_throws_js(TypeError, function() { offscreenCanvas.getContext('3d'); });
 }, "Test that getContext with un-supported string throws a TypeError.");
 
 test(function() {

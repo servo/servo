@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Ellipsizing should not affect `offsetWidth` of inline boxes.</title>
+<link rel="author" href="kojii@chromium.org">
+<link rel="help" href="https://crbug.com/978392">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#ellipsing-details">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#ellipsis {
+  width: 50px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+</style>
+<body>
+  <div id="normal"><span>This is a test text.</span></div>
+  <div id="ellipsis"><span>This is a test text.</span></div>
+<script>
+test(() => {
+  let normal_child = normal.firstElementChild;
+  let ellipsis_child = ellipsis.firstElementChild;
+  assert_equals(normal_child.offsetWidth, ellipsis_child.offsetWidth);
+});
+</script>
+</body>

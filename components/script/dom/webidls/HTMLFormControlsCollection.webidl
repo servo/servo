@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlformcontrolscollection
+[Exposed=Window]
 interface HTMLFormControlsCollection : HTMLCollection {
   // inherits length and item()
   getter (RadioNodeList or Element)? namedItem(DOMString name); // shadows inherited namedItem()

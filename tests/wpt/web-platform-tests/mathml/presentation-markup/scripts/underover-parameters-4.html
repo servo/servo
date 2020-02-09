@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Underscripts and Overscripts parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mundermover">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <meta name="assert" content="Elements munder, mover, munderover correctly use underbar/overbar and AccentBaseHeight parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace, mo {
     font-size: 10px;
@@ -40,13 +41,12 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => {   document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       for (var i = 1; i <= 4; i++) {
         for (var j = 1; j <= 6; j++) {
            var baseId = ("base00" + i) + j;
@@ -59,6 +59,8 @@
     }, "Baseline alignment");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       for (var i = 1; i <= 4; i++) {
         for (var j = 1; j <= 6; j++) {
            var baseId = ("base00" + i) + j;
@@ -72,6 +74,8 @@
     }, "Heights of bases");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 5000 * emToPx;
       assert_approx_equals(getBox("ref001").bottom - getBox("over0014").bottom,
                            shortBaseHeight, epsilon,
@@ -96,6 +100,8 @@
     }, "AccentBaseHeight, UnderbarExtraDescender");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 7000 * emToPx;
       assert_approx_equals(getBox("ref002").bottom - getBox("over0024").bottom,
                            shortBaseHeight, epsilon,
@@ -118,6 +124,8 @@
     }, "AccentBaseHeight, UnderbarVerticalGap");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("ref003").bottom - getBox("over0031").bottom,
                            shortBaseHeight, epsilon,
@@ -154,6 +162,8 @@
     }, "AccentBaseHeight, OverbarExtraAscender");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       v = 11000 * emToPx;
       assert_approx_equals(getBox("ref004").bottom - getBox("over0041").bottom,
                            shortBaseHeight + v, epsilon,

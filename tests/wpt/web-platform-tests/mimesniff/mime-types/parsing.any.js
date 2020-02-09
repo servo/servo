@@ -34,8 +34,8 @@ function runTests(tests) {
     promise_test(() => {
       const compatibleNess = isByteCompatible(val.input);
       if(compatibleNess === "incompatible" || compatibleNess === "header-value-incompatible") {
-        assert_throws(new TypeError(), () => new Request("about:blank", { headers: [["Content-Type", val.input]] }));
-        assert_throws(new TypeError(), () => new Response(null, { headers: [["Content-Type", val.input]] }));
+        assert_throws_js(TypeError, () => new Request("about:blank", { headers: [["Content-Type", val.input]] }));
+        assert_throws_js(TypeError, () => new Response(null, { headers: [["Content-Type", val.input]] }));
         return Promise.resolve();
       } else {
         return Promise.all([

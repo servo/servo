@@ -36,10 +36,6 @@
   html
     {
       writing-mode: vertical-rl;
-    }
-
-  body#containing-block
-    {
       background-image: url("support/bg-red-3col-2row-320x320.png");
       background-position: -152px 8px;
       /* first value represents the horizontal position and the second represents the vertical position */
@@ -54,9 +50,11 @@
       -152px
       */
       background-repeat: no-repeat;
+    }
+  #containing-block
+    {
       direction: rtl;
       height: 320px;
-      margin: 8px;
     }
 
   p
@@ -66,7 +64,7 @@
       margin-right: 16px;
     }
 
-  div
+  #test
     {
       background-color: green;
       margin-top: 160px;
@@ -135,16 +133,16 @@ And so computed margin-top value must be 80px .
 
  </head>
 
- <body id="containing-block">
+ <body>
+  <div id="containing-block">
+   <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled" /></p>
+   <!--
+   The image says:
+   Test passes if there is a filled
+   green square and <strong>no red</strong>.
+   -->
 
-  <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled" /></p>
-  <!--
-  The image says:
-  Test passes if there is a filled
-  green square and <strong>no red</strong>.
-  -->
-
-  <div></div>
-
+   <div id="test"></div>
+  </div>
  </body>
 </html>

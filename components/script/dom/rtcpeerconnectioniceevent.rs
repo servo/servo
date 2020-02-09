@@ -56,6 +56,7 @@ impl RTCPeerConnectionIceEvent {
         e
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         ty: DOMString,

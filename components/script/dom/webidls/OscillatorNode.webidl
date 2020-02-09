@@ -21,9 +21,9 @@ dictionary OscillatorOptions : AudioNodeOptions {
   // PeriodicWave periodicWave;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional OscillatorOptions options)]
+[Exposed=Window]
 interface OscillatorNode : AudioScheduledSourceNode {
+  [Throws] constructor(BaseAudioContext context, optional OscillatorOptions options = {});
   [SetterThrows]
   attribute OscillatorType type;
 

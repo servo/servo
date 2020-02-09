@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS Color Module Level 3: getComputedValue().color</title>
+<title>CSS Color Module Level 3: getComputedStyle().color</title>
 <link rel="help" href="https://drafts.csswg.org/css-color/#propdef-color">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -27,6 +27,7 @@ test_computed_value("color", "#FEDCBA", "rgb(254, 220, 186)");
 test_computed_value("color", "rgb(2, 3, 4)");
 test_computed_value("color", "rgb(100%, 0%, 0%)", "rgb(255, 0, 0)");
 test_computed_value("color", "rgba(2, 3, 4, 0.5)");
+test_computed_value("color", "rgba(2, 3, 4, 50%)", "rgba(2, 3, 4, 0.5)");
 test_computed_value("color", "hsl(120, 100%, 50%)", "rgb(0, 255, 0)");
 test_computed_value("color", "hsla(120, 100%, 50%, 0.25)", "rgba(0, 255, 0, 0.25)");
 test_computed_value("color", "rgb(-2, 3, 4)", "rgb(0, 3, 4)");

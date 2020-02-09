@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltrackelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTrackElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute DOMString kind;
   [CEReactions]

@@ -4,7 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use crate::connector::{create_http_client, create_ssl_connector_builder};
+use crate::connector::{create_http_client, create_tls_config, ALPN_H2_H1};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
@@ -25,19 +25,21 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::DiscardFetch;
+use net_traits::FetchTaskTarget;
 use net_traits::WebSocketNetworkEvent;
 use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
 use net_traits::{CustomResponseMediator, FetchChannels};
-use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{ResourceThreads, WebSocketDomAction};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::ops::Deref;
@@ -138,18 +140,31 @@ fn create_http_states(
         None => resources::read_string(Resource::SSLCertificates),
     };
 
-    let ssl_connector_builder = create_ssl_connector_builder(&certs);
     let http_state = HttpState {
+        hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
-        http_cache: RwLock::new(http_cache),
-        hsts_list: RwLock::new(hsts_list),
         history_states: RwLock::new(HashMap::new()),
-        client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
+        http_cache: RwLock::new(http_cache),
+        http_cache_state: Mutex::new(HashMap::new()),
+        client: create_http_client(
+            create_tls_config(&certs, ALPN_H2_H1),
+            HANDLE.lock().unwrap().executor(),
+        ),
     };
 
-    let private_ssl_client = create_ssl_connector_builder(&certs);
-    let private_http_state = HttpState::new(private_ssl_client);
+    let private_http_state = HttpState {
+        hsts_list: RwLock::new(HstsList::from_servo_preload()),
+        cookie_jar: RwLock::new(CookieStorage::new(150)),
+        auth_cache: RwLock::new(AuthCache::new()),
+        history_states: RwLock::new(HashMap::new()),
+        http_cache: RwLock::new(HttpCache::new()),
+        http_cache_state: Mutex::new(HashMap::new()),
+        client: create_http_client(
+            create_tls_config(&certs, ALPN_H2_H1),
+            HANDLE.lock().unwrap().executor(),
+        ),
+    };
 
     (Arc::new(http_state), Arc::new(private_http_state))
 }
@@ -245,6 +260,10 @@ impl ResourceChannelManager {
                     action_receiver,
                     http_state,
                 ),
+                FetchChannels::Prefetch => {
+                    self.resource_manager
+                        .fetch(req_init, None, DiscardFetch, http_state, None)
+                },
             },
             CoreResourceMsg::DeleteCookies(request) => {
                 http_state
@@ -272,6 +291,7 @@ impl ResourceChannelManager {
             },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
                 consumer
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
@@ -281,6 +301,7 @@ impl ResourceChannelManager {
             },
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookies = cookie_jar
                     .cookies_data_for_url(&url, source)
                     .map(Serde)
@@ -293,9 +314,9 @@ impl ResourceChannelManager {
                     .send(history_states.get(&history_state_id).cloned())
                     .unwrap();
             },
-            CoreResourceMsg::SetHistoryState(history_state_id, history_state) => {
+            CoreResourceMsg::SetHistoryState(history_state_id, structured_data) => {
                 let mut history_states = http_state.history_states.write().unwrap();
-                history_states.insert(history_state_id, history_state);
+                history_states.insert(history_state_id, structured_data);
             },
             CoreResourceMsg::RemoveHistoryStates(states_to_remove) => {
                 let mut history_states = http_state.history_states.write().unwrap();
@@ -341,7 +362,7 @@ where
 
     let mut file = match File::open(&path) {
         Err(why) => {
-            warn!("couldn't open {}: {}", display, Error::description(&why));
+            warn!("couldn't open {}: {}", display, why);
             return;
         },
         Ok(file) => file,
@@ -349,11 +370,7 @@ where
 
     let mut string_buffer: String = String::new();
     match file.read_to_string(&mut string_buffer) {
-        Err(why) => panic!(
-            "couldn't read from {}: {}",
-            display,
-            Error::description(&why)
-        ),
+        Err(why) => panic!("couldn't read from {}: {}", display, why),
         Ok(_) => println!("successfully read from {}", display),
     }
 
@@ -376,16 +393,12 @@ where
     let display = path.display();
 
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, Error::description(&why)),
+        Err(why) => panic!("couldn't create {}: {}", display, why),
         Ok(file) => file,
     };
 
     match file.write_all(json_encoded.as_bytes()) {
-        Err(why) => panic!(
-            "couldn't write to {}: {}",
-            display,
-            Error::description(&why)
-        ),
+        Err(why) => panic!("couldn't write to {}: {}", display, why),
         Ok(_) => println!("successfully wrote to {}", display),
     }
 }
@@ -455,11 +468,11 @@ impl CoreResourceManager {
         }
     }
 
-    fn fetch(
+    fn fetch<Target: 'static + FetchTaskTarget + Send>(
         &self,
         request_builder: RequestBuilder,
         res_init_: Option<ResponseInit>,
-        mut sender: IpcSender<FetchResponseMsg>,
+        mut sender: Target,
         http_state: &Arc<HttpState>,
         cancel_chan: Option<IpcReceiver<()>>,
     ) {
@@ -485,7 +498,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
-                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
 
             match res_init_ {

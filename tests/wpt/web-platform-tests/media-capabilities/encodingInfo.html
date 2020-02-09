@@ -133,7 +133,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
-  return navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -142,8 +142,8 @@ promise_test(t => {
       bitrate: 3000,
       framerate: '24000/1001',
     }
-  });
-}, "Test that encodingInfo() accepts framerate in the form of x/y");
+  }));
+}, "Test that encodingInfo() rejects framerate in the form of x/y");
 
 promise_test(t => {
   return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
@@ -209,32 +209,6 @@ promise_test(t => {
     }
   }));
 }, "Test that encodingInfo() rejects framerate in the form of x/");
-
-promise_test(t => {
-  return navigator.mediaCapabilities.encodingInfo({
-    type: 'record',
-    video: {
-      contentType: 'video/webm; codecs="vp09.00.10.08"',
-      width: 800,
-      height: 600,
-      bitrate: 3000,
-      framerate: '24000/1e4',
-    }
-  });
-}, "Test that encodingInfo() accepts framerate with 'e'");
-
-promise_test(t => {
-  return navigator.mediaCapabilities.encodingInfo({
-    type: 'record',
-    video: {
-      contentType: 'video/webm; codecs="vp09.00.10.08"',
-      width: 800,
-      height: 600,
-      bitrate: 3000,
-      framerate: '24/1.0001',
-    }
-  });
-}, "Test that encodingInfo() accepts framerate as fraction with decimals");
 
 promise_test(t => {
   return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({

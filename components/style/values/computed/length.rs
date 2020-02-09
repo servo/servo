@@ -20,16 +20,16 @@ use crate::Zero;
 use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
-use std::ops::{Add, Neg};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
 use style_traits::values::specified::AllowedNumericType;
-use style_traits::{CssWriter, ToCss};
+use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
 pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
-    type ComputedValue = CSSPixelLength;
+    type ComputedValue = Length;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -75,7 +75,7 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, ToAnimatedZero, ToResolvedValue)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -85,25 +85,20 @@ pub struct LengthPercentage {
     /// Whether we specified a percentage or not.
     #[animation(constant)]
     pub has_percentage: bool,
-    /// Whether this was from a calc() expression. This is needed because right
-    /// now we don't treat calc() the same way as non-calc everywhere, but
-    /// that's a bug in most cases.
-    ///
-    /// Please don't add new uses of this that aren't for converting to Gecko's
-    /// representation, or to interpolate values.
-    ///
-    /// See https://github.com/w3c/csswg-drafts/issues/3482.
-    #[animation(constant)]
-    pub was_calc: bool,
 }
 
-// FIXME(emilio): This is a bit of a hack that can disappear as soon as we share
-// representation of LengthPercentage with Gecko. The issue here is that Gecko
-// uses CalcValue to represent position components, so they always come back as
-// was_calc == true, and we mess up in the transitions code.
+// NOTE(emilio): We don't compare `clamping_mode` since we want to preserve the
+// invariant that `from_computed_value(length).to_computed_value(..) == length`.
 //
-// This was a pre-existing bug, though arguably so only in pretty obscure cases
-// like calc(0px + 5%) and such.
+// Right now for e.g. a non-negative length, we set clamping_mode to `All`
+// unconditionally for non-calc values, and to `NonNegative` for calc.
+//
+// If we determine that it's sound, from_computed_value() can generate an
+// absolute length, which then would get `All` as the clamping mode.
+//
+// We may want to just eagerly-detect whether we can clamp in
+// `LengthPercentage::new` and switch to `AllowedNumericType::NonNegative` then,
+// maybe.
 impl PartialEq for LengthPercentage {
     fn eq(&self, other: &Self) -> bool {
         self.length == other.length &&
@@ -129,12 +124,7 @@ impl LengthPercentage {
     /// Returns a new `LengthPercentage`.
     #[inline]
     pub fn new(length: Length, percentage: Option<Percentage>) -> Self {
-        Self::with_clamping_mode(
-            length,
-            percentage,
-            AllowedNumericType::All,
-            /* was_calc = */ false,
-        )
+        Self::with_clamping_mode(length, percentage, AllowedNumericType::All)
     }
 
     /// Returns a new `LengthPercentage` with zero length and some percentage.
@@ -148,14 +138,12 @@ impl LengthPercentage {
         length: Length,
         percentage: Option<Percentage>,
         clamping_mode: AllowedNumericType,
-        was_calc: bool,
     ) -> Self {
         Self {
             clamping_mode,
             length,
             percentage: percentage.unwrap_or_default(),
             has_percentage: percentage.is_some(),
-            was_calc,
         }
     }
 
@@ -180,6 +168,12 @@ impl LengthPercentage {
         self.length
     }
 
+    /// Returns the percentage component of this `calc()`
+    #[inline]
+    pub fn percentage_component(&self) -> Percentage {
+        Percentage(self.clamping_mode.clamp(self.percentage.0))
+    }
+
     /// Return the percentage value as CSSFloat.
     #[inline]
     pub fn percentage(&self) -> CSSFloat {
@@ -196,6 +190,16 @@ impl LengthPercentage {
         }
     }
 
+    /// Returns the length component if this could be represented as a
+    /// non-calc length.
+    pub fn as_length(&self) -> Option<Length> {
+        if !self.has_percentage {
+            Some(self.length_component())
+        } else {
+            None
+        }
+    }
+
     /// Returns the percentage component if this could be represented as a
     /// non-calc percentage.
     pub fn as_percentage(&self) -> Option<Percentage> {
@@ -206,20 +210,26 @@ impl LengthPercentage {
         Some(Percentage(self.clamping_mode.clamp(self.percentage.0)))
     }
 
+    /// Resolves the percentage.
+    #[inline]
+    pub fn percentage_relative_to(&self, basis: Length) -> Length {
+        let length = self.unclamped_length().0 + basis.0 * self.percentage.0;
+        Length::new(self.clamping_mode.clamp(length))
+    }
+
     /// Convert the computed value into used value.
     #[inline]
-    pub fn maybe_to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
-        self.maybe_to_pixel_length(container_len).map(Au::from)
+    pub fn maybe_to_used_value(&self, container_len: Option<Length>) -> Option<Au> {
+        self.maybe_percentage_relative_to(container_len)
+            .map(Au::from)
     }
 
     /// If there are special rules for computing percentages in a value (e.g.
     /// the height property), they apply whenever a calc() expression contains
     /// percentages.
-    pub fn maybe_to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
+    pub fn maybe_percentage_relative_to(&self, container_len: Option<Length>) -> Option<Length> {
         if self.has_percentage {
-            let length = self.unclamped_length().px() +
-                container_len?.scale_by(self.percentage.0).to_f32_px();
-            return Some(Length::new(self.clamping_mode.clamp(length)));
+            return Some(self.percentage_relative_to(container_len?));
         }
         Some(self.length())
     }
@@ -279,7 +289,6 @@ impl specified::CalcLengthPercentage {
             Length::new(length.min(f32::MAX).max(f32::MIN)),
             self.percentage,
             self.clamping_mode,
-            /* was_calc = */ true,
         )
     }
 
@@ -291,7 +300,7 @@ impl specified::CalcLengthPercentage {
     ) -> LengthPercentage {
         self.to_computed_value_with_zoom(
             context,
-            |abs| context.maybe_zoom_text(abs.into()).0,
+            |abs| context.maybe_zoom_text(abs.into()),
             base_size,
         )
     }
@@ -354,8 +363,8 @@ impl LengthPercentage {
         self.unclamped_length().px() == 0.0 && self.percentage.0 == 0.0
     }
 
-    // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we still use Au as the
-    // hash key.
+    // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we
+    // still use Au as the hash key.
     #[allow(missing_docs)]
     pub fn to_hash_key(&self) -> (Au, NotNan<f32>) {
         (
@@ -371,39 +380,29 @@ impl LengthPercentage {
 
     /// Returns the used value as CSSPixelLength.
     pub fn to_pixel_length(&self, containing_length: Au) -> Length {
-        self.maybe_to_pixel_length(Some(containing_length)).unwrap()
+        self.percentage_relative_to(containing_length.into())
     }
 
     /// Returns the clamped non-negative values.
-    ///
-    /// TODO(emilio): It's a bit unfortunate that this depends on whether the
-    /// value was a `calc()` value or not. Should it?
     #[inline]
     pub fn clamp_to_non_negative(self) -> Self {
-        if self.was_calc {
-            return Self::with_clamping_mode(
-                self.length,
-                self.specified_percentage(),
-                AllowedNumericType::NonNegative,
-                self.was_calc,
-            );
-        }
-
-        debug_assert!(!self.has_percentage || self.unclamped_length() == Length::zero());
         if let Some(p) = self.specified_percentage() {
-            return Self::with_clamping_mode(
-                Length::zero(),
-                Some(p.clamp_to_non_negative()),
-                AllowedNumericType::NonNegative,
-                self.was_calc,
-            );
+            // If we can eagerly clamp the percentage then just do that.
+            if self.length.is_zero() {
+                return Self::with_clamping_mode(
+                    Length::zero(),
+                    Some(p.clamp_to_non_negative()),
+                    AllowedNumericType::NonNegative,
+                );
+            }
+
+            return Self::with_clamping_mode(self.length, Some(p), AllowedNumericType::NonNegative);
         }
 
         Self::with_clamping_mode(
             self.length.clamp_to_non_negative(),
             None,
             AllowedNumericType::NonNegative,
-            self.was_calc,
         )
     }
 }
@@ -488,6 +487,30 @@ impl LengthPercentageOrAuto {
     }
 
     computed_length_percentage_or_auto!(LengthPercentage);
+
+    /// Resolves the percentage.
+    #[inline]
+    pub fn percentage_relative_to(&self, basis: Length) -> LengthOrAuto {
+        use values::generics::length::LengthPercentageOrAuto::*;
+        match self {
+            LengthPercentage(length_percentage) => {
+                LengthPercentage(length_percentage.percentage_relative_to(basis))
+            },
+            Auto => Auto,
+        }
+    }
+
+    /// Maybe resolves the percentage.
+    #[inline]
+    pub fn maybe_percentage_relative_to(&self, basis: Option<Length>) -> LengthOrAuto {
+        use values::generics::length::LengthPercentageOrAuto::*;
+        match self {
+            LengthPercentage(length_percentage) => length_percentage
+                .maybe_percentage_relative_to(basis)
+                .map_or(Auto, LengthPercentage),
+            Auto => Auto,
+        }
+    }
 }
 
 /// A wrapper of LengthPercentageOrAuto, whose value must be >= 0.
@@ -518,14 +541,14 @@ impl ToAnimatedValue for NonNegativeLengthPercentage {
 impl From<NonNegativeLength> for NonNegativeLengthPercentage {
     #[inline]
     fn from(length: NonNegativeLength) -> Self {
-        LengthPercentage::new(length.0, None).into()
+        NonNegative(LengthPercentage::new(length.0, None))
     }
 }
 
 impl From<LengthPercentage> for NonNegativeLengthPercentage {
     #[inline]
     fn from(lp: LengthPercentage) -> Self {
-        NonNegative::<LengthPercentage>(lp)
+        NonNegative(lp)
     }
 }
 
@@ -555,7 +578,9 @@ impl NonNegativeLengthPercentage {
     /// Convert the computed value into used value.
     #[inline]
     pub fn maybe_to_used_value(&self, containing_length: Option<Au>) -> Option<Au> {
-        let resolved = self.0.maybe_to_used_value(containing_length)?;
+        let resolved = self
+            .0
+            .maybe_to_used_value(containing_length.map(|v| v.into()))?;
         Some(::std::cmp::max(resolved, Au(0)))
     }
 }
@@ -596,16 +621,16 @@ impl Size {
 }
 
 /// The computed `<length>` value.
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
     ComputeSquaredDistance,
     Copy,
-    Debug,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
+    Serialize,
     ToAnimatedValue,
     ToAnimatedZero,
     ToResolvedValue,
@@ -613,6 +638,13 @@ impl Size {
 )]
 #[repr(C)]
 pub struct CSSPixelLength(CSSFloat);
+
+impl fmt::Debug for CSSPixelLength {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)?;
+        f.write_str(" px")
+    }
+}
 
 impl CSSPixelLength {
     /// Return a new CSSPixelLength.
@@ -623,14 +655,14 @@ impl CSSPixelLength {
 
     /// Return the containing pixel value.
     #[inline]
-    pub fn px(&self) -> CSSFloat {
+    pub fn px(self) -> CSSFloat {
         self.0
     }
 
     /// Return the length with app_unit i32 type.
     #[inline]
-    pub fn to_i32_au(&self) -> i32 {
-        Au::from(*self).0
+    pub fn to_i32_au(self) -> i32 {
+        Au::from(self).0
     }
 
     /// Return the absolute value of this length.
@@ -644,9 +676,46 @@ impl CSSPixelLength {
     pub fn clamp_to_non_negative(self) -> Self {
         CSSPixelLength::new(self.0.max(0.))
     }
+
+    /// Returns the minimum between `self` and `other`.
+    #[inline]
+    pub fn min(self, other: Self) -> Self {
+        CSSPixelLength::new(self.0.min(other.0))
+    }
+
+    /// Returns the maximum between `self` and `other`.
+    #[inline]
+    pub fn max(self, other: Self) -> Self {
+        CSSPixelLength::new(self.0.max(other.0))
+    }
+
+    /// Sets `self` to the maximum between `self` and `other`.
+    #[inline]
+    pub fn max_assign(&mut self, other: Self) {
+        *self = self.max(other);
+    }
+
+    /// Clamp the value to a lower bound and an optional upper bound.
+    ///
+    /// Can be used for example with `min-width` and `max-width`.
+    #[inline]
+    pub fn clamp_between_extremums(self, min_size: Self, max_size: Option<Self>) -> Self {
+        self.clamp_below_max(max_size).max(min_size)
+    }
+
+    /// Clamp the value to an optional upper bound.
+    ///
+    /// Can be used for example with `max-width`.
+    #[inline]
+    pub fn clamp_below_max(self, max_size: Option<Self>) -> Self {
+        match max_size {
+            None => self,
+            Some(max_size) => self.min(max_size),
+        }
+    }
 }
 
-impl Zero for CSSPixelLength {
+impl num_traits::Zero for CSSPixelLength {
     fn zero() -> Self {
         CSSPixelLength::new(0.)
     }
@@ -676,12 +745,46 @@ impl Add for CSSPixelLength {
     }
 }
 
+impl AddAssign for CSSPixelLength {
+    #[inline]
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+    }
+}
+
+impl Div<CSSFloat> for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, other: CSSFloat) -> Self {
+        Self::new(self.px() / other)
+    }
+}
+
+impl Mul<CSSFloat> for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, other: CSSFloat) -> Self {
+        Self::new(self.px() * other)
+    }
+}
+
 impl Neg for CSSPixelLength {
     type Output = Self;
 
     #[inline]
     fn neg(self) -> Self {
         CSSPixelLength::new(-self.0)
+    }
+}
+
+impl Sub for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: Self) -> Self {
+        Self::new(self.px() - other.px())
     }
 }
 
@@ -696,6 +799,13 @@ impl From<Au> for CSSPixelLength {
     #[inline]
     fn from(len: Au) -> Self {
         CSSPixelLength::new(len.to_f32_px())
+    }
+}
+
+impl From<CSSPixelLength> for euclid::Length<CSSFloat, CSSPixel> {
+    #[inline]
+    fn from(length: CSSPixelLength) -> Self {
+        Self::new(length.0)
     }
 }
 
@@ -749,14 +859,6 @@ impl NonNegativeLength {
         } else {
             self
         }
-    }
-
-    /// Scale this NonNegativeLength.
-    /// We scale NonNegativeLength by zero if the factor is negative because it doesn't
-    /// make sense to scale a negative factor on a non-negative length.
-    #[inline]
-    pub fn scale_by(&self, factor: f32) -> Self {
-        Self::new(self.0.px() * factor.max(0.))
     }
 }
 

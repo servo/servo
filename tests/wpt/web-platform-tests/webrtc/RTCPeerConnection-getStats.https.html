@@ -172,14 +172,14 @@
         - All RTCOutboundRTPStreamStats objects corresponding to selector.
         - All stats objects referenced directly or indirectly by the RTCOutboundRTPStreamStats
           objects added.
-   */
+  */
   promise_test(async t => {
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
 
     let [track, mediaStream] = await getTrackFromUserMedia('audio');
     pc.addTrack(track, mediaStream);
-    exchangeIceCandidates(pc, pc2);
+    coupleIceCandidates(pc, pc2);
     await doSignalingHandshake(pc, pc2);
     await listenToIceConnected(pc);
     const stats = await pc.getStats(track);
@@ -202,11 +202,16 @@
 
     let [track, mediaStream] = await getTrackFromUserMedia('audio');
     pc.addTrack(track, mediaStream);
-    exchangeIceCandidates(pc, pc2);
+    coupleIceCandidates(pc, pc2);
     await doSignalingHandshake(pc, pc2);
-    await new Promise(resolve => {
-      pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
-    });
+    // Wait for unmute if the track is not already unmuted.
+    // According to spec, it should be muted when being created, but this
+    // is not what this test is testing, so allow it to be unmuted.
+    if (pc2.getReceivers()[0].track.muted) {
+      await new Promise(resolve => {
+        pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
+      });
+    }
     const stats = await pc2.getStats(track);
     validateStatsReport(stats);
     assert_stats_report_has_stats(stats, ['inbound-rtp']);
@@ -335,7 +340,7 @@
       }));
 
 
-      exchangeIceCandidates(pc1, pc2);
+      coupleIceCandidates(pc1, pc2);
       doSignalingHandshake(pc1, pc2);
     }))
     .catch(t.step_func(err => {

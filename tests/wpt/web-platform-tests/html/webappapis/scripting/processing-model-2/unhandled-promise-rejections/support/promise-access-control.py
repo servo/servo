@@ -5,6 +5,14 @@ def main(request, response):
     if allow != "false":
         headers.append(("Access-Control-Allow-Origin", "*"))
 
-    body = "new Promise(function(resolve, reject) { reject(42); })"
+    body = """
+    	function handleRejectedPromise(promise) {
+    		promise.catch(() => {});
+    	}
+
+    	(function() {
+    		new Promise(function(resolve, reject) { reject(42); });
+    	})();
+    """
 
     return headers, body

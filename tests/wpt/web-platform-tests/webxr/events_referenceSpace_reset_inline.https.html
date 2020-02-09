@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+let nonImmersiveTestName = "XRSession resetpose from a device properly fires off " +
+  "the right events for non-immersive sessions";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let resetPromise = session.requestReferenceSpace('local')
+  .then((refSpace) => {
+    let eventWatcher = new EventWatcher(
+        t, refSpace, ["reset", "watcherdone"]);
+    refSpace.addEventListener("reset", (event) => {
+      t.step(() => {
+        assert_equals(event.referenceSpace, refSpace);
+
+        // Also make sure the same objects are returned each time these
+        // attributes are accessed.
+        let eventRefSpace = event.referenceSpace;
+        let transform = event.transform;
+        assert_equals(eventRefSpace, event.referenceSpace,
+          "XRReferenceSpaceEvent.referenceSpace returns the same object.");
+        assert_equals(transform, event.transform,
+          "XRReferenceSpaceEvent.transform returns the same object.");
+      });
+
+      refSpace.dispatchEvent(watcherDone);
+    }, false);
+    return eventWatcher.wait_for(["reset", "watcherdone"]);
+  });
+
+  fakeDeviceController.simulateResetPose();
+
+  // The triggered resetPose event should arrive after the next Animation Frame
+  session.requestAnimationFrame(() => {});
+
+  return resetPromise;
+};
+
+xr_session_promise_test(
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline', {
+    requiredFeatures: ['local'],
+  });
+
+</script>

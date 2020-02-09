@@ -29,16 +29,11 @@
 
 <script id="code" type="text/worklet">
 registerLayout('fallback-sab', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout(children, edges, constraints, styleMap) {
-    const childFragments = yield children.map(child => child.layoutNextFragment());
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await Promise.all(children.map(child => child.layoutNextFragment()));
 
-    if (typeof SharedArrayBuffer !== 'undefined') {
-      return {autoBlockSize: 0, childFragments, data: {sab: new SharedArrayBuffer(4) }};
-    } else {
-      throw Error();
-    }
+    return {autoBlockSize: 0, childFragments, data: {sab: new SharedArrayBuffer(4) }};
   }
 });
 </script>

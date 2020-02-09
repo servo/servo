@@ -40,4 +40,6 @@ def test_file_protocol(session, server_config):
     response = navigate_to(session, url)
     assert_success(response)
 
+    if session.url.endswith('/'):
+        url += '/'
     assert session.url == url

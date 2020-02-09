@@ -73,6 +73,7 @@ impl WheelEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -83,7 +84,7 @@ impl WheelEvent {
             type_,
             EventBubbles::from(init.parent.parent.parent.parent.bubbles),
             EventCancelable::from(init.parent.parent.parent.parent.cancelable),
-            init.parent.parent.parent.view.deref(),
+            init.parent.parent.parent.view.as_deref(),
             init.parent.parent.parent.detail,
             init.deltaX,
             init.deltaY,
@@ -148,7 +149,7 @@ impl WheelEventMethods for WheelEvent {
             self.mouseevent.ShiftKey(),
             self.mouseevent.MetaKey(),
             self.mouseevent.Button(),
-            self.mouseevent.GetRelatedTarget().deref(),
+            self.mouseevent.GetRelatedTarget().as_deref(),
         );
         self.delta_x.set(delta_x_arg);
         self.delta_y.set(delta_y_arg);

@@ -18,7 +18,7 @@
       xhr.setRequestHeader("x-test", "foobar");
 
       // This fails because the server-side script is not prepared for an OPTIONS request
-      assert_throws("NetworkError", () => xhr.send());
+      assert_throws_dom("NetworkError", () => xhr.send());
       assert_equals(xhr.status, 0);
     }, "Preflighted cross-origin request denied");
     </script>

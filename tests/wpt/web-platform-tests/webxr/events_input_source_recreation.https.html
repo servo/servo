@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+let testName = "Input sources are re-created when handedness or target ray mode changes";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(["watcherdone"]);
+
+  let inputChangeEvents = 0;
+  let cached_input_source = null;
+  function onInputSourcesChange(event) {
+    t.step(() => {
+      inputChangeEvents++;
+      assert_equals(event.session, session);
+
+      if (inputChangeEvents == 1) {
+        // The first change event should be adding our controller.
+        validateAdded(event.added, 1);
+        validateRemoved(event.removed, 0);
+        cached_input_source = getInputSources()[0];
+        assert_not_equals(cached_input_source, null);
+        assert_equals(cached_input_source.handedness, "none");
+        assert_equals(cached_input_source.targetRayMode, "gaze");
+        assertProfilesEqual(cached_input_source.profiles, ["a", "b"]);
+      } else if (inputChangeEvents == 2) {
+        // The second event should be replacing the controller with one that has
+        // the updated target ray mode.
+        validateInputSourceChange(event, "none", "tracked-pointer", ["a", "b"]);
+        cached_input_source = getInputSources()[0];
+      } else if (inputChangeEvents == 3) {
+        // The third event should be replacing the controller with one that has
+        // the updated handedness.
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a", "b"]);
+        cached_input_source = getInputSources()[0];
+      } else if (inputChangeEvents == 4) {
+        // The fourth event should be updating the second value in the profiles
+        // array.
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a", "c"]);
+        cached_input_source = getInputSources()[0];
+      } else if (inputChangeEvents == 5) {
+        // The fifth event should be removing the second value from the profiles
+        // array.
+        validateInputSourceChange(event, "left", "tracked-pointer", ["a"]);
+        session.dispatchEvent(watcherDone);
+      }
+    });
+  }
+
+  function assertProfilesEqual(profiles, expected_profiles) {
+    assert_equals(profiles.length, expected_profiles.length);
+    for (let i = 0; i < profiles.length; ++i) {
+      assert_equals(profiles[i], expected_profiles[i]);
+    }
+  }
+
+  function validateInputSourceChange(
+      event, expected_hand, expected_mode, expected_profiles) {
+    validateAdded(event.added, 1);
+    validateRemoved(event.removed, 1);
+    assert_true(event.removed.includes(cached_input_source));
+    assert_false(event.added.includes(cached_input_source));
+    let source = event.added[0];
+    assert_equals(source.handedness, expected_hand);
+    assert_equals(source.targetRayMode, expected_mode);
+    assertProfilesEqual(source.profiles, expected_profiles);
+  }
+
+  function validateAdded(added, length) {
+    t.step(() => {
+      assert_not_equals(added, null);
+      assert_equals(added.length, length,
+          "Added length matches expectations");
+
+      let currentSources = getInputSources();
+      added.forEach((source) => {
+        assert_true(currentSources.includes(source),
+          "Every element in added should be in the input source list");
+      });
+    });
+  }
+
+  function validateRemoved(removed, length) {
+    t.step(() => {
+      assert_not_equals(removed, null);
+        assert_equals(removed.length, length,
+            "Removed length matches expectations");
+
+      let currentSources = getInputSources();
+      removed.forEach((source) => {
+        assert_false(currentSources.includes(source),
+          "No element in removed should be in the input source list");
+      });
+    });
+  }
+
+  function getInputSources() {
+    return Array.from(session.inputSources.values());
+  }
+
+  session.addEventListener('inputsourceschange', onInputSourcesChange, false);
+
+  // Create a gaze based input source with no handedness that we can change
+  // to validate SameObject properties.
+  let input_source = fakeDeviceController.simulateInputSourceConnection({
+    handedness: "none",
+    targetRayMode: "gaze",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: ["a", "b"]
+  });
+
+  // Make our first input source change after one frame, and wait an additional
+  // frame for that change to propogate. Then make additional changes, waiting
+  // one frame after each one to verify that they fired an inputsourceschanged
+  // event.
+  session.requestAnimationFrame((time, xrFrame) => {
+    input_source.setTargetRayMode("tracked-pointer");
+    session.requestAnimationFrame((time, xrFrame) => {
+      input_source.setHandedness("left");
+      session.requestAnimationFrame((time, xrFrame) => {
+        input_source.setProfiles(["a", "c"]);
+        session.requestAnimationFrame((time, xrFrame) => {
+          input_source.setProfiles(["a"]);
+          session.requestAnimationFrame((time, xrFrame) => {});
+        });
+      });
+    });
+  });
+
+  return eventPromise;
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+</script>

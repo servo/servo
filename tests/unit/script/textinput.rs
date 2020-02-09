@@ -8,12 +8,33 @@
 // except according to those terms.
 
 use keyboard_types::{Key, Modifiers};
-use script::clipboard_provider::DummyClipboardContext;
+use script::clipboard_provider::ClipboardProvider;
 use script::test::DOMString;
 use script::textinput::{
     Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits,
     UTF8Bytes,
 };
+
+pub struct DummyClipboardContext {
+    content: String,
+}
+
+impl DummyClipboardContext {
+    pub fn new(s: &str) -> DummyClipboardContext {
+        DummyClipboardContext {
+            content: s.to_owned(),
+        }
+    }
+}
+
+impl ClipboardProvider for DummyClipboardContext {
+    fn clipboard_contents(&mut self) -> String {
+        self.content.clone()
+    }
+    fn set_clipboard_contents(&mut self, s: String) {
+        self.content = s;
+    }
+}
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
     TextInput::new(
@@ -138,6 +159,28 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
     textinput.replace_selection(DOMString::from("too long"));
 
     assert_eq!(textinput.get_content(), "atooe");
+}
+
+#[test]
+fn test_single_line_textinput_with_max_length_allows_deletion_when_replacing_a_selection() {
+    let mut textinput = TextInput::new(
+        Lines::Single,
+        DOMString::from("abcde"),
+        DummyClipboardContext::new(""),
+        Some(UTF16CodeUnits(1)),
+        None,
+        SelectionDirection::None,
+    );
+
+    textinput.adjust_horizontal(UTF8Bytes::one(), Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal(UTF8Bytes(2), Direction::Forward, Selection::Selected);
+
+    // Selection is now "abcde"
+    //                    --
+
+    textinput.replace_selection(DOMString::from("only deletion should be applied"));
+
+    assert_eq!(textinput.get_content(), "ade");
 }
 
 #[test]

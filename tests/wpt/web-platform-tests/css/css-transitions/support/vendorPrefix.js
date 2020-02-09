@@ -9,9 +9,9 @@ var prefixCache = {};
 
 // convert "foo-bar" to "fooBar"
 function camelCase(str) {
-	return str.replace(/\-(\w)/g, function(match, letter){
-		return letter.toUpperCase();
-	});
+    return str.replace(/\-(\w)/g, function(match, letter){
+        return letter.toUpperCase();
+    });
 }
 
 // vendor-prefix a css property

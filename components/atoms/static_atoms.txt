@@ -25,6 +25,7 @@ dir
 durationchange
 email
 emptied
+end
 ended
 error
 fantasy
@@ -43,6 +44,7 @@ iceconnectionstatechange
 icegatheringstatechange
 image
 input
+inputsourceschange
 invalid
 keydown
 keypress
@@ -56,9 +58,13 @@ loadend
 loadstart
 message
 message
+messageerror
 monospace
 month
+mousedown
+mousemove
 mouseover
+mouseup
 negotiationneeded
 none
 number
@@ -98,8 +104,13 @@ search
 seeked
 seeking
 select
+selectend
+selectstart
 serif
 signalingstatechange
+squeeze
+squeezeend
+squeezestart
 srclang
 statechange
 stroke
@@ -117,6 +128,7 @@ transitionend
 unhandledrejection
 unload
 url
+visibilitychange
 volumechange
 waiting
 webglcontextcreationerror

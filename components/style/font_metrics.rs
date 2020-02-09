@@ -7,17 +7,17 @@
 #![deny(missing_docs)]
 
 use crate::context::SharedStyleContext;
+use crate::values::computed::Length;
 use crate::Atom;
-use app_units::Au;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FontMetrics {
     /// The x-height of the font.
-    pub x_height: Option<Au>,
+    pub x_height: Option<Length>,
     /// The zero advance. This is usually writing mode dependent
-    pub zero_advance_measure: Option<Au>,
+    pub zero_advance_measure: Option<Length>,
 }
 
 /// Type of font metrics to retrieve.
@@ -47,7 +47,7 @@ pub trait FontMetricsProvider {
         &self,
         font_name: &Atom,
         font_family: crate::values::computed::font::GenericFontFamily,
-    ) -> Au;
+    ) -> Length;
 
     /// Construct from a shared style context
     fn create_from(context: &SharedStyleContext) -> Self
@@ -70,7 +70,7 @@ impl FontMetricsProvider for ServoMetricsProvider {
         ServoMetricsProvider
     }
 
-    fn get_size(&self, _: &Atom, _: crate::values::computed::font::GenericFontFamily) -> Au {
+    fn get_size(&self, _: &Atom, _: crate::values::computed::font::GenericFontFamily) -> Length {
         unreachable!("Dummy provider should never be used to compute font size")
     }
 }

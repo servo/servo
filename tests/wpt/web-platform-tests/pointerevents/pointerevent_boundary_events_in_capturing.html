@@ -31,17 +31,22 @@
                 var test_pointerEvent = setup_pointerevent_test("pointerevent boundary events in capturing", ALL_POINTERS);
                 var target = document.getElementById("target0");
                 var listener = document.getElementById("listener");
+                var actions_promise;
 
                 eventList.forEach(function(eventName) {
                     on_event(target, eventName, function (event) {
                         if (phase == PhaseEnum.WaitingForDown) {
                             if (eventName == 'pointerdown') {
-                              listener.setPointerCapture(event.pointerId);
-                              phase = PhaseEnum.WaitingForFirstMove;
+                                listener.setPointerCapture(event.pointerId);
+                                phase = PhaseEnum.WaitingForFirstMove;
                             }
                         } else if (phase == PhaseEnum.WaitingForUp) {
-                            if (event.type == 'pointerup')
-                                test_pointerEvent.done();
+                            if (event.type == 'pointerup') {
+                                // Make sure the test finishes after all the input actions are completed.
+                                actions_promise.then( () => {
+                                    test_pointerEvent.done();
+                                });
+                            }
                         } else {
                             eventsRecieved.push(event.type + '@target');
                             if (phase == PhaseEnum.WaitingForSecondMove && event.type == 'pointermove') {
@@ -49,7 +54,7 @@
                                     checkPointerEventType(event);
                                     assert_array_equals(eventsRecieved, ['lostpointercapture@listener', 'pointerout@listener', 'pointerleave@listener', 'pointerover@target', 'pointerenter@target', 'pointermove@target'],
                                         'lostpointercapture and pointerout/leave should be dispatched to the capturing target and pointerover/enter should be dispatched to the hit-test element before the first pointermove event after releasing pointer capture');
-                                }, expectedPointerType + " pointer events boundary events when releasing capture"); 
+                                }, expectedPointerType + " pointer events boundary events when releasing capture");
                                 phase = PhaseEnum.WaitingForUp;
                             }
                         }
@@ -72,7 +77,7 @@
                 });
 
                 // Inject pointer inputs.
-                pointerDragInTarget('mouse', target0, 'right').then(function() {
+                actions_promise = pointerDragInTarget('mouse', target0, 'right').then(function() {
                     return pointerDragInTarget('touch', target0, 'right');
                 }).then(function() {
                     return pointerDragInTarget('pen', target0, 'right');

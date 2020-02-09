@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{enter_realm, InCompartment};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
@@ -23,10 +22,13 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::network_listener::{
     self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
 };
+use crate::realms::{enter_realm, InRealm};
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::request::RequestBuilder;
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
+};
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{CoreResourceMsg, CoreResourceThread, FetchResponseMsg};
@@ -121,24 +123,26 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
-        integrity_metadata: "".to_owned(),
+        integrity_metadata: request.integrity_metadata.clone(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
+        initiator: request.initiator,
+        csp_list: None,
     }
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method
-#[allow(unrooted_must_root)]
+#[allow(unrooted_must_root, non_snake_case)]
 pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
-    comp: InCompartment,
+    comp: InRealm,
 ) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new_in_current_compartment(global, comp);
+    let promise = Promise::new_in_current_realm(global, comp);
     let response = Response::new(global);
 
     // Step 2
@@ -152,6 +156,7 @@ pub fn Fetch(
     let timing_type = request.timing_type();
 
     let mut request_init = request_init_from_request(request);
+    request_init.csp_list = global.get_csp_list().clone();
 
     // Step 3
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
@@ -236,14 +241,16 @@ impl FetchResponseListener for FetchContext {
                         fill_headers_with_metadata(self.response_object.root(), m);
                         self.response_object.root().set_type(DOMResponseType::Cors);
                     },
-                    FilteredMetadata::Opaque => self
-                        .response_object
-                        .root()
-                        .set_type(DOMResponseType::Opaque),
-                    FilteredMetadata::OpaqueRedirect => self
-                        .response_object
-                        .root()
-                        .set_type(DOMResponseType::Opaqueredirect),
+                    FilteredMetadata::Opaque => {
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaque);
+                    },
+                    FilteredMetadata::OpaqueRedirect => {
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Opaqueredirect);
+                    },
                 },
             },
         }
@@ -253,6 +260,7 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+        self.response_object.root().stream_chunk(chunk.as_slice());
         self.body.append(&mut chunk);
     }
 
@@ -338,4 +346,30 @@ pub fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+pub(crate) fn create_a_potential_cors_request(
+    url: ServoUrl,
+    destination: Destination,
+    cors_setting: Option<CorsSettings>,
+    same_origin_fallback: Option<bool>,
+) -> RequestBuilder {
+    RequestBuilder::new(url)
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 1
+        .mode(match cors_setting {
+            Some(_) => RequestMode::CorsMode,
+            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+            None => RequestMode::NoCors,
+        })
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 3-4
+        .credentials_mode(match cors_setting {
+            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            _ => CredentialsMode::Include,
+        })
+        // Step 5
+        .destination(destination)
+        .use_url_credentials(true)
 }

@@ -20,12 +20,12 @@
 
         openrq.onupgradeneeded = function(e) {
             var db = e.target.result;
-            assert_throws('SyntaxError', function() {
+            assert_throws_dom('SyntaxError', function() {
                     db.createObjectStore(store_name, { keyPath: keypath })
                 }, "createObjectStore with keyPath");
 
             var store = db.createObjectStore(store_name);
-            assert_throws('SyntaxError', function() {
+            assert_throws_dom('SyntaxError', function() {
                     store.createIndex('index', keypath);
                 }, "createIndex with keyPath");
 

@@ -12,6 +12,5 @@ interface PerformanceEntry {
   readonly attribute DOMString           entryType;
   readonly attribute DOMHighResTimeStamp startTime;
   readonly attribute DOMHighResTimeStamp duration;
-
-  // [Default] object toJSON();
+  [Default] object toJSON();
 };

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablecaptionelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTableCaptionElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // also has obsolete members
 };
 

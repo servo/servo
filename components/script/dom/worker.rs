@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -13,7 +13,8 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
 };
@@ -21,18 +22,21 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::realms::enter_realm;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use crossbeam_channel::{unbounded, Sender};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, JS_RequestInterruptCallback};
+use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
-use script_traits::WorkerScriptLoadOrigin;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -72,7 +76,7 @@ impl Worker {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         script_url: USVString,
@@ -93,11 +97,11 @@ impl Worker {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: global.pipeline_id(),
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let worker_id = global.get_next_worker_id();
+        let worker_id = WorkerId(Uuid::new_v4());
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
             let title = format!("Worker for {}", worker_url);
@@ -136,7 +140,7 @@ impl Worker {
         self.terminated.get()
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredCloneData) {
+    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -146,31 +150,70 @@ impl Worker {
         let global = worker.global();
         let target = worker.upcast();
         let _ac = enter_realm(target);
-        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
-        data.read(&global, message.handle_mut());
-        MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None);
+        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
+            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
+        } else {
+            // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
+            MessageEvent::dispatch_error(target, &global);
+        }
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
         worker.upcast().fire_event(atom!("error"));
     }
-}
 
-impl WorkerMethods for Worker {
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        let data = StructuredCloneData::write(cx, message)?;
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn post_message_impl(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        let data = structuredclone::write(cx, message, Some(transfer))?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
         // indicates that a nonexistent communication channel should result in a silent error.
         let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
             address,
-            WorkerScriptMsg::DOMMessage(data),
+            WorkerScriptMsg::DOMMessage {
+                origin: self.global().origin().immutable().clone(),
+                data,
+            },
         ));
         Ok(())
+    }
+}
+
+impl WorkerMethods for Worker {
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 
     #[allow(unsafe_code)]
@@ -186,7 +229,7 @@ impl WorkerMethods for Worker {
 
         // Step 3
         let cx = self.global().get_cx();
-        unsafe { JS_RequestInterruptCallback(cx) };
+        unsafe { JS_RequestInterruptCallback(*cx) };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

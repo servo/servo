@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8">
 <title>Baseline of inferred mrows</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mrow">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#error-message-merror">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#making-sub-expressions-invisible-mphantom">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <meta name="assert" content="Baseline for mrow-like elements is correct.">
+<script src="/mathml/support/feature-detection.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script type="text/javascript">
@@ -12,10 +20,11 @@
   window.addEventListener("load", runTests);
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown"].forEach((tag) => {
           var x = document.getElementById("above" + tag).getBoundingClientRect();
           var y = document.getElementById("below" + tag).getBoundingClientRect();
           test(function() {
+              assert_true(MathMLFeatureDetection.has_mspace());
               assert_equals(x.bottom, y.top);
           }, "baseline alignment inside " + tag);
       });
@@ -34,8 +43,10 @@
     <math><mspace id="aboveMath" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMath" width="10px" depth="30px" style="background: blue"></mspace></math>
     <math><menclose notation="box"><mspace id="aboveMenclose" width="10px" height="30px" style="background: purple"
 ></mspace><mspace id="belowMenclose" width="10px" depth="30px" style="background: blue"></mspace></menclose></math>
-    <math><mpadded notation="box"><mspace id="aboveMpadded" width="10px" height="30px" style="background: purple"
+    <math><mpadded lspace="10px"><mspace id="aboveMpadded" width="10px" height="30px" style="background: purple"
 ></mspace><mspace id="belowMpadded" width="10px" depth="30px" style="background: blue"></mspace></mpadded></math>
+    <math><unknown><mspace id="aboveUnknown" width="10px" height="30px" style="background: purple"
+></mspace><mspace id="belowUnknown" width="10px" depth="30px" style="background: blue"></mspace></unknown></math>
   </p>
 </body>
 </html>

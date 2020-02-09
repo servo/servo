@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64;
+use data_url::forgiving_base64;
 use mime::Mime;
+use percent_encoding::percent_decode;
 use servo_url::ServoUrl;
-use url::percent_encoding::percent_decode;
 use url::Position;
 
 pub enum DecodeError {
@@ -16,6 +16,10 @@ pub enum DecodeError {
 pub type DecodeData = (Mime, Vec<u8>);
 
 pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
+    // data_url could do all of this work for us,
+    // except that it currently (Nov 2019) parses mime types into a
+    // different Mime class than other code expects
+
     assert_eq!(url.scheme(), "data");
     // Split out content type and data.
     let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery]
@@ -44,13 +48,7 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
 
     let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
     if is_base64 {
-        // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
-        // but Acid 3 apparently depends on spaces being ignored.
-        bytes = bytes
-            .into_iter()
-            .filter(|&b| b != b' ')
-            .collect::<Vec<u8>>();
-        match base64::decode_config(&bytes, base64::STANDARD.decode_allow_trailing_bits(true)) {
+        match forgiving_base64::decode_to_vec(&bytes) {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
             Ok(data) => bytes = data,
         }

@@ -77,7 +77,7 @@ test(() => {
     set: descriptor.set
   });
 
-  assert_throws(new SyntaxError(), () => {
+  assert_throws_js(SyntaxError, () => {
     element.style = "color: green";
   });
 }, "Exception propagation from getter of [PutForwards] attribute");
@@ -94,7 +94,7 @@ test(() => {
     }
   });
 
-  assert_throws(new SyntaxError(), () => {
+  assert_throws_js(SyntaxError, () => {
     element.style = "color: green";
   });
 }, "Exception propagation from setter of [PutForwards] target attribute");
@@ -110,8 +110,39 @@ test(() => {
     set: descriptor.set
   });
 
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     element.style = "color: green";
   });
 }, "TypeError when getter of [PutForwards] attribute returns non-object");
+
+
+test(() => {
+  var element = document.createElement("div");
+
+  var element_style = element.style;
+  Object.defineProperty(element.style, "cssText", {
+    value: null,
+    writable: false,
+  });
+
+  element.style = "color: green";
+  assert_equals(element.style, element_style);
+  assert_equals(element.style.cssText, null);
+}, "Does not throw when setter of [PutForwards] attribute returns false");
+
+function test_token_list(elementName, attribute, target, value) {
+  test(() => {
+    var element=document.createElement(elementName);
+    assert_true(element[attribute] instanceof DOMTokenList,"The attribute is a DOMTokenList");
+    element[attribute]=value;
+    assert_equals(element.getAttribute(target),value,"Setting the attribute is reflected in the target");
+    element[attribute]="";
+    assert_equals(element.getAttribute(target),"","Clearing the attribute is reflected in the target");
+  },"Setting "+elementName+"."+attribute+" to "+value+" is reflected in "+target)
+}
+
+test_token_list("a","relList","rel","noreferrer");
+test_token_list("area","relList","rel","noreferrer");
+test_token_list("form","relList","rel","noreferrer");
+test_token_list("link","relList","rel","stylesheet");
 </script>

@@ -5,13 +5,13 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new Event()
   })
 })
 test(function() {
   var test_error = { name: "test" }
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     new Event({ toString: function() { throw test_error; } })
   })
 })
@@ -46,8 +46,8 @@ test(function() {
   assert_true("initEvent" in ev)
 })
 test(function() {
-  assert_throws(new TypeError(), function() { Event("test") },
-                'Calling Event constructor without "new" must throw');
+  assert_throws_js(TypeError, function() { Event("test") },
+                   'Calling Event constructor without "new" must throw');
 })
 test(function() {
   var ev = new Event("I am an event", { bubbles: true, cancelable: false})

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>Toast: showToast tests</title>
+<title>Toast: option tests</title>
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -101,4 +101,29 @@ async_test(t => {
         toast.remove();
     });
 }, 'showToast closes after user specified 50ms');
+
+async_test(t => {
+    const toast = showToast('message', {duration: Infinity});
+
+    t.step_timeout(() => {
+        assertToastShown(toast);
+        t.done();
+    }, 50);
+
+    t.add_cleanup(function() {
+        toast.remove();
+    });
+}, 'passing Infinity as the duration leaves the toast open for at least 50ms');
+
+test(() => {
+    assert_throws_js(RangeError, () => {
+        const toast = showToast('Message', {duration: 0});
+    });
+}, 'setting the duration to 0 throws a RangeError');
+
+test(() => {
+    assert_throws_js(RangeError, () => {
+        const toast = showToast('Message', {duration: -5});
+    });
+}, 'setting the duration to a negative number throws a RangeError');
 </script>

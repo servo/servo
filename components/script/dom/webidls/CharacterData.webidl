@@ -9,7 +9,7 @@
  * liability, trademark and document use rules apply.
  */
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface CharacterData : Node {
   [Pure] attribute [TreatNullAs=EmptyString] DOMString data;
   [Pure] readonly attribute unsigned long length;
@@ -24,5 +24,5 @@ interface CharacterData : Node {
   void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
-CharacterData implements ChildNode;
-CharacterData implements NonDocumentTypeChildNode;
+CharacterData includes ChildNode;
+CharacterData includes NonDocumentTypeChildNode;

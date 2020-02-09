@@ -33,6 +33,8 @@
   /* Try to foil the UA */
   .foilup { margin-bottom: -1em; scroll-snap-align: start; }
   .foildn { margin-top:    -1em; scroll-snap-align: end; }
+  /* emulate `scrollbar-width: none` for browsers that don't support it yet */
+  ::-webkit-scrollbar { display: none; }
 </style>
 
 <div id='instructions'>Test passes if there is a green stripe across the second quarter of the box below and no red.</div>

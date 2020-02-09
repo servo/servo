@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Display: getComputedStyle().display</title>
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#display-prop">
+<link rel="help" href="https://drafts.csswg.org/css-display/#the-display-properties">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#dis-pos-flo">
+<meta name="assert" content="position and float can change display computed value.">
+<meta name="assert" content="display computed value is otherwise as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+// https://drafts.csswg.org/css-grid-1/#grid-containers
+test_computed_value("display", "grid");
+test_computed_value("display", "inline-grid");
+
+// https://drafts.csswg.org/css2/visuren.html#display-prop
+test_computed_value("display", "inline");
+test_computed_value("display", "block");
+test_computed_value("display", "list-item");
+test_computed_value("display", "inline-block");
+test_computed_value("display", "table");
+test_computed_value("display", "inline-table");
+test_computed_value("display", "table-row-group");
+test_computed_value("display", "table-header-group");
+test_computed_value("display", "table-footer-group");
+test_computed_value("display", "table-row");
+test_computed_value("display", "table-column-group");
+test_computed_value("display", "table-column");
+test_computed_value("display", "table-cell");
+test_computed_value("display", "table-caption");
+test_computed_value("display", "none");
+
+// https://drafts.csswg.org/css-flexbox-1/#flex-containers
+test_computed_value("display", "flex");
+test_computed_value("display", "inline-flex");
+
+test_computed_value("display", "contents");
+
+// https://www.w3.org/TR/CSS2/visuren.html#dis-pos-flo
+function test_display_affected(property, value) {
+  const target = document.getElementById('target');
+  test(() => {
+    target.style[property] = value;
+    target.style.display = 'inline-table';
+    assert_equals(getComputedStyle(target).display, 'table', 'inline-table -> block');
+
+    const displayValues = [
+      'inline',
+      'table-row-group',
+      'table-column',
+      'table-column-group',
+      'table-header-group',
+      'table-footer-group',
+      'table-row',
+      'table-cell',
+      'table-caption',
+      'inline-block'
+    ];
+
+    for (let displayValue of displayValues) {
+      target.style.display = displayValue;
+      assert_equals(getComputedStyle(target).display, 'block', displayValue + ' -> block');
+    }
+
+    target.style.display = 'inline-flex';
+    assert_equals(getComputedStyle(target).display, 'flex', 'inline-flex -> flex');
+
+    target.style.display = 'inline-grid';
+    assert_equals(getComputedStyle(target).display, 'grid', 'inline-grid -> grid');
+
+    // Other values are not affected.
+    target.style.display = 'list-item';
+    assert_equals(getComputedStyle(target).display, 'list-item', 'list-item -> list-item');
+
+    target.style.display = 'contents';
+    assert_equals(getComputedStyle(target).display, 'contents', 'contents -> contents');
+
+    target.style[property] = '';
+    target.style.display = '';
+  }, property + ' ' + value + ' affects computed display');
+}
+
+test_display_affected("position", "absolute");
+test_display_affected("position", "fixed");
+test_display_affected("float", "left");
+test_display_affected("float", "right");
+</script>
+</body>
+</html>

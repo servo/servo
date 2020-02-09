@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlheadingelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLHeadingElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // also has obsolete members
 };
 

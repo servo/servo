@@ -1,4 +1,8 @@
 version: 1
+
+# If and when switching to `reporting: checks-v1` here, also change the `statuses` route to `checks`
+# in `CONFIG.routes_for_all_subtasks` in `etc/taskcluster/decision_task.py`
+
 policy:
   # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
   pullRequests: public
@@ -8,9 +12,13 @@ policy:
 tasks:
   $let:
     task_common:
-      provisionerId: aws-provisioner-v1
+      provisionerId:
+        $if: "taskcluster_root_url == 'https://taskcluster.net'"
+        then: aws-provisioner-v1
+        else: proj-servo
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 day'}
+      priority: high
       extra:
         treeherder:
           machine: {platform: Linux}
@@ -19,9 +27,15 @@ tasks:
       payload:
         maxRunTime: {$eval: '20 * 60'}
         # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
-        image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
+        image: "servobrowser/taskcluster-bootstrap:decision-task@\
+            sha256:7471a998e4462638c8d3e2cf0b4a99c9a5c8ca9f2ec0ae01cc069473b35cde10"
         features:
           taskclusterProxy: true
+        artifacts:
+          public/repo.bundle:
+            type: file
+            path: /repo.bundle
+            expires: {$fromNow: '1 day'}
         env:
           GIT_URL: ${event.repository.clone_url}
           TASK_FOR: ${tasks_for}
@@ -53,7 +67,10 @@ tasks:
                   description: ""
                   owner: ${event.pusher.name}@users.noreply.github.com
                   source: ${event.compare}
-                workerType: servo-docker-worker
+                workerType:
+                  $if: "taskcluster_root_url == 'https://taskcluster.net'"
+                  then: servo-docker-worker
+                  else: docker
                 scopes:
                   - "assume:repo:github.com/servo/servo:branch:${branch}"
                 routes:
@@ -82,7 +99,10 @@ tasks:
               description: ""
               owner: ${event.sender.login}@users.noreply.github.com
               source: ${event.pull_request.url}
-            workerType: servo-docker-untrusted
+            workerType:
+              $if: "taskcluster_root_url == 'https://taskcluster.net'"
+              then: servo-docker-untrusted
+              else: docker-untrusted
             scopes:
               - "assume:repo:github.com/servo/servo:pull-request"
             routes:

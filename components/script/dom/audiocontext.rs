@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding;
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
@@ -13,16 +12,21 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::htmlmediaelement::HTMLMediaElement;
+use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
 
@@ -39,13 +43,20 @@ pub struct AudioContext {
 impl AudioContext {
     #[allow(unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(options: &AudioContextOptions) -> AudioContext {
+    fn new_inherited(options: &AudioContextOptions, pipeline_id: PipelineId) -> AudioContext {
         // Steps 1-3.
-        let context =
-            BaseAudioContext::new_inherited(BaseAudioContextOptions::AudioContext(options.into()));
+        let context = BaseAudioContext::new_inherited(
+            BaseAudioContextOptions::AudioContext(options.into()),
+            pipeline_id,
+        );
 
         // Step 4.1.
-        let latency_hint = options.latencyHint;
+        let latency_hint = match options.latencyHint {
+            AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => category,
+            AudioContextLatencyCategoryOrDouble::Double(_) => {
+                AudioContextLatencyCategory::Interactive
+            }, // TODO
+        };
 
         // Step 4.2. The sample rate is set during the creation of the BaseAudioContext.
         // servo-media takes care of setting the default sample rate of the output device
@@ -64,13 +75,17 @@ impl AudioContext {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let context = AudioContext::new_inherited(options);
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create AudioContext outside of a pipeline");
+        let context = AudioContext::new_inherited(options, pipeline_id);
         let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();
         context
     }
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         options: &AudioContextOptions,
@@ -84,6 +99,10 @@ impl AudioContext {
             // Step 6.
             self.context.resume();
         }
+    }
+
+    pub fn base(&self) -> DomRoot<BaseAudioContext> {
+        DomRoot::from_ref(&self.context)
     }
 }
 
@@ -108,9 +127,9 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
-    fn Suspend(&self, comp: InCompartment) -> Rc<Promise> {
+    fn Suspend(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -128,7 +147,7 @@ impl AudioContextMethods for AudioContext {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().suspend() {
+        match self.context.audio_context_impl().lock().unwrap().suspend() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
@@ -169,9 +188,9 @@ impl AudioContextMethods for AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
-    fn Close(&self, comp: InCompartment) -> Rc<Promise> {
+    fn Close(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -189,7 +208,7 @@ impl AudioContextMethods for AudioContext {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().close() {
+        match self.context.audio_context_impl().lock().unwrap().close() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
@@ -228,6 +247,16 @@ impl AudioContextMethods for AudioContext {
         // Step 6.
         promise
     }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediaelementsource
+    fn CreateMediaElementSource(
+        &self,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        let global = self.global();
+        let window = global.as_window();
+        MediaElementAudioSourceNode::new(window, self, media_element)
+    }
 }
 
 impl From<AudioContextLatencyCategory> for LatencyCategory {
@@ -244,7 +273,12 @@ impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
     fn from(options: &AudioContextOptions) -> Self {
         Self {
             sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(44100.)),
-            latency_hint: options.latencyHint.into(),
+            latency_hint: match options.latencyHint {
+                AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => {
+                    category.into()
+                },
+                AudioContextLatencyCategoryOrDouble::Double(_) => LatencyCategory::Interactive, // TODO
+            },
         }
     }
 }

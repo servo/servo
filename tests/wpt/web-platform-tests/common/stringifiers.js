@@ -1,9 +1,14 @@
-// Tests <http://heycam.github.io/webidl/#es-stringifier>.
+/**
+ * Runs tests for <http://heycam.github.io/webidl/#es-stringifier>.
+ * @param {Object} aObject - object to test
+ * @param {string} aAttribute - IDL attribute name that is annotated with `stringifier`
+ * @param {boolean} aIsUnforgeable - whether the IDL attribute is `[Unforgeable]`
+ */
 function test_stringifier_attribute(aObject, aAttribute, aIsUnforgeable) {
   // Step 1.
   test(function() {
     [null, undefined].forEach(function(v) {
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         aObject.toString.call(v);
       });
     });
@@ -15,7 +20,7 @@ function test_stringifier_attribute(aObject, aAttribute, aIsUnforgeable) {
   test(function() {
     assert_false("Window" in window && aObject instanceof window.Window);
     [{}, window].forEach(function(v) {
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         aObject.toString.call(v)
       });
     });

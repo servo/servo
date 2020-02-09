@@ -12,7 +12,7 @@
 
 test(t => {
   let styleMap = createDeclaredStyleMap(t, '');
-  assert_throws(new TypeError(), () => styleMap.delete('lemon'));
+  assert_throws_js(TypeError, () => styleMap.delete('lemon'));
 }, 'Deleting an unsupported property name throws a TypeError');
 
 </script>

@@ -5,7 +5,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/performance-timeline-utils.js"></script>
     <script>
-      setup({explicit_done: true})
+      setup({single_test: true})
       delayedLoadListener(function(){
         assert_not_equals(typeof performance.getEntriesByType('navigation')[0].serverTiming, 'undefined',
           'An instance of `PerformanceNavigationTiming` should have a `serverTiming` attribute.')

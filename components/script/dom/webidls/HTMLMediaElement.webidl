@@ -7,7 +7,7 @@
 enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
 typedef (MediaStream /*or MediaSource */ or Blob) MediaProvider;
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface HTMLMediaElement : HTMLElement {
   // error state
   readonly attribute MediaError? error;
@@ -53,7 +53,7 @@ interface HTMLMediaElement : HTMLElement {
   void pause();
 
   // controls
-  // [CEReactions] attribute boolean controls;
+  [CEReactions] attribute boolean controls;
   [Throws] attribute double volume;
   attribute boolean muted;
   [CEReactions] attribute boolean defaultMuted;

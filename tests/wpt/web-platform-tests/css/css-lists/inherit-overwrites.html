@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance replaces existing value of counter properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#property-index">
+<meta name="assert" content="Inheritance replaces existing value of counter properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    counter-reset: first 1;
+    counter-increment: second 2;
+    counter-set: third 3;
+  }
+  .target {
+    counter-reset: fourth 4;
+    counter-increment: fifth 5;
+    counter-set: sixth 6;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+'use strict';
+const container = document.getElementById('container');
+
+// 'counter-set' can be added.
+for (let property of ['counter-reset', 'counter-increment']) {
+  test(() => {
+    const target = document.createElement('div');
+    target.classList += 'target';
+    container.appendChild(target);
+    target.style[property] = 'inherit';
+    assert_equals(getComputedStyle(target)[property], getComputedStyle(container)[property]);
+  }, 'Inheritance of ' + property + ' replaces existing value');
+}
+
+</script>
+</body>
+</html>

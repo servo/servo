@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<img src="resources/status-code.py?status=200">
+<img src="resources/status-code.py?status=307">
+<img src="resources/status-code.py?status=404">
+<img src="resources/status-code.py?status=502">
+<script>
+async_test(t => {
+  window.addEventListener("load", t.step_func(() => {
+    const images = document.getElementsByTagName("img");
+    for (let img of images) {
+      assert_greater_than(performance.getEntriesByName(img.src).length, 0, img.src);
+    }
+    t.done();
+  }));
+}, "Make sure all status codes are reported");
+</script>

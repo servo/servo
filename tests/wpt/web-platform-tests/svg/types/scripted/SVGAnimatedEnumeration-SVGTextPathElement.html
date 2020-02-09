@@ -22,15 +22,15 @@ test(function() {
   assert_equals(textPathElement.getAttribute('method'), "stretch");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { textPathElement.method.baseVal = 3; });
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = 3; });
   assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
   assert_equals(textPathElement.getAttribute('method'), "stretch");
 
-  assert_throws(new TypeError(), function() { textPathElement.method.baseVal = -1; });
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = -1; });
   assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
   assert_equals(textPathElement.getAttribute('method'), "stretch");
 
-  assert_throws(new TypeError(), function() { textPathElement.method.baseVal = 0; });
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = 0; });
   assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
   assert_equals(textPathElement.getAttribute('method'), "stretch");
 
@@ -51,15 +51,15 @@ test(function() {
   assert_equals(textPathElement.getAttribute('spacing'), "exact");
 
   // Try setting invalid values.
-  assert_throws(new TypeError(), function() { textPathElement.spacing.baseVal = 3; });
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = 3; });
   assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
   assert_equals(textPathElement.getAttribute('spacing'), "exact");
 
-  assert_throws(new TypeError(), function() { textPathElement.spacing.baseVal = -1; });
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = -1; });
   assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
   assert_equals(textPathElement.getAttribute('spacing'), "exact");
 
-  assert_throws(new TypeError(), function() { textPathElement.spacing.baseVal = 0; });
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = 0; });
   assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
   assert_equals(textPathElement.getAttribute('spacing'), "exact");
 

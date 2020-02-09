@@ -1,0 +1,123 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>format_value utility function</title>
+  <meta charset="utf-8">
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(function() {
+  assert_equals(format_value(null), "null");
+}, "null");
+
+test(function() {
+  assert_equals(format_value(undefined), "undefined");
+}, "undefined");
+
+test(function() {
+  assert_equals(format_value(true), "true");
+  assert_equals(format_value(false), "false");
+}, "boolean values");
+
+test(function() {
+  assert_equals(format_value(0.4), "0.4");
+  assert_equals(format_value(0), "0");
+  assert_equals(format_value(-0), "-0");
+}, "number values");
+
+test(function() {
+  assert_equals(format_value("a string"), "\"a string\"");
+  assert_equals(format_value("new\nline"), "\"new\\nline\"");
+}, "string values");
+
+test(function() {
+  var node = document.createElement("span");
+  node.setAttribute("data-foo", "bar");
+  assert_true(
+    /<span\b/i.test(format_value(node)), "element includes tag name"
+  );
+  assert_true(
+    /data-foo=["']?bar["']?/i.test(format_value(node)),
+    "element includes attributes"
+  );
+}, "node value: element node");
+
+test(function() {
+  var text = document.createTextNode("wpt");
+  assert_equals(format_value(text), "Text node \"wpt\"");
+}, "node value: text node");
+
+test(function() {
+  var node = document.createProcessingInstruction("wpt1", "wpt2");
+  assert_equals(
+    format_value(node),
+    "ProcessingInstruction node with target \"wpt1\" and data \"wpt2\""
+  );
+}, "node value: ProcessingInstruction node");
+
+test(function() {
+  var node = document.createComment("wpt");
+  assert_equals(format_value(node), "Comment node <!--wpt-->");
+}, "node value: comment node");
+
+test(function() {
+  var node = document.implementation.createDocument(
+    "application/xhtml+xml", "", null
+  );
+
+  assert_equals(format_value(node), "Document node with 0 children");
+
+  node.appendChild(document.createElement('html'));
+
+  assert_equals(format_value(node), "Document node with 1 child");
+}, "node value: document node");
+
+test(function() {
+  var node = document.implementation.createDocumentType("foo", "baz", "baz");
+
+  assert_equals(format_value(node), "DocumentType node");
+}, "node value: DocumentType node");
+
+test(function() {
+  var node = document.createDocumentFragment();
+
+  assert_equals(format_value(node), "DocumentFragment node with 0 children");
+
+  node.appendChild(document.createElement("span"));
+
+  assert_equals(format_value(node), "DocumentFragment node with 1 child");
+
+  node.appendChild(document.createElement("span"));
+
+  assert_equals(format_value(node), "DocumentFragment node with 2 children");
+}, "node value: DocumentFragment node");
+
+test(function() {
+  assert_equals(format_value(Symbol("wpt")), "symbol \"Symbol(wpt)\"");
+}, "symbol value");
+
+test(function() {
+ assert_equals(format_value([]), "[]");
+ assert_equals(format_value(["one"]), "[\"one\"]");
+ assert_equals(format_value(["one", "two"]), "[\"one\", \"two\"]");
+}, "array values");
+
+test(function() {
+  var obj = {
+    toString: function() {
+      throw "wpt";
+    }
+  };
+
+  assert_equals(
+    format_value(obj), "[stringifying object threw wpt with type string]"
+  );
+}, "object value with faulty `toString`");
+</script>
+</body>
+</html>

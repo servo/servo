@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Canvas width and height attributes are used as the surface size</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  canvas {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<body>
+<script>
+let t = async_test("Canvas width and height attributes are used as the surface size");
+function assert_ratio(img, expected) {
+  let epsilon = 0.001;
+  assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
+}
+// Create and append a new canvas and immediately check the ratio.
+t.step(function() {
+  var canvas = document.createElement("canvas");
+  canvas.setAttribute("width", "250");
+  canvas.setAttribute("height", "100");
+  document.body.appendChild(canvas);
+  // Canvases always use the aspect ratio from their surface size.
+  assert_ratio(canvas, 2.5);
+
+  t.done();
+});
+</script>

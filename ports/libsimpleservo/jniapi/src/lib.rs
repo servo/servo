@@ -8,14 +8,18 @@
 extern crate log;
 
 use android_logger::{self, Filter};
+use gstreamer::debug_set_threshold_from_string;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
-use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
+use simpleservo::{
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionPlaybackState, VRInitOptions,
+};
 use std::os::raw::{c_char, c_int, c_void};
+use std::ptr::{null, null_mut};
 use std::sync::Arc;
 use std::thread;
 
@@ -52,8 +56,8 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     opts: JObject,
     callbacks_obj: JObject,
 ) {
-    let (opts, log, log_str) = match get_options(&env, opts) {
-        Ok((opts, log, log_str)) => (opts, log, log_str),
+    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts) {
+        Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
             return;
@@ -85,6 +89,11 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
                 filter = filter.with_allowed_module_path(module);
             }
         }
+
+        if let Some(gst_debug_str) = gst_debug_str {
+            debug_set_threshold_from_string(&gst_debug_str, true);
+        }
+
         android_logger::init_once(filter, Some("simpleservo"));
     }
 
@@ -104,9 +113,11 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    if let Err(err) =
-        gl_glue::egl::init().and_then(|gl| simpleservo::init(opts, gl, wakeup, callbacks))
-    {
+    if let Err(err) = gl_glue::egl::init().and_then(|egl_init| {
+        opts.gl_context_pointer = Some(egl_init.gl_context);
+        opts.native_display_pointer = Some(egl_init.display);
+        simpleservo::init(opts, egl_init.gl_wrapper, wakeup, callbacks)
+    }) {
         throw(&env, err)
     };
 }
@@ -324,6 +335,16 @@ pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint
     call(&env, |s| s.click(x as f32, y as f32));
 }
 
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
+    env: JNIEnv,
+    _: JClass,
+    action: jint,
+) {
+    debug!("mediaSessionAction");
+    call(&env, |s| s.media_session_action((action as i32).into()));
+}
+
 pub struct WakeupCallback {
     callback: GlobalRef,
     jvm: Arc<JavaVM>,
@@ -337,7 +358,7 @@ impl WakeupCallback {
 }
 
 impl EventLoopWaker for WakeupCallback {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(WakeupCallback {
             callback: self.callback.clone(),
             jvm: self.jvm.clone(),
@@ -371,6 +392,23 @@ impl HostTrait for HostCallbacks {
         let env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
             .unwrap();
+    }
+
+    fn on_alert(&self, message: String) {
+        debug!("on_alert");
+        let env = self.jvm.get_env().unwrap();
+        let s = match new_string(&env, &message) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let s = JValue::from(JObject::from(s));
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onAlert",
+            "(Ljava/lang/String;)V",
+            &[s],
+        )
+        .unwrap();
     }
 
     fn on_load_started(&self) {
@@ -476,6 +514,79 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_ime_state_changed(&self, _show: bool) {}
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        None
+    }
+
+    fn set_clipboard_contents(&self, _contents: String) {}
+
+    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
+        info!("on_media_session_metadata");
+        let env = self.jvm.get_env().unwrap();
+        let title = match new_string(&env, &title) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let title = JValue::Object(JObject::from(title));
+
+        let artist = match new_string(&env, &artist) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let artist = JValue::Object(JObject::from(artist));
+
+        let album = match new_string(&env, &album) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let album = JValue::Object(JObject::from(album));
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionMetadata",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+            &[title, artist, album],
+        )
+        .unwrap();
+    }
+
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
+        info!("on_media_session_playback_state_change {:?}", state);
+        let env = self.jvm.get_env().unwrap();
+        let state = state as i32;
+        let state = JValue::Int(state as jint);
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionPlaybackStateChange",
+            "(I)V",
+            &[state],
+        )
+        .unwrap();
+    }
+
+    fn on_media_session_set_position_state(
+        &self,
+        duration: f64,
+        position: f64,
+        playback_rate: f64,
+    ) {
+        info!(
+            "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
+            duration, position, playback_rate
+        );
+        let env = self.jvm.get_env().unwrap();
+        let duration = JValue::Float(duration as jfloat);
+        let position = JValue::Float(position as jfloat);
+        let playback_rate = JValue::Float(playback_rate as jfloat);
+
+        env.call_method(
+            self.callbacks.as_obj(),
+            "onMediaSessionSetPositionState",
+            "(FFF)V",
+            &[duration, position, playback_rate],
+        )
+        .unwrap();
+    }
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
@@ -483,19 +594,51 @@ fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
 
     // From jni-rs to android_injected_glue
 
-    let mut app: ffi::android_app = unsafe { std::mem::zeroed() };
-    let mut native_activity: ffi::ANativeActivity = unsafe { std::mem::zeroed() };
+    let clazz = Box::leak(Box::new(env.new_global_ref(activity).unwrap()));
 
-    let clazz = Box::into_raw(Box::new(env.new_global_ref(activity).unwrap()));
-    native_activity.clazz = unsafe { (*clazz).as_obj().into_inner() as *mut c_void };
+    let activity = Box::into_raw(Box::new(ffi::ANativeActivity {
+        clazz: clazz.as_obj().into_inner() as *mut c_void,
+        vm: env.get_java_vm().unwrap().get_java_vm_pointer() as *mut ffi::_JavaVM,
 
-    let vm = env.get_java_vm().unwrap().get_java_vm_pointer();
-    native_activity.vm = vm as *mut ffi::_JavaVM;
+        callbacks: null_mut(),
+        env: null_mut(),
+        internalDataPath: null(),
+        externalDataPath: null(),
+        sdkVersion: 0,
+        instance: null_mut(),
+        assetManager: null_mut(),
+        obbPath: null(),
+    }));
 
-    app.activity = Box::into_raw(Box::new(native_activity));
+    extern "C" fn on_app_cmd(_: *mut ffi::android_app, _: i32) {}
+    extern "C" fn on_input_event(_: *mut ffi::android_app, _: *const c_void) -> i32 {
+        0
+    }
+
+    let app = Box::into_raw(Box::new(ffi::android_app {
+        activity,
+        onAppCmd: on_app_cmd,
+        onInputEvent: on_input_event,
+
+        userData: null_mut(),
+        config: null(),
+        savedState: null_mut(),
+        savedStateSize: 0,
+        looper: null_mut(),
+        inputQueue: null(),
+        window: null_mut(),
+        contentRect: ffi::ARect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        },
+        activityState: 0,
+        destroyRequested: 0,
+    }));
 
     unsafe {
-        ANDROID_APP = Box::into_raw(Box::new(app));
+        ANDROID_APP = app;
     }
 }
 
@@ -676,10 +819,14 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
     }
 }
 
-fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option<String>), String> {
+fn get_options(
+    env: &JNIEnv,
+    opts: JObject,
+) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
     let log_str = get_string(env, opts, "logStr")?;
+    let gst_debug_str = get_string(env, opts, "gstDebugStr")?;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
         .map_err(|_| "densitiy not a float")? as f32;
@@ -720,6 +867,9 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
         } else {
             VRInitOptions::VRExternal(vr_pointer)
         },
+        xr_discovery: None,
+        gl_context_pointer: None,
+        native_display_pointer: None,
     };
-    Ok((opts, log, log_str))
+    Ok((opts, log, log_str, gst_debug_str))
 }

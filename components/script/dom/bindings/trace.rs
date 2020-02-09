@@ -37,29 +37,35 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
+use crate::dom::gpubuffer::GPUBufferState;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
+use crate::dom::identityhub::Identities;
+use crate::script_runtime::StreamConsumer;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
     CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
 };
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
-use canvas_traits::webgl::GLLimits;
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, TexDataType, TexFormat};
-use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::WebGLVertexArrayId;
+use canvas_traits::webgl::{
+    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
+};
+use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
+use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
+use canvas_traits::webgl::{WebGLOpaqueFramebufferId, WebGLTransparentFramebufferId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
-use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId};
+use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
+use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
+use embedder_traits::{EventLoopWaker, MediaMetadata};
 use encoding_rs::{Decoder, Encoding};
+use euclid::default::{Point2D, Rect, Rotation3D, Transform2D};
 use euclid::Length as EuclidLength;
-use euclid::{
-    Point2D, Rect, RigidTransform3D, Rotation3D, Transform2D, Transform3D, TypedScale, TypedSize2D,
-    Vector2D,
-};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
@@ -73,15 +79,17 @@ use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
+use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
+    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Request, RequestBuilder};
+use net_traits::request::{Referrer, Request, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::storage_thread::StorageType;
@@ -90,9 +98,11 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::OpaqueStyleAndLayoutData;
-use script_traits::DrawAPaintImageResult;
-use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource};
-use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::serializable::BlobImpl;
+use script_traits::transferable::MessagePortImpl;
+use script_traits::{DocumentActivity, DrawAPaintImageResult};
+use script_traits::{MediaSessionActionType, ScriptToConstellationChan, TimerEventId, TimerSource};
+use script_traits::{UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -103,6 +113,8 @@ use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
+use servo_media::player::audio::AudioRenderer;
+use servo_media::player::video::VideoFrame;
 use servo_media::player::Player;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
@@ -137,10 +149,17 @@ use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
-use time::{Duration, Timespec};
+use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
-use webrender_api::{DocumentId, ImageKey, RenderApiSender};
+use webgpu::{
+    WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer, WebGPUDevice,
+    WebGPUPipelineLayout,
+};
+use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
+use webxr_api::SwapChainId as WebXRSwapChainId;
+
+unsafe_no_jsmanaged_fields!(Tm);
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
@@ -148,7 +167,15 @@ pub unsafe trait JSTraceable {
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
 
-unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
+
+unsafe_no_jsmanaged_fields!(MessagePortImpl);
+unsafe_no_jsmanaged_fields!(MessagePortId);
+unsafe_no_jsmanaged_fields!(RefCell<Option<MessagePortId>>);
+unsafe_no_jsmanaged_fields!(MessagePortRouterId);
+
+unsafe_no_jsmanaged_fields!(BlobId);
+unsafe_no_jsmanaged_fields!(BlobImpl);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 
@@ -166,6 +193,8 @@ unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
 unsafe_no_jsmanaged_fields!(Cow<'static, str>);
+
+unsafe_no_jsmanaged_fields!(CspList);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
@@ -282,6 +311,15 @@ unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for e in &*self {
+            e.trace(trc);
+        }
+    }
+}
+
+unsafe impl<T: JSTraceable + Eq + Hash> JSTraceable for indexmap::IndexSet<T> {
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        for e in self.iter() {
             e.trace(trc);
         }
     }
@@ -404,6 +442,7 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
 
 unsafe_no_jsmanaged_fields!(ActiveAttribInfo);
 unsafe_no_jsmanaged_fields!(ActiveUniformInfo);
+unsafe_no_jsmanaged_fields!(ActiveUniformBlockInfo);
 unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
@@ -438,7 +477,7 @@ unsafe_no_jsmanaged_fields!(StorageType);
 unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 unsafe_no_jsmanaged_fields!(RepetitionStyle);
-unsafe_no_jsmanaged_fields!(WebGLError, GLLimits);
+unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);
 unsafe_no_jsmanaged_fields!(MemProfilerChan);
 unsafe_no_jsmanaged_fields!(PseudoElement);
@@ -457,6 +496,7 @@ unsafe_no_jsmanaged_fields!(Request);
 unsafe_no_jsmanaged_fields!(RequestBuilder);
 unsafe_no_jsmanaged_fields!(StyleSharedRwLock);
 unsafe_no_jsmanaged_fields!(USVString);
+unsafe_no_jsmanaged_fields!(Referrer);
 unsafe_no_jsmanaged_fields!(ReferrerPolicy);
 unsafe_no_jsmanaged_fields!(Response);
 unsafe_no_jsmanaged_fields!(ResponseBody);
@@ -472,40 +512,69 @@ unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);
-unsafe_no_jsmanaged_fields!(WebGLContextShareMode);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLOpaqueFramebufferId);
+unsafe_no_jsmanaged_fields!(WebGLTransparentFramebufferId);
 unsafe_no_jsmanaged_fields!(WebGLMsgSender);
 unsafe_no_jsmanaged_fields!(WebGLPipeline);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);
+unsafe_no_jsmanaged_fields!(WebGLQueryId);
 unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
+unsafe_no_jsmanaged_fields!(WebGLSamplerId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
+unsafe_no_jsmanaged_fields!(WebGLSyncId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(WebGLSLVersion);
+unsafe_no_jsmanaged_fields!(RefCell<Option<WebGPU>>);
+unsafe_no_jsmanaged_fields!(RefCell<Identities>);
+unsafe_no_jsmanaged_fields!(WebGPU);
+unsafe_no_jsmanaged_fields!(WebGPUAdapter);
+unsafe_no_jsmanaged_fields!(WebGPUDevice);
+unsafe_no_jsmanaged_fields!(WebGPUBuffer);
+unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
+unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
+unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
+unsafe_no_jsmanaged_fields!(GPUBufferState);
+unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadData, WebVRGamepadState, WebVRGamepadHand);
+unsafe_no_jsmanaged_fields!(
+    webxr_api::Registry,
+    webxr_api::Session,
+    webxr_api::Frame,
+    webxr_api::InputSource,
+    webxr_api::InputId
+);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
-unsafe_no_jsmanaged_fields!(AudioContext);
+unsafe_no_jsmanaged_fields!(Arc<Mutex<AudioContext>>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(dyn Player);
+unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn Player>>);
 unsafe_no_jsmanaged_fields!(WebRtcController);
 unsafe_no_jsmanaged_fields!(MediaStreamId, MediaStreamType);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
-unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
-unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>, Transform3D<f64>);
-unsafe_no_jsmanaged_fields!(Point2D<f32>, Vector2D<f32>, Rect<Au>);
-unsafe_no_jsmanaged_fields!(Rect<f32>, RigidTransform3D<f64>);
+unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
+unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
+unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(CascadeData);
+unsafe_no_jsmanaged_fields!(WindowGLContext);
+unsafe_no_jsmanaged_fields!(VideoFrame);
+unsafe_no_jsmanaged_fields!(WebGLContextId);
+unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
+unsafe_no_jsmanaged_fields!(MediaSessionActionType);
+unsafe_no_jsmanaged_fields!(MediaMetadata);
+unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
+unsafe_no_jsmanaged_fields!(StreamConsumer);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -597,7 +666,42 @@ where
     }
 }
 
-unsafe impl<T, U> JSTraceable for TypedScale<f32, T, U> {
+unsafe impl<U> JSTraceable for euclid::Vector2D<f32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::Scale<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f64, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::Transform3D<f32, T, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for euclid::Transform3D<f64, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -611,21 +715,28 @@ unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<i32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<i32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<f32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<u32, U> {
+unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -827,7 +938,7 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedTraceableBox<T: 'static + JSTraceable> {
     ptr: *mut T,
 }
@@ -898,7 +1009,7 @@ impl<T: JSTraceable + 'static> Drop for RootedTraceableBox<T> {
 /// iterator of `DomRoot`s, `rooted_vec!(let v <- iterator);`.
 #[allow(unrooted_must_root)]
 #[derive(JSTraceable)]
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootableVec<T: JSTraceable> {
     v: Vec<T>,
 }
@@ -911,7 +1022,7 @@ impl<T: JSTraceable> RootableVec<T> {
 }
 
 /// A vector of items that are rooted for the lifetime 'a.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedVec<'a, T: 'static + JSTraceable> {
     root: &'a mut RootableVec<T>,
 }

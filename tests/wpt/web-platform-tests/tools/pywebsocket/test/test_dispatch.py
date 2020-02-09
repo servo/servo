@@ -155,9 +155,9 @@ class DispatcherTest(unittest.TestCase):
         try:
             dispatcher.do_extra_handshake(request)
             self.fail('Could not catch HandshakeException with 403 status')
-        except handshake.HandshakeException, e:
+        except handshake.HandshakeException as e:
             self.assertEquals(403, e.status)
-        except Exception, e:
+        except Exception as e:
             self.fail('Unexpected exception: %r' % e)
 
     def test_abort_extra_handshake(self):
@@ -212,7 +212,7 @@ class DispatcherTest(unittest.TestCase):
             try:
                 dispatcher.transfer_data(request)
                 self.fail()
-            except dispatch.DispatchException, e:
+            except dispatch.DispatchException as e:
                 self.failUnless(str(e).find('No handler') != -1)
             except Exception:
                 self.fail()
@@ -225,7 +225,7 @@ class DispatcherTest(unittest.TestCase):
         try:
             dispatcher.transfer_data(request)
             self.fail()
-        except Exception, e:
+        except Exception as e:
             self.failUnless(str(e).find('Intentional') != -1,
                             'Unexpected exception: %s' % e)
 

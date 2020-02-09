@@ -39,17 +39,17 @@ test(function() {
 }, "Prototype of object created with named constructor");
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     Audio();
   });
 }, "Calling Audio should throw");
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     HTMLAudioElement();
   });
 }, "Calling HTMLAudioElement should throw");
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     new HTMLAudioElement();
   });
 }, "Constructing HTMLAudioElement should throw");

@@ -34,9 +34,9 @@ enum PanningModelType {
     "HRTF"
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional PannerOptions options)]
+[Exposed=Window]
 interface PannerNode : AudioNode {
+  [Throws] constructor(BaseAudioContext context, optional PannerOptions options = {});
   attribute PanningModelType panningModel;
   readonly attribute AudioParam positionX;
   readonly attribute AudioParam positionY;

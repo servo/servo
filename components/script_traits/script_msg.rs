@@ -5,30 +5,38 @@
 use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::DocumentState;
-use crate::IFrameLoadInfo;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
+use crate::MessagePortMsg;
+use crate::PortMessageTask;
+use crate::StructuredSerializedData;
 use crate::WindowSizeType;
 use crate::WorkerGlobalScopeInit;
 use crate::WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EmbedderMsg;
-use euclid::{Size2D, TypedSize2D};
+use embedder_traits::{EmbedderMsg, MediaSessionEvent};
+use euclid::default::Size2D as UntypedSize2D;
+use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{
+    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
+};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
+use smallvec::SmallVec;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webrender_api::{DeviceIntPoint, DeviceIntSize};
+use webgpu::{wgpu, WebGPUResponseResult};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 /// A particular iframe's size, associated with a browsing context.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -36,7 +44,7 @@ pub struct IFrameSize {
     /// The child browsing context for this iframe.
     pub id: BrowsingContextId,
     /// The size of the iframe.
-    pub size: TypedSize2D<f32, CSSPixel>,
+    pub size: Size2D<f32, CSSPixel>,
 }
 
 /// An iframe sizing operation.
@@ -97,9 +105,43 @@ pub enum LogEntry {
     Warn(String),
 }
 
+/// https://html.spec.whatwg.org/multipage/#replacement-enabled
+#[derive(Debug, Deserialize, Serialize)]
+pub enum HistoryEntryReplacement {
+    /// Traverse the history with replacement enabled.
+    Enabled,
+    /// Traverse the history with replacement disabled.
+    Disabled,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Request to complete the transfer of a set of ports to a router.
+    CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
+    /// The results of attempting to complete the transfer of a batch of ports.
+    MessagePortTransferResult(
+        /* The router whose transfer of ports succeeded, if any */
+        Option<MessagePortRouterId>,
+        /* The ids of ports transferred successfully */
+        Vec<MessagePortId>,
+        /* The ids, and buffers, of ports whose transfer failed */
+        HashMap<MessagePortId, VecDeque<PortMessageTask>>,
+    ),
+    /// A new message-port was created or transferred, with corresponding control-sender.
+    NewMessagePort(MessagePortRouterId, MessagePortId),
+    /// A global has started managing message-ports
+    NewMessagePortRouter(MessagePortRouterId, IpcSender<MessagePortMsg>),
+    /// A global has stopped managing message-ports
+    RemoveMessagePortRouter(MessagePortRouterId),
+    /// A task requires re-routing to an already shipped message-port.
+    RerouteMessagePort(MessagePortId, PortMessageTask),
+    /// A message-port was shipped, let the entangled port know.
+    MessagePortShipped(MessagePortId),
+    /// A message-port has been discarded by script.
+    RemoveMessagePort(MessagePortId),
+    /// Entangle two message-ports.
+    EntanglePorts(MessagePortId, MessagePortId),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -118,11 +160,12 @@ pub enum ScriptMsg {
     ChangeRunningAnimationsState(AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintThread(Size2D<u64>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
+    CreateCanvasPaintThread(
+        UntypedSize2D<u64>,
+        IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+    ),
     /// Notifies the constellation that this frame has received focus.
     Focus,
-    /// Requests that the constellation retrieve the current contents of the clipboard
-    GetClipboardContents(IpcSender<String>),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,
@@ -145,7 +188,7 @@ pub enum ScriptMsg {
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, bool),
+    LoadUrl(LoadData, HistoryEntryReplacement),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -156,11 +199,14 @@ pub enum ScriptMsg {
         source: PipelineId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
+        /// The source origin of the message.
+        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
-    NavigatedToFragment(ServoUrl, bool),
+    NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Inform the constellation of a pushed history state.
@@ -177,14 +223,12 @@ pub enum ScriptMsg {
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
-    ScriptNewIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    ScriptNewIFrame(IFrameLoadInfoWithData, IpcSender<LayoutControlMsg>),
     /// Script has opened a new auxiliary browsing context.
     ScriptNewAuxiliary(
         AuxiliaryBrowsingContextLoadInfo,
         IpcSender<LayoutControlMsg>,
     ),
-    /// Requests that the constellation set the contents of the clipboard
-    SetClipboardContents(String),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
@@ -209,22 +253,39 @@ pub enum ScriptMsg {
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
     /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<(DeviceIntSize)>),
+    GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<(DeviceIntSize)>),
+    GetScreenAvailSize(IpcSender<DeviceIntSize>),
+    /// Notifies the constellation about media session events
+    /// (i.e. when there is metadata for the active media session, playback state changes...).
+    MediaSessionEvent(PipelineId, MediaSessionEvent),
+    /// Create a WebGPU Adapter instance
+    RequestAdapter(
+        IpcSender<WebGPUResponseResult>,
+        wgpu::instance::RequestAdapterOptions,
+        SmallVec<[wgpu::id::AdapterId; 4]>,
+    ),
 }
 
 impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            CompleteMessagePortTransfer(..) => "CompleteMessagePortTransfer",
+            MessagePortTransferResult(..) => "MessagePortTransferResult",
+            NewMessagePortRouter(..) => "NewMessagePortRouter",
+            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
+            NewMessagePort(..) => "NewMessagePort",
+            RerouteMessagePort(..) => "RerouteMessagePort",
+            RemoveMessagePort(..) => "RemoveMessagePort",
+            MessagePortShipped(..) => "MessagePortShipped",
+            EntanglePorts(..) => "EntanglePorts",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
             Focus => "Focus",
-            GetClipboardContents(..) => "GetClipboardContents",
             GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
@@ -242,7 +303,6 @@ impl fmt::Debug for ScriptMsg {
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
             ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
-            SetClipboardContents(..) => "SetClipboardContents",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",
             SetFinalUrl(..) => "SetFinalUrl",
@@ -256,6 +316,8 @@ impl fmt::Debug for ScriptMsg {
             GetClientWindow(..) => "GetClientWindow",
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
+            MediaSessionEvent(..) => "MediaSessionEvent",
+            RequestAdapter(..) => "RequestAdapter",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }
@@ -277,8 +339,13 @@ pub struct ScopeThings {
 }
 
 /// Message that gets passed to service worker scope on postMessage
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct DOMMessage(pub Vec<u8>);
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DOMMessage {
+    /// The origin of the message
+    pub origin: ImmutableOrigin,
+    /// The payload of the message
+    pub data: StructuredSerializedData,
+}
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 pub struct SWManagerSenders {

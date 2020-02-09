@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#padding-physical" title="Percentages line">
+<meta name="flags" content="" />
+<meta name="assert" content="item's padding is resolved against parent's size, not item's" />
+
+<style>
+x-flexbox {
+  display: flex;
+  height: 50px;
+  width: 500px;
+}
+
+x-item {
+  padding-left: 10%;
+  background: blue;
+  position: relative; /* Just so offsetLeft returns distance between x-item and div */
+}
+
+div {
+  height: 50px;
+  width: 50px;
+  background: orange;
+}
+</style>
+
+If the item's % padding is calculated correctly, there is a blue square on the left and an orange square on the right, both 50x50.
+
+<x-flexbox>
+  <x-item>
+    <div data-offset-x=50></div>
+  </x-item>
+</x-flexbox>
+
+<script>
+checkLayout('x-flexbox');
+</script>

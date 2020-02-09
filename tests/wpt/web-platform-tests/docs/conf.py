@@ -43,7 +43,8 @@ release = u''
 extensions = [
     'recommonmark',
     'sphinxarg.ext',
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -79,11 +80,13 @@ exclude_patterns = [
     '.DS_Store'
 ]
 
+from docs.wpt_lint_rules import WPTLintRules
 # Enable inline reStructured Text within Markdown-formatted files
 # https://recommonmark.readthedocs.io/en/latest/auto_structify.html
 from recommonmark.transform import AutoStructify
 def setup(app):
     app.add_transform(AutoStructify)
+    app.add_directive('wpt-lint-rules', WPTLintRules)
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -191,3 +194,6 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+intersphinx_mapping = {'python': ('https://docs.python.org/2/', None),
+                       'mozilla': ('https://firefox-source-docs.mozilla.org/', None)}

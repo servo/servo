@@ -4,7 +4,6 @@
 
 // check-tidy: no specs after this line
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -36,19 +35,21 @@ use crate::dom::bindings::codegen::UnionTypes::{
     StringOrUnsignedLong, StringSequenceOrUnsignedLong,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::mozmap::MozMap;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::record::Record;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
+use crate::realms::InRealm;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -57,6 +58,7 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
 use js::rust::{HandleObject, HandleValue};
 use js::typedarray;
+use script_traits::serializable::BlobImpl;
 use script_traits::MsDuration;
 use servo_config::prefs;
 use std::borrow::ToOwned;
@@ -70,6 +72,7 @@ pub struct TestBinding {
     url: MutableWeakRef<URL>,
 }
 
+#[allow(non_snake_case)]
 impl TestBinding {
     fn new_inherited() -> TestBinding {
         TestBinding {
@@ -173,8 +176,7 @@ impl TestBindingMethods for TestBinding {
     fn InterfaceAttribute(&self) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -215,23 +217,24 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
     #[allow(unsafe_code)]
-    unsafe fn ArrayAttribute(&self, cx: *mut JSContext) -> NonNull<JSObject> {
-        rooted!(in(cx) let array = JS_NewUint8ClampedArray(cx, 16));
-        NonNull::new(array.get()).expect("got a null pointer")
+    fn ArrayAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
+        unsafe {
+            rooted!(in(*cx) let array = JS_NewUint8ClampedArray(*cx, 16));
+            NonNull::new(array.get()).expect("got a null pointer")
+        }
     }
-    #[allow(unsafe_code)]
-    unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal {
+    fn AnyAttribute(&self, _: SafeJSContext) -> JSVal {
         NullValue()
     }
+    fn SetAnyAttribute(&self, _: SafeJSContext, _: HandleValue) {}
     #[allow(unsafe_code)]
-    unsafe fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
-    #[allow(unsafe_code)]
-    unsafe fn ObjectAttribute(&self, cx: *mut JSContext) -> NonNull<JSObject> {
-        rooted!(in(cx) let obj = JS_NewPlainObject(cx));
-        NonNull::new(obj.get()).expect("got a null pointer")
+    fn ObjectAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
+        unsafe {
+            rooted!(in(*cx) let obj = JS_NewPlainObject(*cx));
+            NonNull::new(obj.get()).expect("got a null pointer")
+        }
     }
-    #[allow(unsafe_code)]
-    unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn SetObjectAttribute(&self, _: SafeJSContext, _: *mut JSObject) {}
 
     fn GetBooleanAttributeNullable(&self) -> Option<bool> {
         Some(false)
@@ -318,8 +321,7 @@ impl TestBindingMethods for TestBinding {
     fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -329,12 +331,10 @@ impl TestBindingMethods for TestBinding {
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
         self.url.set(url);
     }
-    #[allow(unsafe_code)]
-    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn GetObjectAttributeNullable(&self, _: SafeJSContext) -> Option<NonNull<JSObject>> {
         None
     }
-    #[allow(unsafe_code)]
-    unsafe fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn SetObjectAttributeNullable(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
     }
@@ -415,16 +415,13 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterface(&self) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )
     }
-    #[allow(unsafe_code)]
-    unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal {
+    fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
         NullValue()
     }
-    #[allow(unsafe_code)]
-    unsafe fn ReceiveObject(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+    fn ReceiveObject(&self, cx: SafeJSContext) -> NonNull<JSObject> {
         self.ObjectAttribute(cx)
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong {
@@ -466,14 +463,12 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         )]
     }
-    #[allow(unsafe_code)]
-    unsafe fn ReceiveUnionIdentity(
+    fn ReceiveUnionIdentity(
         &self,
-        _: *mut JSContext,
+        _: SafeJSContext,
         arg: UnionTypes::StringOrObject,
     ) -> UnionTypes::StringOrObject {
         arg
@@ -533,12 +528,10 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
-            BlobImpl::new_from_bytes(vec![]),
-            "".to_owned(),
+            BlobImpl::new_from_bytes(vec![], "".to_owned()),
         ))
     }
-    #[allow(unsafe_code)]
-    unsafe fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         self.GetObjectAttributeNullable(cx)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
@@ -666,35 +659,24 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
     fn PassUnion8(&self, _: ByteStringSequenceOrLong) {}
     fn PassUnion9(&self, _: UnionTypes::TestDictionaryOrLong) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassUnion10(&self, _: *mut JSContext, _: UnionTypes::StringOrObject) {}
+    fn PassUnion10(&self, _: SafeJSContext, _: UnionTypes::StringOrObject) {}
     fn PassUnion11(&self, _: UnionTypes::ArrayBufferOrArrayBufferView) {}
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn PassAny(&self, _: SafeJSContext, _: HandleValue) {}
+    fn PassObject(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassAnySequence(&self, _: *mut JSContext, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
-    #[allow(unsafe_code)]
-    unsafe fn AnySequencePassthrough(
+    fn PassAnySequence(&self, _: SafeJSContext, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
+    fn AnySequencePassthrough(
         &self,
-        _: *mut JSContext,
+        _: SafeJSContext,
         seq: CustomAutoRooterGuard<Vec<JSVal>>,
     ) -> Vec<JSVal> {
         (*seq).clone()
     }
-    #[allow(unsafe_code)]
-    unsafe fn PassObjectSequence(
-        &self,
-        _: *mut JSContext,
-        _: CustomAutoRooterGuard<Vec<*mut JSObject>>,
-    ) {
-    }
+    fn PassObjectSequence(&self, _: SafeJSContext, _: CustomAutoRooterGuard<Vec<*mut JSObject>>) {}
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
     fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
 
@@ -719,8 +701,7 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(&self, _: Option<&Blob>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn PassNullableObject(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn PassNullableTypedArray(&self, _: CustomAutoRooterGuard<Option<typedarray::Int8Array>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
@@ -756,10 +737,8 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUnion4(&self, _: Option<LongSequenceOrBoolean>) {}
     fn PassOptionalUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassOptionalUnion6(&self, _: Option<ByteStringOrLong>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassOptionalAny(&self, _: *mut JSContext, _: HandleValue) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    fn PassOptionalAny(&self, _: SafeJSContext, _: HandleValue) {}
+    fn PassOptionalObject(&self, _: SafeJSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
     fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
@@ -782,8 +761,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(&self, _: Option<Option<&Blob>>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassOptionalNullableObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    fn PassOptionalNullableObject(&self, _: SafeJSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableUnion3(&self, _: Option<Option<StringOrLongSequence>>) {}
@@ -827,14 +805,12 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<&Blob>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn PassOptionalNullableObjectWithDefault(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
     fn PassOptionalNullableCallbackInterfaceWithDefault(&self, _: Option<Rc<EventListener>>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassOptionalAnyWithDefault(&self, _: *mut JSContext, _: HandleValue) {}
+    fn PassOptionalAnyWithDefault(&self, _: SafeJSContext, _: HandleValue) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithNonNullDefault(&self, _: Option<i8>) {}
@@ -883,10 +859,8 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion5(&self, _: Vec<StringOrUnsignedLong>) {}
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicUnion7(&self, _: Vec<ByteStringOrLong>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
-    #[allow(unsafe_code)]
-    unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+    fn PassVariadicAny(&self, _: SafeJSContext, _: Vec<HandleValue>) {}
+    fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         prefs::pref_map()
             .get(pref_name.as_ref())
@@ -917,79 +891,81 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
-    fn PassMozMap(&self, _: MozMap<i32>) {}
-    fn PassNullableMozMap(&self, _: Option<MozMap<i32>>) {}
-    fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
-    fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
-    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>>>>) {}
-    fn PassCastableObjectMozMap(&self, _: MozMap<DomRoot<TestBinding>>) {}
-    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<DomRoot<TestBinding>>>) {}
-    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassNullableCastableObjectNullableMozMap(
+    fn PassRecord(&self, _: Record<DOMString, i32>) {}
+    fn PassRecordWithUSVStringKey(&self, _: Record<USVString, i32>) {}
+    fn PassRecordWithByteStringKey(&self, _: Record<ByteString, i32>) {}
+    fn PassNullableRecord(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassRecordOfNullableInts(&self, _: Record<DOMString, Option<i32>>) {}
+    fn PassOptionalRecordOfNullableInts(&self, _: Option<Record<DOMString, Option<i32>>>) {}
+    fn PassOptionalNullableRecordOfNullableInts(
         &self,
-        _: Option<MozMap<Option<DomRoot<TestBinding>>>>,
+        _: Option<Option<Record<DOMString, Option<i32>>>>,
     ) {
     }
-    fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
-    fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
-    fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
-    fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
-    fn PassMozMapUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
-    fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
-    fn PassMozMapUnion3(
+    fn PassCastableObjectRecord(&self, _: Record<DOMString, DomRoot<TestBinding>>) {}
+    fn PassNullableCastableObjectRecord(&self, _: Record<DOMString, Option<DomRoot<TestBinding>>>) {
+    }
+    fn PassCastableObjectNullableRecord(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {
+    }
+    fn PassNullableCastableObjectNullableRecord(
+        &self,
+        _: Option<Record<DOMString, Option<DomRoot<TestBinding>>>>,
+    ) {
+    }
+    fn PassOptionalRecord(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassOptionalNullableRecord(&self, _: Option<Option<Record<DOMString, i32>>>) {}
+    fn PassOptionalNullableRecordWithDefaultValue(&self, _: Option<Record<DOMString, i32>>) {}
+    fn PassOptionalObjectRecord(&self, _: Option<Record<DOMString, DomRoot<TestBinding>>>) {}
+    fn PassStringRecord(&self, _: Record<DOMString, DOMString>) {}
+    fn PassByteStringRecord(&self, _: Record<DOMString, ByteString>) {}
+    fn PassRecordOfRecords(&self, _: Record<DOMString, Record<DOMString, i32>>) {}
+    fn PassRecordUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
+    fn PassRecordUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
+    fn PassRecordUnion3(
         &self,
         _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord,
     ) {
     }
-    fn ReceiveMozMap(&self) -> MozMap<i32> {
-        MozMap::new()
+    fn ReceiveRecord(&self) -> Record<DOMString, i32> {
+        Record::new()
     }
-    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> {
-        Some(MozMap::new())
+    fn ReceiveRecordWithUSVStringKey(&self) -> Record<USVString, i32> {
+        Record::new()
     }
-    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> {
-        MozMap::new()
+    fn ReceiveRecordWithByteStringKey(&self) -> Record<ByteString, i32> {
+        Record::new()
     }
-    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> {
-        Some(MozMap::new())
+    fn ReceiveNullableRecord(&self) -> Option<Record<DOMString, i32>> {
+        Some(Record::new())
     }
-    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> {
-        MozMap::new()
+    fn ReceiveRecordOfNullableInts(&self) -> Record<DOMString, Option<i32>> {
+        Record::new()
     }
-    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> {
-        MozMap::new()
+    fn ReceiveNullableRecordOfNullableInts(&self) -> Option<Record<DOMString, Option<i32>>> {
+        Some(Record::new())
+    }
+    fn ReceiveRecordOfRecords(&self) -> Record<DOMString, Record<DOMString, i32>> {
+        Record::new()
+    }
+    fn ReceiveAnyRecord(&self) -> Record<DOMString, JSVal> {
+        Record::new()
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn ReturnResolvedPromise(
-        &self,
-        cx: *mut JSContext,
-        v: HandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_resolved(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn ReturnRejectedPromise(
-        &self,
-        cx: *mut JSContext,
-        v: HandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_rejected(&self.global(), cx, v)
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
         p.resolve(cx, v);
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
         p.reject(cx, v);
     }
 
@@ -1014,7 +990,7 @@ impl TestBindingMethods for TestBinding {
         &self,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-        comp: InCompartment,
+        comp: InRealm,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
@@ -1022,7 +998,7 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new_in_current_compartment(&global, comp);
+        let p = Promise::new_in_current_realm(&global, comp);
         p.append_native_handler(&handler);
         return p;
 
@@ -1045,8 +1021,8 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InCompartment) -> Rc<Promise> {
-        Promise::new_in_current_compartment(&self.global(), comp)
+    fn PromiseAttribute(&self, comp: InRealm) -> Rc<Promise> {
+        Promise::new_in_current_realm(&self.global(), comp)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
@@ -1087,8 +1063,21 @@ impl TestBindingMethods for TestBinding {
     fn IncumbentGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::incumbent().unwrap()
     }
+
+    fn SemiExposedBoolFromInterface(&self) -> bool {
+        true
+    }
+
+    fn BoolFromSemiExposedPartialInterface(&self) -> bool {
+        true
+    }
+
+    fn SemiExposedBoolFromPartialInterface(&self) -> bool {
+        true
+    }
 }
 
+#[allow(non_snake_case)]
 impl TestBinding {
     pub fn BooleanAttributeStatic(_: &GlobalScope) -> bool {
         false
@@ -1113,12 +1102,11 @@ impl TestBinding {
     pub fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
 }
 
-#[allow(unsafe_code)]
 impl TestBinding {
-    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool {
+    pub fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
         true
     }
-    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool {
+    pub fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
         false
     }
 }

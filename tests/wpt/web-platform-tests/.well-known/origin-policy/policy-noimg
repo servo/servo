@@ -1,3 +1,0 @@
-{
-  "content-security-policy": [{ "policy": "img-src 'none'" }]
-}

@@ -10,8 +10,8 @@ dictionary GainOptions : AudioNodeOptions {
   float gain = 1.0;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional GainOptions options)]
+[Exposed=Window]
  interface GainNode : AudioNode {
+   [Throws] constructor(BaseAudioContext context, optional GainOptions options = {});
    readonly attribute AudioParam gain;
  };

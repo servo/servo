@@ -13,7 +13,6 @@ import json
 import os
 import os.path as path
 import subprocess
-import sys
 from shutil import copytree, rmtree, copy2
 
 from mach.decorators import (
@@ -103,6 +102,9 @@ class PostBuildCommands(CommandBase):
             rust_log = env.get("RUST_LOG", None)
             if rust_log:
                 extra += " -e servolog " + rust_log
+            gst_debug = env.get("GST_DEBUG", None)
+            if gst_debug:
+                extra += " -e gstdebug " + gst_debug
             script += [
                 "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity",
                 "sleep 0.5",
@@ -236,15 +238,16 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
-    def doc(self, params):
-        env = os.environ.copy()
-        env["RUSTUP_TOOLCHAIN"] = self.toolchain()
-        rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
+    @CommandBase.build_like_command_arguments
+    def doc(self, params, features, target=None, android=False, magicleap=False,
+            media_stack=None, **kwargs):
+        self.ensure_bootstrapped(rustup_components=["rust-docs"])
+        rustc_path = check_output(
+            ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"])
         assert path.basename(path.dirname(rustc_path)) == "bin"
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 
-        self.ensure_bootstrapped()
         docs = path.join(self.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
@@ -264,25 +267,19 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        params += ["--features", "azure_backend"]
+        features = features or []
 
-        returncode = self.call_rustup_run(
-            ["cargo", "doc", "--manifest-path", self.ports_glutin_manifest()] + params,
-            env=self.build_env())
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        features += self.pick_media_stack(media_stack, target)
+
+        returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
         if returncode:
             return returncode
 
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
             copy2(path.join(static, name), path.join(docs, name))
-
-        build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
-        subprocess.check_call([sys.executable, build, "servo", "html"])
-
-        script = path.join(self.context.topdir, "components", "script")
-        subprocess.check_call(["cmake", "."], cwd=script)
-        subprocess.check_call(["cmake", "--build", ".", "--target", "supported-apis"], cwd=script)
-        copy2(path.join(script, "apis.html"), path.join(docs, "servo", "apis.html"))
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

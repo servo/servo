@@ -9,7 +9,7 @@ enum VREye {
 
 
 // https://w3c.github.io/webvr/#interface-vrdisplay
-[Pref="dom.webvr.enabled"]
+[Exposed=Window, Pref="dom.webvr.enabled"]
 interface VRDisplay : EventTarget {
   readonly attribute boolean isConnected;
   readonly attribute boolean isPresenting;

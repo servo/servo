@@ -52,6 +52,8 @@ def test_get_current_url_file_protocol(session, server_config):
     session.url = url
 
     response = get_current_url(session)
+    if response.status == 200 and response.body['value'].endswith('/'):
+        url += '/'
     assert_success(response, url)
 
 

@@ -5,6 +5,11 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    try {
+      await document.exitFullscreen();
+    } catch (e) {}
+  });
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -12,10 +17,15 @@ promise_test(async t => {
   screen.orientation.onchange = t.unreached_func("change event should not be fired");
   await screen.orientation.lock(type);
   assert_equals(screen.orientation.type, type);
-  return document.exitFullscreen();
 }, "Test that orientationchange event is not fired when the orientation does not change.");
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    try {
+      await document.exitFullscreen();
+    } catch (e) {}
+    screen.orientation.unlock();
+  });
   await test_driver.bless("request full screen", () => {
     return document.documentElement.requestFullscreen();
   });
@@ -35,7 +45,5 @@ promise_test(async t => {
     await orientationWatcher.wait_for('change');
     assert_equals(screen.orientation.type, orientation);
   }
-  screen.orientation.unlock();
-  return document.exitFullscreen();
 }, "Test that orientationchange event is fired when the orientation changes.");
 </script>

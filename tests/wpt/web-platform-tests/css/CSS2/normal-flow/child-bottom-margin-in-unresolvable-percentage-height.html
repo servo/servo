@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#the-height-property">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1001663">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <div style="position:absolute; width:100%; background:green;">
+    <div style="height:100%;">
+      <div style="margin-bottom:80px; height:20px;"></div>
+    </div>
+  </div>
+</div>

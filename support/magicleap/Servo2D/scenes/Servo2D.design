@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="ASCII"?>
-<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.8.0">
+<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.11.1">
   <property id="name" value="root"/>
+  <property id="sceneName" value="Servo2D"/>
   <node name="contentPanel" nodeTypeId="lumin.ui.panel">
     <property id="cursorInitialPosition"/>
+    <property id="cursorVisible" value="false"/>
     <property id="edgeConstraint"/>
-    <property id="externalName" value="contentPanel"/>
+    <property id="external" value="true"/>
     <property id="gravityWellProperties">
       <property id="boundaryShape">
         <property id="size"/>
@@ -14,8 +16,8 @@
     <property id="name" value="contentPanel"/>
     <property id="panelShape">
       <property id="size">
-        <property id="x" value="0.5"/>
-        <property id="y" value="0.44"/>
+        <property id="x" value="1.28"/>
+        <property id="y" value="0.72"/>
       </property>
       <property id="offset"/>
     </property>
@@ -25,18 +27,18 @@
     <property id="rotation"/>
     <property id="scale"/>
     <node name="content" nodeTypeId="lumin.quad">
-      <property id="externalName" value="content"/>
+      <property id="external" value="true"/>
       <property id="name" value="content"/>
       <property id="position">
-        <property id="x" value="-0.25"/>
-        <property id="y" value="-0.22"/>
+        <property id="x" value="-0.64"/>
+        <property id="y" value="-0.36"/>
         <property id="z" value="-0.0"/>
       </property>
       <property id="rotation"/>
       <property id="scale"/>
       <property id="size">
-        <property id="x" value="0.5"/>
-        <property id="y" value="0.5"/>
+        <property id="x" value="1.28"/>
+        <property id="y" value="0.72"/>
       </property>
       <property id="texCoords">
         <property id="x">
@@ -75,16 +77,16 @@
     <property id="name" value="uiLinearLayout1"/>
     <property id="orientation" value="Horizontal"/>
     <property id="position">
-      <property id="y" value="-0.2"/>
+      <property id="y" value="-0.32"/>
     </property>
     <property id="rotation"/>
     <property id="scale"/>
     <property id="size">
-      <property id="x" value="0.5"/>
+      <property id="x" value="1.28"/>
       <property id="y" value="0.05"/>
     </property>
     <node name="backButton" nodeTypeId="lumin.ui.button">
-      <property id="externalName" value="backButton"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -105,7 +107,7 @@
       <property id="width" value="0.1"/>
     </node>
     <node name="fwdButton" nodeTypeId="lumin.ui.button">
-      <property id="externalName" value="fwdButton"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -127,7 +129,7 @@
       <property id="alignment">
         <property id="verticalAlignment" value="Center"/>
       </property>
-      <property id="externalName" value="urlBar"/>
+      <property id="external" value="true"/>
       <property id="gravityWellProperties">
         <property id="boundaryShape">
           <property id="size"/>
@@ -148,39 +150,22 @@
         <property id="left" value="0.003"/>
       </property>
       <property id="textSize" value="0.05"/>
-      <property id="width" value="0.6"/>
+      <property id="width" value="1.8"/>
     </node>
-  </node>
-  <node name="laser" nodeTypeId="lumin.line">
-    <property id="color" value="0 0 0 0"/>
-    <property id="externalName" value="laser"/>
-    <property id="name" value="laser"/>
-    <property id="opaque" value="false"/>
-    <property id="points">
-      <property id="0"/>
-      <property id="1">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
-        <property id="z" value="1.0"/>
-      </property>
-    </property>
-    <property id="position"/>
-    <property id="rotation"/>
-    <property id="scale"/>
   </node>
   <node name="bevel" nodeTypeId="lumin.quad">
     <property id="color" value="0.4 0.302 0.702 1"/>
     <property id="name" value="bevel"/>
     <property id="position">
-      <property id="x" value="-0.26"/>
-      <property id="y" value="-0.17"/>
+      <property id="x" value="-0.65"/>
+      <property id="y" value="-0.31"/>
       <property id="z" value="-0.01"/>
     </property>
     <property id="rotation"/>
     <property id="scale"/>
     <property id="size">
-      <property id="x" value="0.52"/>
-      <property id="y" value="0.52"/>
+      <property id="x" value="1.3"/>
+      <property id="y" value="0.74"/>
     </property>
     <property id="texCoords">
       <property id="x">

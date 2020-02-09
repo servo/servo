@@ -12,8 +12,8 @@
 // would fail.
 test(t => {
   // precondition is to throw for unknown pseudo-classes:
-  assert_throws(new SyntaxError(), () => document.body.matches(':halfscreen'));
-  assert_throws(new SyntaxError(), () => document.querySelector(':halfscreen'));
+  assert_throws_dom("SyntaxError", () => document.body.matches(':halfscreen'));
+  assert_throws_dom("SyntaxError", () => document.querySelector(':halfscreen'));
   // the actual test:
   assert_false(document.body.matches(':fullscreen'));
   assert_equals(document.querySelector(':fullscreen'), null);

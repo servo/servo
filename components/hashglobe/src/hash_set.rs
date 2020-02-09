@@ -17,6 +17,8 @@ use std::ops::{BitAnd, BitOr, BitXor, Sub};
 use super::hash_map::{self, HashMap, Keys, RandomState};
 use super::Recover;
 
+use crate::FailedAllocationError;
+
 // Future Optimization (FIXME!)
 // =============================
 //
@@ -587,6 +589,12 @@ where
     /// ```
     pub fn insert(&mut self, value: T) -> bool {
         self.map.insert(value, ()).is_none()
+    }
+
+    /// Fallible version of `insert`.
+    #[inline]
+    pub fn try_insert(&mut self, value: T) -> Result<bool, FailedAllocationError> {
+        Ok(self.map.try_insert(value, ())?.is_none())
     }
 
     /// Adds a value to the set, replacing the existing value, if any, that is equal to the given

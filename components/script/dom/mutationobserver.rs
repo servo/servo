@@ -79,6 +79,7 @@ impl MutationObserver {
         }
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &Window,
         callback: Rc<MutationCallback>,

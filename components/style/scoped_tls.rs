@@ -15,6 +15,9 @@ use std::ops::DerefMut;
 ///
 /// We use this on Servo to construct thread-local contexts, but clear them once
 /// we're done with restyling.
+///
+/// Note that the cleanup is done on the thread that owns the scoped TLS, thus
+/// the Send bound.
 pub struct ScopedTLS<'scope, T: Send> {
     pool: &'scope rayon::ThreadPool,
     slots: Box<[RefCell<Option<T>>]>,

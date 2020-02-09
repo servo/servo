@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
@@ -16,10 +17,12 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{
+    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
+};
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -34,6 +37,9 @@ pub struct WebGLProgram {
     vertex_shader: MutNullableDom<WebGLShader>,
     active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
     active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
+    active_uniform_blocks: DomRefCell<Box<[ActiveUniformBlockInfo]>>,
+    transform_feedback_varyings_length: Cell<i32>,
+    transform_feedback_mode: Cell<i32>,
 }
 
 impl WebGLProgram {
@@ -50,6 +56,9 @@ impl WebGLProgram {
             vertex_shader: Default::default(),
             active_attribs: DomRefCell::new(vec![].into()),
             active_uniforms: DomRefCell::new(vec![].into()),
+            active_uniform_blocks: DomRefCell::new(vec![].into()),
+            transform_feedback_varyings_length: Default::default(),
+            transform_feedback_mode: Default::default(),
         }
     }
 
@@ -77,14 +86,18 @@ impl WebGLProgram {
     }
 
     /// glDeleteProgram
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteProgram(self.id));
+        let cmd = WebGLCommand::DeleteProgram(self.id);
+        let context = self.upcast::<WebGLObject>().context();
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
         if self.is_deleted() {
             self.detach_shaders();
         }
@@ -135,6 +148,7 @@ impl WebGLProgram {
             .set(self.link_generation.get().checked_add(1).unwrap());
         *self.active_attribs.borrow_mut() = Box::new([]);
         *self.active_uniforms.borrow_mut() = Box::new([]);
+        *self.active_uniform_blocks.borrow_mut() = Box::new([]);
 
         match self.fragment_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
@@ -182,8 +196,14 @@ impl WebGLProgram {
         }
 
         self.linked.set(link_info.linked);
+        self.link_called.set(true);
+        self.transform_feedback_varyings_length
+            .set(link_info.transform_feedback_length);
+        self.transform_feedback_mode
+            .set(link_info.transform_feedback_mode);
         *self.active_attribs.borrow_mut() = link_info.active_attribs;
         *self.active_uniforms.borrow_mut() = link_info.active_uniforms;
+        *self.active_uniform_blocks.borrow_mut() = link_info.active_uniform_blocks;
         Ok(())
     }
 
@@ -193,6 +213,10 @@ impl WebGLProgram {
 
     pub fn active_uniforms(&self) -> Ref<[ActiveUniformInfo]> {
         Ref::map(self.active_uniforms.borrow(), |uniforms| &**uniforms)
+    }
+
+    pub fn active_uniform_blocks(&self) -> Ref<[ActiveUniformBlockInfo]> {
+        Ref::map(self.active_uniform_blocks.borrow(), |blocks| &**blocks)
     }
 
     /// glValidateProgram
@@ -387,15 +411,153 @@ impl WebGLProgram {
                 sender,
             ));
         let location = receiver.recv().unwrap();
+        let context_id = self.upcast::<WebGLObject>().context().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
             self.global().as_window(),
             location,
+            context_id,
             self.id,
             self.link_generation.get(),
             size,
             type_,
         )))
+    }
+
+    pub fn get_uniform_block_index(&self, name: DOMString) -> WebGLResult<u32> {
+        if !self.link_called.get() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if !validate_glsl_name(&name)? {
+            return Ok(constants2::INVALID_INDEX);
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GetUniformBlockIndex(
+                self.id,
+                name.into(),
+                sender,
+            ));
+        Ok(receiver.recv().unwrap())
+    }
+
+    pub fn get_uniform_indices(&self, names: Vec<DOMString>) -> WebGLResult<Vec<u32>> {
+        if !self.link_called.get() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        let validation_errors = names
+            .iter()
+            .map(|name| validate_glsl_name(&name))
+            .collect::<Vec<_>>();
+        let first_validation_error = validation_errors.iter().find(|result| result.is_err());
+        if let Some(error) = first_validation_error {
+            return Err(error.unwrap_err());
+        }
+
+        let names = names
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<Vec<_>>();
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GetUniformIndices(self.id, names, sender));
+        Ok(receiver.recv().unwrap())
+    }
+
+    pub fn get_active_uniforms(&self, indices: Vec<u32>, pname: u32) -> WebGLResult<Vec<i32>> {
+        if !self.is_linked() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        match pname {
+            constants2::UNIFORM_TYPE |
+            constants2::UNIFORM_SIZE |
+            constants2::UNIFORM_BLOCK_INDEX |
+            constants2::UNIFORM_OFFSET |
+            constants2::UNIFORM_ARRAY_STRIDE |
+            constants2::UNIFORM_MATRIX_STRIDE |
+            constants2::UNIFORM_IS_ROW_MAJOR => {},
+            _ => return Err(WebGLError::InvalidEnum),
+        }
+
+        if indices.len() > self.active_uniforms.borrow().len() {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GetActiveUniforms(
+                self.id, indices, pname, sender,
+            ));
+        Ok(receiver.recv().unwrap())
+    }
+
+    pub fn get_active_uniform_block_parameter(
+        &self,
+        block_index: u32,
+        pname: u32,
+    ) -> WebGLResult<Vec<i32>> {
+        if !self.link_called.get() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if block_index as usize >= self.active_uniform_blocks.borrow().len() {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        match pname {
+            constants2::UNIFORM_BLOCK_BINDING |
+            constants2::UNIFORM_BLOCK_DATA_SIZE |
+            constants2::UNIFORM_BLOCK_ACTIVE_UNIFORMS |
+            constants2::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES |
+            constants2::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
+            constants2::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {},
+            _ => return Err(WebGLError::InvalidEnum),
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::GetActiveUniformBlockParameter(self.id, block_index, pname, sender),
+        );
+        Ok(receiver.recv().unwrap())
+    }
+
+    pub fn get_active_uniform_block_name(&self, block_index: u32) -> WebGLResult<String> {
+        if !self.link_called.get() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if block_index as usize >= self.active_uniforms.borrow().len() {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::GetActiveUniformBlockName(self.id, block_index, sender),
+        );
+        Ok(receiver.recv().unwrap())
+    }
+
+    pub fn bind_uniform_block(&self, block_index: u32, block_binding: u32) -> WebGLResult<()> {
+        if block_index as usize >= self.active_uniform_blocks.borrow().len() {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::UniformBlockBinding(
+                self.id,
+                block_index,
+                block_binding,
+            ));
+        Ok(())
     }
 
     /// glGetProgramInfoLog
@@ -437,12 +599,20 @@ impl WebGLProgram {
     pub fn link_generation(&self) -> u64 {
         self.link_generation.get()
     }
+
+    pub fn transform_feedback_varyings_length(&self) -> i32 {
+        self.transform_feedback_varyings_length.get()
+    }
+
+    pub fn transform_feedback_buffer_mode(&self) -> i32 {
+        self.transform_feedback_mode.get()
+    }
 }
 
 impl Drop for WebGLProgram {
     fn drop(&mut self) {
         self.in_use(false);
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }
 

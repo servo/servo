@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="500" height="500">
+    <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#OrientAttribute"/>
+    <html:link rel="match" href="marker-009-ref.svg"/>
+    <html:meta name="assert" content="Tests correct number of markers are drawn on multiple sub-paths"/>
+    <defs>
+        <marker id="m1" markerUnits="userSpaceOnUse" overflow="visible">
+            <circle cx="0" cy="0" r="25" fill="green"/>
+        </marker>
+        <marker id="m2" markerUnits="userSpaceOnUse" overflow="visible">
+            <circle cx="0" cy="0" r="20" fill="skyblue" opacity="0.9"/>
+        </marker>
+        <marker id="m3" markerUnits="userSpaceOnUse" overflow="visible">
+            <circle cx="0" cy="0" r="15" fill="maroon" opacity="0.85"/>
+        </marker>
+    </defs>
+
+    <path d="M50,50 h100 v100 z m150,0 h100 v100 z m150,0 h100 v100 z"
+    fill="none" stroke="black" stroke-width="10"
+    marker-start="url(#m1)"
+    marker-mid="url(#m2)"
+    marker-end="url(#m3)"
+    />
+</svg>

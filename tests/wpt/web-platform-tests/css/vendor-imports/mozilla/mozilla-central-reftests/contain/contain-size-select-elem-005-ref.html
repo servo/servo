@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+  select {
+    color: transparent;
+  }
+  .fsMedium {
+    /* custom styling for some select elements, which is allowed to influence
+       their size (in the same way that it influences the size of an empty
+       select element): */
+    font-size: 10px;
+  }
+  </style>
+</head>
+<body>
+  <select multiple                 ></select>
+  <select multiple size="1"        ></select>
+  <select multiple class="fsMedium"></select>
+
+  <select multiple                 ></select>
+  <select multiple size="1"        ></select>
+  <select multiple class="fsMedium"></select>
+
+  <br><br>
+
+  <select multiple                 ></select>
+  <select multiple size="1"        ></select>
+  <select multiple class="fsMedium"></select>
+
+  <select multiple                 ></select>
+  <select multiple size="1"        ></select>
+  <select multiple class="fsMedium"></select>
+</body>
+</html>

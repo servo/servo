@@ -229,11 +229,11 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
                     code)
 
         code = re.sub(r'@assert throws (\S+_ERR) (.*);',
-                r'assert_throws("\1", function() { \2; });',
+                r'assert_throws_dom("\1", function() { \2; });',
                 code)
 
         code = re.sub(r'@assert throws (\S+Error) (.*);',
-                r'assert_throws(new \1(), function() { \2; });',
+                r'assert_throws_js(\1, function() { \2; });',
                 code)
 
         code = re.sub(r'@assert (.*) === (.*);',
@@ -467,7 +467,7 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
         # Insert our new stylesheet
         n = doc.getElementsByTagName('head')[0].appendChild(doc.createElement('link'))
         n.setAttribute('rel', 'stylesheet')
-        n.setAttribute('href', '../common/canvas-spec.css')
+        n.setAttribute('href', 'resources/canvas-spec.css')
         n.setAttribute('type', 'text/css')
 
         spec_assertion_patterns = []

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe name=frame1 id=frame1></iframe>
+<form id=form1 target=frame1 action="does_not_exist.html">
+  <button id=submitbutton type=submit>
+    <div id=buttonchilddiv>
+      button child div text
+    </div>
+  </button>
+</form>
+
+<script>
+async_test(t => {
+  window.addEventListener('load', () => {
+    const frame1 = document.getElementById('frame1');
+    frame1.addEventListener('load', t.step_func_done(() => {}));
+
+    const submitButton = document.getElementById('submitbutton');
+    submitButton.addEventListener('click', event => {
+      event.preventDefault();
+      const form = document.getElementById('form1');
+      form.submit();
+    });
+
+    const buttonChildDiv = document.getElementById('buttonchilddiv');
+    buttonChildDiv.click();
+  });
+}, 'This test will pass if a form navigation successfully occurs when clicking a child element of a <button type=submit> element with a onclick event handler which prevents the default form submission and manually calls form.submit() instead.');
+</script>

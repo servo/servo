@@ -3,39 +3,85 @@
   <head>
     <meta charset="utf-8">
     <title>fractions linethickness</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
-    <meta name="assert" content="Verifies fraction with negative, percent and named space linethickness values.">
-    <link rel="match" href="frac-linethickness-002-ref.html">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Verifies fraction with positive, negative, percent and named space linethickness values.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/mathml/support/feature-detection.js"></script>
     <style type="text/css">
       @font-face {
         font-family: TestFont;
         src: url("/fonts/math/fraction-rulethickness10000.woff");
       }
       math {
-        /* FractionRuleThickness = 10000 * 1 / 1000 = 10px; */
+        /* FractionRuleThickness = 10000 * 10 / 1000 = 100px; */
         font-family: "TestFont";
-        font-size: 1px;
+        font-size: 10px;
       }
     </style>
+    <script>
+      function LineThickness(aId) {
+        var mfrac = document.getElementById(aId);
+        var numBox = mfrac.firstElementChild.getBoundingClientRect();
+        var denumBox = mfrac.lastElementChild.getBoundingClientRect();
+        return denumBox.top - numBox.bottom;
+      }
+
+      setup({ explicit_done: true });
+      window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+
+      function runTests() {
+        var defaultRuleThickness = 100;
+        var epsilon = 2;
+
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          assert_approx_equals(LineThickness("positive"),  5.67 * 10, epsilon);
+        }, "Positive");
+
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          /* Negative values are treated as 0 */
+          assert_approx_equals(LineThickness("negative"),  0, epsilon);
+        }, "Negative");
+
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          assert_approx_equals(LineThickness("percent"), defaultRuleThickness * 234 / 100, epsilon);
+        }, "Percentage");
+
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          /* Namedspace values are invalid in MathML Core. */
+          assert_approx_equals(LineThickness("namedspace"), defaultRuleThickness, epsilon);
+        }, "Named space");
+
+        done();
+      }
+    </script>
   </head>
   <body>
-    <p>This test passes if you see fraction with a cyan denominator and
-      a blue numerator as tall as its black bar.</p>
     <math>
-      <mfrac linethickness="-1.23em">
-        <mspace width="20px" height="0px" style="background: blue"></mspace>
+      <mfrac id="positive" linethickness="5.67em">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
     </math>
     <math>
-      <mfrac linethickness="500%">
-        <mspace width="20px" height="50px" style="background: blue"></mspace>
+      <mfrac id="negative" linethickness="-1.23em">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
     </math>
-    <math style="font-size: 180px">
-      <mfrac linethickness="veryverythickmathspace">
-        <mspace width="20px" height="70px" style="background: blue"></mspace>
+    <math>
+      <mfrac id="percent" linethickness="234%">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac id="namedspace" linethickness="veryverythickmathspace">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>
     </math>

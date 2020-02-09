@@ -11,8 +11,9 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrpose::VRPose;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
 use std::cell::Cell;
 use std::ptr;
@@ -62,16 +63,15 @@ impl VRFrameData {
             VRFrameDataBinding::Wrap,
         );
         let cx = global.get_cx();
-        unsafe {
-            create_typed_array(cx, &matrix, &root.left_proj);
-            create_typed_array(cx, &matrix, &root.left_view);
-            create_typed_array(cx, &matrix, &root.right_proj);
-            create_typed_array(cx, &matrix, &root.right_view);
-        }
+        create_typed_array(cx, &matrix, &root.left_proj);
+        create_typed_array(cx, &matrix, &root.left_view);
+        create_typed_array(cx, &matrix, &root.right_proj);
+        create_typed_array(cx, &matrix, &root.right_view);
 
         root
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<VRFrameData>> {
         Ok(VRFrameData::new(&window.global()))
     }
@@ -79,9 +79,11 @@ impl VRFrameData {
 
 /// FIXME(#22526) this should be in a better place
 #[allow(unsafe_code)]
-pub unsafe fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
-    rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-    let _ = Float32Array::create(cx, CreateWith::Slice(src), array.handle_mut());
+pub fn create_typed_array(cx: JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
+    rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    unsafe {
+        let _ = Float32Array::create(*cx, CreateWith::Slice(src), array.handle_mut());
+    }
     (*dst).set(array.get());
 }
 
@@ -90,27 +92,27 @@ impl VRFrameData {
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let left_proj_array: Float32Array = self.left_proj.get());
+            typedarray!(in(*cx) let left_proj_array: Float32Array = self.left_proj.get());
             if let Ok(mut array) = left_proj_array {
                 array.update(&data.left_projection_matrix);
             }
-            typedarray!(in(cx) let left_view_array: Float32Array = self.left_view.get());
+            typedarray!(in(*cx) let left_view_array: Float32Array = self.left_view.get());
             if let Ok(mut array) = left_view_array {
                 array.update(&data.left_view_matrix);
             }
-            typedarray!(in(cx) let right_proj_array: Float32Array = self.right_proj.get());
+            typedarray!(in(*cx) let right_proj_array: Float32Array = self.right_proj.get());
             if let Ok(mut array) = right_proj_array {
                 array.update(&data.right_projection_matrix);
             }
-            typedarray!(in(cx) let right_view_array: Float32Array = self.right_view.get());
+            typedarray!(in(*cx) let right_view_array: Float32Array = self.right_view.get());
             if let Ok(mut array) = right_view_array {
                 array.update(&data.right_view_matrix);
             }
-        }
-        self.pose.update(&data.pose);
-        self.timestamp.set(data.timestamp);
-        if self.first_timestamp.get() == 0.0 {
-            self.first_timestamp.set(data.timestamp);
+            self.pose.update(&data.pose);
+            self.timestamp.set(data.timestamp);
+            if self.first_timestamp.get() == 0.0 {
+                self.first_timestamp.set(data.timestamp);
+            }
         }
     }
 }
@@ -123,26 +125,26 @@ impl VRFrameDataMethods for VRFrameData {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftprojectionmatrix
-    unsafe fn LeftProjectionMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.left_proj.get())
+    fn LeftProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.left_proj.get()) }
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftviewmatrix
-    unsafe fn LeftViewMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.left_view.get())
+    fn LeftViewMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.left_view.get()) }
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightprojectionmatrix
-    unsafe fn RightProjectionMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.right_proj.get())
+    fn RightProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.right_proj.get()) }
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightviewmatrix
-    unsafe fn RightViewMatrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.right_view.get())
+    fn RightViewMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.right_view.get()) }
     }
 
     // https://w3c.github.io/webvr/#dom-vrframedata-pose

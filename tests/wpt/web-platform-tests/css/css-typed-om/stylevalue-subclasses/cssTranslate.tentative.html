@@ -15,21 +15,21 @@ const gInvalidCoordTestCases = [
 
 for (const {coord, desc} of gInvalidCoordTestCases) {
   test(() => {
-    assert_throws(new TypeError(), () => new CSSTranslate(coord, CSS.px(0), CSS.px(0)));
-    assert_throws(new TypeError(), () => new CSSTranslate(CSS.px(0), coord, CSS.px(0)));
-    assert_throws(new TypeError(), () => new CSSTranslate(CSS.px(0), CSS.px(0), coord));
+    assert_throws_js(TypeError, () => new CSSTranslate(coord, CSS.px(0), CSS.px(0)));
+    assert_throws_js(TypeError, () => new CSSTranslate(CSS.px(0), coord, CSS.px(0)));
+    assert_throws_js(TypeError, () => new CSSTranslate(CSS.px(0), CSS.px(0), coord));
   }, 'Constructing a CSSTranslate with ' + desc + ' for the coordinates throws a TypeError');
 }
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSTranslate(CSS.px(0), CSS.px(0), CSS.percent(0)));
+  assert_throws_js(TypeError, () => new CSSTranslate(CSS.px(0), CSS.px(0), CSS.percent(0)));
 }, 'Constructing a CSSTranslate with a percent for the Z coordinate throws a TypeError');
 
 for (const attr of ['x', 'y', 'z']) {
   for (const {value, desc} of gInvalidCoordTestCases) {
     test(() => {
       let result = new CSSTranslate(CSS.px(0), CSS.px(0), CSS.px(0));
-      assert_throws(new TypeError(), () => result[attr] = value);
+      assert_throws_js(TypeError, () => result[attr] = value);
       assert_style_value_equals(result[attr], CSS.px(0));
     }, 'Updating CSSTranslate.' + attr + ' to ' + desc + ' throws a TypeError');
   }
@@ -37,7 +37,7 @@ for (const attr of ['x', 'y', 'z']) {
 
 test(() => {
   let result = new CSSTranslate(CSS.px(0), CSS.px(0), CSS.px(0));
-  assert_throws(new TypeError(), () => result.z = CSS.percent(0));
+  assert_throws_js(TypeError, () => result.z = CSS.percent(0));
   assert_style_value_equals(result.z, CSS.px(0));
 }, 'Updating CSSTranslate.z to a percent throws a TypeError');
 

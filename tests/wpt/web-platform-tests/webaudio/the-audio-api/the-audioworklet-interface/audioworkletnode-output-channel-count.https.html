@@ -13,9 +13,9 @@
       const audit = Audit.createTaskRunner();
       const context = new AudioContext();
 
-      (async function () {
-        await context.audioWorklet.addModule(
-            'processors/channel-count-processor.js');
+      setup(function () {
+        context.audioWorklet.addModule(
+          'processors/channel-count-processor.js').then(() => audit.run());
 
         // Test if the output channe count dynamically changes if the input
         // and output is 1.
@@ -74,9 +74,7 @@
               // if the specified channel count is kept correctly.
               node.connect(context.destination);
             });
-
-        audit.run();
-      })();
+      });
     </script>
   </body>
 </html>

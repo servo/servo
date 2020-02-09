@@ -1,0 +1,40 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Overflow areas are updated when dynamically changed to overflow: clip</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#valdef-overflow-clip">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="clip-001-ref.html">
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+  }
+
+  #container {
+    overflow: auto;
+    height: 300px;
+  }
+  #fill {
+    height: 5000px;
+    background: blue;
+  }
+</style>
+<div id="container">
+  <div id="target">
+    <div id="fill"></div>
+  </div>
+</div>
+<script>
+onload = function() {
+  let target = document.getElementById("target");
+  window.unused = target.getBoundingClientRect(); // Update layout
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    target.style.overflow = "-moz-hidden-unscrollable";
+    target.style.overflow = "clip";
+    document.documentElement.removeAttribute("class");
+  }));
+}
+</script>

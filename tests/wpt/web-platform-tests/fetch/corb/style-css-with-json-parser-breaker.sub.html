@@ -4,6 +4,7 @@
      2) starts with a JSON parser breaker (like )]}')
 -->
 <meta charset="utf-8">
+<title>CORB doesn't block a stylesheet that has a proper Content-Type and begins with a JSON parser breaker</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 
@@ -26,11 +27,12 @@ h1 { color: green; }
 </body>
 
 <script>
-// Verify that CSS got applied / did not get blocked by CORB.
-let style = getComputedStyle(document.getElementById('header'));
-const external_color = 'rgb(255, 0, 0)';  // red
-const default_color = 'rgb(0, 128, 0)';  // green
-assert_equals(style.getPropertyValue('color'), external_color);
-assert_not_equals(style.getPropertyValue('color'), default_color);
-done();
+test(() => {
+  // Verify that CSS got applied / did not get blocked by CORB.
+  let style = getComputedStyle(document.getElementById('header'));
+  const external_color = 'rgb(255, 0, 0)';  // red
+  const default_color = 'rgb(0, 128, 0)';  // green
+  assert_equals(style.getPropertyValue('color'), external_color);
+  assert_not_equals(style.getPropertyValue('color'), default_color);
+});
 </script>

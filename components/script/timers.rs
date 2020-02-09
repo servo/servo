@@ -34,8 +34,12 @@ pub struct OneshotTimerHandle(i32);
 pub struct OneshotTimers {
     js_timers: JsTimers,
     #[ignore_malloc_size_of = "Defined in std"]
-    timer_event_chan: IpcSender<TimerEvent>,
+    /// The sender, to be cloned for each timer,
+    /// on which the timer scheduler in the constellation can send an event
+    /// when the timer is due.
+    timer_event_chan: DomRefCell<Option<IpcSender<TimerEvent>>>,
     #[ignore_malloc_size_of = "Defined in std"]
+    /// The sender to the timer scheduler in the constellation.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DomRefCell<Vec<OneshotTimer>>,
@@ -109,13 +113,10 @@ impl PartialEq for OneshotTimer {
 }
 
 impl OneshotTimers {
-    pub fn new(
-        timer_event_chan: IpcSender<TimerEvent>,
-        scheduler_chan: IpcSender<TimerSchedulerMsg>,
-    ) -> OneshotTimers {
+    pub fn new(scheduler_chan: IpcSender<TimerSchedulerMsg>) -> OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),
-            timer_event_chan: timer_event_chan,
+            timer_event_chan: DomRefCell::new(None),
             scheduler_chan: scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DomRefCell::new(Vec::new()),
@@ -123,6 +124,12 @@ impl OneshotTimers {
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
         }
+    }
+
+    pub fn setup_scheduling(&self, timer_event_chan: IpcSender<TimerEvent>) {
+        let mut chan = self.timer_event_chan.borrow_mut();
+        assert!(chan.is_none());
+        *chan = Some(timer_event_chan);
     }
 
     pub fn schedule_callback(
@@ -279,13 +286,16 @@ impl OneshotTimers {
                     .saturating_sub(precise_time_ms().get()),
             );
             let request = TimerEventRequest(
-                self.timer_event_chan.clone(),
+                self.timer_event_chan
+                    .borrow()
+                    .clone()
+                    .expect("Timer event chan not setup to schedule timers."),
                 timer.source,
                 expected_event_id,
                 delay,
             );
             self.scheduler_chan
-                .send(TimerSchedulerMsg::Request(request))
+                .send(TimerSchedulerMsg(request))
                 .unwrap();
         }
     }
@@ -331,6 +341,7 @@ pub struct JsTimerHandle(i32);
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 pub struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-active-timers
     active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
@@ -517,7 +528,7 @@ impl JsTimerTask {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let global = this.global();
                 let cx = global.get_cx();
-                rooted!(in(cx) let mut rval = UndefinedValue());
+                rooted!(in(*cx) let mut rval = UndefinedValue());
 
                 global.evaluate_js_on_global_with_result(code_str, rval.handle_mut());
             },

@@ -1,0 +1,131 @@
+<!doctype html>
+<title>default style resets</title>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+/* Have some non-initial values on the parent so we can tell the difference whether the UA stylesheet uses 'initial' keyword. */
+#tests, #refs {
+  letter-spacing: 5px;
+  word-spacing: 5px;
+  line-height: 5px;
+  text-transform: uppercase;
+  text-indent: 5px;
+  text-shadow: 0 0 5px transparent;
+  text-align: right;
+}
+</style>
+<style>
+/* Specify this bogus namespace, so the rules in this stylesheet only apply to the `fakeClone`d elements in #refs, not the HTML elements in #tests. */
+@namespace url(urn:not-html);
+
+input, select, button, textarea {
+  letter-spacing: initial;
+  word-spacing: initial;
+  line-height: initial;
+  text-transform: initial;
+  text-indent: initial;
+  text-shadow: initial;
+}
+input, select, textarea {
+  text-align: initial;
+}
+input[type=reset i], input[type=button i], input[type=submit i], button {
+  text-align: center;
+}
+marquee {
+  text-align: initial;
+}
+table {
+  text-indent: initial;
+}
+</style>
+
+<div id="tests">
+ <input type="hidden">
+ <input type="text">
+ <input type="search">
+ <input type="tel">
+ <input type="url">
+ <input type="email">
+ <input type="password">
+ <input type="date">
+ <input type="month">
+ <input type="week">
+ <input type="time">
+ <input type="datetime-local">
+ <input type="number">
+ <input type="range">
+ <input type="color">
+ <input type="checkbox">
+ <input type="radio">
+ <input type="file">
+ <input type="submit">
+ <input type="image">
+ <input type="reset">
+ <input type="button">
+ <select><optgroup><option></select>
+ <select multiple></select>
+ <optgroup></optgroup>
+ <option></option>
+ <button></button>
+ <textarea></textarea>
+ <table><tbody><tr><td></table>
+ <marquee></marquee>
+</div>
+
+<div id="refs"></div>
+
+<script>
+ const props = ['letter-spacing',
+                'word-spacing',
+                'line-height',
+                'text-transform',
+                'text-indent',
+                'text-shadow',
+                'text-align'];
+ const refs = document.getElementById('refs');
+ for (const el of document.querySelectorAll('#tests > *')) {
+   const clone = fakeClone(el);
+   refs.append(clone);
+ }
+ const testsContainer = document.getElementById('tests');
+ const testEls = document.querySelectorAll('#tests *');
+ const refEls = document.querySelectorAll('#refs *');
+ for (let i = 0; i < testEls.length; ++i) {
+   const testEl = testEls[i];
+   const refEl = refEls[i];
+   const testStyle = getComputedStyle(testEl);
+   const refStyle = getComputedStyle(refEl);
+   for (const prop of props) {
+     test(() => {
+       assert_equals(testStyle.getPropertyValue(prop), refStyle.getPropertyValue(prop));
+     }, `${testNameContext(testEl)} - ${prop}`);
+   }
+ }
+
+ function fakeClone(el) {
+   const clone = document.createElementNS('urn:not-html', el.localName);
+   for (const att of el.attributes) {
+     clone.setAttributeNS(att.namespaceURI, att.name, att.value);
+   }
+   // deep clone
+   for (const child of el.children) {
+     clone.append(fakeClone(child));
+   }
+   return clone;
+ }
+
+ function testNameContext(el) {
+   const outerHTML = el.outerHTML;
+   const startTags = outerHTML.substring(0, outerHTML.indexOf('</')) || outerHTML;
+
+   let ancestors = [];
+   let current = el.parentNode;
+   while (current != testsContainer) {
+     ancestors.unshift(current.localName);
+     current = current.parentNode;
+   }
+   return startTags + (ancestors.length ? ` (in ${ancestors.join(' > ')})` : '');
+ }
+</script>

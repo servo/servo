@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldialogelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLDialogElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
   attribute boolean open;
   attribute DOMString returnValue;

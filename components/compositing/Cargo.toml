@@ -18,11 +18,11 @@ gl = ["gleam", "pixels"]
 [dependencies]
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 gfx_traits = {path = "../gfx_traits"}
 gleam = {version = "0.6", optional = true}
-image = "0.21"
-ipc-channel = "0.11"
+image = "0.22"
+ipc-channel = "0.12"
 libc = "0.2"
 keyboard-types = "0.4.3"
 log = "0.4"
@@ -31,15 +31,17 @@ net_traits = {path = "../net_traits"}
 num-traits = "0.2"
 pixels = {path = "../pixels", optional = true}
 profile_traits = {path = "../profile_traits"}
+rust-webvr = {version = "0.16", features = ["mock", "openvr", "vrexternal"]}
 script_traits = {path = "../script_traits"}
 servo_geometry = {path = "../geometry"}
+servo-media = {git = "https://github.com/servo/media"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
 webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 webvr_traits = {path = "../webvr_traits"}
-webvr = {path = "../webvr"}
+webxr = {git = "https://github.com/servo/webxr"}
 
 [build-dependencies]
-toml = "0.4.5"
+toml = "0.5"

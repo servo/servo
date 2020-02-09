@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver virtual authenticator methods</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+// The example attestation private key from the U2F spec at
+// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html#registration-example
+// PKCS.8 encoded without encryption, as a base64url string.
+const private_key =
+    "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg8_zMDQDYAxlU-Q"
+  + "hk1Dwkf0v18GZca1DMF3SaJ9HPdmShRANCAASNYX5lyVCOZLzFZzrIKmeZ2jwU"
+  + "RmgsJYxGP__fWN_S-j5sN4tT15XEpN_7QZnt14YvI6uvAgO0uJEboFaZlOEB";
+let credential_id = btoa("cred-1");
+let credential = {
+  credentialId: credential_id,
+  rpId: window.location.hostname,
+  privateKey: private_key,
+  signCount: 0,
+  isResidentCredential: false,
+};
+
+let authenticator_id = null;
+
+promise_test(async t => {
+  authenticator_id = await test_driver.add_virtual_authenticator({
+    protocol: "ctap1/u2f",
+    transport: "usb",
+  });
+}, "Can create an authenticator");
+
+promise_test(async t => {
+  return test_driver.add_credential(authenticator_id, credential);
+}, "Can add a credential");
+
+promise_test(async t => {
+  let credentials = await test_driver.get_credentials(authenticator_id);
+  assert_equals(credentials.length, 1);
+  // The U2F REGISTER operation stores the hash of the rpId, so the rpId
+  // itself may not be available on the returned credential.
+  assert_equals(credentials[0].credentialId, credential.credentialId);
+  assert_equals(credentials[0].privateKey, credential.privateKey);
+  assert_equals(credentials[0].signCount, credential.signCount);
+  assert_equals(credentials[0].isResidentCredential,
+                credential.isResidentCredential);
+}, "Can get the credentials");
+
+promise_test(async t => {
+  await test_driver.remove_credential(authenticator_id, credential_id);
+  let credentials = await test_driver.get_credentials(authenticator_id);
+  assert_equals(credentials.length, 0);
+}, "Can remove a credential");
+
+promise_test(async t => {
+  let credential1 = credential;
+  let credential2 =
+    Object.assign({}, credential, {credentialId: btoa("cred-2")});
+  await test_driver.add_credential(authenticator_id, credential1);
+  await test_driver.add_credential(authenticator_id, credential2);
+
+  let credentials = await test_driver.get_credentials(authenticator_id);
+  assert_equals(credentials.length, 2);
+
+  await test_driver.remove_all_credentials(authenticator_id);
+  credentials = await test_driver.get_credentials(authenticator_id);
+  assert_equals(credentials.length, 0);
+}, "Can remove all credentials");
+
+promise_test(async t => {
+  await test_driver.set_user_verified(authenticator_id, {isUserVerified: true});
+  await test_driver.set_user_verified(authenticator_id, {isUserVerified: false});
+}, "Can set user verified");
+
+promise_test(async t => {
+  await test_driver.remove_virtual_authenticator(authenticator_id);
+}, "Can remove a virtual authenticator");
+</script>

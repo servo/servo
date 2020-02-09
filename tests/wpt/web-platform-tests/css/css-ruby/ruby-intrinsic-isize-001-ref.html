@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Intrinsic ISize calculation of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style>
+  div {
+    display: inline-block;
+    border: 1px solid black;
+    font-kerning: none; /* disable kerning, because in the reference file
+                            it might occur across <span> boundaries */
+  }
+  span {
+    white-space: nowrap;
+  }
+</style>
+<div style="width: min-content">
+  <span>ABC</span><span>DEF</span>
+</div>
+<div style="width: max-content">
+  <span>ABC</span><span>DEF</span>
+</div>
+<br>
+
+<div style="width: min-content">
+  XYZ<span>ABC</span><span>DEF</span>XYZ
+</div>
+<div style="width: max-content">
+  XYZ<span>ABC</span><span>DEF</span>XYZ
+</div>
+<br>
+
+<div style="width: min-content">
+  <span>あい</span><span>うえ</span>
+</div>
+<div style="width: max-content">
+  <span>あい</span><span>うえ</span>
+</div>
+<br>
+
+<div style="width: min-content">
+  お<span>あい</span><span>うえ</span>お
+</div>
+<div style="width: max-content">
+  お<span>あい</span><span>うえ</span>お
+</div>
+<br>

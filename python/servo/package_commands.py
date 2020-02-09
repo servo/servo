@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib
+import six.moves.urllib as urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -57,8 +57,7 @@ PACKAGES = {
         'target/release/brew/servo.tar.gz',
     ],
     'magicleap': [
-        'target/magicleap/aarch64-linux-android/release/Servo2D.mpk',
-        'target/magicleap/aarch64-linux-android/release/Servo3D.mpk',
+        'target/magicleap/aarch64-linux-android/release/Servo.mpk',
     ],
     'maven': [
         'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
@@ -67,6 +66,9 @@ PACKAGES = {
     'windows-msvc': [
         r'target\release\msi\Servo.exe',
         r'target\release\msi\Servo.zip',
+    ],
+    'uwp': [
+        r'support\hololens\AppPackages\ServoApp\ServoApp_1.0.0.0_Test.zip',
     ],
 }
 
@@ -203,8 +205,12 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Create a local Maven repository')
+    @CommandArgument('--uwp',
+                     default=None,
+                     action='append',
+                     help='Create an APPX package')
     def package(self, release=False, dev=False, android=None, magicleap=None, debug=False,
-                debugger=None, target=None, flavor=None, maven=False):
+                debugger=None, target=None, flavor=None, maven=False, uwp=None):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -220,20 +226,30 @@ class PackageCommands(CommandBase):
         if magicleap:
             target = "aarch64-linux-android"
         env = self.build_env(target=target)
-        binary_path = self.get_binary_path(release, dev, target=target, android=android, magicleap=magicleap)
+        binary_path = self.get_binary_path(
+            release, dev, target=target, android=android, magicleap=magicleap,
+            simpleservo=uwp is not None
+        )
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
-        if magicleap:
+        if uwp:
+            vs_info = self.vs_dirs()
+            build_uwp(uwp, dev, vs_info['msbuild'])
+        elif magicleap:
             if platform.system() not in ["Darwin"]:
                 raise Exception("Magic Leap builds are only supported on macOS.")
             if not env.get("MAGICLEAP_SDK"):
                 raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
             if not env.get("MLCERT"):
                 raise Exception("Magic Leap builds need the MLCERT environment variable")
+            # GStreamer configuration
+            env.setdefault("GSTREAMER_DIR", path.join(
+                self.get_target_dir(), "magicleap", target, "native", "gstreamer-1.16.0"
+            ))
+
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
             packages = [
-                "./support/magicleap/Servo3D/Servo3D.package",
-                "./support/magicleap/Servo2D/Servo2D.package",
+                "./support/magicleap/Servo.package",
             ]
             if dev:
                 build_type = "lumin_debug"
@@ -244,6 +260,8 @@ class PackageCommands(CommandBase):
                     mabu,
                     "-o", target_dir,
                     "-t", build_type,
+                    "-r",
+                    "GSTREAMER_DIR=" + env["GSTREAMER_DIR"],
                     package
                 ]
                 try:
@@ -482,6 +500,10 @@ class PackageCommands(CommandBase):
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
+    @CommandArgument('--magicleap',
+                     default=None,
+                     action='store_true',
+                     help='Install on Magic Leap')
     @CommandArgument('--emulator',
                      action='store_true',
                      help='For Android, install to the only emulated device')
@@ -491,29 +513,44 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
-    def install(self, release=False, dev=False, android=False, emulator=False, usb=False, target=None):
-        env = self.build_env()
+    def install(self, release=False, dev=False, android=False, magicleap=False, emulator=False, usb=False, target=None):
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
         if not android:
             android = self.handle_android_target(target)
+        if target and magicleap:
+            print("Please specify either --target or --magicleap.")
+            sys.exit(1)
+        if magicleap:
+            target = "aarch64-linux-android"
+        env = self.build_env(target=target)
         try:
-            binary_path = self.get_binary_path(release, dev, android=android)
+            binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, release=release, dev=dev, android=android
+                "build", context=self.context, release=release, dev=dev, android=android, magicleap=magicleap,
             )
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(release, dev, android=android)
+                binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
 
-        if android:
+        if magicleap:
+            if not env.get("MAGICLEAP_SDK"):
+                raise Exception("Magic Leap installs need the MAGICLEAP_SDK environment variable")
+            mldb = path.join(env.get("MAGICLEAP_SDK"), "tools", "mldb", "mldb")
+            pkg_path = path.join(path.dirname(binary_path), "Servo.mpk")
+            exec_command = [
+                mldb,
+                "install", "-u",
+                pkg_path,
+            ]
+        elif android:
             pkg_path = self.get_apk_path(release)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -529,8 +566,9 @@ class PackageCommands(CommandBase):
             exec_command = ["msiexec", "/i", pkg_path]
 
         if not path.exists(pkg_path):
+            print("Servo package not found. Packaging servo...")
             result = Registrar.dispatch(
-                "package", context=self.context, release=release, dev=dev, android=android
+                "package", context=self.context, release=release, dev=dev, android=android, magicleap=magicleap,
             )
             if result != 0:
                 return result
@@ -553,10 +591,10 @@ class PackageCommands(CommandBase):
         def get_taskcluster_secret(name):
             url = (
                 os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster") +
-                "/secrets/v1/secret/project/servo/" +
+                "/api/secrets/v1/secret/project/servo/" +
                 name
             )
-            return json.load(urllib.urlopen(url))["secret"]
+            return json.load(urllib.request.urlopen(url))["secret"]
 
         def get_s3_secret():
             aws_access_key = None
@@ -699,3 +737,40 @@ class PackageCommands(CommandBase):
             update_brew(packages[0], timestamp)
 
         return 0
+
+
+def build_uwp(platforms, dev, msbuild_dir):
+    if any(map(lambda p: p not in ['x64', 'x86', 'arm64'], platforms)):
+        raise Exception("Unsupported appx platforms: " + str(platforms))
+    if dev and len(platforms) > 1:
+        raise Exception("Debug package with multiple architectures is unsupported")
+
+    if dev:
+        Configuration = "Debug"
+    else:
+        Configuration = "Release"
+
+    msbuild = path.join(msbuild_dir, "msbuild.exe")
+    build_file_template = path.join('support', 'hololens', 'package.msbuild')
+    with open(build_file_template) as f:
+        template_contents = f.read()
+        build_file = tempfile.NamedTemporaryFile(delete=False)
+        build_file.write(
+            template_contents
+            .replace("%%BUILD_PLATFORMS%%", ';'.join(platforms))
+            .replace("%%PACKAGE_PLATFORMS%%", '|'.join(platforms))
+            .replace("%%CONFIGURATION%%", Configuration)
+            .replace("%%SOLUTION%%", path.join(os.getcwd(), 'support', 'hololens', 'ServoApp.sln'))
+        )
+        build_file.close()
+        # Generate an appxbundle.
+        subprocess.check_call([msbuild, "/m", build_file.name])
+        os.unlink(build_file.name)
+
+    print("Creating ZIP")
+    out_dir = path.join(os.getcwd(), 'support', 'hololens', 'AppPackages', 'ServoApp')
+    name = 'ServoApp_1.0.0.0_%sTest' % ('Debug_' if dev else '')
+    artifacts_dir = path.join(out_dir, name)
+    zip_path = path.join(out_dir, name + ".zip")
+    archive_deterministically(artifacts_dir, zip_path, prepend_path='servo/')
+    print("Packaged Servo into " + zip_path)

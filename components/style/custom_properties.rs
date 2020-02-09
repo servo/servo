@@ -306,8 +306,7 @@ fn parse_declaration_value_block<'i, 't>(
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     let mut token_start = input.position();
     let mut token = match input.next_including_whitespace_and_comments() {
-        // FIXME: remove clone() when borrows are non-lexical
-        Ok(token) => token.clone(),
+        Ok(token) => token,
         Err(_) => {
             return Ok((
                 TokenSerializationType::nothing(),
@@ -335,8 +334,9 @@ fn parse_declaration_value_block<'i, 't>(
                 }
             };
         }
-        let last_token_type = match token {
+        let last_token_type = match *token {
             Token::Comment(_) => {
+                let serialization_type = token.serialization_type();
                 let token_slice = input.slice_from(token_start);
                 if !token_slice.ends_with("*/") {
                     missing_closing_characters.push_str(if token_slice.ends_with('*') {
@@ -345,14 +345,14 @@ fn parse_declaration_value_block<'i, 't>(
                         "*/"
                     })
                 }
-                token.serialization_type()
+                serialization_type
             },
-            Token::BadUrl(u) => {
-                let e = StyleParseErrorKind::BadUrlInDeclarationValueBlock(u);
+            Token::BadUrl(ref u) => {
+                let e = StyleParseErrorKind::BadUrlInDeclarationValueBlock(u.clone());
                 return Err(input.new_custom_error(e));
             },
-            Token::BadString(s) => {
-                let e = StyleParseErrorKind::BadStringInDeclarationValueBlock(s);
+            Token::BadString(ref s) => {
+                let e = StyleParseErrorKind::BadStringInDeclarationValueBlock(s.clone());
                 return Err(input.new_custom_error(e));
             },
             Token::CloseParenthesis => {
@@ -401,13 +401,14 @@ fn parse_declaration_value_block<'i, 't>(
                 Token::CloseSquareBracket.serialization_type()
             },
             Token::QuotedString(_) => {
+                let serialization_type = token.serialization_type();
                 let token_slice = input.slice_from(token_start);
                 let quote = &token_slice[..1];
                 debug_assert!(matches!(quote, "\"" | "'"));
                 if !(token_slice.ends_with(quote) && token_slice.len() > 1) {
                     missing_closing_characters.push_str(quote)
                 }
-                token.serialization_type()
+                serialization_type
             },
             Token::Ident(ref value) |
             Token::AtKeyword(ref value) |
@@ -417,6 +418,8 @@ fn parse_declaration_value_block<'i, 't>(
             Token::Dimension {
                 unit: ref value, ..
             } => {
+                let serialization_type = token.serialization_type();
+                let is_unquoted_url = matches!(token, Token::UnquotedUrl(_));
                 if value.ends_with("�") && input.slice_from(token_start).ends_with("\\") {
                     // Unescaped backslash at EOF in these contexts is interpreted as U+FFFD
                     // Check the value in case the final backslash was itself escaped.
@@ -424,18 +427,17 @@ fn parse_declaration_value_block<'i, 't>(
                     // (Unescaped U+FFFD would also work, but removing the backslash is annoying.)
                     missing_closing_characters.push_str("�")
                 }
-                if matches!(token, Token::UnquotedUrl(_)) {
+                if is_unquoted_url {
                     check_closed!(")");
                 }
-                token.serialization_type()
+                serialization_type
             },
             _ => token.serialization_type(),
         };
 
         token_start = input.position();
         token = match input.next_including_whitespace_and_comments() {
-            // FIXME: remove clone() when borrows are non-lexical
-            Ok(token) => token.clone(),
+            Ok(token) => token,
             Err(..) => return Ok((first_token_type, last_token_type)),
         };
     }
@@ -888,15 +890,12 @@ fn substitute_block<'i>(
     let mut set_position_at_next_iteration = false;
     loop {
         let before_this_token = input.position();
-        // FIXME: remove clone() when borrows are non-lexical
-        let next = input
-            .next_including_whitespace_and_comments()
-            .map(|t| t.clone());
+        let next = input.next_including_whitespace_and_comments();
         if set_position_at_next_iteration {
             *position = (
                 before_this_token,
                 match next {
-                    Ok(ref token) => token.serialization_type(),
+                    Ok(token) => token.serialization_type(),
                     Err(_) => TokenSerializationType::nothing(),
                 },
             );

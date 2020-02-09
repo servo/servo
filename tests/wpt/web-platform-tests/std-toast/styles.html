@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: style tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main>
+</main>
+
+<script type="module">
+import { testToastElement, assertComputedStyleMapsEqual } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    toast.open = true;
+
+    const mockToast = document.createElement('span');
+    mockToast.id = 'mock-toast-open';
+    mockToast.textContent = 'Message';
+
+    const mockStyler = document.createElement('style');
+    mockStyler.textContent = `
+        #mock-toast-open {
+          position: fixed;
+          bottom: 1em;
+          right: 1em;
+          border: solid;
+          padding: 1em;
+          background: white;
+          color: black;
+          z-index: 1;
+        }`;
+
+    document.querySelector('main').appendChild(mockStyler);
+    document.querySelector('main').appendChild(mockToast);
+
+    assertComputedStyleMapsEqual(toast, mockToast);
+}, 'the computed style map of an open unstyled toast is the same as a span given toast defaults');
+
+testToastElement((toast) => {
+    const mockToast = document.createElement('span');
+    mockToast.id = 'mock-toast-hidden';
+    mockToast.textContent = 'Message';
+
+    const mockStyler = document.createElement('style');
+    mockStyler.textContent = `
+        #mock-toast-hidden {
+          position: fixed;
+          bottom: 1em;
+          right: 1em;
+          border: solid;
+          padding: 1em;
+          background: white;
+          color: black;
+          z-index: 1;
+          display: none;
+        }`;
+
+    document.querySelector('main').appendChild(mockStyler);
+    document.querySelector('main').appendChild(mockToast);
+
+    assertComputedStyleMapsEqual(toast, mockToast);
+}, 'the computed style map of a closed unstyled toast is the same as a span given toast defaults');
+
+testToastElement((toast) => {
+  toast.type = 'error';
+
+  const styles = window.getComputedStyle(toast);
+  assert_equals(styles.borderColor, 'rgb(255, 0, 0)');
+}, 'changing type to error changes the border color to red');
+
+testToastElement((toast) => {
+  toast.type = 'warning';
+
+  const styles = window.getComputedStyle(toast);
+  assert_equals(styles.borderColor, 'rgb(255, 165, 0)');
+}, 'changing type to warning changes the border color to orange');
+
+testToastElement((toast) => {
+  toast.type = 'success';
+
+  const styles = window.getComputedStyle(toast);
+  assert_equals(styles.borderColor, 'rgb(0, 128, 0)');
+}, 'changing type to success changes the border color to green');
+
+testToastElement((toast) => {
+  const styler = document.createElement('style');
+  styler.append(`
+    [type=error i] {
+      border-color: pink;
+    }
+  `);
+  document.querySelector('main').appendChild(styler);
+
+  toast.type = 'error';
+
+  const styles = window.getComputedStyle(toast);
+  assert_equals(styles.borderColor, 'rgb(255, 192, 203)');
+}, 'outside styles can set type styles');
+</script>

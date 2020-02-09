@@ -48,8 +48,11 @@ function unsafe_pull_from_upstream() {
     # Update the manifest again to reach a fixed state (https://github.com/servo/servo/issues/22275).
     ./mach update-manifest || return 4
 
+    # Clean up any now-unused test results.
+    (python3 etc/unused_wpt_results.py | xargs rm -rfv) || return 5
+
     # Amend the existing commit with the new changes from updating the manifest.
-    git commit -a --amend --no-edit || return 5
+    git commit -a --amend --no-edit || return 6
 }
 
 # Remove all local traces of this sync operation.
@@ -64,7 +67,7 @@ function cleanup() {
 # Build Servo and run the full WPT testsuite, saving the results to a log file.
 function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
-    ./mach test-wpt --release --processes 6 --log-raw "${1}" \
+    ./mach test-wpt --release --processes 12 --log-raw "${1}" \
            --always-succeed || return 1
 
     # Run the bluetooth testsuite, which uses the webdriver test harness.
@@ -97,7 +100,7 @@ function unsafe_open_pull_request() {
     git checkout "${BRANCH_NAME}" || return 0
 
     if [[ -z "${WPT_SYNC_TOKEN+set}" && "${TASKCLUSTER_PROXY_URL+set}" == "set" ]]; then
-        SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/secrets/v1/secret/project/servo/wpt-sync)
+        SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/api/secrets/v1/secret/project/servo/wpt-sync)
         WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq --raw-output '.secret.token'`
     fi
 
@@ -115,7 +118,8 @@ function unsafe_open_pull_request() {
     # Prepare the pull request metadata.
     BODY="Automated downstream sync of changes from upstream as of "
     BODY+="${CURRENT_DATE}.\n"
-    BODY+="[no-wpt-sync]"
+    BODY+="[no-wpt-sync]\n"
+    BODY+="r? @servo-wpt-sync\n"
     cat <<EOF >prdata.json || return 4
 {
   "title": "Sync WPT with upstream (${CURRENT_DATE})",

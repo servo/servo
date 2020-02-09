@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<div id=log></div>
+<script>
+const origins = get_host_info();
+[
+  {
+    "origin": origins.HTTPS_ORIGIN,
+    "crossOrigin": origins.HTTPS_REMOTE_ORIGIN
+  },
+  {
+    "origin": origins.HTTPS_REMOTE_ORIGIN,
+    "crossOrigin": origins.HTTPS_NOTSAMESITE_ORIGIN
+  },
+  {
+    "origin": origins.HTTPS_NOTSAMESITE_ORIGIN,
+    "crossOrigin": origins.HTTPS_ORIGIN
+  }
+].forEach(({ origin, crossOrigin }) => {
+  ["subframe", "navigate"].forEach(variant => {
+    async_test(t => {
+      const id = token();
+      const frame = document.createElement("iframe");
+      t.add_cleanup(() => { frame.remove(); });
+      const path = new URL("resources/blob-url-factory.html", window.location).pathname;
+      frame.src = `${origin}${path}?id=${id}&variant=${variant}&crossOrigin=${crossOrigin}`;
+      window.addEventListener("message", t.step_func_done(({ data }) => {
+        if (data.id !== id) {
+          return;
+        }
+        assert_equals(data.origin, origin);
+        assert_true(data.sameOriginNoCORPSuccess, "Same-origin without CORP did not succeed");
+        assert_true(data.crossOriginNoCORPFailure, "Cross-origin without CORP did not fail");
+      }));
+      document.body.append(frame);
+    }, `Cross-Origin-Embedder-Policy and blob: URL from ${origin} in subframe via ${variant}`);
+  });
+});
+</script>

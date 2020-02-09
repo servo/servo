@@ -142,6 +142,19 @@ pub struct DocumentStateDependency {
     pub state: DocumentState,
 }
 
+bitflags! {
+    /// A set of flags that denote whether any invalidations have occurred
+    /// for a particular attribute selector.
+    #[derive(MallocSizeOf)]
+    #[repr(C)]
+    pub struct InvalidationMapFlags : u8 {
+        /// Whether [class] or such is used.
+        const HAS_CLASS_ATTR_SELECTOR = 1 << 0;
+        /// Whether [id] or such is used.
+        const HAS_ID_ATTR_SELECTOR = 1 << 1;
+    }
+}
+
 /// A map where we store invalidations.
 ///
 /// This is slightly different to a SelectorMap, in the sense of that the same
@@ -164,16 +177,9 @@ pub struct InvalidationMap {
     pub document_state_selectors: Vec<DocumentStateDependency>,
     /// A map of other attribute affecting selectors.
     pub other_attribute_affecting_selectors: SelectorMap<Dependency>,
-    /// Whether there are attribute rules of the form `[class~="foo"]` that may
-    /// match. In that case, we need to look at
-    /// `other_attribute_affecting_selectors` too even if only the `class` has
-    /// changed.
-    pub has_class_attribute_selectors: bool,
-    /// Whether there are attribute rules of the form `[id|="foo"]` that may
-    /// match. In that case, we need to look at
-    /// `other_attribute_affecting_selectors` too even if only the `id` has
-    /// changed.
-    pub has_id_attribute_selectors: bool,
+    /// A set of flags that contain whether various special attributes are used
+    /// in this invalidation map.
+    pub flags: InvalidationMapFlags,
 }
 
 impl InvalidationMap {
@@ -185,8 +191,7 @@ impl InvalidationMap {
             state_affecting_selectors: SelectorMap::new(),
             document_state_selectors: Vec::new(),
             other_attribute_affecting_selectors: SelectorMap::new(),
-            has_class_attribute_selectors: false,
-            has_id_attribute_selectors: false,
+            flags: InvalidationMapFlags::empty(),
         }
     }
 
@@ -210,8 +215,7 @@ impl InvalidationMap {
         self.state_affecting_selectors.clear();
         self.document_state_selectors.clear();
         self.other_attribute_affecting_selectors.clear();
-        self.has_id_attribute_selectors = false;
-        self.has_class_attribute_selectors = false;
+        self.flags = InvalidationMapFlags::empty();
     }
 
     /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
@@ -238,8 +242,7 @@ impl InvalidationMap {
                 state: ElementState::empty(),
                 document_state: &mut document_state,
                 other_attributes: false,
-                has_id_attribute_selectors: false,
-                has_class_attribute_selectors: false,
+                flags: &mut self.flags,
             };
 
             // Visit all the simple selectors in this sequence.
@@ -254,9 +257,6 @@ impl InvalidationMap {
                 ss.visit(&mut compound_visitor);
                 index += 1; // Account for the simple selector.
             }
-
-            self.has_id_attribute_selectors |= compound_visitor.has_id_attribute_selectors;
-            self.has_class_attribute_selectors |= compound_visitor.has_class_attribute_selectors;
 
             for class in compound_visitor.classes {
                 self.class_to_selector
@@ -349,11 +349,8 @@ struct CompoundSelectorDependencyCollector<'a> {
     /// [id] attribute selectors).
     other_attributes: bool,
 
-    /// Whether there were attribute selectors with the id attribute.
-    has_id_attribute_selectors: bool,
-
-    /// Whether there were attribute selectors with the class attribute.
-    has_class_attribute_selectors: bool,
+    /// The invalidation map flags, that we set when some attribute selectors are present.
+    flags: &'a mut InvalidationMapFlags,
 }
 
 impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
@@ -398,8 +395,13 @@ impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
         };
 
         if may_match_in_no_namespace {
-            self.has_id_attribute_selectors |= *local_name_lower == local_name!("id");
-            self.has_class_attribute_selectors |= *local_name_lower == local_name!("class");
+            if *local_name_lower == local_name!("id") {
+                self.flags
+                    .insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR)
+            } else if *local_name_lower == local_name!("class") {
+                self.flags
+                    .insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR)
+            }
         }
 
         true

@@ -34,7 +34,9 @@ def run_tests(**kwargs):
     set_defaults(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = \
-        (grouping_formatter.GroupingFormatter, "A grouping output formatter")
+        (grouping_formatter.ServoFormatter, "Servo's grouping output formatter")
+    mozlog.commandline.log_formatters["servojson"] = \
+        (grouping_formatter.ServoJsonFormatter, "Servo's JSON logger of unexpected results")
 
     use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
@@ -92,6 +94,11 @@ def set_defaults(kwargs):
     kwargs["user_stylesheets"].append(servo_path("resources", "ahem.css"))
 
     wptcommandline.check_args(kwargs)
+
+    if kwargs.pop("layout_2020"):
+        kwargs["test_paths"]["/"]["metadata_path"] = wpt_path("metadata-layout-2020")
+        kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = wpt_path("mozilla/meta-layout-2020")
+        kwargs["include_manifest"] = wpt_path("include-layout-2020.ini")
 
 
 def main():

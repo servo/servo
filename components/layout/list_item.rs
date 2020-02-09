@@ -20,7 +20,7 @@ use crate::fragment::{
 use crate::generated_content;
 use crate::inline::InlineFlow;
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::LogicalSize;
@@ -280,7 +280,7 @@ impl Flow for ListItemFlow {
                                 .relative_containing_block_mode,
                             CoordinateSystem::Own,
                         )
-                        .translate(&stacking_context_position.to_vector()),
+                        .translate(stacking_context_position.to_vector()),
                 );
             }
         }

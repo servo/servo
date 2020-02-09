@@ -6,6 +6,8 @@ try:
 except ImportError:
     from urllib2 import urlopen
 
+UnicodeXMLURL = "https://mathml-refresh.github.io/xml-entities/unicode.xml"
+InlineAxisOperatorsURL = "https://mathml-refresh.github.io/mathml-core/tables/inline-axis-operators.txt"
 MathMLAssociationCopyright = "Copyright (c) 2016 MathML Association"
 
 def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):

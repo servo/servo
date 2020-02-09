@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#mixed-percentages">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_length_percent(value) {
+  test_invalid_value('margin-left', value);
+}
+
+// Type checking only. Syntax checking is done by other test files.
+// <length-percentage> accepts mixing lengths and percentages only.
+test_invalid_length_percent('min(1px, 0)');
+test_invalid_length_percent('min(1px, 0s)');
+test_invalid_length_percent('min(1px, 0Hz)');
+test_invalid_length_percent('min(1px, 0dpi)');
+test_invalid_length_percent('min(1px, 0fr)');
+test_invalid_length_percent('min(1%, 0)');
+test_invalid_length_percent('min(1%, 0s)');
+test_invalid_length_percent('min(1%, 0Hz)');
+test_invalid_length_percent('min(1%, 0dpi)');
+test_invalid_length_percent('min(1%, 0fr)');
+test_invalid_length_percent('max(1px, 0)');
+test_invalid_length_percent('max(1px, 0s)');
+test_invalid_length_percent('max(1px, 0Hz)');
+test_invalid_length_percent('max(1px, 0dpi)');
+test_invalid_length_percent('max(1px, 0fr)');
+test_invalid_length_percent('max(1%, 0)');
+test_invalid_length_percent('max(1%, 0s)');
+test_invalid_length_percent('max(1%, 0Hz)');
+test_invalid_length_percent('max(1%, 0dpi)');
+test_invalid_length_percent('max(1%, 0fr)');
+</script>

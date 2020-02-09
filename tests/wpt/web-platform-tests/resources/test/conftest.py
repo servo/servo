@@ -1,12 +1,13 @@
-import io
+import copy
 import json
 import os
 import ssl
+import sys
+import subprocess
 
 import html5lib
 import py
 import pytest
-from selenium import webdriver
 from six import text_type
 from six.moves import urllib
 
@@ -16,6 +17,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
 TEST_TYPES = ('functional', 'unit')
+DEFAULT_VARIANTS = ["?default"]
+
+sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools", "webdriver")))
+import webdriver
 
 
 def pytest_addoption(parser):
@@ -37,8 +42,16 @@ def pytest_collect_file(path, parent):
 
 
 def pytest_configure(config):
-    config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
-    config.add_cleanup(config.driver.quit)
+    config.proc = subprocess.Popen(["geckodriver"])
+    config.add_cleanup(config.proc.kill)
+
+    capabilities = {"alwaysMatch": {"acceptInsecureCerts": True}}
+    if config.getoption("--binary"):
+        capabilities["alwaysMatch"]["moz:firefoxOptions"] = {"binary": config.getoption("--binary")}
+
+    config.driver = webdriver.Session("localhost", 4444,
+                                      capabilities=capabilities)
+    config.add_cleanup(config.driver.end)
 
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
@@ -108,14 +121,15 @@ class HTMLItem(pytest.Item, pytest.Collector):
                         raise ValueError('Could not resolve path "%s" from %s' % (src, filename))
 
         if not name:
-            raise ValueError('No name found in file: %s' % filename)
+            raise ValueError('No name found in %s add a <title> element' % filename)
         elif self.type == 'functional':
             if not self.expected:
                 raise ValueError('Functional tests must specify expected report data')
             if not includes_variants_script:
-                raise ValueError('No variants script found in file: %s' % filename)
+                raise ValueError('No variants script found in file %s add '
+                                 '\'<script src="../../variants.js"></script>\'' % filename)
             if len(self.variants) == 0:
-                raise ValueError('No test variants specified in file %s' % filename)
+                self.variants = DEFAULT_VARIANTS
         elif self.type == 'unit' and self.expected:
             raise ValueError('Unit tests must not specify expected report data')
 
@@ -147,13 +161,15 @@ class HTMLItem(pytest.Item, pytest.Collector):
         driver = self.session.config.driver
         server = self.session.config.server
 
-        driver.get(server.url(HARNESS))
+        driver.url = server.url(HARNESS)
 
         actual = driver.execute_async_script(
             'runTest("%s", "foo", arguments[0])' % self.url
         )
 
-        summarized = self._summarize(actual)
+        summarized = self._summarize(copy.deepcopy(actual))
+
+        print(json.dumps(summarized, indent=2))
 
         assert summarized[u'summarized_status'][u'status_string'] == u'OK', summarized[u'summarized_status'][u'message']
         for test in summarized[u'summarized_tests']:
@@ -168,17 +184,20 @@ class HTMLItem(pytest.Item, pytest.Collector):
         driver = self.session.config.driver
         server = self.session.config.server
 
-        driver.get(server.url(HARNESS))
+        driver.url = server.url(HARNESS)
 
         test_url = self.url + variant
         actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % test_url)
+
+        summarized = self._summarize(copy.deepcopy(actual))
+
+        print(json.dumps(summarized, indent=2))
 
         # Test object ordering is not guaranteed. This weak assertion verifies
         # that the indices are unique and sequential
         indices = [test_obj.get('index') for test_obj in actual['tests']]
         self._assert_sequence(indices)
 
-        summarized = self._summarize(actual)
         self.expected[u'summarized_tests'].sort(key=lambda test_obj: test_obj.get('name'))
 
         assert summarized == self.expected

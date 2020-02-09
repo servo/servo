@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Contents properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-content/#propdef-quotes">
+<link rel="help" href="https://drafts.csswg.org/css-content/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_inherited('quotes', 'auto', 'none');
+assert_not_inherited('bookmark-level', 'none', '1');
+assert_not_inherited('bookmark-state', 'open', 'closed');
+</script>
+</body>
+</html>

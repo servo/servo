@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlareaelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLAreaElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //         attribute DOMString alt;
   // [CEReactions]
@@ -19,10 +21,10 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute USVString ping;
   // [CEReactions]
   //         attribute DOMString rel;
-  readonly attribute DOMTokenList relList;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
 };
-//HTMLAreaElement implements HTMLHyperlinkElementUtils;
+//HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {

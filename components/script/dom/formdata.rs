@@ -12,12 +12,13 @@ use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use script_traits::serializable::BlobImpl;
 
 #[dom_struct]
 pub struct FormData {
@@ -50,12 +51,13 @@ impl FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
-            return match opt_form.get_form_dataset(None) {
+            return match opt_form.get_form_dataset(None, None) {
                 Some(form_datums) => Ok(FormData::new(Some(form_datums), global)),
                 None => Err(Error::InvalidState),
             };
@@ -183,22 +185,28 @@ impl FormDataMethods for FormData {
 
 impl FormData {
     // https://xhr.spec.whatwg.org/#create-an-entry
-    // Steps 3-4.
     fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> DomRoot<File> {
+        // Steps 3-4
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
-            None if blob.downcast::<File>().is_none() => DOMString::from("blob"),
-            None => DOMString::from(""),
+            None => match blob.downcast::<File>() {
+                None => DOMString::from("blob"),
+                // If it is already a file and no filename was given,
+                // then neither step 3 nor step 4 happens, so instead of
+                // creating a new File object we use the existing one.
+                Some(file) => {
+                    return DomRoot::from_ref(file);
+                },
+            },
         };
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
         File::new(
             &self.global(),
-            BlobImpl::new_from_bytes(bytes),
+            BlobImpl::new_from_bytes(bytes, blob.type_string()),
             name,
             None,
-            &blob.type_string(),
         )
     }
 

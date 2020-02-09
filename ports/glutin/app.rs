@@ -6,22 +6,27 @@
 
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
-use crate::window_trait::WindowPortsMethods;
 use crate::events_loop::EventsLoop;
+use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
+use glutin::WindowId;
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::{BrowserId, Servo};
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::env;
 use std::mem;
 use std::rc::Rc;
 
+thread_local! {
+    pub static WINDOWS: RefCell<HashMap<WindowId, Rc<dyn WindowPortsMethods>>> = RefCell::new(HashMap::new());
+}
+
 pub struct App {
     events_loop: Rc<RefCell<EventsLoop>>,
-    window: Rc<dyn WindowPortsMethods>,
     servo: RefCell<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<WindowEvent>>,
@@ -29,20 +34,37 @@ pub struct App {
 }
 
 impl App {
-    pub fn run() {
+    pub fn run(
+        angle: bool,
+        enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
+    ) {
         let events_loop = EventsLoop::new(opts::get().headless);
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
-            headless_window::Window::new(opts::get().initial_window_size)
+            headless_window::Window::new(opts::get().initial_window_size, device_pixels_per_px)
         } else {
-            headed_window::Window::new(opts::get().initial_window_size, events_loop.borrow().as_winit())
+            Rc::new(headed_window::Window::new(
+                opts::get().initial_window_size,
+                None,
+                events_loop.clone(),
+                angle,
+                enable_vsync,
+                use_msaa,
+                no_native_titlebar,
+                device_pixels_per_px,
+            ))
         };
 
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(
+            window.clone(),
             events_loop.clone(),
             window.gl(),
+            angle,
         ));
 
         // Handle browser state.
@@ -53,10 +75,11 @@ impl App {
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();
 
+        register_window(window);
+
         let app = App {
             event_queue: RefCell::new(vec![]),
             events_loop,
-            window: window,
             browser: RefCell::new(browser),
             servo: RefCell::new(servo),
             suspended: Cell::new(false),
@@ -69,11 +92,8 @@ impl App {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
     }
 
-    fn has_events(&self) -> bool {
-        !self.event_queue.borrow().is_empty() || self.window.has_events()
-    }
-
-    fn winit_event_to_servo_event(&self, event: glutin::Event) {
+    // This function decides whether the event should be handled during `run_forever`.
+    fn winit_event_to_servo_event(&self, event: glutin::Event) -> glutin::ControlFlow {
         match event {
             // App level events
             glutin::Event::Suspended(suspended) => {
@@ -91,39 +111,58 @@ impl App {
             glutin::Event::WindowEvent {
                 window_id, event, ..
             } => {
-                if Some(window_id) != self.window.id() {
-                    warn!("Got an event from unknown window");
-                } else {
-                    self.window.winit_event_to_servo_event(event);
-                }
+                return WINDOWS.with(|windows| {
+                    match windows.borrow().get(&window_id) {
+                        None => {
+                            warn!("Got an event from unknown window");
+                            glutin::ControlFlow::Break
+                        },
+                        Some(window) => {
+                            // Resize events need to be handled during run_forever
+                            let cont = if let glutin::WindowEvent::Resized(_) = event {
+                                glutin::ControlFlow::Continue
+                            } else {
+                                glutin::ControlFlow::Break
+                            };
+                            window.winit_event_to_servo_event(event);
+                            return cont;
+                        },
+                    }
+                });
             },
         }
+        glutin::ControlFlow::Break
     }
 
     fn run_loop(self) {
-        let mut stop = false;
         loop {
-            let mut events_loop = self.events_loop.borrow_mut();
-            if self.window.is_animating() && !self.suspended.get() {
-                // We block on compositing (self.handle_events() ends up calling swap_buffers)
-                events_loop.poll_events(|e| {
-                    self.winit_event_to_servo_event(e);
-                });
-                stop = self.handle_events();
-            } else {
-                // We block on winit's event loop (window events)
-                events_loop.run_forever(|e| {
-                    self.winit_event_to_servo_event(e);
-                    if self.has_events() && !self.suspended.get() {
-                        stop = self.handle_events();
+            let animating = WINDOWS.with(|windows| {
+                windows
+                    .borrow()
+                    .iter()
+                    .any(|(_, window)| window.is_animating())
+            });
+            if !animating || self.suspended.get() {
+                // If there's no animations running then we block on the window event loop.
+                self.events_loop.borrow_mut().run_forever(|e| {
+                    let cont = self.winit_event_to_servo_event(e);
+                    if cont == glutin::ControlFlow::Continue {
+                        // Note we need to be careful to make sure that any events
+                        // that are handled during run_forever aren't re-entrant,
+                        // since we are handling them while holding onto a mutable borrow
+                        // of the events loop
+                        self.handle_events();
                     }
-                    if stop || self.window.is_animating() && !self.suspended.get() {
-                        glutin::ControlFlow::Break
-                    } else {
-                        glutin::ControlFlow::Continue
-                    }
+                    cont
                 });
             }
+            // Grab any other events that may have happened
+            self.events_loop.borrow_mut().poll_events(|e| {
+                self.winit_event_to_servo_event(e);
+            });
+            // If animations are running, we block on compositing
+            // (self.handle_events() ends up calling swap_buffers)
+            let stop = self.handle_events();
             if stop {
                 break;
             }
@@ -136,17 +175,26 @@ impl App {
         let mut browser = self.browser.borrow_mut();
         let mut servo = self.servo.borrow_mut();
 
-        let win_events = self.window.get_events();
+        // FIXME:
+        // As of now, we support only one browser (self.browser)
+        // but have multiple windows (dom.webxr.glwindow). We forward
+        // the events of all the windows combined to that single
+        // browser instance. Pressing the "a" key on the glwindow
+        // will send a key event to the servo window.
+
+        let mut app_events = self.get_events();
+        WINDOWS.with(|windows| {
+            for (_win_id, window) in &*windows.borrow() {
+                app_events.extend(window.get_events());
+            }
+        });
 
         // FIXME: this could be handled by Servo. We don't need
         // a repaint_synchronously function exposed.
-        let need_resize = win_events.iter().any(|e| match *e {
+        let need_resize = app_events.iter().any(|e| match *e {
             WindowEvent::Resize => true,
             _ => false,
         });
-
-        let mut app_events = self.get_events();
-        app_events.extend(win_events);
 
         browser.handle_window_events(app_events);
 
@@ -184,8 +232,14 @@ fn get_default_url() -> ServoUrl {
     cmdline_url.or(pref_url).or(blank_url).unwrap()
 }
 
-pub fn gl_version() -> glutin::GlRequest {
-    if opts::get().angle {
+pub fn register_window(window: Rc<dyn WindowPortsMethods>) {
+    WINDOWS.with(|w| {
+        w.borrow_mut().insert(window.id(), window);
+    });
+}
+
+pub fn gl_version(angle: bool) -> glutin::GlRequest {
+    if angle {
         glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
     } else {
         glutin::GlRequest::GlThenGles {

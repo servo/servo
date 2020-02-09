@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: partial selection done manually and multiple text-shadow (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+
+  <meta content="interact" name="flags">
+  <meta content="This test checks that text selectedness done manually must affect multiple text shadows." name="assert">
+
+  <style>
+  div
+    {
+      color: blue;
+      font-size: 300%;
+      margin-left: 7.16667em;
+      margin-top: 1.5em;
+      text-shadow: red 0em -1.2em 0em, red -7em 0em 0em, red 7em 0em 0em, red 0em 1.2em 0em;
+    }
+
+  div::selection
+    {
+      background-color: yellow;
+      color: green;
+      text-shadow: none;
+    }
+  </style>
+
+  <p>Instructions: select a few characters from the blue words "Text sample". Select them with mouse dragging (leftwardedly or rightwardedly) or text-highlighting them with <kbd>Shift</kbd> and keyboard arrows when keyboard navigation (also called caret browsing) is enabled.
+
+  <p>Test passes if each of the 4 correspondent red glyph counterparts disappear.
+
+  <div>Text sample</div>

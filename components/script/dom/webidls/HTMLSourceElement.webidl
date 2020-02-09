@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlsourceelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLSourceElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
            attribute DOMString src;
   [CEReactions]

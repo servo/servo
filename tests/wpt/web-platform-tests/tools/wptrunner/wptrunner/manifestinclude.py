@@ -6,11 +6,12 @@ be included or excluded.
 """
 import glob
 import os
+from six import iteritems
 from six.moves.urllib.parse import urlparse, urlsplit
 
-from wptmanifest.node import DataNode
-from wptmanifest.backends import conditional
-from wptmanifest.backends.conditional import ManifestItem
+from .wptmanifest.node import DataNode
+from .wptmanifest.backends import conditional
+from .wptmanifest.backends.conditional import ManifestItem
 
 
 class IncludeManifest(ManifestItem):
@@ -94,7 +95,7 @@ class IncludeManifest(ManifestItem):
         if paths:
             urls = []
             for path in paths:
-                for manifest, data in test_manifests.iteritems():
+                for manifest, data in iteritems(test_manifests):
                     found = False
                     rel_path = os.path.relpath(path, data["tests_path"])
                     iterator = manifest.iterpath if os.path.isfile(path) else manifest.iterdir
@@ -150,5 +151,5 @@ class IncludeManifest(ManifestItem):
 
 
 def get_manifest(manifest_path):
-    with open(manifest_path) as f:
+    with open(manifest_path, "rb") as f:
         return conditional.compile(f, data_cls_getter=lambda x, y: IncludeManifest)

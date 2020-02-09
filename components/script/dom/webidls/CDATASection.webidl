@@ -6,5 +6,6 @@
  * https://dom.spec.whatwg.org/#interface-cdatasection
  */
 
+[Exposed=Window]
 interface CDATASection : Text {
 };

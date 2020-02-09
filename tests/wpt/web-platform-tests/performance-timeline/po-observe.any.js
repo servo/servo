@@ -2,16 +2,16 @@
 
   test(function () {
     var obs = new PerformanceObserver(function () { return true; });
-    assert_throws(new SyntaxError(), function () {
+    assert_throws_dom("SyntaxError", function () {
       obs.observe({});
     });
-    assert_throws(new SyntaxError(), function () {
+    assert_throws_dom("SyntaxError", function () {
       obs.observe({entryType: []});
     });
   }, "no 'type' or 'entryTypes' throws a SyntaxError");
   test(function () {
     var obs = new PerformanceObserver(function () { return true; });
-    assert_throws(new TypeError(), function () {
+    assert_throws_js(TypeError, function () {
       obs.observe({entryTypes: "mark"});
     });
   }, "entryTypes must be a sequence or throw a TypeError");

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Cyclic syncbase dependency with syncbase trigger - event dispatching</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="blue">
+    <animate attributeName="fill" from="yellow" to="blue" id="a"
+             begin="c.end; b.begin" dur="10ms"/>
+  </rect>
+  <rect width="100" height="100" x="100" fill="blue">
+    <animate attributeName="fill" from="yellow" to="blue" id="b"
+             begin="c.end; a.begin" dur="10ms"/>
+  </rect>
+  <rect width="100" height="100" x="200" fill="blue">
+    <animate attributeName="fill" from="yellow" to="blue" id="c"
+             begin="0; 15ms" dur="10ms"/>
+  </rect>
+</svg>
+<script>
+  promise_test(function(t) {
+    // Wait for two beginEvent/endEvent pairs on all the timed elements.
+    let promises = ['a', 'b', 'c'].map(function(id) {
+      return new EventWatcher(t, document.getElementById(id),
+                              ['beginEvent', 'endEvent'])
+        .wait_for(['beginEvent', 'endEvent',
+                   'beginEvent', 'endEvent']);
+    });
+    return Promise.all(promises);
+  });
+</script>

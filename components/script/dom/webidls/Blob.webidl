@@ -4,10 +4,10 @@
 
 // https://w3c.github.io/FileAPI/#blob
 
-[Constructor(optional sequence<BlobPart> blobParts,
-  optional BlobPropertyBag options),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Blob {
+  [Throws] constructor(optional sequence<BlobPart> blobParts,
+    optional BlobPropertyBag options = {});
 
   readonly attribute unsigned long long size;
   readonly attribute DOMString type;
@@ -16,6 +16,9 @@ interface Blob {
   Blob slice(optional [Clamp] long long start,
              optional [Clamp] long long end,
              optional DOMString contentType);
+
+  [NewObject] Promise<DOMString> text();
+  [NewObject] Promise<ArrayBuffer> arrayBuffer();
 };
 
 dictionary BlobPropertyBag {

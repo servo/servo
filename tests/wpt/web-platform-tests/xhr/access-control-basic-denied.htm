@@ -22,7 +22,7 @@
       const xhr = new XMLHttpRequest;
 
       xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN + path, false);
-      assert_throws("NetworkError", () => xhr.send());
+      assert_throws_dom("NetworkError", () => xhr.send());
       assert_equals(xhr.status, 0);
     }, "Cross-origin request denied");
     </script>

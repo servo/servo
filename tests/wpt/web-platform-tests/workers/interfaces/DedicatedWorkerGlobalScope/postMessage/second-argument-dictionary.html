@@ -1,13 +1,3 @@
-<!--
-onmessage = (event) => {
-  try {
-    postMessage(event.data, {transfer: [event.data]});
-  } catch(e) {
-    postMessage(''+e);
-  }
-}
-/*
--->
 <!doctype html>
 <title>Using dictionary as postMessage's second argument</title>
 <script src="/resources/testharness.js"></script>
@@ -15,7 +5,7 @@ onmessage = (event) => {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('second-argument-dictionary.js');
   var ab = new ArrayBuffer(1);
   worker.postMessage(ab, {transfer: [ab]});
   worker.onmessage = this.step_func(function(e) {
@@ -24,6 +14,3 @@ onmessage = (event) => {
   });
 });
 </script>
-<!--
-*/
-//-->

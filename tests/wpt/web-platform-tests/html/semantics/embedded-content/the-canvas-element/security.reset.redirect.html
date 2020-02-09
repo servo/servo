@@ -3,8 +3,8 @@
 <title>Canvas test: security.reset.redirect</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>security.reset.redirect</h1>
@@ -21,7 +21,7 @@ _addTest(function(canvas, ctx) {
 
 canvas.width = 50;
 ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
+assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
 canvas.width = 100;
 canvas.toDataURL();
 ctx.getImageData(0, 0, 1, 1);

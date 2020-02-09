@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-"""Wrapper script for running jobs in TaskCluster
+"""Wrapper script for running jobs in Taskcluster
 
-This is intended for running test jobs in TaskCluster. The script
+This is intended for running test jobs in Taskcluster. The script
 takes a two positional arguments which are the name of the test job
 and the script to actually run.
 
@@ -36,11 +36,16 @@ the serialization of a GitHub event payload.
 """
 
 import argparse
+import fnmatch
 import json
 import os
-import re
 import subprocess
 import sys
+import tarfile
+import tempfile
+import zipfile
+from socket import error as SocketError  # NOQA: N812
+import errno
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -96,8 +101,16 @@ def get_parser():
                    help="Start xvfb")
     p.add_argument("--checkout",
                    help="Revision to checkout before starting job")
-    p.add_argument("job",
-                   help="Name of the job associated with the current event")
+    p.add_argument("--install-certificates", action="store_true", default=None,
+                   help="Install web-platform.test certificates to UA store")
+    p.add_argument("--no-install-certificates", action="store_false", default=None,
+                   help="Don't install web-platform.test certificates to UA store")
+    p.add_argument("--ref",
+                   help="Git ref for the commit that should be run")
+    p.add_argument("--head-rev",
+                   help="Commit at the head of the branch when the decision task ran")
+    p.add_argument("--merge-rev",
+                   help="Provisional merge commit for PR when the decision task ran")
     p.add_argument("script",
                    help="Script to run for the job")
     p.add_argument("script_args",
@@ -109,15 +122,21 @@ def get_parser():
 def start_userspace_oom_killer():
     # Start userspace OOM killer: https://github.com/rfjakob/earlyoom
     # It will report memory usage every minute and prefer to kill browsers.
-    start(["sudo", "earlyoom", "-p", "-r", "60" "--prefer=(chrome|firefox)", "--avoid=python"])
+    start(["sudo", "earlyoom", "-p", "-r", "60", "--prefer=(chrome|firefox)", "--avoid=python"])
 
 
 def make_hosts_file():
-    subprocess.check_call(["sudo", "sh", "-c", "./wpt make-hosts-file >> /etc/hosts"])
+    run(["sudo", "sh", "-c", "./wpt make-hosts-file >> /etc/hosts"])
 
 
 def checkout_revision(rev):
-    subprocess.check_call(["git", "checkout", "--quiet", rev])
+    run(["git", "checkout", "--quiet", rev])
+
+
+def install_certificates():
+    run(["sudo", "cp", "tools/certs/cacert.pem",
+         "/usr/local/share/ca-certificates/cacert.crt"])
+    run(["sudo", "update-ca-certificates"])
 
 
 def install_chrome(channel):
@@ -138,6 +157,70 @@ def install_chrome(channel):
     run(["sudo", "apt-get", "-qqy", "update"])
     run(["sudo", "gdebi", "-qn", "/tmp/%s" % deb_archive])
 
+def install_webkitgtk_from_apt_repository(channel):
+    # Configure webkitgtk.org/debian repository for $channel and pin it with maximum priority
+    run(["sudo", "apt-key", "adv", "--fetch-keys", "https://webkitgtk.org/debian/apt.key"])
+    with open("/tmp/webkitgtk.list", "w") as f:
+        f.write("deb [arch=amd64] https://webkitgtk.org/apt bionic-wpt-webkit-updates %s\n" % channel)
+    run(["sudo", "mv", "/tmp/webkitgtk.list", "/etc/apt/sources.list.d/"])
+    with open("/tmp/99webkitgtk", "w") as f:
+        f.write("Package: *\nPin: origin webkitgtk.org\nPin-Priority: 1999\n")
+    run(["sudo", "mv", "/tmp/99webkitgtk", "/etc/apt/preferences.d/"])
+    # Install webkit2gtk from the webkitgtk.org/apt repository for $channel
+    run(["sudo", "apt-get", "-qqy", "update"])
+    run(["sudo", "apt-get", "-qqy", "upgrade"])
+    run(["sudo", "apt-get", "-qqy", "-t", "bionic-wpt-webkit-updates", "install", "webkit2gtk-driver"])
+
+
+def download_url_to_descriptor(fd, url, max_retries=3):
+    """Download an URL in chunks and saves it to a file descriptor (truncating it)
+    It doesn't close the descriptor, but flushes it on success.
+    It retries the download in case of ECONNRESET up to max_retries."""
+    download_succeed = False
+    if max_retries < 0:
+        max_retries = 0
+    for current_retry in range(max_retries+1):
+        try:
+            print("INFO: Downloading %s Try %d/%d" % (url, current_retry + 1, max_retries))
+            resp = urlopen(url)
+            # We may come here in a retry, ensure to truncate fd before start writing.
+            fd.seek(0)
+            fd.truncate(0)
+            while True:
+                chunk = resp.read(16*1024)
+                if not chunk:
+                    break  # Download finished
+                fd.write(chunk)
+            fd.flush()
+            download_succeed = True
+            break  # Sucess
+        except SocketError as e:
+            if e.errno != errno.ECONNRESET:
+                raise  # Unknown error
+            if current_retry < max_retries:
+                print("ERROR: Connection reset by peer. Retrying ...")
+                continue  # Retry
+    return download_succeed
+
+
+def install_webkitgtk_from_tarball_bundle(channel):
+    with tempfile.NamedTemporaryFile(suffix=".tar.xz") as temp_tarball:
+        download_url = "https://webkitgtk.org/built-products/nightly/webkitgtk-nightly-build-last.tar.xz"
+        if not download_url_to_descriptor(temp_tarball, download_url):
+            raise RuntimeError("Can't download %s. Aborting" % download_url)
+        run(["sudo", "tar", "xfa", temp_tarball.name, "-C", "/"])
+    # Install dependencies
+    run(["sudo", "apt-get", "-qqy", "update"])
+    run(["sudo", "/opt/webkitgtk/nightly/install-dependencies"])
+
+
+def install_webkitgtk(channel):
+    if channel in ("experimental", "dev", "nightly"):
+        install_webkitgtk_from_tarball_bundle(channel)
+    elif channel in ("beta", "stable"):
+        install_webkitgtk_from_apt_repository(channel)
+    else:
+        raise ValueError("Unrecognized release channel: %s" % channel)
 
 def start_xvfb():
     start(["sudo", "Xvfb", os.environ["DISPLAY"], "-screen", "0",
@@ -145,29 +228,6 @@ def start_xvfb():
                          os.environ["SCREEN_HEIGHT"],
                          os.environ["SCREEN_DEPTH"])])
     start(["sudo", "fluxbox", "-display", os.environ["DISPLAY"]])
-
-
-def get_extra_jobs(event):
-    body = None
-    jobs = set()
-    if "commits" in event:
-        body = event["commits"][0]["message"]
-    elif "pull_request" in event:
-        body = event["pull_request"]["body"]
-
-    if not body:
-        return jobs
-
-    regexp = re.compile(r"\s*tc-jobs:(.*)$")
-
-    for line in body.splitlines():
-        m = regexp.match(line)
-        if m:
-            items = m.group(1)
-            for item in items.split(","):
-                jobs.add(item.strip())
-            break
-    return jobs
 
 
 def set_variables(event):
@@ -190,26 +250,77 @@ def set_variables(event):
         os.environ["GITHUB_BRANCH"] = branch
 
 
-def include_job(job):
-    # Special case things that unconditionally run on pushes,
-    # assuming a higher layer is filtering the required list of branches
-    if (os.environ["GITHUB_PULL_REQUEST"] == "false" and
-        job == "run-all"):
-        return True
+def task_url(task_id):
+    root_url = os.environ['TASKCLUSTER_ROOT_URL']
+    if root_url == 'https://taskcluster.net':
+        queue_base = "https://queue.taskcluster.net/v1/task"
+    else:
+        queue_base = root_url + "/api/queue/v1/task"
 
-    jobs_str = run([os.path.join(root, "wpt"),
-                    "test-jobs"], return_stdout=True)
-    print(jobs_str)
-    return job in set(jobs_str.splitlines())
+    return "%s/%s" % (queue_base, task_id)
+
+
+def download_artifacts(artifacts):
+    artifact_list_by_task = {}
+    for artifact in artifacts:
+        base_url = task_url(artifact["task"])
+        if artifact["task"] not in artifact_list_by_task:
+            resp = urlopen(base_url + "/artifacts")
+            artifacts_data = json.load(resp)
+            artifact_list_by_task[artifact["task"]] = artifacts_data
+
+        artifacts_data = artifact_list_by_task[artifact["task"]]
+        print("DEBUG: Got artifacts %s" % artifacts_data)
+        found = False
+        for candidate in artifacts_data["artifacts"]:
+            print("DEBUG: candidate: %s glob: %s" % (candidate["name"], artifact["glob"]))
+            if fnmatch.fnmatch(candidate["name"], artifact["glob"]):
+                found = True
+                print("INFO: Fetching aritfact %s from task %s" % (candidate["name"], artifact["task"]))
+                file_name = candidate["name"].rsplit("/", 1)[1]
+                url = base_url + "/artifacts/" + candidate["name"]
+                dest_path = os.path.expanduser(os.path.join("~", artifact["dest"], file_name))
+                dest_dir = os.path.dirname(dest_path)
+                if not os.path.exists(dest_dir):
+                    os.makedirs(dest_dir)
+                with open(dest_path, "wb") as f:
+                    download_url_to_descriptor(f, url)
+
+                if artifact.get("extract"):
+                    unpack(dest_path)
+        if not found:
+            print("WARNING: No artifact found matching %s in task %s" % (artifact["glob"], artifact["task"]))
+
+
+def unpack(path):
+    dest = os.path.dirname(path)
+    if tarfile.is_tarfile(path):
+        run(["tar", "-xf", path], cwd=os.path.dirname(path))
+    elif zipfile.is_zipfile(path):
+        with zipfile.ZipFile(path) as archive:
+            archive.extractall(dest)
+    else:
+        print("ERROR: Don't know how to extract %s" % path)
+        raise Exception
 
 
 def setup_environment(args):
+    if "TASK_ARTIFACTS" in os.environ:
+        artifacts = json.loads(os.environ["TASK_ARTIFACTS"])
+        download_artifacts(artifacts)
+
     if args.hosts_file:
         make_hosts_file()
+
+    if args.install_certificates:
+        install_certificates()
 
     if "chrome" in args.browser:
         assert args.channel is not None
         install_chrome(args.channel)
+    elif "webkitgtk_minibrowser" in args.browser:
+        assert args.channel is not None
+        install_webkitgtk(args.channel)
 
     if args.xvfb:
         start_xvfb()
@@ -217,13 +328,66 @@ def setup_environment(args):
     if args.oom_killer:
         start_userspace_oom_killer()
 
-    if args.checkout:
-        checkout_revision(args.checkout)
 
+def setup_repository(args):
+    is_pr = os.environ.get("GITHUB_PULL_REQUEST", "false") != "false"
 
-def setup_repository():
+    # Initially task_head points at the same commit as the ref we want to test.
+    # However that may not be the same commit as we actually want to test if
+    # the branch changed since the decision task ran. The branch may have
+    # changed because someone has pushed more commits (either to the PR
+    # or later commits to the branch), or because someone has pushed to the
+    # base branch for the PR.
+    #
+    # In that case we take a different approach depending on whether this is a
+    # PR or a push to a branch.
+    # If this is a push to a branch, and the original commit is still fetchable,
+    # we try to fetch that (it may not be in the case of e.g. a force push).
+    # If it's not fetchable then we fail the run.
+    # For a PR we are testing the provisional merge commit. If that's changed it
+    # could be that the PR branch was updated or the base branch was updated. In the
+    # former case we fail the run because testing an old commit is a waste of
+    # resources. In the latter case we assume it's OK to use the current merge
+    # instead of the one at the time the decision task ran.
+
+    if args.ref:
+        if is_pr:
+            assert args.ref.endswith("/merge")
+            expected_head = args.merge_rev
+        else:
+            expected_head = args.head_rev
+
+        task_head = run(["git", "rev-parse", "task_head"], return_stdout=True).strip()
+
+        if task_head != expected_head:
+            if not is_pr:
+                try:
+                    run(["git", "fetch", "origin", expected_head])
+                    run(["git", "reset", "--hard", expected_head])
+                except subprocess.CalledProcessError:
+                    print("CRITICAL: task_head points at %s, expected %s and "
+                          "unable to fetch expected commit.\n"
+                          "This may be because the branch was updated" % (task_head, expected_head))
+                    sys.exit(1)
+            else:
+                # Convert the refs/pulls/<id>/merge to refs/pulls/<id>/head
+                head_ref = args.ref.rsplit("/", 1)[0] + "/head"
+                try:
+                    remote_head = run(["git", "ls-remote", "origin", head_ref],
+                                      return_stdout=True).split("\t")[0]
+                except subprocess.CalledProcessError:
+                    print("CRITICAL: Failed to read remote ref %s" % head_ref)
+                    sys.exit(1)
+                if remote_head != args.head_rev:
+                    print("CRITICAL: task_head points at %s, expected %s. "
+                          "This may be because the branch was updated" % (task_head, expected_head))
+                    sys.exit(1)
+                print("INFO: Merge commit changed from %s to %s due to base branch changes. "
+                      "Running task anyway." % (expected_head, task_head))
+
     if os.environ.get("GITHUB_PULL_REQUEST", "false") != "false":
-        parents = run(["git", "show", "--no-patch", "--format=%P", "task_head"], return_stdout=True).strip().split()
+        parents = run(["git", "rev-parse", "task_head^@"],
+                      return_stdout=True).strip().split()
         if len(parents) == 2:
             base_head = parents[0]
             pr_head = parents[1]
@@ -233,7 +397,8 @@ def setup_repository():
         else:
             print("ERROR: Pull request HEAD wasn't a 2-parent merge commit; "
                   "expected to test the merge of PR into the base")
-            commit = run(["git", "show", "--no-patch", "--format=%H", "task_head"], return_stdout=True).strip()
+            commit = run(["git", "rev-parse", "task_head"],
+                         return_stdout=True).strip()
             print("HEAD: %s" % commit)
             print("Parents: %s" % ", ".join(parents))
             sys.exit(1)
@@ -244,39 +409,70 @@ def setup_repository():
         # TODO: move this somewhere earlier in the task
         run(["git", "fetch", "--quiet", "origin", "%s:%s" % (branch, branch)])
 
+    checkout_rev = args.checkout if args.checkout is not None else "task_head"
+    checkout_revision(checkout_rev)
+
+    refs = run(["git", "for-each-ref", "refs/heads"], return_stdout=True)
+    print("INFO: git refs:\n%s" % refs)
+    print("INFO: checked out commit:\n%s" % run(["git", "rev-parse", "HEAD"],
+                                                return_stdout=True))
+
+
+def fetch_event_data():
+    try:
+        task_id = os.environ["TASK_ID"]
+    except KeyError:
+        print("WARNING: Missing TASK_ID environment variable")
+        # For example under local testing
+        return None
+
+    url = task_url(task_id)
+    resp = urlopen(url)
+    task_data = json.load(resp)
+    event_data = task_data.get("extra", {}).get("github_event")
+    if event_data is not None:
+        return json.loads(event_data)
+
+
+def include_job(job):
+    # Only for supporting pre decision-task PRs
+    # Special case things that unconditionally run on pushes,
+    # assuming a higher layer is filtering the required list of branches
+    if "GITHUB_PULL_REQUEST" not in os.environ:
+        return True
+
+    if (os.environ["GITHUB_PULL_REQUEST"] == "false" and
+        job == "run-all"):
+        return True
+
+    jobs_str = run([os.path.join(root, "wpt"),
+                    "test-jobs"], return_stdout=True)
+    print(jobs_str)
+    return job in set(jobs_str.splitlines())
+
 
 def main():
     args = get_parser().parse_args()
-    try:
+
+    if "TASK_EVENT" in os.environ:
         event = json.loads(os.environ["TASK_EVENT"])
-    except KeyError:
-        print("WARNING: Missing TASK_EVENT environment variable")
-        # For example under local testing
-        event = {}
+    else:
+        event = fetch_event_data()
 
     if event:
         set_variables(event)
 
-    setup_repository()
+    setup_repository(args)
 
-    extra_jobs = get_extra_jobs(event)
-
-    job = args.job
-
-    print("Job %s" % job)
-
-    run_if = [(lambda: job == "all", "job set to 'all'"),
-              (lambda:"all" in extra_jobs, "Manually specified jobs includes 'all'"),
-              (lambda:job in extra_jobs, "Manually specified jobs includes '%s'" % job),
-              (lambda:include_job(job), "CI required jobs includes '%s'" % job)]
-
-    for fn, msg in run_if:
-        if fn():
-            print(msg)
-            break
-    else:
-        print("Job not scheduled for this push")
-        return
+    # Hack for backwards compatibility
+    if args.script in ["run-all", "lint", "update_built", "tools_unittest",
+                       "wpt_integration", "resources_unittest",
+                       "wptrunner_infrastructure", "stability", "affected_tests"]:
+        job = args.script
+        if not include_job(job):
+            return
+        args.script = args.script_args[0]
+        args.script_args = args.script_args[1:]
 
     # Run the job
     setup_environment(args)

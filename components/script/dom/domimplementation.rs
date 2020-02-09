@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, ElementCreationOptions,
 };
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -105,10 +106,13 @@ impl DOMImplementationMethods for DOMImplementation {
         let maybe_elem = if qname.is_empty() {
             None
         } else {
-            let options = ElementCreationOptions { is: None };
+            let options =
+                StringOrElementCreationOptions::ElementCreationOptions(ElementCreationOptions {
+                    is: None,
+                });
             match doc
                 .upcast::<Document>()
-                .CreateElementNS(maybe_namespace, qname, &options)
+                .CreateElementNS(maybe_namespace, qname, options)
             {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),

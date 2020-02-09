@@ -11,23 +11,27 @@
 <meta charset="utf-8">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <div id=log></div>
 <script>
-setup({allow_uncaught_exception : true});
+setup({allow_uncaught_exception : true, single_test : true});
 
 function test(mime_type, is_blocking_expected) {
+  var action = is_blocking_expected ? "blocks" : "does not block";
+
   async_test(function(t) {
     var script = document.createElement("script")
+    var script_has_run_token = "script_has_run" + token();
 
     // With and without CORB there should be no error, but without CORB the
     // original script body will be preserved and |window.script_has_run| will
     // be set.
-    window.script_has_run = false;
+    window[script_has_run_token] = false;
     script.onload = t.step_func_done(function(){
       if (is_blocking_expected) {
-        assert_false(window.script_has_run);
+        assert_false(window[script_has_run_token]);
       } else {
-        assert_true(window.script_has_run);
+        assert_true(window[script_has_run_token]);
       }
     });
     addEventListener("error",function(e) {
@@ -44,24 +48,24 @@ function test(mime_type, is_blocking_expected) {
     // rather than cross-*site* URL below (e.g. s/hosts[alt]/domains/g).
     // See also https://crbug.com/918660 for more context.
     var src_prefix = "http://{{hosts[alt][www1]}}:{{ports[http][0]}}/fetch/corb/resources/sniffable-resource.py";
-    body = "window.script_has_run = true;"
+    body = `window['${script_has_run_token}'] = true;`
     script.src = src_prefix + "?type=" + mime_type + "&body=" + encodeURIComponent(body);
     document.body.appendChild(script)
-  }, "CORB-blocks '" + mime_type + "' that starts with the following JSON parser breaker: " + body);
+  }, "CORB " + action + " '" + mime_type + "'");
 }
 
 // Some mime types should be protected by CORB without any kind
 // of confirmation sniffing.
 protected_mime_types = [
   "application/gzip",
+  "application/pdf",
   "application/x-gzip",
   "application/x-protobuf",
-  "application/x-www-form-urlencoded",
   "application/zip",
+  "multipart/byteranges",
+  "multipart/signed",
+  "text/csv",
   "text/event-stream",
-  // TODO(lukasza): https://crbug.com/944162: Add application/pdf and
-  // text/csv to the list of content types tested here (after
-  // kMimeHandlerViewInCrossProcessFrame gets enabled by default).
 ]
 protected_mime_types.forEach(function(type) {
     test(type, true /* is_blocking_expected */);

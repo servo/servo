@@ -8,6 +8,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::computed::percentage::Percentage as ComputedPercentage;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified::calc::CalcNode;
+use crate::values::specified::Number;
 use crate::values::{serialize_percentage, CSSFloat};
 use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
@@ -46,11 +47,19 @@ impl ToCss for Percentage {
 
 impl Percentage {
     /// Creates a percentage from a numeric value.
-    pub fn new(value: CSSFloat) -> Self {
+    pub(super) fn new_with_clamping_mode(
+        value: CSSFloat,
+        calc_clamping_mode: Option<AllowedNumericType>,
+    ) -> Self {
         Self {
             value,
-            calc_clamping_mode: None,
+            calc_clamping_mode,
         }
+    }
+
+    /// Creates a percentage from a numeric value.
+    pub fn new(value: CSSFloat) -> Self {
+        Self::new_with_clamping_mode(value, None)
     }
 
     /// `0%`
@@ -70,10 +79,16 @@ impl Percentage {
             calc_clamping_mode: None,
         }
     }
+
     /// Gets the underlying value for this float.
     pub fn get(&self) -> CSSFloat {
         self.calc_clamping_mode
             .map_or(self.value, |mode| mode.clamp(self.value))
+    }
+
+    /// Returns this percentage as a number.
+    pub fn to_number(&self) -> Number {
+        Number::new_with_clamping_mode(self.value, self.calc_clamping_mode)
     }
 
     /// Returns whether this percentage is a `calc()` value.
@@ -96,25 +111,25 @@ impl Percentage {
         num_context: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-        // FIXME: remove early returns when lifetimes are non-lexical
         match *input.next()? {
             Token::Percentage { unit_value, .. }
                 if num_context.is_ok(context.parsing_mode, unit_value) =>
             {
-                return Ok(Percentage::new(unit_value));
-            }
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-            ref t => return Err(location.new_unexpected_token_error(t.clone())),
+                Ok(Percentage::new(unit_value))
+            },
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let result =
+                    input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
+
+                // TODO(emilio): -moz-image-rect is the only thing that uses
+                // the clamping mode... I guess we could disallow it...
+                Ok(Percentage {
+                    value: result,
+                    calc_clamping_mode: Some(num_context),
+                })
+            },
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
-
-        let result = input.parse_nested_block(|i| CalcNode::parse_percentage(context, i))?;
-
-        // TODO(emilio): -moz-image-rect is the only thing that uses
-        // the clamping mode... I guess we could disallow it...
-        Ok(Percentage {
-            value: result,
-            calc_clamping_mode: Some(num_context),
-        })
     }
 
     /// Parses a percentage token, but rejects it if it's negative.

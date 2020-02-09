@@ -11,12 +11,12 @@
 'use strict';
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSVariableReferenceValue(''));
+  assert_throws_js(TypeError, () => new CSSVariableReferenceValue(''));
 }, 'Constructing a CSSVariableReferenceValue with an empty variable name ' +
    'throws a TypeError');
 
 test(() => {
-  assert_throws(new TypeError(), () => new CSSVariableReferenceValue('bar'));
+  assert_throws_js(TypeError, () => new CSSVariableReferenceValue('bar'));
 }, 'Constructing a CSSVariableReferenceValue with an invalid variable name ' +
    'throws SyntaxError');
 

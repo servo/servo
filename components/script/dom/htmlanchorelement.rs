@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -11,24 +10,27 @@ use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAncho
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::determine_policy_for_token;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::Element;
+use crate::dom::element::{referrer_policy_for_element, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::request::Referrer;
 use num_traits::ToPrimitive;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
 use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
@@ -524,11 +526,6 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         // Step 5.
         self.update_href(url);
     }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
-    }
 }
 
 impl Activatable for HTMLAnchorElement {
@@ -576,16 +573,6 @@ impl Activatable for HTMLAnchorElement {
         //TODO: Download the link is `download` attribute is set.
         follow_hyperlink(element, ismap_suffix);
     }
-
-    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
@@ -624,8 +611,19 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
     // Step 7.
     let (maybe_chosen, replace) = match target_attribute_value {
-        Some(name) => source.choose_browsing_context(name.Value(), noopener),
-        None => (Some(window.window_proxy()), false),
+        Some(name) => {
+            let (maybe_chosen, new) = source.choose_browsing_context(name.Value(), noopener);
+            let replace = if new {
+                HistoryEntryReplacement::Enabled
+            } else {
+                HistoryEntryReplacement::Disabled
+            };
+            (maybe_chosen, replace)
+        },
+        None => (
+            Some(window.window_proxy()),
+            HistoryEntryReplacement::Disabled,
+        ),
     };
 
     // Step 8.
@@ -654,9 +652,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         };
 
         // Step 12.
-        let referrer_policy = subject
-            .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-            .and_then(|attribute: DomRoot<Attr>| (determine_policy_for_token(&attribute.Value())));
+        let referrer_policy = referrer_policy_for_element(subject);
 
         // Step 13
         let referrer = match subject.get_attribute(&ns!(), &local_name!("rel")) {
@@ -667,7 +663,23 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         };
 
         // Step 14
-        debug!("following hyperlink to {}", url);
-        target_window.load_url(url, replace, false, referrer, referrer_policy);
+        let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+        let load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().immutable().clone()),
+            url,
+            Some(pipeline_id),
+            Some(referrer),
+            referrer_policy,
+        );
+        let target = Trusted::new(target_window);
+        let task = task!(navigate_follow_hyperlink: move || {
+            debug!("following hyperlink to {}", load_data.url);
+            target.root().load_url(replace, false, load_data);
+        });
+        target_window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task, target_window.upcast())
+            .unwrap();
     };
 }

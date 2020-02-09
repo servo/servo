@@ -13,9 +13,9 @@ dictionary AnalyserOptions : AudioNodeOptions {
   double smoothingTimeConstant = 0.8;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional AnalyserOptions options)]
+[Exposed=Window]
 interface AnalyserNode : AudioNode {
+  [Throws] constructor(BaseAudioContext context, optional AnalyserOptions options = {});
   void getFloatFrequencyData (Float32Array array);
   void getByteFrequencyData (Uint8Array array);
   void getFloatTimeDomainData (Float32Array array);

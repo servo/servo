@@ -173,6 +173,12 @@ impl PseudoElement {
         false
     }
 
+    /// Whether this pseudo-element is the ::-moz-color-swatch pseudo.
+    #[inline]
+    pub fn is_color_swatch(&self) -> bool {
+        false
+    }
+
     /// Whether this pseudo-element is eagerly-cascaded.
     #[inline]
     pub fn is_eager(&self) -> bool {
@@ -272,6 +278,7 @@ pub enum NonTSPseudoClass {
     Active,
     AnyLink,
     Checked,
+    Defined,
     Disabled,
     Enabled,
     Focus,
@@ -303,6 +310,11 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
             NonTSPseudoClass::Active | NonTSPseudoClass::Hover | NonTSPseudoClass::Focus
         )
     }
+
+    #[inline]
+    fn has_zero_specificity(&self) -> bool {
+        false
+    }
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -321,6 +333,7 @@ impl ToCss for NonTSPseudoClass {
             Active => ":active",
             AnyLink => ":any-link",
             Checked => ":checked",
+            Defined => ":defined",
             Disabled => ":disabled",
             Enabled => ":enabled",
             Focus => ":focus",
@@ -360,6 +373,7 @@ impl NonTSPseudoClass {
             Focus => ElementState::IN_FOCUS_STATE,
             Fullscreen => ElementState::IN_FULLSCREEN_STATE,
             Hover => ElementState::IN_HOVER_STATE,
+            Defined => ElementState::IN_DEFINED_STATE,
             Enabled => ElementState::IN_ENABLED_STATE,
             Disabled => ElementState::IN_DISABLED_STATE,
             Checked => ElementState::IN_CHECKED_STATE,
@@ -425,6 +439,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             "active" => Active,
             "any-link" => AnyLink,
             "checked" => Checked,
+            "defined" => Defined,
             "disabled" => Disabled,
             "enabled" => Enabled,
             "focus" => Focus,
@@ -460,8 +475,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
-            }
-            _ => return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+            },
+            _ => return Err(parser.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
         };
 
         Ok(pseudo_class)
@@ -692,6 +707,14 @@ impl ElementSnapshot for ServoElementSnapshot {
 
     fn is_part(&self, _name: &Atom) -> bool {
         false
+    }
+
+    fn exported_part(&self, _: &Atom) -> Option<Atom> {
+        None
+    }
+
+    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+        None
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {

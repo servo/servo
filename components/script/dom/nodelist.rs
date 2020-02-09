@@ -7,16 +7,21 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
+    Labels(LabelsList),
+    Radio(RadioList),
 }
 
 // https://dom.spec.whatwg.org/#interface-nodelist
@@ -65,6 +70,10 @@ impl NodeList {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
 
+    pub fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
+        NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
+    }
+
     pub fn empty(window: &Window) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
@@ -76,6 +85,8 @@ impl NodeListMethods for NodeList {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref list) => list.len(),
+            NodeListType::Labels(ref list) => list.len(),
+            NodeListType::Radio(ref list) => list.len(),
         }
     }
 
@@ -86,6 +97,8 @@ impl NodeListMethods for NodeList {
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
             NodeListType::Children(ref list) => list.item(index),
+            NodeListType::Labels(ref list) => list.item(index),
+            NodeListType::Radio(ref list) => list.item(index),
         }
     }
 
@@ -100,26 +113,28 @@ impl NodeList {
         if let NodeListType::Children(ref list) = self.list_type {
             list
         } else {
-            panic!("called as_children_list() on a simple node list")
+            panic!("called as_children_list() on a non-children node list")
         }
     }
 
-    pub fn as_simple_list(&self) -> &Vec<Dom<Node>> {
-        if let NodeListType::Simple(ref list) = self.list_type {
+    pub fn as_radio_list(&self) -> &RadioList {
+        if let NodeListType::Radio(ref list) = self.list_type {
             list
         } else {
-            panic!("called as_simple_list() on a children node list")
+            panic!("called as_radio_list() on a non-radio node list")
         }
     }
 
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Node>> + 'a {
         let len = self.Length();
+        // There is room for optimization here in non-simple cases,
+        // as calling Item repeatedly on a live list can involve redundant work.
         (0..len).flat_map(move |i| self.Item(i))
     }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct ChildrenList {
     node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -132,7 +147,7 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
-            last_visited: MutNullableDom::new(last_visited.deref()),
+            last_visited: MutNullableDom::new(last_visited.as_deref()),
             last_index: Cell::new(0u32),
         }
     }
@@ -315,7 +330,74 @@ impl ChildrenList {
     }
 
     fn reset(&self) {
-        self.last_visited.set(self.node.GetFirstChild().deref());
+        self.last_visited.set(self.node.GetFirstChild().as_deref());
         self.last_index.set(0u32);
+    }
+}
+
+// Labels lists: There might be room for performance optimization
+// analogous to the ChildrenMutation case of a children list,
+// in which we can keep information from an older access live
+// if we know nothing has happened that would change it.
+// However, label relationships can happen from further away
+// in the DOM than parent-child relationships, so it's not as simple,
+// and it's possible that tracking label moves would end up no faster
+// than recalculating labels.
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub struct LabelsList {
+    element: Dom<HTMLElement>,
+}
+
+impl LabelsList {
+    pub fn new(element: &HTMLElement) -> LabelsList {
+        LabelsList {
+            element: Dom::from_ref(element),
+        }
+    }
+
+    pub fn len(&self) -> u32 {
+        self.element.labels_count()
+    }
+
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+        self.element.label_at(index)
+    }
+}
+
+// Radio node lists: There is room for performance improvement here;
+// a form is already aware of changes to its set of controls,
+// so a radio list can cache and cache-invalidate its contents
+// just by hooking into what the form already knows without a
+// separate mutation observer. FIXME #25482
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub enum RadioListMode {
+    ControlsExceptImageInputs,
+    Images,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub struct RadioList {
+    form: Dom<HTMLFormElement>,
+    mode: RadioListMode,
+    name: DOMString,
+}
+
+impl RadioList {
+    pub fn new(form: &HTMLFormElement, mode: RadioListMode, name: DOMString) -> RadioList {
+        RadioList {
+            form: Dom::from_ref(form),
+            mode: mode,
+            name: name,
+        }
+    }
+
+    pub fn len(&self) -> u32 {
+        self.form.count_for_radio_list(self.mode, &self.name)
+    }
+
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+        self.form.nth_for_radio_list(index, self.mode, &self.name)
     }
 }

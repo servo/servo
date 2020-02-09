@@ -10,6 +10,11 @@
 <script src="../../resources/keyframe-tests.js"></script>
 <script src="../../resources/timing-utils.js"></script>
 <script src="../../resources/timing-tests.js"></script>
+<style>
+.pseudo::before {content: '';}
+.pseudo::after {content: '';}
+.pseudo::marker {content: '';}
+</style>
 <body>
 <div id="log"></div>
 <iframe width="10" height="10" id="iframe"></iframe>
@@ -76,7 +81,7 @@ for (const subtest of gKeyframesTests) {
 for (const subtest of gInvalidKeyframesTests) {
   test(t => {
     const div = createDiv(t);
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       div.animate(subtest.input, 2000);
     });
   }, `Element.animate() does not accept ${subtest.desc}`);
@@ -103,7 +108,7 @@ test(t => {
 
 for (const invalid of gBadDelayValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { delay: invalid });
     });
   }, `Element.animate() does not accept invalid delay value: ${invalid}`);
@@ -122,7 +127,7 @@ for (const invalid of gBadDurationValues) {
     continue;
   }
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, invalid);
     });
   }, 'Element.animate() does not accept invalid duration value: '
@@ -131,7 +136,7 @@ for (const invalid of gBadDurationValues) {
 
 for (const invalid of gBadDurationValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { duration: invalid });
     });
   }, 'Element.animate() does not accept invalid duration value: '
@@ -141,7 +146,7 @@ for (const invalid of gBadDurationValues) {
 
 for (const invalidEasing of gInvalidEasings) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate({ easing: invalidEasing }, 2000);
     });
   }, `Element.animate() does not accept invalid easing: '${invalidEasing}'`);
@@ -149,7 +154,7 @@ for (const invalidEasing of gInvalidEasings) {
 
 for (const invalid of gBadIterationStartValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { iterationStart: invalid });
     });
   }, 'Element.animate() does not accept invalid iterationStart value: ' +
@@ -158,7 +163,7 @@ for (const invalid of gBadIterationStartValues) {
 
 for (const invalid of gBadIterationsValues) {
   test(t => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       createDiv(t).animate(null, { iterations: invalid });
     });
   }, 'Element.animate() does not accept invalid iterations value: ' +
@@ -235,34 +240,83 @@ promise_test(async t => {
   assert_false(gotTransition, 'A transition should NOT have been triggered');
 }, 'Element.animate() does NOT trigger a style change event');
 
-// Tests on CSSPseudoElement
+// Tests on pseudo-elements
+// Some tests occur twice (on pseudo-elements with and without content)
+// in order to test both code paths for tree-abiding pseudo-elements in blink.
 
 test(t => {
-  const pseudoTarget = getPseudoElement(t, 'before');
-  const anim = pseudoTarget.animate(null);
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  getComputedStyle(div,"::before").content; // Sync style
+  const anim = div.animate(null, {pseudoElement: '::before'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation');
-}, 'CSSPseudoElement.animate() creates an Animation object');
+}, 'animate() with pseudoElement parameter creates an Animation object');
 
 test(t => {
-  const pseudoTarget = getPseudoElement(t, 'marker');
-  const anim = pseudoTarget.animate(null);
+  const div = createDiv(t);
+  const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_class_string(anim, 'Animation', 'The returned object is an Animation');
+}, 'animate() with pseudoElement parameter without content creates an Animation object');
+
+test(t => {
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  div.style.display = 'list-item';
+  getComputedStyle(div,"::marker").content; // Sync style
+  const anim = div.animate(null, {pseudoElement: '::marker'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::marker');
-}, 'CSSPseudoElement.animate() creates an Animation object for ::marker');
+}, 'animate() with pseudoElement parameter  creates an Animation object for ::marker');
 
 test(t => {
-  const pseudoTarget = getPseudoElement(t, 'before');
-  const anim = pseudoTarget.animate(null);
-  assert_equals(anim.effect.target, pseudoTarget,
-                'The returned Animation targets to the correct object');
-}, 'CSSPseudoElement.animate() creates an Animation object targeting ' +
-   'to the correct CSSPseudoElement object');
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  div.textContent = 'foo';
+  const anim = div.animate(null, {pseudoElement: '::first-line'});
+  assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::first-line');
+}, 'animate() with pseudoElement parameter  creates an Animation object for ::first-line');
 
 test(t => {
-  const pseudoTarget = getPseudoElement(t, 'marker');
-  const anim = pseudoTarget.animate(null);
-  assert_equals(anim.effect.target, pseudoTarget,
-                'The returned Animation targets to the correct object for ::marker');
-}, 'CSSPseudoElement.animate() creates an Animation object targeting ' +
-   'to the correct CSSPseudoElement object for ::marker');
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  getComputedStyle(div,"::before").content; // Sync style
+  const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
+  assert_equals(anim.effect.pseudoElement, '::before',
+                'The returned Animation targets the correct selector');
+}, 'animate() with pseudoElement an Animation object targeting ' +
+   'the correct pseudo-element');
+
+test(t => {
+  const div = createDiv(t);
+  const anim = div.animate(null, {pseudoElement: '::before'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
+  assert_equals(anim.effect.pseudoElement, '::before',
+                'The returned Animation targets the correct selector');
+}, 'animate() with pseudoElement without content creates an Animation object targeting ' +
+   'the correct pseudo-element');
+
+test(t => {
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  div.style.display = 'list-item';
+  getComputedStyle(div,"::marker").content; // Sync style
+  const anim = div.animate(null, {pseudoElement: '::marker'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
+  assert_equals(anim.effect.pseudoElement, '::marker',
+                'The returned Animation targets the correct selector');
+}, 'animate() with pseudoElement an Animation object targeting ' +
+   'the correct pseudo-element for ::marker');
+
+test(t => {
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  div.textContent = 'foo';
+  const anim = div.animate(null, {pseudoElement: '::first-line'});
+  assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
+  assert_equals(anim.effect.pseudoElement, '::first-line',
+                'The returned Animation targets the correct selector');
+}, 'animate() with pseudoElement an Animation object targeting ' +
+   'the correct pseudo-element for ::first-line');
+
 </script>
 </body>

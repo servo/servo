@@ -4,7 +4,7 @@
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{TypedPoint2D, TypedVector2D};
+use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{EmbedderMsg, FilterPattern};
@@ -16,6 +16,7 @@ use servo::servo_config::opts;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -43,6 +44,7 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     loading_state: Option<LoadingState>,
     window: Rc<Window>,
     event_queue: Vec<WindowEvent>,
+    clipboard_ctx: Option<ClipboardContext>,
     shutdown_requested: bool,
 }
 
@@ -66,6 +68,13 @@ where
             favicon: None,
             loading_state: None,
             window: window,
+            clipboard_ctx: match ClipboardContext::new() {
+                Ok(c) => Some(c),
+                Err(e) => {
+                    warn!("Error creating clipboard context ({})", e);
+                    None
+                },
+            },
             event_queue: Vec::new(),
             shutdown_requested: false,
         }
@@ -107,7 +116,7 @@ where
                     String::from("")
                 };
                 let title = "URL or search query";
-                let input = tinyfiledialogs::input_box(title, title, &url);
+                let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                 if let Some(input) = input {
                     if let Some(url) = sanitize_url(&input) {
                         if let Some(id) = self.browser_id {
@@ -213,14 +222,14 @@ where
                 self.event_queue.push(WindowEvent::ResetZoom)
             })
             .shortcut(Modifiers::empty(), Key::PageDown, || {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     -self.window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
@@ -234,32 +243,32 @@ where
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                    ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                    ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)),
+                    ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
                 self.scroll_window_from_key(
-                    ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)),
+                    ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
             });
     }
 
     fn scroll_window_from_key(&mut self, scroll_location: ScrollLocation, phase: TouchEventType) {
-        let event = WindowEvent::Scroll(scroll_location, TypedPoint2D::zero(), phase);
+        let event = WindowEvent::Scroll(scroll_location, Point2D::zero(), phase);
         self.event_queue.push(event);
     }
 
@@ -297,7 +306,7 @@ where
                             .spawn(move || {
                                 tinyfiledialogs::message_box_ok(
                                     "Alert!",
-                                    &message,
+                                    &tiny_dialog_escape(&message),
                                     MessageBoxIcon::Warning,
                                 );
                             })
@@ -337,6 +346,8 @@ where
                     self.browsers.push(new_browser_id);
                     if self.browser_id.is_none() {
                         self.browser_id = Some(new_browser_id);
+                    } else {
+                        error!("Multiple top level browsing contexts not supported yet.");
                     }
                     self.event_queue
                         .push(WindowEvent::SelectBrowser(new_browser_id));
@@ -344,6 +355,30 @@ where
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
                 },
+                EmbedderMsg::GetClipboardContents(sender) => {
+                    let contents = match self.clipboard_ctx {
+                        Some(ref mut ctx) => {
+                            match ctx.get_contents() {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                                    "".to_owned()
+                                },
+                            }
+                        },
+                        None => "".to_owned(),
+                    };
+                    if let Err(e) = sender.send(contents) {
+                        warn!("Failed to send clipboard ({})", e);
+                    }
+                }
+                EmbedderMsg::SetClipboardContents(text) => {
+                    if let Some(ref mut ctx) = self.clipboard_ctx {
+                        if let Err(e) = ctx.set_contents(text) {
+                            warn!("Error setting clipboard contents ({})", e);
+                        }
+                    }
+                }
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
                 },
@@ -414,6 +449,10 @@ where
                         error!("Failed to store profile: {}", e);
                     }
                 },
+                EmbedderMsg::MediaSessionEvent(_) => {
+                    debug!("MediaSessionEvent received");
+                    // TODO(ferjm): MediaSession support for Glutin based browsers.
+                },
             }
         }
     }
@@ -464,7 +503,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
             let mut filters = vec![];
             for p in patterns {
                 let s = "*.".to_string() + &p.0;
-                filters.push(s)
+                filters.push(tiny_dialog_escape(&s))
             }
             let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
             let filter_opt = if filters.len() > 0 {
@@ -500,4 +539,28 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
             let url = pref!(shell.searchpage).replace("%s", request);
             ServoUrl::parse(&url).ok()
         })
+}
+
+// This is a mitigation for #25498, not a verified solution.
+// There may be codepaths in tinyfiledialog.c that this is
+// inadquate against, as it passes the string via shell to
+// different programs depending on what the user has installed.
+#[cfg(target_os = "linux")]
+fn tiny_dialog_escape(raw: &str) -> String {
+   let s:String = raw.chars()
+       .filter_map(|c| match c {
+           '\n' => Some('\n'),
+           '\0' ..= '\x1f' => None,
+           '<' => Some('\u{FF1C}'),
+           '>' => Some('\u{FF1E}'),
+           '&' => Some('\u{FF06}'),
+           _ => Some(c)
+       })
+       .collect();
+   return shellwords::escape(&s);
+}
+
+#[cfg(not(target_os = "linux"))]
+fn tiny_dialog_escape(raw: &str) -> String {
+   raw.to_string()
 }

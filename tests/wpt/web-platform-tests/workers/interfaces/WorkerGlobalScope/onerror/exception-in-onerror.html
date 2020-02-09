@@ -1,13 +1,3 @@
-<!--
-onerror = function(a, b, c, d) {
-  y(); // the error is "not handled"
-}
-function x() {
-  y();
-}
-x();
-/*
--->
 <!doctype html>
 <title>onerror, "not handled" with an error in the onerror function</title>
 <script src="/resources/testharness.js"></script>
@@ -15,11 +5,11 @@ x();
 <div id="log"></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('exception-in-onerror.js');
   worker.onerror = this.step_func(function(e) {
     assert_true(e instanceof ErrorEvent, 'e instanceof ErrorEvent');
     assert_equals(typeof e.message, 'string', 'typeof e.message');
-    assert_equals(e.filename, document.URL+'#', 'e.filename');
+    assert_equals(e.filename, document.URL.replace('.html', '.js'), 'e.filename');
     assert_equals(typeof e.lineno, 'number', 'typeof e.lineno');
     assert_equals(typeof e.colno, 'number', 'typeof e.column');
     e.preventDefault(); // "handled"
@@ -27,6 +17,3 @@ async_test(function() {
   });
 });
 </script>
-<!--
-*/
-//-->

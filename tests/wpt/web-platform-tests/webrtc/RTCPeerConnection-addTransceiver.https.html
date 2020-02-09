@@ -3,6 +3,7 @@
 <title>RTCPeerConnection.prototype.addTransceiver</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -79,7 +80,7 @@
     t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
-    assert_throws(new TypeError(), () => pc.addTransceiver('invalid'));
+    assert_throws_js(TypeError, () => pc.addTransceiver('invalid'));
   }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
 
   /*
@@ -231,7 +232,7 @@
     t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', { direction: 'invalid' }));
   }, `addTransceiver() with invalid direction should throw TypeError`);
 
@@ -244,7 +245,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
@@ -284,7 +285,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const transceiver1 = pc.addTransceiver(track);
@@ -323,7 +324,7 @@
     t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', {
         sendEncodings: [{
           rid: '@Invalid!'
@@ -336,7 +337,7 @@
     t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
-    assert_throws(new TypeError(), () =>
+    assert_throws_js(TypeError, () =>
       pc.addTransceiver('audio', {
         sendEncodings: [{
           rid: 'a'.repeat(17)

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltimeelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTimeElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   [CEReactions]
   attribute DOMString dateTime;
 };

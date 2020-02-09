@@ -1,8 +1,11 @@
 <!doctype html>
 <meta charset=utf-8>
 <title>getDisplayMedia</title>
+<button id="button">User gesture</button>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
   'use strict';
 test(() => {
@@ -12,14 +15,32 @@ test(() => {
 const stopTracks = stream => stream.getTracks().forEach(track => track.stop());
 const j = obj => JSON.stringify(obj);
 
+async function getDisplayMedia(constraints) {
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+  return navigator.mediaDevices.getDisplayMedia(constraints);
+}
+
+promise_test(async t => {
+  try {
+    stopTracks(await navigator.mediaDevices.getDisplayMedia({video: true}));
+  } catch (err) {
+    assert_equals(err.name, 'InvalidStateError', err.message);
+    return;
+  }
+  assert_unreached('getDisplayMedia should have failed');
+}, `getDisplayMedia() must require user activation`);
+
 [
  {video: true},
  {video: true, audio: false},
  {audio: false},
+ {audio: true},
  {},
  undefined
 ].forEach(constraints => promise_test(async t => {
-  const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+  const stream = await getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));
   assert_equals(stream.getTracks().length, 1);
   assert_equals(stream.getVideoTracks().length, 1);
@@ -35,11 +56,10 @@ const j = obj => JSON.stringify(obj);
  {video: {height: {exact: 240}}},
  {video: {frameRate: {min: 4}}},
  {video: {frameRate: {exact: 4}}},
- {audio: true},
  {video: false, audio: true},
 ].forEach(constraints => promise_test(async t => {
   try {
-    stopTracks(await navigator.mediaDevices.getDisplayMedia(constraints));
+    stopTracks(await getDisplayMedia(constraints));
   } catch (err) {
     assert_equals(err.name, 'TypeError', err.message);
     return;
@@ -50,7 +70,7 @@ const j = obj => JSON.stringify(obj);
 [
  {video: true, audio: true},
 ].forEach(constraints => promise_test(async t => {
-  const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+  const stream = await getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));
   assert_greater_than_equal(stream.getTracks().length, 1);
   assert_less_than_equal(stream.getTracks().length, 2);
@@ -67,7 +87,7 @@ const j = obj => JSON.stringify(obj);
  {video: {frameRate: {max: 4}, height: {max: 240}}},
  {video: {frameRate: {max: 4}, width: {max: 360}, height: {max: 240}}},
 ].forEach(constraints => promise_test(async t => {
-  const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+  const stream = await getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));
   const {width, height, frameRate} = stream.getTracks()[0].getSettings();
   assert_greater_than_equal(width, 1);
@@ -93,7 +113,7 @@ const j = obj => JSON.stringify(obj);
  {video: {frameRate: {max: -1}}},
 ].forEach(constraints => promise_test(async t => {
   try {
-    stopTracks(await navigator.mediaDevices.getDisplayMedia(constraints));
+    stopTracks(await getDisplayMedia(constraints));
   } catch (err) {
     assert_equals(err.name, 'OverconstrainedError', err.message);
     return;
@@ -103,7 +123,19 @@ const j = obj => JSON.stringify(obj);
 
 // Content shell picks a fake desktop device by default.
 promise_test(async t => {
-  const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
+  const stream = await getDisplayMedia({video: true});
+  t.add_cleanup(() => stopTracks(stream));
+  assert_equals(stream.getVideoTracks().length, 1);
+  const track = stream.getVideoTracks()[0];
+  assert_equals(track.kind, "video");
+  assert_equals(track.enabled, true);
+  assert_equals(track.readyState, "live");
+  track.stop();
+  assert_equals(track.readyState, "ended");
+}, 'getDisplayMedia() resolves with stream with video track');
+
+promise_test(async t => {
+  const stream = await getDisplayMedia({video: true});
   t.add_cleanup(() => stopTracks(stream));
   const settings = stream.getVideoTracks()[0].getSettings();
   assert_any(

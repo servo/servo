@@ -21,10 +21,10 @@ promise_test(t => {
     animation.currentTime = -5 * MS_PER_SEC;
     animation.playbackRate = -1;
 
-    assert_throws('InvalidStateError',
-                  () => { animation.play(); },
-                  'Expected InvalidStateError exception on calling play() ' +
-                  'with a negative playbackRate and infinite-duration ' +
+    assert_throws_dom('InvalidStateError',
+                      () => { animation.play(); },
+                      'Expected InvalidStateError exception on calling play() ' +
+                      'with a negative playbackRate and infinite-duration ' +
                   'animation');
   });
 }, 'play() throws when seeking an infinite-duration animation played in ' +

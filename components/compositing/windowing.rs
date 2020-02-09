@@ -5,24 +5,25 @@
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
 use embedder_traits::EventLoopWaker;
-use euclid::TypedScale;
+use euclid::Scale;
 #[cfg(feature = "gl")]
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
-use script_traits::{MouseButton, TouchEventType, TouchId, WheelDelta};
+use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
+use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gl")]
 use std::rc::Rc;
 use std::time::Duration;
 use style_traits::DevicePixel;
-use webrender_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, FramebufferIntRect,
-    FramebufferIntSize, ScrollLocation,
-};
-use webvr::VRServiceManager;
+
+use rust_webvr::VRServiceManager;
+use webrender_api::units::DevicePoint;
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::ScrollLocation;
 use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Clone)]
@@ -101,6 +102,9 @@ pub enum WindowEvent {
     CaptureWebRender,
     /// Toggle sampling profiler with the given sampling rate and max duration.
     ToggleSamplingProfiler(Duration, Duration),
+    /// Sent when the user triggers a media action through the UA exposed media UI
+    /// (play, pause, seek, etc.).
+    MediaSessionAction(MediaSessionActionType),
 }
 
 impl Debug for WindowEvent {
@@ -131,6 +135,7 @@ impl Debug for WindowEvent {
             WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
+            WindowEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
         }
     }
 }
@@ -144,9 +149,8 @@ pub enum AnimationState {
 pub trait WindowMethods {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
-    /// Requests that the window system prepare a composite. Typically this will involve making
-    /// some type of platform-specific graphics context current.
-    fn prepare_for_composite(&self);
+    /// Make the OpenGL context current.
+    fn make_gl_context_current(&self);
     /// Return the GL function pointer trait.
     #[cfg(feature = "gl")]
     fn gl(&self) -> Rc<dyn gl::Gl>;
@@ -157,6 +161,12 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
+    /// Get the GL context
+    fn get_gl_context(&self) -> GlContext;
+    /// Get the native display
+    fn get_native_display(&self) -> NativeDisplay;
+    /// Get the GL api
+    fn get_gl_api(&self) -> GlApi;
 }
 
 pub trait EmbedderMethods {
@@ -169,12 +179,15 @@ pub trait EmbedderMethods {
         _: &mut Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     ) {
     }
+
+    /// Register services with a WebXR Registry.
+    fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry) {}
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct EmbedderCoordinates {
     /// The pixel density of the display.
-    pub hidpi_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
+    pub hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Size of the screen.
     pub screen: DeviceIntSize,
     /// Size of the available screen space (screen without toolbars and docks).
@@ -182,16 +195,16 @@ pub struct EmbedderCoordinates {
     /// Size of the native window.
     pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: FramebufferIntSize,
+    pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
     pub viewport: DeviceIntRect,
 }
 
 impl EmbedderCoordinates {
-    pub fn get_flipped_viewport(&self) -> FramebufferIntRect {
+    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut view = self.viewport.clone();
         view.origin.y = fb_height - view.origin.y - view.size.height;
-        FramebufferIntRect::from_untyped(&view.to_untyped())
+        DeviceIntRect::from_untyped(&view.to_untyped())
     }
 }

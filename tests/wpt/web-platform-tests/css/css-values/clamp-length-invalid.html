@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_length(value) {
+  test_invalid_value('letter-spacing', value);
+}
+
+test_invalid_length('clamp()');
+test_invalid_length('clamp( )');
+test_invalid_length('clamp(,)');
+test_invalid_length('clamp(1px, )');
+test_invalid_length('clamp(, 1px)');
+test_invalid_length('clamp(1px, 1px)');
+test_invalid_length('clamp(1px, , 1px)');
+test_invalid_length('clamp(, 1px, 1px)');
+test_invalid_length('clamp(1px, 1px, )');
+test_invalid_length('clamp(1px, 1px, 1px, )');
+test_invalid_length('clamp(1px 1px 1px)');
+</script>

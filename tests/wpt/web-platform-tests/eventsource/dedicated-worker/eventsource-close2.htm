@@ -1,9 +1,4 @@
-<!--
-self.close()
-var source = new EventSource("../resources/message.py")
-postMessage(source.readyState)
-/*-->
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>dedicated worker - EventSource created after: worker.close()</title>
@@ -15,7 +10,7 @@ postMessage(source.readyState)
     <script>
       var test = async_test();
       test.step(function() {
-        var worker = new Worker('#')
+        var worker = new Worker('eventsource-close2.js')
         worker.onmessage = function(e) {
           test.step(function() {
             assert_equals(e.data, EventSource.CONNECTING, 'this.readyState')
@@ -26,4 +21,3 @@ postMessage(source.readyState)
     </script>
   </body>
 </html>
-<!--*/ //-->

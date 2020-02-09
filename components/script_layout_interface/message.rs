@@ -6,11 +6,11 @@ use crate::rpc::LayoutRPC;
 use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
-use euclid::{Point2D, Rect};
+use euclid::default::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use script_traits::Painter;
@@ -128,6 +128,7 @@ pub enum QueryMsg {
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
     StyleQuery(TrustedNodeAddress),
     ElementInnerTextQuery(TrustedNodeAddress),
+    InnerWindowDimensionsQuery(BrowsingContextId),
 }
 
 /// Any query to perform with this reflow.
@@ -147,6 +148,7 @@ impl ReflowGoal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::NodesFromPointQuery(..) |
                 QueryMsg::TextIndexQuery(..) |
+                QueryMsg::InnerWindowDimensionsQuery(_) |
                 QueryMsg::ElementInnerTextQuery(_) => true,
                 QueryMsg::ContentBoxQuery(_) |
                 QueryMsg::ContentBoxesQuery(_) |
@@ -176,6 +178,7 @@ impl ReflowGoal {
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::InnerWindowDimensionsQuery(_) |
                 QueryMsg::StyleQuery(_) => false,
             },
         }
@@ -225,7 +228,7 @@ pub struct LayoutThreadInit {
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
-    pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub paint_time_metrics: PaintTimeMetrics,
     pub layout_is_busy: Arc<AtomicBool>,
+    pub window_size: WindowSizeData,
 }

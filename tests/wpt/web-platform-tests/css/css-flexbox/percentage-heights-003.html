@@ -31,6 +31,12 @@
     background: orange;
     display: block;
 }
+.vert-wm {
+    writing-mode: vertical-rl;
+}
+.horiz-wm {
+    writing-mode: horizontal-tb;
+}
 </style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -70,6 +76,15 @@
     </div>
 </div>
 
+<!-- indefinite unwrapped column flexbox where item doesn't stretch -->
+<div style="height: 100px;">
+    <div class="flexbox column">
+        <div style="align-self: flex-start">
+            <span data-expected-height="0"></span>
+        </div>
+    </div>
+</div>
+
 <!-- indefinite wrapped column flexbox -->
 <div style="height: 100px;">
     <div class="flexbox column-wrap">
@@ -78,6 +93,30 @@
         </div>
         <div>
             <span data-expected-height="0"></span>
+        </div>
+    </div>
+</div>
+
+<!-- indefinite unwrapped column flexbox, with orthogonal-flow flex item. The
+     flex item's main size (height) is definite, since it's the item's inline
+     size, and inline sizes always end up definite. -->
+<div style="height: 100px;">
+    <div class="flexbox column">
+        <div class="vert-wm">
+            <span data-expected-height="100"></span>
+        </div>
+    </div>
+</div>
+
+<!-- indefinite unwrapped row-oriented vertical-writing-mode flexbox, with
+     orthogonal-flow (horizontal-writing-mode) flex item. The flex item's
+     height (main size) is definite, since its parent flex container has a
+     definite main size, because the flex container's main axis is its
+     inline-axis and inline sizes are definite. -->
+<div style="height: 100px;">
+    <div class="flexbox vert-wm">
+        <div class="horiz-wm">
+            <span data-expected-height="100"></span>
         </div>
     </div>
 </div>

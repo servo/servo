@@ -29,7 +29,7 @@ function run_fp_tests_disabled(sensorName) {
 
   test(() => {
     assert_true(sensorName in self);
-    assert_throws("SecurityError", () => {new sensorType()});
+    assert_throws_dom("SecurityError", () => {new sensorType()});
   }, `${sensorName}: ${header} disallows the top-level document.`);
 
   async_test(t => {

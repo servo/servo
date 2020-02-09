@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: sequence of spaces and other space separators at the end of line with white-space:pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-other-space-separators-002-ref.html">
+<meta name="assert" content="An sequence of regular spaces and other space separators at the end of the line must hang if white-space is pre-wrap.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  white-space: pre-wrap;
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 3ch;
+  color: green;
+}
+.red {
+  position: absolute;
+  z-index: -1;
+}
+.red div {
+  color: red;
+}
+span { color: transparent; } /* because ogham space is otherwise visible*/
+</style>
+
+<p>Test passes if there are two green tall boxes below and no red.
+
+<section class=red>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+  <div>x x<br>x x</div>
+</section>
+<section>
+  <div>x x<span>&#x1680;</span>&#x2000; &#x2001;&#x2002;&#x2003; &#x2004;&#x2005;&#x2006; &#x2007;&#x2008;&#x2009;&#x200A;  &#x202F;&#x205F; &#x3000;x x</div>
+  <div>x x<span>&#x1680;</span>x x</div>
+  <div>x x&#x2000;x x</div>
+  <div>x x&#x2001;x x</div>
+  <div>x x&#x2002;x x</div>
+  <div>x x&#x2003;x x</div>
+  <div>x x&#x2004;x x</div>
+  <div>x x&#x2005;x x</div>
+  <div>x x&#x2006;x x</div>
+  <div>x x&#x2007;<wbr>x x</div>
+  <div>x x&#x2008;x x</div>
+  <div>x x&#x2009;x x</div>
+  <div>x x&#x200A;x x</div>
+  <div>x x&#x202F;<wbr>x x</div>
+  <div>x x&#x205F;x x</div>
+  <div>x x&#x3000;x x</div>
+</section>

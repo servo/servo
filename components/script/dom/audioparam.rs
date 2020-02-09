@@ -81,6 +81,8 @@ impl AudioParam {
     fn message_node(&self, message: AudioNodeMessage) {
         self.context
             .audio_context_impl()
+            .lock()
+            .unwrap()
             .message_node(self.node, message);
     }
 

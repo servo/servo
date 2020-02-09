@@ -3,12 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::Point2D;
-#[cfg(all(
-    feature = "unstable",
-    any(target_feature = "sse2", target_feature = "neon")
-))]
-use packed_simd::u32x4;
+use euclid::default::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
@@ -75,9 +70,6 @@ pub type GlyphId = u32;
 // TODO: make this more type-safe.
 
 const FLAG_CHAR_IS_SPACE: u32 = 0x40000000;
-#[cfg(feature = "unstable")]
-#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
-const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
 const FLAG_IS_SIMPLE_GLYPH: u32 = 0x80000000;
 
 // glyph advance; in Au's.
@@ -461,6 +453,11 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
+    pub fn total_advance(&self) -> Au {
+        self.total_advance
+    }
+
+    #[inline]
     pub fn len(&self) -> ByteIndex {
         ByteIndex(self.entry_buffer.len() as isize)
     }
@@ -604,12 +601,12 @@ impl<'a> GlyphStore {
         } else if !self.has_detailed_glyphs {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {
-            self.advance_for_byte_range_slow_path(range, extra_word_spacing)
+            self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         }
     }
 
     #[inline]
-    pub fn advance_for_byte_range_slow_path(
+    pub fn advance_for_byte_range_simple_glyphs(
         &self,
         range: &Range<ByteIndex>,
         extra_word_spacing: Au,
@@ -622,78 +619,6 @@ impl<'a> GlyphStore {
                     advance + glyph.advance()
                 }
             })
-    }
-
-    #[inline]
-    #[cfg(feature = "unstable")]
-    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
-    fn advance_for_byte_range_simple_glyphs(
-        &self,
-        range: &Range<ByteIndex>,
-        extra_word_spacing: Au,
-    ) -> Au {
-        let advance_mask = u32x4::splat(GLYPH_ADVANCE_MASK);
-        let space_flag_mask = u32x4::splat(FLAG_CHAR_IS_SPACE);
-        let mut simd_advance = u32x4::splat(0);
-        let mut simd_spaces = u32x4::splat(0);
-        let begin = range.begin().to_usize();
-        let len = range.length().to_usize();
-        let num_simd_iterations = len / 4;
-        let leftover_entries = range.end().to_usize() - (len - num_simd_iterations * 4);
-        let buf = self.transmute_entry_buffer_to_u32_buffer();
-
-        for i in 0..num_simd_iterations {
-            let offset = begin + i * 4;
-            let v = u32x4::load_unaligned(&buf[offset..]);
-            let advance = (v & advance_mask) >> GLYPH_ADVANCE_SHIFT;
-            let spaces = (v & space_flag_mask) >> FLAG_CHAR_IS_SPACE_SHIFT;
-            simd_advance = simd_advance + advance;
-            simd_spaces = simd_spaces + spaces;
-        }
-
-        let advance = (simd_advance.extract(0) +
-            simd_advance.extract(1) +
-            simd_advance.extract(2) +
-            simd_advance.extract(3)) as i32;
-        let spaces = (simd_spaces.extract(0) +
-            simd_spaces.extract(1) +
-            simd_spaces.extract(2) +
-            simd_spaces.extract(3)) as i32;
-        let mut leftover_advance = Au(0);
-        let mut leftover_spaces = 0;
-        for i in leftover_entries..range.end().to_usize() {
-            leftover_advance = leftover_advance + self.entry_buffer[i].advance();
-            if self.entry_buffer[i].char_is_space() {
-                leftover_spaces += 1;
-            }
-        }
-        Au::new(advance) + leftover_advance + extra_word_spacing * (spaces + leftover_spaces)
-    }
-
-    /// When SIMD isn't available, fallback to the slow path.
-    #[inline]
-    #[cfg(not(all(
-        feature = "unstable",
-        any(target_feature = "sse2", target_feature = "neon")
-    )))]
-    fn advance_for_byte_range_simple_glyphs(
-        &self,
-        range: &Range<ByteIndex>,
-        extra_word_spacing: Au,
-    ) -> Au {
-        self.advance_for_byte_range_slow_path(range, extra_word_spacing)
-    }
-
-    /// Used for SIMD.
-    #[inline]
-    #[cfg(feature = "unstable")]
-    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
-    #[allow(unsafe_code)]
-    fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
-        // Statically assert identical sizes
-        let _ = mem::transmute::<GlyphEntry, u32>;
-
-        unsafe { mem::transmute::<&[GlyphEntry], &[u32]>(self.entry_buffer.as_slice()) }
     }
 
     pub fn char_is_space(&self, i: ByteIndex) -> bool {

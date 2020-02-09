@@ -141,6 +141,16 @@ image_capture_test(async (t, imageCaptureTest) => {
   assert_equals(capabilities.focusDistance.step,
                 mockCapabilities.focusDistance.step);
 
+  assert_true(capabilities.pan instanceof MediaSettingsRange);
+  assert_equals(capabilities.pan.max, mockCapabilities.pan.max);
+  assert_equals(capabilities.pan.min, mockCapabilities.pan.min);
+  assert_equals(capabilities.pan.step, mockCapabilities.pan.step);
+
+  assert_true(capabilities.tilt instanceof MediaSettingsRange);
+  assert_equals(capabilities.tilt.max, mockCapabilities.tilt.max);
+  assert_equals(capabilities.tilt.min, mockCapabilities.tilt.min);
+  assert_equals(capabilities.tilt.step, mockCapabilities.tilt.step);
+
   assert_true(capabilities.zoom instanceof MediaSettingsRange);
   assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
   assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);

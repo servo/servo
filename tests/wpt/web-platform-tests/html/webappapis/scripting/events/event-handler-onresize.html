@@ -6,7 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-var t = async_test("body.onresize should set the window.onload handler")
+var t = async_test("body.onresize should set the window.onresize handler")
 window.onresize = t.step_func(function() {
   assert_unreached("This handler should be overwritten.")
 })

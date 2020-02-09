@@ -3,8 +3,8 @@
 <title>Canvas test: 2d.pattern.image.broken</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>2d.pattern.image.broken</h1>
@@ -20,7 +20,7 @@ var t = async_test("");
 _addTest(function(canvas, ctx) {
 
 var img = document.getElementById('broken.png');
-assert_throws("INVALID_STATE_ERR", function() { ctx.createPattern(img, 'repeat'); });
+assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(img, 'repeat'); });
 
 
 });

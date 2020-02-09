@@ -71,7 +71,7 @@ impl GeckoElementSnapshot {
     }
 
     /// Returns true if the snapshot recorded an attribute change which isn't a
-    /// class or id change.
+    /// class / id
     #[inline]
     pub fn other_attr_changed(&self) -> bool {
         self.mOtherAttributeChanged()
@@ -191,6 +191,16 @@ impl ElementSnapshot for GeckoElementSnapshot {
         };
 
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
+    }
+
+    #[inline]
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::exported_part(&*self.mAttrs, name)
+    }
+
+    #[inline]
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::imported_part(&*self.mAttrs, name)
     }
 
     #[inline]

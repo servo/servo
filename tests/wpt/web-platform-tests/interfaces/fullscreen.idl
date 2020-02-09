@@ -14,7 +14,7 @@ dictionary FullscreenOptions {
 };
 
 partial interface Element {
-  Promise<void> requestFullscreen(optional FullscreenOptions options);
+  Promise<void> requestFullscreen(optional FullscreenOptions options = {});
 
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;

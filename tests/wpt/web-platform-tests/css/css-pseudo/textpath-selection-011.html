@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Test: active selection of text following a path (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="help" href="https://www.w3.org/TR/fill-stroke-3/#fill-shorthand">
+  <link rel="help" href="https://www.w3.org/TR/fill-stroke-3/#stroke-shorthand">
+
+  <meta content="svg" name="flags">
+  <meta content="This test checks that an SVG application with a text following a text path can be selected and then be styled." name="assert">
+
+  <style>
+  ::selected
+    {
+      fill: green;
+      /*
+      fill is the shorthand form for fill-color,
+      fill-image, fill-origin, fill-position, fill-size
+      and fill-repeat
+      https://www.w3.org/TR/fill-stroke-3/#fill-shorthand
+      */
+      stroke: yellow;
+      /*
+      stroke is the shorthand form for stroke-color,
+      stroke-image, stroke-origin, stroke-position,
+      stroke-size, and stroke-repeat
+      https://www.w3.org/TR/fill-stroke-3/#stroke-shorthand
+      */
+      stroke-width: 2px;
+    }
+  </style>
+
+  <p>Test passes if the glyphs of "Curvy text sample" are green with a yellow outline.
+
+  <div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="550" height="300">
+
+    <path id="pathToApply"
+        d="M 100 200
+           C 100 100 200 0 500 200"  fill="none" />
+
+    <text fill="red" style="font-size: 48px;"><textPath xlink:href="#pathToApply" id="test">Curvy text sample</textPath></text>
+
+    </svg>
+
+  </div>
+
+  <script>
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+
+  targetRange.setStart(document.getElementById("test").childNodes[0], 0);
+  /*
+  Then we set the start boundary of the range inside textPath#test to
+  the 1st character, which is "C"
+  */
+
+  targetRange.setEnd(document.getElementById("test").childNodes[0], 17);
+  /* And we set the end boundary of the range inside textPath#test
+  right after the 18th character which is "e" */
+
+   window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  </script>

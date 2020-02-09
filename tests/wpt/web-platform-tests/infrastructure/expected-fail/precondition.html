@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Preconditions in tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_precondition(false, 'precondition 1');
+}, 'test');
+
+async_test((t) => {
+  assert_precondition(false, 'precondition 2');
+  t.done();
+}, 'async_test immediate');
+
+async_test((t) => {
+  t.step_timeout(() => {
+      assert_precondition(false, 'precondition 3');
+      t.done();
+  }, 100);
+}, 'async_test after timeout');
+
+promise_test(async () => {
+  assert_precondition(false, 'precondition 4');
+}, 'promise_test immediate');
+
+promise_test(async () => {
+  await Promise.resolve();
+  assert_precondition(false, 'precondition 5');
+}, 'promise_test after await');
+</script>

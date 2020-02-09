@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Ensure that only the right events trigger violation reports.
+// The Promise will resolve, when an event including the string "done" is
+// received. The last line of this test file will cause this trigger.
+promise_test(t => {
+  let count = 0;
+  return new Promise((resolve, reject) => {
+    document.addEventListener("securitypolicyviolation", e => {
+      e.stopPropagation();
+      // We count the violation reports. We expect one each for "abc" test cases, and one
+      // for the "done" line at the end, which signals the end of the test run.
+      if (e.sample.includes("done")) {
+        resolve(count);
+      } else if (e.sample.includes("abc")) {
+        count++;
+      } else {
+        reject();
+      }
+    });
+  }).then(counter => {
+    assert_equals(counter, testCases.length, "event count");
+  });
+}, "Count SecurityPolicyViolation events.");
+
+const testCases = [
+  [ "script", "src" ],
+  [ "div", "innerHTML" ],
+  [ "script", "text" ],
+];
+
+trustedTypes.createPolicy("default", {});
+
+testCases.forEach(c => {
+  const name = `${c[0]}.${c[1]} `;
+  test(t => {
+    const element = document.createElement(c[0]);
+    assert_throws_js(TypeError, _ => element[c[1]] = "abc");
+    assert_equals(element[c[1]], "");
+  }, name + "default");
+});
+
+// Trigger the exit condition in the "Count" promise test above.
+try { document.createElement("script").text = "done"; } catch (e) {}
+</script>
+</body>

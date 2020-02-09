@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<canvas />
+
+<script>
+
+let testName = "XRView projection matrices update near and far depths on the "
+  + "next frame";
+
+const fakeViews = [{
+        eye:"left",
+        viewOffset: LEFT_OFFSET,
+        resolution: VALID_RESOLUTION,
+        fieldOfView: VALID_FIELD_OF_VIEW,
+        // The webxr-test-api requires that we still set this for now, but it is
+        // supposed to be ignored.
+        projectionMatrix: IDENTITY_MATRIX
+    }, {
+        eye:"right",
+        viewOffset: RIGHT_OFFSET,
+        resolution: VALID_RESOLUTION,
+        fieldOfView: VALID_FIELD_OF_VIEW,
+        // The webxr-test-api requires that we still set this for now, but it is
+        // supposed to be ignored.
+        projectionMatrix: IDENTITY_MATRIX
+    },
+];
+
+let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: fakeViews,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('local')
+    .then((referenceSpace) => new Promise((resolve) =>{
+      let counter = 0;
+
+      function onFrame(time, xrFrame) {
+        let pose = xrFrame.getViewerPose(referenceSpace);
+        assert_not_equals(pose, null);
+        assert_not_equals(pose.views, null);
+        assert_equals(pose.views.length, 2);
+        if (counter == 0) {
+          session.requestAnimationFrame(onFrame);
+
+          assert_matrix_approx_equals(pose.views[0].projectionMatrix, VALID_PROJECTION_MATRIX);
+          assert_matrix_approx_equals(pose.views[1].projectionMatrix, VALID_PROJECTION_MATRIX);
+
+          // Update the near and far depths for the session.
+          session.updateRenderState({
+            depthNear: 1.0,
+            depthFar: 10.0 });
+
+          // The projection matrices the views report should not take into
+          // account the new session depth values this frame.
+          assert_matrix_approx_equals(pose.views[0].projectionMatrix, VALID_PROJECTION_MATRIX);
+          assert_matrix_approx_equals(pose.views[1].projectionMatrix, VALID_PROJECTION_MATRIX);
+        } else {
+          // New depth values should be retained between frames.
+          assert_equals(session.renderState.depthNear, 1.0);
+          assert_equals(session.renderState.depthFar, 10.0);
+
+          // Projection matricies should now reflect the new depth values, i.e.
+          // have changed.
+          assert_matrix_significantly_not_equals(pose.views[0].projectionMatrix, VALID_PROJECTION_MATRIX);
+          assert_matrix_significantly_not_equals(pose.views[1].projectionMatrix, VALID_PROJECTION_MATRIX);
+          resolve();
+        }
+        counter++;
+      }
+
+      session.requestAnimationFrame(t.step_func(onFrame));
+  }));
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

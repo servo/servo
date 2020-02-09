@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Reference: Synthesized baseline table cell</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+* { vertical-align: baseline; }
+table { display: inline-table; border: 3px solid; }
+td { width:10px; background-color:pink; background-clip:content-box; }
+.p { padding: 0 10px 0 0; height:150px; }
+.size { height:80px; }
+.w { background: white; }
+x { display: block; overflow: hidden; height:50px; background: white; }
+.xp { height:80px; background-color:pink; }
+.m50 { margin-top: 50px; }
+.top { vertical-align:top; }
+</style>
+</head>
+<body>
+  X
+  <table border=5><tr><td class="p w"><x></x></td></tr></table>
+  <table border=5><tr><td class="p w top"></td><td>X</td></tr></table>
+  <table border=2><tr><td><x style="height:0"></x></td></tr></table>
+  <table border=5><tr><td class="p w" style="height:230px"><x class="xp m50"></x></td></tr></table>
+  <table border=5><tr><td class="p w top" style="height:230px"><x class="xp m50"></x></td><td>X</td></tr></table>
+  <table border=2><tr><td><x class="xp"></x></td></tr></table>
+  <table border=2><tr><td class="top"><x class="xp" style="height:20px"></x></td><td><x class="xp" style="height:20px"></td></tr></table>
+  <table border=2><tr><td class="top"><x class="xp" style="height:20px"</td><td rowspan=2></td></tr><tr><td class="top"><x class="xp" style="height:20px"</td></tr></table>
+  <table border=2><tr><td>X</td><td rowspan=2 class="top"></td></tr><tr><td style="height:20px" class="top"></td></tr></table>
+</body>
+</html>

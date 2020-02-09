@@ -1,12 +1,10 @@
-def element_rect(session, element):
-    return session.execute_script("""
-        let devicePixelRatio = window.devicePixelRatio;
-        let rect = arguments[0].getBoundingClientRect();
+def element_dimensions(session, element):
+    return tuple(session.execute_script("""
+        const {devicePixelRatio} = window;
+        let {width, height} = arguments[0].getBoundingClientRect();
 
-        return {
-            x: Math.floor((rect.left + window.pageXOffset) * devicePixelRatio),
-            y: Math.floor((rect.top + window.pageYOffset) * devicePixelRatio),
-            width: Math.floor(rect.width * devicePixelRatio),
-            height: Math.floor(rect.height * devicePixelRatio),
-        };
-        """, args=(element,))
+        return [
+          Math.floor(width * devicePixelRatio),
+          Math.floor(height * devicePixelRatio),
+        ];
+        """, args=(element,)))

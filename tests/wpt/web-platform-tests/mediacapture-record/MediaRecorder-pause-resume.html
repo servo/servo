@@ -11,8 +11,10 @@
 </canvas>
 <script>
     function createVideoStream() {
-        let canvas = document.getElementById("canvas");
-        canvas.getContext('2d');
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         return canvas.captureStream();
     }
 
@@ -32,6 +34,7 @@
 
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        await new Promise(r => recorder.onstart = r);
 
         recorder.pause();
         assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");

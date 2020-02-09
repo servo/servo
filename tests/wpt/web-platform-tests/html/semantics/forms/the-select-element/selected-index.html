@@ -30,12 +30,21 @@
     <option style="display:none"></option>
     <option></option>
   </select>
+
+  <select id=minus-one>
+    <option value=1>1</option>
+    <option value=2>2</option>
+  </select>
 </form>
 
 <script>
 function assertSelectedIndex(select, value) {
   assert_equals(select.selectedIndex, value);
   assert_equals(select.options.selectedIndex, value);
+}
+
+function assertSelectValue(select, value) {
+  assert_equals(select.value, value);
 }
 
 test(function () {
@@ -120,4 +129,15 @@ test(function () {
   select.options[1].selected = false;
   assertSelectedIndex(select, 0);
 }, "reset to display:none");
+
+test(function() {
+  var select = document.getElementById("minus-one");
+  assertSelectedIndex(select, 0);
+
+  select.selectedIndex = -1;
+
+  assertSelectedIndex(select, -1);
+  assertSelectValue(select, "");
+
+}, "set selectedIndex=-1");
 </script>

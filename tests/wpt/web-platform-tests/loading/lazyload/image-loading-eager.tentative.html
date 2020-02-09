@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head>
+  <title>Images with loading='eager' load immediately regardless of their position with respect to the viewport</title>
+  <link rel="author" title="Scott Little" href="mailto:sclittle@chromium.org">
+  <link rel="help" href="https://github.com/scott-little/lazyload">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<!--
+Marked as tentative until https://github.com/whatwg/html/pull/3752 is landed.
+-->
+
+<script>
+  const t = async_test("Test that images with loading='eager' load immediately regardless of their position with respect to the viewport.");
+
+  let has_in_viewport_loaded = false;
+  const in_viewport_img_onload = t.step_func(function() {
+    assert_false(has_in_viewport_loaded, "The in_viewport element should load only once.");
+    has_in_viewport_loaded = true;
+  });
+
+  let has_below_viewport_loaded = false;
+  const below_viewport_img_onload = t.step_func(function() {
+    assert_false(has_below_viewport_loaded, "The below_viewport element should load only once.");
+    has_below_viewport_loaded = true;
+  });
+
+  window.addEventListener("load", t.step_func_done(function() {
+    assert_true(has_in_viewport_loaded, "The in_viewport element should have loaded before window.load().");
+    assert_true(has_below_viewport_loaded, "The below_viewport element should have loaded before window.load().");
+  }));
+
+</script>
+
+<body>
+  <img id="in_viewport" src="resources/image.png?first" loading="eager" onload="in_viewport_img_onload();">
+  <div style="height:10000px;"></div>
+  <!--
+    The below_viewport element loads very slowly in order to ensure that the
+    window load event is blocked on it.
+  -->
+  <img id="below_viewport" src="resources/image.png?pipe=trickle(d2)" loading="eager" onload="below_viewport_img_onload();">
+</body>

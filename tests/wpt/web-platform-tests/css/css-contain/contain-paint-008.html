@@ -13,18 +13,18 @@ rt {
   contain: paint;
   display: ruby-text;
   font-size: 1rem;
+  font-family: monospace;
 }
 rt::after {
   content: "PASS";
 
-  /* Doing the following instead of position:absolute to move it out into the area that would be clipped
-     because Firefox clips absolutely positioned content of rt even though it does not support
-     containment.
-     Since this technique works also, not need to trigger a false negative.
+  /* Doing the following instead of position:absolute to move it out into the area that would be
+     clipped because Firefox clips absolutely positioned content of rt even in builds without
+     support for css containment.
+     Since this technique works also, there's no need to trigger a false negative.
    */
   position: relative;
   left: 4ch;
-  font-family: monospace;
 }
 </style>
 

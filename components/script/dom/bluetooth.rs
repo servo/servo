@@ -7,8 +7,8 @@ use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use crate::compartments::{AlreadyInCompartment, InCompartment};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::realms::{AlreadyInRealm, InRealm};
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;
@@ -30,15 +30,15 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::ipc as ProfiledIpc;
-use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -66,6 +66,7 @@ const BT_DESC_CONVERSION_ERROR: &'static str =
     "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[allow(non_snake_case)]
 pub struct AllowedBluetoothDevice {
     pub deviceId: DOMString,
     pub mayUseGATT: bool,
@@ -163,7 +164,7 @@ impl Bluetooth {
         &self,
         p: &Rc<Promise>,
         filters: &Option<Vec<BluetoothLEScanFilterInit>>,
-        optional_services: &Option<Vec<BluetoothServiceUUID>>,
+        optional_services: &[BluetoothServiceUUID],
         sender: IpcSender<BluetoothResponseResult>,
     ) {
         // TODO: Step 1: Triggered by user activation.
@@ -196,23 +197,21 @@ impl Bluetooth {
         }
 
         let mut optional_services_uuids = vec![];
-        if let &Some(ref opt_services) = optional_services {
-            for opt_service in opt_services {
-                // Step 2.5 - 2.6.
-                let uuid = match BluetoothUUID::service(opt_service.clone()) {
-                    Ok(u) => u.to_string(),
-                    Err(e) => {
-                        p.reject_error(e);
-                        return;
-                    },
-                };
+        for opt_service in optional_services {
+            // Step 2.5 - 2.6.
+            let uuid = match BluetoothUUID::service(opt_service.clone()) {
+                Ok(u) => u.to_string(),
+                Err(e) => {
+                    p.reject_error(e);
+                    return;
+                },
+            };
 
-                // Step 2.7.
-                // Note: What we are doing here, is adding the not blocklisted UUIDs to the result vector,
-                // instead of removing them from an already filled vector.
-                if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                    optional_services_uuids.push(uuid);
-                }
+            // Step 2.7.
+            // Note: What we are doing here, is adding the not blocklisted UUIDs to the result vector,
+            // instead of removing them from an already filled vector.
+            if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
+                optional_services_uuids.push(uuid);
             }
         }
 
@@ -292,11 +291,8 @@ where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let in_compartment_proof = AlreadyInCompartment::assert(&attribute.global());
-    let p = Promise::new_in_current_compartment(
-        &attribute.global(),
-        InCompartment::Already(&in_compartment_proof),
-    );
+    let in_realm_proof = AlreadyInRealm::assert(&attribute.global());
+    let p = Promise::new_in_current_realm(&attribute.global(), InRealm::Already(&in_realm_proof));
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -535,8 +531,8 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InCompartment) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
+    fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InRealm) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(&self.global(), comp);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -553,8 +549,8 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
-    fn GetAvailability(&self, comp: InCompartment) -> Rc<Promise> {
-        let p = Promise::new_in_current_compartment(&self.global(), comp);
+    fn GetAvailability(&self, comp: InRealm) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(&self.global(), comp);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);
@@ -615,27 +611,24 @@ impl PermissionAlgorithm for Bluetooth {
     type Descriptor = BluetoothPermissionDescriptor;
     type Status = BluetoothPermissionResult;
 
-    #[allow(unsafe_code)]
     fn create_descriptor(
-        cx: *mut JSContext,
+        cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
     ) -> Result<BluetoothPermissionDescriptor, Error> {
-        rooted!(in(cx) let mut property = UndefinedValue());
+        rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        unsafe {
-            match BluetoothPermissionDescriptor::new(cx, property.handle()) {
-                Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
-            }
+        match BluetoothPermissionDescriptor::new(cx, property.handle()) {
+            Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+            Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
         }
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
     fn permission_query(
-        _cx: *mut JSContext,
+        _cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
@@ -725,7 +718,7 @@ impl PermissionAlgorithm for Bluetooth {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
     fn permission_request(
-        _cx: *mut JSContext,
+        _cx: JSContext,
         promise: &Rc<Promise>,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,

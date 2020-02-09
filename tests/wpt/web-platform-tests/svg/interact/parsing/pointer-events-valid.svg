@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="800px" height="8000px">
@@ -15,9 +14,9 @@
 
 test_valid_value("pointer-events", "auto");
 test_valid_value("pointer-events", "bounding-box");
-test_valid_value("pointer-events", "visiblePainted");
-test_valid_value("pointer-events", "visibleFill");
-test_valid_value("pointer-events", "visibleStroke");
+test_valid_value("pointer-events", "visiblePainted", "visiblepainted");
+test_valid_value("pointer-events", "visibleFill", "visiblefill");
+test_valid_value("pointer-events", "visibleStroke", "visiblestroke");
 test_valid_value("pointer-events", "visible");
 test_valid_value("pointer-events", "painted");
 test_valid_value("pointer-events", "fill");

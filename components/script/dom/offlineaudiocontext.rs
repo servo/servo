@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
@@ -21,8 +20,10 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -40,16 +41,24 @@ pub struct OfflineAudioContext {
     pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
+#[allow(non_snake_case)]
 impl OfflineAudioContext {
     #[allow(unrooted_must_root)]
-    fn new_inherited(channel_count: u32, length: u32, sample_rate: f32) -> OfflineAudioContext {
+    fn new_inherited(
+        channel_count: u32,
+        length: u32,
+        sample_rate: f32,
+        pipeline_id: PipelineId,
+    ) -> OfflineAudioContext {
         let options = ServoMediaOfflineAudioContextOptions {
             channels: channel_count as u8,
             length: length as usize,
             sample_rate,
         };
-        let context =
-            BaseAudioContext::new_inherited(BaseAudioContextOptions::OfflineAudioContext(options));
+        let context = BaseAudioContext::new_inherited(
+            BaseAudioContextOptions::OfflineAudioContext(options),
+            pipeline_id,
+        );
         OfflineAudioContext {
             context,
             channel_count,
@@ -74,7 +83,11 @@ impl OfflineAudioContext {
         {
             return Err(Error::NotSupported);
         }
-        let context = OfflineAudioContext::new_inherited(channel_count, length, sample_rate);
+        let pipeline_id = window
+            .pipeline_id()
+            .expect("Cannot create audio context outside of a pipeline");
+        let context =
+            OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
         Ok(reflect_dom_object(
             Box::new(context),
             window,
@@ -114,8 +127,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
-    fn StartRendering(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn StartRendering(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);
             return promise;
@@ -130,6 +143,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let sender = Mutex::new(sender);
         self.context
             .audio_context_impl()
+            .lock()
+            .unwrap()
             .set_eos_callback(Box::new(move |buffer| {
                 processed_audio_
                     .lock()
@@ -181,7 +196,14 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
             })
             .unwrap();
 
-        if self.context.audio_context_impl().resume().is_err() {
+        if self
+            .context
+            .audio_context_impl()
+            .lock()
+            .unwrap()
+            .resume()
+            .is_err()
+        {
             promise.reject_error(Error::Type("Could not start offline rendering".to_owned()));
         }
 

@@ -437,7 +437,7 @@ pub enum MaybeAuto {
 
 impl MaybeAuto {
     #[inline]
-    pub fn from_style(length: LengthPercentageOrAuto, containing_length: Au) -> MaybeAuto {
+    pub fn from_style(length: &LengthPercentageOrAuto, containing_length: Au) -> MaybeAuto {
         match length {
             LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
             LengthPercentageOrAuto::LengthPercentage(ref lp) => {
@@ -498,11 +498,11 @@ impl MaybeAuto {
 /// Receive an optional container size and return used value for width or height.
 ///
 /// `style_length`: content size as given in the CSS.
-pub fn style_length(style_length: Size, container_size: Option<Au>) -> MaybeAuto {
+pub fn style_length(style_length: &Size, container_size: Option<Au>) -> MaybeAuto {
     match style_length {
         Size::Auto => MaybeAuto::Auto,
         Size::LengthPercentage(ref lp) => {
-            MaybeAuto::from_option(lp.0.maybe_to_used_value(container_size))
+            MaybeAuto::from_option(lp.0.maybe_to_used_value(container_size.map(|l| l.into())))
         },
     }
 }
@@ -546,10 +546,10 @@ pub fn specified_margin_from_style(
     LogicalMargin::from_physical(
         writing_mode,
         SideOffsets2D::new(
-            MaybeAuto::from_style(margin_style.margin_top, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(margin_style.margin_right, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(margin_style.margin_bottom, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(margin_style.margin_left, Au(0)).specified_or_zero(),
+            MaybeAuto::from_style(&margin_style.margin_top, Au(0)).specified_or_zero(),
+            MaybeAuto::from_style(&margin_style.margin_right, Au(0)).specified_or_zero(),
+            MaybeAuto::from_style(&margin_style.margin_bottom, Au(0)).specified_or_zero(),
+            MaybeAuto::from_style(&margin_style.margin_left, Au(0)).specified_or_zero(),
         ),
     )
 }
@@ -568,8 +568,8 @@ impl SizeConstraint {
     /// Create a `SizeConstraint` for an axis.
     pub fn new(
         container_size: Option<Au>,
-        min_size: Size,
-        max_size: MaxSize,
+        min_size: &Size,
+        max_size: &MaxSize,
         border: Option<Au>,
     ) -> SizeConstraint {
         let mut min_size = match min_size {

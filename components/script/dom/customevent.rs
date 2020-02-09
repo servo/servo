@@ -13,8 +13,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -54,7 +55,7 @@ impl CustomEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,
@@ -87,17 +88,15 @@ impl CustomEvent {
 }
 
 impl CustomEventMethods for CustomEvent {
-    #[allow(unsafe_code)]
     // https://dom.spec.whatwg.org/#dom-customevent-detail
-    unsafe fn Detail(&self, _cx: *mut JSContext) -> JSVal {
+    fn Detail(&self, _cx: JSContext) -> JSVal {
         self.detail.get()
     }
 
-    #[allow(unsafe_code)]
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
-    unsafe fn InitCustomEvent(
+    fn InitCustomEvent(
         &self,
-        _cx: *mut JSContext,
+        _cx: JSContext,
         type_: DOMString,
         can_bubble: bool,
         cancelable: bool,

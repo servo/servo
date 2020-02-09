@@ -27,6 +27,7 @@
             function run() {
                 var target0 = document.getElementById("target0");
                 var target1 = document.getElementById("target1");
+                var actions_promise;
 
                 on_event(target0, "pointerdown", function (e) {
                     detected_pointertypes[e.pointerType] = true;
@@ -103,11 +104,14 @@
                         assert_equals(target1.hasPointerCapture(e.pointerId), false,
                                       "pointerup target1.hasPointerCapture should be false");
                     });
-                    test_pointerEvent.done();
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerMove(0, 10, {origin: target0})

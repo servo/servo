@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8">
     <title>fractions color</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
-    <meta name="assert" content="Verifies the color attribute affects the fraction bar">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <meta name="assert" content="Verifies the color property affects the fraction bar">
     <link rel="match" href="frac-color-002-ref.html">
   </head>
   <body>
@@ -27,5 +28,7 @@
         </mfrac>
       </math>
     </div>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
   </body>
 </html>

@@ -45,6 +45,6 @@ test(function() {
 
 test(function() {
   var doc = document.implementation.createDocument(null, null, null)
-  assert_throws("NOT_SUPPORTED_ERR", function() { document.adoptNode(doc) })
+  assert_throws_dom("NOT_SUPPORTED_ERR", function() { document.adoptNode(doc) })
 }, "Adopting a Document should throw.")
 </script>

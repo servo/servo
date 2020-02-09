@@ -2,14 +2,12 @@ const INPUTS = {
   HTML: "Hi, I want to be transformed!",
   SCRIPT: "Hi, I want to be transformed!",
   SCRIPTURL: "http://this.is.a.scripturl.test/",
-  URL: "http://hello.i.am.an.url/"
 };
 
 const RESULTS = {
   HTML: "Quack, I want to be a duck!",
   SCRIPT: "Meow, I want to be a cat!",
   SCRIPTURL: "http://this.is.a.successful.test/",
-  URL: "http://hooray.i.am.successfully.transformed/"
 };
 
 function createHTMLJS(html) {
@@ -26,33 +24,28 @@ function createScriptURLJS(scripturl) {
   return scripturl.replace("scripturl", "successful");
 }
 
-function createURLJS(url) {
-  return url.replace("hello", "hooray")
-      .replace("an.url", "successfully.transformed");
+function createHTMLJSWithThreeArguments(html0, html1, html2) {
+  return html0 + html1 + html2;
 }
 
-// When testing location.href (& friends), we have the problem that assigning
-// to the new location will navigate away from the test. To fix this, we'll
-// have a policy that will just stick the argument into the fragment identifier
-// of the current location.href.
-function createLocationURLJS(value) {
-  return location.href.replace(/#.*/g, "") + "#" + value;
+function createScriptJSWithThreeArguments(script0, script1, script2) {
+  return script0 + script1 + script2;
+}
+
+function createScriptURLJSWithThreeArguments(scripturl0, scripturl1, scripturl2) {
+  return scripturl0 + scripturl1 + scripturl2;
 }
 
 function createHTML_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
+  return win.trustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
 }
 
 function createScript_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeScriptPolicyName' + c, { createScript: createScriptJS });
+  return win.trustedTypes.createPolicy('SomeScriptPolicyName' + c, { createScript: createScriptJS });
 }
 
 function createScriptURL_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
-}
-
-function createURL_policy(win, c) {
-  return win.TrustedTypes.createPolicy('SomeURLPolicyName' + c, { createURL: createURLJS });
+  return win.trustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
 }
 
 function assert_element_accepts_trusted_html(win, c, t, tag, attribute, expected) {
@@ -73,12 +66,6 @@ function assert_element_accepts_trusted_script_url(win, c, t, tag, attribute, ex
   assert_element_accepts_trusted_type(tag, attribute, scripturl, expected);
 }
 
-function assert_element_accepts_trusted_url(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type(tag, attribute, url, expected);
-}
-
 function assert_element_accepts_trusted_type(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem[attribute] = value;
@@ -88,7 +75,7 @@ function assert_element_accepts_trusted_type(tag, attribute, value, expected) {
 function assert_throws_no_trusted_type(tag, attribute, value) {
   let elem = document.createElement(tag);
   let prev = elem[attribute];
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     elem[attribute] = value;
   });
   assert_equals(elem[attribute], prev);
@@ -112,12 +99,6 @@ function assert_element_accepts_trusted_script_url_explicit_set(win, c, t, tag, 
   assert_element_accepts_trusted_type_explicit_set(tag, attribute, scripturl, expected);
 }
 
-function assert_element_accepts_trusted_url_explicit_set(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type_explicit_set(tag, attribute, url, expected);
-}
-
 function assert_element_accepts_trusted_type_explicit_set(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem.setAttribute(attribute, value);
@@ -130,7 +111,7 @@ function assert_element_accepts_trusted_type_explicit_set(tag, attribute, value,
 function assert_throws_no_trusted_type_explicit_set(tag, attribute, value) {
   let elem = document.createElement(tag);
   let prev = elem[attribute];
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     elem.setAttribute(attribute, value);
   });
   assert_equals(elem[attribute], prev);
@@ -163,12 +144,6 @@ function assert_element_accepts_trusted_script_url_set_ns(win, c, t, tag, attrib
   assert_element_accepts_trusted_type_set_ns(tag, attribute, scripturl, expected);
 }
 
-function assert_element_accepts_trusted_url_set_ns(win, c, t, tag, attribute, expected) {
-  let p = createURL_policy(win, c);
-  let url = p.createURL(INPUTS.URL);
-  assert_element_accepts_trusted_type_set_ns(tag, attribute, url, expected);
-}
-
 function assert_element_accepts_trusted_type_set_ns(tag, attribute, value, expected) {
   let elem = document.createElement(tag);
   elem.setAttributeNS(namespace, attribute, value);
@@ -178,7 +153,7 @@ function assert_element_accepts_trusted_type_set_ns(tag, attribute, value, expec
 
 function assert_throws_no_trusted_type_set_ns(tag, attribute, value) {
   let elem = document.createElement(tag);
-  assert_throws(new TypeError(), _ => {
+  assert_throws_js(TypeError, _ => {
     elem.setAttributeNS(namespace, attribute, value);
   });
 }

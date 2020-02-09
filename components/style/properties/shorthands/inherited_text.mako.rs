@@ -4,10 +4,13 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="text-emphasis" products="gecko"
+<%helpers:shorthand
+    name="text-emphasis"
+    engines="gecko"
     sub_properties="text-emphasis-style text-emphasis-color"
     derive_serialize="True"
-    spec="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property">
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property"
+>
     use crate::properties::longhands::{text_emphasis_color, text_emphasis_style};
 
     pub fn parse_value<'i, 't>(
@@ -46,9 +49,9 @@
 // CSS Compatibility
 // https://compat.spec.whatwg.org/
 <%helpers:shorthand name="-webkit-text-stroke"
+                    engines="gecko"
                     sub_properties="-webkit-text-stroke-width
                                     -webkit-text-stroke-color"
-                    products="gecko"
                     derive_serialize="True"
                     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke">
     use crate::properties::longhands::{_webkit_text_stroke_color, _webkit_text_stroke_width};

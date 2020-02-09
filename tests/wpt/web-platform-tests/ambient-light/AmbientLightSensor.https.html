@@ -5,10 +5,25 @@
 <link rel="help" href="https://www.w3.org/TR/ambient-light/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-tests.js"></script>
-<div id="log"></div>
 <script>
 
-runGenericSensorTests('AmbientLightSensor');
+'use strict';
+
+const kReadings = {
+    readings: [
+        [3.1415]
+    ],
+    expectedReadings: [
+        [3.1415]
+    ]
+};
+
+runGenericSensorTests(
+    'AmbientLightSensor',
+    kReadings,
+    verifyAlsSensorReading,
+    ['ambient-light-sensor']);
 
 </script>

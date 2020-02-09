@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
 <link rel="match" href="background-image-alpha-ref.html">
 <style>
 .container {
@@ -32,18 +33,16 @@
 registerPaint('opaque', class {
     static get contextOptions() { return {alpha: false}; }
     paint(ctx, geom) {
-        ctx.strokeStyle = 'blue';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(20, 20, 60, 60);
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(20, 20, 60, 60);
     }
 });
 
 registerPaint('nonOpaque', class {
     static get contextOptions() { return {alpha: true}; }
     paint(ctx, geom) {
-        ctx.strokeStyle = 'blue';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(20, 20, 60, 60);
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(20, 20, 60, 60);
     }
 });
 </script>

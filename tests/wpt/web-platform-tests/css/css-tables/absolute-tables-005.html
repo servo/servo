@@ -1,0 +1,79 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#computing-the-table-height">
+<meta name="flags" content="" />
+<meta name="assert" content="When sizing and positioning abspos tables, the specified height is obeyed when the intrinsic height is smaller" />
+<style>
+.cb {
+  position: relative;
+  height: 200px;
+  width: 200px;
+  outline: 2px dashed lightblue;
+}
+
+.table {
+  background-color: orange;
+  position: absolute;
+  height: 50px;
+  right: 0px;
+}
+
+.cell {
+  border: 1px solid green;
+  height: 100px;
+}
+
+.cell > div {
+  height: 20px;
+}
+
+.vertical { writing-mode: vertical-lr; }
+.horizontal { writing-mode: horizontal-tb; }
+</style>
+
+<output id="log"></output>
+
+<main>
+<div class="cb">
+  <table class="table" data-expected-width=8 data-expected-height=108 data-offset-x="192">
+    <tr>
+      <td class="cell">
+        <div></div>
+      </td>
+    </tr>
+  </table>
+</div>
+<div class="cb vertical">
+  <table class="table horizontal" data-expected-width=8 data-expected-height=108 data-offset-x="192">
+    <tr>
+      <td class="cell">
+        <div></div>
+      </td>
+    </tr>
+  </table>
+</div>
+<div class="cb">
+  <table class="table vertical" data-expected-width=8 data-expected-height=108 data-offset-x="192">
+    <tr>
+      <td class="cell">
+        <div></div>
+      </td>
+    </tr>
+  </table>
+</div>
+<div class="cb vertical">
+  <table class="table vertical" data-expected-width=8 data-expected-height=108 data-offset-x="192">
+    <tr>
+      <td class="cell">
+        <div></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</main>
+<script>
+    checkLayout(".table");
+</script>

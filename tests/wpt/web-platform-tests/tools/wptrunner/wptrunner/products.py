@@ -1,5 +1,6 @@
 import importlib
 import imp
+from six import iteritems
 
 from .browsers import product_list
 
@@ -44,7 +45,7 @@ class Product(object):
         self.get_timeout_multiplier = getattr(module, data["timeout_multiplier"])
 
         self.executor_classes = {}
-        for test_type, cls_name in data["executor"].iteritems():
+        for test_type, cls_name in iteritems(data["executor"]):
             cls = getattr(module, cls_name)
             self.executor_classes[test_type] = cls
 
@@ -73,6 +74,6 @@ def load_product_update(config, product):
     data = module.__wptrunner__
 
     update_properties = (getattr(module, data["update_properties"])()
-                         if "update_properties" in data else (None, None))
+                         if "update_properties" in data else {})
 
     return update_properties

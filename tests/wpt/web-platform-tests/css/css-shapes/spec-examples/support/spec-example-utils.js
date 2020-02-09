@@ -11,7 +11,6 @@ function approxShapeTest(testId, linePrefix, epsilon, lineOffsets) {
             var line = document.getElementById(linePrefix + i);
             assert_approx_equals(line.offsetLeft, lineOffsets[i] + testOffset, epsilon, 'Line ' + i + ' is positioned properly');
         }
-        done();
     }
     runTest();
 }

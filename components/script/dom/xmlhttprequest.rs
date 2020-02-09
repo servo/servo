@@ -18,7 +18,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{is_token, ByteString, DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::{normalize_type_string, Blob};
 use crate::dom::document::DocumentSource;
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -38,6 +38,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::JSContext;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -53,7 +54,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
@@ -64,6 +65,7 @@ use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use script_traits::serializable::BlobImpl;
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -222,6 +224,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#constructors
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
@@ -615,7 +618,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             }
             // Substep 2
             if !self.upload_complete.get() {
-                self.dispatch_upload_progress_event(atom!("loadstart"), Some(0));
+                self.dispatch_upload_progress_event(atom!("loadstart"), Ok(Some(0)));
                 if self.generation_id.get() != gen_id {
                     return Ok(());
                 }
@@ -755,7 +758,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             }
         }
         // Step 3
-        self.ready_state.set(XMLHttpRequestState::Unsent);
+        if self.ready_state.get() == XMLHttpRequestState::Done {
+            self.change_ready_state(XMLHttpRequestState::Unsent);
+            self.response_status.set(Err(()));
+            self.response.borrow_mut().clear();
+            self.response_headers.borrow_mut().clear();
+        }
     }
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
@@ -782,8 +790,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             if !first {
                 vec.extend(", ".as_bytes());
             }
-            first = false;
-            vec.extend(value.as_bytes());
+            if let Ok(v) = str::from_utf8(value.as_bytes()).map(|s| s.trim().as_bytes()) {
+                vec.extend(v);
+                first = false;
+            }
             vec
         });
 
@@ -877,19 +887,19 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    unsafe fn Response(&self, cx: *mut JSContext) -> JSVal {
-        rooted!(in(cx) let mut rval = UndefinedValue());
+    fn Response(&self, cx: JSContext) -> JSVal {
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
-            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
                 let ready_state = self.ready_state.get();
                 // Step 2
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().to_jsval(cx, rval.handle_mut());
+                    self.text_response().to_jsval(*cx, rval.handle_mut());
                 } else {
                     // Step 1
-                    "".to_jsval(cx, rval.handle_mut());
+                    "".to_jsval(*cx, rval.handle_mut());
                 }
             },
             // Step 1
@@ -897,17 +907,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 return NullValue();
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => {
-                self.document_response().to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Document => unsafe {
+                self.document_response().to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Json => {
-                self.json_response(cx).to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Json => unsafe {
+                self.json_response(cx).to_jsval(*cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Blob => {
-                self.blob_response().to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Blob => unsafe {
+                self.blob_response().to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(js_object) => js_object.to_jsval(cx, rval.handle_mut()),
+                Some(js_object) => unsafe { js_object.to_jsval(*cx, rval.handle_mut()) },
                 None => return NullValue(),
             },
         }
@@ -934,12 +944,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
-        // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
-        //              explicitly in the worker scope.
-        if self.global().is::<WorkerGlobalScope>() {
-            return Ok(None);
-        }
-
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
@@ -962,13 +966,15 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
-        let event = Event::new(
-            &self.global(),
-            atom!("readystatechange"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::Cancelable,
-        );
-        event.fire(self.upcast());
+        if rs != XMLHttpRequestState::Unsent {
+            let event = Event::new(
+                &self.global(),
+                atom!("readystatechange"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::Cancelable,
+            );
+            event.fire(self.upcast());
+        }
     }
 
     fn process_headers_available(
@@ -1056,11 +1062,11 @@ impl XMLHttpRequest {
                 self.upload_complete.set(true);
                 // Substeps 2-4
                 if !self.sync.get() {
-                    self.dispatch_upload_progress_event(atom!("progress"), None);
+                    self.dispatch_upload_progress_event(atom!("progress"), Ok(None));
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("load"), None);
+                    self.dispatch_upload_progress_event(atom!("load"), Ok(None));
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("loadend"), None);
+                    self.dispatch_upload_progress_event(atom!("loadend"), Ok(None));
                     return_if_fetch_was_terminated!();
                 }
                 // Part of step 13, send() (processing response)
@@ -1158,9 +1164,9 @@ impl XMLHttpRequest {
                 let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event(Atom::from(errormsg), None);
+                    self.dispatch_upload_progress_event(Atom::from(errormsg), Err(()));
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("loadend"), None);
+                    self.dispatch_upload_progress_event(atom!("loadend"), Err(()));
                     return_if_fetch_was_terminated!();
                 }
                 self.dispatch_response_progress_event(Atom::from(errormsg));
@@ -1204,11 +1210,19 @@ impl XMLHttpRequest {
         progressevent.upcast::<Event>().fire(target);
     }
 
-    fn dispatch_upload_progress_event(&self, type_: Atom, partial_load: Option<u64>) {
-        // If partial_load is None, loading has completed and we can just use the value from the request body
+    fn dispatch_upload_progress_event(&self, type_: Atom, partial_load: Result<Option<u64>, ()>) {
+        // If partial_load is Ok(None), loading has completed and we can just use the value from the request body
+        // If an error occured, we pass 0 for both loaded and total
 
-        let total = self.request_body_len.get() as u64;
-        self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
+        let request_body_len = self.request_body_len.get() as u64;
+        let (loaded, total) = match partial_load {
+            Ok(l) => match l {
+                Some(loaded) => (loaded, Some(request_body_len)),
+                None => (request_body_len, Some(request_body_len)),
+            },
+            Err(()) => (0, None),
+        };
+        self.dispatch_progress_event(true, type_, loaded, total);
     }
 
     fn dispatch_response_progress_event(&self, type_: Atom) {
@@ -1263,19 +1277,19 @@ impl XMLHttpRequest {
         let mime = self
             .final_mime_type()
             .as_ref()
-            .map(|m| m.to_string())
+            .map(|m| normalize_type_string(&m.to_string()))
             .unwrap_or("".to_owned());
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes, mime));
         self.response_blob.set(Some(&blob));
         blob
     }
 
     // https://xhr.spec.whatwg.org/#arraybuffer-response
     #[allow(unsafe_code)]
-    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
+    fn arraybuffer_response(&self, cx: JSContext) -> Option<NonNull<JSObject>> {
         // Step 1
         let created = self.response_arraybuffer.get();
         if let Some(nonnull) = NonNull::new(created) {
@@ -1284,21 +1298,28 @@ impl XMLHttpRequest {
 
         // Step 2
         let bytes = self.response.borrow();
-        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
-            .ok()
-            .and_then(|()| {
-                self.response_arraybuffer.set(array_buffer.get());
-                Some(NonNull::new_unchecked(array_buffer.get()))
-            })
+        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+        unsafe {
+            ArrayBuffer::create(*cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
+                .ok()
+                .and_then(|()| {
+                    self.response_arraybuffer.set(array_buffer.get());
+                    Some(NonNull::new_unchecked(array_buffer.get()))
+                })
+        }
     }
 
     // https://xhr.spec.whatwg.org/#document-response
     fn document_response(&self) -> Option<DomRoot<Document>> {
-        // Step 1
+        // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
             return self.response_xml.get();
+        }
+
+        // Step 1
+        if self.response_status.get().is_err() {
+            return None;
         }
 
         let mime_type = self.final_mime_type();
@@ -1342,7 +1363,7 @@ impl XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#json-response
-    fn json_response(&self, cx: *mut JSContext) -> JSVal {
+    fn json_response(&self, cx: JSContext) -> JSVal {
         // Step 1
         let response_json = self.response_json.get();
         if !response_json.is_null_or_undefined() {
@@ -1375,15 +1396,15 @@ impl XMLHttpRequest {
         // if present, but UTF-16BE/LE BOM must not be honored.
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
-        rooted!(in(cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         unsafe {
             if !JS_ParseJSON(
-                cx,
+                *cx,
                 json_text.as_ptr(),
                 json_text.len() as u32,
                 rval.handle_mut(),
             ) {
-                JS_ClearPendingException(cx);
+                JS_ClearPendingException(*cx);
                 return NullValue();
             }
         }

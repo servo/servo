@@ -33,7 +33,8 @@ function assert_initial(property, initial) {
  *                                  value.
  */
 function assert_inherited(property, initial, other) {
-  assert_initial(property, initial);
+  if (initial)
+    assert_initial(property, initial);
 
   test(() => {
     const container = document.getElementById('container');

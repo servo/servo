@@ -4,7 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTCharacteristic : EventTarget {
   [SameObject]
   readonly attribute BluetoothRemoteGATTService service;
@@ -21,10 +21,9 @@ interface BluetoothRemoteGATTCharacteristic : EventTarget {
   Promise<BluetoothRemoteGATTCharacteristic> stopNotifications();
 };
 
-[NoInterfaceObject]
-interface CharacteristicEventHandlers {
+interface mixin CharacteristicEventHandlers {
   attribute EventHandler oncharacteristicvaluechanged;
 };
 
-// BluetoothRemoteGATTCharacteristic implements EventTarget;
-BluetoothRemoteGATTCharacteristic implements CharacteristicEventHandlers;
+// BluetoothRemoteGATTCharacteristic includes EventTarget;
+BluetoothRemoteGATTCharacteristic includes CharacteristicEventHandlers;

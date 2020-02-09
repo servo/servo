@@ -157,17 +157,17 @@ impl SupportsCondition {
                     CString::new(name.as_bytes())
                 }.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
                 Ok(SupportsCondition::MozBoolPref(name))
-            }
+            },
             "selector" => {
                 let pos = input.position();
                 consume_any_value(input)?;
                 Ok(SupportsCondition::Selector(RawSelector(
                     input.slice_from(pos).to_owned()
                 )))
-            }
+            },
             _ => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
+            },
         }
     }
 
@@ -178,8 +178,7 @@ impl SupportsCondition {
         while input.try(Parser::expect_whitespace).is_ok() {}
         let pos = input.position();
         let location = input.current_source_location();
-        // FIXME: remove clone() when lifetimes are non-lexical
-        match input.next()?.clone() {
+        match *input.next()? {
             Token::ParenthesisBlock => {
                 let nested =
                     input.try(|input| input.parse_nested_block(parse_condition_or_declaration));
@@ -187,7 +186,8 @@ impl SupportsCondition {
                     return nested;
                 }
             },
-            Token::Function(ident) => {
+            Token::Function(ref ident) => {
+                let ident = ident.clone();
                 let nested = input.try(|input| {
                     input.parse_nested_block(|input| {
                         SupportsCondition::parse_functional(&ident, input)
@@ -197,7 +197,7 @@ impl SupportsCondition {
                     return nested;
                 }
             },
-            t => return Err(location.new_unexpected_token_error(t)),
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
         input.parse_nested_block(consume_any_value)?;
         Ok(SupportsCondition::FutureSyntax(
@@ -323,9 +323,7 @@ impl RawSelector {
     pub fn eval(&self, context: &ParserContext, namespaces: &Namespaces) -> bool {
         #[cfg(feature = "gecko")]
         {
-            if unsafe {
-                !crate::gecko_bindings::structs::StaticPrefs_sVarCache_layout_css_supports_selector_enabled
-            } {
+            if !static_prefs::pref!("layout.css.supports-selector.enabled") {
                 return false;
             }
         }

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<canvas></canvas>
+
+<script>
+let immersiveTestName = "'floor-level' XRStationaryReferenceSpace updates properly when " +
+  "the transform changes for immersive sessions";
+let nonImmersiveTestName = "'floor-level' XRStationaryReferenceSpace updates properly when " +
+  "the transform changes for non-immersive sessions";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  // Don't need to request a frame/allow the stage updates to propagate before
+  // requesting local-floor because if the stage transform is set it just won't
+  // be emulated on the first frame, and we wait a frame before checking.
+  return session.requestReferenceSpace('local-floor')
+    .then((referenceSpace) => new Promise((resolve, reject) => {
+      function onFirstFrame(time, xrFrame) {
+        // On the first frame where the pose has been initialized, the stage
+        // should be using an emulated frame of reference because it has no
+        // stageParameters yet. So the pose should be ~1.5 meters off the floor.
+        t.step( () => {
+          let pose = xrFrame.getViewerPose(referenceSpace);
+
+          let poseMatrix = pose.transform.matrix;
+          assert_approx_equals(poseMatrix[12], 0.0, FLOAT_EPSILON);
+          assert_greater_than(poseMatrix[13], 1.0);
+          assert_approx_equals(poseMatrix[14], 0.0, FLOAT_EPSILON);
+
+          fakeDeviceController.setFloorOrigin(VALID_FLOOR_ORIGIN);
+
+          // Need to request one animation frame for the new stage transform to
+          // propagate before we check that it's what we expect.
+          session.requestAnimationFrame(() => {
+            session.requestAnimationFrame(onFrame);
+          });
+        });
+      }
+
+      function onFrame(time, xrFrame) {
+        t.step( () => {
+          // Check that stage transform was updated.
+          let pose = xrFrame.getViewerPose(referenceSpace);
+          assert_not_equals(pose, null);
+
+          let poseMatrix = pose.transform.matrix;
+          assert_matrix_approx_equals(poseMatrix, VALID_FLOOR_ORIGIN_MATRIX);
+        });
+
+        // Finished.
+        resolve();
+      }
+
+      // Need to wait one frame for the removal to propagate before we check that
+      // everything is at the expected emulated position.
+      session.requestAnimationFrame(() => {
+        session.requestAnimationFrame(onFirstFrame);
+      });
+    }));
+};
+
+xr_session_promise_test(immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr', { 'requiredFeatures': ['local-floor'] });
+xr_session_promise_test(nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline', { 'requiredFeatures': ['local-floor'] });
+
+</script>

@@ -3,7 +3,8 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Input Device Capabilities (https://wicg.github.io/InputDeviceCapabilities/)
 
-[Constructor(optional InputDeviceCapabilitiesInit deviceInitDict)]
+[Exposed=Window,
+ Constructor(optional InputDeviceCapabilitiesInit deviceInitDict = {})]
 interface InputDeviceCapabilities {
   readonly attribute boolean firesTouchEvents;
   readonly attribute boolean pointerMovementScrolls;

@@ -21,11 +21,11 @@ dictionary BluetoothLEScanFilterInit {
 
 dictionary RequestDeviceOptions {
   sequence<BluetoothLEScanFilterInit> filters;
-  sequence<BluetoothServiceUUID> optionalServices /*= []*/;
+  sequence<BluetoothServiceUUID> optionalServices = [];
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface Bluetooth : EventTarget {
   [SecureContext]
   Promise<boolean> getAvailability();
@@ -34,9 +34,9 @@ interface Bluetooth : EventTarget {
   // [SecureContext, SameObject]
   // readonly attribute BluetoothDevice? referringDevice;
   [SecureContext]
-  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
+  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 
-// Bluetooth implements BluetoothDeviceEventHandlers;
-// Bluetooth implements CharacteristicEventHandlers;
-// Bluetooth implements ServiceEventHandlers;
+// Bluetooth includes BluetoothDeviceEventHandlers;
+// Bluetooth includes CharacteristicEventHandlers;
+// Bluetooth includes ServiceEventHandlers;

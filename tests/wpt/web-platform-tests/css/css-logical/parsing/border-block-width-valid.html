@@ -13,14 +13,14 @@
 <script>
 // <length> | thin | medium | thick
 test_valid_value("border-block-start-width", "10px");
-test_valid_value("border-block-start-width", "calc(10px + 0.5em)");
+test_valid_value("border-block-start-width", "calc(10px + 0.5em)", "calc(0.5em + 10px)");
 test_valid_value("border-block-start-width", "thick");
 test_valid_value("border-block-start-width", "thin");
 test_valid_value("border-block-end-width", "0", "0px");
-test_valid_value("border-block-end-width", "calc(10px - 0.5em)");
+test_valid_value("border-block-end-width", "calc(10px - 0.5em)", "calc(-0.5em + 10px)");
 test_valid_value("border-block-end-width", "medium");
 test_valid_value("border-block-width", "10px");
-test_valid_value("border-block-width", "medium calc(10px + 0.5em)");
+test_valid_value("border-block-width", "medium calc(10px + 0.5em)", "medium calc(0.5em + 10px)");
 test_valid_value("border-block-width", "10px 10px", "10px");
 </script>
 </body>

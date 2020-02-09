@@ -1,12 +1,3 @@
-<!--
-onmessage = function(e) {
-  var imagedata = e.data;
-  imagedata.data[0] = 128;
-  postMessage(imagedata);
-}
-
-/*
--->
 <!doctype html>
 <title>structured clone of ImageData</title>
 <script src="/resources/testharness.js"></script>
@@ -14,7 +5,7 @@ onmessage = function(e) {
 <div id="log"></div>
 <script>
 (async_test()).step(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('structured-clone-imagedata.js');
   var ctx = document.createElement('canvas').getContext('2d');
   var imagedata = ctx.getImageData(0, 0, 300, 150);
   worker.postMessage(imagedata);
@@ -25,6 +16,3 @@ onmessage = function(e) {
   });
 });
 </script>
-<!--
-*/
-//-->

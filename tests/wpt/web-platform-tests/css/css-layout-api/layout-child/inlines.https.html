@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-children">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that inline children are correctly blockified or wrapped in anonymous boxes." />
+
+<style>
+/* We have a wrapper in this test to ensure that any text that is positioned
+ * slightly outside the "test" box doesn't affect the rendering.
+ * This wrapper has a 10px inline padding which does the trick. */
+.wrapper {
+  background: green;
+  padding: 0 10px;
+  width: 80px;
+}
+
+.test {
+  --child-expected: ["1", "default", "3", "4", "5"];
+
+  background: red;
+  color: green;
+  width: 80px;
+  --child: default;
+}
+
+.inflow {
+  visibility: hidden;
+  --child: 3;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="wrapper">
+  <div class="test">
+    <span style="--child: 1;">Text,</span> more text
+    <div class="inflow"></div>
+    <span style="--child: 4;">Text,
+       <div>block!</div>
+    </span>
+    <span style="--child: 5;">Other text</span>
+  </div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-worklet.js'});
+</script>

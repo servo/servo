@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <iframe disallowdocumentaccess src="resources/child.html"></iframe>
+  <script>
+    async_test(function (t) {
+      // Ensure post message works correctly.
+      window.onmessage = t.step_func((e) => {
+        if (e.data == 'load') {
+          frames[0].postMessage('ping');
+        } else if (e.data == 'pong') {
+          t.done();
+        }
+      });
+      try {
+        // Test that the parent is not allowed to access the child either.
+        frames[0].alert;
+        assert_unreachable('Security Error should have been thrown');
+      } catch(e) {
+        assert_equals(e.name, 'SecurityError', 'Security Error thrown');
+      }
+    });
+  </script>
+</body>

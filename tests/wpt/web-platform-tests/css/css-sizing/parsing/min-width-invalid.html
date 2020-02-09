@@ -12,10 +12,22 @@
 <body>
 <script>
 test_invalid_value("min-width", "none");
-test_invalid_value("min-width", "min-content max-content");
+test_invalid_value("min-width", "complex");
 
 test_invalid_value("min-width", "-10%");
 test_invalid_value("min-width", "-0.5em");
+test_invalid_value("min-width", "60");
+
+test_invalid_value("min-width", "10px 20%");
+test_invalid_value("min-width", "max-content 10px");
+test_invalid_value("min-width", "min-content max-content");
+
+// The following were previously supported by a min-width definition in
+// https://drafts.csswg.org/css-box-3/
+test_invalid_value("min-width", "available");
+test_invalid_value("min-width", "10px border-box");
+test_invalid_value("min-width", "content-box 20%");
+test_invalid_value("min-width", "fit-content");
 </script>
 </body>
 </html>

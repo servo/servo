@@ -5,7 +5,7 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types *; require-trusted-types-for 'script';">
 </head>
 <body>
 <div id="container"></div>
@@ -45,16 +45,16 @@
     var d = document.createElement('div');
     container.appendChild(d);
 
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforebegin', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterbegin', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforeend', "<p>Fail</p>");
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterend', "<p>Fail</p>");
     });
 
@@ -72,16 +72,16 @@
     var d = document.createElement('div');
     container.appendChild(d);
 
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforebegin', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterbegin', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('beforeend', null);
     });
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       d.insertAdjacentHTML('afterend', null);
     });
 
@@ -93,7 +93,7 @@
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
 
     var d = document.createElement('div');
     container.appendChild(d);

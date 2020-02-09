@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavig
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::gpu::GPU;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -17,6 +18,7 @@ use dom_struct::dom_struct;
 pub struct WorkerNavigator {
     reflector_: Reflector,
     permissions: MutNullableDom<Permissions>,
+    gpu: MutNullableDom<GPU>,
 }
 
 impl WorkerNavigator {
@@ -24,6 +26,7 @@ impl WorkerNavigator {
         WorkerNavigator {
             reflector_: Reflector::new(),
             permissions: Default::default(),
+            gpu: Default::default(),
         }
     }
 
@@ -96,5 +99,10 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
             .or_init(|| Permissions::new(&self.global()))
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    fn Gpu(&self) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(&self.global()))
     }
 }

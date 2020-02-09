@@ -31,9 +31,9 @@ def main(request, response):
 
     cors = request.headers.get("origin", "no")
 
-    cookie = request.cookies.first(id, "no")
-
-    line = 'cors = ' + cors + ' | cookie = ' + cookie.value;
+    cookie = request.cookies.first(id, None)
+    cookie_value = cookie.value if cookie is not None else "no"
+    line = 'cors = ' + cors + ' | cookie = ' + cookie_value;
 
     data = request.server.stash.take(id)
     if data is not None:

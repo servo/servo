@@ -13,7 +13,7 @@ use crate::context::LayoutContext;
 use crate::display_list::background::{self, get_cyclic};
 use crate::display_list::border;
 use crate::display_list::gradient;
-use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, BLUR_INFLATION_FACTOR};
+use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode};
 use crate::display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use crate::display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use crate::display_list::items::{CommonDisplayItem, DisplayListSection};
@@ -32,7 +32,10 @@ use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
-use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
+use euclid::{
+    default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D},
+    rect, SideOffsets2D,
+};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
@@ -43,7 +46,7 @@ use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use script_traits::IFrameSize;
 use servo_config::opts;
-use servo_geometry::MaxRect;
+use servo_geometry::{self, MaxRect};
 use std::default::Default;
 use std::f32;
 use std::mem;
@@ -58,18 +61,17 @@ use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{Image, ImageLayer};
-use style::values::computed::{Gradient, LengthOrAuto};
+use style::values::computed::{ClipRectOrAuto, Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, PaintWorklet};
 use style::values::specified::ui::CursorKind;
-use style::values::{Either, RGBA};
+use style::values::RGBA;
 use style_traits::ToCss;
-use webrender_api::{
-    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
-    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize,
-    LayoutTransform, LayoutVector2D, LineStyle, NinePatchBorder, NinePatchBorderSource,
-    NormalBorder, ScrollSensitivity, StickyOffsetBounds,
-};
+use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
+use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
+use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
+use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder};
+use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
@@ -121,6 +123,11 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
         a: 0.7,
     },
 ];
+
+// An internal WebRender limit.
+//
+// See: https://github.com/servo/servo/issues/17230#issuecomment-564307277
+const MAX_GLYPHS_PER_TEXT_RUN: usize = 2000;
 
 pub struct InlineNodeBorderInfo {
     is_first_fragment_of_element: bool,
@@ -346,7 +353,7 @@ impl<'a> DisplayListBuildState<'a> {
         }
     }
 
-    fn add_display_item(&mut self, display_item: DisplayItem) {
+    pub fn add_display_item(&mut self, display_item: DisplayItem) {
         let items = self
             .items
             .entry(display_item.stacking_context_id())
@@ -355,9 +362,6 @@ impl<'a> DisplayListBuildState<'a> {
     }
 
     fn add_image_item(&mut self, base: BaseDisplayItem, item: webrender_api::ImageDisplayItem) {
-        if item.stretch_size == LayoutSize::zero() {
-            return;
-        }
         self.add_display_item(DisplayItem::Image(CommonDisplayItem::new(base, item)))
     }
 
@@ -375,9 +379,8 @@ impl<'a> DisplayListBuildState<'a> {
             self.processing_scrolling_overflow_element
     }
 
-    fn create_base_display_item(
+    pub fn create_base_display_item(
         &self,
-        bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
         cursor: Option<Cursor>,
@@ -391,7 +394,6 @@ impl<'a> DisplayListBuildState<'a> {
             self.current_clipping_and_scrolling
         };
         self.create_base_display_item_with_clipping_and_scrolling(
-            bounds,
             clip_rect,
             node,
             cursor,
@@ -402,7 +404,6 @@ impl<'a> DisplayListBuildState<'a> {
 
     fn create_base_display_item_with_clipping_and_scrolling(
         &self,
-        bounds: Rect<Au>,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
         cursor: Option<Cursor>,
@@ -410,7 +411,6 @@ impl<'a> DisplayListBuildState<'a> {
         clipping_and_scrolling: ClippingAndScrolling,
     ) -> BaseDisplayItem {
         BaseDisplayItem::new(
-            bounds.to_layout(),
             DisplayItemMetadata {
                 node,
                 // Store cursor id in display list.
@@ -611,9 +611,15 @@ impl Fragment {
                 true
             },
             // FIXME: In the future, if #15144 is fixed we can remove this case. See #18510.
-            SpecificFragmentInfo::TruncatedFragment(ref mut info) => info
-                .full
-                .collect_stacking_contexts_for_blocklike_fragment(state),
+            SpecificFragmentInfo::TruncatedFragment(ref mut info) => {
+                let _ = info
+                    .full
+                    .collect_stacking_contexts_for_blocklike_fragment(state);
+                // To ensure the caller updates this fragment's stacking context
+                // appropriately based on the un-truncated fragment's status,
+                // we don't pass on the result of collecting stacking contexts.
+                false
+            },
             _ => false,
         }
     }
@@ -708,7 +714,6 @@ impl Fragment {
 
             let base = state.create_base_display_item(
                 bounds,
-                bounds,
                 self.node,
                 get_cursor(&style, Cursor::Default),
                 display_list_section,
@@ -717,6 +722,7 @@ impl Fragment {
                 base,
                 webrender_api::RectangleDisplayItem {
                     color: background_color.to_layout(),
+                    common: items::empty_common_item_properties(),
                 },
             )));
         });
@@ -794,11 +800,9 @@ impl Fragment {
                         );
                     }
                 },
-                Image::Rect(_) => {
-                    // TODO: Implement `-moz-image-rect`
-                },
-                Image::Element(_) => {
-                    // TODO: Implement `-moz-element`
+                Image::Rect(ref rect) => {
+                    // This is a (boxed) empty enum on non-Gecko
+                    match **rect {}
                 },
             }
         }
@@ -835,6 +839,10 @@ impl Fragment {
             index,
         );
 
+        if placement.tile_size.is_empty_or_negative() {
+            return;
+        }
+
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
                 let clip_id =
@@ -844,7 +852,6 @@ impl Fragment {
 
             // Create the image display item.
             let base = state.create_base_display_item(
-                placement.bounds,
                 placement.clip_rect,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -852,9 +859,11 @@ impl Fragment {
             );
 
             debug!("(building display list) adding background image.");
-            state.add_image_item(
+            let item = CommonDisplayItem::new(
                 base,
-                webrender_api::ImageDisplayItem {
+                webrender_api::RepeatingImageDisplayItem {
+                    bounds: placement.bounds.to_f32_px(),
+                    common: items::empty_common_item_properties(),
                     image_key: webrender_image.key.unwrap(),
                     stretch_size: placement.tile_size.to_layout(),
                     tile_spacing: placement.tile_spacing.to_layout(),
@@ -863,6 +872,7 @@ impl Fragment {
                     color: webrender_api::ColorF::WHITE,
                 },
             );
+            state.add_display_item(DisplayItem::RepeatingImage(item))
         });
     }
 
@@ -878,7 +888,7 @@ impl Fragment {
     ) -> Option<WebRenderImageInfo> {
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
         let size_in_px =
-            TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
+            euclid::Size2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
 
         // TODO: less copying.
         let name = paint_worklet.name.clone();
@@ -959,7 +969,6 @@ impl Fragment {
             }
 
             let base = state.create_base_display_item(
-                placement.bounds,
                 placement.clip_rect,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -977,12 +986,14 @@ impl Fragment {
                     );
                     let item = webrender_api::GradientDisplayItem {
                         gradient,
+                        bounds: placement.bounds.to_f32_px(),
+                        common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
                     };
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                GradientKind::Radial(shape, center) => {
+                GradientKind::Radial(ref shape, ref center) => {
                     let (gradient, stops) = gradient::radial(
                         style,
                         placement.tile_size,
@@ -993,6 +1004,8 @@ impl Fragment {
                     );
                     let item = webrender_api::RadialGradientDisplayItem {
                         gradient,
+                        bounds: placement.bounds.to_f32_px(),
+                        common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
                     };
@@ -1015,17 +1028,7 @@ impl Fragment {
     ) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds = shadow_bounds(
-                absolute_bounds.translate(&Vector2D::new(
-                    Au::from(box_shadow.base.horizontal),
-                    Au::from(box_shadow.base.vertical),
-                )),
-                Au::from(box_shadow.base.blur),
-                Au::from(box_shadow.spread),
-            );
-
             let base = state.create_base_display_item(
-                bounds,
                 clip,
                 self.node,
                 get_cursor(&style, Cursor::Default),
@@ -1035,6 +1038,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::BoxShadow(CommonDisplayItem::new(
                 base,
                 webrender_api::BoxShadowDisplayItem {
+                    common: items::empty_common_item_properties(),
                     box_bounds: absolute_bounds.to_layout(),
                     color: style.resolve_color(box_shadow.base.color).to_layout(),
                     offset: LayoutVector2D::new(
@@ -1109,7 +1113,6 @@ impl Fragment {
 
         // Append the border to the display list.
         let base = state.create_base_display_item(
-            bounds,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
@@ -1161,6 +1164,8 @@ impl Fragment {
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: bounds.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: border_widths.to_layout(),
                 details,
             },
@@ -1178,7 +1183,7 @@ impl Fragment {
         base: BaseDisplayItem,
         bounds: Rect<Au>,
         image: &Image,
-        border_width: SideOffsets2D<Au>,
+        border_width: UntypedSideOffsets2D<Au>,
     ) -> Option<()> {
         let border_style_struct = style.get_border();
         let border_image_outset =
@@ -1231,7 +1236,7 @@ impl Fragment {
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
-                GradientKind::Radial(shape, center) => {
+                GradientKind::Radial(ref shape, ref center) => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
                         border_image_area,
@@ -1247,11 +1252,13 @@ impl Fragment {
             _ => return None,
         };
 
+        // FIXME(emilio): WR expects device pixels here... somehow?
+        let size = euclid::Size2D::new(width as i32, height as i32);
         let details = BorderDetails::NinePatch(NinePatchBorder {
             source,
             width: width as i32,
             height: height as i32,
-            slice: border::image_slice(border_image_slice, width as i32, height as i32),
+            slice: border::image_slice(border_image_slice, size),
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
@@ -1265,6 +1272,8 @@ impl Fragment {
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: bounds.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: border_image_width,
                 details,
             },
@@ -1308,7 +1317,6 @@ impl Fragment {
             .resolve_color(style.get_outline().outline_color)
             .to_layout();
         let base = state.create_base_display_item(
-            bounds,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
@@ -1317,6 +1325,8 @@ impl Fragment {
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: bounds.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(width).to_layout(),
                 details: BorderDetails::Normal(border::simple(color, outline_style.to_layout())),
             },
@@ -1339,7 +1349,6 @@ impl Fragment {
 
         // Compute the text fragment bounds and draw a border surrounding them.
         let base = state.create_base_display_item(
-            stacking_relative_border_box,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
@@ -1348,6 +1357,8 @@ impl Fragment {
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: stacking_relative_border_box.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     ColorU::new(0, 0, 200, 1).into(),
@@ -1368,17 +1379,19 @@ impl Fragment {
         let baseline = baseline.to_physical(self.style.writing_mode, container_size);
 
         let base = state.create_base_display_item(
-            baseline,
             clip,
             self.node,
             get_cursor(&style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
-        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        let area = baseline.to_layout();
+        let wavy_line_thickness = (0.33 * area.size.height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
+                common: items::empty_common_item_properties(),
+                area,
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
                 color: ColorU::new(0, 200, 0, 1).into(),
@@ -1396,7 +1409,6 @@ impl Fragment {
     ) {
         // This prints a debug border around the border of this fragment.
         let base = state.create_base_display_item(
-            stacking_relative_border_box,
             clip,
             self.node,
             get_cursor(&self.style, Cursor::Default),
@@ -1405,6 +1417,8 @@ impl Fragment {
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: stacking_relative_border_box.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     ColorU::new(0, 0, 200, 1).into(),
@@ -1422,7 +1436,6 @@ impl Fragment {
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: Rect<Au>,
         display_list_section: DisplayListSection,
-        clip: Rect<Au>,
     ) {
         let scanned_text_fragment_info = match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
@@ -1439,7 +1452,6 @@ impl Fragment {
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
-                clip,
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
                 display_list_section,
@@ -1447,6 +1459,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
                 webrender_api::RectangleDisplayItem {
+                    common: items::empty_common_item_properties(),
                     color: background_color.to_layout(),
                 },
             )));
@@ -1485,7 +1498,6 @@ impl Fragment {
 
         let base = state.create_base_display_item(
             insertion_point_bounds,
-            clip,
             self.node,
             get_cursor(&self.style, cursor),
             display_list_section,
@@ -1493,6 +1505,7 @@ impl Fragment {
         state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
             base,
             webrender_api::RectangleDisplayItem {
+                common: items::empty_common_item_properties(),
                 color: self.style().get_inherited_text().color.to_layout(),
             },
         )));
@@ -1649,7 +1662,6 @@ impl Fragment {
                 state,
                 stacking_relative_border_box,
                 display_list_section,
-                clip,
             );
         }
 
@@ -1664,9 +1676,8 @@ impl Fragment {
             // of this fragment's background but behind its content. This ensures that any
             // hit tests inside the content box but not on actual content target the current
             // scrollable ancestor.
-            let content_size = TypedRect::new(stacking_relative_border_box.origin, content_size);
+            let content_size = Rect::new(stacking_relative_border_box.origin, content_size);
             let base = state.create_base_display_item_with_clipping_and_scrolling(
-                content_size,
                 content_size,
                 self.node,
                 // FIXME(emilio): Why does this ignore pointer-events?
@@ -1677,6 +1688,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
                 webrender_api::RectangleDisplayItem {
+                    common: items::empty_common_item_properties(),
                     color: ColorF::TRANSPARENT,
                 },
             )));
@@ -1719,7 +1731,6 @@ impl Fragment {
             }
 
             state.create_base_display_item(
-                stacking_relative_content_box,
                 stacking_relative_border_box,
                 self.node,
                 get_cursor(&self.style, Cursor::Default),
@@ -1800,23 +1811,27 @@ impl Fragment {
                         Some(browsing_context_id) => browsing_context_id,
                         None => return warn!("No browsing context id for iframe."),
                     };
+
+                    let base = create_base_display_item(state);
+                    let bounds = stacking_relative_content_box.to_layout();
+
+                    // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
+                    //         looks bogus.
+                    state.iframe_sizes.push(IFrameSize {
+                        id: browsing_context_id,
+                        size: euclid::Size2D::new(bounds.size.width, bounds.size.height),
+                    });
+
                     let pipeline_id = match fragment_info.pipeline_id {
                         Some(pipeline_id) => pipeline_id,
                         None => return warn!("No pipeline id for iframe {}.", browsing_context_id),
                     };
 
-                    let base = create_base_display_item(state);
                     let item = DisplayItem::Iframe(Box::new(IframeDisplayItem {
                         base,
+                        bounds,
                         iframe: pipeline_id,
                     }));
-
-                    let size = Size2D::new(item.bounds().size.width, item.bounds().size.height);
-                    state.iframe_sizes.push(IFrameSize {
-                        id: browsing_context_id,
-                        size: TypedSize2D::from_untyped(&size),
-                    });
-
                     state.add_display_item(item);
                 }
             },
@@ -1828,9 +1843,9 @@ impl Fragment {
                         state.add_image_item(
                             base,
                             webrender_api::ImageDisplayItem {
+                                bounds: stacking_relative_content_box.to_layout(),
+                                common: items::empty_common_item_properties(),
                                 image_key: id,
-                                stretch_size: stacking_relative_content_box.size.to_layout(),
-                                tile_spacing: LayoutSize::zero(),
                                 image_rendering: self
                                     .style
                                     .get_inherited_box()
@@ -1849,9 +1864,9 @@ impl Fragment {
                     state.add_image_item(
                         base,
                         webrender_api::ImageDisplayItem {
+                            bounds: stacking_relative_content_box.to_layout(),
+                            common: items::empty_common_item_properties(),
                             image_key: *image_key,
-                            stretch_size: stacking_relative_border_box.size.to_layout(),
-                            tile_spacing: LayoutSize::zero(),
                             image_rendering: ImageRendering::Auto,
                             alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                             color: webrender_api::ColorF::WHITE,
@@ -1880,9 +1895,9 @@ impl Fragment {
 
                 let base = create_base_display_item(state);
                 let display_item = webrender_api::ImageDisplayItem {
+                    bounds: stacking_relative_border_box.to_layout(),
+                    common: items::empty_common_item_properties(),
                     image_key,
-                    stretch_size: stacking_relative_content_box.size.to_layout(),
-                    tile_spacing: LayoutSize::zero(),
                     image_rendering: ImageRendering::Auto,
                     alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                     color: webrender_api::ColorF::WHITE,
@@ -1921,13 +1936,13 @@ impl Fragment {
         // First, compute the offset of our border box (including relative positioning)
         // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
         let border_box_offset = border_box
-            .translate(&-base_flow.stacking_relative_position)
+            .translate(-base_flow.stacking_relative_position)
             .origin;
         // Then, using that, compute our overflow region relative to our border box.
         let overflow = base_flow
             .overflow
             .paint
-            .translate(&-border_box_offset.to_vector());
+            .translate(-border_box_offset.to_vector());
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
@@ -1997,7 +2012,6 @@ impl Fragment {
 
         // Base item for all text/shadows
         let base = state.create_base_display_item(
-            stacking_relative_content_box,
             clip,
             self.node,
             get_cursor(&self.style, cursor),
@@ -2016,7 +2030,6 @@ impl Fragment {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                         color: self.style.resolve_color(shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
-                        should_inflate: true,
                     },
                 },
             )));
@@ -2059,29 +2072,41 @@ impl Fragment {
         }
 
         // Text
-        let glyphs = convert_text_run_to_glyphs(
+        let mut glyphs = convert_text_run_to_glyphs(
             text_fragment.run.clone(),
             text_fragment.range,
             baseline_origin,
         );
-        if !glyphs.is_empty() {
-            let indexable_text = IndexableTextItem {
-                origin: stacking_relative_content_box.origin,
-                text_run: text_fragment.run.clone(),
-                range: text_fragment.range,
-                baseline_origin,
+
+        let indexable_text = IndexableTextItem {
+            origin: stacking_relative_content_box.origin,
+            text_run: text_fragment.run.clone(),
+            range: text_fragment.range,
+            baseline_origin,
+        };
+        state.indexable_text.insert(self.node, indexable_text);
+
+        // Process glyphs in chunks to avoid overflowing WebRender's internal limits (#17230).
+        while !glyphs.is_empty() {
+            let mut rest_of_glyphs = vec![];
+            if glyphs.len() > MAX_GLYPHS_PER_TEXT_RUN {
+                rest_of_glyphs = glyphs[MAX_GLYPHS_PER_TEXT_RUN..].to_vec();
+                glyphs.truncate(MAX_GLYPHS_PER_TEXT_RUN);
             };
-            state.indexable_text.insert(self.node, indexable_text);
 
             state.add_display_item(DisplayItem::Text(CommonDisplayItem::with_data(
                 base.clone(),
                 webrender_api::TextDisplayItem {
+                    bounds: stacking_relative_content_box.to_layout(),
+                    common: items::empty_common_item_properties(),
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
                     glyph_options: None,
                 },
                 glyphs,
             )));
+
+            glyphs = rest_of_glyphs;
         }
 
         // TODO(#17715): emit text-emphasis marks here.
@@ -2122,7 +2147,6 @@ impl Fragment {
         let stacking_relative_box =
             stacking_relative_box.to_physical(self.style.writing_mode, container_size);
         let base = state.create_base_display_item(
-            stacking_relative_box,
             clip,
             self.node,
             get_cursor(&self.style, Cursor::Default),
@@ -2130,10 +2154,13 @@ impl Fragment {
         );
 
         // TODO(gw): Use a better estimate for wavy line thickness.
-        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        let area = stacking_relative_box.to_layout();
+        let wavy_line_thickness = (0.33 * area.size.height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
+                common: items::empty_common_item_properties(),
+                area,
                 orientation: webrender_api::LineOrientation::Horizontal,
                 wavy_line_thickness,
                 color: color.to_layout(),
@@ -2262,7 +2289,7 @@ impl BlockFlow {
             .fragment
             .perspective_matrix(&border_box)
             .unwrap_or(LayoutTransform::identity());
-        let transform = transform.pre_mul(&perspective).inverse();
+        let transform = transform.pre_transform(&perspective).inverse();
 
         let origin = border_box.origin;
         let transform_clip = |clip: Rect<Au>| {
@@ -2621,8 +2648,8 @@ impl BlockFlow {
     ) {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match self.fragment.style().get_effects().clip {
-            Either::First(style_clip_rect) => style_clip_rect,
-            _ => return,
+            ClipRectOrAuto::Rect(ref r) => r,
+            ClipRectOrAuto::Auto => return,
         };
 
         // CSS `clip` should only apply to position:absolute or positione:fixed elements.
@@ -2837,16 +2864,14 @@ impl BaseFlow {
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
         color.a = 1.0;
-        let base = state.create_base_display_item(
-            stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2)),
-            self.clip,
-            node,
-            None,
-            DisplayListSection::Content,
-        );
+        let base =
+            state.create_base_display_item(self.clip, node, None, DisplayListSection::Content);
+        let bounds = stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2));
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
+                bounds: bounds.to_layout(),
+                common: items::empty_common_item_properties(),
                 widths: SideOffsets2D::new_all_same(Au::from_px(2)).to_layout(),
                 details: BorderDetails::Normal(border::simple(
                     color,
@@ -2906,13 +2931,6 @@ fn get_cursor(values: &ComputedValues, default_cursor: Cursor) -> Option<Cursor>
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
     })
-}
-
-/// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
-/// bounding rect contains all of a shadow's ink.
-fn shadow_bounds(content_rect: Rect<Au>, blur: Au, spread: Au) -> Rect<Au> {
-    let inflation = spread + blur * BLUR_INFLATION_FACTOR;
-    content_rect.inflate(inflation, inflation)
 }
 
 /// Adjusts borders as appropriate to account for a fragment's status as the
@@ -3010,5 +3028,17 @@ impl IndexableText {
                 .text_run
                 .range_index_of_advance(&item[0].range, offset.x),
         )
+    }
+}
+
+trait ToF32Px {
+    type Output;
+    fn to_f32_px(&self) -> Self::Output;
+}
+
+impl ToF32Px for Rect<Au> {
+    type Output = LayoutRect;
+    fn to_f32_px(&self) -> LayoutRect {
+        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self))
     }
 }

@@ -583,6 +583,7 @@ const DESCRIPTOR_ERROR_MESSAGE: &'static str =
     "https://developer.bluetooth.org/gatt/descriptors/Pages/\
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
+#[allow(non_snake_case)]
 impl BluetoothUUID {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
     pub fn CanonicalUUID(_: &Window, alias: u32) -> UUID {

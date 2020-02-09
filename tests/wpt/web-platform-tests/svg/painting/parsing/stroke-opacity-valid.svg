@@ -16,9 +16,9 @@
 test_valid_value("stroke-opacity", "-1");
 test_valid_value("stroke-opacity", "0.5");
 test_valid_value("stroke-opacity", "3");
-test_valid_value("stroke-opacity", "-100%");
-test_valid_value("stroke-opacity", "50%");
-test_valid_value("stroke-opacity", "300%");
+test_valid_value("stroke-opacity", "-100%", "-1");
+test_valid_value("stroke-opacity", "50%", "0.5");
+test_valid_value("stroke-opacity", "300%", "3");
 
   ]]></script>
 </svg>

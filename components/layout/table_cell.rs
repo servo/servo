@@ -15,7 +15,7 @@ use crate::layout_debug;
 use crate::table::InternalTable;
 use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;

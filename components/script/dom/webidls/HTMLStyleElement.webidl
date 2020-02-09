@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlstyleelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLStyleElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //          attribute DOMString media;
   // [CEReactions]
@@ -12,4 +14,4 @@ interface HTMLStyleElement : HTMLElement {
   // [CEReactions]
   //          attribute boolean scoped;
 };
-HTMLStyleElement implements LinkStyle;
+HTMLStyleElement includes LinkStyle;

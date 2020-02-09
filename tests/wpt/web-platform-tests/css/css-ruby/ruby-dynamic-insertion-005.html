@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic insertion of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="match" href="ruby-dynamic-insertion-005-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<script src="support/ruby-dynamic-insertion.js"></script>
+<p>'a' and 'b' should be paired with 'x' and 'y' respectively:</p>
+
+<!-- split -->
+<!--     pseudo ruby -->
+<p><rb data-insert="after" data-tag="span"></rb><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<!--     pseudo ruby base container -->
+<p><rb data-insert="after" data-tag="rt"></rb><rb>a</rb><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<!--     pseudo ruby text container -->
+<p><rb>a</rb><rt data-insert="after" data-tag="rb" data-text="b">x</rt><rt>y</rt></p>
+<!--     pseudo ruby base -->
+<p><rbc><span data-insert="after" data-tag="rb">a</span>b</rbc><rt>x</rt><rt></rt><rt>y</rt></p>
+<!--     pseudo ruby text -->
+<p><rb>a</rb><rb></rb><rb>b</rb><rtc><span data-insert="after" data-tag="rt">x</span>y</rtc></p>

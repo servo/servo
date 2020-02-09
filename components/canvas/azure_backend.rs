@@ -16,7 +16,9 @@ use azure::azure_hl::{CapStyle, JoinStyle};
 use azure::azure_hl::{LinearGradientPattern, RadialGradientPattern};
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+
+use std::marker::PhantomData;
 
 pub struct AzureBackend;
 
@@ -31,7 +33,7 @@ impl Backend for AzureBackend {
 
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>> {
         match pattern {
-            Pattern::Azure(azure_hl::Pattern::Surface(ref surface)) => {
+            Pattern::Azure(azure_hl::Pattern::Surface(ref surface), _) => {
                 let surface_size = surface.size();
                 let size = match (surface.repeat_x, surface.repeat_y) {
                     (true, true) => rect.size,
@@ -43,7 +45,7 @@ impl Backend for AzureBackend {
                 };
                 Some(size)
             },
-            Pattern::Azure(_) => None,
+            Pattern::Azure(..) => None,
         }
     }
 
@@ -58,7 +60,7 @@ impl Backend for AzureBackend {
         drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_azure_pattern(drawtarget) {
-            state.fill_style = Pattern::Azure(pattern)
+            state.fill_style = Pattern::Azure(pattern, PhantomData::default())
         }
     }
 
@@ -69,7 +71,7 @@ impl Backend for AzureBackend {
         drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_azure_pattern(drawtarget) {
-            state.stroke_style = Pattern::Azure(pattern)
+            state.stroke_style = Pattern::Azure(pattern, PhantomData::default())
         }
     }
 
@@ -108,12 +110,14 @@ impl<'a> CanvasPaintState<'a> {
                 azure_hl::CompositionOp::Over,
                 antialias.into_azure(),
             )),
-            fill_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(
-                azure_hl::Color::black(),
-            ))),
-            stroke_style: Pattern::Azure(azure_hl::Pattern::Color(ColorPattern::new(
-                azure_hl::Color::black(),
-            ))),
+            fill_style: Pattern::Azure(
+                azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black())),
+                PhantomData::default(),
+            ),
+            stroke_style: Pattern::Azure(
+                azure_hl::Pattern::Color(ColorPattern::new(azure_hl::Color::black())),
+                PhantomData::default(),
+            ),
             stroke_opts: StrokeOptions::Azure(azure_hl::StrokeOptions::new(
                 1.0,
                 JoinStyle::MiterOrBevel,
@@ -132,14 +136,15 @@ impl<'a> CanvasPaintState<'a> {
 
 impl GenericPathBuilder for azure_hl::PathBuilder {
     fn arc(
-        &self,
+        &mut self,
         origin: Point2D<f32>,
         radius: f32,
         start_angle: f32,
         end_angle: f32,
         anticlockwise: bool,
     ) {
-        self.arc(
+        azure_hl::PathBuilder::arc(
+            self,
             origin as Point2D<AzFloat>,
             radius as AzFloat,
             start_angle as AzFloat,
@@ -148,22 +153,23 @@ impl GenericPathBuilder for azure_hl::PathBuilder {
         );
     }
     fn bezier_curve_to(
-        &self,
+        &mut self,
         control_point1: &Point2D<f32>,
         control_point2: &Point2D<f32>,
         control_point3: &Point2D<f32>,
     ) {
-        self.bezier_curve_to(
+        azure_hl::PathBuilder::bezier_curve_to(
+            self,
             control_point1 as &Point2D<AzFloat>,
             control_point2 as &Point2D<AzFloat>,
             control_point3 as &Point2D<AzFloat>,
         );
     }
-    fn close(&self) {
-        self.close();
+    fn close(&mut self) {
+        azure_hl::PathBuilder::close(self);
     }
     fn ellipse(
-        &self,
+        &mut self,
         origin: Point2D<f32>,
         radius_x: f32,
         radius_y: f32,
@@ -172,7 +178,8 @@ impl GenericPathBuilder for azure_hl::PathBuilder {
         end_angle: f32,
         anticlockwise: bool,
     ) {
-        self.ellipse(
+        azure_hl::PathBuilder::ellipse(
+            self,
             origin as Point2D<AzFloat>,
             radius_x as AzFloat,
             radius_y as AzFloat,
@@ -182,34 +189,40 @@ impl GenericPathBuilder for azure_hl::PathBuilder {
             anticlockwise,
         );
     }
-    fn get_current_point(&self) -> Point2D<f32> {
-        let AzPoint { x, y } = self.get_current_point();
-        Point2D::new(x as f32, y as f32)
+    fn get_current_point(&mut self) -> Option<Point2D<f32>> {
+        let AzPoint { x, y } = azure_hl::PathBuilder::get_current_point(self);
+        Some(Point2D::new(x as f32, y as f32))
     }
-    fn line_to(&self, point: Point2D<f32>) {
-        self.line_to(point as Point2D<AzFloat>);
+    fn line_to(&mut self, point: Point2D<f32>) {
+        azure_hl::PathBuilder::line_to(self, point as Point2D<AzFloat>);
     }
-    fn move_to(&self, point: Point2D<f32>) {
-        self.move_to(point as Point2D<AzFloat>);
+    fn move_to(&mut self, point: Point2D<f32>) {
+        azure_hl::PathBuilder::move_to(self, point as Point2D<AzFloat>);
     }
-    fn quadratic_curve_to(&self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
-        self.quadratic_curve_to(
+    fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
+        azure_hl::PathBuilder::quadratic_curve_to(
+            self,
             control_point as &Point2D<AzFloat>,
             end_point as &Point2D<AzFloat>,
         );
     }
-    fn finish(&self) -> Path {
-        Path::Azure(self.finish())
+    fn finish(&mut self) -> Path {
+        Path::Azure(azure_hl::PathBuilder::finish(self))
     }
 }
 
 impl GenericDrawTarget for azure_hl::DrawTarget {
-    fn clear_rect(&self, rect: &Rect<f32>) {
-        self.clear_rect(rect as &Rect<AzFloat>);
+    fn clear_rect(&mut self, rect: &Rect<f32>) {
+        azure_hl::DrawTarget::clear_rect(self, rect as &Rect<AzFloat>);
     }
 
-    fn copy_surface(&self, surface: SourceSurface, source: Rect<i32>, destination: Point2D<i32>) {
-        self.copy_surface(surface.into_azure(), source, destination);
+    fn copy_surface(
+        &mut self,
+        surface: SourceSurface,
+        source: Rect<i32>,
+        destination: Point2D<i32>,
+    ) {
+        azure_hl::DrawTarget::copy_surface(self, surface.into_azure(), source, destination);
     }
 
     fn create_gradient_stops(
@@ -243,7 +256,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             .map(|s| SourceSurface::Azure(s))
     }
     fn draw_surface(
-        &self,
+        &mut self,
         surface: SourceSurface,
         dest: Rect<f64>,
         source: Rect<f64>,
@@ -256,7 +269,8 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             draw_options.as_azure().composition,
             azure_hl::AntialiasMode::None,
         );
-        self.draw_surface(
+        azure_hl::DrawTarget::draw_surface(
+            self,
             surface.into_azure(),
             dest.to_azure_style(),
             source.to_azure_style(),
@@ -282,15 +296,22 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             operator.into_azure(),
         );
     }
-    fn fill(&self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
-        self.fill(
+    fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions) {
+        azure_hl::DrawTarget::fill(
+            self,
             path.as_azure(),
             pattern.as_azure().to_pattern_ref(),
             draw_options.as_azure(),
         );
     }
-    fn fill_rect(&self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>) {
-        self.fill_rect(
+    fn fill_rect(
+        &mut self,
+        rect: &Rect<f32>,
+        pattern: Pattern,
+        draw_options: Option<&DrawOptions>,
+    ) {
+        azure_hl::DrawTarget::fill_rect(
+            self,
             rect as &Rect<AzFloat>,
             pattern.as_azure().to_pattern_ref(),
             draw_options.map(|x| x.as_azure()),
@@ -306,26 +327,27 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
     fn get_transform(&self) -> Transform2D<f32> {
         self.get_transform() as Transform2D<f32>
     }
-    fn pop_clip(&self) {
-        self.pop_clip();
+    fn pop_clip(&mut self) {
+        azure_hl::DrawTarget::pop_clip(self);
     }
-    fn push_clip(&self, path: &Path) {
-        self.push_clip(path.as_azure());
+    fn push_clip(&mut self, path: &Path) {
+        azure_hl::DrawTarget::push_clip(self, path.as_azure());
     }
-    fn set_transform(&self, matrix: &Transform2D<f32>) {
-        self.set_transform(matrix as &Transform2D<AzFloat>);
+    fn set_transform(&mut self, matrix: &Transform2D<f32>) {
+        azure_hl::DrawTarget::set_transform(self, matrix as &Transform2D<AzFloat>);
     }
     fn snapshot(&self) -> SourceSurface {
         SourceSurface::Azure(self.snapshot())
     }
     fn stroke(
-        &self,
+        &mut self,
         path: &Path,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     ) {
-        self.stroke(
+        azure_hl::DrawTarget::stroke(
+            self,
             path.as_azure(),
             pattern.as_azure().to_pattern_ref(),
             stroke_options.as_azure(),
@@ -333,7 +355,7 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         );
     }
     fn stroke_line(
-        &self,
+        &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
         pattern: Pattern,
@@ -354,7 +376,8 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
             stroke_options.mDashPattern,
         );
 
-        self.stroke_line(
+        azure_hl::DrawTarget::stroke_line(
+            self,
             start,
             end,
             pattern.as_azure().to_pattern_ref(),
@@ -363,13 +386,14 @@ impl GenericDrawTarget for azure_hl::DrawTarget {
         );
     }
     fn stroke_rect(
-        &self,
+        &mut self,
         rect: &Rect<f32>,
         pattern: Pattern,
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     ) {
-        self.stroke_rect(
+        azure_hl::DrawTarget::stroke_rect(
+            self,
             rect as &Rect<AzFloat>,
             pattern.as_azure().to_pattern_ref(),
             stroke_options.as_azure(),
@@ -469,10 +493,10 @@ impl Path {
     }
 }
 
-impl Pattern {
+impl Pattern<'_> {
     fn as_azure(&self) -> &azure_hl::Pattern {
         match self {
-            Pattern::Azure(p) => p,
+            Pattern::Azure(p, _) => p,
         }
     }
 }
@@ -723,10 +747,10 @@ impl ToAzureStyle for RGBA {
     }
 }
 
-impl Pattern {
+impl Pattern<'_> {
     pub fn is_zero_size_gradient(&self) -> bool {
         match *self {
-            Pattern::Azure(azure_hl::Pattern::LinearGradient(ref gradient)) => {
+            Pattern::Azure(azure_hl::Pattern::LinearGradient(ref gradient), _) => {
                 gradient.is_zero_size()
             },
             _ => false,

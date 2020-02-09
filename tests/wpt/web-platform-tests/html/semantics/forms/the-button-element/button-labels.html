@@ -22,26 +22,16 @@
     <p><label>Age: <button id='button_id2'>button2</button></label></p>
   </form>
   <script>
+    test(function() {
+      var button1 = document.getElementById("button_id1");
+      var button2 = document.getElementById("button_id2");
 
-    var button1 = document.getElementById("button_id1");
-    var button2 = document.getElementById("button_id2");
+      assert_true(button1.labels instanceof NodeList, "button1.labels is NodeList");
+      assert_equals(button1.labels.length, 2, "button1.labels.length");
 
-    if (typeof(button1.labels) == "object") {
-      if (button1.labels.length == 2 && button2.labels.length == 1) {
-        test(function() {
-          assert_true(true, "labels attribute is correct.");
-        });
-      } else {
-        test(function() {
-          assert_unreached("labels attribute is not correct.");
-        });
-      }
-    } else {
-      test(function() {
-        assert_unreached("labels attribute is not exist.");
-      });
-    }
-
+      assert_true(button2.labels instanceof NodeList, "button2.labels is NodeList");
+      assert_equals(button2.labels.length, 1, "button2.labels.length");
+    });
   </script>
 
  </body>

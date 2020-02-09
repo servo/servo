@@ -4,7 +4,7 @@
 
 //http://dev.w3.org/csswg/cssom/#elementcssinlinestyle
 
-[NoInterfaceObject, Exposed=Window]
-interface ElementCSSInlineStyle {
-  [SameObject/*, PutForwards=cssText*/] readonly attribute CSSStyleDeclaration style;
+[Exposed=Window]
+interface mixin ElementCSSInlineStyle {
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };

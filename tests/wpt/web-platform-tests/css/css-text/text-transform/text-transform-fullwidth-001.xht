@@ -11,46 +11,30 @@
 		<meta name="assert" content="The UA should transform halfwidth character to fullwidth character when text-transform is set to fullwidth." />
 		<style type="text/css">
 			<![CDATA[
+			        @font-face {
+					font-family: 'mplus-1p-regular';
+					src: url('/fonts/mplus-1p-regular.woff') format('woff');
+			        }
 				.test span {
 					text-transform: full-width;
 				}
 				/* the CSS below is not part of the test */
 				span {
+				       font-family: 'mplus-1p-regular';
 					background-color: cyan;
 				}
 				.test {
 					color: Blue;
-					font-size: 200%;
-					line-height: 1.2em;
+					line-height: 1.1;
 				}
 				.test div {
 					display: inline-block;
-					margin-bottom: 1em;
-					margin-top: 1em;
+					margin-bottom: .5em;
 					text-align: center;
 					white-space: nowrap;
-					width: 5em;
 				}
 			]]>
 		</style>
-		<script type="text/javascript">
-			//	<![CDATA[
-					// Set Font Family to 'IPAMincho'
-					function setFontFamily () {
-						var fontName = 'IPAMincho';
-						var divs = document.getElementsByTagName('div');
-						var i = 0;
-						var div;
-						while (i < divs.length) {
-							div = divs.item(i);
-							if (div.className == 'test') {
-								div.style.fontFamily = fontName;
-							}
-							i++;
-						}
-					}
-			//	]]>
-		</script>
 	</head>
 	<body>
 		<p>
@@ -61,12 +45,12 @@
 		<!-- FULLWIDTH LATIN -->
 			<div>[<span>　</span>]<br />[<span> </span>]</div>
 			<div><span>！</span><br /><span>!</span></div>
-			<div><span>”</span><br /><span>&quot;</span></div>
+			<div><span>＂</span><br /><span>&quot;</span></div>
 			<div><span>＃</span><br /><span>#</span></div>
 			<div><span>＄</span><br /><span>$</span></div>
 			<div><span>％</span><br /><span>%</span></div>
 			<div><span>＆</span><br /><span>&amp;</span></div>
-			<div><span>’</span><br /><span>'</span></div>
+			<div><span>＇</span><br /><span>'</span></div>
 			<div><span>（</span><br /><span>(</span></div>
 			<div><span>）</span><br /><span>)</span></div>
 			<div><span>＊</span><br /><span>*</span></div>
@@ -75,7 +59,7 @@
 			<div><span>－</span><br /><span>-</span></div>
 			<div><span>．</span><br /><span>.</span></div>
 			<div><span>／</span><br /><span>/</span></div>
-			<br />
+
 			<div><span>０</span><br /><span>0</span></div>
 			<div><span>１</span><br /><span>1</span></div>
 			<div><span>２</span><br /><span>2</span></div>
@@ -86,7 +70,7 @@
 			<div><span>７</span><br /><span>7</span></div>
 			<div><span>８</span><br /><span>8</span></div>
 			<div><span>９</span><br /><span>9</span></div>
-			<br />
+
 			<div><span>：</span><br /><span>:</span></div>
 			<div><span>；</span><br /><span>;</span></div>
 			<div><span>＜</span><br /><span>&lt;</span></div>
@@ -94,7 +78,7 @@
 			<div><span>＞</span><br /><span>&gt;</span></div>
 			<div><span>？</span><br /><span>?</span></div>
 			<div><span>＠</span><br /><span>@</span></div>
-			<br />
+
 			<div><span>Ａ</span><br /><span>A</span></div>
 			<div><span>Ｂ</span><br /><span>B</span></div>
 			<div><span>Ｃ</span><br /><span>C</span></div>
@@ -121,14 +105,14 @@
 			<div><span>Ｘ</span><br /><span>X</span></div>
 			<div><span>Ｙ</span><br /><span>Y</span></div>
 			<div><span>Ｚ</span><br /><span>Z</span></div>
-			<br />
+
 			<div><span>［</span><br /><span>[</span></div>
 			<div><span>＼</span><br /><span>\</span></div>
 			<div><span>］</span><br /><span>]</span></div>
 			<div><span>＾</span><br /><span>^</span></div>
 			<div><span>＿</span><br /><span>_</span></div>
 			<div><span>｀</span><br /><span>`</span></div>
-			<br />
+
 			<div><span>ａ</span><br /><span>a</span></div>
 			<div><span>ｂ</span><br /><span>b</span></div>
 			<div><span>ｃ</span><br /><span>c</span></div>
@@ -155,7 +139,7 @@
 			<div><span>ｘ</span><br /><span>x</span></div>
 			<div><span>ｙ</span><br /><span>y</span></div>
 			<div><span>ｚ</span><br /><span>z</span></div>
-			<br />
+
 			<div><span>｛</span><br /><span>{</span></div>
 			<div><span>｜</span><br /><span>|</span></div>
 			<div><span>｝</span><br /><span>}</span></div>
@@ -165,13 +149,12 @@
 			<div><span>｠</span><br /><span>⦆</span></div>				<!-- RIGHT WHITE PARENTHESIS -->
 
 		<!-- HALFWIDTH KATAKANA -->
-			<br />
 			<div><span>。</span><br /><span>｡</span></div>
 			<div><span>「</span><br /><span>｢</span></div>
 			<div><span>」</span><br /><span>｣</span></div>
 			<div><span>、</span><br /><span>､</span></div>
 			<div><span>・</span><br /><span>･</span></div>
-			<br />
+
 			<div><span>ヲ</span><br /><span>ｦ</span></div>
 			<div><span>ァ</span><br /><span>ｧ</span></div>
 			<div><span>ィ</span><br /><span>ｨ</span></div>
@@ -183,7 +166,7 @@
 			<div><span>ョ</span><br /><span>ｮ</span></div>
 			<div><span>ッ</span><br /><span>ｯ</span></div>
 			<div><span>ー</span><br /><span>ｰ</span></div>
-			<br />
+
 			<div><span>ア</span><br /><span>ｱ</span></div>
 			<div><span>イ</span><br /><span>ｲ</span></div>
 			<div><span>ウ</span><br /><span>ｳ</span></div>
@@ -229,15 +212,14 @@
 			<div><span>ロ</span><br /><span>ﾛ</span></div>
 			<div><span>ワ</span><br /><span>ﾜ</span></div>
 			<div><span>ン</span><br /><span>ﾝ</span></div>
-			<br />
-			<div><span>゛</span><br /><span>ﾞ</span></div>
-			<div><span>゜</span><br /><span>ﾟ</span></div>
+
+			<div><span>&nbsp;&#x3099;</span><br /><span>&nbsp;ﾞ</span></div>
+			<div><span>&nbsp;&#x309A;</span><br /><span>&nbsp;ﾟ</span></div>
 
 		<!-- HALFWIDTH HANGUL -->
-			<br />
 			<div>[<span>&#x115F;</span>]<br />[<span>&#xFFA0;</span>]</div>	<!-- HANGUL FILLER -->
 			<div><span>ᆨ</span><br /><span>ﾡ</span></div>				<!-- HANGUL LETTER KIYEOK -->
-			<div><span>ᆩ</span><br /><span>ﾢ</span></div>				<!-- HANGUL LETTER SSANGKIYEOK -->
+			<div><span>ㄲ</span><br /><span>ﾢ</span></div>				<!-- HANGUL LETTER SSANGKIYEOK -->
 			<div><span>ᆪ</span><br /><span>ﾣ</span></div>				<!-- HANGUL LETTER KIYEOK-SIOS -->
 			<div><span>ᆫ</span><br /><span>ﾤ</span></div>				<!-- HANGUL LETTER NIEUN -->
 			<div><span>ᆬ</span><br /><span>ﾥ</span></div>				<!-- HANGUL LETTER NIEUN-CIEUC -->
@@ -251,7 +233,7 @@
 			<div><span>ᆳ</span><br /><span>ﾭ</span></div>				<!-- HANGUL LETTER RIEUL-SIOS -->
 			<div><span>ᆴ</span><br /><span>ﾮ</span></div>				<!-- HANGUL LETTER RIEUL-THIEUTH -->
 			<div><span>ᆵ</span><br /><span>ﾯ</span></div>				<!-- HANGUL LETTER RIEUL-PHIEUPH -->
-			<div><span>&#x111A;</span><br /><span>ﾰ</span></div>	<!-- HANGUL LETTER RIEUL-HIEUH -->
+			<div><span>ㅀ</span><br /><span>ﾰ</span></div>			<!-- HANGUL LETTER RIEUL-HIEUH -->
 			<div><span>ᄆ</span><br /><span>ﾱ</span></div>				<!-- HANGUL LETTER MIEUM -->
 			<div><span>ᄇ</span><br /><span>ﾲ</span></div>				<!-- HANGUL LETTER PIEUP -->
 			<div><span>ᄈ</span><br /><span>ﾳ</span></div>				<!-- HANGUL LETTER SSANGPIEUP -->
@@ -266,7 +248,6 @@
 			<div><span>ᇀ</span><br /><span>ﾼ</span></div>				<!-- HANGUL LETTER THIEUTH -->
 			<div><span>ᄑ</span><br /><span>ﾽ</span></div>				<!-- HANGUL LETTER PHIEUPH -->
 			<div><span>ᇂ</span><br /><span>ﾾ</span></div>				<!-- HANGUL LETTER HIEUH -->
-			<br />
 			<div><span>ᅡ</span><br /><span>ￂ</span></div>				<!-- HANGUL LETTER A -->
 			<div><span>ᅢ</span><br /><span>ￃ</span></div>				<!-- HANGUL LETTER AE -->
 			<div><span>ᅣ</span><br /><span>ￄ</span></div>				<!-- HANGUL LETTER YA -->
@@ -293,7 +274,6 @@
 			<div><span>ᅵ</span><br /><span>ￜ</span></div>				<!-- HANGUL LETTER I -->
 
 		<!-- FULLWIDTH SIGN -->
-			<br />
 			<div><span>￠</span><br /><span>¢</span></div>				<!-- CENT SIGN -->
 			<div><span>￡</span><br /><span>£</span></div>				<!-- POUND SIGN -->
 			<div><span>￢</span><br /><span>¬</span></div>				<!-- NOT SIGN -->
@@ -303,8 +283,7 @@
 			<div><span>￦</span><br /><span>₩</span></div>				<!-- WON SIGN -->
 
 		<!-- HALFWIDTH SIGN -->
-			<br />
-			<div><span>｜</span><br /><span>￨</span></div>				<!-- FORMS LIGHT VERTICAL -->
+			<div><span>│</span><br /><span>￨</span></div>				<!-- FORMS LIGHT VERTICAL -->
 			<div><span>←</span><br /><span>￩</span></div>				<!-- LEFTWARDS ARROW -->
 			<div><span>↑</span><br /><span>￪</span></div>				<!-- UPWARDS ARROW -->
 			<div><span>→</span><br /><span>￫</span></div>				<!-- RIGHTWARDS ARROW -->
@@ -313,39 +292,26 @@
 			<div><span>○</span><br /><span>￮</span></div>					<!-- WHITE CIRCLE -->
 
 		<!-- HALFWIDTH LATIN -->
-			<br />
 			<div><span>Ａ</span><br /><span>Ａ</span></div>
 			<div><span>Ｂ</span><br /><span>Ｂ</span></div>
 			<div><span>Ｃ</span><br /><span>Ｃ</span></div>
-			<br />
+
 			<div><span>ａ</span><br /><span>ａ</span></div>
 			<div><span>ｂ</span><br /><span>ｂ</span></div>
 			<div><span>ｃ</span><br /><span>ｃ</span></div>
 
 		<!-- FULLWIDTH KANA -->
-			<br />
 			<div><span>あ</span><br /><span>あ</span></div>
 			<div><span>い</span><br /><span>い</span></div>
 			<div><span>う</span><br /><span>う</span></div>
 			<div><span>え</span><br /><span>え</span></div>
 			<div><span>お</span><br /><span>お</span></div>
-			<br />
+
 			<div><span>ア</span><br /><span>ア</span></div>
 			<div><span>イ</span><br /><span>イ</span></div>
 			<div><span>ウ</span><br /><span>ウ</span></div>
 			<div><span>エ</span><br /><span>エ</span></div>
 			<div><span>オ</span><br /><span>オ</span></div>
 		</div>
-		<p id="fontChange" style="display: none;">
-			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and apply it.
-			<button type="button" onclick="setFontFamily()">
-				Apply
-			</button>
-		</p>
-		<script type="text/javascript">
-			if (document.getElementById) {
-				document.getElementById('fontChange').style.display = 'block'
-			}
-		</script>
 	</body>
 </html>

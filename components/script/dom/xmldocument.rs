@@ -13,8 +13,8 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use mime::Mime;
 use script_traits::DocumentActivity;
@@ -106,13 +106,8 @@ impl XMLDocumentMethods for XMLDocument {
         self.upcast::<Document>().SupportedPropertyNames()
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(
-        &self,
-        _cx: *mut JSContext,
-        name: DOMString,
-    ) -> Option<NonNull<JSObject>> {
+    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

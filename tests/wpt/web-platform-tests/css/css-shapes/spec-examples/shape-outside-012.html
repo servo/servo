@@ -34,8 +34,10 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="support/spec-example-utils.js"></script>
     <script>
+    setup({ single_test: true });
     function checkFloats() {
       approxShapeTest('test', 'line-', 2, [181, 199, 201, 199, 181, 0]);
+      done();
     }
     </script>
 </head>

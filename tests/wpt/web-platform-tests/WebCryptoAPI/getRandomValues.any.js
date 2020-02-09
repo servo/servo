@@ -1,16 +1,16 @@
 // Step 1.
 test(function() {
-    assert_throws("TypeMismatchError", function() {
+    assert_throws_dom("TypeMismatchError", function() {
         self.crypto.getRandomValues(new Float32Array(6))
     }, "Float32Array")
-    assert_throws("TypeMismatchError", function() {
+    assert_throws_dom("TypeMismatchError", function() {
         self.crypto.getRandomValues(new Float64Array(6))
     }, "Float64Array")
 
-    assert_throws("TypeMismatchError", function() {
+    assert_throws_dom("TypeMismatchError", function() {
         self.crypto.getRandomValues(new Float32Array(65537))
     }, "Float32Array (too long)")
-    assert_throws("TypeMismatchError", function() {
+    assert_throws_dom("TypeMismatchError", function() {
         self.crypto.getRandomValues(new Float64Array(65537))
     }, "Float64Array (too long)")
 }, "Float arrays")
@@ -35,7 +35,7 @@ test(function() {
 test(function() {
     for (var array in arrays) {
         var maxlength = 65536 / (arrays[array].BYTES_PER_ELEMENT);
-        assert_throws("QuotaExceededError", function() {
+        assert_throws_dom("QuotaExceededError", function() {
             self.crypto.getRandomValues(new arrays[array](maxlength + 1))
         }, "crypto.getRandomValues length over 65536")
     }

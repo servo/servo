@@ -31,7 +31,7 @@ def main():
         if data != generated_test.data:
           logging.error('%s does not match template', generated_test.path)
           return -1
-    except IOError, e:
+    except IOError as e:
       if e.errno == 2:
         logging.error('Missing generated test:\n%s\nFor template:\n%s',
                      generated_test.path,
@@ -42,7 +42,7 @@ def main():
   previous_generated_files = set()
   current_path = os.path.dirname(os.path.realpath(__file__))
   for root, _, filenames in os.walk(current_path):
-    for filename in fnmatch.filter(filenames, 'gen-*.https.html'):
+    for filename in fnmatch.filter(filenames, 'gen-*.https.window.js'):
       previous_generated_files.add(os.path.join(root, filename))
 
   if previous_generated_files != generated_files:

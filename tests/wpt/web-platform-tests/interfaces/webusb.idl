@@ -39,11 +39,11 @@ dictionary USBConnectionEventInit : EventInit {
 };
 
 [
-  Constructor(DOMString type, USBConnectionEventInit eventInitDict),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBConnectionEvent : Event {
+  constructor(DOMString type, USBConnectionEventInit eventInitDict);
   [SameObject] readonly attribute USBDevice device;
 };
 
@@ -110,81 +110,81 @@ dictionary USBControlTransferParameters {
 };
 
 [
-  Constructor(USBTransferStatus status, optional DataView? data),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBInTransferResult {
+  constructor(USBTransferStatus status, optional DataView? data);
   readonly attribute DataView? data;
   readonly attribute USBTransferStatus status;
 };
 
 [
-  Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBOutTransferResult {
+  constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0);
   readonly attribute unsigned long bytesWritten;
   readonly attribute USBTransferStatus status;
 };
 
 [
-  Constructor(USBTransferStatus status, optional DataView? data),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBIsochronousInTransferPacket {
+  constructor(USBTransferStatus status, optional DataView? data);
   readonly attribute DataView? data;
   readonly attribute USBTransferStatus status;
 };
 
 [
-  Constructor(sequence<USBIsochronousInTransferPacket> packets, optional DataView? data),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBIsochronousInTransferResult {
+  constructor(sequence<USBIsochronousInTransferPacket> packets, optional DataView? data);
   readonly attribute DataView? data;
   readonly attribute FrozenArray<USBIsochronousInTransferPacket> packets;
 };
 
 [
-  Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBIsochronousOutTransferPacket {
+  constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0);
   readonly attribute unsigned long bytesWritten;
   readonly attribute USBTransferStatus status;
 };
 
 [
-  Constructor(sequence<USBIsochronousOutTransferPacket> packets),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBIsochronousOutTransferResult {
+  constructor(sequence<USBIsochronousOutTransferPacket> packets);
   readonly attribute FrozenArray<USBIsochronousOutTransferPacket> packets;
 };
 
 [
-  Constructor(USBDevice device, octet configurationValue),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBConfiguration {
+  constructor(USBDevice device, octet configurationValue);
   readonly attribute octet configurationValue;
   readonly attribute DOMString? configurationName;
   readonly attribute FrozenArray<USBInterface> interfaces;
 };
 
 [
-  Constructor(USBConfiguration configuration, octet interfaceNumber),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBInterface {
+  constructor(USBConfiguration configuration, octet interfaceNumber);
   readonly attribute octet interfaceNumber;
   readonly attribute USBAlternateInterface alternate;
   readonly attribute FrozenArray<USBAlternateInterface> alternates;
@@ -192,11 +192,11 @@ interface USBInterface {
 };
 
 [
-  Constructor(USBInterface deviceInterface, octet alternateSetting),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBAlternateInterface {
+  constructor(USBInterface deviceInterface, octet alternateSetting);
   readonly attribute octet alternateSetting;
   readonly attribute octet interfaceClass;
   readonly attribute octet interfaceSubclass;
@@ -217,11 +217,11 @@ enum USBEndpointType {
 };
 
 [
-  Constructor(USBAlternateInterface alternate, octet endpointNumber, USBDirection direction),
   Exposed=(DedicatedWorker,SharedWorker,Window),
   SecureContext
 ]
 interface USBEndpoint {
+  constructor(USBAlternateInterface alternate, octet endpointNumber, USBDirection direction);
   readonly attribute octet endpointNumber;
   readonly attribute USBDirection direction;
   readonly attribute USBEndpointType type;
@@ -242,6 +242,7 @@ dictionary USBPermissionStorage {
   sequence<AllowedUSBDevice> allowedDevices = [];
 };
 
+[Exposed=(DedicatedWorker,SharedWorker,Window)]
 interface USBPermissionResult : PermissionStatus {
   attribute FrozenArray<USBDevice> devices;
 };

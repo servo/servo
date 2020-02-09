@@ -1,5 +1,5 @@
 [package]
-name = "layout_thread"
+name = "layout_thread_2013"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
@@ -10,23 +10,20 @@ publish = false
 name = "layout_thread"
 path = "lib.rs"
 
-[features]
-unstable = ["parking_lot/nightly"]
-
 [dependencies]
 app_units = "0.7"
 atomic_refcell = "0.1"
 crossbeam-channel = "0.3"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.19"
+euclid = "0.20"
 fnv = "1.0"
 fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 histogram = "0.6.8"
-html5ever = "0.23"
-ipc-channel = "0.11"
-layout = {path = "../layout"}
+html5ever = "0.25"
+ipc-channel = "0.12"
+layout = {path = "../layout", package = "layout_2013"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "1"
 libc = "0.2"
@@ -36,7 +33,7 @@ malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-parking_lot = "0.8"
+parking_lot = { version = "0.9", features = ["nightly"] }
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "1"
@@ -53,4 +50,4 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}

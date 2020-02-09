@@ -6,14 +6,16 @@ use crate::dom::bindings::codegen::Bindings::LocationBinding;
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
 use servo_url::{MutableOrigin, ServoUrl};
 
 #[dom_struct]
@@ -38,6 +40,29 @@ impl Location {
         )
     }
 
+    /// https://html.spec.whatwg.org/multipage/#location-object-navigate
+    fn navigate(
+        &self,
+        url: ServoUrl,
+        referrer: Referrer,
+        replacement_flag: HistoryEntryReplacement,
+        reload_triggered: bool,
+    ) {
+        let document = self.window.Document();
+        let referrer_policy = document.get_referrer_policy();
+        let pipeline_id = self.window.upcast::<GlobalScope>().pipeline_id();
+        let load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().immutable().clone()),
+            url,
+            Some(pipeline_id),
+            Some(referrer),
+            referrer_policy,
+        );
+        // TODO: rethrow exceptions, set exceptions enabled flag.
+        self.window
+            .load_url(replacement_flag, reload_triggered, load_data);
+    }
+
     fn get_url(&self) -> ServoUrl {
         self.window.get_url()
     }
@@ -46,7 +71,7 @@ impl Location {
         let mut url = self.window.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
         setter(&mut url, value);
-        self.window.load_url(url, false, false, referrer, None);
+        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
@@ -66,7 +91,7 @@ impl Location {
     pub fn reload_without_origin_check(&self) {
         let url = self.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
-        self.window.load_url(url, true, true, referrer, None);
+        self.navigate(url, referrer, HistoryEntryReplacement::Enabled, true);
     }
 
     #[allow(dead_code)]
@@ -84,7 +109,7 @@ impl LocationMethods for Location {
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
             let referrer = Referrer::ReferrerUrl(base_url.clone());
-            self.window.load_url(url, false, false, referrer, None);
+            self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -96,7 +121,7 @@ impl LocationMethods for Location {
         self.check_same_origin_domain()?;
         let url = self.get_url();
         let referrer = Referrer::ReferrerUrl(url.clone());
-        self.window.load_url(url, true, true, referrer, None);
+        self.navigate(url, referrer, HistoryEntryReplacement::Enabled, true);
         Ok(())
     }
 
@@ -108,7 +133,7 @@ impl LocationMethods for Location {
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
             let referrer = Referrer::ReferrerUrl(base_url.clone());
-            self.window.load_url(url, true, false, referrer, None);
+            self.navigate(url, referrer, HistoryEntryReplacement::Enabled, false);
             Ok(())
         } else {
             Err(Error::Syntax)
@@ -184,7 +209,7 @@ impl LocationMethods for Location {
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
         let referrer = Referrer::ReferrerUrl(current_url.clone());
-        self.window.load_url(url, false, false, referrer, None);
+        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
         Ok(())
     }
 
@@ -237,11 +262,6 @@ impl LocationMethods for Location {
             self.set_url_component(value, UrlHelper::SetProtocol);
         }
         Ok(())
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn Stringifier(&self) -> Fallible<DOMString> {
-        Ok(DOMString::from(self.GetHref()?.0))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="color-custom-property-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  animation: expand 5s;
+  will-change: transform;
+}
+@keyframes expand {
+  0% { --foo: rgb(255, 0, 0); }
+  0.01% { --foo: rgb(127, 127, 0); }
+  99% { --foo: rgb(127, 127, 0); }
+  100% { --foo: rgb(0, 255, 0); }
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  static get inputProperties() { return ['--foo']; }
+  paint(ctx, geom, properties) {
+    ctx.fillStyle = properties.get('--foo').toString();
+    ctx.fillRect(0, 0, 100, 100);
+  }
+});
+</script>
+
+<script>
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<color>',
+  initialValue: 'rgb(0, 0, 0)',
+  inherits: false
+});
+</script>
+
+<script>
+// The test is designed to make sure that when the custom property animation is
+// running on the compositor thread, we are getting the right value.
+// The "importWorkletAndTerminateTestAfterAsyncPaint" has the logic to rAF
+// two frames before taking a screenshot. So the animation is designed to
+// be stable after two frames. That is, the 0.01% of 5s is much less than
+// two frames, and thus after two frames, the value of --foo should be stable.
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

@@ -52,7 +52,7 @@ test(() => {
     start(c) {
       const view = new Uint8Array([1, 2, 3]);
       c.enqueue(view);
-      assert_throws(new TypeError(), () => c.enqueue(view), 'enqueuing an already-detached buffer must throw');
+      assert_throws_js(TypeError, () => c.enqueue(view), 'enqueuing an already-detached buffer must throw');
     },
     type: 'bytes'
   });
@@ -81,7 +81,7 @@ async_test(t => {
       // Detach it by reading into it
       reader.read(c.byobRequest.view);
 
-      assert_throws(new TypeError(), () => c.byobRequest.respond(1),
+      assert_throws_js(TypeError, () => c.byobRequest.respond(1),
         'respond() must throw if the corresponding view has become detached');
     }),
     type: 'bytes'
@@ -100,7 +100,7 @@ async_test(t => {
 
       c.close();
 
-      assert_throws(new TypeError(), () => c.byobRequest.respond(0),
+      assert_throws_js(TypeError, () => c.byobRequest.respond(0),
         'respond() must throw if the corresponding view has become detached');
     }),
     type: 'bytes'
@@ -118,7 +118,7 @@ async_test(t => {
       const view = new Uint8Array([1, 2, 3]);
       reader.read(view);
 
-      assert_throws(new TypeError(), () => c.byobRequest.respondWithNewView(view),
+      assert_throws_js(TypeError, () => c.byobRequest.respondWithNewView(view),
         'respondWithNewView() must throw if passed a detached view');
     }),
     type: 'bytes'
@@ -139,7 +139,7 @@ async_test(t => {
       c.close();
 
       const zeroLengthView = new Uint8Array(view.buffer, 0, 0);
-      assert_throws(new TypeError(), () => c.byobRequest.respondWithNewView(zeroLengthView),
+      assert_throws_js(TypeError, () => c.byobRequest.respondWithNewView(zeroLengthView),
         'respondWithNewView() must throw if passed a (zero-length) view whose buffer has been detached');
     }),
     type: 'bytes'

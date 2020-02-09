@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test advertised required document policy</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>  </head>
+  <body>
+    <h1>Test advertised required document policy</h1>
+<script>
+// The top-level document has no required document policy. Its child frames may,
+// though, and those policies should be set for any subframes.
+
+callbacks = {};
+
+window.addEventListener('message', ev => {
+  var id = ev.data.id;
+  if (id && callbacks[id]) {
+    callbacks[id](ev.data.requiredPolicy || null);
+  }
+});
+
+// Frame tree should be:
+// Top:
+//  <iframe>
+//    <iframe>
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy-nested.html?id=1";
+  callbacks["1"] = t.step_func_done(result => {
+    assert_equals(result, null);
+  });
+  document.body.appendChild(iframe);
+}, "test nested required document policy");
+
+// Frame tree should be:
+// Top:
+//  <iframe policy="unoptimized-lossless-images;bpp=1.1">
+//    <iframe>
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy-nested.html?id=2";
+  iframe.policy = "unoptimized-lossless-images;bpp=1.1";
+  callbacks["2"] = t.step_func_done(result => {
+    assert_equals(result, "unoptimized-lossless-images;bpp=1.1");
+  });
+  document.body.appendChild(iframe);
+}, "test nested required document policy when set by nested frame");
+
+// Frame tree should be:
+// Top:
+//  <iframe policy="unoptimized-lossless-images;bpp=1.1">
+//    <iframe>
+//      <iframe>
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy-nested.html?id=3&level=1";
+  iframe.policy = "unoptimized-lossless-images;bpp=1.1";
+  callbacks["3"] = t.step_func_done(result => {
+    assert_equals(result, "unoptimized-lossless-images;bpp=1.1");
+  });
+  document.body.appendChild(iframe);
+}, "test nested required document policy when set by intermediate nested frame");
+    </script>
+  </body>
+</html>

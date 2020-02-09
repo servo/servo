@@ -64,7 +64,7 @@ pub type BloomFilter = CountingBloomFilter<BloomStorageU8>;
 /// Similarly, using a KeySize of 10 would lead to a 4% false
 /// positive rate for N == 100 and to quite bad false positive
 /// rates for larger N.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CountingBloomFilter<S>
 where
     S: BloomStorage,
@@ -79,9 +79,7 @@ where
     /// Creates a new bloom filter.
     #[inline]
     pub fn new() -> Self {
-        CountingBloomFilter {
-            storage: Default::default(),
-        }
+        Default::default()
     }
 
     #[inline]

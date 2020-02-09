@@ -7,6 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import print_function
+
 import fileinput
 import re
 import random
@@ -28,7 +30,7 @@ def init_variables(if_blocks):
 def deleteStatements(file_name, line_numbers):
     for line in fileinput.input(file_name, inplace=True):
         if fileinput.lineno() not in line_numbers:
-            print line.rstrip()
+            print(line.rstrip())
 
 
 class Strategy:
@@ -48,7 +50,7 @@ class Strategy:
             for line in fileinput.input(file_name, inplace=True):
                 if fileinput.lineno() == mutation_line_number:
                     line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
-                print line.rstrip()
+                print(line.rstrip())
             return mutation_line_number
 
 

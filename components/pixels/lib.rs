@@ -5,7 +5,7 @@
 #[macro_use]
 extern crate serde;
 
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use std::borrow::Cow;
 
@@ -23,7 +23,7 @@ pub enum PixelFormat {
     BGRA8,
 }
 
-pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -85,18 +85,19 @@ pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
 
 pub fn clip(
     mut origin: Point2D<i32>,
-    mut size: Size2D<u32>,
-    surface: Size2D<u32>,
-) -> Option<Rect<u32>> {
+    mut size: Size2D<u64>,
+    surface: Size2D<u64>,
+) -> Option<Rect<u64>> {
     if origin.x < 0 {
-        size.width = size.width.saturating_sub(-origin.x as u32);
+        size.width = size.width.saturating_sub(-origin.x as u64);
         origin.x = 0;
     }
     if origin.y < 0 {
-        size.height = size.height.saturating_sub(-origin.y as u32);
+        size.height = size.height.saturating_sub(-origin.y as u64);
         origin.y = 0;
     }
-    Rect::new(origin.to_u32(), size)
+    let origin = Point2D::new(origin.x as u64, origin.y as u64);
+    Rect::new(origin, size)
         .intersection(&Rect::from_size(surface))
         .filter(|rect| !rect.is_empty())
 }

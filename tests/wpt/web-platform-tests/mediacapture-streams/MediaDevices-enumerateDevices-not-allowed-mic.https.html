@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices: test enumerateDevices should not expose microphone devices if they are not allowed to use</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices">
+<meta name='assert' content='Check that the enumerateDevices() method should not exposed microphone devices.'/>
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the presence of microphone in
+<code>navigator.mediaDevices.enumerateDevices()</code> method.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+promise_test(async () => {
+  assert_not_equals(navigator.mediaDevices.enumerateDevices, undefined, "navigator.mediaDevices.enumerateDevices exists");
+  const deviceList =  await navigator.mediaDevices.enumerateDevices();
+  for (const mediaInfo of deviceList) {
+    assert_not_equals(mediaInfo.deviceId, undefined, "mediaInfo's deviceId should exist.");
+    assert_not_equals(mediaInfo.kind, undefined,     "mediaInfo's kind     should exist.");
+    assert_not_equals(mediaInfo.label, undefined,    "mediaInfo's label    should exist.");
+    assert_not_equals(mediaInfo.groupId, undefined,  "mediaInfo's groupId  should exist.");
+    assert_in_array(mediaInfo.kind, ["videoinput", "audiooutput"]);
+  }
+}, "Microphone is not exposed in mediaDevices.enumerateDevices()");
+</script>
+</body>
+</html>

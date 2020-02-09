@@ -104,13 +104,22 @@ def _process_exec(args):
             if process.returncode:
                 print('"%s" failed with error code %d:' % ('" "'.join(args), process.returncode))
 
+                if sys.version_info >= (3, 0):
+                    stdout = sys.stdout.buffer
+                else:
+                    stdout = sys.stdout
+
                 print('Output:')
                 out.seek(0)
-                shutil.copyfileobj(out, sys.stdout)
+                stdout.flush()
+                shutil.copyfileobj(out, stdout)
+                stdout.flush()
 
                 print('Error:')
                 err.seek(0)
-                shutil.copyfileobj(err, sys.stdout)
+                stdout.flush()
+                shutil.copyfileobj(err, stdout)
+                stdout.flush()
 
                 sys.exit(1)
 
@@ -145,7 +154,7 @@ def wptserve_path(is_firefox, topdir, *paths):
 
 
 def _activate_virtualenv(topdir, is_firefox):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
+    virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     check_exec_path = lambda path: path.startswith(virtualenv_path)
     python = sys.executable   # If there was no python, mach wouldn't have run at all!
     if not python:
@@ -166,7 +175,7 @@ def _activate_virtualenv(topdir, is_firefox):
         # We want to upgrade pip when virtualenv created for the first time
         need_pip_upgrade = True
 
-    execfile(activate_path, dict(__file__=activate_path))
+    exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
 
     python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
     if not python:
@@ -223,7 +232,18 @@ class DummyContext(object):
     pass
 
 
+def is_firefox_checkout(topdir):
+    parentdir = os.path.normpath(os.path.join(topdir, '..'))
+    is_firefox = os.path.isfile(os.path.join(parentdir,
+                                             'build/mach_bootstrap.py'))
+    return is_firefox
+
+
 def bootstrap_command_only(topdir):
+    # we should activate the venv before importing servo.boostrap
+    # because the module requires non-standard python packages
+    _activate_virtualenv(topdir, is_firefox_checkout(topdir))
+
     from servo.bootstrap import bootstrap
 
     context = DummyContext()
@@ -245,7 +265,8 @@ def bootstrap(topdir):
     # We don't support paths with Unicode characters for now
     # https://github.com/servo/servo/issues/10002
     try:
-        topdir.decode('ascii')
+        # Trick to support both python2 and python3
+        topdir.encode().decode('ascii')
     except UnicodeDecodeError:
         print('Cannot run mach in a path with Unicode characters.')
         print('Current path:', topdir)
@@ -258,17 +279,14 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
-    # Ensure we are running Python 2.7+. We put this check here so we generate a
+    # Ensure we are running Python 2.7+ or Python 3.5+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
-    if not (3, 0) > sys.version_info >= (2, 7):
-        print('Python 2.7 or above (but not Python 3) is required to run mach.')
+    if sys.version_info < (2, 7) or (sys.version_info >= (3, 0) and sys.version_info < (3, 5)):
+        print('Python2 (>=2.7) or Python3 (>=3.5) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
-    # See if we're inside a Firefox checkout.
-    parentdir = os.path.normpath(os.path.join(topdir, '..'))
-    is_firefox = os.path.isfile(os.path.join(parentdir,
-                                             'build/mach_bootstrap.py'))
+    is_firefox = is_firefox_checkout(topdir)
 
     _activate_virtualenv(topdir, is_firefox)
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>mo axis height</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#tokenmo">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Element mo correctly uses the axis height parameter from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -25,10 +25,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {

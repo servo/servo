@@ -24,6 +24,8 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "JSON",
       "Map",
       "Math",
+      "MessageChannel",
+      "MessagePort",
       "NaN",
       "Number",
       "Object",
@@ -38,12 +40,12 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "String",
       "Symbol",
       "SyntaxError",
+      "TextMetrics",
       "TypeError",
       "URIError",
       "Uint16Array",
       "Uint32Array",
       "Uint8Array",
-      "Uint8ClampedArray",
       "Uint8ClampedArray",
       "WeakMap",
       "WeakSet",
@@ -53,7 +55,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
     var sources = [
       ecmaGlobals,
       interfaceNamesInGlobalScope,
-      ["AssertionError", "EventWatcher"],
+      ["AssertionError", "EventWatcher", "PreconditionFailedError"],
     ];
 
     var interfaceMap = {};

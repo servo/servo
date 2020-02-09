@@ -251,6 +251,16 @@ function run_all_fp_tests_allow_all(
       },
       'Feature policy "' + feature_name +
           '" can be disabled in cross-origin iframes using "allow" attribute.');
+
+  // 5. Blocked in same-origin iframe with "allow" attribute set to 'none'.
+  async_test(
+      t => {
+        test_feature_availability_with_post_message_result(
+            t, same_origin_frame_pathname, '#' + error_name,
+            feature_name + " 'none'");
+      },
+      'Feature policy "' + feature_name +
+          '" can be disabled in same-origin iframes using "allow" attribute.');
 }
 
 // This function tests that a given policy allows each feature for the correct

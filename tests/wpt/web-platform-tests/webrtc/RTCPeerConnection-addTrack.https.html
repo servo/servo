@@ -46,7 +46,7 @@
     const [track] = stream.getTracks();
 
     pc.close();
-    assert_throws('InvalidStateError', () => pc.addTrack(track, stream))
+    assert_throws_dom('InvalidStateError', () => pc.addTrack(track, stream))
   }, 'addTrack when pc is closed should throw InvalidStateError');
 
   /*
@@ -142,7 +142,7 @@
     const [track] = stream.getTracks();
 
     pc.addTrack(track, stream);
-    assert_throws('InvalidAccessError', () => pc.addTrack(track, stream));
+    assert_throws_dom('InvalidAccessError', () => pc.addTrack(track, stream));
   }, 'Adding the same track multiple times should throw InvalidAccessError');
 
   /*
@@ -190,7 +190,7 @@
     assert_equals(transceiver.sender.track, null);
     assert_equals(transceiver.direction, 'sendrecv');
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track);
@@ -205,7 +205,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const transceiver = caller.addTransceiver(track);
@@ -246,7 +246,7 @@
     assert_equals(transceiver.sender.track, null);
     assert_equals(transceiver.direction, 'recvonly');
 
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track);

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#standard-font-families"/>
+<link rel="match" href="standard-font-family-6-ref.html"/>
+<meta name="assert" content="Standard fonts don't work in @font-face unless they are accessed from their correct names"/>
+<style>
+@font-face {
+    font-family: "DotAppleSystemUIFontSerif";
+    src: local(".AppleSystemUIFontSerif");
+}
+@font-face {
+    font-family: "DotSFNSMono";
+    src: local(".SF NS Mono");
+}
+@font-face {
+    font-family: "DotSFUIMono";
+    src: local(".SF UI Mono");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFontRounded";
+    src: local(".AppleSystemUIFontRounded");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFont";
+    src: local(".AppleSystemUIFont");
+}
+</style>
+</head>
+<body>
+This test makes sure that the design system UI fonts don't work unless they are accessed from their correct names. The test passes if all the text below is rendered in Times.
+<div>
+<div style="display: inline-block; font: 72px 'DotAppleSystemUIFontSerif';">HeJllo</div>
+<div style="display: inline-block; font: 72px 'DotSFNSMono';">HeJllo</div>
+<div style="display: inline-block; font: 72px 'DotSFUIMono';">HeJllo</div>
+<div style="display: inline-block; font: 72px 'DotAppleSystemUIFontRounded';">HeJllo</div>
+<div style="display: inline-block; font: 72px 'DotAppleSystemUIFont';">HeJllo</div>
+</div>
+</body>
+</html>

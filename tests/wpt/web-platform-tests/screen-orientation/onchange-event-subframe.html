@@ -2,28 +2,44 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<iframe id="testIframe" sandbox="allow-scripts allow-same-origin"
-  style="display:none" src="resources/iframe-listen-orientation-change.html">
+<iframe
+  id="testIframe"
+  sandbox="allow-scripts allow-same-origin"
+  style="display:none"
+  src="resources/iframe-listen-orientation-change.html"
+>
 </iframe>
 
 <script>
-promise_test(async t => {
-  let orientations = [
-    'portrait-primary',
-    'portrait-secondary',
-    'landscape-primary',
-    'landscape-secondary'
-  ];
-  if (screen.orientation.type.includes('portrait')) {
-    orientations = orientations.reverse();
-  }
-  const messageWatcher = new EventWatcher(t, window, "message");
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      try {
+      await document.exitFullscreen();
+      } catch (e) {}
+      screen.orientation.unlock();
+    });
+    await test_driver.bless("request fullscreen", () => {
+      return document.documentElement.requestFullscreen();
+    });
+    let orientations = [
+      "portrait-primary",
+      "portrait-secondary",
+      "landscape-primary",
+      "landscape-secondary",
+    ];
+    if (screen.orientation.type.includes("portrait")) {
+      orientations = orientations.reverse();
+    }
+    const messageWatcher = new EventWatcher(t, window, "message");
 
-  for (const orientation of orientations) {
-    await screen.orientation.lock(orientation);
-    const message = await messageWatcher.wait_for("message");
-    assert_equals(message.data, orientation, "subframe receives orientation change event");
-  }
-  screen.orientation.unlock();
-}, "Test subframes receive orientation change events");
+    for (const orientation of orientations) {
+      await screen.orientation.lock(orientation);
+      const message = await messageWatcher.wait_for("message");
+      assert_equals(
+        message.data,
+        orientation,
+        "subframe receives orientation change event"
+      );
+    }
+  }, "Test subframes receive orientation change events");
 </script>

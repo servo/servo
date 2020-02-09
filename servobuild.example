@@ -29,6 +29,9 @@ rustc-with-gold = true
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
 
+# Enable `debug_assert!` macros in release mode
+debug-assertions = false
+
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
 
@@ -39,6 +42,9 @@ webgl-backtrace = false
 # When a DOM exception is reported, print the stack trace for the content JS and native Rust code
 # that triggered it.
 dom-backtrace = false
+
+# Default to the “2020” implementation of CSS layout instead of the “2013” one.
+layout-2020 = false
 
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"

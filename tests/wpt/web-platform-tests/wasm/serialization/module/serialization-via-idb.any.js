@@ -13,7 +13,7 @@ async_test(t => {
     const db = e.target.result;
     const store = db.createObjectStore("store", { keyPath: "key" });
 
-    assert_throws("DataCloneError", () => {
+    assert_throws_dom("DataCloneError", () => {
       store.put({ key: 1, property: createEmptyWasmModule() });
     });
     t.done();
@@ -30,7 +30,7 @@ async_test(t => {
     let getter1Called = false;
     let getter2Called = false;
 
-    assert_throws("DataCloneError", () => {
+    assert_throws_dom("DataCloneError", () => {
       store.put({ key: 1, property: [
         { get x() { getter1Called = true; return 5; } },
         createEmptyWasmModule(),

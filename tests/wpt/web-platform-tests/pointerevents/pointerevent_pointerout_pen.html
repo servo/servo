@@ -24,22 +24,22 @@
             // will fail unless the async_test is created with the var name "test_pointerEvent".
             add_completion_callback(showPointerTypes);
 
-            var eventTested = false;
             var isPointerupReceived = false;
             var detected_pointertypes = {};
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 // When a pen stylus leaves the hover range detectable by the digitizer the pointerout event must be dispatched.
                 // TA: 7.2
                 on_event(target0, "pointerout", function (event) {
                     detected_pointertypes[event.pointerType] = true;
                     if(event.pointerType == 'pen') {
-                        if (eventTested == false) {
-                            eventTested = true;
+                        // Make sure the test finishes after all the input actions are completed.
+                        actions_promise.then( () => {
                             test_pointerout.done();
-                        }
+                        });
                     }
                     else {
                         test_pointerout.step(function() {
@@ -50,7 +50,7 @@
                 });
 
                 // Inject pen inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                   .addPointer("PenPointer1", "pen")
                   .pointerMove(0, 0, {origin: target0})
                   .pointerMove(0, 0)

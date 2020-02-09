@@ -4,11 +4,11 @@
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 
-[Constructor(DOMString type,
- optional ExtendableEventInit eventInitDict),
- Exposed=ServiceWorker,
+[Exposed=ServiceWorker,
  Pref="dom.serviceworker.enabled"]
 interface ExtendableEvent : Event {
+  [Throws] constructor(DOMString type,
+ optional ExtendableEventInit eventInitDict = {});
   [Throws] void waitUntil(/*Promise<*/any/*>*/ f);
 };
 

@@ -3,8 +3,8 @@
 <title>Canvas test: security.pattern.image.strokeStyle.redirect</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>security.pattern.image.strokeStyle.redirect</h1>
@@ -22,8 +22,8 @@ _addTest(function(canvas, ctx) {
 var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
 ctx.strokeStyle = p;
 ctx.strokeStyle = 'red';
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
-assert_throws("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
+assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
+assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
 
 
 });

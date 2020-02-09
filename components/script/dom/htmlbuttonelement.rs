@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -18,7 +18,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
 use crate::dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
-use crate::dom::node::{document_from_node, window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -34,7 +34,6 @@ enum ButtonType {
     Submit,
     Reset,
     Button,
-    Menu,
 }
 
 #[dom_struct]
@@ -42,6 +41,7 @@ pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
 }
 
 impl HTMLButtonElement {
@@ -59,6 +59,7 @@ impl HTMLButtonElement {
             ),
             button_type: Cell::new(ButtonType::Submit),
             form_owner: Default::default(),
+            labels_node_list: Default::default(),
         }
     }
 
@@ -97,7 +98,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_enumerated_getter!(Type, "type", "submit", "reset" | "button" | "menu");
+    make_enumerated_getter!(Type, "type", "submit", "reset" | "button");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
@@ -150,9 +151,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 }
 
 impl HTMLButtonElement {
@@ -216,7 +215,6 @@ impl VirtualMethods for HTMLButtonElement {
                     let value = match &**attr.value() {
                         "reset" => ButtonType::Reset,
                         "button" => ButtonType::Button,
-                        "menu" => ButtonType::Menu,
                         _ => ButtonType::Submit,
                     };
                     self.button_type.set(value);
@@ -309,7 +307,7 @@ impl Activatable for HTMLButtonElement {
                 if let Some(owner) = self.form_owner() {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::ButtonElement(self.clone()),
+                        FormSubmitter::ButtonElement(self),
                     );
                 }
             },
@@ -321,30 +319,5 @@ impl Activatable for HTMLButtonElement {
             },
             _ => (),
         }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
-        let doc = document_from_node(self);
-        let node = doc.upcast::<Node>();
-        let owner = self.form_owner();
-        if owner.is_none() || self.upcast::<Element>().click_in_progress() {
-            return;
-        }
-        node.query_selector_iter(DOMString::from("button[type=submit]"))
-            .unwrap()
-            .filter_map(DomRoot::downcast::<HTMLButtonElement>)
-            .find(|r| r.form_owner() == owner)
-            .map(|s| {
-                synthetic_click_activation(
-                    s.as_element(),
-                    ctrl_key,
-                    shift_key,
-                    alt_key,
-                    meta_key,
-                    ActivationSource::NotFromClick,
-                )
-            });
     }
 }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -12,6 +13,8 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -43,10 +46,12 @@ use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
 use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
+use crate::dom::nodelist::{NodeList, RadioListMode};
+use crate::dom::radionodelist::RadioNodeList;
+use crate::dom::submitevent::SubmitEvent;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_thread::MainThreadScriptMsg;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -56,14 +61,18 @@ use hyper::Method;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
-use script_traits::LoadData;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use url::form_urlencoded::Serializer;
-use url::UrlQuery;
+
+use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
+use std::collections::HashMap;
+use time::{now, Duration, Tm};
+
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -77,6 +86,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
+    past_names_map: DomRefCell<HashMap<DOMString, (Dom<Element>, Tm)>>,
 }
 
 impl HTMLFormElement {
@@ -92,6 +102,7 @@ impl HTMLFormElement {
             elements: Default::default(),
             generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
+            past_names_map: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -106,6 +117,69 @@ impl HTMLFormElement {
             document,
             HTMLFormElementBinding::Wrap,
         )
+    }
+
+    fn filter_for_radio_list(mode: RadioListMode, child: &Element, name: &DOMString) -> bool {
+        if let Some(child) = child.downcast::<Element>() {
+            match mode {
+                RadioListMode::ControlsExceptImageInputs => {
+                    if child
+                        .downcast::<HTMLElement>()
+                        .map_or(false, |c| c.is_listed_element())
+                    {
+                        if (child.has_attribute(&local_name!("id")) &&
+                            child.get_string_attribute(&local_name!("id")) == *name) ||
+                            (child.has_attribute(&local_name!("name")) &&
+                                child.get_string_attribute(&local_name!("name")) == *name)
+                        {
+                            if let Some(inp) = child.downcast::<HTMLInputElement>() {
+                                // input, only return it if it's not image-button state
+                                return inp.input_type() != InputType::Image;
+                            } else {
+                                // control, but not an input
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                },
+                RadioListMode::Images => {
+                    if child.is::<HTMLImageElement>() {
+                        if (child.has_attribute(&local_name!("id")) &&
+                            child.get_string_attribute(&local_name!("id")) == *name) ||
+                            (child.has_attribute(&local_name!("name")) &&
+                                child.get_string_attribute(&local_name!("name")) == *name)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+            }
+        }
+        false
+    }
+
+    pub fn nth_for_radio_list(
+        &self,
+        index: u32,
+        mode: RadioListMode,
+        name: &DOMString,
+    ) -> Option<DomRoot<Node>> {
+        self.controls
+            .borrow()
+            .iter()
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &*n, name))
+            .nth(index as usize)
+            .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
+    }
+
+    pub fn count_for_radio_list(&self, mode: RadioListMode, name: &DOMString) -> u32 {
+        self.controls
+            .borrow()
+            .iter()
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &**n, name))
+            .count() as u32
     }
 }
 
@@ -240,7 +314,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = window_from_node(self);
-            HTMLFormControlsCollection::new(&window, self.upcast(), filter)
+            HTMLFormControlsCollection::new(&window, self, filter)
         }))
     }
 
@@ -253,6 +327,197 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         let elements = self.Elements();
         elements.IndexedGetter(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
+    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+        let window = window_from_node(self);
+
+        // Step 1
+        let mut candidates =
+            RadioNodeList::new_controls_except_image_inputs(&window, self, name.clone());
+        let mut candidates_length = candidates.Length();
+
+        // Step 2
+        if candidates_length == 0 {
+            candidates = RadioNodeList::new_images(&window, self, name.clone());
+            candidates_length = candidates.Length();
+        }
+
+        let mut past_names_map = self.past_names_map.borrow_mut();
+
+        // Step 3
+        if candidates_length == 0 {
+            if past_names_map.contains_key(&name) {
+                return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+                    &*past_names_map.get(&name).unwrap().0,
+                )));
+            }
+            return None;
+        }
+
+        // Step 4
+        if candidates_length > 1 {
+            return Some(RadioNodeListOrElement::RadioNodeList(candidates));
+        }
+
+        // Step 5
+        // candidates_length is 1, so we can unwrap item 0
+        let element_node = candidates.upcast::<NodeList>().Item(0).unwrap();
+        past_names_map.insert(
+            name,
+            (
+                Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+                now(),
+            ),
+        );
+
+        // Step 6
+        return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+            &*element_node.downcast::<Element>().unwrap(),
+        )));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
+    #[allow(non_snake_case)]
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // Step 1
+        #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+        enum SourcedNameSource {
+            Id,
+            Name,
+            Past(Duration),
+        }
+
+        impl SourcedNameSource {
+            fn is_past(&self) -> bool {
+                match self {
+                    SourcedNameSource::Past(..) => true,
+                    _ => false,
+                }
+            }
+        }
+
+        struct SourcedName {
+            name: DOMString,
+            element: DomRoot<Element>,
+            source: SourcedNameSource,
+        }
+
+        let mut sourcedNamesVec: Vec<SourcedName> = Vec::new();
+
+        let controls = self.controls.borrow();
+
+        // Step 2
+        for child in controls.iter() {
+            if child
+                .downcast::<HTMLElement>()
+                .map_or(false, |c| c.is_listed_element())
+            {
+                if child.has_attribute(&local_name!("id")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Id,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+                if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Name,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // Step 3
+        for child in controls.iter() {
+            if child.is::<HTMLImageElement>() {
+                if child.has_attribute(&local_name!("id")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("id")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Id,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+                if child.has_attribute(&local_name!("name")) {
+                    let entry = SourcedName {
+                        name: child.get_string_attribute(&local_name!("name")),
+                        element: DomRoot::from_ref(&*child),
+                        source: SourcedNameSource::Name,
+                    };
+                    sourcedNamesVec.push(entry);
+                }
+            }
+        }
+
+        // Step 4
+        let past_names_map = self.past_names_map.borrow();
+        for (key, val) in past_names_map.iter() {
+            let entry = SourcedName {
+                name: key.clone(),
+                element: DomRoot::from_ref(&*val.0),
+                source: SourcedNameSource::Past(now() - val.1), // calculate difference now()-val.1 to find age
+            };
+            sourcedNamesVec.push(entry);
+        }
+
+        // Step 5
+        // TODO need to sort as per spec.
+        // if a.CompareDocumentPosition(b) returns 0 that means a=b in which case
+        // the remaining part where sorting is to be done by putting entries whose source is id first,
+        // then entries whose source is name, and finally entries whose source is past,
+        // and sorting entries with the same element and source by their age, oldest first.
+
+        // if a.CompareDocumentPosition(b) has set NodeConstants::DOCUMENT_POSITION_FOLLOWING
+        // (this can be checked by bitwise operations) then b would follow a in tree order and
+        // Ordering::Less should be returned in the closure else Ordering::Greater
+
+        sourcedNamesVec.sort_by(|a, b| {
+            if a.element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
+                0
+            {
+                if a.source.is_past() && b.source.is_past() {
+                    b.source.cmp(&a.source)
+                } else {
+                    a.source.cmp(&b.source)
+                }
+            } else {
+                if a.element
+                    .upcast::<Node>()
+                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                }
+            }
+        });
+
+        // Step 6
+        sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
+
+        // Step 7-8
+        let mut namesVec: Vec<DOMString> = Vec::new();
+        for elem in sourcedNamesVec.iter() {
+            if namesVec
+                .iter()
+                .find(|name| name.to_string() == elem.name.to_string())
+                .is_none()
+            {
+                namesVec.push(elem.name.clone());
+            }
+        }
+
+        return namesVec;
     }
 }
 
@@ -340,10 +605,29 @@ impl HTMLFormElement {
             }
         }
         // Step 7
+        // spec calls this "submitterButton" but it doesn't have to be a button,
+        // just not be the form itself
+        let submitter_button = match submitter {
+            FormSubmitter::FormElement(f) => {
+                if f == self {
+                    None
+                } else {
+                    Some(f.upcast::<HTMLElement>())
+                }
+            },
+            FormSubmitter::InputElement(i) => Some(i.upcast::<HTMLElement>()),
+            FormSubmitter::ButtonElement(b) => Some(b.upcast::<HTMLElement>()),
+        };
         if submit_method_flag == SubmittedFrom::NotFromForm {
-            let event = self
-                .upcast::<EventTarget>()
-                .fire_bubbling_cancelable_event(atom!("submit"));
+            let event = SubmitEvent::new(
+                &self.global(),
+                atom!("submit"),
+                true,
+                true,
+                submitter_button.map(|s| DomRoot::from_ref(s)),
+            );
+            let event = event.upcast::<Event>();
+            event.fire(self.upcast::<EventTarget>());
             if event.DefaultPrevented() {
                 return;
             }
@@ -358,7 +642,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 9
-        let mut form_data = match self.get_form_dataset(Some(submitter)) {
+        let mut form_data = match self.get_form_dataset(Some(submitter), Some(encoding)) {
             Some(form_data) => form_data,
             None => return,
         };
@@ -399,6 +683,7 @@ impl HTMLFormElement {
         };
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
+            LoadOrigin::Script(doc.origin().immutable().clone()),
             action_components,
             None,
             Some(Referrer::ReferrerUrl(target_document.url())),
@@ -461,13 +746,12 @@ impl HTMLFormElement {
     ) {
         let charset = encoding.name();
 
-        self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
-            .clear()
-            .extend_pairs(
-                form_data
-                    .into_iter()
-                    .map(|field| (field.name.clone(), field.replace_value(charset))),
-            );
+        self.set_url_query_pairs(
+            &mut load_data.url,
+            form_data
+                .iter()
+                .map(|field| (&*field.name, field.replace_value(charset))),
+        );
 
         self.plan_to_navigate(load_data, target);
     }
@@ -490,13 +774,12 @@ impl HTMLFormElement {
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
 
                 let mut url = load_data.url.clone();
-                self.set_encoding_override(url.as_mut_url().query_pairs_mut())
-                    .clear()
-                    .extend_pairs(
-                        form_data
-                            .into_iter()
-                            .map(|field| (field.name.clone(), field.replace_value(charset))),
-                    );
+                self.set_url_query_pairs(
+                    &mut url,
+                    form_data
+                        .iter()
+                        .map(|field| (&*field.name, field.replace_value(charset))),
+                );
 
                 url.query().unwrap_or("").to_string().into_bytes()
             },
@@ -519,17 +802,21 @@ impl HTMLFormElement {
         self.plan_to_navigate(load_data, target);
     }
 
-    fn set_encoding_override<'a>(
+    fn set_url_query_pairs<'a>(
         &self,
-        mut serializer: Serializer<UrlQuery<'a>>,
-    ) -> Serializer<UrlQuery<'a>> {
+        url: &mut servo_url::ServoUrl,
+        pairs: impl Iterator<Item = (&'a str, String)>,
+    ) {
         let encoding = self.pick_encoding();
-        serializer.custom_encoding_override(move |s| encoding.encode(s).0);
-        serializer
+        url.as_mut_url()
+            .query_pairs_mut()
+            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .clear()
+            .extend_pairs(pairs);
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(&self, mut load_data: LoadData, target: &Window) {
         // Step 1
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
@@ -537,19 +824,35 @@ impl HTMLFormElement {
         let generation_id = GenerationId(self.generation_id.get().0 + 1);
         self.generation_id.set(generation_id);
 
-        // Step 2.
+        // Step 2
+        let elem = self.upcast::<Element>();
+        let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
+            Some(ref link_types) if link_types.Value().contains("noreferrer") => {
+                Referrer::NoReferrer
+            },
+            _ => Referrer::Client,
+        };
+
+        let referrer_policy = target.Document().get_referrer_policy();
         let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
-        let script_chan = target.main_thread_script_chan().clone();
+        load_data.creator_pipeline_id = Some(pipeline_id);
+        load_data.referrer = Some(referrer);
+        load_data.referrer_policy = referrer_policy;
+
+        // Step 4.
         let this = Trusted::new(self);
+        let window = Trusted::new(target);
         let task = task!(navigate_to_form_planned_navigation: move || {
             if generation_id != this.root().generation_id.get() {
                 return;
             }
-            script_chan.send(MainThreadScriptMsg::Navigate(
-                pipeline_id,
-                load_data,
-                false,
-            )).unwrap();
+            window
+                .root()
+                .load_url(
+                    HistoryEntryReplacement::Disabled,
+                    false,
+                    load_data,
+                );
         });
 
         // Step 3.
@@ -627,8 +930,14 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
+    /// terminology note:  "form data set" = "entry list"
     /// Steps range from 3 to 5
-    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    /// 5.x substeps are mostly handled inside element-specific methods
+    fn get_unclean_dataset(
+        &self,
+        submitter: Option<FormSubmitter>,
+        encoding: Option<&'static Encoding>,
+    ) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
         for child in controls.iter() {
@@ -650,7 +959,7 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
 
-                        data_set.append(&mut input.form_datums(submitter));
+                        data_set.append(&mut input.form_datums(submitter, encoding));
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -687,7 +996,11 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Option<Vec<FormDatum>> {
+    pub fn get_form_dataset(
+        &self,
+        submitter: Option<FormSubmitter>,
+        encoding: Option<&'static Encoding>,
+    ) -> Option<Vec<FormDatum>> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4
             let mut buf = "".to_owned();
@@ -728,7 +1041,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let mut ret = self.get_unclean_dataset(submitter);
+        let mut ret = self.get_unclean_dataset(submitter, encoding);
         for datum in &mut ret {
             match &*datum.ty {
                 "file" | "textarea" => (), // TODO
@@ -808,7 +1121,7 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLOutputElement,
                 )) => {
-                    // Unimplemented
+                    child.downcast::<HTMLOutputElement>().unwrap().reset();
                 },
                 _ => {},
             }
@@ -831,6 +1144,13 @@ impl HTMLFormElement {
             .iter()
             .position(|c| &**c == control)
             .map(|idx| controls.remove(idx));
+
+        // https://html.spec.whatwg.org/multipage#forms.html#the-form-element:past-names-map-5
+        // "If an element listed in a form element's past names map
+        // changes form owner, then its entries must be removed
+        // from that map."
+        let mut past_names_map = self.past_names_map.borrow_mut();
+        past_names_map.retain(|_k, v| v.0 != control);
     }
 }
 
@@ -1076,7 +1396,7 @@ pub trait FormControl: DomObject {
             if let Some(ref new_owner) = new_owner {
                 new_owner.add_control(self);
             }
-            self.set_form_owner(new_owner.deref());
+            self.set_form_owner(new_owner.as_deref());
         }
     }
 
@@ -1348,7 +1668,7 @@ pub fn encode_multipart_form_data(
         }
     }
 
-    let mut boundary_bytes = format!("\r\n--{}--", boundary).into_bytes();
+    let mut boundary_bytes = format!("\r\n--{}--\r\n", boundary).into_bytes();
     result.append(&mut boundary_bytes);
 
     result

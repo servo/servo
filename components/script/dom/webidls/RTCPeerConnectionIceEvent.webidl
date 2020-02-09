@@ -4,9 +4,9 @@
 
 // https://w3c.github.io/webrtc-pc/#rtcpeerconnectioniceevent
 
-[Constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict),
- Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCPeerConnectionIceEvent : Event {
+    [Throws] constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict = {});
     readonly attribute RTCIceCandidate? candidate;
     readonly attribute DOMString?       url;
 };

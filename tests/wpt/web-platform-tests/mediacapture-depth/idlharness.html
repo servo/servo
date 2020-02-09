@@ -4,7 +4,7 @@
 <head>
   <meta charset=utf-8>
   <title>Media Capture Depth Stream Extensions IDL test</title>
-  <link rel="help" href="See https://w3c.github.io/mediacapture-depth/">
+  <link rel="help" href="https://w3c.github.io/mediacapture-depth/">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/WebIDLParser.js"></script>
@@ -15,15 +15,13 @@
   <script>
     'use strict';
 
-    promise_test(async () => {
-      const idl = await fetch('/interfaces/mediacapture-depth.idl').then(r => r.text());
-      const main = await fetch('/interfaces/mediacapture-streams.idl').then(r => r.text());
-
-      var idl_array = new IdlArray();
-      idl_array.add_idls(idl);
-      idl_array.add_dependency_idls(main);
-      idl_array.test();
-    }, 'mediacapture-depth interfaces');
+    idl_test(
+      ['mediacapture-depth'],
+      ['mediacapture-streams'],
+      idl_array => {
+        // No objects, spec defines dictionaries only.
+      }
+    );
   </script>
   <div id="log"></div>
 </body>

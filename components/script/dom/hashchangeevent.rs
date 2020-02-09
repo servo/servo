@@ -60,6 +60,7 @@ impl HashChangeEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,

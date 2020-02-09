@@ -9,24 +9,30 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::{TypedScale, TypedSize2D};
+use embedder_traits::EventLoopWaker;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
+use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId};
+use msg::constellation_msg::{
+    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
+};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
 use net_traits::{IpcSend, ResourceThreads};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
+use script_traits::{
+    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan,
+};
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
@@ -42,8 +48,6 @@ use std::process;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use style_traits::CSSPixel;
-use style_traits::DevicePixel;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -78,7 +82,7 @@ pub struct Pipeline {
 
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
-    pub running_animations: bool,
+    pub animation_state: AnimationState,
 
     /// The child browsing contexts of this pipeline (these are iframes in the document).
     pub children: Vec<BrowsingContextId>,
@@ -119,6 +123,9 @@ pub struct InitialPipelineState {
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
 
+    /// A sender to request pipeline namespace ids.
+    pub namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
@@ -157,19 +164,16 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: TypedSize2D<f32, CSSPixel>,
+    pub window_size: WindowSizeData,
 
-    /// Information about the device pixel ratio.
-    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+    /// The ID of the pipeline namespace for this script thread.
+    pub pipeline_namespace_id: PipelineNamespaceId,
 
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
 
     /// Information about the page to load.
     pub load_data: LoadData,
-
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
 
     /// Whether the browsing context in which pipeline is embedded is visible
     /// for the purposes of scheduling and resource management. This field is
@@ -178,7 +182,10 @@ pub struct InitialPipelineState {
     pub prev_visibility: bool,
 
     /// Webrender api.
-    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_image_api_sender: net_traits::WebrenderIpcSender,
+
+    /// Webrender api.
+    pub webrender_api_sender: script_traits::WebrenderIpcSender,
 
     /// The ID of the document processed by this script thread.
     pub webrender_document: webrender_api::DocumentId,
@@ -188,6 +195,15 @@ pub struct InitialPipelineState {
 
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// The XR device registry
+    pub webxr_registry: webxr_api::Registry,
+
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
+
+    /// Mechanism to force the compositor to process events.
+    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 pub struct NewPipeline {
@@ -207,16 +223,6 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
 
-        let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
-            ipc::channel().expect("Pipeline layout content shutdown chan");
-
-        let window_size = WindowSizeData {
-            initial_viewport: state.window_size,
-            device_pixel_ratio: state.device_pixel_ratio,
-        };
-
-        let url = state.load_data.url.clone();
-
         let (script_chan, sampler_chan) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
@@ -226,9 +232,8 @@ impl Pipeline {
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     opener: state.opener,
                     load_data: state.load_data.clone(),
-                    window_size: window_size,
+                    window_size: state.window_size,
                     pipeline_port: pipeline_port,
-                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
                 };
 
                 if let Err(e) =
@@ -266,9 +271,6 @@ impl Pipeline {
                     script_to_devtools_chan
                 });
 
-                let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
-                    ipc::channel().expect("Pipeline script content process shutdown chan");
-
                 let mut unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
                     browsing_context_id: state.browsing_context_id,
@@ -276,6 +278,7 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    namespace_request_sender: state.namespace_request_sender,
                     background_hang_monitor_to_constellation_chan: state
                         .background_hang_monitor_to_constellation_chan
                         .clone(),
@@ -288,7 +291,7 @@ impl Pipeline {
                     resource_threads: state.resource_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: window_size,
+                    window_size: state.window_size,
                     layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
@@ -297,14 +300,13 @@ impl Pipeline {
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_port: pipeline_port,
                     pipeline_namespace_id: state.pipeline_namespace_id,
-                    layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
-                    layout_content_process_shutdown_port: layout_content_process_shutdown_port,
-                    script_content_process_shutdown_chan: script_content_process_shutdown_chan,
-                    script_content_process_shutdown_port: script_content_process_shutdown_port,
                     webrender_api_sender: state.webrender_api_sender,
+                    webrender_image_api_sender: state.webrender_image_api_sender,
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
                     webvr_chan: state.webvr_chan,
+                    webxr_registry: state.webxr_registry,
+                    player_context: state.player_context,
                 };
 
                 // Spawn the child process.
@@ -320,7 +322,11 @@ impl Pipeline {
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
+                        false,
+                        register,
+                        state.event_loop_waker,
+                    );
                     None
                 };
 
@@ -336,7 +342,6 @@ impl Pipeline {
             script_chan,
             pipeline_chan,
             state.compositor_proxy,
-            url,
             state.prev_visibility,
             state.load_data,
         );
@@ -356,7 +361,6 @@ impl Pipeline {
         event_loop: Rc<EventLoop>,
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
-        url: ServoUrl,
         is_visible: bool,
         load_data: LoadData,
     ) -> Pipeline {
@@ -368,9 +372,9 @@ impl Pipeline {
             event_loop: event_loop,
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
-            url: url,
+            url: load_data.url.clone(),
             children: vec![],
-            running_animations: false,
+            animation_state: AnimationState::NoAnimationsPresent,
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
@@ -482,6 +486,7 @@ pub struct UnprivilegedPipelineContent {
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
+    namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     sampling_profiler_port: Option<IpcReceiver<SamplerControlMsg>>,
@@ -502,14 +507,13 @@ pub struct UnprivilegedPipelineContent {
     prefs: HashMap<String, PrefValue>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
-    layout_content_process_shutdown_chan: IpcSender<()>,
-    layout_content_process_shutdown_port: IpcReceiver<()>,
-    script_content_process_shutdown_chan: IpcSender<()>,
-    script_content_process_shutdown_port: IpcReceiver<()>,
-    webrender_api_sender: webrender_api::RenderApiSender,
+    webrender_api_sender: script_traits::WebrenderIpcSender,
+    webrender_image_api_sender: net_traits::WebrenderIpcSender,
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webvr_chan: Option<IpcSender<WebVRMsg>>,
+    webxr_registry: webxr_api::Registry,
+    player_context: WindowGLContext,
 }
 
 impl UnprivilegedPipelineContent {
@@ -517,11 +521,16 @@ impl UnprivilegedPipelineContent {
         self,
         wait_for_completion: bool,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
     {
-        let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
+        // Setup pipeline-namespace-installing for all threads in this process.
+        // Idempotent in single-process mode.
+        PipelineNamespace::set_installer_sender(self.namespace_request_sender);
+
+        let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_image_api_sender.clone()));
         let paint_time_metrics = PaintTimeMetrics::new(
             self.id,
             self.time_profiler_chan.clone(),
@@ -529,6 +538,7 @@ impl UnprivilegedPipelineContent {
             self.script_chan.clone(),
             self.load_data.url.clone(),
         );
+        let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let layout_thread_busy_flag = Arc::new(AtomicBool::new(false));
         let layout_pair = STF::create(
             InitialScriptState {
@@ -551,12 +561,15 @@ impl UnprivilegedPipelineContent {
                 devtools_chan: self.devtools_chan,
                 window_size: self.window_size,
                 pipeline_namespace_id: self.pipeline_namespace_id,
-                content_process_shutdown_chan: self.script_content_process_shutdown_chan,
+                content_process_shutdown_chan: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
+                webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
+                player_context: self.player_context.clone(),
+                event_loop_waker,
             },
             self.load_data.clone(),
             self.opts.profile_script_events,
@@ -586,14 +599,12 @@ impl UnprivilegedPipelineContent {
             self.font_cache_thread,
             self.time_profiler_chan,
             self.mem_profiler_chan,
-            Some(self.layout_content_process_shutdown_chan),
             self.webrender_api_sender,
             self.webrender_document,
             paint_time_metrics,
             layout_thread_busy_flag.clone(),
             self.opts.load_webfonts_synchronously,
-            self.opts.initial_window_size,
-            self.opts.device_pixels_per_px,
+            self.window_size,
             self.opts.dump_display_list,
             self.opts.dump_display_list_json,
             self.opts.dump_style_tree,
@@ -605,8 +616,10 @@ impl UnprivilegedPipelineContent {
         );
 
         if wait_for_completion {
-            let _ = self.script_content_process_shutdown_port.recv();
-            let _ = self.layout_content_process_shutdown_port.recv();
+            match content_process_shutdown_port.recv() {
+                Ok(()) => {},
+                Err(_) => error!("Script-thread shut-down unexpectedly"),
+            }
         }
     }
 

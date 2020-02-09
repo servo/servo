@@ -11,29 +11,35 @@ name = "canvas"
 path = "lib.rs"
 
 [features]
-azure_backend = ["azure"]
-default = ["azure_backend"]
+canvas2d-azure = ["azure"]
+canvas2d-raqote = ["raqote"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-raqote_backend = ["raqote"]
-no_wgl = ["offscreen_gl_context/no_wgl"]
+no-wgl = ["surfman/sm-no-wgl"]
 
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", optional = true}
+bitflags = "1.0"
 byteorder = "1"
 canvas_traits = {path = "../canvas_traits"}
-compositing = {path = "../compositing"}
-cssparser = "0.25"
-euclid = "0.19"
+crossbeam-channel = "0.3"
+cssparser = "0.27"
+embedder_traits = {path = "../embedder_traits"}
+euclid = "0.20"
 fnv = "1.0"
 gleam = "0.6.7"
 half = "1"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 log = "0.4"
 num-traits = "0.2"
-offscreen_gl_context = {version = "0.22", features = ["serde", "osmesa"]}
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
-serde_bytes = "0.10"
 servo_config = {path = "../config"}
+sparkle = "0.1.16"
 webrender = {git = "https://github.com/servo/webrender"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
+webrender_traits = {path = "../webrender_traits"}
+webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
+# NOTE: the sm-angle feature only enables angle on windows, not other platforms!
+surfman = { version = "0.1", features = ["sm-angle", "sm-osmesa"] }
+surfman-chains = "0.2"
+surfman-chains-api = "0.2"

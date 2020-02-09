@@ -1,4 +1,3 @@
-from cgi import escape
 from collections import deque
 import base64
 import gzip as gzip_module
@@ -7,9 +6,14 @@ import os
 import re
 import time
 import uuid
-from six.moves import StringIO
 
+from six.moves import StringIO
 from six import text_type, binary_type
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))
@@ -347,18 +351,20 @@ def sub(request, response, escape_type="html"):
       A dictionary of HTTP headers in the request.
     header_or_default(header, default)
       The value of an HTTP header, or a default value if it is absent.
-      For example:
+      For example::
 
         {{header_or_default(X-Test, test-header-absent)}}
+
     GET
       A dictionary of query parameters supplied with the request.
     uuid()
       A pesudo-random UUID suitable for usage with stash
     file_hash(algorithm, filepath)
       The cryptographic hash of a file. Supported algorithms: md5, sha1,
-      sha224, sha256, sha384, and sha512. For example:
+      sha224, sha256, sha384, and sha512. For example::
 
         {{file_hash(md5, dom/interfaces.html)}}
+
     fs_path(filepath)
       The absolute path to a file inside the wpt document root
 
@@ -369,16 +375,15 @@ def sub(request, response, escape_type="html"):
       {{domains[www]}} => www.localhost
       {{ports[http][1]}} => 81
 
+    It is also possible to assign a value to a variable name, which must start
+    with the $ character, using the ":" syntax e.g.::
 
-    It is also possible to assign a value to a variable name, which must start with
-    the $ character, using the ":" syntax e.g.
-
-    {{$id:uuid()}}
+      {{$id:uuid()}}
 
     Later substitutions in the same file may then refer to the variable
-    by name e.g.
+    by name e.g.::
 
-    {{$id}}
+      {{$id}}
     """
     content = resolve_content(response)
 
@@ -392,8 +397,8 @@ class SubFunctions(object):
     def uuid(request):
         return str(uuid.uuid4())
 
-    # Maintain a whitelist of supported algorithms, restricted to those that
-    # are available on all platforms [1]. This ensures that test authors do not
+    # Maintain a list of supported algorithms, restricted to those that are
+    # available on all platforms [1]. This ensures that test authors do not
     # unknowingly introduce platform-specific tests.
     #
     # [1] https://docs.python.org/2/library/hashlib.html

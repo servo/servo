@@ -6,9 +6,9 @@
  * https://dom.spec.whatwg.org/#event
  */
 
-[Constructor(DOMString type, optional TransitionEventInit transitionEventInitDict),
- Exposed=Window]
+[Exposed=Window]
 interface TransitionEvent : Event {
+  [Throws] constructor(DOMString type, optional TransitionEventInit transitionEventInitDict = {});
   readonly attribute DOMString          propertyName;
   readonly attribute float              elapsedTime;
   readonly attribute DOMString          pseudoElement;

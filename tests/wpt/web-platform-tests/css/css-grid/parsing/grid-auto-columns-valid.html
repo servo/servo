@@ -22,6 +22,7 @@ test_valid_value("grid-auto-columns", "5fr");
 test_valid_value("grid-auto-columns", "min-content");
 test_valid_value("grid-auto-columns", "max-content");
 test_valid_value("grid-auto-columns", "auto");
+test_valid_value("grid-auto-columns", "auto /**/", "auto");
 
 // minmax( <inflexible-breadth> , <track-breadth> )
 // <inflexible-breadth> = <length-percentage> | min-content | max-content | auto
@@ -47,6 +48,8 @@ test_valid_value("grid-auto-columns", "minmax(auto, 0%)");
 test_valid_value("grid-auto-columns", "fit-content(0px)");
 
 // <track-size>+
+test_valid_value("grid-auto-columns", "auto auto");
+test_valid_value("grid-auto-columns", "auto 10px");
 test_valid_value("grid-auto-columns", "1px 2px 3px 0px");
 test_valid_value("grid-auto-columns", "fit-content(1px) minmax(2px, 3px) 4px");
 </script>

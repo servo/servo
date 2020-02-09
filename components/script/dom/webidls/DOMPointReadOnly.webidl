@@ -10,12 +10,16 @@
  */
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double z = 0, optional unrestricted double w = 1),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface DOMPointReadOnly {
+    [Throws] constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+                optional unrestricted double z = 0, optional unrestricted double w = 1);
+    [NewObject] static DOMPointReadOnly fromPoint(optional DOMPointInit other = {});
+
     readonly attribute unrestricted double x;
     readonly attribute unrestricted double y;
     readonly attribute unrestricted double z;
     readonly attribute unrestricted double w;
+
+    [Default] object toJSON();
 };

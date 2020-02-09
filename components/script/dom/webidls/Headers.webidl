@@ -4,11 +4,11 @@
 
 // https://fetch.spec.whatwg.org/#headers-class
 
-typedef (Headers or sequence<sequence<ByteString>> or record<DOMString, ByteString>) HeadersInit;
+typedef (Headers or sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
 
-[Constructor(optional HeadersInit init),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Headers {
+  [Throws] constructor(optional HeadersInit init);
   [Throws]
   void append(ByteString name, ByteString value);
   [Throws]

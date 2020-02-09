@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="variant" content="">
+<meta name="variant" content="?legacy-samesite">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  function assert_cookie_present(origin, name, value) {
+    return new Promise((resolve, reject) => {
+      var img = document.createElement("img");
+      img.onload = _ => resolve("'" + name + "=" + value + "' present on " + origin);
+      img.onerror = _ => reject("'" + name + "=" + value + "' not present on " + origin);
+
+      // We need to URL encode the destination path/query if we're redirecting:
+      if (origin.match(/\/redir/))
+        img.src = origin + encodeURIComponent("/cookies/resources/imgIfMatch.py?name=" + name + "&value=" + value);
+      else
+        img.src = origin + "/cookies/resources/imgIfMatch.py?name=" + name + "&value=" + value;
+    });
+  }
+
+  function assert_cookie_absent(origin, name, value) {
+    return new Promise((resolve, reject) => {
+      var img = document.createElement("img");
+      img.onload = _ => reject("'" + name + "=" + value + "' present on " + origin);
+      img.onerror = _ => resolve("'" + name + "=" + value + "' not present on " + origin);
+
+      // We need to URL encode the destination path/query if we're redirecting:
+      if (origin.match(/\/redir/))
+        img.src = origin + encodeURIComponent("/cookies/resources/imgIfMatch.py?name=" + name + "&value=" + value);
+      else
+        img.src = origin + "/cookies/resources/imgIfMatch.py?name=" + name + "&value=" + value;
+    });
+  }
+
+  function create_test(origin, target, expectedStatus, title) {
+    promise_test(t => {
+      var value = "" + Math.random();
+      return resetSameSiteCookies(origin, value)
+        .then(_ => {
+          var asserts = [assert_cookie_present(target, "samesite_none", value),
+                         expectedStatus == SameSiteStatus.STRICT ?
+                           assert_cookie_present(target, "samesite_strict", value) :
+                           assert_cookie_absent(target, "samesite_strict", value),
+                         expectedStatus == SameSiteStatus.CROSS_SITE ?
+                           assert_cookie_absent(target, "samesite_lax", value) :
+                           assert_cookie_present(target, "samesite_lax", value)];
+          if (isLegacySameSite()) {
+            // Legacy behavior: unspecified SameSite acts like SameSite=None.
+            asserts.push(assert_cookie_present(target, "samesite_unspecified", value));
+          } else {
+            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
+                           assert_cookie_absent(target, "samesite_unspecified", value) :
+                           assert_cookie_present(target, "samesite_unspecified", value));
+          }
+          return Promise.all(asserts);
+        });
+    }, title);
+  }
+
+  // No redirect:
+  create_test(SECURE_ORIGIN, SECURE_ORIGIN, SameSiteStatus.STRICT, "Same-host images are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, "Subdomain images are strictly same-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.CROSS_SITE, "Cross-site images are cross-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to same-host:
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, "Same-host redirecting to same-host images are strictly same-site");
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, "Subdomain redirecting to same-host images are strictly same-site");
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, "Cross-site redirecting to same-host images are strictly same-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to same-host:
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, "Same-host redirecting to subdomain images are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, "Subdomain redirecting to subdomain images are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, "Cross-site redirecting to subdomain images are strictly same-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to cross-site:
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, "Same-host redirecting to cross-site images are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, "Subdomain redirecting to cross-site images are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, "Cross-site redirecting to cross-site images are cross-site");
+</script>

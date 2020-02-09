@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use euclid::{Rect, Size2D};
-use gleam::gl;
-use gleam::gl::Gl;
+use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
+use serde::{Deserialize, Serialize};
+use sparkle::gl;
+use sparkle::gl::Gl;
 use std::borrow::Cow;
 use std::fmt;
-use std::num::NonZeroU32;
+use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 use webvr_traits::WebVRPoseInformation;
+use webxr_api::SwapChainId as WebXRSwapChainId;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;
@@ -35,6 +37,24 @@ pub struct WebGLCommandBacktrace {
     pub js_backtrace: Option<String>,
 }
 
+/// WebGL Threading API entry point that lives in the constellation.
+pub struct WebGLThreads(pub WebGLSender<WebGLMsg>);
+
+impl WebGLThreads {
+    /// Gets the WebGLThread handle for each script pipeline.
+    pub fn pipeline(&self) -> WebGLPipeline {
+        // This mode creates a single thread, so the existing WebGLChan is just cloned.
+        WebGLPipeline(WebGLChan(self.0.clone()))
+    }
+
+    /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
+    pub fn exit(&self) -> Result<(), &'static str> {
+        self.0
+            .send(WebGLMsg::Exit)
+            .map_err(|_| "Failed to send Exit message")
+    }
+}
+
 /// WebGL Message API
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLMsg {
@@ -43,7 +63,7 @@ pub enum WebGLMsg {
         WebGLVersion,
         Size2D<u32>,
         GLContextAttributes,
-        WebGLSender<Result<(WebGLCreateContextResult), String>>,
+        WebGLSender<Result<WebGLCreateContextResult, String>>,
     ),
     /// Resizes a WebGLContext.
     ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
@@ -53,23 +73,24 @@ pub enum WebGLMsg {
     WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
     /// Runs a WebVRCommand in a specific WebGLContext.
     WebVRCommand(WebGLContextId, WebVRCommand),
-    /// Locks a specific WebGLContext. Lock messages are used for a correct synchronization
-    /// with WebRender external image API.
-    /// WR locks a external texture when it wants to use the shared texture contents.
-    /// The WR client should not change the shared texture content until the Unlock call.
-    /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
-    Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>, usize)>),
-    /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
-    /// with WebRender external image API.
-    /// The WR unlocks a context when it finished reading the shared texture contents.
-    /// Unlock messages are always sent after a Lock message.
-    Unlock(WebGLContextId),
-    /// Creates or updates the image keys required for WebRender.
-    UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
+    /// Creates a new opaque framebuffer for WebXR.
+    CreateWebXRSwapChain(
+        WebGLContextId,
+        Size2D<i32>,
+        WebGLSender<Option<WebXRSwapChainId>>,
+    ),
+    /// Performs a buffer swap.
+    SwapBuffers(Vec<SwapChainId>, WebGLSender<()>),
     /// Frees all resources and closes the thread.
     Exit,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum GlType {
+    Gl,
+    Gles,
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext
@@ -79,18 +100,12 @@ pub struct WebGLCreateContextResult {
     pub sender: WebGLMsgSender,
     /// Information about the internal GL Context.
     pub limits: GLLimits,
-    /// How the WebGLContext is shared with WebRender.
-    pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
     pub glsl_version: WebGLSLVersion,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum WebGLContextShareMode {
-    /// Fast: a shared texture_id is used in WebRender.
-    SharedTexture,
-    /// Slow: glReadPixels is used to send pixels to WebRender each frame.
-    Readback,
+    /// The GL API used by the context.
+    pub api_type: GlType,
+    /// The WebRender image key.
+    pub image_key: ImageKey,
 }
 
 /// Defines the WebGL version
@@ -165,9 +180,25 @@ impl WebGLMsgSender {
     }
 
     #[inline]
-    pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
+    pub fn send_create_webxr_swap_chain(
+        &self,
+        size: Size2D<i32>,
+        sender: WebGLSender<Option<WebXRSwapChainId>>,
+    ) -> WebGLSendResult {
         self.sender
-            .send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
+            .send(WebGLMsg::CreateWebXRSwapChain(self.ctx_id, size, sender))
+    }
+
+    #[inline]
+    pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {
+        let swap_id = id
+            .map(|id| SwapChainId::Framebuffer(self.ctx_id, id))
+            .unwrap_or_else(|| SwapChainId::Context(self.ctx_id));
+        let (sender, receiver) = webgl_channel()?;
+        self.sender
+            .send(WebGLMsg::SwapBuffers(vec![swap_id], sender))?;
+        receiver.recv()?;
+        Ok(())
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
@@ -217,6 +248,8 @@ pub enum WebGLCommand {
     BindAttribLocation(WebGLProgramId, u32, String),
     BufferData(u32, IpcBytesReceiver, u32),
     BufferSubData(u32, isize, IpcBytesReceiver),
+    GetBufferSubData(u32, usize, usize, IpcBytesSender),
+    CopyBufferSubData(u32, u32, i64, i64, i64),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f32),
@@ -233,7 +266,7 @@ pub enum WebGLCommand {
     CopyTexImage2D(u32, i32, u32, i32, i32, i32, i32, i32),
     CopyTexSubImage2D(u32, i32, i32, i32, i32, i32, i32, i32),
     CreateBuffer(WebGLSender<Option<WebGLBufferId>>),
-    CreateFramebuffer(WebGLSender<Option<WebGLFramebufferId>>),
+    CreateFramebuffer(WebGLSender<Option<WebGLTransparentFramebufferId>>),
     CreateRenderbuffer(WebGLSender<Option<WebGLRenderbufferId>>),
     CreateTexture(WebGLSender<Option<WebGLTextureId>>),
     CreateProgram(WebGLSender<Option<WebGLProgramId>>),
@@ -259,9 +292,20 @@ pub enum WebGLCommand {
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
+    CreateTransformFeedback(WebGLSender<u32>),
+    DeleteTransformFeedback(u32),
+    IsTransformFeedback(u32, WebGLSender<bool>),
+    BindTransformFeedback(u32, u32),
+    BeginTransformFeedback(u32),
+    EndTransformFeedback(),
+    PauseTransformFeedback(),
+    ResumeTransformFeedback(),
+    GetTransformFeedbackVarying(WebGLProgramId, u32, WebGLSender<(i32, u32, String)>),
+    TransformFeedbackVaryings(WebGLProgramId, Vec<String>, u32),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
+    ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),
     Scissor(i32, i32, u32, u32),
     StencilFunc(u32, i32, u32),
@@ -270,6 +314,12 @@ pub enum WebGLCommand {
     StencilMaskSeparate(u32, u32),
     StencilOp(u32, u32, u32),
     StencilOpSeparate(u32, u32, u32, u32),
+    FenceSync(WebGLSender<WebGLSyncId>),
+    IsSync(WebGLSyncId, WebGLSender<bool>),
+    ClientWaitSync(WebGLSyncId, u32, u64, WebGLSender<u32>),
+    WaitSync(WebGLSyncId, u32, i64),
+    GetSyncParameter(WebGLSyncId, u32, WebGLSender<u32>),
+    DeleteSync(WebGLSyncId),
     Hint(u32, u32),
     LineWidth(f32),
     PixelStorei(u32, i32),
@@ -277,22 +327,36 @@ pub enum WebGLCommand {
     Uniform1f(i32, f32),
     Uniform1fv(i32, Vec<f32>),
     Uniform1i(i32, i32),
+    Uniform1ui(i32, u32),
     Uniform1iv(i32, Vec<i32>),
+    Uniform1uiv(i32, Vec<u32>),
     Uniform2f(i32, f32, f32),
     Uniform2fv(i32, Vec<f32>),
     Uniform2i(i32, i32, i32),
+    Uniform2ui(i32, u32, u32),
     Uniform2iv(i32, Vec<i32>),
+    Uniform2uiv(i32, Vec<u32>),
     Uniform3f(i32, f32, f32, f32),
     Uniform3fv(i32, Vec<f32>),
     Uniform3i(i32, i32, i32, i32),
+    Uniform3ui(i32, u32, u32, u32),
     Uniform3iv(i32, Vec<i32>),
+    Uniform3uiv(i32, Vec<u32>),
     Uniform4f(i32, f32, f32, f32, f32),
     Uniform4fv(i32, Vec<f32>),
     Uniform4i(i32, i32, i32, i32, i32),
+    Uniform4ui(i32, u32, u32, u32, u32),
     Uniform4iv(i32, Vec<i32>),
+    Uniform4uiv(i32, Vec<u32>),
     UniformMatrix2fv(i32, Vec<f32>),
     UniformMatrix3fv(i32, Vec<f32>),
     UniformMatrix4fv(i32, Vec<f32>),
+    UniformMatrix3x2fv(i32, Vec<f32>),
+    UniformMatrix4x2fv(i32, Vec<f32>),
+    UniformMatrix2x3fv(i32, Vec<f32>),
+    UniformMatrix4x3fv(i32, Vec<f32>),
+    UniformMatrix2x4fv(i32, Vec<f32>),
+    UniformMatrix3x4fv(i32, Vec<f32>),
     UseProgram(Option<WebGLProgramId>),
     ValidateProgram(WebGLProgramId),
     VertexAttrib(u32, f32, f32, f32, f32),
@@ -406,33 +470,72 @@ pub enum WebGLCommand {
     GetUniformInt2(WebGLProgramId, i32, WebGLSender<[i32; 2]>),
     GetUniformInt3(WebGLProgramId, i32, WebGLSender<[i32; 3]>),
     GetUniformInt4(WebGLProgramId, i32, WebGLSender<[i32; 4]>),
+    GetUniformUint(WebGLProgramId, i32, WebGLSender<u32>),
+    GetUniformUint2(WebGLProgramId, i32, WebGLSender<[u32; 2]>),
+    GetUniformUint3(WebGLProgramId, i32, WebGLSender<[u32; 3]>),
+    GetUniformUint4(WebGLProgramId, i32, WebGLSender<[u32; 4]>),
     GetUniformFloat(WebGLProgramId, i32, WebGLSender<f32>),
     GetUniformFloat2(WebGLProgramId, i32, WebGLSender<[f32; 2]>),
     GetUniformFloat3(WebGLProgramId, i32, WebGLSender<[f32; 3]>),
     GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
     GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
     GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
+    GetUniformFloat2x3(WebGLProgramId, i32, WebGLSender<[f32; 2 * 3]>),
+    GetUniformFloat2x4(WebGLProgramId, i32, WebGLSender<[f32; 2 * 4]>),
+    GetUniformFloat3x2(WebGLProgramId, i32, WebGLSender<[f32; 3 * 2]>),
+    GetUniformFloat3x4(WebGLProgramId, i32, WebGLSender<[f32; 3 * 4]>),
+    GetUniformFloat4x2(WebGLProgramId, i32, WebGLSender<[f32; 4 * 2]>),
+    GetUniformFloat4x3(WebGLProgramId, i32, WebGLSender<[f32; 4 * 3]>),
+    GetUniformBlockIndex(WebGLProgramId, String, WebGLSender<u32>),
+    GetUniformIndices(WebGLProgramId, Vec<String>, WebGLSender<Vec<u32>>),
+    GetActiveUniforms(WebGLProgramId, Vec<u32>, u32, WebGLSender<Vec<i32>>),
+    GetActiveUniformBlockName(WebGLProgramId, u32, WebGLSender<String>),
+    GetActiveUniformBlockParameter(WebGLProgramId, u32, u32, WebGLSender<Vec<i32>>),
+    UniformBlockBinding(WebGLProgramId, u32, u32),
     InitializeFramebuffer {
         color: bool,
         depth: bool,
         stencil: bool,
     },
+    BeginQuery(u32, WebGLQueryId),
+    DeleteQuery(WebGLQueryId),
+    EndQuery(u32),
+    GenerateQuery(WebGLSender<WebGLQueryId>),
+    GetQueryState(WebGLSender<u32>, WebGLQueryId, u32),
+    GenerateSampler(WebGLSender<WebGLSamplerId>),
+    DeleteSampler(WebGLSamplerId),
+    BindSampler(u32, WebGLSamplerId),
+    SetSamplerParameterFloat(WebGLSamplerId, u32, f32),
+    SetSamplerParameterInt(WebGLSamplerId, u32, i32),
+    GetSamplerParameterFloat(WebGLSamplerId, u32, WebGLSender<f32>),
+    GetSamplerParameterInt(WebGLSamplerId, u32, WebGLSender<i32>),
+    BindBufferBase(u32, u32, Option<WebGLBufferId>),
+    BindBufferRange(u32, u32, Option<WebGLBufferId>, i64, i64),
+}
+
+macro_rules! nonzero_type {
+    (u32) => {
+        NonZeroU32
+    };
+    (u64) => {
+        NonZeroU64
+    };
 }
 
 macro_rules! define_resource_id {
-    ($name:ident) => {
+    ($name:ident, $type:tt) => {
         #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-        pub struct $name(NonZeroU32);
+        pub struct $name(nonzero_type!($type));
 
         impl $name {
             #[allow(unsafe_code)]
             #[inline]
-            pub unsafe fn new(id: u32) -> Self {
-                $name(NonZeroU32::new_unchecked(id))
+            pub unsafe fn new(id: $type) -> Self {
+                $name(<nonzero_type!($type)>::new_unchecked(id))
             }
 
             #[inline]
-            pub fn get(self) -> u32 {
+            pub fn get(self) -> $type {
                 self.0.get()
             }
         }
@@ -443,7 +546,7 @@ macro_rules! define_resource_id {
             where
                 D: ::serde::Deserializer<'de>,
             {
-                let id = u32::deserialize(deserializer)?;
+                let id = <$type>::deserialize(deserializer)?;
                 if id == 0 {
                     Err(::serde::de::Error::custom("expected a non-zero value"))
                 } else {
@@ -483,18 +586,36 @@ macro_rules! define_resource_id {
     };
 }
 
-define_resource_id!(WebGLBufferId);
-define_resource_id!(WebGLFramebufferId);
-define_resource_id!(WebGLRenderbufferId);
-define_resource_id!(WebGLTextureId);
-define_resource_id!(WebGLProgramId);
-define_resource_id!(WebGLShaderId);
-define_resource_id!(WebGLVertexArrayId);
+define_resource_id!(WebGLBufferId, u32);
+define_resource_id!(WebGLTransparentFramebufferId, u32);
+define_resource_id!(WebGLRenderbufferId, u32);
+define_resource_id!(WebGLTextureId, u32);
+define_resource_id!(WebGLProgramId, u32);
+define_resource_id!(WebGLQueryId, u32);
+define_resource_id!(WebGLSamplerId, u32);
+define_resource_id!(WebGLShaderId, u32);
+define_resource_id!(WebGLSyncId, u64);
+define_resource_id!(WebGLVertexArrayId, u32);
 
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct WebGLContextId(pub usize);
+pub struct WebGLContextId(pub u64);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum SwapChainId {
+    Context(WebGLContextId),
+    Framebuffer(WebGLContextId, WebGLOpaqueFramebufferId),
+}
+
+impl SwapChainId {
+    pub fn context_id(&self) -> WebGLContextId {
+        match *self {
+            SwapChainId::Context(id) => id,
+            SwapChainId::Framebuffer(id, _) => id,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WebGLError {
@@ -504,6 +625,18 @@ pub enum WebGLError {
     InvalidValue,
     OutOfMemory,
     ContextLost,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLOpaqueFramebufferId {
+    // At the moment the only source of opaque framebuffers is webxr
+    WebXR(#[ignore_malloc_size_of = "ids don't malloc"] WebXRSwapChainId),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebGLFramebufferId {
+    Transparent(WebGLTransparentFramebufferId),
+    Opaque(WebGLOpaqueFramebufferId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -541,7 +674,7 @@ pub enum WebVRCommand {
 // Trait object that handles WebVR commands.
 // Receives the texture id and size associated to the WebGLContext.
 pub trait WebVRRenderHandler: Send {
-    fn handle(&mut self, gl: &dyn Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
+    fn handle(&mut self, gl: &Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
 }
 
 /// WebGL commands required to implement DOMToTexture feature.
@@ -570,6 +703,12 @@ pub struct ProgramLinkInfo {
     pub active_attribs: Box<[ActiveAttribInfo]>,
     /// The list of active uniforms.
     pub active_uniforms: Box<[ActiveUniformInfo]>,
+    /// The list of active uniform blocks.
+    pub active_uniform_blocks: Box<[ActiveUniformBlockInfo]>,
+    /// The number of varying variables
+    pub transform_feedback_length: i32,
+    /// The buffer mode used when transform feedback is active
+    pub transform_feedback_mode: i32,
 }
 
 /// Description of a single active attribute.
@@ -608,6 +747,15 @@ impl ActiveUniformInfo {
     }
 }
 
+/// Description of a single uniform block.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ActiveUniformBlockInfo {
+    /// The name of the uniform block.
+    pub name: String,
+    /// The size of the uniform block.
+    pub size: i32,
+}
+
 macro_rules! parameters {
     ($name:ident { $(
         $variant:ident($kind:ident { $(
@@ -643,6 +791,8 @@ parameters! {
         Bool(ParameterBool {
             DepthWritemask = gl::DEPTH_WRITEMASK,
             SampleCoverageInvert = gl::SAMPLE_COVERAGE_INVERT,
+            TransformFeedbackActive = gl::TRANSFORM_FEEDBACK_ACTIVE,
+            TransformFeedbackPaused = gl::TRANSFORM_FEEDBACK_PAUSED,
         }),
         Bool4(ParameterBool4 {
             ColorWritemask = gl::COLOR_WRITEMASK,
@@ -684,6 +834,12 @@ parameters! {
             StencilValueMask = gl::STENCIL_VALUE_MASK,
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
+            TransformFeedbackBinding = gl::TRANSFORM_FEEDBACK_BINDING,
+            MaxTransformFeedbackInterleavedComponents = gl::MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS,
+            MaxTransformFeedbackSeparateAttribs = gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS,
+            MaxTransformFeedbackSeparateComponents = gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS,
+            TransformFeedbackBufferSize = gl::TRANSFORM_FEEDBACK_BUFFER_SIZE,
+            TransformFeedbackBufferStart = gl::TRANSFORM_FEEDBACK_BUFFER_START,
         }),
         Int2(ParameterInt2 {
             MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
@@ -724,12 +880,6 @@ parameters! {
     }
 }
 
-pub fn is_gles() -> bool {
-    // TODO: align this with the actual kind of graphics context in use, rather than
-    // making assumptions based on platform
-    cfg!(any(target_os = "android", target_os = "ios"))
-}
-
 #[macro_export]
 macro_rules! gl_enums {
     ($(pub enum $name:ident { $($variant:ident = $mod:ident::$constant:ident,)+ })*) => {
@@ -756,9 +906,9 @@ macro_rules! gl_enums {
     }
 }
 
-// FIXME: These should come from gleam
+// FIXME: These should come from sparkle
 mod gl_ext_constants {
-    use gleam::gl::types::GLenum;
+    use sparkle::gl::types::GLenum;
 
     pub const COMPRESSED_RGB_S3TC_DXT1_EXT: GLenum = 0x83F0;
     pub const COMPRESSED_RGBA_S3TC_DXT1_EXT: GLenum = 0x83F1;
@@ -883,4 +1033,22 @@ pub struct GLLimits {
     pub max_varying_vectors: u32,
     pub max_vertex_texture_image_units: u32,
     pub max_vertex_uniform_vectors: u32,
+    pub max_client_wait_timeout_webgl: std::time::Duration,
+    pub max_transform_feedback_separate_attribs: u32,
+    pub max_vertex_output_vectors: u32,
+    pub max_fragment_input_vectors: u32,
+    pub max_draw_buffers: u32,
+    pub max_color_attachments: u32,
+    pub max_uniform_buffer_bindings: u32,
+    pub min_program_texel_offset: u32,
+    pub max_program_texel_offset: u32,
+    pub max_uniform_block_size: u32,
+    pub max_combined_uniform_blocks: u32,
+    pub max_combined_vertex_uniform_components: u32,
+    pub max_combined_fragment_uniform_components: u32,
+    pub max_vertex_uniform_blocks: u32,
+    pub max_vertex_uniform_components: u32,
+    pub max_fragment_uniform_blocks: u32,
+    pub max_fragment_uniform_components: u32,
+    pub uniform_buffer_offset_alignment: u32,
 }

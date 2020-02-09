@@ -16,10 +16,10 @@
 <script>
 <![CDATA[
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.contains();
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.contains(9);
   });
 }, "Should throw TypeError if the arguments are wrong.");

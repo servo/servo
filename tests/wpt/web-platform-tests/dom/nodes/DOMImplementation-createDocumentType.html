@@ -109,7 +109,7 @@ test(function() {
     var qualifiedName = t[0], publicId = t[1], systemId = t[2], expected = t[3]
     test(function() {
       if (expected) {
-        assert_throws(expected, function() {
+        assert_throws_dom(expected, function() {
           document.implementation.createDocumentType(qualifiedName, publicId, systemId)
         })
       } else {

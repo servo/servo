@@ -14,7 +14,7 @@ from time import time
 import signal
 import sys
 import tempfile
-import urllib2
+import six.moves.urllib as urllib
 import json
 import subprocess
 
@@ -24,54 +24,45 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call
 from servo.build_commands import notify_build_done
 from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    def run_cargo(self, params, check=False):
-        if not params:
-            params = []
-
-        self.ensure_bootstrapped()
-        self.ensure_clobbered()
-        env = self.build_env()
-
-        if check:
-            params = ['check'] + params
-
-        self.add_manifest_path(params)
-
-        build_start = time()
-        status = self.call_rustup_run(["cargo"] + params, env=env)
-        elapsed = time() - build_start
-
-        notify_build_done(self.config, elapsed, status == 0)
-
-        if check and status == 0:
-            print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
-
-        return status
-
-    @Command('cargo',
-             description='Run Cargo',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to Cargo")
-    def cargo(self, params):
-        return self.run_cargo(params)
-
     @Command('check',
              description='Run "cargo check"',
              category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
-    def check(self, params):
-        return self.run_cargo(params, check=True)
+    @CommandBase.build_like_command_arguments
+    def check(self, params, features=[], media_stack=None, target=None,
+              android=False, magicleap=False, **kwargs):
+        if not params:
+            params = []
+
+        features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        features += self.pick_media_stack(media_stack, target)
+
+        self.ensure_bootstrapped(target=target)
+        self.ensure_clobbered()
+        env = self.build_env()
+
+        build_start = time()
+        status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
+        elapsed = time() - build_start
+
+        notify_build_done(self.config, elapsed, status == 0)
+
+        if status == 0:
+            print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
+
+        return status
 
     @Command('cargo-update',
              description='Same as update-cargo',
@@ -217,12 +208,12 @@ class MachCommands(CommandBase):
              category='devenv')
     def rustup(self):
         url = get_static_rust_lang_org_dist() + "/channel-rust-nightly-date.txt"
-        nightly_date = urllib2.urlopen(url, **get_urlopen_kwargs()).read()
+        nightly_date = urllib.request.urlopen(url, **get_urlopen_kwargs()).read()
         toolchain = "nightly-" + nightly_date
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
             f.write(toolchain + "\n")
-        return call(["rustup" + BIN_SUFFIX, "install", toolchain])
+        self.ensure_bootstrapped()
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',

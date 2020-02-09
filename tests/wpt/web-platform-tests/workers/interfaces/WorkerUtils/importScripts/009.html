@@ -1,9 +1,3 @@
-<!--
-var log = postMessage;
-importScripts('data:text/javascript,function run() { for(var i = 0; i < 1000; ++i) { if (i == 500) log(true); } return 1; }');
-postMessage(run());
-/*
--->
 <!doctype html>
 <title>variables and functions crossing importScripts boundary, take 2</title>
 <script src="/resources/testharness.js"></script>
@@ -11,7 +5,7 @@ postMessage(run());
 <div id="log"></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('009.js');
   var i = 0;
   worker.onmessage = this.step_func(function(e) {
     i++;
@@ -24,6 +18,3 @@ async_test(function() {
   });
 });
 </script>
-<!--
-*/
-//-->

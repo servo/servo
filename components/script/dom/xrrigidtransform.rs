@@ -14,9 +14,11 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrframedata::create_typed_array;
 use crate::dom::window::Window;
+use crate::dom::xrsession::ApiRigidTransform;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 
 #[dom_struct]
@@ -25,14 +27,14 @@ pub struct XRRigidTransform {
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
     #[ignore_malloc_size_of = "defined in euclid"]
-    transform: RigidTransform3D<f64>,
+    transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
     #[ignore_malloc_size_of = "defined in mozjs"]
     matrix: Heap<*mut JSObject>,
 }
 
 impl XRRigidTransform {
-    fn new_inherited(transform: RigidTransform3D<f64>) -> XRRigidTransform {
+    fn new_inherited(transform: ApiRigidTransform) -> XRRigidTransform {
         XRRigidTransform {
             reflector_: Reflector::new(),
             position: MutNullableDom::default(),
@@ -43,10 +45,7 @@ impl XRRigidTransform {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        transform: RigidTransform3D<f64>,
-    ) -> DomRoot<XRRigidTransform> {
+    pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
         reflect_dom_object(
             Box::new(XRRigidTransform::new_inherited(transform)),
             global,
@@ -60,6 +59,7 @@ impl XRRigidTransform {
     }
 
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         position: &DOMPointInit,
@@ -72,13 +72,19 @@ impl XRRigidTransform {
             )));
         }
 
-        let translate = Vector3D::new(position.x as f64, position.y as f64, position.z as f64);
+        let translate = Vector3D::new(position.x as f32, position.y as f32, position.z as f32);
         let rotate = Rotation3D::unit_quaternion(
-            orientation.x as f64,
-            orientation.y as f64,
-            orientation.z as f64,
-            orientation.w as f64,
+            orientation.x as f32,
+            orientation.y as f32,
+            orientation.z as f32,
+            orientation.w as f32,
         );
+
+        if !rotate.i.is_finite() {
+            // if quaternion has zero norm, we'll get an infinite or NaN
+            // value for each element. This is preferable to checking for zero.
+            return Err(Error::InvalidState);
+        }
         let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new(&window.global(), transform))
     }
@@ -89,14 +95,20 @@ impl XRRigidTransformMethods for XRRigidTransform {
     fn Position(&self) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
-            DOMPointReadOnly::new(&self.global(), t.x, t.y, t.z, 1.0)
+            DOMPointReadOnly::new(&self.global(), t.x.into(), t.y.into(), t.z.into(), 1.0)
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
     fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
-            DOMPointReadOnly::new(&self.global(), r.i, r.j, r.k, r.r)
+            DOMPointReadOnly::new(
+                &self.global(),
+                r.i.into(),
+                r.j.into(),
+                r.k.into(),
+                r.r.into(),
+            )
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
@@ -108,13 +120,12 @@ impl XRRigidTransformMethods for XRRigidTransform {
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
-    #[allow(unsafe_code)]
-    unsafe fn Matrix(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+    fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         if self.matrix.get().is_null() {
             let cx = self.global().get_cx();
             // According to the spec all matrices are column-major,
             // however euclid uses row vectors so we use .to_row_major_array()
-            let arr = self.transform.to_transform().cast().to_row_major_array();
+            let arr = self.transform.to_transform().to_row_major_array();
             create_typed_array(cx, &arr, &self.matrix);
         }
         NonNull::new(self.matrix.get()).unwrap()
@@ -123,7 +134,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
 
 impl XRRigidTransform {
     /// https://immersive-web.github.io/webxr/#dom-xrpose-transform
-    pub fn transform(&self) -> RigidTransform3D<f64> {
+    pub fn transform(&self) -> ApiRigidTransform {
         self.transform
     }
 }

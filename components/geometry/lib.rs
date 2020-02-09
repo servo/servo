@@ -6,9 +6,12 @@
 extern crate malloc_size_of_derive;
 
 use app_units::{Au, MAX_AU, MIN_AU};
-use euclid::{Length, Point2D, Rect, Size2D};
+use euclid::{
+    default::{Point2D, Rect, Size2D},
+    Length,
+};
 use std::f32;
-use webrender_api::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
+use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 
 // Units for use with euclid::length and euclid::scale_factor.
 
@@ -35,11 +38,11 @@ pub enum DeviceIndependentPixel {}
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 
 pub trait MaxRect {
-    #[inline(always)]
     fn max_rect() -> Self;
 }
 
 impl MaxRect for Rect<Au> {
+    #[inline]
     fn max_rect() -> Rect<Au> {
         Rect::new(
             Point2D::new(MIN_AU / 2, MIN_AU / 2),
@@ -49,6 +52,7 @@ impl MaxRect for Rect<Au> {
 }
 
 impl MaxRect for LayoutRect {
+    #[inline]
     fn max_rect() -> LayoutRect {
         LayoutRect::new(
             LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),

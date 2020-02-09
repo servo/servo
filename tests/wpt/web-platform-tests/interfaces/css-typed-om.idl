@@ -65,6 +65,8 @@ interface CSSKeywordValue : CSSStyleValue {
     attribute USVString value;
 };
 
+typedef (DOMString or CSSKeywordValue) CSSKeywordish;
+
 typedef (double or CSSNumericValue) CSSNumberish;
 
 enum CSSNumericBaseType {
@@ -302,7 +304,7 @@ interface CSSPerspective : CSSTransformComponent {
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options)]
+ Constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options = {})]
 interface CSSMatrixComponent : CSSTransformComponent {
     attribute DOMMatrix matrix;
 };

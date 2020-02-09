@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: U+2009 at the end of line with white-space:break-spaces</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-other-space-separators-break-spaces-011-ref.html">
+<meta name="assert" content="U+2009 at the end of the line must not hang or be discarded if white-space is break-spaces. It thus keeps its usual line breaking properties, as defined in UAX14.">
+<meta name="flags" content="should">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  white-space: break-spaces;
+  font-size: 10px;
+  line-height: 1;
+  width: 2em;
+}
+section {
+  font-family: Ahem;
+  float: left;
+  margin: 0 1em;
+  color: blue;
+}
+.ref {
+  color: orange;
+}
+.ref div {
+  white-space: pre;
+}
+</style>
+
+<p>Test passes if the orange and blue parts of this page are identical.
+
+<!--
+ * no line breaking opportunity is after an "x"
+   unless the next character provides one,
+   and none of the other space separators do.
+ * no line breaking opportunity is before an "x"
+   unless the previous character provides one (A).
+ * a line breaking opportunity is expected after "あ",
+   unless suppressed by the next character (XB).
+ * a line breaking opportunity is expected before "あ",
+   unless suppressed by the previous character (XA).
+-->
+<section class=ref>
+  <div>xx&#x2009;<br>ああ<br>&#x2009;あ<br>あ&#x2009;<br>xx</div><!-- A, tailorable -->
+</section>
+<section>
+  <div>xx&#x2009;ああ&#x2009;ああ&#x2009;xx</div>
+</section>

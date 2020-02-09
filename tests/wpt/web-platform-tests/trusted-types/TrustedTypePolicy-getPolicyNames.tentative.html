@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<body>
+<script>
+  test(t => {
+    let policy = trustedTypes.createPolicy('thisisaname', {});
+    assert_true(policy instanceof TrustedTypePolicy);
+    assert_equals(policy.name, 'thisisaname');
+  }, "policy.name = name");
+
+
+  // Retrieve policy names tests
+  test(t => {
+    let policy = trustedTypes.createPolicy('anothername', {});
+    let names = trustedTypes.getPolicyNames();
+    assert_equals(names.length, 2);
+    assert_true(names.includes('thisisaname'));
+    assert_true(names.includes('anothername'));
+  }, "getPolicyNames returns all policy names");
+</script>

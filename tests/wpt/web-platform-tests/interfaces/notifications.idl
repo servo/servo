@@ -3,9 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Notifications API Standard (https://notifications.spec.whatwg.org/)
 
-[Constructor(DOMString title, optional NotificationOptions options),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Notification : EventTarget {
+  constructor(DOMString title, optional NotificationOptions options = {});
+
   static readonly attribute NotificationPermission permission;
   [Exposed=Window] static Promise<NotificationPermission> requestPermission(optional NotificationPermissionCallback deprecatedCallback);
 
@@ -77,13 +78,14 @@ dictionary GetNotificationOptions {
 };
 
 partial interface ServiceWorkerRegistration {
-  Promise<void> showNotification(DOMString title, optional NotificationOptions options);
-  Promise<sequence<Notification>> getNotifications(optional GetNotificationOptions filter);
+  Promise<void> showNotification(DOMString title, optional NotificationOptions options = {});
+  Promise<sequence<Notification>> getNotifications(optional GetNotificationOptions filter = {});
 };
 
-[Constructor(DOMString type, NotificationEventInit eventInitDict),
- Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface NotificationEvent : ExtendableEvent {
+  constructor(DOMString type, NotificationEventInit eventInitDict);
+
   readonly attribute Notification notification;
   readonly attribute DOMString action;
 };

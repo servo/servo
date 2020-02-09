@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text Test: preserved white space with zero font-size</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="match" href="reference/white-space-zero-fontsize-002-ref.html">
+<meta name="assert" content="Tab in preserved white space is respected even when font-size is zero">
+<style>
+pre {
+  font-size: 0;
+  float: left;
+  border: 1px solid black;
+  margin: 12px;
+  -moz-tab-size: 100px;
+  tab-size: 100px;
+}
+span { font-size: 12px; }
+</style>
+<pre>
+<span>foo</span>&#x9;<span>bar</span>
+</pre>

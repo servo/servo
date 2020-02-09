@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>The 'pathLength' attribute ('rect' element; reference)</title>
+  <rect width="50" height="50" fill="blue"
+        stroke-dashoffset="50" stroke-dasharray="50 50" stroke="black" stroke-width="10"/>
+</svg>

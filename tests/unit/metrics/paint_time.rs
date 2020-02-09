@@ -4,12 +4,10 @@
 
 use gfx_traits::Epoch;
 use ipc_channel::ipc;
-use layout::display_list::items::{BaseDisplayItem, CommonDisplayItem, DisplayItem, DisplayList};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
-use webrender_api::{AlphaType, ColorF, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -48,7 +46,7 @@ fn test_paint_metrics_construction() {
     );
 }
 
-fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
+fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetrics {
     let (sender, _) = ipc::channel().unwrap();
     let profiler_chan = ProfilerChan(sender);
     let (layout_sender, _) = ipc::channel().unwrap();
@@ -65,7 +63,7 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
     paint_time_metrics.maybe_observe_paint_time(
         &dummy_profiler_metadata_factory,
         epoch,
-        &*display_list,
+        display_list_is_contentful,
     );
 
     // Should not set any metric until navigation start is set.
@@ -94,12 +92,8 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
 
 #[test]
 fn test_first_paint_setter() {
-    let empty_display_list = DisplayList {
-        list: Vec::new(),
-        clip_scroll_nodes: Vec::new(),
-    };
     let epoch = Epoch(0);
-    let paint_time_metrics = test_common(&empty_display_list, epoch);
+    let paint_time_metrics = test_common(false, epoch);
     let now = time::precise_time_ns();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
@@ -115,23 +109,8 @@ fn test_first_paint_setter() {
 
 #[test]
 fn test_first_contentful_paint_setter() {
-    let image = DisplayItem::Image(CommonDisplayItem::new(
-        BaseDisplayItem::empty(),
-        ImageDisplayItem {
-            image_key: ImageKey::DUMMY,
-            stretch_size: LayoutSize::zero(),
-            tile_spacing: LayoutSize::zero(),
-            image_rendering: ImageRendering::Auto,
-            alpha_type: AlphaType::PremultipliedAlpha,
-            color: ColorF::WHITE,
-        },
-    ));
-    let display_list = DisplayList {
-        list: vec![image],
-        clip_scroll_nodes: Vec::new(),
-    };
     let epoch = Epoch(0);
-    let paint_time_metrics = test_common(&display_list, epoch);
+    let paint_time_metrics = test_common(true, epoch);
     let now = time::precise_time_ns();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(

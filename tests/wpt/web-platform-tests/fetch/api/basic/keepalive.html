@@ -7,25 +7,85 @@
 <script src="/common/get-host-info.sub.js"></script>
 <body>
 <script>
+function getUrl(origin1, origin2, withHeaders) {
+  const frameOrigin = host_info.HTTP_NOTSAMESITE_ORIGIN;
+  return `${frameOrigin}/fetch/api/resources/keepalive-iframe.html?` +
+    `origin1=${origin1}&` +
+    `origin2=${origin2}&` +
+    (withHeaders ? `with-headers` : ``);
+}
+
+async function getToken() {
+  return new Promise((resolve) => {
+    window.addEventListener('message', (event) => {
+      resolve(event.data);
+    }, {once: true});
+  });
+}
+
+async function queryToken(token) {
+  const response = await fetch(`../resources/stash-take.py?key=${token}`);
+  const json = await response.json();
+  return json;
+}
+
+// In order to parallelize the work, we are going to have an async_test
+// for the rest of the work. Note that we want the serialized behavior
+// for the steps so far, so we don't want to make the entire test case
+// an async_test.
+function checkToken(testName, token) {
+  async_test((test) => {
+    new Promise((resolve) => test.step_timeout(resolve, 1000)).then(() => {
+      return queryToken(token);
+    }).then((result) => {
+      assert_equals(result, 'on');
+    }).then(() => {
+      test.done();
+    }).catch(test.step_func((e) => {
+      assert_unreached(e);
+    }));
+  }, testName);
+}
+
 const host_info = get_host_info();
 promise_test(async (test) => {
   const iframe = document.createElement('iframe');
-  iframe.src = host_info.HTTP_REMOTE_ORIGIN +
-    '/fetch/api/resources/keepalive-iframe.html';
+  iframe.src = getUrl('', '', false);
   document.body.appendChild(iframe);
-  const uuid_promise = new Promise((resolve) => {
-    window.addEventListener('message', (event) => {
-      resolve(event.data);
-    });
-  });
+  const tokenPromise = getToken();
   await (new Promise((resolve) => iframe.addEventListener('load', resolve)));
-  const uuid = await uuid_promise;
+  const token = await tokenPromise;
   iframe.remove();
-  await (new Promise((resolve) => test.step_timeout(resolve, 1000)));
-  const response = await fetch(`../resources/stash-take.py?key=${uuid}`);
-  const json = await response.json();
-  assert_equals(json, 'on');
-});
+
+  checkToken('same-origin', token);
+}, 'same-origin; setting up');
+
+promise_test(async (test) => {
+  const iframe = document.createElement('iframe');
+  iframe.src = getUrl(host_info.HTTP_REMOTE_ORIGIN,
+                      host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, false);
+  document.body.appendChild(iframe);
+  const tokenPromise = getToken();
+  await (new Promise((resolve) => iframe.addEventListener('load', resolve)));
+  const token = await tokenPromise;
+  iframe.remove();
+
+  checkToken('cross-origin redirect', token);
+}, 'cross-origin redirect; setting up');
+
+promise_test(async (test) => {
+  const iframe = document.createElement('iframe');
+  iframe.src = getUrl(host_info.HTTP_REMOTE_ORIGIN,
+                      host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, true);
+  document.body.appendChild(iframe);
+  const tokenPromise = getToken();
+  await (new Promise((resolve) => iframe.addEventListener('load', resolve)));
+  const token = await tokenPromise;
+  iframe.remove();
+
+  checkToken('cross-origin redirect with preflight', token);
+}, 'cross-origin redirect with preflight; setting up');
+
 </script>
 </body>
 </html>

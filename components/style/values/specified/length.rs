@@ -22,7 +22,7 @@ use crate::values::CSSFloat;
 use crate::Zero;
 use app_units::Au;
 use cssparser::{Parser, Token};
-use euclid::Size2D;
+use euclid::default::Size2D;
 use std::cmp;
 use std::ops::{Add, Mul};
 use style_traits::values::specified::AllowedNumericType;
@@ -46,14 +46,6 @@ pub const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
 pub const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
 /// Number of app units per pica
 pub const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
-
-/// Same as Gecko's AppUnitsToIntCSSPixels
-///
-/// Converts app units to integer pixel values,
-/// rounding during the conversion
-pub fn au_to_int_px(au: f32) -> i32 {
-    (au / AU_PER_PX).round() as i32
-}
 
 /// A font relative length.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
@@ -87,7 +79,7 @@ pub enum FontBaseSize {
 
 impl FontBaseSize {
     /// Calculate the actual size for a given context
-    pub fn resolve(&self, context: &Context) -> Au {
+    pub fn resolve(&self, context: &Context) -> computed::Length {
         match *self {
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
             FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
@@ -109,13 +101,13 @@ impl FontRelativeLength {
     }
 
     /// Computes the font-relative length.
-    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> CSSPixelLength {
-        use std::f32;
+    pub fn to_computed_value(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> computed::Length {
         let (reference_size, length) = self.reference_font_size_and_length(context, base_size);
-        let pixel = (length * reference_size.to_f32_px())
-            .min(f32::MAX)
-            .max(f32::MIN);
-        CSSPixelLength::new(pixel)
+        reference_size * length
     }
 
     /// Return reference font size.
@@ -129,7 +121,7 @@ impl FontRelativeLength {
         &self,
         context: &Context,
         base_size: FontBaseSize,
-    ) -> (Au, CSSFloat) {
+    ) -> (computed::Length, CSSFloat) {
         fn query_font_metrics(
             context: &Context,
             base_size: FontBaseSize,
@@ -153,7 +145,7 @@ impl FontRelativeLength {
                 }
 
                 if base_size == FontBaseSize::InheritedStyleButStripEmUnits {
-                    (Au(0), length)
+                    (Zero::zero(), length)
                 } else {
                     (reference_font_size, length)
                 }
@@ -175,7 +167,7 @@ impl FontRelativeLength {
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    reference_font_size.scale_by(0.5)
+                    reference_font_size * 0.5
                 });
                 (reference_size, length)
             },
@@ -210,7 +202,7 @@ impl FontRelativeLength {
                     if wm.is_vertical() && wm.is_upright() {
                         reference_font_size
                     } else {
-                        reference_font_size.scale_by(0.5)
+                        reference_font_size * 0.5
                     }
                 });
                 (reference_size, length)
@@ -225,7 +217,7 @@ impl FontRelativeLength {
                 let reference_size = if context.is_root_element || context.in_media_query {
                     reference_font_size
                 } else {
-                    context.device().root_font_size()
+                    computed::Length::new(context.device().root_font_size().to_f32_px())
                 };
                 (reference_size, length)
             },
@@ -290,15 +282,14 @@ pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
     /// Computes the given character width.
-    pub fn to_computed_value(&self, reference_font_size: Au) -> CSSPixelLength {
-        // This applies the *converting a character width to pixels* algorithm as specified
-        // in HTML5 § 14.5.4.
+    pub fn to_computed_value(&self, reference_font_size: computed::Length) -> computed::Length {
+        // This applies the *converting a character width to pixels* algorithm
+        // as specified in HTML5 § 14.5.4.
         //
         // TODO(pcwalton): Find these from the font.
-        let average_advance = reference_font_size.scale_by(0.5);
+        let average_advance = reference_font_size * 0.5;
         let max_advance = reference_font_size;
-        let au = average_advance.scale_by(self.0 as CSSFloat - 1.0) + max_advance;
-        au.into()
+        average_advance * (self.0 as CSSFloat - 1.0) + max_advance
     }
 }
 
@@ -471,17 +462,17 @@ impl NoCalcLength {
             // viewport percentages
             "vw" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))
-            }
+            },
             "vh" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))
-            }
+            },
             "vmin" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))
-            }
+            },
             "vmax" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))
-            }
-            _ => return Err(())
+            },
+            _ => return Err(()),
         })
     }
 
@@ -587,39 +578,34 @@ impl Length {
         num_context: AllowedNumericType,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove early returns when lifetimes are non-lexical
-        {
-            let location = input.current_source_location();
-            let token = input.next()?;
-            match *token {
-                Token::Dimension {
-                    value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) => {
-                    return NoCalcLength::parse_dimension(context, value, unit)
-                        .map(Length::NoCalc)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
-                },
-                Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. &&
-                        !context.parsing_mode.allows_unitless_lengths() &&
-                        !allow_quirks.allowed(context.quirks_mode)
-                    {
-                        return Err(
-                            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                        );
-                    }
-                    return Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(
-                        value,
-                    ))));
-                },
-                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-                ref token => return Err(location.new_unexpected_token_error(token.clone())),
-            }
+        let location = input.current_source_location();
+        let token = input.next()?;
+        match *token {
+            Token::Dimension {
+                value, ref unit, ..
+            } if num_context.is_ok(context.parsing_mode, value) => {
+                NoCalcLength::parse_dimension(context, value, unit)
+                    .map(Length::NoCalc)
+                    .map_err(|()| location.new_unexpected_token_error(token.clone()))
+            },
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. &&
+                    !context.parsing_mode.allows_unitless_lengths() &&
+                    !allow_quirks.allowed(context.quirks_mode)
+                {
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                }
+                Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(
+                    value,
+                ))))
+            },
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => input
+                .parse_nested_block(|input| {
+                    CalcNode::parse_length(context, input, num_context)
+                        .map(|calc| Length::Calc(Box::new(calc)))
+                }),
+            ref token => return Err(location.new_unexpected_token_error(token.clone())),
         }
-        input.parse_nested_block(|input| {
-            CalcNode::parse_length(context, input, num_context)
-                .map(|calc| Length::Calc(Box::new(calc)))
-        })
     }
 
     /// Parse a non-negative length
@@ -704,14 +690,14 @@ impl Parse for NonNegativeLength {
 impl From<NoCalcLength> for NonNegativeLength {
     #[inline]
     fn from(len: NoCalcLength) -> Self {
-        NonNegative::<Length>(Length::NoCalc(len))
+        NonNegative(Length::NoCalc(len))
     }
 }
 
 impl From<Length> for NonNegativeLength {
     #[inline]
     fn from(len: Length) -> Self {
-        NonNegative::<Length>(len)
+        NonNegative(len)
     }
 }
 
@@ -809,44 +795,41 @@ impl LengthPercentage {
         num_context: AllowedNumericType,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove early returns when lifetimes are non-lexical
-        {
-            let location = input.current_source_location();
-            let token = input.next()?;
-            match *token {
-                Token::Dimension {
-                    value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) => {
-                    return NoCalcLength::parse_dimension(context, value, unit)
-                        .map(LengthPercentage::Length)
-                        .map_err(|()| location.new_unexpected_token_error(token.clone()));
-                },
-                Token::Percentage { unit_value, .. }
-                    if num_context.is_ok(context.parsing_mode, unit_value) =>
-                {
-                    return Ok(LengthPercentage::Percentage(computed::Percentage(
-                        unit_value,
-                    )));
-                }
-                Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. &&
-                        !context.parsing_mode.allows_unitless_lengths() &&
-                        !allow_quirks.allowed(context.quirks_mode)
-                    {
-                        return Err(location.new_unexpected_token_error(token.clone()));
-                    } else {
-                        return Ok(LengthPercentage::Length(NoCalcLength::from_px(value)));
-                    }
-                },
-                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-                _ => return Err(location.new_unexpected_token_error(token.clone())),
+        let location = input.current_source_location();
+        let token = input.next()?;
+        match *token {
+            Token::Dimension {
+                value, ref unit, ..
+            } if num_context.is_ok(context.parsing_mode, value) => {
+                return NoCalcLength::parse_dimension(context, value, unit)
+                    .map(LengthPercentage::Length)
+                    .map_err(|()| location.new_unexpected_token_error(token.clone()));
+            },
+            Token::Percentage { unit_value, .. }
+                if num_context.is_ok(context.parsing_mode, unit_value) =>
+            {
+                return Ok(LengthPercentage::Percentage(computed::Percentage(
+                    unit_value,
+                )));
             }
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. &&
+                    !context.parsing_mode.allows_unitless_lengths() &&
+                    !allow_quirks.allowed(context.quirks_mode)
+                {
+                    return Err(location.new_unexpected_token_error(token.clone()));
+                } else {
+                    return Ok(LengthPercentage::Length(NoCalcLength::from_px(value)));
+                }
+            },
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let calc = input.parse_nested_block(|i| {
+                    CalcNode::parse_length_or_percentage(context, i, num_context)
+                })?;
+                Ok(LengthPercentage::Calc(Box::new(calc)))
+            },
+            _ => return Err(location.new_unexpected_token_error(token.clone())),
         }
-
-        let calc = input.parse_nested_block(|i| {
-            CalcNode::parse_length_or_percentage(context, i, num_context)
-        })?;
-        Ok(LengthPercentage::Calc(Box::new(calc)))
     }
 
     /// Parses allowing the unitless length quirk.

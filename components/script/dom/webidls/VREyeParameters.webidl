@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webvr/#interface-vreyeparameters
 
-[Pref="dom.webvr.enabled"]
+[Exposed=Window, Pref="dom.webvr.enabled"]
 interface VREyeParameters {
   readonly attribute Float32Array offset;
   [SameObject] readonly attribute VRFieldOfView fieldOfView;

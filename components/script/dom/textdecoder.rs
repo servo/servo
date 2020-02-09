@@ -18,6 +18,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 
 #[dom_struct]
+#[allow(non_snake_case)]
 pub struct TextDecoder {
     reflector_: Reflector,
     encoding: &'static Encoding,
@@ -29,6 +30,7 @@ pub struct TextDecoder {
     do_not_flush: Cell<bool>,
 }
 
+#[allow(non_snake_case)]
 impl TextDecoder {
     fn new_inherited(encoding: &'static Encoding, fatal: bool, ignoreBOM: bool) -> TextDecoder {
         TextDecoder {

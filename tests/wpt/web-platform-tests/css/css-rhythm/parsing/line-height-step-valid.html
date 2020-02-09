@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Rhythmic Sizing: parsing line-height-step with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#propdef-line-height-step">
+<meta name="assert" content="line-height-step supports the full grammar '<length>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("line-height-step", "0", "0px");
+test_valid_value("line-height-step", "1px");
+test_valid_value("line-height-step", "calc(2em + 3ex)");
+</script>
+</body>
+</html>

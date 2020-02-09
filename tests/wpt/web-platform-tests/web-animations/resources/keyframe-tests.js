@@ -86,6 +86,16 @@ const gKeyframesTests = [
                       { marginTop: '60px', margin: '10px 20px 30px 40px' })],
   },
   {
+    desc:   'a two property (one shorthand and one of its shorthand components)'
+            + ' two value property-indexed keyframes specification',
+    input:  { border: ['pink', '2px'],
+              borderColor: ['green', 'blue'] },
+    output: [keyframe(computedOffset(0),
+                      { border: 'pink', borderColor: 'green' }),
+             keyframe(computedOffset(1),
+                      { border: '2px', borderColor: 'blue' })],
+  },
+  {
     desc:   'a two property two value property-indexed keyframes specification',
     input:  { left: ['10px', '20px'],
               top: ['30px', '40px'] },
@@ -158,6 +168,13 @@ const gKeyframesTests = [
     input:  { left: ['10px', 'invalid'] },
     output: [keyframe(computedOffset(0), { left: '10px' }),
              keyframe(computedOffset(1), {})]
+  },
+  {
+    desc:   'a property-indexed keyframes specification with a CSS variable as'
+            + ' the property',
+    input:  { '--custom': ['1', '2'] },
+    output: [keyframe(computedOffset(0), { '--custom': '1' }),
+             keyframe(computedOffset(1), { '--custom': '2' })]
   },
 
   // ----------- Property-indexed keyframes: offset handling -----------
@@ -453,6 +470,13 @@ const gKeyframesTests = [
              keyframe(computedOffset(1),
                       { margin: 'calc(var(--dist) + 100px)' })],
   },
+  {
+    desc:   'a keyframe sequence with a CSS variable as its property',
+    input:  [{ '--custom': 'a' },
+             { '--custom': 'b' }],
+    output: [keyframe(computedOffset(0), { '--custom': 'a' }),
+             keyframe(computedOffset(1), { '--custom': 'b' })]
+  },
 
   // ----------- Keyframe sequence: offset handling -----------
 
@@ -681,6 +705,18 @@ const gInvalidKeyframesTests = [
              { opacity: 1 } ],
   },
 ];
+
+
+const gKeyframeSerializationTests = [
+  {
+    desc:   'a on keyframe sequence which requires value serilaization of its'
+            + ' values',
+    input:  [{offset: 0, backgroundColor: 'rgb(1,2,3)' }],
+    output: [keyframe(offset(0), { backgroundColor: 'rgb(1, 2, 3)' })],
+  },
+];
+
+
 
 // ------------------------------
 //  KeyframeEffectOptions

@@ -32,26 +32,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 
-/// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
-/// back into a non-opaque representation. The only safe operation that can be
-/// performed on this node is to compare it to another opaque handle or to another
-/// OpaqueNode.
-///
-/// Layout and Graphics use this to safely represent nodes for comparison purposes.
-/// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
-/// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
-/// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
-pub struct OpaqueNode(pub usize);
-
-impl OpaqueNode {
-    /// Returns the address of this node, for debugging purposes.
-    #[inline]
-    pub fn id(&self) -> usize {
-        self.0
-    }
-}
+pub use style_traits::dom::OpaqueNode;
 
 /// Simple trait to provide basic information about the type of an element.
 ///
@@ -331,7 +312,7 @@ where
 }
 
 /// The ShadowRoot trait.
-pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
+pub trait TShadowRoot: Sized + Copy + Clone + Debug + PartialEq {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteShadowRoot = Self>;
 
@@ -522,6 +503,9 @@ pub trait TElement:
 
     /// Returns whether this element has a `part` attribute.
     fn has_part_attr(&self) -> bool;
+
+    /// Returns whether this element exports any part from its shadow tree.
+    fn exports_any_part(&self) -> bool;
 
     /// The ID for this element.
     fn id(&self) -> Option<&WeakAtom>;
@@ -776,14 +760,6 @@ pub trait TElement:
         return data.hint.has_animation_hint();
     }
 
-    /// Returns the anonymous content for the current element's XBL binding,
-    /// given if any.
-    ///
-    /// This is used in Gecko for XBL.
-    fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
-        None
-    }
-
     /// The shadow root this element is a host of.
     fn shadow_root(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
 
@@ -812,6 +788,9 @@ pub trait TElement:
     /// data if it comes from Shadow DOM.
     ///
     /// Returns whether normal document author rules should apply.
+    ///
+    /// TODO(emilio): We could separate the invalidation data for elements
+    /// matching in other scopes to avoid over-invalidation.
     fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
     where
         Self: 'a,
@@ -846,9 +825,40 @@ pub trait TElement:
             // Slots can only have assigned nodes when in a shadow tree.
             let shadow = slot.containing_shadow().unwrap();
             if let Some(data) = shadow.style_data() {
-                f(data, shadow.host());
+                if data.any_slotted_rule() {
+                    f(data, shadow.host());
+                }
             }
             current = slot.assigned_slot();
+        }
+
+        if target.has_part_attr() {
+            if let Some(mut inner_shadow) = target.containing_shadow() {
+                loop {
+                    let inner_shadow_host = inner_shadow.host();
+                    match inner_shadow_host.containing_shadow() {
+                        Some(shadow) => {
+                            if let Some(data) = shadow.style_data() {
+                                if data.any_part_rule() {
+                                    f(data, shadow.host())
+                                }
+                            }
+                            // TODO: Could be more granular.
+                            if !shadow.host().exports_any_part() {
+                                break;
+                            }
+                            inner_shadow = shadow;
+                        },
+                        None => {
+                            // TODO(emilio): Should probably distinguish with
+                            // MatchesDocumentRules::{No,Yes,IfPart} or
+                            // something so that we could skip some work.
+                            doc_rules_apply = true;
+                            break;
+                        },
+                    }
+                }
+            }
         }
 
         doc_rules_apply

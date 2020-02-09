@@ -13,6 +13,22 @@ use openssl::x509;
 use tokio::prelude::future::Executor;
 
 pub const BUF_SIZE: usize = 32768;
+pub const ALPN_H2_H1: &'static [u8] = b"\x02h2\x08http/1.1";
+pub const ALPN_H1: &'static [u8] = b"\x08http/1.1";
+
+// See https://wiki.mozilla.org/Security/Server_Side_TLS for orientation.
+const TLS1_2_CIPHERSUITES: &'static str = concat!(
+    "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:",
+    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:",
+    "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA"
+);
+const SIGNATURE_ALGORITHMS: &'static str = concat!(
+    "ed448:ed25519:",
+    "ECDSA+SHA384:ECDSA+SHA256:",
+    "RSA-PSS+SHA512:RSA-PSS+SHA384:RSA-PSS+SHA256:",
+    "RSA+SHA512:RSA+SHA384:RSA+SHA256"
+);
 
 pub struct HttpConnector {
     inner: HyperHttpConnector,
@@ -42,21 +58,21 @@ impl Connect for HttpConnector {
 }
 
 pub type Connector = HttpsConnector<HttpConnector>;
+pub type TlsConfig = SslConnectorBuilder;
 
-pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
+pub fn create_tls_config(certs: &str, alpn: &[u8]) -> TlsConfig {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
     // of them.
     let mut certs = certs;
-    let mut ssl_connector_builder = SslConnector::builder(SslMethod::tls()).unwrap();
+    let mut cfg = SslConnector::builder(SslMethod::tls()).unwrap();
     loop {
         let token = "-----END CERTIFICATE-----";
         if let Some(index) = certs.find(token) {
             let (cert, rest) = certs.split_at(index + token.len());
             certs = rest;
             let cert = x509::X509::from_pem(cert.as_bytes()).unwrap();
-            ssl_connector_builder
-                .cert_store_mut()
+            cfg.cert_store_mut()
                 .add_cert(cert)
                 .or_else(|e| {
                     let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
@@ -74,39 +90,31 @@ pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
             break;
         }
     }
-    ssl_connector_builder
-        .set_cipher_list(DEFAULT_CIPHERS)
-        .expect("could not set ciphers");
-    ssl_connector_builder.set_options(
+    cfg.set_alpn_protos(alpn)
+        .expect("could not set alpn protocols");
+    cfg.set_cipher_list(TLS1_2_CIPHERSUITES)
+        .expect("could not set TLS 1.2 ciphersuites");
+    cfg.set_sigalgs_list(SIGNATURE_ALGORITHMS)
+        .expect("could not set signature algorithms");
+    cfg.set_options(
         SslOptions::NO_SSLV2 |
             SslOptions::NO_SSLV3 |
             SslOptions::NO_TLSV1 |
             SslOptions::NO_TLSV1_1 |
             SslOptions::NO_COMPRESSION,
     );
-    ssl_connector_builder
+
+    cfg
 }
 
-pub fn create_http_client<E>(
-    ssl_connector_builder: SslConnectorBuilder,
-    executor: E,
-) -> Client<Connector, Body>
+pub fn create_http_client<E>(tls_config: TlsConfig, executor: E) -> Client<Connector, Body>
 where
     E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
-    let connector =
-        HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();
+    let connector = HttpsConnector::with_connector(HttpConnector::new(), tls_config).unwrap();
+
     Client::builder()
         .http1_title_case_headers(true)
         .executor(executor)
         .build(connector)
 }
-
-// Prefer Forward Secrecy over plain RSA, AES-GCM over AES-CBC, ECDSA over RSA.
-// A complete discussion of the issues involved in TLS configuration can be found here:
-// https://wiki.mozilla.org/Security/Server_Side_TLS
-const DEFAULT_CIPHERS: &'static str = concat!(
-    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
-    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
-    "ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:AES256-SHA:AES128-SHA"
-);

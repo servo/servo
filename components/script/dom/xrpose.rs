@@ -8,8 +8,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
+use crate::dom::xrsession::ApiRigidTransform;
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
 
 #[dom_struct]
 pub struct XRPose {
@@ -26,7 +26,7 @@ impl XRPose {
     }
 
     #[allow(unused)]
-    pub fn new(global: &GlobalScope, transform: RigidTransform3D<f64>) -> DomRoot<XRPose> {
+    pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRPose> {
         let transform = XRRigidTransform::new(global, transform);
         reflect_dom_object(
             Box::new(XRPose::new_inherited(&transform)),

@@ -48,7 +48,7 @@ function shouldFail(origin) {
                             + '/resources/cors-makeheader.py?origin='
                             + encodeURIComponent(origin),
                     false)
-        assert_throws("NetworkError", function() { client.send() }, 'send')
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
     }, 'Disallow origin: ' + origin.replace(/\0/g, "\\0"));
 }
 
@@ -112,7 +112,7 @@ function doubleOrigin(origin, origin2) {
                             + encodeURIComponent(origin)
                             + '&origin2=' + encodeURIComponent(origin2),
                     false)
-        assert_throws("NetworkError", function() { client.send() }, 'send')
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
     }, 'Disallow multiple headers (' + origin + ', ' + origin2 + ')');
 }
 

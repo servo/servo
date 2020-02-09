@@ -12,7 +12,7 @@ use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use ordered_float::NotNan;
 use servo_atoms::Atom;
 use smallvec::SmallVec;
@@ -131,7 +131,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
         FontDescriptor {
             template_descriptor: FontTemplateDescriptor::from(style),
             variant: style.font_variant_caps,
-            pt_size: style.font_size.size(),
+            pt_size: Au::from_f32_px(style.font_size.size().px()),
         }
     }
 }

@@ -23,7 +23,7 @@ div.test { animation: boo 1s infinite; }
           // Verify that the previous animations are no longer considered active.
           assert_equals(window.runningAnimationCount, 0);
           t.done();
-        });
+        }));
       }));
     });
   }, "Animations are no longer active when a node can't be animated.");

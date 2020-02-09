@@ -9,8 +9,20 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/interpolation-testcommon.js"></script>
     <style>
-      body {
-        color: blue;
+      .target {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        color: white;
+        margin-right: 2px;
+        filter: hue-rotate(10deg);
+      }
+      .expected {
+        margin-right: 20px;
+      }
+      .test {
+        padding-bottom: 10px;
       }
     </style>
   </head>
@@ -24,6 +36,7 @@
         to: 'blur(10px)'
       }, [
         {at: -1, expect: 'blur(0px)'}, // Negative values are not allowed.
+        {at: 0, expect: 'blur(0px)'},
         {at: 0.5, expect: 'blur(5px)'},
         {at: 1, expect: 'blur(10px)'},
         {at: 1.5, expect: 'blur(15px)'}
@@ -37,6 +50,7 @@
         {at: -1, expect: 'brightness(0)'}, // Negative values are not allowed.
         {at: 0, expect: 'brightness(0)'},
         {at: 0.5, expect: 'brightness(0.5)'},
+        {at: 1, expect: 'brightness(1)'},
         {at: 1.5, expect: 'brightness(1.5)'}
       ]);
 
@@ -48,6 +62,7 @@
         {at: -1, expect: 'contrast(0)'}, // Negative values are not allowed.
         {at: 0, expect: 'contrast(0)'},
         {at: 0.5, expect: 'contrast(0.5)'},
+        {at: 1, expect: 'contrast(1)'},
         {at: 1.5, expect: 'contrast(1.5)'}
       ]);
 
@@ -57,6 +72,7 @@
         to: 'drop-shadow(20px 10px green)'
       }, [
         {at: -1, expect: 'drop-shadow(-20px -10px transparent)'},
+        {at: 0, expect: 'drop-shadow(0px 0px 0px transparent)'},
         {at: 0.5, expect: 'drop-shadow(10px 5px rgba(0, 128, 0, 0.5))'},
         {at: 1, expect: 'drop-shadow(20px 10px green)'},
         {at: 1.5, expect: 'drop-shadow(30px 15px #00C000)'}
@@ -68,6 +84,7 @@
         to: 'grayscale(1)'
       }, [
         {at: -1, expect: 'grayscale(0)'}, // Negative values are not allowed.
+        {at: 0, expect: 'grayscale(0)'},
         {at: 0.5, expect: 'grayscale(0.5)'},
         {at: 1, expect: 'grayscale(1)'},
         {at: 1.5, expect: 'grayscale(1)'} // Should clamp values to 1.
@@ -79,6 +96,7 @@
         to: 'hue-rotate(360deg)'
       }, [
         {at: -1, expect: 'hue-rotate(-360deg)'},
+        {at: 0, expect: 'hue-rotate(0deg)'},
         {at: 0.5, expect: 'hue-rotate(180deg)'},
         {at: 1, expect: 'hue-rotate(360deg)'},
         {at: 1.5, expect: 'hue-rotate(540deg)'}
@@ -90,6 +108,7 @@
         to: 'invert(1)'
       }, [
         {at: -1, expect: 'invert(0)'}, // Negative values are not allowed.
+        {at: 0, expect: 'invert(0)'},
         {at: 0.5, expect: 'invert(0.5)'},
         {at: 1, expect: 'invert(1)'},
         {at: 1.5, expect: 'invert(1)'} // Should clamp values to 1.
@@ -103,6 +122,7 @@
         {at: -1, expect: 'opacity(0)'}, // Negative values are not allowed.
         {at: 0, expect: 'opacity(0)'},
         {at: 0.5, expect: 'opacity(0.5)'},
+        {at: 1, expect: 'opacity(1)'},
         {at: 1.5, expect: 'opacity(1)'} // Should clamp values to 1.
       ]);
 
@@ -114,6 +134,7 @@
         {at: -1, expect: 'saturate(0)'}, // Negative values are not allowed.
         {at: 0, expect: 'saturate(0)'},
         {at: 0.5, expect: 'saturate(0.5)'},
+        {at: 1, expect: 'saturate(1)'},
         {at: 1.5, expect: 'saturate(1.5)'}
       ]);
 
@@ -123,6 +144,7 @@
         to: 'sepia(1)'
       }, [
         {at: -1, expect: 'sepia(0)'}, // Negative values are not allowed.
+        {at: 0, expect: 'sepia(0)'},
         {at: 0.5, expect: 'sepia(0.5)'},
         {at: 1, expect: 'sepia(1)'},
         {at: 1.5, expect: 'sepia(1)'} // Should clamp values to 1.
@@ -133,6 +155,24 @@
         from: 'url("#svgfilter")',
         to: 'none', // lacuna is not defined
       });
+
+      test_no_interpolation({
+        property: 'filter',
+        from: 'url("#svgfilter")',
+        to: 'blur(5px)',
+      });
+
+      test_interpolation({
+        property: 'filter',
+        from: 'initial', // lacuna is 0
+        to: 'sepia(1)'
+      }, [
+        {at: -1, expect: 'sepia(0)'}, // Negative values are not allowed.
+        {at: 0, expect: 'sepia(0)'}, // Equivalent to sepia(0)
+        {at: 0.5, expect: 'sepia(0.5)'},
+        {at: 1, expect: 'sepia(1)'},
+        {at: 1.5, expect: 'sepia(1)'} // Should clamp values to 1.
+      ]);
     </script>
   </body>
 </html>

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::error::Error;
@@ -11,7 +10,9 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
+use crate::dom::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
+use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
@@ -20,6 +21,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xr::XR;
+use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -34,6 +36,8 @@ pub struct Navigator {
     mediadevices: MutNullableDom<MediaDevices>,
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
+    mediasession: MutNullableDom<MediaSession>,
+    gpu: MutNullableDom<GPU>,
 }
 
 impl Navigator {
@@ -48,6 +52,8 @@ impl Navigator {
             mediadevices: Default::default(),
             gamepads: Default::default(),
             permissions: Default::default(),
+            mediasession: Default::default(),
+            gpu: Default::default(),
         }
     }
 
@@ -166,8 +172,8 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
-    fn GetVRDisplays(&self, comp: InCompartment) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
+    fn GetVRDisplays(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
         let displays = self.Xr().get_displays();
         match displays {
             Ok(displays) => promise.resolve_native(&displays),
@@ -185,5 +191,26 @@ impl NavigatorMethods for Navigator {
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
             .or_init(|| MediaDevices::new(&self.global()))
+    }
+
+    /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
+    fn MediaSession(&self) -> DomRoot<MediaSession> {
+        self.mediasession.or_init(|| {
+            // There is a single MediaSession instance per Pipeline
+            // and only one active MediaSession globally.
+            //
+            // MediaSession creation can happen in two cases:
+            //
+            // - If content gets `navigator.mediaSession`
+            // - If a media instance (HTMLMediaElement so far) starts playing media.
+            let global = self.global();
+            let window = global.as_window();
+            MediaSession::new(window)
+        })
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    fn Gpu(&self) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(&self.global()))
     }
 }

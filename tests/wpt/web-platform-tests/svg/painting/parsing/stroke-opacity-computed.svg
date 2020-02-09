@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml"
      width="800px" height="800px">
-  <title>SVG Painting: getComputedValue().strokeOpacity</title>
+  <title>SVG Painting: getComputedStyle().strokeOpacity</title>
   <metadata>
     <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeOpacityProperty"/>
     <h:meta name="assert" content="stroke-opacity computed value is clamped to the range [0,1]."/>
@@ -16,6 +16,9 @@
 test_computed_value("stroke-opacity", "-1", "0");
 test_computed_value("stroke-opacity", "0.5");
 test_computed_value("stroke-opacity", "3", "1");
+test_computed_value("stroke-opacity", "-100%", "0");
+test_computed_value("stroke-opacity", "50%", "0.5");
+test_computed_value("stroke-opacity", "300%", "1");
 
   ]]></script>
 </svg>

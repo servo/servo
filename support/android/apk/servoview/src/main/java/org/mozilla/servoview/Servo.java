@@ -160,7 +160,7 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.pinchZoomEnd(factor, x, y));
     }
 
-    public void click(int x, int y) {
+    public void click(float x, float y) {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
     }
 
@@ -168,7 +168,13 @@ public class Servo {
         mSuspended = suspended;
     }
 
+    public void mediaSessionAction(int action) {
+        mRunCallback.inGLThread(() -> mJNI.mediaSessionAction(action));
+    }
+
     public interface Client {
+        void onAlert(String message);
+
         boolean onAllowNavigation(String url);
 
         void onLoadStarted();
@@ -182,6 +188,12 @@ public class Servo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onRedrawing(boolean redrawing);
+
+        void onMediaSessionMetadata(String title, String artist, String album);
+
+        void onMediaSessionPlaybackStateChange(int state);
+
+        void onMediaSessionSetPositionState(float duration, float position, float playbackRate);
     }
 
     public interface RunCallback {
@@ -228,6 +240,10 @@ public class Servo {
             mGfxCb.makeCurrent();
         }
 
+        public void onAlert(String message) {
+            mRunCallback.inUIThread(() -> mClient.onAlert(message));
+        }
+
         public void onShutdownComplete() {
             mShutdownComplete = true;
         }
@@ -262,6 +278,18 @@ public class Servo {
 
         public void onRedrawing(boolean redrawing) {
             mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
+        }
+
+        public void onMediaSessionMetadata(String title, String artist, String album) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionMetadata(title, artist, album));
+        }
+
+        public void onMediaSessionPlaybackStateChange(int state) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionPlaybackStateChange(state));
+        }
+
+        public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
+            mRunCallback.inUIThread(() -> mClient.onMediaSessionSetPositionState(duration, position, playbackRate));
         }
     }
 }

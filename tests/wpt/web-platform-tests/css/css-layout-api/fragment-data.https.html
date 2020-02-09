@@ -35,11 +35,10 @@ const DATA = {
 };
 
 registerLayout('parent', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout([child], edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout([child], edges, constraints, styleMap) {
 
-    const childFragment = yield child.layoutNextFragment();
+    const childFragment = await child.layoutNextFragment();
 
     // Use JSON.stringify to make sure the structured cloning worked.
     if (childFragment.data !== DATA &&
@@ -52,9 +51,8 @@ registerLayout('parent', class {
 });
 
 registerLayout('child', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     return {autoBlockSize: 10, data: DATA};
   }
 });

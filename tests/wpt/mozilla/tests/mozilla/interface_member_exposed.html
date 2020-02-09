@@ -43,4 +43,22 @@ for (var i = 0; i < staticMembers.length; i++) {
   test_member(name + 'Enabled', true, function(o) { return o; });
   test_member(name + 'Disabled', false, function(o) { return o; });
 }
+
+members = [
+    'semiExposedBoolFromInterface',
+    'boolFromSemiExposedPartialInterface',
+    'semiExposedBoolFromPartialInterface',
+];
+for (const member of members) {
+    var interface = new TestBinding();
+    async_test(function(t) {
+        assert_true(member in interface);
+        assert_true(interface[member]);
+        let w = new Worker("worker_member_test.js?" + member);
+        w.onmessage = t.step_func(function(e) {
+            assert_equals(e.data, undefined);
+            t.done();
+        });
+    }, member);
+}
 </script>

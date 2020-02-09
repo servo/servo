@@ -24,8 +24,9 @@ enum XMLHttpRequestResponseType {
   "text"
 };
 
-[Constructor, Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
+  [Throws] constructor();
   // event handler
   attribute EventHandler onreadystatechange;
 

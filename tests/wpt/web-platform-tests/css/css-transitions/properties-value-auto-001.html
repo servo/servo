@@ -61,7 +61,7 @@
             // tests = filterPropertyTests(tests, /^background-color/);
 
             // general transition-duration
-            var duration = '0.5s';
+            var duration = '2s';
 
             runParallelAsyncHarness({
                 // array of test data
@@ -69,7 +69,7 @@
                 // the number of tests to run in parallel
                 testsPerSlice: 50,
                 // milliseconds to wait before calling teardown and ending test
-                duration: parseFloat(duration) * 1000,
+                duration: parseFloat(duration) * 1200,
                 // prepare individual test
                 setup: function(data, options) {
                     var styles = {

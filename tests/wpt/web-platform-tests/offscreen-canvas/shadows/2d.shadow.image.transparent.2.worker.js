@@ -4,9 +4,13 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("Shadows are not drawn for transparent parts of images");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -28,15 +32,15 @@ var promise = new Promise(function(resolve, reject) {
     };
 });
 promise.then(function(response) {
-    ctx.drawImage(response, 50, -50);
-    ctx.shadowColor = '#f00';
-    ctx.drawImage(response, -50, -50);
-    _assertPixel(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
-    _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-    _assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
-});
-
-t.done();
+    createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 50, -50);
+        ctx.shadowColor = '#f00';
+        ctx.drawImage(bitmap, -50, -50);
+        _assertPixel(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
+        _assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+        _assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
+    }, t_fail);
+}).then(t_pass, t_fail);
 
 });
 done();

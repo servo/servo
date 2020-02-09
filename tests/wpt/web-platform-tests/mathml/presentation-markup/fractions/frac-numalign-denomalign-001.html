@@ -3,15 +3,13 @@
   <head>
     <meta charset="utf-8">
     <title>Fraction numalign denomalign</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
-    <meta name="assert" content="This fraction alignment with the numalign/denomalign attributes.">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Check that legacy numalign/denomalign attributes are ignored.">
     <link rel="match" href="frac-numalign-denomalign-001-ref.html">
   </head>
   <body>
-    <p>This test passes if you see 3 fractions with a numerator respectively
-      aligned left/center/right with respect to the denominator ;
-      followed by 3 fractions with a denominator respectively aligned
-      left/center/right with respect to the numerator.</p>
+    <p>This test passes if you see 6 fractions with numerators and
+      denominators horizontally centered.</p>
     <p>
       <math>
         <mfrac numalign="left">
@@ -52,5 +50,7 @@
         </mfrac>
       </math>
     </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
   </body>
 </html>

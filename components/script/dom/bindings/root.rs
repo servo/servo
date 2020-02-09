@@ -46,7 +46,7 @@ use style::thread_state;
 
 /// A rooted value.
 #[allow(unrooted_must_root)]
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct Root<T: StableTraceObject> {
     /// The value to root.
     value: T,
@@ -283,7 +283,7 @@ where
 /// on the stack, the `Dom<T>` can point to freed memory.
 ///
 /// This should only be used as a field in other DOM objects.
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct Dom<T> {
     ptr: ptr::NonNull<T>,
 }
@@ -330,20 +330,20 @@ impl<T: DomObject> Deref for Dom<T> {
 
 unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        #[cfg(all(feature = "unstable", debug_assertions))]
-        let trace_str = format!("for {} on heap", ::std::intrinsics::type_name::<T>());
-        #[cfg(all(feature = "unstable", debug_assertions))]
-        let trace_info = &trace_str[..];
-        #[cfg(not(all(feature = "unstable", debug_assertions)))]
-        let trace_info = "for DOM object on heap";
-
+        let trace_string;
+        let trace_info = if cfg!(debug_assertions) {
+            trace_string = format!("for {} on heap", ::std::any::type_name::<T>());
+            &trace_string[..]
+        } else {
+            "for DOM object on heap"
+        };
         trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
     }
 }
 
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
-#[allow_unrooted_interior]
+#[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct LayoutDom<T> {
     ptr: ptr::NonNull<T>,
 }
@@ -463,7 +463,7 @@ impl LayoutDom<Node> {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
 pub struct MutDom<T: DomObject> {
     val: UnsafeCell<Dom<T>>,
@@ -518,7 +518,7 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
 pub struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
@@ -616,7 +616,7 @@ impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct DomOnceCell<T: DomObject> {
     ptr: OnceCell<Dom<T>>,
 }

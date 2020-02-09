@@ -1,4 +1,3 @@
-import sys
 from io import BytesIO
 
 import pytest
@@ -6,8 +5,6 @@ import pytest
 from .. import manifestexpected
 
 
-@pytest.mark.xfail(sys.version[0] == "3",
-                   reason="bytes/text confusion in py3")
 @pytest.mark.parametrize("fuzzy, expected", [
     (b"ref.html:1;200", [("ref.html", ((1, 1), (200, 200)))]),
     (b"ref.html:0-1;100-200", [("ref.html", ((0, 1), (100, 200)))]),
@@ -25,7 +22,7 @@ from .. import manifestexpected
       ((u"test.html", u"ref1.html", "=="), ((5,10), (100, 100)))]),
 ])
 def test_fuzzy(fuzzy, expected):
-    data = """
+    data = b"""
 [test.html]
   fuzzy: %s""" % fuzzy
     f = BytesIO(data)

@@ -9,6 +9,7 @@
 ${helpers.single_keyword(
     "border-collapse",
     "separate collapse",
+    engines="gecko servo-2013",
     gecko_enum_prefix="StyleBorderCollapse",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse",
@@ -18,6 +19,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "empty-cells",
     "show hide",
+    engines="gecko servo-2013",
     gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells",
@@ -27,6 +29,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "caption-side",
     "top bottom",
+    engines="gecko servo-2013",
     extra_gecko_values="right left top-outside bottom-outside",
     needs_conversion="True",
     animation_value_type="discrete",
@@ -38,6 +41,8 @@ ${helpers.predefined_type(
     "border-spacing",
     "BorderSpacing",
     "computed::BorderSpacing::zero()",
+    engines="gecko servo-2013 servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="BorderSpacing",
     boxed=True,
     spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing",

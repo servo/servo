@@ -1,0 +1,16 @@
+<html>
+<body>
+
+<!-- An empty webpage whose response headers include Accept-CH
+header. Fetching this webpage should cause
+user-agent to persist origin preferences for the client hints
+specified in the Accept-CH header until a Clear-Site-Data header
+is sent or user action is take to clear the session or data about
+the origin.-->
+<script>
+  window.top.opener.postMessage('Loaded', '*');
+</script>
+
+
+</body>
+</html>

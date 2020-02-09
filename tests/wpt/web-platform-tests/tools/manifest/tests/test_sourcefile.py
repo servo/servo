@@ -35,8 +35,8 @@ def items(s):
     "foo/tools/test.html",
     "foo/resources/test.html",
     "foo/support/test.html",
-    "foo/test-support.html",
     "foo/foo-manual.html.headers",
+    "crashtests/foo.html.ini",
     "css/common/test.html",
     "css/CSS2/archive/test.html",
 ])
@@ -56,6 +56,7 @@ def test_name_is_non_test(rel_path):
     "foo/css21/archive/test.html",
     "foo/CSS2/archive/test.html",
     "css/css21/archive/test.html",
+    "foo/test-support.html",
 ])
 def test_not_name_is_non_test(rel_path):
     s = create(rel_path)
@@ -657,7 +658,7 @@ def test_relative_testdriver(ext):
 
 
 @pytest.mark.parametrize("ext", ["htm", "html"])
-def test_reftest_node(ext):
+def test_reftest(ext):
     content = b"<link rel=match href=ref.html>"
 
     filename = "foo/test." + ext
@@ -673,7 +674,7 @@ def test_reftest_node(ext):
 
     assert s.content_is_ref_node
 
-    assert items(s) == [("reftest_node", "/" + filename)]
+    assert items(s) == [("reftest", "/" + filename)]
 
 
 @pytest.mark.parametrize("ext", ["xht", "html", "xhtml", "htm", "xml", "svg"])

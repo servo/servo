@@ -3,7 +3,9 @@
 Reftests are one of the primary tools for testing things relating to
 rendering; they are made up of the test and one or more other pages
 ("references") with assertions as to whether they render identically
-or not.
+or not. This page describes their aspects exhaustively; [the tutorial
+on writing a reftest](reftest-tutorial) offers a more limited but
+grounded guide to the process.
 
 ## How to Run Reftests
 
@@ -52,58 +54,48 @@ single test, it is recommended to use the test name with a suffix of
 `-ref` as their filename; e.g., `test.html` would have `test-ref.html`
 as a reference.
 
-## Complex Pass Conditions
+## Multiple References
 
-Sometimes it is desirable for a file to match multiple references or,
-in rare cases, to allow it to match more than one possible reference.
+Sometimes, a test's pass condition cannot be captured in a single
+reference.
 
-References can have links to other references (through the same `link`
-element relation), and in this case for the test to pass the test must
-render identically (assuming a `match` relation) to the reference, and
-the reference must render identically to its reference (again,
-assuming a `match` relation). Note that this can continue indefinitely
-to require tests to match an arbitrary number of references; also that
-`match` is used here purely for explanatory reasons: both `match` and
-`mismatch` can be used (and mixed on one sequence of references). This
-can be thought of as an AND operator!
+If a test has multiple links, then the test passes if:
 
-Similarly, multiple references can be linked from a single file to
-implement alternates and allow multiple renderings. In this case, the
-file passes if it matches one of the references provided (and that
-reference likewise matches any references, etc.). This can be thought
-of as an OR operator!
+ * If there are any match references, at least one must match, and
+ * If there are any mismatch references, all must mismatch.
 
-These two techniques can be combined to build up arbitrarily complex
-pass conditions with boolean logic. For example, consider when:
-
- * `a.html` has `<link rel=match href=b.html>` and `<link rel=match
-href=c.html>`,
- * `b.html` has `<link rel=match href=b1.html>`, and
- * `c.html` has `<link rel=mismatch href=c1.html>`.
-
-Or, graphically:
-
-<img src="{{ site.baseurl }}{% link assets/reftest_graph_example.svg %}"
-     alt="diagram of the above reftest graph as a directed graph">
-
-In this case, to pass we must either have `a.html`, `b.html` and
-`b1.html` all rendering identically, or `a.html` and `c.html`
-rendering identically with `c1.html` rendering differently. (These
-are, in terms of the graph, all the paths from the source nodes to
-leaf nodes.)
+ If you need multiple matches to succeed, these can be turned into
+ multiple tests (for example, by just having a reference be a test
+ itself!). If this seems like an unreasonable restriction, please file
+ a bug and let us know!
 
 ## Controlling When Comparison Occurs
 
-By default reftest screenshots are taken after the `load` event has
-fired, and web fonts (if any) are loaded. In some cases it is
-necessary to delay the screenshot later than this, for example because
-some DOM manipulation is required to set up the desired test
-conditions. To enable this, the test may have a `class="reftest-wait"`
-attribute specified on the root element. This will cause the
-screenshot to be delayed until the `load` event has fired and the
-`reftest-wait` class has been removed from the root element. Note that
-in neither case is exact timing of the screenshot guaranteed: it is
-only guaranteed to be after those events.
+By default, reftest screenshots are taken after the following
+conditions are met:
+
+* The `load` event has fired
+* Web fonts (if any) are loaded
+* Pending paints have completed
+
+In some cases it is necessary to delay the screenshot later than this,
+for example because some DOM manipulation is required to set up the
+desired test conditions. To enable this, the test may have a
+`class="reftest-wait"` attribute specified on the root element. In
+this case the harness will run the following sequence of steps:
+
+* Wait for the `load` event to fire and fonts to load.
+* Wait for pending paints to complete.
+* Fire an event named `TestRendered` at the root element, with the
+  `bubbles` attribute set to true.
+* Wait for the `reftest-wait` class to be removed from the root
+  element.
+* Wait for pending paints to complete.
+* Screenshot the viewport.
+
+The `TestRendered` event provides a hook for tests to make
+modifications to the test document that are not batched into the
+initial layout/paint.
 
 ## Fuzzy Matching
 
@@ -179,47 +171,6 @@ platform. However, once it's established that underlining an inline
 element works, it's possible to construct a reftest for underlining
 a block element, by constructing a reference using underlines on a
 ```<span>``` that wraps all the content inside the block.
-
-## Example Reftests
-
-This example follows the recommended approach in being a
-self-describing test as it has a simple statement on the page
-describing how it should render to pass the tests.
-
-### Test File
-
-This test verifies that a right-to-left rendering of **SAW** within a
-```<bdo>``` element displays as **WAS**.
-
-```html
-<!DOCTYPE html>
-<meta charset="utf-8">
-<title>BDO element dir=rtl</title>
-<link rel="help" href="https://html.spec.whatwg.org/#the-bdo-element">
-<meta name="assert" content="BDO element's DIR content attribute renders corrently given value of 'rtl'.">
-<link rel="match" href="test-bdo-001.html">
-<p>Pass if you see WAS displayed below.</p>
-<bdo dir="rtl">SAW</bdo>
-```
-
-### Reference File
-
-The reference file must look exactly like the test file,
-except that the code behind it is different.
-
-* All metadata is removed.
-* The ```title``` need not match.
-* The markup that created the actual test data is
-  different: here, the same effect is created with
-  very mundane, dependable technology.
-
-```html
-<!DOCTYPE html>
-<meta charset="utf-8">
-<title>HTML Reference File</title>
-<p>Pass if you see WAS displayed below.</p>
-<p>WAS</p>
-```
 
 [general guidelines]: general-guidelines
 [rendering]: rendering

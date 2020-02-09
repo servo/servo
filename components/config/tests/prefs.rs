@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 use servo_config::basedir;
 use servo_config::pref_util::Preferences;

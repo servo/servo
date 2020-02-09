@@ -250,7 +250,30 @@ test(function () {
 
 container.innerHTML = '';
 
-    </script>
-  </body>
+test(function(t) {
+  const container = document.createElement("div");
+  const span = document.createElement("span");
+  span.innerText = "foo";
+  document.body.appendChild(container);
+  container.appendChild(span);
+
+  let elements = document.elementsFromPoint(...pointInElement(span));
+  assert_equals(elements.length, 4);
+  assert_equals(elements[0], span);
+  assert_equals(elements[1], container);
+  assert_equals(elements[2].nodeName, 'BODY');
+  assert_equals(elements[3].nodeName, 'HTML');
+
+  const host = document.createElement("div");
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  elements = shadowRoot.elementsFromPoint(...pointInElement(span));
+  assert_equals(elements.length, 4);
+  assert_equals(elements[0], span);
+  assert_equals(elements[1], container);
+  assert_equals(elements[2].nodeName, 'BODY');
+  assert_equals(elements[3].nodeName, 'HTML');
+}, "elementsFromPoint should return all elements under a point, even when context object is not connected");
+</script>
+</body>
 </html>
 

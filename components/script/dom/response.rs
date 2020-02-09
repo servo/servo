@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::body::{consume_body, consume_body_with_promise, BodyOperations, BodyType};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
@@ -19,13 +19,14 @@ use crate::dom::headers::{is_obs_text, is_vchar};
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
+use crate::script_runtime::StreamConsumer;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper::StatusCode;
 use hyper_serde::Serde;
 use net_traits::response::ResponseBody as NetTraitsResponseBody;
 use servo_url::ServoUrl;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -48,8 +49,11 @@ pub struct Response {
     body: DomRefCell<NetTraitsResponseBody>,
     #[ignore_malloc_size_of = "Rc"]
     body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
+    #[ignore_malloc_size_of = "StreamConsumer"]
+    stream_consumer: DomRefCell<Option<StreamConsumer>>,
 }
 
+#[allow(non_snake_case)]
 impl Response {
     pub fn new_inherited() -> Response {
         Response {
@@ -58,12 +62,13 @@ impl Response {
             mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
             status: DomRefCell::new(Some(StatusCode::OK)),
-            raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
+            raw_status: DomRefCell::new(Some((200, b"".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
             body: DomRefCell::new(NetTraitsResponseBody::Empty),
             body_promise: DomRefCell::new(None),
+            stream_consumer: DomRefCell::new(None),
         }
     }
 
@@ -313,7 +318,7 @@ impl ResponseMethods for Response {
     fn StatusText(&self) -> ByteString {
         match *self.raw_status.borrow() {
             Some((_, ref st)) => ByteString::new(st.clone()),
-            None => ByteString::new(b"OK".to_vec()),
+            None => ByteString::new(b"".to_vec()),
         }
     }
 
@@ -395,6 +400,7 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 impl Response {
     pub fn set_type(&self, new_response_type: DOMResponseType) {
         *self.response_type.borrow_mut() = new_response_type;
+        self.set_response_members_by_type(new_response_type);
     }
 
     pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>) {
@@ -402,6 +408,7 @@ impl Response {
             Some(hyper_headers) => hyper_headers.into_inner(),
             None => HyperHeaders::new(),
         });
+        *self.mime_type.borrow_mut() = self.Headers().extract_mime_type();
     }
 
     pub fn set_raw_status(&self, status: Option<(u16, Vec<u8>)>) {
@@ -412,11 +419,51 @@ impl Response {
         *self.url.borrow_mut() = Some(final_url);
     }
 
+    fn set_response_members_by_type(&self, response_type: DOMResponseType) {
+        match response_type {
+            DOMResponseType::Error => {
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Opaque => {
+                *self.url_list.borrow_mut() = vec![];
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Opaqueredirect => {
+                *self.status.borrow_mut() = None;
+                self.set_raw_status(None);
+                self.set_headers(None);
+                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+            },
+            DOMResponseType::Default => {},
+            DOMResponseType::Basic => {},
+            DOMResponseType::Cors => {},
+        }
+    }
+
+    pub fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
+        *self.stream_consumer.borrow_mut() = sc;
+    }
+
+    pub fn stream_chunk(&self, stream: &[u8]) {
+        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().as_ref() {
+            stream_consumer.consume_chunk(stream);
+        }
+    }
+
     #[allow(unrooted_must_root)]
     pub fn finish(&self, body: Vec<u8>) {
         *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
         if let Some((p, body_type)) = self.body_promise.borrow_mut().take() {
             consume_body_with_promise(self, body_type, &p);
+        }
+        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().take() {
+            stream_consumer.stream_end();
         }
     }
 }

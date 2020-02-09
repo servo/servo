@@ -6,7 +6,7 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     document.createTreeWalker();
   });
 }, "Required arguments to createTreeWalker should be required.");

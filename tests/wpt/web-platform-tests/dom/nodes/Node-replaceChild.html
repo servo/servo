@@ -15,15 +15,15 @@
 // IDL.
 test(function() {
   var a = document.createElement("div");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     a.replaceChild(null, null);
   });
 
   var b = document.createElement("div");
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     a.replaceChild(b, null);
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     a.replaceChild(null, b);
   });
 }, "Passing null to replaceChild should throw a TypeError.")
@@ -33,16 +33,16 @@ test(function() {
   var a = document.createElement("div");
   var b = document.createElement("div");
   var c = document.createElement("div");
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     a.replaceChild(b, c);
   });
 
   var d = document.createElement("div");
   d.appendChild(b);
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     a.replaceChild(b, c);
   });
-  assert_throws("NotFoundError", function() {
+  assert_throws_dom("NotFoundError", function() {
     a.replaceChild(b, a);
   });
 }, "If child's parent is not the context node, a NotFoundError exception should be thrown");
@@ -54,7 +54,7 @@ test(function() {
   var a = document.createElement("div");
   var b = document.createElement("div");
   nodes.forEach(function(node) {
-    assert_throws("HierarchyRequestError", function() {
+    assert_throws_dom("HierarchyRequestError", function() {
       node.replaceChild(a, b);
     });
   });
@@ -65,18 +65,18 @@ test(function() {
   var a = document.createElement("div");
   var b = document.createElement("div");
 
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     a.replaceChild(a, a);
   });
 
   a.appendChild(b);
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     a.replaceChild(a, b);
   });
 
   var c = document.createElement("div");
   c.appendChild(a);
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     a.replaceChild(c, b);
   });
 }, "If node is an inclusive ancestor of the context node, a HierarchyRequestError should be thrown.")
@@ -85,11 +85,11 @@ test(function() {
 test(function() {
   var doc = document.implementation.createHTMLDocument("title");
   var doc2 = document.implementation.createHTMLDocument("title2");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(doc2, doc.documentElement);
   });
 
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(doc.createTextNode("text"), doc.documentElement);
   });
 }, "If the context node is a document, inserting a document or text node should throw a HierarchyRequestError.")
@@ -101,20 +101,20 @@ test(function() {
   var df = doc.createDocumentFragment();
   df.appendChild(doc.createElement("a"));
   df.appendChild(doc.createElement("b"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, doc.documentElement);
   });
 
   df = doc.createDocumentFragment();
   df.appendChild(doc.createTextNode("text"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, doc.documentElement);
   });
 
   df = doc.createDocumentFragment();
   df.appendChild(doc.createComment("comment"));
   df.appendChild(doc.createTextNode("text"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, doc.documentElement);
   });
 }, "If the context node is a document, inserting a DocumentFragment that contains a text node or too many elements should throw a HierarchyRequestError.")
@@ -125,7 +125,7 @@ test(function() {
   var df = doc.createDocumentFragment();
   df.appendChild(doc.createElement("a"));
   df.appendChild(doc.createElement("b"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, doc.doctype);
   });
 }, "If the context node is a document (without element children), inserting a DocumentFragment that contains multiple elements should throw a HierarchyRequestError.")
@@ -139,10 +139,10 @@ test(function() {
 
   var df = doc.createDocumentFragment();
   df.appendChild(doc.createElement("a"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, comment);
   });
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, doc.doctype);
   });
 }, "If the context node is a document, inserting a DocumentFragment with an element if there already is an element child should throw a HierarchyRequestError.")
@@ -155,7 +155,7 @@ test(function() {
 
   var df = doc.createDocumentFragment();
   df.appendChild(doc.createElement("a"));
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(df, comment);
   });
 }, "If the context node is a document, inserting a DocumentFragment with an element before the doctype should throw a HierarchyRequestError.")
@@ -167,10 +167,10 @@ test(function() {
   assert_array_equals(doc.childNodes, [doc.doctype, doc.documentElement, comment]);
 
   var a = doc.createElement("a");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(a, comment);
   });
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(a, doc.doctype);
   });
 }, "If the context node is a document, inserting an element if there already is an element child should throw a HierarchyRequestError.")
@@ -181,7 +181,7 @@ test(function() {
   assert_array_equals(doc.childNodes, [comment, doc.doctype]);
 
   var a = doc.createElement("a");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(a, comment);
   });
 }, "If the context node is a document, inserting an element before the doctype should throw a HierarchyRequestError.")
@@ -193,10 +193,10 @@ test(function() {
   assert_array_equals(doc.childNodes, [comment, doc.doctype, doc.documentElement]);
 
   var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(doctype, comment);
   });
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(doctype, doc.documentElement);
   });
 }, "If the context node is a document, inserting a doctype if there already is a doctype child should throw a HierarchyRequestError.")
@@ -207,7 +207,7 @@ test(function() {
   assert_array_equals(doc.childNodes, [doc.documentElement, comment]);
 
   var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     doc.replaceChild(doctype, comment);
   });
 }, "If the context node is a document, inserting a doctype after the document element should throw a HierarchyRequestError.")
@@ -218,12 +218,12 @@ test(function() {
   var a = df.appendChild(document.createElement("a"));
 
   var doc = document.implementation.createHTMLDocument("title");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     df.replaceChild(doc, a);
   });
 
   var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     df.replaceChild(doctype, a);
   });
 }, "If the context node is a DocumentFragment, inserting a document or a doctype should throw a HierarchyRequestError.")
@@ -232,12 +232,12 @@ test(function() {
   var a = el.appendChild(document.createElement("a"));
 
   var doc = document.implementation.createHTMLDocument("title");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     el.replaceChild(doc, a);
   });
 
   var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     el.replaceChild(doctype, a);
   });
 }, "If the context node is an element, inserting a document or a doctype should throw a HierarchyRequestError.")

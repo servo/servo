@@ -7,22 +7,25 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import contextlib
+from __future__ import print_function
+
 import fnmatch
+import glob
 import imp
 import itertools
 import json
 import os
 import re
-import StringIO
 import subprocess
 import sys
 
 import colorama
+import six
 import toml
 import voluptuous
 import yaml
-from licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from six import iteritems
 topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 wpt = os.path.join(topdir, "tests", "wpt")
 
@@ -33,7 +36,7 @@ def wpt_path(*args):
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_MANIFEST_PATH = wpt_path("include.ini")
 # regex source https://stackoverflow.com/questions/6883049/
-URL_REGEX = re.compile('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+URL_REGEX = re.compile(b'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
@@ -61,11 +64,11 @@ config = {
     "check_ext": {}
 }
 
-COMMENTS = ["// ", "# ", " *", "/* "]
+COMMENTS = [b"// ", b"# ", b" *", b"/* "]
 
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
-                          "*.h", "Cargo.lock", "*.py", "*.sh",
+                          "*.h", "*.py", "*.sh",
                           "*.toml", "*.webidl", "*.json", "*.html",
                           "*.yml"]
 
@@ -75,46 +78,47 @@ FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
 SPEC_BASE_PATH = "components/script/dom/"
 
 WEBIDL_STANDARDS = [
-    "//www.khronos.org/registry/webgl/extensions",
-    "//www.khronos.org/registry/webgl/specs",
-    "//developer.mozilla.org/en-US/docs/Web/API",
-    "//dev.w3.org/2006/webapi",
-    "//dev.w3.org/csswg",
-    "//dev.w3.org/fxtf",
-    "//dvcs.w3.org/hg",
-    "//dom.spec.whatwg.org",
-    "//drafts.csswg.org",
-    "//drafts.css-houdini.org",
-    "//drafts.fxtf.org",
-    "//encoding.spec.whatwg.org",
-    "//fetch.spec.whatwg.org",
-    "//html.spec.whatwg.org",
-    "//url.spec.whatwg.org",
-    "//xhr.spec.whatwg.org",
-    "//w3c.github.io",
-    "//heycam.github.io/webidl",
-    "//webbluetoothcg.github.io/web-bluetooth/",
-    "//svgwg.org/svg2-draft",
-    "//wicg.github.io",
-    "//webaudio.github.io",
-    "//immersive-web.github.io/",
-    "//github.com/immersive-web/webxr-test-api/",
+    b"//www.khronos.org/registry/webgl/extensions",
+    b"//www.khronos.org/registry/webgl/specs",
+    b"//developer.mozilla.org/en-US/docs/Web/API",
+    b"//dev.w3.org/2006/webapi",
+    b"//dev.w3.org/csswg",
+    b"//dev.w3.org/fxtf",
+    b"//dvcs.w3.org/hg",
+    b"//dom.spec.whatwg.org",
+    b"//drafts.csswg.org",
+    b"//drafts.css-houdini.org",
+    b"//drafts.fxtf.org",
+    b"//encoding.spec.whatwg.org",
+    b"//fetch.spec.whatwg.org",
+    b"//html.spec.whatwg.org",
+    b"//url.spec.whatwg.org",
+    b"//xhr.spec.whatwg.org",
+    b"//w3c.github.io",
+    b"//heycam.github.io/webidl",
+    b"//webbluetoothcg.github.io/web-bluetooth/",
+    b"//svgwg.org/svg2-draft",
+    b"//wicg.github.io",
+    b"//webaudio.github.io",
+    b"//immersive-web.github.io/",
+    b"//github.com/immersive-web/webxr-test-api/",
+    b"//gpuweb.github.io",
     # Not a URL
-    "// This interface is entirely internal to Servo, and should not be" +
-    " accessible to\n// web pages."
+    b"// This interface is entirely internal to Servo, and should not be" +
+    b" accessible to\n// web pages."
 ]
 
 
 def is_iter_empty(iterator):
     try:
-        obj = iterator.next()
+        obj = next(iterator)
         return True, itertools.chain((obj,), iterator)
     except StopIteration:
         return False, iterator
 
 
 def normilize_paths(paths):
-    if isinstance(paths, basestring):
+    if isinstance(paths, six.string_types):
         return os.path.join(*paths.split('/'))
     else:
         return [os.path.join(*path.split('/')) for path in paths]
@@ -159,9 +163,9 @@ class FileList(object):
 
     def _git_changed_files(self):
         args = ["git", "log", "-n1", "--merges", "--format=%H"]
-        last_merge = subprocess.check_output(args).strip()
+        last_merge = subprocess.check_output(args, universal_newlines=True).strip()
         args = ["git", "diff", "--name-only", last_merge, self.directory]
-        file_list = normilize_paths(subprocess.check_output(args).splitlines())
+        file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
 
         for f in file_list:
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
@@ -175,7 +179,7 @@ class FileList(object):
                 yield os.path.join(root, rel_path)
 
     def __iter__(self):
-        return self
+        return self.generator
 
     def next(self):
         return next(self.generator)
@@ -193,7 +197,10 @@ def filter_file(file_name):
 def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
                          exclude_dirs=config["ignore"]["directories"], progress=progress)
-    for file_name in file_iter:
+    # always yield Cargo.lock so that the correctness of transitive dependacies is checked
+    yield "./Cargo.lock"
+
+    for file_name in iter(file_iter):
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
             continue
@@ -205,7 +212,7 @@ def filter_files(start_dir, only_changed_files, progress):
 def uncomment(line):
     for c in COMMENTS:
         if line.startswith(c):
-            if line.endswith("*/"):
+            if line.endswith(b"*/"):
                 return line[len(c):(len(line) - 3)].strip()
             return line[len(c):].strip()
 
@@ -220,15 +227,15 @@ def check_license(file_name, lines):
        config["skip-check-licenses"]:
         raise StopIteration
 
-    if lines[0].startswith("#!") and lines[1].strip():
+    if lines[0].startswith(b"#!") and lines[1].strip():
         yield (1, "missing blank line after shebang")
 
     blank_lines = 0
-    max_blank_lines = 2 if lines[0].startswith("#!") else 1
+    max_blank_lines = 2 if lines[0].startswith(b"#!") else 1
     license_block = []
 
     for l in lines:
-        l = l.rstrip('\n')
+        l = l.rstrip(b'\n')
         if not l.strip():
             blank_lines += 1
             if blank_lines >= max_blank_lines:
@@ -238,7 +245,7 @@ def check_license(file_name, lines):
         if line is not None:
             license_block.append(line)
 
-    header = " ".join(license_block)
+    header = (b" ".join(license_block)).decode("utf-8")
     valid_license = OLD_MPL in header or MPL in header or is_apache_licensed(header)
     acknowledged_bad_license = "xfail-license" in header
     if not (valid_license or acknowledged_bad_license):
@@ -247,9 +254,9 @@ def check_license(file_name, lines):
 
 def check_modeline(file_name, lines):
     for idx, line in enumerate(lines[:5]):
-        if re.search('^.*[ \t](vi:|vim:|ex:)[ \t]', line):
+        if re.search(b'^.*[ \t](vi:|vim:|ex:)[ \t]', line):
             yield (idx + 1, "vi modeline present")
-        elif re.search('-\*-.*-\*-', line, re.IGNORECASE):
+        elif re.search(b'-\*-.*-\*-', line, re.IGNORECASE):
             yield (idx + 1, "emacs file variables present")
 
 
@@ -260,7 +267,7 @@ def check_length(file_name, idx, line):
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.rstrip('\n')) > max_length and not is_unsplittable(file_name, line):
+    if len(line.rstrip(b'\n')) > max_length and not is_unsplittable(file_name, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
@@ -272,38 +279,38 @@ def is_unsplittable(file_name, line):
     return (
         contains_url(line) or
         file_name.endswith(".rs") and
-        line.startswith("use ") and
-        "{" not in line
+        line.startswith(b"use ") and
+        b"{" not in line
     )
 
 
 def check_whatwg_specific_url(idx, line):
-    match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
 def check_whatwg_single_page_url(idx, line):
-    match = re.search(r"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
 def check_whitespace(idx, line):
-    if line[-1] == "\n":
+    if line.endswith(b"\n"):
         line = line[:-1]
     else:
         yield (idx + 1, "no newline at EOF")
 
-    if line.endswith(" "):
+    if line.endswith(b" "):
         yield (idx + 1, "trailing whitespace")
 
-    if "\t" in line:
+    if b"\t" in line:
         yield (idx + 1, "tab on line")
 
-    if "\r" in line:
+    if b"\r" in line:
         yield (idx + 1, "CR on line")
 
 
@@ -321,28 +328,21 @@ def check_by_line(file_name, lines):
 
 
 def check_flake8(file_name, contents):
-    from flake8.main import check_code
-
     if not file_name.endswith(".py"):
         raise StopIteration
-
-    @contextlib.contextmanager
-    def stdout_redirect(where):
-        sys.stdout = where
-        try:
-            yield where
-        finally:
-            sys.stdout = sys.__stdout__
 
     ignore = {
         "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
         "E501",  # 80 character line length; the standard tidy process will enforce line length
     }
 
-    output = StringIO.StringIO()
-    with stdout_redirect(output):
-        check_code(contents, ignore=ignore)
-    for error in output.getvalue().splitlines():
+    output = ""
+    try:
+        args = ["flake8", "--ignore=" + ",".join(ignore), file_name]
+        subprocess.check_output(args, universal_newlines=True)
+    except subprocess.CalledProcessError as e:
+        output = e.output
+    for error in output.splitlines():
         _, line_num, _, message = error.split(":", 3)
         yield line_num, message.strip()
 
@@ -360,7 +360,7 @@ def check_lock(file_name, contents):
     # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
 
-    content = toml.loads(contents)
+    content = toml.loads(contents.decode("utf-8"))
 
     packages_by_name = {}
     for package in content.get("package", []):
@@ -371,7 +371,11 @@ def check_lock(file_name, contents):
             source = "crates.io"
         packages_by_name.setdefault(package["name"], []).append((package["version"], source))
 
-    for (name, packages) in packages_by_name.iteritems():
+    for name in exceptions:
+        if name not in packages_by_name:
+            yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
+
+    for (name, packages) in iteritems(packages_by_name):
         has_duplicates = len(packages) > 1
         duplicates_allowed = name in exceptions
 
@@ -395,25 +399,39 @@ def check_lock(file_name, contents):
         yield (1, message)
 
     # Check to see if we are transitively using any blocked packages
+    blocked_packages = config["blocked-packages"]
+    # Create map to keep track of visited exception packages
+    visited_whitelisted_packages = {package: {} for package in blocked_packages.keys()}
+
     for package in content.get("package", []):
         package_name = package.get("name")
         package_version = package.get("version")
         for dependency in package.get("dependencies", []):
             dependency = dependency.split()
             dependency_name = dependency[0]
-            whitelist = config['blocked-packages'].get(dependency_name)
+            whitelist = blocked_packages.get(dependency_name)
             if whitelist is not None:
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
                     yield (1, message)
+                else:
+                    visited_whitelisted_packages[dependency_name][package_name] = True
+
+    # Check if all the exceptions to blocked packages actually depend on the blocked package
+    for dependency_name, package_names in iteritems(blocked_packages):
+        for package_name in package_names:
+            if not visited_whitelisted_packages[dependency_name].get(package_name):
+                fmt = "Package {} is not required to be an exception of blocked package {}."
+                message = fmt.format(package_name, dependency_name)
+                yield (1, message)
 
 
 def check_toml(file_name, lines):
     if not file_name.endswith("Cargo.toml"):
         raise StopIteration
     ok_licensed = False
-    for idx, line in enumerate(lines):
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if idx == 0 and "[workspace]" in line:
             raise StopIteration
         line_without_comment, _, _ = line.partition("#")
@@ -430,7 +448,7 @@ def check_shell(file_name, lines):
         raise StopIteration
 
     shebang = "#!/usr/bin/env bash"
-    required_options = {"set -o errexit", "set -o nounset", "set -o pipefail"}
+    required_options = ["set -o errexit", "set -o nounset", "set -o pipefail"]
 
     did_shebang_check = False
 
@@ -438,13 +456,13 @@ def check_shell(file_name, lines):
         yield (0, 'script is an empty file')
         return
 
-    if lines[0].rstrip() != shebang:
+    if lines[0].rstrip() != shebang.encode("utf-8"):
         yield (1, 'script does not have shebang "{}"'.format(shebang))
 
-    for idx in range(1, len(lines)):
-        stripped = lines[idx].rstrip()
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines[1:])):
+        stripped = line.rstrip()
         # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
-        if lines[idx].startswith("#") or stripped == "":
+        if line.startswith("#") or stripped == "":
             continue
 
         if not did_shebang_check:
@@ -488,12 +506,12 @@ def check_manifest_dirs(config_file, print_text=True):
         return
 
     # Load configs from include.ini
-    with open(config_file) as content:
+    with open(config_file, "rb") as content:
         conf_file = content.read()
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print '\rChecking the wpt manifest file...'
+        print('\rChecking the wpt manifest file...')
 
     p = parser.parse(lines)
     paths = rec_parse(wpt_path("web-platform-tests"), p)
@@ -530,7 +548,7 @@ def check_rust(file_name, lines):
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
 
-    for idx, original_line in enumerate(lines):
+    for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         # simplify the analysis
         line = original_line.strip()
         indent = len(original_line) - len(line)
@@ -605,6 +623,7 @@ def check_rust(file_name, lines):
             (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead", no_filter),
             # No benefit to using &Root<T>
             (r": &Root<", "use &T instead of &Root<T>", no_filter),
+            (r": &DomRoot<", "use &T instead of &DomRoot<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
             # This particular pattern is not reentrant-safe in script_thread.rs
             (r"match self.documents.borrow", "use a separate variable for the match expression",
@@ -643,7 +662,7 @@ def check_rust(file_name, lines):
             match = re.search(r"#!\[feature\((.*)\)\]", line)
 
             if match:
-                features = map(lambda w: w.strip(), match.group(1).split(','))
+                features = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 sorted_features = sorted(features)
                 if sorted_features != features and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
@@ -665,7 +684,7 @@ def check_rust(file_name, lines):
             # strip /(pub )?mod/ from the left and ";" from the right
             mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
 
-            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1]:
+            if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
                 match = line.find(" {")
                 if indent not in prev_mod:
                     prev_mod[indent] = ""
@@ -685,7 +704,7 @@ def check_rust(file_name, lines):
             # match the derivable traits filtering out macro expansions
             match = re.search(r"#\[derive\(([a-zA-Z, ]*)", line)
             if match:
-                derives = map(lambda w: w.strip(), match.group(1).split(','))
+                derives = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 # sort, compare and report
                 sorted_derives = sorted(derives)
                 if sorted_derives != derives and check_alphabetical_order:
@@ -790,7 +809,7 @@ def check_yaml(file_name, contents):
         line = e.problem_mark.line + 1 if hasattr(e, 'problem_mark') else None
         yield (line, e)
     except KeyError as e:
-        yield (None, "Duplicated Key ({})".format(e.message))
+        yield (None, "Duplicated Key ({})".format(e.args[0]))
     except voluptuous.MultipleInvalid as e:
         yield (None, str(e))
 
@@ -826,11 +845,11 @@ def check_json(filename, contents):
     try:
         json.loads(contents, object_pairs_hook=check_json_requirements(filename))
     except ValueError as e:
-        match = re.search(r"line (\d+) ", e.message)
+        match = re.search(r"line (\d+) ", e.args[0])
         line_no = match and match.group(1)
-        yield (line_no, e.message)
+        yield (line_no, e.args[0])
     except KeyError as e:
-        yield (None, e.message)
+        yield (None, e.args[0])
 
 
 def check_spec(file_name, lines):
@@ -852,7 +871,7 @@ def check_spec(file_name, lines):
     in_impl = False
     pattern = "impl {}Methods for {} {{".format(file_name, file_name)
 
-    for idx, line in enumerate(lines):
+    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if "// check-tidy: no specs after this line" in line:
             break
         if not patt.match(line):
@@ -860,7 +879,7 @@ def check_spec(file_name, lines):
                 in_impl = True
             if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
                 for up_idx in range(1, idx + 1):
-                    up_line = lines[idx - up_idx]
+                    up_line = lines[idx - up_idx].decode("utf-8")
                     if link_patt.match(up_line):
                         # Comment with spec link exists
                         break
@@ -875,7 +894,7 @@ def check_spec(file_name, lines):
                     break
 
 
-def check_config_file(config_file, print_text=True):
+def check_config_file(config_file, print_text=True, no_wpt=False):
     # Check if config file exists
     if not os.path.exists(config_file):
         print("%s config file is required but was not found" % config_file)
@@ -887,18 +906,23 @@ def check_config_file(config_file, print_text=True):
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print '\rChecking the config file...'
+        print('\rChecking the config file...')
 
     config_content = toml.loads(conf_file)
     exclude = config_content.get("ignore", {})
 
     # Check for invalid listed ignored directories
-    exclude_dirs = exclude.get("directories", [])
+    exclude_dirs = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
     skip_dirs = ["./target", "./tests"]
     invalid_dirs = [d for d in exclude_dirs if not os.path.isdir(d) and not any(s in d for s in skip_dirs)]
 
     # Check for invalid listed ignored files
     invalid_files = [f for f in exclude.get("files", []) if not os.path.exists(f)]
+
+    # Do not check for the existense of ignored files under tests/wpts if --no-wpt is used
+    if no_wpt:
+        wpt_dir = './tests/wpt/'
+        invalid_files = [f for f in invalid_files if not os.path.commonprefix([wpt_dir, f]) == wpt_dir]
 
     current_table = ""
     for idx, line in enumerate(lines):
@@ -950,7 +974,8 @@ def check_config_file(config_file, print_text=True):
 def parse_config(config_file):
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
-    config["ignore"]["directories"] += normilize_paths(exclude.get("directories", []))
+    ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
+    config["ignore"]["directories"] += normilize_paths(ignored_directories)
     # Add list of ignored files to config
     config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
@@ -974,7 +999,7 @@ def parse_config(config_file):
 
 def check_directory_files(directories, print_text=True):
     if print_text:
-        print '\rChecking directories for correct file extensions...'
+        print('\rChecking directories for correct file extensions...')
     for directory, file_extensions in directories.items():
         files = sorted(os.listdir(directory))
         for filename in files:
@@ -994,12 +1019,12 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if not has_element:
         raise StopIteration
     if print_text:
-        print '\rChecking files for tidiness...'
+        print('\rChecking files for tidiness...')
 
     for filename in files_to_check:
         if not os.path.exists(filename):
             continue
-        with open(filename, "r") as f:
+        with open(filename, "rb") as f:
             contents = f.read()
             if not contents.strip():
                 yield filename, 0, "file is empty"
@@ -1016,7 +1041,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 def get_dep_toml_files(only_changed_files=False):
     if not only_changed_files:
-        print '\nRunning the dependency licensing lint...'
+        print('\nRunning the dependency licensing lint...')
         for root, directories, filenames in os.walk(".cargo"):
             for filename in filenames:
                 if filename == "Cargo.toml":
@@ -1037,12 +1062,14 @@ def check_dep_license_errors(filenames, progress=True):
 
 
 class LintRunner(object):
-    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True, stylo=False):
+    def __init__(self, lint_path=None, only_changed_files=True,
+                 exclude_dirs=[], progress=True, stylo=False, no_wpt=False):
         self.only_changed_files = only_changed_files
         self.exclude_dirs = exclude_dirs
         self.progress = progress
         self.path = lint_path
         self.stylo = stylo
+        self.no_wpt = no_wpt
 
     def check(self):
         if not os.path.exists(self.path):
@@ -1064,7 +1091,7 @@ class LintRunner(object):
             return
 
         lint = module.Lint(self.path, self.only_changed_files,
-                           self.exclude_dirs, self.progress, stylo=self.stylo)
+                           self.exclude_dirs, self.progress, stylo=self.stylo, no_wpt=self.no_wpt)
         for error in lint.run():
             if type(error) is not tuple or (type(error) is tuple and len(error) != 3):
                 yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
@@ -1080,19 +1107,19 @@ class LintRunner(object):
         yield (self.path, 0, "class 'Lint' should implement 'run' method")
 
 
-def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
-    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo)
+def run_lint_scripts(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
+    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo, no_wpt=no_wpt)
     for path in config['lint-scripts']:
         runner.path = path
         for error in runner.check():
             yield error
 
 
-def scan(only_changed_files=False, progress=True, stylo=False):
+def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
     # check config file for errors
-    config_errors = check_config_file(CONFIG_FILE_PATH)
+    config_errors = check_config_file(CONFIG_FILE_PATH, no_wpt=no_wpt)
     # check ini directories exist
-    if os.path.isfile(WPT_MANIFEST_PATH):
+    if not no_wpt and os.path.isfile(WPT_MANIFEST_PATH):
         manifest_errors = check_manifest_dirs(WPT_MANIFEST_PATH)
     else:
         manifest_errors = ()
@@ -1107,7 +1134,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # other lint checks
-    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
+    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo, no_wpt=no_wpt)
     # chain all the iterators
     errors = itertools.chain(config_errors, manifest_errors, directory_errors, lint_errors,
                              file_errors, dep_license_errors)
@@ -1115,11 +1142,11 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     error = None
     for error in errors:
         colorama.init()
-        print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+        print("\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error))
 
-    print
+    print()
     if error is None:
         colorama.init()
-        print "\033[92mtidy reported no errors.\033[0m"
+        print("\033[92mtidy reported no errors.\033[0m")
 
     return int(error is not None)

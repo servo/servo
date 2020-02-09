@@ -519,7 +519,7 @@ pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> 
     let font_size = style.get_font().font_size.size();
     match style.get_inherited_text().line_height {
         LineHeight::Normal => Au::from(metrics.line_gap),
-        LineHeight::Number(l) => font_size.scale_by(l.0),
+        LineHeight::Number(l) => Au::from(font_size * l.0),
         LineHeight::Length(l) => Au::from(l),
     }
 }

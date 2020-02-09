@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Subscripts and Superscripts metrics</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#msubmsup">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
 <meta name="assert" content="Basic metrics for the mmultiscript element.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -28,6 +29,8 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       assert_less_than_equal(getBox("msubBase").right, getBox("msubSub").left, e, "subscript is after base");
       assert_less_than_equal(getBox("msupBase").right, getBox("msupSup").left, e, "superscript is after base");
@@ -54,6 +57,8 @@
     }, "Respective horizontal positions");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       assert_approx_equals(getBox("msubBase").middle, getBox("baseline").bottom, e, "base is placed on the baseline");
       assert_approx_equals(getBox("msupBase").middle, getBox("baseline").bottom, e, "base is placed on the baseline");
@@ -64,6 +69,8 @@
     }, "Alignment of the base on the baseline");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 3;
       assert_approx_equals(getBox("msubSub").middle, getBox("msubBase").bottom, e, "script is placed at the bottom of the base");
       assert_approx_equals(getBox("msupSup").middle, getBox("msupBase").top, e, "script is placed at the top of the base");
@@ -77,6 +84,8 @@
     }, "Vertical position of scripts");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 3;
       assert_approx_equals(getBox("msub").width, getBox("msubSub").right - getBox("msubBase").left, e, "width is determined by the left/right sides of base/script (+ some space after script)");
       assert_approx_equals(getBox("msup").width, getBox("msupSup").right - getBox("msupBase").left, e, "width is determined by the left/right sides of base/script (+ some space after script)");
@@ -88,6 +97,8 @@
     }, "Width of scripted elements");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       assert_greater_than_equal(getBox("msub").height, getBox("msubBase").height, e, "height is at least the one of the base");
       assert_greater_than_equal(getBox("msup").height, getBox("msupBase").height, e, "height is at least the one of the base");

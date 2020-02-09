@@ -17,38 +17,21 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-#[cfg(target_pointer_width = "64")]
-use rand::isaac::Isaac64Rng as IsaacWordRng;
-#[cfg(target_pointer_width = "32")]
-use rand::isaac::IsaacRng as IsaacWordRng;
-use rand::os::OsRng;
-use rand::reseeding::{Reseeder, ReseedingRng};
-pub use rand::{Rand, Rng, SeedableRng};
+use rand::distributions::{Distribution, Standard};
+use rand::rngs::adapter::ReseedingRng;
+use rand::rngs::OsRng;
+pub use rand::seq::SliceRandom;
+pub use rand::{Rng, RngCore, SeedableRng};
+use rand_isaac::isaac::IsaacCore;
 use std::cell::RefCell;
-use std::mem;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::u64;
 use uuid::{Builder, Uuid, Variant, Version};
 
-// Slightly annoying having to cast between sizes.
-
-#[cfg(target_pointer_width = "64")]
-fn as_isaac_seed(seed: &[usize]) -> &[u64] {
-    unsafe { mem::transmute(seed) }
-}
-
-#[cfg(target_pointer_width = "32")]
-fn as_isaac_seed(seed: &[usize]) -> &[u32] {
-    unsafe { mem::transmute(seed) }
-}
-
 // The shared RNG which may hold on to a file descriptor
 lazy_static! {
-    static ref OS_RNG: Mutex<OsRng> = match OsRng::new() {
-        Ok(r) => Mutex::new(r),
-        Err(e) => panic!("Failed to seed OsRng: {}", e),
-    };
+    static ref OS_RNG: Mutex<OsRng> = Mutex::new(OsRng);
 }
 
 // Generate 32K of data between reseedings
@@ -56,10 +39,10 @@ const RESEED_THRESHOLD: u64 = 32_768;
 
 // An in-memory RNG that only uses the shared file descriptor for seeding and reseeding.
 pub struct ServoRng {
-    rng: ReseedingRng<IsaacWordRng, ServoReseeder>,
+    rng: ReseedingRng<IsaacCore, ServoReseeder>,
 }
 
-impl Rng for ServoRng {
+impl RngCore for ServoRng {
     #[inline]
     fn next_u32(&mut self) -> u32 {
         self.rng.next_u32()
@@ -69,23 +52,54 @@ impl Rng for ServoRng {
     fn next_u64(&mut self) -> u64 {
         self.rng.next_u64()
     }
+
+    #[inline]
+    fn fill_bytes(&mut self, bytes: &mut [u8]) {
+        self.rng.fill_bytes(bytes)
+    }
+
+    fn try_fill_bytes(&mut self, bytes: &mut [u8]) -> std::result::Result<(), rand_core::Error> {
+        self.rng.try_fill_bytes(bytes)
+    }
 }
 
-impl<'a> SeedableRng<&'a [usize]> for ServoRng {
-    /// Create a manually-reseeding instane of `ServoRng`.
+pub struct Seed([u8; 32]);
+
+impl Default for Seed {
+    fn default() -> Self {
+        Seed([0; 32])
+    }
+}
+
+impl AsMut<[u8]> for Seed {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
+impl SeedableRng for ServoRng {
+    type Seed = Seed;
+
+    // This function is used in the reseeding process of rand hence why the RESEED_THRESHOLD is
+    // used.
+    fn from_seed(seed: Seed) -> ServoRng {
+        trace!("Creating a new ServoRng.");
+        let isaac_rng = IsaacCore::from_seed(seed.0);
+        let reseeding_rng = ReseedingRng::new(isaac_rng, RESEED_THRESHOLD, ServoReseeder);
+        ServoRng { rng: reseeding_rng }
+    }
+}
+
+impl ServoRng {
+    /// Create a manually-reseeding instance of `ServoRng`.
     ///
     /// Note that this RNG does not reseed itself, so care is needed to reseed the RNG
     /// is required to be cryptographically sound.
-    fn from_seed(seed: &[usize]) -> ServoRng {
-        trace!("Creating new manually-reseeded ServoRng.");
-        let isaac_rng = IsaacWordRng::from_seed(as_isaac_seed(seed));
+    pub fn new_manually_reseeded(seed: u64) -> ServoRng {
+        trace!("Creating a new manually-reseeded ServoRng.");
+        let isaac_rng = IsaacCore::seed_from_u64(seed);
         let reseeding_rng = ReseedingRng::new(isaac_rng, u64::MAX, ServoReseeder);
         ServoRng { rng: reseeding_rng }
-    }
-    /// Reseed the RNG.
-    fn reseed(&mut self, seed: &'a [usize]) {
-        trace!("Manually reseeding ServoRng.");
-        self.rng.reseed((ServoReseeder, as_isaac_seed(seed)))
     }
 }
 
@@ -97,7 +111,7 @@ impl ServoRng {
     pub fn new() -> ServoRng {
         trace!("Creating new ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
-        let isaac_rng = IsaacWordRng::rand(&mut *os_rng);
+        let isaac_rng = IsaacCore::from_rng(&mut *os_rng).unwrap();
         let reseeding_rng = ReseedingRng::new(isaac_rng, RESEED_THRESHOLD, ServoReseeder);
         ServoRng { rng: reseeding_rng }
     }
@@ -106,11 +120,29 @@ impl ServoRng {
 // The reseeder for the in-memory RNG.
 struct ServoReseeder;
 
-impl Reseeder<IsaacWordRng> for ServoReseeder {
-    fn reseed(&mut self, rng: &mut IsaacWordRng) {
-        trace!("Reseeding ServoRng.");
+impl RngCore for ServoReseeder {
+    #[inline]
+    fn next_u32(&mut self) -> u32 {
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
-        *rng = IsaacWordRng::rand(&mut *os_rng);
+        os_rng.next_u32()
+    }
+
+    #[inline]
+    fn next_u64(&mut self) -> u64 {
+        let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
+        os_rng.next_u64()
+    }
+
+    #[inline]
+    fn fill_bytes(&mut self, bytes: &mut [u8]) {
+        let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
+        os_rng.fill_bytes(bytes)
+    }
+
+    #[inline]
+    fn try_fill_bytes(&mut self, bytes: &mut [u8]) -> std::result::Result<(), rand_core::Error> {
+        let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
+        os_rng.try_fill_bytes(bytes)
     }
 }
 
@@ -135,7 +167,7 @@ thread_local! {
     static SERVO_THREAD_RNG: ServoThreadRng = ServoThreadRng { rng: Rc::new(RefCell::new(ServoRng::new())) };
 }
 
-impl Rng for ServoThreadRng {
+impl RngCore for ServoThreadRng {
     fn next_u32(&mut self) -> u32 {
         self.rng.borrow_mut().next_u32()
     }
@@ -148,12 +180,20 @@ impl Rng for ServoThreadRng {
     fn fill_bytes(&mut self, bytes: &mut [u8]) {
         self.rng.borrow_mut().fill_bytes(bytes)
     }
+
+    #[inline]
+    fn try_fill_bytes(&mut self, bytes: &mut [u8]) -> std::result::Result<(), rand_core::Error> {
+        (self.rng.borrow_mut()).try_fill_bytes(bytes)
+    }
 }
 
 // Generates a random value using the thread-local random number generator.
 // A drop-in replacement for rand::random.
 #[inline]
-pub fn random<T: Rand>() -> T {
+pub fn random<T>() -> T
+where
+    Standard: Distribution<T>,
+{
     thread_rng().gen()
 }
 

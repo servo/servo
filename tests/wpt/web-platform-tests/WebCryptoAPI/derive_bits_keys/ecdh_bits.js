@@ -1,5 +1,5 @@
 
-function run_test() {
+function define_tests() {
     // May want to test prefixed implementations.
     var subtle = self.crypto.subtle;
 
@@ -27,7 +27,7 @@ function run_test() {
         "P-384": new Uint8Array([224, 189, 107, 206, 10, 239, 140, 164, 136, 56, 166, 226, 252, 197, 126, 103, 185, 197, 232, 134, 12, 95, 11, 233, 218, 190, 197, 62, 69, 78, 24, 160, 161, 116, 196, 136, 136, 162, 100, 136, 17, 91, 45, 201, 241, 223, 165, 45])
     };
 
-    importKeys(pkcs8, spki, sizes)
+    return importKeys(pkcs8, spki, sizes)
     .then(function(results) {
         publicKeys = results.publicKeys;
         privateKeys = results.privateKeys;
@@ -184,7 +184,6 @@ function run_test() {
                 });
             }, namedCurve + " asking for too many bits");
         });
-        done()
     });
 
     function importKeys(pkcs8, spki, sizes) {

@@ -70,12 +70,56 @@ function getEnumProp(object, value) {
 
 promise_test(() => {
   return makeTest(
+      () => { done(); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'completion signaled before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => { assert_true(true); done(); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'passing assertion before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => { assert_false(true); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'failing assertion before testing begins');
+
+promise_test(() => {
+  return makeTest(
       () => { throw new Error('this error is expected'); }
     ).then(({harness, tests}) => {
-      assert_equals(harness, 'OK');
-      assert_equals(tests['Document title'], 'FAIL');
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
     });
-}, 'uncaught exception during single-page test');
+}, 'uncaught exception before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ allow_uncaught_exception: true });
+        throw new Error('this error is expected');
+      },
+      () => {
+        test(function() {}, 'a');
+        test(function() {}, 'b');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.a, 'PASS');
+      assert_equals(tests.b, 'PASS');
+    });
+}, 'uncaught exception with subsequent subtest');
 
 promise_test(() => {
   return makeTest(
@@ -148,10 +192,10 @@ if ('onunhandledrejection' in window) {
     return makeTest(
         () => { Promise.reject(new Error('this error is expected')); }
       ).then(({harness, tests}) => {
-        assert_equals(harness, 'OK');
-        assert_equals(tests['Document title'], 'FAIL');
+        assert_equals(harness, 'ERROR');
+        assert_array_equals(Object.keys(tests), []);
       });
-  }, 'unhandled rejection during single-page test');
+  }, 'unhandled rejection before testing begins');
 
   promise_test(() => {
     return makeTest(

@@ -14,8 +14,6 @@ extern crate malloc_size_of;
 extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
-#[macro_use]
-extern crate url;
 
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::request::{Request, RequestBuilder};
@@ -33,9 +31,8 @@ use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
 use servo_url::ServoUrl;
-use std::error::Error;
 use time::precise_time_ns;
-use url::percent_encoding;
+use webrender_api::ImageKey;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -235,9 +232,28 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         } else {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response
                 .get_resource_timing()
+                .lock()
+                .unwrap()
                 .clone())));
         }
     }
+}
+
+/// A fetch task that discards all data it's sent,
+/// useful when speculatively prefetching data that we don't need right
+/// now, but might need in the future.
+pub struct DiscardFetch;
+
+impl FetchTaskTarget for DiscardFetch {
+    fn process_request_body(&mut self, _: &Request) {}
+
+    fn process_request_eof(&mut self, _: &Request) {}
+
+    fn process_response(&mut self, _: &Response) {}
+
+    fn process_response_chunk(&mut self, _: Vec<u8>) {}
+
+    fn process_response_eof(&mut self, _: &Response) {}
 }
 
 pub trait Action<Listener> {
@@ -371,6 +387,9 @@ pub enum FetchChannels {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
     },
+    /// If the fetch is just being done to populate the cache,
+    /// not because the data is needed now.
+    Prefetch,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -442,17 +461,20 @@ pub struct ResourceCorsData {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
     pub domain_lookup_start: u64,
+    pub timing_check_passed: bool,
     pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
     pub request_start: u64,
+    pub secure_connection_start: u64,
     pub response_start: u64,
     pub fetch_start: u64,
     pub response_end: u64,
     pub redirect_start: u64,
-    // pub redirect_end: u64,
+    pub redirect_end: u64,
     pub connect_start: u64,
     pub connect_end: u64,
+    pub start_time: u64,
 }
 
 pub enum RedirectStartValue {
@@ -461,16 +483,33 @@ pub enum RedirectStartValue {
     FetchStart,
 }
 
+pub enum RedirectEndValue {
+    Zero,
+    ResponseEnd,
+}
+
+// TODO: refactor existing code to use this enum for setting time attributes
+// suggest using this with all time attributes in the future
+pub enum ResourceTimeValue {
+    Zero,
+    Now,
+    FetchStart,
+    RedirectStart,
+}
+
 pub enum ResourceAttribute {
     RedirectCount(u16),
     DomainLookupStart,
     RequestStart,
     ResponseStart,
     RedirectStart(RedirectStartValue),
+    RedirectEnd(RedirectEndValue),
     FetchStart,
     ConnectStart(u64),
     ConnectEnd(u64),
+    SecureConnectionStart,
     ResponseEnd,
+    StartTime(ResourceTimeValue),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -485,21 +524,34 @@ impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
             timing_type: timing_type,
+            timing_check_passed: true,
             domain_lookup_start: 0,
             redirect_count: 0,
+            secure_connection_start: 0,
             request_start: 0,
             response_start: 0,
             fetch_start: 0,
             redirect_start: 0,
+            redirect_end: 0,
             connect_start: 0,
             connect_end: 0,
             response_end: 0,
+            start_time: 0,
         }
     }
 
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
+        let should_attribute_always_be_updated = match attribute {
+            ResourceAttribute::FetchStart |
+            ResourceAttribute::ResponseEnd |
+            ResourceAttribute::StartTime(_) => true,
+            _ => false,
+        };
+        if !self.timing_check_passed && !should_attribute_always_be_updated {
+            return;
+        }
         match attribute {
             ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
@@ -513,11 +565,43 @@ impl ResourceFetchTiming {
                     }
                 },
             },
+            ResourceAttribute::RedirectEnd(val) => match val {
+                RedirectEndValue::Zero => self.redirect_end = 0,
+                RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
+            },
             ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
+            ResourceAttribute::SecureConnectionStart => {
+                self.secure_connection_start = precise_time_ns()
+            },
             ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
+            ResourceAttribute::StartTime(val) => match val {
+                ResourceTimeValue::RedirectStart
+                    if self.redirect_start == 0 || !self.timing_check_passed => {},
+                _ => self.start_time = self.get_time_value(val),
+            },
         }
+    }
+
+    fn get_time_value(&self, time: ResourceTimeValue) -> u64 {
+        match time {
+            ResourceTimeValue::Zero => 0,
+            ResourceTimeValue::Now => precise_time_ns(),
+            ResourceTimeValue::FetchStart => self.fetch_start,
+            ResourceTimeValue::RedirectStart => self.redirect_start,
+        }
+    }
+
+    pub fn mark_timing_check_failed(&mut self) {
+        self.timing_check_passed = false;
+        self.domain_lookup_start = 0;
+        self.redirect_count = 0;
+        self.request_start = 0;
+        self.response_start = 0;
+        self.redirect_start = 0;
+        self.connect_start = 0;
+        self.connect_end = 0;
     }
 }
 
@@ -614,11 +698,11 @@ pub enum NetworkError {
 
 impl NetworkError {
     pub fn from_hyper_error(error: &HyperError) -> Self {
-        NetworkError::Internal(error.description().to_owned())
+        NetworkError::Internal(error.to_string())
     }
 
     pub fn from_http_error(error: &HttpError) -> Self {
-        NetworkError::Internal(error.description().to_owned())
+        NetworkError::Internal(error.to_string())
     }
 }
 
@@ -645,14 +729,58 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
 }
 
 pub fn http_percent_encode(bytes: &[u8]) -> String {
-    define_encode_set! {
-        // This encode set is used for HTTP header values and is defined at
-        // https://tools.ietf.org/html/rfc5987#section-3.2
-        pub HTTP_VALUE = [percent_encoding::SIMPLE_ENCODE_SET] | {
-            ' ', '"', '%', '\'', '(', ')', '*', ',', '/', ':', ';', '<', '-', '>', '?',
-            '[', '\\', ']', '{', '}'
-        }
+    // This encode set is used for HTTP header values and is defined at
+    // https://tools.ietf.org/html/rfc5987#section-3.2
+    const HTTP_VALUE: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
+        .add(b' ')
+        .add(b'"')
+        .add(b'%')
+        .add(b'\'')
+        .add(b'(')
+        .add(b')')
+        .add(b'*')
+        .add(b',')
+        .add(b'/')
+        .add(b':')
+        .add(b';')
+        .add(b'<')
+        .add(b'-')
+        .add(b'>')
+        .add(b'?')
+        .add(b'[')
+        .add(b'\\')
+        .add(b']')
+        .add(b'{')
+        .add(b'}');
+
+    percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebrenderImageMsg {
+    UpdateResources(Vec<webrender_api::ResourceUpdate>),
+    GenerateImageKey(IpcSender<ImageKey>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebrenderIpcSender(IpcSender<WebrenderImageMsg>);
+
+impl WebrenderIpcSender {
+    pub fn new(sender: IpcSender<WebrenderImageMsg>) -> Self {
+        Self(sender)
     }
 
-    url::percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+    pub fn generate_image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderImageMsg::GenerateImageKey(sender))
+            .expect("error sending image key generation");
+        receiver.recv().expect("error receiving image key result")
+    }
+
+    pub fn update_resources(&self, updates: Vec<webrender_api::ResourceUpdate>) {
+        if let Err(e) = self.0.send(WebrenderImageMsg::UpdateResources(updates)) {
+            warn!("Error sending image update: {}", e);
+        }
+    }
 }

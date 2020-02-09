@@ -32,3 +32,6 @@ def WebIDLTest(parser, harness):
     harness.ok(not isinstance(t, WebIDL.IDLWrapperType), "Attr has the right type")
     harness.ok(isinstance(t, WebIDL.IDLNullableType), "Attr has the right type")
     harness.ok(t.isCallback(), "Attr has the right type")
+
+    callback = results[1]
+    harness.ok(not callback.isConstructor(), "callback is not constructor")

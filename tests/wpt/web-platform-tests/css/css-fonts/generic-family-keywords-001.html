@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Test: Test generic family keywords do not match @font-face</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#family-name-syntax">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  font-size: 10px;
+}
+</style>
+<template id="fonts">
+<style>
+@font-face {
+  font-family: system-ui;
+  src: local(Ahem), url('/fonts/Ahem.ttf');
+}
+</style>
+</template>
+<body onload="onLoad()">
+  <div><span id="system-ui" style="font-family: system-ui">00000</span></div>
+<script>
+function onLoad() {
+  test(() => {
+    let element = document.getElementById('system-ui');
+    let expected_width = element.offsetWidth;
+
+    // Insert the @font-face rule.
+    let template = document.getElementById('fonts');
+    document.documentElement.appendChild(template.content.cloneNode(true));
+
+    assert_equals(element.offsetWidth, expected_width);
+  });
+};
+</script>
+</body>

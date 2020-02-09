@@ -3,8 +3,8 @@
 <title>Canvas test: 2d.imageData.create2.zero</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>2d.imageData.create2.zero</h1>
@@ -19,11 +19,11 @@
 var t = async_test("createImageData(sw, sh) throws INDEX_SIZE_ERR if size is zero");
 _addTest(function(canvas, ctx) {
 
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 10); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 0); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0.99, 10); });
-assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0.1); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0.99, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0.1); });
 
 
 });

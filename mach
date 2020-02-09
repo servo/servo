@@ -18,8 +18,8 @@ import sys
 # Check for the current python version as some users (especially on archlinux)
 # may not have python 2 installed and their /bin/python binary symlinked to
 # python 3.
-if sys.version_info >= (3, 0):
-    print("mach does not support python 3, please install python 2")
+if sys.version_info >= (3, 0) and sys.version_info < (3, 5):
+    print("mach does not support python 3 (< 3.5), please install python 2 or python 3 (>= 3.5)")
     sys.exit(1)
 
 

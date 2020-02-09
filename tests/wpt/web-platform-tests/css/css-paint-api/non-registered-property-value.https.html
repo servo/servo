@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+
+#canvas-geometry {
+  --foo:100;
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  static get inputProperties() { return ['--foo']; }
+  paint(ctx, geom, properties) {
+    let fooValue = parseFloat(properties.get('--foo').toString());
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fooValue, fooValue);
+  }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

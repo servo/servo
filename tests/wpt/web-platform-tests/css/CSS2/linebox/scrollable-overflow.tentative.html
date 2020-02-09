@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=996847">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name=assert content="This test checks that bottom half-leading of a line-box doesn't contribute to the scrollable overflow.">
+<p>Test passes if there is a filled green square.</p>
+<div style="overflow-y: auto; width: 100px; height: 100px;">
+  <div style="line-height: 120px; height: 100px; background: green;">
+    <span style="display: inline-block; width: 100px; height: 50px;"></span>
+  </div>
+</div>

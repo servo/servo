@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Media Capabilities (https://wicg.github.io/media-capabilities/)
+// Source: Media Capabilities (https://w3c.github.io/media-capabilities/)
 
 dictionary MediaConfiguration {
   VideoConfiguration video;
@@ -32,8 +32,29 @@ dictionary VideoConfiguration {
   required unsigned long width;
   required unsigned long height;
   required unsigned long long bitrate;
-  required DOMString framerate;
+  required double framerate;
   boolean hasAlphaChannel;
+  HdrMetadataType hdrMetadataType;
+  ColorGamut colorGamut;
+  TransferFunction transferFunction;
+};
+
+enum HdrMetadataType {
+  "smpteSt2086",
+  "smpteSt2094-10",
+  "smpteSt2094-40"
+};
+
+enum ColorGamut {
+  "srgb",
+  "p3",
+  "rec2020"
+};
+
+enum TransferFunction {
+  "srgb",
+  "pq",
+  "hlg"
 };
 
 dictionary AudioConfiguration {
@@ -41,27 +62,36 @@ dictionary AudioConfiguration {
   DOMString channels;
   unsigned long long bitrate;
   unsigned long samplerate;
+  boolean spatialRendering;
 };
 
 dictionary MediaCapabilitiesKeySystemConfiguration {
     required DOMString keySystem;
     DOMString initDataType = "";
-    DOMString audioRobustness = "";
-    DOMString videoRobustness = "";
     MediaKeysRequirement distinctiveIdentifier = "optional";
     MediaKeysRequirement persistentState = "optional";
     sequence<DOMString> sessionTypes;
+    KeySystemTrackConfiguration audio;
+    KeySystemTrackConfiguration video;
+  };
+
+dictionary KeySystemTrackConfiguration {
+    DOMString robustness = "";
   };
 
 dictionary MediaCapabilitiesInfo {
   required boolean supported;
   required boolean smooth;
   required boolean powerEfficient;
-
 };
 
 dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
   required MediaKeySystemAccess keySystemAccess;
+  MediaDecodingConfiguration configuration;
+};
+
+dictionary MediaCapabilitiesEncodingInfo : MediaCapabilitiesInfo {
+  MediaEncodingConfiguration configuration;
 };
 
 [Exposed=Window]
@@ -78,23 +108,4 @@ partial interface WorkerNavigator {
 interface MediaCapabilities {
   [NewObject] Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
   [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
-};
-
-interface ScreenLuminance {
-  readonly attribute double min;
-  readonly attribute double max;
-  readonly attribute double maxAverage;
-};
-
-enum ScreenColorGamut {
-  "srgb",
-  "p3",
-  "rec2020",
-};
-
-partial interface Screen {
-  readonly attribute ScreenColorGamut colorGamut;
-  readonly attribute ScreenLuminance? luminance;
-
-  attribute EventHandler onchange;
 };

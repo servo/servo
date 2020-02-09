@@ -15,16 +15,11 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "crossbeam-channel", # Used to initialize a thread-local
-  "gaol",
   "hashglobe", # Only used in tests
   "ipc-channel",
-  "parking_lot_core",
   "phf_generator",
   "servo_rand",
-  "smithay-client-toolkit",
   "tempfile",
-  "tokio-threadpool",
   "uuid",
   "ws",
 ]
@@ -32,27 +27,50 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "crossbeam-deque",
-  "crossbeam-epoch",
-  "crossbeam-utils",
-  "dwrote",
-  "gl_generator", # https://github.com/servo/servo/pull/23288#issuecomment-494687746
-  "lock_api",
-  "memmap",
-  "nix", # https://github.com/servo/servo/issues/23189#issuecomment-487512605
-  "parking_lot",
-  "parking_lot_core",
-  "rand",
+  "arrayvec",
+  "cgl",
+  "cocoa",
+  "gleam",
+  "mach",
+  "nix",
+  "peek-poke",
+  "peek-poke-derive",
+  "wayland-sys",
+
+  # https://github.com/servo/servo/pull/23288#issuecomment-494687746
+  "gl_generator",
+
+  # Just needs a WR update.
+  "derive_more",
+
+  # Lots of crates to update.
+  "smallvec",
+
+  # https://github.com/servo/servo/issues/24421
+  "proc-macro2",
+  "quote",
+  "syn",
+  "unicode-xid",
+
+  # These can be removed once servo is updated to surfman 0.2
+  "surfman",
+  "surfman-chains",
+
+  # https://github.com/servo/servo/pull/25518
+  "core-foundation",
+  "core-foundation-sys",
+  "core-graphics",
+  "core-text",
+  "dirs",
+  "lyon_geom",
   "rand_core",
-  "scopeguard",
-  "unicase",
-  "ws",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
   "./components/net/tests/parsable_mime/text",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
+  "./components/style/properties/shorthands/text.mako.rs",
   # Long regexes are long.
   "./components/style/gecko/regen_atoms.py",
   # Helper macro where actually a pseudo-element per line makes sense.
@@ -81,6 +99,7 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
+  "./support/hololens",
   "./support/linux/gstreamer",
   "./support/magicleap/Servo2D/.vscode",
   "./support/magicleap/Servo2D/code/inc.gen",
@@ -95,7 +114,7 @@ directories = [
   "./python/tidy/servo_tidy_tests",
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",
-  "./python/_virtualenv",
+  "./python/_virtualenv*",
   "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",

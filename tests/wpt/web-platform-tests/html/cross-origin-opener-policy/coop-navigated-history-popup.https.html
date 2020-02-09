@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Cross-Origin-Opener-Policy: a navigating popup that then goes back in history</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+<script>
+const title = `Popup navigating to other origin with COOP: same-origin and back in history`;
+const channel = title.replace(/ /g,"-");
+const opener = false;
+const openerDOMAccess = false;
+const navigateURL = `${CROSS_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=same-origin&coep=&navHistory=-1`;
+
+async_test(t => {
+  url_test(t, `${SAME_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=&coep=&navigate=${encodeURIComponent(navigateURL)}&avoidBackAndForth=1&channel=${channel}`, channel, opener, openerDOMAccess);
+}, title);
+</script>

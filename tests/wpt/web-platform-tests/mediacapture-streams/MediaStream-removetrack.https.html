@@ -56,10 +56,15 @@ const doEventsFire = (t, target1, target2, name, ms = 1) => Promise.all([
 promise_test(async t => {
   const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
   const tracks = stream.getTracks();
-  t.add_cleanup(() => tracks.forEach(track => track.stop()));
 
   audio.srcObject = video.srcObject = stream;
-  t.add_cleanup(() => audio.srcObject = video.srcObject = null);
+
+  t.add_cleanup(() => {
+    for (const track of tracks) {
+      track.stop();
+    }
+    audio.srcObject = video.srcObject = null;
+  });
 
   await Promise.all([
     new Promise(r => audio.onloadedmetadata = r),
@@ -90,10 +95,15 @@ promise_test(async t => {
 promise_test(async t => {
   const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
   const tracks = stream.getTracks();
-  t.add_cleanup(() => tracks.forEach(track => track.stop()));
 
   audio.srcObject = video.srcObject = stream;
-  t.add_cleanup(() => audio.srcObject = video.srcObject = null);
+
+  t.add_cleanup(() => {
+    for (const track of tracks) {
+      track.stop();
+    }
+    audio.srcObject = video.srcObject = null;
+  });
 
   await Promise.all([
     new Promise(r => audio.onloadedmetadata = r),

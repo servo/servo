@@ -162,9 +162,20 @@ test(t => {
   div.style.marginLeft = '10px';
 
   const effect = div.getAnimations()[0].effect;
-  assert_equals(effect.getComputedTiming().easing, 'linear',
+  assert_equals(effect.getComputedTiming().easing, 'ease',
                 'Initial value of easing');
 }, 'easing of a new transition');
+
+test(t => {
+  const div = addDiv(t, { class: 'animated-div' });
+  div.style.transition = 'margin-left 10s steps(4)';
+  getComputedStyle(div).marginLeft;
+  div.style.marginLeft = '10px';
+
+  const effect = div.getAnimations()[0].effect;
+  assert_equals(effect.getComputedTiming().easing, 'steps(4)',
+                'Initial value of easing');
+}, 'non-default easing of a new transition');
 
 
 // ------------------------------

@@ -82,7 +82,7 @@ use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::marker::PhantomData;
-use std::mem;
+use std::mem::{self, ManuallyDrop};
 use std::ops::Deref;
 use std::ptr::NonNull;
 use uluru::{Entry, LRUCache};
@@ -90,17 +90,14 @@ use uluru::{Entry, LRUCache};
 mod checks;
 
 /// The amount of nodes that the style sharing candidate cache should hold at
-/// most.  We'd somewhat like 32, but ArrayDeque only implements certain backing
-/// store sizes.  A cache size of 32 would mean a backing store of 33, but
-/// that's not an implemented size: we can do 32 or 40.
+/// most.
 ///
 /// The cache size was chosen by measuring style sharing and resulting
 /// performance on a few pages; sizes up to about 32 were giving good sharing
 /// improvements (e.g. 3x fewer styles having to be resolved than at size 8) and
 /// slight performance improvements.  Sizes larger than 32 haven't really been
 /// tested.
-pub const SHARING_CACHE_SIZE: usize = 31;
-const SHARING_CACHE_BACKING_STORE_SIZE: usize = SHARING_CACHE_SIZE + 1;
+pub const SHARING_CACHE_SIZE: usize = 32;
 
 /// Opaque pointer type to compare ComputedValues identities.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -426,7 +423,7 @@ impl<E: TElement> StyleSharingTarget<E> {
 }
 
 struct SharingCacheBase<Candidate> {
-    entries: LRUCache<[Entry<Candidate>; SHARING_CACHE_BACKING_STORE_SIZE]>,
+    entries: LRUCache<[Entry<Candidate>; SHARING_CACHE_SIZE]>,
 }
 
 impl<Candidate> Default for SharingCacheBase<Candidate> {
@@ -477,10 +474,9 @@ type TypelessSharingCache = SharingCacheBase<FakeCandidate>;
 type StoredSharingCache = Arc<AtomicRefCell<TypelessSharingCache>>;
 
 thread_local! {
-    // TODO(emilio): Looks like a few of these should just be Rc<RefCell<>> or
-    // something. No need for atomics in the thread-local code.
-    static SHARING_CACHE_KEY: StoredSharingCache =
-        Arc::new_leaked(AtomicRefCell::new(TypelessSharingCache::default()));
+    // See the comment on bloom.rs about why do we leak this.
+    static SHARING_CACHE_KEY: ManuallyDrop<StoredSharingCache> =
+        ManuallyDrop::new(Arc::new_leaked(Default::default()));
 }
 
 /// An LRU cache of the last few nodes seen, so that we can aggressively try to
@@ -533,7 +529,7 @@ impl<E: TElement> StyleSharingCache<E> {
             mem::align_of::<SharingCache<E>>(),
             mem::align_of::<TypelessSharingCache>()
         );
-        let cache_arc = SHARING_CACHE_KEY.with(|c| c.clone());
+        let cache_arc = SHARING_CACHE_KEY.with(|c| Arc::clone(&*c));
         let cache =
             OwningHandle::new_with_fn(cache_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
         debug_assert!(cache.is_empty());

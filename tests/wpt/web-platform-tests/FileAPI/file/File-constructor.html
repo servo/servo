@@ -14,10 +14,10 @@ test(function() {
 }, "File interface object exists");
 
 test(t => {
-  assert_throws(new TypeError(), () => new File(),
-                'Bits argument is required');
-  assert_throws(new TypeError(), () => new File([]),
-                'Name argument is required');
+  assert_throws_js(TypeError, () => new File(),
+                   'Bits argument is required');
+  assert_throws_js(TypeError, () => new File([]),
+                   'Name argument is required');
 }, 'Required arguments');
 
 function test_first_argument(arg1, expectedSize, testName) {
@@ -64,14 +64,14 @@ test_first_argument({[Symbol.iterator]() {
   null
 ].forEach(arg => {
   test(t => {
-    assert_throws(new TypeError(), () => new File(arg, 'world.html'),
-                  'Constructor should throw for invalid bits argument');
+    assert_throws_js(TypeError, () => new File(arg, 'world.html'),
+                     'Constructor should throw for invalid bits argument');
   }, `Invalid bits argument: ${JSON.stringify(arg)}`);
 });
 
 test(t => {
-  assert_throws(new Error(), () => new File([to_string_throws], 'name.txt'),
-                'Constructor should propagate exceptions');
+  assert_throws_js(Error, () => new File([to_string_throws], 'name.txt'),
+                   'Constructor should propagate exceptions');
 }, 'Bits argument: object that throws');
 
 
@@ -131,8 +131,8 @@ test(function() {
   'abc'
 ].forEach(arg => {
   test(t => {
-    assert_throws(new TypeError(), () => new File(['bits'], 'name.txt', arg),
-                  'Constructor should throw for invalid property bag type');
+    assert_throws_js(TypeError, () => new File(['bits'], 'name.txt', arg),
+                     'Constructor should throw for invalid property bag type');
   }, `Invalid property bag: ${JSON.stringify(arg)}`);
 });
 
@@ -150,9 +150,9 @@ test(function() {
 });
 
 test(t => {
-  assert_throws(new Error(),
-                () => new File(['bits'], 'name.txt', {type: to_string_throws}),
-                'Constructor should propagate exceptions');
+  assert_throws_js(Error,
+                   () => new File(['bits'], 'name.txt', {type: to_string_throws}),
+                   'Constructor should propagate exceptions');
 }, 'Property bag propagates exceptions');
 
 </script>

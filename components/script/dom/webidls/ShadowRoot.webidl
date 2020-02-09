@@ -14,4 +14,4 @@ interface ShadowRoot : DocumentFragment {
 
 enum ShadowRootMode { "open", "closed"};
 
-ShadowRoot implements DocumentOrShadowRoot;
+ShadowRoot includes DocumentOrShadowRoot;

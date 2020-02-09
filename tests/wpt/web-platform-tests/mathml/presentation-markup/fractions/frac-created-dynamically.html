@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>mfrac created dynamically</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript">
 <meta name="assert" content="A dynamically added mfrac should render like the equivalent markup.">
 <link rel="match" href="frac-created-dynamically-ref.html">
 <script>
@@ -31,6 +32,8 @@
 </head>
 <body>
   <p>This test passes if you see a fraction.</p>
-  <math>
+  <math></math>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
 </body>
 </html>

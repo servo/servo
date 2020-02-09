@@ -53,9 +53,7 @@ use crate::gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use crate::gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
-use crate::gecko_bindings::structs::{
-    nsINode as RawGeckoNode, nsXBLBinding as RawGeckoXBLBinding, Element as RawGeckoElement,
-};
+use crate::gecko_bindings::structs::{nsINode as RawGeckoNode, Element as RawGeckoElement};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::hash::FxHashMap;
@@ -70,6 +68,7 @@ use crate::shared_lock::Locked;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::values::computed::font::GenericFontFamily;
+use crate::values::computed::Length;
 use crate::values::specified::length::FontBaseSize;
 use crate::CaseSensitivityExt;
 use app_units::Au;
@@ -145,6 +144,13 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 /// A simple wrapper over `ShadowRoot`.
 #[derive(Clone, Copy)]
 pub struct GeckoShadowRoot<'lr>(pub &'lr structs::ShadowRoot);
+
+impl<'ln> fmt::Debug for GeckoShadowRoot<'ln> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO(emilio): Maybe print the host or something?
+        write!(f, "<shadow-root> ({:#x})", self.as_node().opaque().0)
+    }
+}
 
 impl<'lr> PartialEq for GeckoShadowRoot<'lr> {
     #[inline]
@@ -234,8 +240,8 @@ impl<'ln> fmt::Debug for GeckoNode<'ln> {
             return write!(f, "<document> ({:#x})", self.opaque().0);
         }
 
-        if self.is_shadow_root() {
-            return write!(f, "<shadow-root> ({:#x})", self.opaque().0);
+        if let Some(sr) = self.as_shadow_root() {
+            return sr.fmt(f);
         }
 
         write!(f, "<non-text node> ({:#x})", self.opaque().0)
@@ -302,7 +308,10 @@ impl<'ln> GeckoNode<'ln> {
     fn flattened_tree_parent_is_parent(&self) -> bool {
         use crate::gecko_bindings::structs::*;
         let flags = self.flags();
-        if flags & (NODE_MAY_BE_IN_BINDING_MNGR as u32 | NODE_IS_IN_SHADOW_TREE as u32) != 0 {
+
+        // FIXME(emilio): The shadow tree condition seems it shouldn't be needed
+        // anymore, if we check for slots.
+        if self.is_in_shadow_tree() {
             return false;
         }
 
@@ -315,7 +324,7 @@ impl<'ln> GeckoNode<'ln> {
         }
 
         if let Some(parent) = parent_el {
-            if parent.shadow_root().is_some() || parent.xbl_binding().is_some() {
+            if parent.shadow_root().is_some() {
                 return false;
             }
         }
@@ -528,34 +537,6 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
     }
 }
 
-/// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
-#[derive(Clone, Copy)]
-pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
-
-impl<'lb> GeckoXBLBinding<'lb> {
-    #[inline]
-    fn base_binding(&self) -> Option<Self> {
-        unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
-    }
-
-    #[inline]
-    fn anon_content(&self) -> *const nsIContent {
-        self.0.mContent.raw::<nsIContent>()
-    }
-
-    // This duplicates the logic in Gecko's
-    // nsBindingManager::GetBindingWithContent.
-    fn binding_with_content(&self) -> Option<Self> {
-        let mut binding = *self;
-        loop {
-            if !binding.anon_content().is_null() {
-                return Some(binding);
-            }
-            binding = binding.base_binding()?;
-        }
-    }
-}
-
 /// A simple wrapper over a non-null Gecko `Element` pointer.
 #[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
@@ -682,69 +663,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn may_be_in_binding_manager(&self) -> bool {
-        self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) != 0
-    }
-
-    #[inline]
-    fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
-        if !self.may_be_in_binding_manager() {
-            return None;
-        }
-
-        let slots = self.extended_slots()?;
-        unsafe { slots.mXBLBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
-    }
-
-    #[inline]
-    fn xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
-        self.xbl_binding().and_then(|b| b.binding_with_content())
-    }
-
-    #[inline]
-    fn has_xbl_binding_with_content(&self) -> bool {
-        !self.xbl_binding_with_content().is_none()
-    }
-
-    /// This duplicates the logic in Gecko's virtual nsINode::GetBindingParent
-    /// function, which only has two implementations: one for XUL elements, and
-    /// one for other elements.
-    ///
-    /// We just hard code in our knowledge of those two implementations here.
-    fn xbl_binding_parent(&self) -> Option<Self> {
-        if self.is_xul_element() {
-            // FIXME(heycam): Having trouble with bindgen on nsXULElement,
-            // where the binding parent is stored in a member variable
-            // rather than in slots.  So just get it through FFI for now.
-            unsafe {
-                bindings::Gecko_GetBindingParent(self.0)
-                    .as_ref()
-                    .map(GeckoElement)
-            }
-        } else {
-            let binding_parent =
-                unsafe { self.non_xul_xbl_binding_parent().as_ref() }.map(GeckoElement);
-
-            debug_assert!(
-                binding_parent ==
-                    unsafe {
-                        bindings::Gecko_GetBindingParent(self.0)
-                            .as_ref()
-                            .map(GeckoElement)
-                    }
-            );
-            binding_parent
-        }
-    }
-
-    #[inline]
-    fn non_xul_xbl_binding_parent(&self) -> *mut RawGeckoElement {
-        debug_assert!(!self.is_xul_element());
-        self.extended_slots()
-            .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent.mRawPtr)
-    }
-
-    #[inline]
     fn namespace_id(&self) -> i32 {
         self.as_node().node_info().mInner.mNamespaceID
     }
@@ -851,33 +769,11 @@ impl<'le> GeckoElement<'le> {
         data.damage |= damage;
     }
 
-    /// This logic is duplicated in Gecko's nsIContent::IsRootOfAnonymousSubtree.
-    #[inline]
-    fn is_root_of_anonymous_subtree(&self) -> bool {
-        use crate::gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
-        self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) != 0
-    }
-
     /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
     #[inline]
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
         return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0;
-    }
-
-    /// This logic is duplicated in Gecko's nsIContent::IsInAnonymousSubtree.
-    #[inline]
-    fn is_in_anonymous_subtree(&self) -> bool {
-        if self.is_in_native_anonymous_subtree() {
-            return true;
-        }
-
-        let binding_parent = match self.xbl_binding_parent() {
-            Some(p) => p,
-            None => return false,
-        };
-
-        binding_parent.shadow_root().is_none()
     }
 
     /// Returns true if this node is the shadow root of an use-element shadow tree.
@@ -1034,7 +930,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         GeckoFontMetricsProvider::new()
     }
 
-    fn get_size(&self, font_name: &Atom, font_family: GenericFontFamily) -> Au {
+    fn get_size(&self, font_name: &Atom, font_family: GenericFontFamily) -> Length {
         let mut cache = self.font_size_cache.borrow_mut();
         if let Some(sizes) = cache.iter().find(|el| el.0 == *font_name) {
             return sizes.1.size_for_generic(font_family);
@@ -1055,7 +951,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
             None => return Default::default(),
         };
 
-        let size = base_size.resolve(context);
+        let size = Au::from(base_size.resolve(context));
         let style = context.style();
 
         let (wm, font) = match base_size {
@@ -1082,9 +978,9 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
             )
         };
         FontMetrics {
-            x_height: Some(Au(gecko_metrics.mXSize)),
+            x_height: Some(Au(gecko_metrics.mXSize).into()),
             zero_advance_measure: if gecko_metrics.mChSize >= 0 {
-                Some(Au(gecko_metrics.mChSize))
+                Some(Au(gecko_metrics.mChSize).into())
             } else {
                 None
             },
@@ -1093,7 +989,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
 }
 
 impl structs::FontSizePrefs {
-    fn size_for_generic(&self, font_family: GenericFontFamily) -> Au {
+    fn size_for_generic(&self, font_family: GenericFontFamily) -> Length {
         Au(match font_family {
             GenericFontFamily::None => self.mDefaultVariableSize,
             GenericFontFamily::Serif => self.mDefaultSerifSize,
@@ -1105,6 +1001,7 @@ impl structs::FontSizePrefs {
                 "Should never get here, since this doesn't (yet) appear on font family"
             ),
         })
+        .into()
     }
 }
 
@@ -1127,9 +1024,8 @@ impl<'le> TElement for GeckoElement<'le> {
         // This condition is similar to the check that
         // StyleChildrenIterator::IsNeeded does, except that it might return
         // true if we used to (but no longer) have anonymous content from
-        // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
-        if self.is_in_anonymous_subtree() ||
-            self.has_xbl_binding_with_content() ||
+        // ::before/::after, or nsIAnonymousContentCreators.
+        if self.is_in_native_anonymous_subtree() ||
             self.is_html_slot_element() ||
             self.shadow_root().is_some() ||
             self.may_have_anonymous_children()
@@ -1352,6 +1248,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_part_attr(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementHasPart)
+    }
+
+    #[inline]
+    fn exports_any_part(&self) -> bool {
+        snapshot_helpers::find_attr(self.attrs(), &atom!("exportparts")).is_some()
     }
 
     // FIXME(emilio): we should probably just return a reference to the Atom.
@@ -1613,11 +1514,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn has_css_transitions(&self) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
-    }
-
-    fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
-        self.xbl_binding_with_content()
-            .map(|b| unsafe { GeckoNode::from_content(&*b.anon_content()) })
     }
 
     fn might_need_transitions_update(
@@ -2151,7 +2047,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Fullscreen |
-            NonTSPseudoClass::MozFullScreen |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::PlaceholderShown |
             NonTSPseudoClass::Target |
@@ -2236,7 +2131,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 }
                 true
             },
-            NonTSPseudoClass::MozNativeAnonymous => self.is_in_native_anonymous_subtree(),
+            NonTSPseudoClass::MozNativeAnonymous |
+            NonTSPseudoClass::MozNativeAnonymousNoSpecificity => {
+                self.is_in_native_anonymous_subtree()
+            },
             NonTSPseudoClass::MozUseShadowTreeRoot => self.is_root_of_use_element_shadow_tree(),
             NonTSPseudoClass::MozTableBorderNonzero => unsafe {
                 bindings::Gecko_IsTableBorderNonzero(self.0)
@@ -2301,7 +2199,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
         self.state()
-            .intersects(NonTSPseudoClass::AnyLink.state_flag())
+            .intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
     }
 
     #[inline]
@@ -2328,6 +2226,16 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
     }
 
+    #[inline]
+    fn exported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::exported_part(self.attrs(), name)
+    }
+
+    #[inline]
+    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+        snapshot_helpers::imported_part(self.attrs(), name)
+    }
+
     #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         let attr = match self.get_class_attr() {
@@ -2350,7 +2258,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn ignores_nth_child_selectors(&self) -> bool {
-        self.is_root_of_anonymous_subtree()
+        self.is_root_of_native_anonymous_subtree()
     }
 }
 

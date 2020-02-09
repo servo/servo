@@ -38,6 +38,7 @@
     <button id="done">Done</button>
     <script>
     var test_click_target = async_test("Click targets the nearest common ancestor");
+    var actions_promise;
 
     // Prevent drag to avoid interfering with the click.
     document.addEventListener('dragstart', (e) => e.preventDefault());
@@ -59,12 +60,15 @@
         "mousedown@link1,mouseup@link_container1,click@link_container1,mousedown@link_container2,mouseup@link2,click@link_container2",
         "Click should be sent to the nearest common ancestor");
       });
-      test_click_target.done();
+      // Make sure the test finishes after all the input actions are completed.
+      actions_promise.then( () => {
+        test_click_target.done();
+      });
     });
 
     // Inject mouse events.
     var actions = new test_driver.Actions();
-    actions.pointerMove(0, 0, {origin: document.getElementById('link1')})
+    actions_promise = actions.pointerMove(0, 0, {origin: document.getElementById('link1')})
            .pointerDown()
            .pointerMove(0, 0, {origin: document.getElementById('link_container1')})
            .pointerUp()

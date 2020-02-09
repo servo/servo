@@ -99,12 +99,12 @@ test(t => {
 
     if (pseudo) {
       assert_equals(
-        actual.effect.target.element,
+        actual.effect.target,
         element,
         `Transition #${index + 1} has expected target`
       );
       assert_equals(
-        actual.effect.target.type,
+        actual.effect.pseudoElement,
         pseudo,
         `Transition #${index + 1} has expected pseudo type`
       );
@@ -113,6 +113,11 @@ test(t => {
         actual.effect.target,
         element,
         `Transition #${index + 1} has expected target`
+      );
+      assert_equals(
+        actual.effect.pseudoElement,
+        null,
+        `Transition #${index + 1} has null pseudo type`
       );
     }
   }

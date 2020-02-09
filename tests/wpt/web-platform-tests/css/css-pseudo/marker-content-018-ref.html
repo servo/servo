@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+ol {
+  float: left;
+  width: 100px;
+}
+.inside {
+  list-style-position: inside;
+}
+li:nth-child(1) { list-style-type: "1" }
+li:nth-child(2) { list-style-type: "1 " }
+li:nth-child(3) { list-style-type: "1  " }
+li:nth-child(4) { list-style-type: " 1" }
+li:nth-child(5) { list-style-type: "  1" }
+li:nth-child(6) { list-style-type: "  1  " }
+li:nth-child(7) { list-style-type: "1\9 2" }
+li:nth-child(8) { list-style-type: "1\a 2" }
+</style>
+<ol class="inside">
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+</ol>
+<ol class="inside">
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+</ol>
+<ol class="outside">
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+</ol>
+<ol class="outside">
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+</ol>

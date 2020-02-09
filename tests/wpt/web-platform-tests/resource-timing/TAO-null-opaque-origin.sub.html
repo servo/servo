@@ -34,7 +34,7 @@ let frame_content = "data:text/html;utf8,<body>" +
                     "};" +
                     "let observer = new PerformanceObserver(observe);" +
                     "observer.observe({ entryTypes: ['resource'] });" +
-                    "fetch(url);" +
+                    "fetch(url).then(r => r.text());" +
                     "</" + "script></body>";
 document.getElementById("frameContext").src = frame_content;
 </script>

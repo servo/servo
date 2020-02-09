@@ -144,28 +144,28 @@ impl DocumentMatchingFunction {
         match_ignore_ascii_case! { &function,
             "url-prefix" => {
                 parse_quoted_or_unquoted_string!(input, DocumentMatchingFunction::UrlPrefix)
-            }
+            },
             "domain" => {
                 parse_quoted_or_unquoted_string!(input, DocumentMatchingFunction::Domain)
-            }
+            },
             "regexp" => {
                 input.parse_nested_block(|input| {
                     Ok(DocumentMatchingFunction::Regexp(
                         input.expect_string()?.as_ref().to_owned(),
                     ))
                 })
-            }
+            },
             "media-document" => {
                 input.parse_nested_block(|input| {
                     let kind = MediaDocumentKind::parse(input)?;
                     Ok(DocumentMatchingFunction::MediaDocument(kind))
                 })
-            }
+            },
             _ => {
                 Err(location.new_custom_error(
                     StyleParseErrorKind::UnexpectedFunction(function.clone())
                 ))
-            }
+            },
         }
     }
 
@@ -253,20 +253,18 @@ impl DocumentCondition {
 
     #[cfg(feature = "gecko")]
     fn allowed_in(&self, context: &ParserContext) -> bool {
-        use crate::gecko_bindings::structs;
         use crate::stylesheets::Origin;
+        use static_prefs::pref;
 
         if context.stylesheet_origin != Origin::Author {
             return true;
         }
 
-        if unsafe { structs::StaticPrefs_sVarCache_layout_css_moz_document_content_enabled } {
+        if pref!("layout.css.moz-document.content.enabled") {
             return true;
         }
 
-        if !unsafe {
-            structs::StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled
-        } {
+        if !pref!("layout.css.moz-document.url-prefix-hack.enabled") {
             return false;
         }
 

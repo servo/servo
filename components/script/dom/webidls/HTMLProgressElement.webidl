@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlprogresselement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLProgressElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //          attribute double value;
   // [CEReactions]

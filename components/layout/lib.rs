@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![feature(type_alias_enum_variants)]
 
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
 extern crate html5ever;
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]

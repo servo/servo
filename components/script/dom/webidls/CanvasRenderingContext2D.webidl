@@ -12,7 +12,7 @@ typedef (HTMLOrSVGImageElement or
          /*HTMLVideoElement or*/
          HTMLCanvasElement or
          /*ImageBitmap or*/
-         /*OffscreenCanvas or*/
+         OffscreenCanvas or
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
 enum CanvasFillRule { "nonzero", "evenodd" };
@@ -22,32 +22,32 @@ interface CanvasRenderingContext2D {
   // back-reference to the canvas
   readonly attribute HTMLCanvasElement canvas;
 };
-CanvasRenderingContext2D implements CanvasState;
-CanvasRenderingContext2D implements CanvasTransform;
-CanvasRenderingContext2D implements CanvasCompositing;
-CanvasRenderingContext2D implements CanvasImageSmoothing;
-CanvasRenderingContext2D implements CanvasFillStrokeStyles;
-CanvasRenderingContext2D implements CanvasShadowStyles;
-CanvasRenderingContext2D implements CanvasFilters;
-CanvasRenderingContext2D implements CanvasRect;
-CanvasRenderingContext2D implements CanvasDrawPath;
-CanvasRenderingContext2D implements CanvasUserInterface;
-CanvasRenderingContext2D implements CanvasText;
-CanvasRenderingContext2D implements CanvasDrawImage;
-CanvasRenderingContext2D implements CanvasImageData;
-CanvasRenderingContext2D implements CanvasPathDrawingStyles;
-CanvasRenderingContext2D implements CanvasTextDrawingStyles;
-CanvasRenderingContext2D implements CanvasPath;
+CanvasRenderingContext2D includes CanvasState;
+CanvasRenderingContext2D includes CanvasTransform;
+CanvasRenderingContext2D includes CanvasCompositing;
+CanvasRenderingContext2D includes CanvasImageSmoothing;
+CanvasRenderingContext2D includes CanvasFillStrokeStyles;
+CanvasRenderingContext2D includes CanvasShadowStyles;
+CanvasRenderingContext2D includes CanvasFilters;
+CanvasRenderingContext2D includes CanvasRect;
+CanvasRenderingContext2D includes CanvasDrawPath;
+CanvasRenderingContext2D includes CanvasUserInterface;
+CanvasRenderingContext2D includes CanvasText;
+CanvasRenderingContext2D includes CanvasDrawImage;
+CanvasRenderingContext2D includes CanvasImageData;
+CanvasRenderingContext2D includes CanvasPathDrawingStyles;
+CanvasRenderingContext2D includes CanvasTextDrawingStyles;
+CanvasRenderingContext2D includes CanvasPath;
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasState {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasState {
   // state
   void save(); // push state on state stack
   void restore(); // pop state stack and restore state
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasTransform {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
   void rotate(unrestricted double angle);
@@ -70,22 +70,22 @@ interface CanvasTransform {
   void resetTransform();
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasCompositing {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
   attribute DOMString globalCompositeOperation; // (default source-over)
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasImageSmoothing {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
   // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasFillStrokeStyles {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasFillStrokeStyles {
   // colours and styles (see also the CanvasDrawingStyles interface)
   attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
   attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
@@ -96,8 +96,8 @@ interface CanvasFillStrokeStyles {
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasShadowStyles {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
   attribute unrestricted double shadowOffsetY; // (default 0)
@@ -105,22 +105,22 @@ interface CanvasShadowStyles {
   attribute DOMString shadowColor; // (default transparent black)
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasFilters {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasFilters {
   // filters
   //attribute DOMString filter; // (default "none")
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasRect {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasRect {
   // rects
   void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasDrawPath {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasDrawPath {
   // path API (see also CanvasPath)
   void beginPath();
   void fill(optional CanvasFillRule fillRule = "nonzero");
@@ -137,27 +137,28 @@ interface CanvasDrawPath {
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 };
 
-[Exposed=(PaintWorklet, Window), NoInterfaceObject]
-interface CanvasUserInterface {
+[Exposed=(PaintWorklet, Window)]
+interface mixin CanvasUserInterface {
   //void drawFocusIfNeeded(Element element);
   //void drawFocusIfNeeded(Path2D path, Element element);
   //void scrollPathIntoView();
   //void scrollPathIntoView(Path2D path);
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasText {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasText {
   // text (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
   [Pref="dom.canvas-text.enabled"]
   void fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
   //                optional unrestricted double maxWidth);
-  //TextMetrics measureText(DOMString text);
+  [Pref="dom.canvas-text.enabled"]
+  TextMetrics measureText(DOMString text);
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasDrawImage {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasDrawImage {
   // drawing images
   [Throws]
   void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy);
@@ -171,8 +172,8 @@ interface CanvasDrawImage {
                                           unrestricted double dw, unrestricted double dh);
 };
 
-[Exposed=(Window, Worker), NoInterfaceObject]
-interface CanvasImageData {
+[Exposed=(Window, Worker)]
+interface mixin CanvasImageData {
   // pixel manipulation
   [Throws]
   ImageData createImageData(long sw, long sh);
@@ -193,8 +194,8 @@ enum CanvasTextAlign { "start", "end", "left", "right", "center" };
 enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasPathDrawingStyles {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
   attribute CanvasLineCap lineCap; // (default "butt")
@@ -207,8 +208,8 @@ interface CanvasPathDrawingStyles {
   //attribute unrestricted double lineDashOffset;
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasTextDrawingStyles {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasTextDrawingStyles {
   // text
   //attribute DOMString font; // (default 10px sans-serif)
   //attribute CanvasTextAlign textAlign; // "start", "end", "left", "right", "center" (default: "start")
@@ -217,8 +218,8 @@ interface CanvasTextDrawingStyles {
   //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
-[Exposed=(PaintWorklet, Window, Worker), NoInterfaceObject]
-interface CanvasPath {
+[Exposed=(PaintWorklet, Window, Worker)]
+interface mixin CanvasPath {
   // shared path API methods
   void closePath();
   void moveTo(unrestricted double x, unrestricted double y);

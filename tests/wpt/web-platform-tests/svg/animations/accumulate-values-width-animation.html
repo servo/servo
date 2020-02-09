@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This tests values animation and accumulate='sum'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- an1: Change width to 100 in 10s with a wobbling animation -->
+<rect width="20" height="100" fill="green">
+    <animate id="an1" attributeName="width" dur="2s" values="0; 30; 20" accumulate="sum" repeatCount="5" fill="freeze"/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect.width.animVal.value, 0, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample2() {
+    assert_approx_equals(rect.width.animVal.value, 30, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample3() {
+    assert_approx_equals(rect.width.animVal.value, 20, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample4() {
+    assert_approx_equals(rect.width.animVal.value, 50, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample5() {
+    assert_approx_equals(rect.width.animVal.value, 40, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample6() {
+    assert_approx_equals(rect.width.animVal.value, 70, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample7() {
+    assert_approx_equals(rect.width.animVal.value, 60, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample8() {
+    assert_approx_equals(rect.width.animVal.value, 90, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample9() {
+    assert_approx_equals(rect.width.animVal.value, 80, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample10() {
+    assert_approx_equals(rect.width.animVal.value, 110, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+function sample11() {
+    assert_approx_equals(rect.width.animVal.value, 100, epsilon);
+    assert_equals(rect.width.baseVal.value, 20);
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,    sample1],
+        ["an1", 1.0,    sample2],
+        ["an1", 1.999,  sample3],
+        ["an1", 2.001,  sample3],
+        ["an1", 3.0,    sample4],
+        ["an1", 3.999,  sample5],
+        ["an1", 4.001,  sample5],
+        ["an1", 5.0,    sample6],
+        ["an1", 5.999,  sample7],
+        ["an1", 6.001,  sample7],
+        ["an1", 7.0,    sample8],
+        ["an1", 7.999,  sample9],
+        ["an1", 8.001,  sample9],
+        ["an1", 9.0,    sample10],
+        ["an1", 9.999,  sample11],
+        ["an1", 10.001, sample11],
+        ["an1", 11.0,   sample11],
+        ["an1", 60.0,   sample11]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>HTTP Cache - Partioning by top-level origin</title>
+  <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="http-cache.js"></script>
+</head>
+<body>
+<script>
+const host = get_host_info();
+
+// We run this entire test twice: first with a same-origin then with a cross-origin popup
+function performFullTest(is_same_origin_test) {
+  const POPUP_HTTP_ORIGIN = is_same_origin_test ? host.HTTP_ORIGIN : host.HTTP_NOTSAMESITE_ORIGIN
+  const LOCAL_HTTP_ORIGIN = host.HTTP_ORIGIN
+
+  const popupBaseURL = POPUP_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
+  const localBaseURL = LOCAL_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
+
+  var test = {
+    name: "HTTP Cache is partitioned by top-frame origin",
+    requests: [
+      {
+        response_headers: [
+              ["Expires", (30 * 24 * 60 * 60)]
+            ],
+        base_url: localBaseURL
+      },
+      {
+        base_url: localBaseURL
+      },
+      {
+        request_headers: [
+          ["Cache-Control", "no-cache"]
+        ],
+        // If the popup's request was a cache hit, we would only expect 2
+        // requests to the server. If it was a cache miss, we would expect 3.
+        expected_response_headers: [
+          ["server-request-count", is_same_origin_test ? "2" : "3"]
+        ],
+        base_url: localBaseURL
+      }
+    ]
+  }
+
+  var uuid = token()
+  var local_requests = expandTemplates(test)
+  var fetchFns = makeFetchFunctions(local_requests, uuid)
+
+  var popup_requests = expandTemplates(test)
+
+  // Request the resource with a long cache expiry
+  function local_fetch() {
+    return fetchFns[0].code(0)
+  }
+
+  function popup_fetch() {
+    return new Promise(function(resolve, reject) {
+      var win = window.open(popupBaseURL + "resources/split-origin-popup.html")
+
+      // Post a message to intisearchte the popup's request and give the necessary
+      // information. Posted researchtedly to account for dropped messages as the
+      // popup is loading.
+      function postMessage(event) {
+        var payload = {
+          index: 1,
+          requests: popup_requests,
+          uuid: uuid
+        }
+        win.postMessage(payload, POPUP_HTTP_ORIGIN)
+      }
+      var messagePoster = setInterval(postMessage, 100)
+
+      // Listen for the result
+      function messageListener(event) {
+        if (event.origin !== POPUP_HTTP_ORIGIN) {
+          reject("Unknown error")
+        } else if (event.data === "success") {
+          resolve()
+        } else if (event.data === "error") {
+          reject("Error in popup")
+        } else {
+          return; // Ignore testharness.js internal messages
+        }
+        window.removeEventListener("message", messageListener)
+        clearInterval(messagePoster)
+        win.close()
+      }
+      window.addEventListener("message", messageListener)
+    })
+  }
+
+  function local_fetch2() {
+    return fetchFns[2].code(2)
+  }
+
+  // Final checks.
+  function check_server_info() {
+    return getServerState(uuid)
+      .then(function (testState) {
+        checkRequests(local_requests, testState)
+        return Promise.resolve()
+      })
+  }
+
+  promise_test(() => local_fetch().then(popup_fetch).then(local_fetch2).then(check_server_info))
+}
+
+performFullTest(true);
+performFullTest(false);
+</script>
+</body>
+</html>

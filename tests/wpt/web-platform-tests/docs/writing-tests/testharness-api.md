@@ -158,7 +158,7 @@ promise_test(test_function, name, properties)
 ```
 
 `test_function` is a function that receives a test as an argument. It must
-return a promise. The test completes when the returned promise resolves. The
+return a promise. The test completes when the returned promise settles. The
 test fails if the returned promise rejects.
 
 E.g.:
@@ -180,11 +180,20 @@ In the example above, `foo()` returns a Promise that resolves with the string
 "foo". The `test_function` passed into `promise_test` invokes `foo` and attaches
 a resolve reaction that verifies the returned value.
 
-Note that in the promise chain constructed in `test_function` assertions don't
-need to be wrapped in `step` or `step_func` calls.
+Note that in the promise chain constructed in `test_function`
+assertions don't need to be wrapped in `step` or `step_func`
+calls. However when mixing event handlers and `promise_test`, the
+event handler callback functions *do* need to be wrapped since an
+exception in these functions does not cause the promise chain to
+reject.
 
 Unlike Asynchronous Tests, Promise Tests don't start running until after the
-previous Promise Test finishes.
+previous Promise Test finishes. [Under rare
+circumstances](https://github.com/web-platform-tests/wpt/pull/17924), the next
+test may begin to execute before the returned promise has settled. Use
+[add_cleanup](#cleanup) to register any necessary cleanup actions such as
+resetting global state that need to happen consistently before the next test
+starts.
 
 `promise_rejects` can be used to test Promises that need to reject:
 
@@ -256,11 +265,8 @@ wrapping everything in functions for isolation becomes
 burdensome. For these cases `testharness.js` support "single page
 tests".
 
-In order for a test to be interpreted as a single page test, then
-it must simply not call `test()` or `async_test()` anywhere on the page, and
-must call the `done()` function to indicate that the test is complete. All
-the `assert_*` functions are available as normal, but are called without
-the normal step function wrapper. For example:
+In order for a test to be interpreted as a single page test, it should set the
+`single_test` [setup option](#setup) to `true`.
 
 ```html
 <!doctype html>
@@ -269,6 +275,7 @@ the normal step function wrapper. For example:
 <script src="/resources/testharnessreport.js"></script>
 <body>
   <script>
+    setup({ single_test: true });
     assert_equals(document.body, document.getElementsByTagName("body")[0])
     done()
  </script>
@@ -292,10 +299,50 @@ only takes `actual` and `description` as arguments.
 The description parameter is used to present more useful error messages when
 a test fails.
 
+When assertions are violated, they throw a runtime exception. This interrupts
+test execution, so subsequent statements are not evaluated. A given test can
+only fail due to one such violation, so if you would like to assert multiple
+behaviors independently, you should use multiple tests.
+
 NOTE: All asserts must be located in a `test()` or a step of an
 `async_test()`, unless the test is a single page test. Asserts outside
 these places won't be detected correctly by the harness and may cause
 unexpected exceptions that will lead to an error in the harness.
+
+## Preconditions ##
+
+When a test would be invalid unless certain conditions are met, but yet
+doesn't explicitly depend on those preconditions, `assert_precondition` can be
+used. For example:
+
+```js
+async_test((t) => {
+  const video = document.createElement("video");
+  assert_precondition(video.canPlayType("video/webm"));
+  video.src = "multitrack.webm";
+  // test something specific to multiple audio tracks in a WebM container
+  t.done();
+}, "WebM with multiple audio tracks");
+```
+
+A failing `assert_precondition` call is reported as a status of
+`PRECONDITION_FAILED` for the subtest.
+
+`assert_precondition` can also be used during test setup. For example:
+
+```js
+setup(() => {
+  assert_precondition("onfoo" in document.body, "'foo' event supported");
+});
+async_test(() => { /* test #1 waiting for "foo" event */ });
+async_test(() => { /* test #2 waiting for "foo" event */ });
+```
+
+A failing `assert_precondition` during setup is reported as a status of
+`PRECONDITION_FAILED` for the test, and the subtests will not run.
+
+See also the `.optional` [file name convention](file-names.md), which is
+appropriate when the precondition is explicitly optional behavior.
 
 ## Cleanup ##
 
@@ -387,18 +434,38 @@ not possible to make the test reliable in some other way.
 
 ## Setup ##
 
-Sometimes tests require non-trivial setup that may fail. For this purpose
-there is a `setup()` function, that may be called with one or two arguments.
-The two argument version is:
+Sometimes tests require non-trivial setup that may fail. testharness.js
+provides two global functions for this purpose, `setup` and `promise_setup`.
+
+`setup()` may be called with one or two arguments. The two argument version is:
 
 ```js
 setup(func, properties)
 ```
 
-The one argument versions may omit either argument.
-func is a function to be run synchronously. `setup()` becomes a no-op once
-any tests have returned results. Properties are global properties of the test
-harness. Currently recognised properties are:
+The one argument version may omit either argument. `func` is a function to be
+run synchronously. `setup()` becomes a no-op once any tests have returned
+results. `properties` is an object which specifies global properties of the
+test harness (enumerated in the following section).
+
+`promise_setup()` allows authors to pause testing until some asynchronous
+operation has completed. It has the following signature:
+
+```js
+promise_setup(func, properties)
+```
+
+Here, the `func` argument is required. This argument must be a function which
+returns an object with a `then` method (e.g. an ECMAScript Promise instance);
+the harness will wait for the fulfillment of this value before executing any
+additional subtests defined with the `promise_test` function. If the value is
+rejected, the harness will report an error and cancel the remaining tests.
+`properties` may optionally be provided as an object which specifies global
+properties of the test harness (enumerated in the following section).
+
+### Setup properties ##
+
+Both setup functions recognize the following properties:
 
 `explicit_done` - Wait for an explicit call to done() before declaring all
 tests complete (see below; implicitly true for single page tests)
@@ -416,6 +483,13 @@ needed when e.g. testing the `window.onerror` handler.
 
 `timeout_multiplier` - Multiplier to apply to per-test timeouts.
 
+`single_test` - Test authors may set this property to `true` to enable [the
+"single page test" mode of testharness.js](#single-page-tests); the current
+test must not declare any subtests; testharness.js will interpret all events
+which normally influence the harness status (e.g. uncaught exceptions,
+unhandled promise rejections, and timeouts) in terms of a single
+implicitly-defined subtest.
+
 ## Determining when all tests are complete ##
 
 By default the test harness will assume there are no more results to come
@@ -431,7 +505,9 @@ is called, the two conditions above apply like normal.
 
 Dedicated and shared workers don't have an event that corresponds to the `load`
 event in a document. Therefore these worker tests always behave as if the
-`explicit_done` property is set to true. Service workers depend on the
+`explicit_done` property is set to true (unless they are defined using [the
+"multi-global" pattern](testharness.html#multi-global-tests)). Service workers
+depend on the
 [install](https://w3c.github.io/ServiceWorker/#service-worker-global-scope-install-event)
 event which is fired following the completion of [running the
 worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker).
@@ -504,7 +580,8 @@ the following methods:
 Tests have the following properties:
 
   * `status` - A status code. This can be compared to the `PASS`, `FAIL`,
-               `TIMEOUT` and `NOTRUN` properties on the test object
+               `PRECONDITION_FAILED`, `TIMEOUT` and `NOTRUN` properties on the
+               test object
 
   * `message` - A message indicating the reason for failure. In the future this
                 will always be a string
@@ -512,9 +589,11 @@ Tests have the following properties:
  The status object gives the overall status of the harness. It has the
  following properties:
 
- * `status` - Can be compared to the `OK`, `ERROR` and `TIMEOUT` properties
+ * `status` - Can be compared to the `OK`, `PRECONDITION_FAILED`, `ERROR` and
+              `TIMEOUT` properties
 
- * `message` - An error message set when the status is `ERROR`
+ * `message` - An error message set when the status is `PRECONDITION_FAILED`
+               or `ERROR`.
 
 ## External API ##
 
@@ -689,6 +768,10 @@ workers and want to ensure they run in series:
 
 ## List of Assertions ##
 
+### `assert_precondition(condition, description)`
+asserts that `condition` is truthy.
+See [preconditions](#preconditions) for usage.
+
 ### `assert_true(actual, description)`
 asserts that `actual` is strictly true
 
@@ -796,6 +879,32 @@ asserts that one `assert_func(actual, expected_array_N, extra_arg1, ..., extra_a
   with multiple allowed pass conditions are bad practice unless the spec specifically
   allows multiple behaviours. Test authors should not use this method simply to hide
   UA bugs.
+
+## Utility functions ##
+
+### **DEPRECATED** `on_event(object, event, callback)`
+
+Register a function as a DOM event listener to the given object for the event
+bubbling phase. New tests should not use this function. Instead, they should
+invoke the `addEventListener` method of the `object` value.
+
+### `format_value(value)`
+
+When many JavaScript Object values are coerced to a String, the resulting value
+will be `"[object Object]"`. This obscures helpful information, making the
+coerced value unsuitable for use in assertion messages, test names, and
+debugging statements.
+
+testharness.js provides a global function named `format_value` which produces
+more distinctive string representations of many kinds of objects, including
+arrays and the more important DOM Node types. It also translates String values
+containing control characters to include human-readable representations.
+
+```js
+format_value(document); // "Document node with 2 children"
+format_value("foo\uffffbar"); // "\"foo\\uffffbar\""
+format_value([-0, Infinity]); // "[-0, Infinity]"
+```
 
 ## Metadata ##
 

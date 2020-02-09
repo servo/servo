@@ -8,22 +8,25 @@ use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SI
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
+use content_security_policy as csp;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
-use http::header::{self, HeaderMap, HeaderName, HeaderValue};
+use http::header::{self, HeaderMap, HeaderName};
 use hyper::Method;
 use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
-use mime_guess::guess_mime_type;
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::RelativePos;
+use net_traits::request::{
+    is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
+};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
-use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::ResourceAttribute;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use net_traits::{ResourceAttribute, ResourceTimeValue};
+use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
@@ -41,6 +44,7 @@ lazy_static! {
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
+#[derive(Clone)]
 pub enum Data {
     Payload(Vec<u8>),
     Done,
@@ -53,7 +57,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
-    pub timing: Arc<Mutex<ResourceFetchTiming>>,
+    pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
 }
 
 pub struct CancellationListener {
@@ -88,12 +92,19 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: &mut Request, target: Target, context: &FetchContext) {
-    // Step 7 of https://w3c.github.io/resource-timing/#processing-model
+    // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
+    // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     context
         .timing
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
+
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
@@ -137,6 +148,30 @@ pub fn fetch_with_cors_cache(
     main_fetch(request, cache, false, false, target, &mut None, &context);
 }
 
+/// https://www.w3.org/TR/CSP/#should-block-request
+pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
+    let origin = match &request.origin {
+        Origin::Client => return csp::CheckResult::Allowed,
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = csp::Request {
+        url: request.url().into_url(),
+        origin: origin.clone().into_url_origin(),
+        redirect_count: request.redirect_count,
+        destination: request.destination,
+        initiator: csp::Initiator::None,
+        nonce: String::new(),
+        integrity_metadata: request.integrity_metadata.clone(),
+        parser_metadata: csp::ParserMetadata::None,
+    };
+    // TODO: Instead of ignoring violations, report them.
+    request
+        .csp_list
+        .as_ref()
+        .map(|c| c.should_request_be_blocked(&csp_request).0)
+        .unwrap_or(csp::CheckResult::Allowed)
+}
+
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub fn main_fetch(
     request: &mut Request,
@@ -162,8 +197,18 @@ pub fn main_fetch(
         }
     }
 
+    // Step 2.2.
+    // TODO: Report violations.
+
+    // Step 2.4.
+    if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked by Content-Security-Policy".into(),
+        )))
+    }
+
     // Step 3.
-    // TODO: handle content security policy violations.
+    // TODO: handle request abort.
 
     // Step 4.
     // TODO: handle upgrade to a potentially secure URL.
@@ -220,7 +265,7 @@ pub fn main_fetch(
         .hsts_list
         .read()
         .unwrap()
-        .switch_known_hsts_host_domain_url_to_https(request.current_url_mut());
+        .apply_hsts_rules(request.current_url_mut());
 
     // Step 11.
     // Not applicable: see fetch_async.
@@ -456,7 +501,7 @@ pub fn main_fetch(
     // Step 24.
     target.process_response_eof(&response);
 
-    if let Ok(mut http_cache) = context.state.http_cache.write() {
+    if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(&request, &response);
     }
 
@@ -478,7 +523,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
                 },
                 Data::Done => break,
                 Data::Cancelled => {
-                    response.aborted.store(true, Ordering::Relaxed);
+                    response.aborted.store(true, Ordering::Release);
                     break;
                 },
             }
@@ -654,7 +699,7 @@ fn scheme_fetch(
                     }
 
                     // Set Content-Type header.
-                    let mime = guess_mime_type(file_path);
+                    let mime = mime_guess::from_path(file_path).first_or_octet_stream();
                     response.headers.typed_insert(ContentType::from(mime));
 
                     // Setup channel to receive cross-thread messages about the file fetch
@@ -747,31 +792,6 @@ fn scheme_fetch(
         },
 
         _ => Response::network_error(NetworkError::Internal("Unexpected scheme".into())),
-    }
-}
-
-/// <https://fetch.spec.whatwg.org/#cors-safelisted-request-header>
-pub fn is_cors_safelisted_request_header(name: &HeaderName, value: &HeaderValue) -> bool {
-    if name == header::CONTENT_TYPE {
-        if let Some(m) = value.to_str().ok().and_then(|s| s.parse::<Mime>().ok()) {
-            m.type_() == mime::TEXT && m.subtype() == mime::PLAIN ||
-                m.type_() == mime::APPLICATION && m.subtype() == mime::WWW_FORM_URLENCODED ||
-                m.type_() == mime::MULTIPART && m.subtype() == mime::FORM_DATA
-        } else {
-            false
-        }
-    } else {
-        name == header::ACCEPT ||
-            name == header::ACCEPT_LANGUAGE ||
-            name == header::CONTENT_LANGUAGE
-    }
-}
-
-/// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
-pub fn is_cors_safelisted_method(m: &Method) -> bool {
-    match *m {
-        Method::GET | Method::HEAD | Method::POST => true,
-        _ => false,
     }
 }
 

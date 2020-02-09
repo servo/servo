@@ -183,7 +183,7 @@ const instanceTestFactory = [
       builder
         .addFunction("fn", kSig_i_v)
         .addBody([
-            kExprGetGlobal,
+            kExprGlobalGet,
             index,
             kExprReturn,
         ])

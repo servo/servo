@@ -1,5 +1,5 @@
 function verifyTextPoints(shape, numLines, tolerance, side) {
-    var failed = false;
+    var passed = true;
     if (tolerance === undefined)
         tolerance = 0.5;
     if (side === undefined)
@@ -19,11 +19,9 @@ function verifyTextPoints(shape, numLines, tolerance, side) {
         if( Math.abs( (actual - expected[i])) > tolerance ){
             line.style.setProperty('color', 'red');
             console.log('diff: ' + Math.abs(actual - expected[i]));
-            failed = true;
+            passed = false;
         }
     }
-    if (window.done) {
-        assert_false(failed, "Lines positioned properly around the shape.");
-        done();
-    }
+
+    return passed;
 }

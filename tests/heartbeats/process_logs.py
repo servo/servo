@@ -4,11 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+from __future__ import print_function
+
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 from os import path
+import six
 import sys
 import warnings
 
@@ -196,7 +199,7 @@ def plot_trial_time_series(config, trial, trial_data, max_end_time, max_power, o
 
     i = 10
     for (p, ts, te, es, ee) in trial_data:
-        xranges = [(ts[j] / 1000000.0, (te[j] - ts[j]) / 1000000.0) for j in xrange(len(ts))]
+        xranges = [(ts[j] / 1000000.0, (te[j] - ts[j]) / 1000000.0) for j in six.moves.xrange(len(ts))]
         ax1.broken_barh(xranges, (i - 0.5 * width, width))
         i += 10
     # place a vbar at the final time for this trial
@@ -385,20 +388,20 @@ def main():
         android = args.android
 
     if not os.path.exists(directory):
-        print "Input directory does not exist: " + directory
+        print("Input directory does not exist: " + directory)
         sys.exit(1)
 
     if os.path.exists(output_dir):
-        print "Output directory already exists: " + output_dir
+        print("Output directory already exists: " + output_dir)
         sys.exit(1)
 
     res = process_logs(directory)
 
     if not android:
         best = find_best_executions(directory)
-        print 'Best time:', best[0]
-        print 'Best energy:', best[1]
-        print 'Best power:', best[2]
+        print('Best time:', best[0])
+        print('Best energy:', best[1])
+        print('Best power:', best[2])
 
     os.makedirs(output_dir)
     plot_all_raw_totals(res, output_dir)

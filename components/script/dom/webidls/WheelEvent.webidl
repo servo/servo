@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-wheelevent
-[Constructor(DOMString typeArg, optional WheelEventInit wheelEventInitDict),
- Exposed=Window]
+[Exposed=Window]
 interface WheelEvent : MouseEvent {
+    [Throws] constructor(DOMString typeArg, optional WheelEventInit wheelEventInitDict = {});
     const unsigned long DOM_DELTA_PIXEL = 0x00;
     const unsigned long DOM_DELTA_LINE = 0x01;
     const unsigned long DOM_DELTA_PAGE = 0x02;

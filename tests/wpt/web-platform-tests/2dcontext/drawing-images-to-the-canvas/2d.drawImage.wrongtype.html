@@ -3,8 +3,8 @@
 <title>Canvas test: 2d.drawImage.wrongtype</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>2d.drawImage.wrongtype</h1>
@@ -19,10 +19,10 @@
 var t = async_test("Incorrect image types in drawImage do not match any defined overloads, so WebIDL throws a TypeError");
 _addTest(function(canvas, ctx) {
 
-assert_throws(new TypeError(), function() { ctx.drawImage(undefined, 0, 0); });
-assert_throws(new TypeError(), function() { ctx.drawImage(0, 0, 0); });
-assert_throws(new TypeError(), function() { ctx.drawImage("", 0, 0); });
-assert_throws(new TypeError(), function() { ctx.drawImage(document.createElement('p'), 0, 0); });
+assert_throws_js(TypeError, function() { ctx.drawImage(undefined, 0, 0); });
+assert_throws_js(TypeError, function() { ctx.drawImage(0, 0, 0); });
+assert_throws_js(TypeError, function() { ctx.drawImage("", 0, 0); });
+assert_throws_js(TypeError, function() { ctx.drawImage(document.createElement('p'), 0, 0); });
 
 
 });

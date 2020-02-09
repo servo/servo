@@ -29,18 +29,17 @@
 
 <script id="code" type="text/worklet">
 registerLayout('parent', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout([child], edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout([child], edges, constraints, styleMap) {
 
-    const childFragment10 = yield child.layoutNextFragment({fixedInlineSize: 10});
+    const childFragment10 = await child.layoutNextFragment({fixedInlineSize: 10});
 
     // First layout data should be "10".
     if (childFragment10.data.size !== 10) {
       return {autoBlockSize: 0, childFragments: [childFragment10]};
     }
 
-    const childFragment20 = yield child.layoutNextFragment({fixedInlineSize: 20});
+    const childFragment20 = await child.layoutNextFragment({fixedInlineSize: 20});
 
     // Second layout data should be "20".
     if (childFragment20.data.size !== 20) {
@@ -57,9 +56,8 @@ registerLayout('parent', class {
 });
 
 registerLayout('child', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout(children, edges, constraints, styleMap) {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
     return {autoBlockSize: 10, data: {size: constraints.fixedInlineSize}};
   }
 });

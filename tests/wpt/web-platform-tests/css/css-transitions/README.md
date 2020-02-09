@@ -33,7 +33,7 @@ Using `support/property.js` test suites compile a list of animatable properties.
 }
 ```
 
-For each compiled test case the test runner identifies computed initial and target values. If they match, no transition will take place, because the property couldn't be parsed. If after starting the transition the computed style matches the target value, the browser applied that value immedately and no transition will take place. During the transition the computed style may match neither initial nor target value (unless it's a discrete transition), or there was no transition.
+For each compiled test case the test runner identifies computed initial and target values. If they match, no transition will take place, because the property couldn't be parsed. If after starting the transition the computed style matches the target value, the browser applied that value immediately and no transition will take place. During the transition the computed style may match neither initial nor target value (unless it's a discrete transition), or there was no transition.
 
 Besides value-assertions, the suites compare received TransitionEnd events. While the values are only matched against computed initial and target values, expected TransitionEnd events are declared explicitly. This can (and will) lead to some test failures that are arguably not a failure (mainly because the specification didn't cover the specific case). Transitioning `color` *may* (or not, depending on browser) also run a transition for `background-color`, as the latter's default value is `currentColor`. This suite considers those implicit transitions a failure. If it truly is a failure or not, should be decided in the specification (and tests updated accordingly).
 

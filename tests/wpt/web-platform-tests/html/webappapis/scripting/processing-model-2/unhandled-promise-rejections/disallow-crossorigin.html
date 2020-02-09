@@ -10,20 +10,82 @@
 <script>
 'use strict';
 
+setup({
+  allow_uncaught_exception: true
+});
+
 (function() {
   var resolveLoaded;
   var loadedPromise = new Promise(function(resolve) { resolveLoaded = resolve; });
 
-  async_test(function(t) {
-    addEventListener('unhandledrejection', t.unreached_func('unhandledrejection event should never be triggered'));
-    addEventListener('rejectionhandled', t.unreached_func('rejectionhandled event should never be triggered'));
+  promise_test(function(t) {
+    var unreachedUnhandled = t.unreached_func('unhandledrejection event should never be triggered');
+    var unreachedHandled = t.unreached_func('rejectionhandled event should never be triggered');
 
-    loadedPromise.then(t.step_func(function() {
-      t.step_timeout(function() {
-        t.done();
-      }, 1000);
+    addEventListener('unhandledrejection', unreachedUnhandled);
+    addEventListener('rejectionhandled', unreachedHandled);
+    ensureCleanup(t, unreachedUnhandled, unreachedHandled);
+
+    return loadedPromise.then(t.step_func(function() {
+      return new Promise(function(resolve) {
+        t.step_timeout(function() {
+          resolve();
+        }, 1000);
+      });
     }));
   }, 'Promise rejection event should be muted for cross-origin non-CORS script');
+
+  promise_test(function(t) {
+    var unreachedUnhandled = t.unreached_func('unhandledrejection event should never be triggered');
+    var unreachedHandled = t.unreached_func('rejectionhandled event should never be triggered');
+
+    addEventListener('unhandledrejection', unreachedUnhandled);
+    addEventListener('rejectionhandled', unreachedHandled);
+    ensureCleanup(t, unreachedUnhandled, unreachedHandled);
+
+    return new Promise(function(resolve) {
+      handleRejectedPromise(new Promise(function(resolve, reject) { reject(42); }));
+      t.step_timeout(function() {
+        resolve();
+      }, 1000);
+    });
+  }, 'Promise rejection should be muted if the rejected promise is handled in cross-origin non-CORS script');
+
+  promise_test(function(t) {
+    var promise = new Promise(function(resolve, reject) { reject(42); });
+    var resolveReceived;
+    var eventPromise = new Promise(function(resolve) { resolveReceived = resolve; });
+    var unhandled = t.step_func(function(e) {
+      if (e.promise === promise) {
+        handleRejectedPromise(promise);
+        resolveReceived();
+      }
+    });
+    var unreachedHandled = t.unreached_func('rejectionhandled event should never be triggered');
+
+    addEventListener('unhandledrejection', unhandled);
+    addEventListener('rejectionhandled', unreachedHandled);
+    ensureCleanup(t, unhandled, unreachedHandled);
+
+    return eventPromise.then(t.step_func(function() {
+      return new Promise(function(resolve) {
+        t.step_timeout(function() {
+          resolve();
+        }, 1000);
+      });
+    }));
+  }, 'Promise rejection should be muted if the rejected promise is handled in unhandledrejection event handler in cross-origin non-CORS script');
+
+  function ensureCleanup(t, unhandled, handled) {
+    t.add_cleanup(function() {
+      if (unhandled) {
+        removeEventListener('unhandledrejection', unhandled);
+      }
+      if (handled) {
+        removeEventListener('rejectionhandled', handled);
+      }
+    });
+  }
 
   var scriptEl = document.createElement('script');
   scriptEl.src = CROSSDOMAIN + 'support/promise-access-control.py?allow=false';

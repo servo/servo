@@ -5,6 +5,7 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use crate::context::LayoutContext;
+use crate::display_list::items::{self, CommonDisplayItem, DisplayItem, DisplayListSection};
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::SpeculatedFloatPlacement;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
@@ -14,10 +15,10 @@ use crate::incremental::RelayoutMode;
 use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 use app_units::Au;
-use euclid::{Point2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use webrender_api::LayoutPoint;
+use webrender_api::units::LayoutPoint;
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
@@ -72,11 +73,30 @@ pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode
 pub fn build_display_list_for_subtree<'a>(
     flow_root: &mut dyn Flow,
     layout_context: &'a LayoutContext,
+    background_color: webrender_api::ColorF,
+    client_size: Size2D<Au>,
 ) -> DisplayListBuildState<'a> {
     let mut state = StackingContextCollectionState::new(layout_context.id);
     flow_root.collect_stacking_contexts(&mut state);
 
-    let state = DisplayListBuildState::new(layout_context, state);
+    let mut state = DisplayListBuildState::new(layout_context, state);
+
+    // Create a base rectangle for the page background based on the root
+    // background color.
+    let base = state.create_base_display_item(
+        Rect::new(Point2D::new(Au::new(0), Au::new(0)), client_size),
+        flow_root.as_block().fragment.node,
+        None,
+        DisplayListSection::BackgroundAndBorders,
+    );
+    state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
+        base,
+        webrender_api::RectangleDisplayItem {
+            color: background_color,
+            common: items::empty_common_item_properties(),
+        },
+    )));
+
     let mut build_display_list = BuildDisplayList { state: state };
     build_display_list.traverse(flow_root);
     build_display_list.state
@@ -105,7 +125,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(
                     .as_block()
                     .stacking_relative_border_box(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block().fragment.transform_matrix(&relative_position) {
-                    let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero()).unwrap();
+                    let transform_matrix = matrix.transform_point2d(LayoutPoint::zero()).unwrap();
                     stacking_context_position = stacking_context_position +
                         Vector2D::new(
                             Au::from_f32_px(transform_matrix.x),

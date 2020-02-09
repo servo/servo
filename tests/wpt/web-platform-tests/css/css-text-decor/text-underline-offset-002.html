@@ -7,6 +7,7 @@
     <link rel="author" title="Mozilla" href="https://www.mozilla.org">
     <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#underline-offset">
     <link rel="match" href="reference/text-underline-offset-002-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style>
         #main{
             border-bottom: 1px solid cyan;
@@ -14,6 +15,7 @@
         }
         #text, #norm{
             text-decoration: green underline;
+            text-decoration-skip-ink: none;
             font: 20px/1 Ahem;
             color: transparent;
             position: relative;
@@ -21,7 +23,7 @@
         }
         #text{
             top: 10px;
-            text-underline-offset: -11px;
+            text-underline-offset: 11px;
         }
         #norm{
             top: 21px;

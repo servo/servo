@@ -16,7 +16,7 @@ use crate::invalidation::element::invalidator::{Invalidation, InvalidationProces
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::selector_map::SelectorMap;
 use crate::selector_parser::Snapshot;
-use crate::stylesheets::origin::{Origin, OriginSet};
+use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::matches_selector;
@@ -42,6 +42,7 @@ where
     descendant_invalidations: &'a mut DescendantInvalidationLists<'selectors>,
     sibling_invalidations: &'a mut InvalidationVector<'selectors>,
     invalidates_self: bool,
+    attr_selector_flags: InvalidationMapFlags,
 }
 
 /// An invalidation processor for style changes due to state and attribute
@@ -155,10 +156,16 @@ where
             return false;
         }
 
+        let mut attr_selector_flags = InvalidationMapFlags::empty();
+
         // If we the visited state changed, we force a restyle here. Matching
         // doesn't depend on the actual visited state at all, so we can't look
         // at matching results to decide what to do for this case.
-        if state_changes.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        //
+        // TODO(emilio): This piece of code should be removed when
+        // layout.css.always-repaint-on-unvisited is true, since we cannot get
+        // into this situation in that case.
+        if state_changes.contains(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints for siblings.
@@ -168,6 +175,7 @@ where
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
         let mut classes_added = SmallVec::<[Atom; 8]>::new();
         if snapshot.class_changed() {
+            attr_selector_flags.insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR);
             // TODO(emilio): Do this more efficiently!
             snapshot.each_class(|c| {
                 if !element.has_class(c, CaseSensitivity::CaseSensitive) {
@@ -185,6 +193,7 @@ where
         let mut id_removed = None;
         let mut id_added = None;
         if snapshot.id_changed() {
+            attr_selector_flags.insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR);
             let old_id = snapshot.id_attr();
             let current_id = element.id();
 
@@ -195,7 +204,10 @@ where
         }
 
         if log_enabled!(::log::Level::Debug) {
-            debug!("Collecting changes for: {:?}", element);
+            debug!(
+                "Collecting changes for: {:?}, flags {:?}",
+                element, attr_selector_flags
+            );
             if !state_changes.is_empty() {
                 debug!(" > state: {:?}", state_changes);
             }
@@ -243,10 +255,11 @@ where
                 descendant_invalidations,
                 sibling_invalidations,
                 invalidates_self: false,
+                attr_selector_flags,
             };
 
             let document_origins = if !matches_document_author_rules {
-                Origin::UserAgent.into()
+                OriginSet::ORIGIN_USER_AGENT | OriginSet::ORIGIN_USER
             } else {
                 OriginSet::all()
             };
@@ -352,9 +365,8 @@ where
             }
         }
 
-        let should_examine_attribute_selector_map = self.snapshot.other_attr_changed() ||
-            (self.snapshot.class_changed() && map.has_class_attribute_selectors) ||
-            (self.snapshot.id_changed() && map.has_id_attribute_selectors);
+        let should_examine_attribute_selector_map =
+            self.snapshot.other_attr_changed() || map.flags.intersects(self.attr_selector_flags);
 
         if should_examine_attribute_selector_map {
             self.collect_dependencies_in_map(&map.other_attribute_affecting_selectors)
@@ -453,6 +465,7 @@ where
 
         let invalidation = Invalidation::new(
             &dependency.selector,
+            self.matching_context.current_host.clone(),
             dependency.selector.len() - dependency.selector_offset + 1,
         );
 

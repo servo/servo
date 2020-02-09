@@ -6,8 +6,6 @@
 <% from data import ALL_SIDES, maybe_moz_logical_alias %>
 <% data.new_style_struct("Padding", inherited=False) %>
 
-// APPLIES_TO_PLACEHOLDER so we can set it in UA  stylesheets.  But we use a
-// !important value there, so pages can't set it.
 % for side in ALL_SIDES:
     <%
         spec = "https://drafts.csswg.org/css-box/#propdef-padding-%s" % side[0]
@@ -18,12 +16,12 @@
         "padding-%s" % side[0],
         "NonNegativeLengthPercentage",
         "computed::NonNegativeLengthPercentage::zero()",
-        alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
+        engines="gecko servo-2013 servo-2020",
+        alias=maybe_moz_logical_alias(engine, side, "-moz-padding-%s"),
         animation_value_type="NonNegativeLengthPercentage",
         logical=side[1],
         logical_group="padding",
         spec=spec,
-        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks="No" if side[1] else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
@@ -34,8 +32,7 @@
         "scroll-padding-%s" % side[0],
         "NonNegativeLengthPercentageOrAuto",
         "computed::NonNegativeLengthPercentageOrAuto::auto()",
-        products="gecko",
-        gecko_pref="layout.css.scroll-snap-v1.enabled",
+        engines="gecko",
         logical=side[1],
         logical_group="scroll-padding",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-%s" % side[0],

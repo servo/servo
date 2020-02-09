@@ -63,6 +63,7 @@ def test_html_all_collection(session):
         """)
     html = session.find.css("html", all=False)
     head = session.find.css("head", all=False)
+    meta = session.find.css("meta", all=False)
     body = session.find.css("body", all=False)
     ps = session.find.css("p")
 
@@ -72,14 +73,15 @@ def test_html_all_collection(session):
         """)
     value = assert_success(response)
     assert isinstance(value, list)
-    # <html>, <head>, <body>, <p>, <p>
-    assert len(value) == 5
+    # <html>, <head>, <meta>, <body>, <p>, <p>
+    assert len(value) == 6
 
     assert_same_element(session, html, value[0])
     assert_same_element(session, head, value[1])
-    assert_same_element(session, body, value[2])
-    assert_same_element(session, ps[0], value[3])
-    assert_same_element(session, ps[1], value[4])
+    assert_same_element(session, meta, value[2])
+    assert_same_element(session, body, value[3])
+    assert_same_element(session, ps[0], value[4])
+    assert_same_element(session, ps[1], value[5])
 
 
 def test_html_collection(session):

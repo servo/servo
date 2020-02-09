@@ -10,11 +10,12 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::{blob_parts_to_bytes, Blob, BlobImpl};
+use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use net_traits::filemanager_thread::SelectedFile;
+use script_traits::serializable::BlobImpl;
 
 #[dom_struct]
 pub struct File {
@@ -25,14 +26,9 @@ pub struct File {
 
 impl File {
     #[allow(unrooted_must_root)]
-    fn new_inherited(
-        blob_impl: BlobImpl,
-        name: DOMString,
-        modified: Option<i64>,
-        type_string: &str,
-    ) -> File {
+    fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<i64>) -> File {
         File {
-            blob: Blob::new_inherited(blob_impl, type_string.to_owned()),
+            blob: Blob::new_inherited(blob_impl),
             name: name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: match modified {
@@ -51,13 +47,14 @@ impl File {
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<i64>,
-        typeString: &str,
     ) -> DomRoot<File> {
-        reflect_dom_object(
-            Box::new(File::new_inherited(blob_impl, name, modified, typeString)),
+        let file = reflect_dom_object(
+            Box::new(File::new_inherited(&blob_impl, name, modified)),
             global,
             FileBinding::Wrap,
-        )
+        );
+        global.track_file(&file, blob_impl);
+        file
     }
 
     // Construct from selected file message from file manager thread
@@ -71,14 +68,19 @@ impl File {
 
         File::new(
             window.upcast(),
-            BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
+            BlobImpl::new_from_file(
+                selected.id,
+                selected.filename,
+                selected.size,
+                normalize_type_string(&selected.type_string.to_string()),
+            ),
             name,
             Some(selected.modified as i64),
-            &selected.type_string,
         )
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
@@ -91,18 +93,17 @@ impl File {
         };
 
         let ref blobPropertyBag = filePropertyBag.parent;
-        let ref typeString = blobPropertyBag.type_;
 
         let modified = filePropertyBag.lastModified;
         // NOTE: Following behaviour might be removed in future,
         // see https://github.com/w3c/FileAPI/issues/41
         let replaced_filename = DOMString::from_string(filename.replace("/", ":"));
+        let type_string = normalize_type_string(&blobPropertyBag.type_.to_string());
         Ok(File::new(
             global,
-            BlobImpl::new_from_bytes(bytes),
+            BlobImpl::new_from_bytes(bytes, type_string),
             replaced_filename,
             modified,
-            typeString,
         ))
     }
 

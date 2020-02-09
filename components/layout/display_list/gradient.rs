@@ -4,7 +4,7 @@
 
 use crate::display_list::ToLayout;
 use app_units::Au;
-use euclid::{Point2D, Size2D, Vector2D};
+use euclid::default::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
@@ -91,9 +91,12 @@ fn convert_gradient_stops(
                 color,
                 position: None,
             }),
-            GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
+            GradientItem::ComplexColorStop {
                 color,
-                position: Some(position),
+                ref position,
+            } => Some(ColorStop {
+                color,
+                position: Some(position.clone()),
             }),
             _ => None,
         })
@@ -122,15 +125,24 @@ fn convert_gradient_stops(
 
     // Step 2: Move any stops placed before earlier stops to the
     // same position as the preceding stop.
-    let mut last_stop_position = stop_items.first().unwrap().position.unwrap();
+    //
+    // FIXME(emilio): Once we know the offsets, it seems like converting the
+    // positions to absolute at once then process that would be cheaper.
+    let mut last_stop_position = stop_items
+        .first()
+        .unwrap()
+        .position
+        .as_ref()
+        .unwrap()
+        .clone();
     for stop in stop_items.iter_mut().skip(1) {
-        if let Some(pos) = stop.position {
-            if position_to_offset(last_stop_position, total_length) >
+        if let Some(ref pos) = stop.position {
+            if position_to_offset(&last_stop_position, total_length) >
                 position_to_offset(pos, total_length)
             {
                 stop.position = Some(last_stop_position);
             }
-            last_stop_position = stop.position.unwrap();
+            last_stop_position = stop.position.as_ref().unwrap().clone();
         }
     }
 
@@ -144,8 +156,10 @@ fn convert_gradient_stops(
                     // Initialize a new stop run.
                     // `unwrap()` here should never fail because this is the beginning of
                     // a stop run, which is always bounded by a length or percentage.
-                    let start_offset =
-                        position_to_offset(stop_items[i - 1].position.unwrap(), total_length);
+                    let start_offset = position_to_offset(
+                        stop_items[i - 1].position.as_ref().unwrap(),
+                        total_length,
+                    );
                     // `unwrap()` here should never fail because this is the end of
                     // a stop run, which is always bounded by a length or percentage.
                     let (end_index, end_stop) = stop_items[(i + 1)..]
@@ -153,7 +167,8 @@ fn convert_gradient_stops(
                         .enumerate()
                         .find(|&(_, ref stop)| stop.position.is_some())
                         .unwrap();
-                    let end_offset = position_to_offset(end_stop.position.unwrap(), total_length);
+                    let end_offset =
+                        position_to_offset(end_stop.position.as_ref().unwrap(), total_length);
                     stop_run = Some(StopRun {
                         start_offset,
                         end_offset,
@@ -168,7 +183,7 @@ fn convert_gradient_stops(
                     stop_run_length * (i - stop_run.start_index) as f32 /
                         ((2 + stop_run.stop_count) as f32)
             },
-            Some(position) => {
+            Some(ref position) => {
                 stop_run = None;
                 position_to_offset(position, total_length)
             },
@@ -212,7 +227,7 @@ where
     Size2D::new(cmp(left_side, right_side), cmp(top_side, bottom_side))
 }
 
-fn position_to_offset(position: LengthPercentage, total_length: Au) -> f32 {
+fn position_to_offset(position: &LengthPercentage, total_length: Au) -> f32 {
     if total_length == Au(0) {
         return 0.0;
     }
@@ -289,8 +304,8 @@ pub fn radial(
     style: &ComputedValues,
     size: Size2D<Au>,
     stops: &[GradientItem],
-    shape: EndingShape,
-    center: Position,
+    shape: &EndingShape,
+    center: &Position,
     repeating: bool,
 ) -> (RadialGradient, Vec<GradientStop>) {
     let center = Point2D::new(
@@ -299,15 +314,15 @@ pub fn radial(
     );
     let radius = match shape {
         EndingShape::Circle(Circle::Radius(length)) => {
-            let length = Au::from(length);
+            let length = Au::from(*length);
             Size2D::new(length, length)
         },
-        EndingShape::Circle(Circle::Extent(extent)) => circle_size_keyword(extent, &size, &center),
+        EndingShape::Circle(Circle::Extent(extent)) => circle_size_keyword(*extent, &size, &center),
         EndingShape::Ellipse(Ellipse::Radii(x, y)) => {
             Size2D::new(x.to_used_value(size.width), y.to_used_value(size.height))
         },
         EndingShape::Ellipse(Ellipse::Extent(extent)) => {
-            ellipse_size_keyword(extent, &size, &center)
+            ellipse_size_keyword(*extent, &size, &center)
         },
     };
 

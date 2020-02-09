@@ -20,8 +20,8 @@ _catalog = join(dirname(__file__), "catalog")
 def _wrap_error(e):
     # type: (expat.error) -> etree.ParseError
     err = etree.ParseError(e)
-    err.code = e.code  # type: ignore
-    err.position = e.lineno, e.offset  # type: ignore
+    err.code = e.code
+    err.position = e.lineno, e.offset
     raise err
 
 _names = {}  # type: Dict[str, str]

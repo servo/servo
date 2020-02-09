@@ -6,7 +6,8 @@
 
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::interface::{create_object, define_on_global_object};
-use js::jsapi::{JSClass, JSContext, JSFunctionSpec};
+use crate::script_runtime::JSContext;
+use js::jsapi::{JSClass, JSFunctionSpec};
 use js::rust::{HandleObject, MutableHandleObject};
 
 /// The class of a namespace object.
@@ -28,8 +29,8 @@ impl NamespaceObjectClass {
 }
 
 /// Create a new namespace object.
-pub unsafe fn create_namespace_object(
-    cx: *mut JSContext,
+pub fn create_namespace_object(
+    cx: JSContext,
     global: HandleObject,
     proto: HandleObject,
     class: &'static NamespaceObjectClass,
@@ -37,6 +38,6 @@ pub unsafe fn create_namespace_object(
     name: &[u8],
     rval: MutableHandleObject,
 ) {
-    create_object(cx, proto, &class.0, methods, &[], &[], rval);
+    create_object(cx, global, proto, &class.0, methods, &[], &[], rval);
     define_on_global_object(cx, global, name, rval.handle());
 }

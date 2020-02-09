@@ -9,8 +9,12 @@
 
 use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
+#[cfg(feature = "gecko")]
+use crate::values::computed::NumberOrPercentage;
 use crate::values::computed::{Angle, Color, Context};
-use crate::values::computed::{Length, LengthPercentage, NumberOrPercentage, ToComputedValue};
+use crate::values::computed::{
+    LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, ToComputedValue,
+};
 use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image::LineDirection as SpecifiedLineDirection;
 use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
@@ -27,12 +31,17 @@ pub type Image = generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl>
 
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
-pub type Gradient =
-    generic::GenericGradient<LineDirection, Length, LengthPercentage, Position, Color>;
+pub type Gradient = generic::GenericGradient<
+    LineDirection,
+    LengthPercentage,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+    Color,
+>;
 
-/// A computed gradient kind.
-pub type GradientKind =
-    generic::GenericGradientKind<LineDirection, Length, LengthPercentage, Position>;
+/// A computed radial gradient ending shape.
+pub type EndingShape = generic::GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>;
 
 /// A computed gradient line direction.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToResolvedValue)]
@@ -48,9 +57,6 @@ pub enum LineDirection {
     Corner(HorizontalPositionKeyword, VerticalPositionKeyword),
 }
 
-/// A computed radial gradient ending shape.
-pub type EndingShape = generic::EndingShape<Length, LengthPercentage>;
-
 /// A computed gradient item.
 pub type GradientItem = generic::GenericGradientItem<Color, LengthPercentage>;
 
@@ -58,7 +64,12 @@ pub type GradientItem = generic::GenericGradientItem<Color, LengthPercentage>;
 pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 
 /// Computed values for `-moz-image-rect(...)`.
+#[cfg(feature = "gecko")]
 pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, ComputedImageUrl>;
+
+/// Empty enum on non-gecko
+#[cfg(not(feature = "gecko"))]
+pub type MozImageRect = crate::values::specified::image::MozImageRect;
 
 impl generic::LineDirection for LineDirection {
     fn points_downwards(&self, compat_mode: GradientCompatMode) -> bool {

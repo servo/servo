@@ -20,7 +20,7 @@ partial dictionary MediaTrackConstraintSet {
 
 partial dictionary MediaTrackSettings {
     // Applies to both depth stream track and color stream track:
-    DOMString videoKind;
+    DOMString           videoKind;
 };
 
 enum VideoKindEnum {

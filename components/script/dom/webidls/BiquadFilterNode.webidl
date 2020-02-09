@@ -25,9 +25,9 @@ dictionary BiquadFilterOptions : AudioNodeOptions {
   float gain = 0;
 };
 
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional BiquadFilterOptions options)]
+[Exposed=Window]
 interface BiquadFilterNode : AudioNode {
+  [Throws] constructor(BaseAudioContext context, optional BiquadFilterOptions options = {});
   attribute BiquadFilterType type;
   readonly attribute AudioParam frequency;
   readonly attribute AudioParam detune;

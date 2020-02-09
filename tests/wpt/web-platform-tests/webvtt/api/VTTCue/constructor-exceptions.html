@@ -5,14 +5,14 @@
 <div id=log></div>
 <script>
 test(function() {
-    assert_throws(new TypeError, function() { new VTTCue(NaN, 0, 'foo'); });
-    assert_throws(new TypeError, function() { new VTTCue(Infinity, 0, 'foo'); });
-    assert_throws(new TypeError, function() { new VTTCue('tomorrow', 0, 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue(NaN, 0, 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue(Infinity, 0, 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue('tomorrow', 0, 'foo'); });
 }, document.title+', non-finite start time');
 test(function() {
-    assert_throws(new TypeError, function() { new VTTCue(0, NaN, 'foo'); });
-    assert_throws(new TypeError, function() { new VTTCue(0, Infinity, 'foo'); });
-    assert_throws(new TypeError, function() { new VTTCue(0, 'tomorrow', 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue(0, NaN, 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue(0, Infinity, 'foo'); });
+    assert_throws_js(TypeError, function() { new VTTCue(0, 'tomorrow', 'foo'); });
 }, document.title+', non-finite end time');
 test(function() {
     var start = { valueOf: function() { return 42; } };

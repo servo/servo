@@ -98,6 +98,25 @@ wptupdate takes several useful options:
   Overwrite all the expectation data for any tests that have a result
   in the passed log files, not just data for the same platform.
 
+``--disable-intermittent``
+  When updating test results, disable tests that have inconsistent
+  results across many runs. This can precede a message providing a
+  reason why that test is disable. If no message is provided,
+  ``unstable`` is the default text.
+
+``--update-intermittent``
+  When this option is used, the ``expected`` key (see below) stores
+  expected intermittent statuses in addition to the primary expected
+  status. If there is more than one status, it appears as a list. The
+  default behaviour of this option is to retain any existing intermittent
+  statuses in the list unless ``--remove-intermittent`` is specified.
+
+``--remove-intermittent``
+  This option is used in conjunction with ``--update-intermittent``.
+  When the ``expected`` statuses are updated, any obsolete intermittent
+  statuses that did not occur in the specified logfiles are removed from
+  the list.
+
 Examples
 ~~~~~~~~
 
@@ -140,6 +159,24 @@ A simple example of a manifest file is::
 
   [another_section]
     another_key: another_value
+
+The web-platform-test harness knows about several keys:
+
+`expected`
+  Must evaluate to a possible test status indicating the expected
+  result of the test. The implicit default is PASS or OK when the
+  field isn't present. When `expected` is a list, the first status
+  is the primary expected status and the trailing statuses listed are
+  expected intermittent statuses.
+
+`disabled`
+  Any value indicates that the test is disabled.
+
+`reftype`
+  The type of comparison for reftests; either `==` or `!=`.
+
+`refurl`
+  The reference url for reftests.
 
 Conditional Values
 ~~~~~~~~~~~~~~~~~~
@@ -190,7 +227,8 @@ When used for expectation data, manifests have the following format:
  * A subsection per subtest, with the heading being the title of the
    subtest.
 
- * A key ``expected`` giving the expectation value of each (sub)test.
+ * A key ``expected`` giving the expectation value or values of each 
+   (sub)test.
 
  * A key ``disabled`` which can be set to any value to indicate that
    the (sub)test is disabled and should either not be run (for tests)
@@ -210,7 +248,7 @@ When used for expectation data, manifests have the following format:
    base test URL, in which case the fuzziness applies to any
    comparison with that URL, or takes the form lhs url, comparison,
    rhs url, in which case the fuzziness only applies for any
-   comparison involving that specifc pair of URLs. Some illustrative
+   comparison involving that specific pair of URLs. Some illustrative
    examples are given below.
 
  * Variables ``debug``, ``os``, ``version``, ``processor`` and
@@ -236,6 +274,9 @@ An simple example manifest might look like::
     [Test something unsupported]
        expected: FAIL
 
+    [Test with intermittent statuses]
+       expected: [PASS, TIMEOUT]
+
   [test.html?variant=broken]
     expected: ERROR
 
@@ -246,7 +287,7 @@ A more complex manifest with conditional properties might be::
 
   [canvas_test.html]
     expected:
-      if os == "osx": FAIL
+      if os == "mac": FAIL
       if os == "windows" and version == "XP": FAIL
       PASS
 

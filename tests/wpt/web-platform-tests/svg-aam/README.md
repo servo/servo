@@ -3,7 +3,7 @@ svg-aam: Tests for the SVG Accessibility API Mappings
 
 The [SVG AAM Recommendation](https://www.w3.org/TR/svg-aam-1.0)
 define extensions to SVG for support of extended semantics.  These
-semantics make it easier for Assistive Technologies to intepret and
+semantics make it easier for Assistive Technologies to interpret and
 present content to users with varying physical and cognitive abilities.
 
 The purpose of these tests is to help ensure that user agents support the

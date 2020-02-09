@@ -5,24 +5,24 @@
 <script>
 
 test(() => {
-  assert_throws(new Error(),
-                function() {
-                    new SharedWorker({toString:function(){throw new Error()}}, "name") },
-                "toString exception not propagagted");
+  assert_throws_js(Error,
+                   function() {
+                     new SharedWorker({toString:function(){throw new Error()}}, "name") },
+                   "toString exception not propagated");
 }, "Test toString exception propagated correctly.");
 
 test(() => {
-  assert_throws(new RangeError(),
-                function() {
-                    var foo = {toString:function(){new Worker(foo)}}
-                    new SharedWorker(foo, name); },
-                "Trying to create workers recursively did not result in an exception.");
+  assert_throws_js(RangeError,
+                   function() {
+                     var foo = {toString:function(){new Worker(foo)}}
+                     new SharedWorker(foo, name); },
+                   "Trying to create workers recursively did not result in an exception.");
 }, "Test recursive worker creation results in exception.");
 
 test(() => {
-  assert_throws(new TypeError(),
-                function() { new SharedWorker(); },
-                "Invoking SharedWorker constructor without arguments did not result in an exception.");
+  assert_throws_js(TypeError,
+                   function() { new SharedWorker(); },
+                   "Invoking SharedWorker constructor without arguments did not result in an exception.");
 }, "Test SharedWorker creation without arguments results in exception.");
 
 test(() => {

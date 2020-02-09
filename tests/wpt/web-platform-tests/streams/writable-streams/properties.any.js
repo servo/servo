@@ -45,6 +45,10 @@ const expected = {
       type: 'method',
       length: 1
     },
+    close: {
+      type: 'method',
+      length: 0
+    },
     getWriter: {
       type: 'method',
       length: 0

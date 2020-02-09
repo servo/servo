@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //https://html.spec.whatwg.org/multipage/#the-closeevent-interfaces
-[Constructor(DOMString type, optional CloseEventInit eventInitDict), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface CloseEvent : Event {
+  [Throws] constructor(DOMString type, optional CloseEventInit eventInitDict = {});
   readonly attribute boolean wasClean;
   readonly attribute unsigned short code;
   readonly attribute DOMString reason;

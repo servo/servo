@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing word-boundary-detection with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-detection">
+<meta name="assert" content="word-boundary-detection supports only the grammar 'normal | manual | auto(<lang>)'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("word-boundary-detection", "auto"); /*needs a language*/
+test_invalid_value("word-boundary-detection", "auto()"); /*needs a language*/
+test_invalid_value("word-boundary-detection", "none");
+test_invalid_value("word-boundary-detection", "normal manual");
+</script>
+</body>
+</html>

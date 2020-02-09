@@ -6,17 +6,23 @@
 
 use crate::app;
 use crate::context::GlContext;
+use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use euclid::{
+    Angle, default::Size2D as UntypedSize2D, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
+    Vector2D, Vector3D,
+};
 use gleam::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+#[cfg(target_os = "linux")]
+use glutin::os::unix::WindowExt;
+use glutin::Api;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use glutin::Icon;
-use glutin::Api;
-use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase};
+use glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -24,12 +30,12 @@ use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEven
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
-use servo::servo_config::opts;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, FramebufferIntSize, ScrollLocation,
-};
+use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
@@ -55,43 +61,57 @@ fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::Wind
 
 pub struct Window {
     gl_context: RefCell<GlContext>,
-    screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
-    inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
+    events_loop: Rc<RefCell<EventsLoop>>,
+    screen_size: Size2D<u32, DeviceIndependentPixel>,
+    inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
-    mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
+    mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: glutin::MonitorId,
     event_queue: RefCell<Vec<WindowEvent>>,
-    mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
+    mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<dyn gl::Gl>,
+    xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
+    xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
+    angle: bool,
+    enable_vsync: bool,
+    use_msaa: bool,
+    no_native_titlebar: bool,
+    device_pixels_per_px: Option<f32>,
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-    TypedScale::new(1.0)
+fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+    Scale::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
     let hdc = unsafe { winapi::um::winuser::GetDC(::std::ptr::null_mut()) };
     let ppi = unsafe { winapi::um::wingdi::GetDeviceCaps(hdc, winapi::um::wingdi::LOGPIXELSY) };
-    TypedScale::new(ppi as f32 / 96.0)
+    Scale::new(ppi as f32 / 96.0)
 }
 
 impl Window {
     pub fn new(
-        win_size: TypedSize2D<u32, DeviceIndependentPixel>,
-        events_loop: &glutin::EventsLoop,
-    ) -> Rc<dyn WindowPortsMethods> {
+        win_size: Size2D<u32, DeviceIndependentPixel>,
+        sharing: Option<&Window>,
+        events_loop: Rc<RefCell<EventsLoop>>,
+        angle: bool,
+        enable_vsync: bool,
+        use_msaa: bool,
+        no_native_titlebar: bool,
+        device_pixels_per_px: Option<f32>,
+    ) -> Window {
         let opts = opts::get();
 
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !opts.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !no_native_titlebar;
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -99,8 +119,8 @@ impl Window {
 
         let mut window_builder = glutin::WindowBuilder::new()
             .with_title("Servo".to_string())
-            .with_decorations(!opts.no_native_titlebar)
-            .with_transparency(opts.no_native_titlebar)
+            .with_decorations(!no_native_titlebar)
+            .with_transparency(no_native_titlebar)
             .with_dimensions(LogicalSize::new(width as f64, height as f64))
             .with_visibility(visible)
             .with_multitouch();
@@ -108,16 +128,21 @@ impl Window {
         window_builder = builder_with_platform_options(window_builder);
 
         let mut context_builder = glutin::ContextBuilder::new()
-            .with_gl(app::gl_version())
-            .with_vsync(opts.enable_vsync);
+            .with_gl(app::gl_version(angle))
+            .with_vsync(enable_vsync);
 
-        if opts.use_msaa {
+        if use_msaa {
             context_builder = context_builder.with_multisampling(MULTISAMPLES)
         }
 
-        let context = context_builder
-            .build_windowed(window_builder, &events_loop)
-            .expect("Failed to create window.");
+        let context = match sharing {
+            Some(sharing) => sharing.gl_context.borrow().new_window(
+                context_builder,
+                window_builder,
+                events_loop.borrow().as_winit()
+            ),
+            None => context_builder.build_windowed(window_builder, events_loop.borrow().as_winit()),
+        }.expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
@@ -125,27 +150,35 @@ impl Window {
             context.window().set_window_icon(Some(load_icon(icon_bytes)));
         }
 
+        if let Some(sharing) = sharing {
+            debug!("Making window {:?} not current", sharing.gl_context.borrow().window().id());
+            sharing.gl_context.borrow_mut().make_not_current();
+        }
+
         let context = unsafe {
+            debug!("Making window {:?} current", context.window().id());
             context.make_current().expect("Couldn't make window current")
         };
 
-        let primary_monitor = events_loop.get_primary_monitor();
+        let primary_monitor = events_loop.borrow().as_winit().get_primary_monitor();
 
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
         } = primary_monitor.get_dimensions();
-        let screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
+        let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
         // TODO(ajeffrey): can this fail?
         let LogicalSize { width, height } = context
             .window()
             .get_inner_size()
             .expect("Failed to get window inner size.");
-        let inner_size = TypedSize2D::new(width as u32, height as u32);
+        let inner_size = Size2D::new(width as u32, height as u32);
 
         context.window().show();
 
-        let gl = match context.get_api() {
+        let gl = if let Some(sharing) = sharing {
+            sharing.gl.clone()
+        } else { match context.get_api() {
             Api::OpenGl => unsafe {
                 gl::GlFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
@@ -153,22 +186,22 @@ impl Window {
                 gl::GlesFns::load_with(|s| context.get_proc_address(s) as *const _)
             },
             Api::WebGl => unreachable!("webgl is unsupported"),
-        };
+        } };
 
         gl.clear_color(0.6, 0.6, 0.6, 1.0);
         gl.clear(gl::COLOR_BUFFER_BIT);
         gl.finish();
 
-        let mut context = GlContext::Current(context);
+        let context = GlContext::Current(context);
 
-        context.make_not_current();
-
+        debug!("Created window {:?}", context.window().id());
         let window = Window {
             gl_context: RefCell::new(context),
+            events_loop,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
-            mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
+            mouse_down_point: Cell::new(Point2D::new(0, 0)),
+            mouse_pos: Cell::new(Point2D::new(0, 0)),
             last_pressed: Cell::new(None),
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
@@ -176,11 +209,18 @@ impl Window {
             inner_size: Cell::new(inner_size),
             primary_monitor,
             screen_size,
+            xr_rotation: Cell::new(Rotation3D::identity()),
+            xr_translation: Cell::new(Vector3D::zero()),
+            angle,
+            enable_vsync,
+            use_msaa,
+            no_native_titlebar,
+            device_pixels_per_px,
         };
 
         window.present();
 
-        Rc::new(window)
+        window
     }
 
     fn handle_received_character(&self, mut ch: char) {
@@ -205,6 +245,7 @@ impl Window {
             KeyboardEvent::default()
         };
         event.key = Key::Character(ch.to_string());
+        self.handle_xr_translation(&event);
         self.event_queue
             .borrow_mut()
             .push(WindowEvent::Keyboard(event));
@@ -217,10 +258,61 @@ impl Window {
             self.last_pressed.set(Some(event));
         } else if event.key != Key::Unidentified {
             self.last_pressed.set(None);
+            self.handle_xr_rotation(&input);
             self.event_queue
                 .borrow_mut()
                 .push(WindowEvent::Keyboard(event));
         }
+    }
+
+    fn handle_xr_translation(&self, input: &KeyboardEvent) {
+        if input.state != KeyState::Down {
+            return;
+        }
+        const NORMAL_TRANSLATE: f32 = 0.1;
+        const QUICK_TRANSLATE: f32 = 1.0;
+        let mut x = 0.0;
+        let mut z = 0.0;
+        match input.key {
+            Key::Character(ref k) => match &**k {
+                "w" => z = -NORMAL_TRANSLATE,
+                "W" => z = -QUICK_TRANSLATE,
+                "s" => z = NORMAL_TRANSLATE,
+                "S" => z = QUICK_TRANSLATE,
+                "a" => x = -NORMAL_TRANSLATE,
+                "A" => x = -QUICK_TRANSLATE,
+                "d" => x = NORMAL_TRANSLATE,
+                "D" => x = QUICK_TRANSLATE,
+                _ => return,
+            },
+            _ => return,
+        };
+        let (old_x, old_y, old_z) = self.xr_translation.get().to_tuple();
+        let vec = Vector3D::new(x + old_x, old_y, z + old_z);
+        self.xr_translation.set(vec);
+    }
+
+    fn handle_xr_rotation(&self, input: &KeyboardInput) {
+        if input.state != glutin::ElementState::Pressed {
+            return;
+        }
+        let mut x = 0.0;
+        let mut y = 0.0;
+        match input.virtual_keycode {
+            Some(VirtualKeyCode::Up) => x = 1.0,
+            Some(VirtualKeyCode::Down) => x = -1.0,
+            Some(VirtualKeyCode::Left) => y = 1.0,
+            Some(VirtualKeyCode::Right) => y = -1.0,
+            _ => return,
+        };
+        if input.modifiers.shift {
+            x = 10.0 * x;
+            y = 10.0 * y;
+        }
+        let x: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_x(Angle::degrees(x));
+        let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));
+        let rotation = self.xr_rotation.get().post_rotate(&x).post_rotate(&y);
+        self.xr_rotation.set(rotation);
     }
 
     /// Helper function to handle a click
@@ -228,7 +320,7 @@ impl Window {
         &self,
         button: glutin::MouseButton,
         action: glutin::ElementState,
-        coords: TypedPoint2D<i32, DevicePixel>,
+        coords: Point2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
 
@@ -266,15 +358,15 @@ impl Window {
             .push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        TypedScale::new(self.gl_context.borrow().window().get_hidpi_factor() as f32)
+    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(self.gl_context.borrow().window().get_hidpi_factor() as f32)
     }
 
-    fn servo_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match opts::get().device_pixels_per_px {
-            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
+    fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        match self.device_pixels_per_px {
+            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
             _ => match opts::get().output_file {
-                Some(_) => TypedScale::new(1.0),
+                Some(_) => Scale::new(1.0),
                 None => self.device_hidpi_factor(),
             },
         }
@@ -320,7 +412,7 @@ impl WindowPortsMethods for Window {
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
             self.gl_context.borrow_mut().window()
-                .set_fullscreen(Some(self.primary_monitor.clone()));
+                .set_fullscreen(if state { Some(self.primary_monitor.clone()) } else { None });
         }
         self.fullscreen.set(state);
     }
@@ -376,8 +468,8 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn id(&self) -> Option<glutin::WindowId> {
-        Some(self.gl_context.borrow().window().id())
+    fn id(&self) -> glutin::WindowId {
+        self.gl_context.borrow().window().id()
     }
 
     fn winit_event_to_servo_event(&self, event: glutin::WindowEvent) {
@@ -392,10 +484,10 @@ impl WindowPortsMethods for Window {
             glutin::WindowEvent::CursorMoved { position, .. } => {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
                 let (x, y): (i32, i32) = pos.into();
-                self.mouse_pos.set(TypedPoint2D::new(x, y));
+                self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(
+                    .push(WindowEvent::MouseWindowMoveEventClass(Point2D::new(
                         x as f32, y as f32,
                     )));
             },
@@ -413,7 +505,7 @@ impl WindowPortsMethods for Window {
                 // Create wheel event before snapping to the major axis of movement
                 let wheel_delta = WheelDelta { x: dx, y: dy, z: 0.0, mode };
                 let pos = self.mouse_pos.get();
-                let position = TypedPoint2D::new(pos.x as f32, pos.y as f32);
+                let position = Point2D::new(pos.x as f32, pos.y as f32);
                 let wheel_event = WindowEvent::Wheel(wheel_delta, position);
 
                 // Scroll events snap to the major axis of movement, with vertical
@@ -424,7 +516,7 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx as f32, dy as f32));
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let scroll_event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
@@ -440,7 +532,7 @@ impl WindowPortsMethods for Window {
                 let position = touch
                     .location
                     .to_physical(self.device_hidpi_factor().get() as f64);
-                let point = TypedPoint2D::new(position.x as f32, position.y as f32);
+                let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
                     .push(WindowEvent::Touch(phase, id, point));
@@ -456,7 +548,7 @@ impl WindowPortsMethods for Window {
                 self.gl_context.borrow_mut().resize(physical_size);
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let (width, height) = size.into();
-                let new_size = TypedSize2D::new(width, height);
+                let new_size = Size2D::new(width, height);
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
@@ -464,6 +556,55 @@ impl WindowPortsMethods for Window {
             },
             _ => {},
         }
+    }
+}
+
+impl webxr::glwindow::GlWindow for Window {
+    fn make_current(&self) {
+        debug!("Making window {:?} current", self.gl_context.borrow().window().id());
+        self.gl_context.borrow_mut().make_current();
+    }
+
+    fn swap_buffers(&self) {
+        debug!("Swapping buffers on window {:?}", self.gl_context.borrow().window().id());
+        self.gl_context.borrow().swap_buffers();
+        self.gl_context.borrow_mut().make_not_current();
+    }
+
+    fn size(&self) -> UntypedSize2D<gl::GLsizei> {
+        let dpr = self.device_hidpi_factor().get() as f64;
+        let size = self
+            .gl_context
+            .borrow()
+            .window()
+            .get_inner_size()
+            .expect("Failed to get window inner size.");
+        let size = size.to_physical(dpr);
+        let (w, h): (u32, u32) = size.into();
+        Size2D::new(w as i32, h as i32)
+    }
+
+    fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
+        self.xr_rotation.get().clone()
+    }
+
+    fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
+        self.xr_translation.get().clone()
+    }
+
+    fn new_window(&self) -> Result<Rc<dyn webxr::glwindow::GlWindow>, ()> {
+        let window = Rc::new(Window::new(
+            self.inner_size.get(),
+            Some(self),
+            self.events_loop.clone(),
+            self.angle,
+            self.enable_vsync,
+            self.use_msaa,
+            self.no_native_titlebar,
+            self.device_pixels_per_px,
+        ));
+        app::register_window(window.clone());
+        Ok(window)
     }
 }
 
@@ -487,8 +628,8 @@ impl WindowMethods for Window {
             .window()
             .get_position()
             .unwrap_or(LogicalPosition::new(0., 0.));
-        let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-        let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+        let win_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
+        let win_origin = (Point2D::new(x as f32, y as f32) * dpr).to_i32();
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
         let LogicalSize { width, height } = self
@@ -497,9 +638,9 @@ impl WindowMethods for Window {
             .window()
             .get_inner_size()
             .expect("Failed to get window inner size.");
-        let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
-        let framebuffer = FramebufferIntSize::from_untyped(&viewport.size.to_untyped());
+        let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
+        let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
+        let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
 
         EmbedderCoordinates {
             viewport,
@@ -521,8 +662,66 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(&self) {
+    fn make_gl_context_current(&self) {
         self.gl_context.borrow_mut().make_current();
+    }
+
+    fn get_gl_context(&self) -> PlayerGLContext {
+        if pref!(media.glvideo.enabled) {
+            return self.gl_context.borrow().raw_context();
+        }
+
+        return PlayerGLContext::Unknown;
+    }
+
+    fn get_native_display(&self) -> NativeDisplay {
+        if !pref!(media.glvideo.enabled) {
+            return NativeDisplay::Unknown;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            if let Some(display) = self.gl_context.borrow().window().get_wayland_display() {
+                return NativeDisplay::Wayland(display as usize);
+            } else if let Some(display) =
+                self.gl_context.borrow().window().get_xlib_display()
+            {
+                return NativeDisplay::X11(display as usize);
+            }
+        }
+
+        #[cfg(any(target_os = "linux", target_os = "windows"))]
+        {
+            if let Some(display) = self.gl_context.borrow().egl_display() {
+                return NativeDisplay::Egl(display as usize);
+            }
+        }
+
+        NativeDisplay::Unknown
+    }
+
+    fn get_gl_api(&self) -> GlApi {
+        let api = self.gl_context.borrow().get_api();
+
+        let version = self.gl.get_string(gl::VERSION);
+        let version = version.trim_start_matches("OpenGL ES ");
+        let mut values = version.split(&['.', ' '][..]);
+        let major = values
+            .next()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(1);
+        let minor = values
+            .next()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(20);
+
+        match api {
+            glutin::Api::OpenGl if major >= 3 && minor >= 2 => GlApi::OpenGL3,
+            glutin::Api::OpenGl => GlApi::OpenGL,
+            glutin::Api::OpenGlEs if major > 1 => GlApi::Gles2,
+            glutin::Api::OpenGlEs => GlApi::Gles1,
+            _ => GlApi::None,
+        }
     }
 }
 
@@ -539,11 +738,11 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
 fn load_icon(icon_bytes: &[u8]) -> Icon {
     let (icon_rgba, icon_width, icon_height) = {
         use image::{GenericImageView, Pixel};
-        let image = image::load_from_memory(icon_bytes).expect("Failed to load icon");;
+        let image = image::load_from_memory(icon_bytes).expect("Failed to load icon");
         let (width, height) = image.dimensions();
         let mut rgba = Vec::with_capacity((width * height) as usize * 4);
         for (_, _, pixel) in image.pixels() {
-            rgba.extend_from_slice(&pixel.to_rgba().data);
+            rgba.extend_from_slice(&pixel.to_rgba().0);
         }
         (rgba, width, height)
     };

@@ -8,34 +8,168 @@ const IDENTITY_MATRIX = [1, 0, 0, 0,
                          0, 0, 1, 0,
                          0, 0, 0, 1];
 
-// A valid pose matrix for  when we don't care about specific values
-const VALID_POSE_MATRIX = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];
+const IDENTITY_TRANSFORM = {
+    position: [0, 0, 0],
+    orientation: [0, 0, 0, 1],
+};
+
+// A valid pose matrix/transform for  when we don't care about specific values
+// Note that these two should be identical, just different representations
+const VALID_POSE_MATRIX = [0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           1, 0, 0, 0,
+                           1, 1, 1, 1];
+
+const VALID_POSE_TRANSFORM = {
+    position: [1, 1, 1],
+    orientation: [0.5, 0.5, 0.5, 0.5]
+};
 
 const VALID_PROJECTION_MATRIX =
     [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
 
-const VALID_VIEW_MATRIX = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
-
-// A valid VRPose for when we want the HMD to report being at the origin
-const ORIGIN_POSE = IDENTITY_MATRIX;
+// This is a decomposed version of the above.
+const VALID_FIELD_OF_VIEW = {
+    upDegrees: 71.565,
+    downDegrees: -45,
+    leftDegrees:-63.4349,
+    rightDegrees: 75.9637
+};
 
 // A valid input grip matrix for  when we don't care about specific values
-const VALID_GRIP = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+const VALID_GRIP = [1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    4, 3, 2, 1];
+
+const VALID_GRIP_TRANSFORM = {
+    position: [4, 3, 2],
+    orientation: [0, 0, 0, 1]
+};
 
 // A valid input pointer offset for  when we don't care about specific values
-const VALID_POINTER_OFFSET = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1];
+const VALID_POINTER_OFFSET = [1, 0, 0, 0,
+                              0, 1, 0, 0,
+                              0, 0, 1, 0,
+                              0, 0, 1, 1];
 
-const VALID_GRIP_WITH_POINTER_OFFSET =
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 3, 1];
+const VALID_POINTER_TRANSFORM = {
+    position: [0, 0, 1],
+    orientation: [0, 0, 0, 1]
+};
 
-const VALID_STAGE_TRANSFORM =
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.0, 1.65, -1.0, 1];
+const VALID_GRIP_WITH_POINTER_OFFSET = [1, 0, 0, 0,
+                                        0, 1, 0, 0,
+                                        0, 0, 1, 0,
+                                        4, 3, 3, 1];
+
+// A Valid Local to floor matrix/transform for when we don't care about specific
+// values.  Note that these should be identical, just different representations.
+const VALID_FLOOR_ORIGIN_MATRIX = [1, 0,    0,  0,
+                                     0, 1,    0,  0,
+                                     0, 0,    1,  0,
+                                     1, 1.65, -1, 1];
+
+const VALID_FLOOR_ORIGIN = {
+    position: [1.0, 1.65, -1.0],
+    orientation: [0, 0, 0, 1]
+};
 
 const VALID_BOUNDS = [
-    { x: 3.0, y: 0, z: -2.0 },
-    { x: 3.5, y: 0, z: 0.0 },
-    { x: 3.0, y: 0, z: 2.0 },
-    { x: -3.0, y: 0, z: 2.0 },
-    { x: -3.5, y: 0, z: 0.0 },
-    { x: -3.0, y: 0, z: -2.0 }
+    { x: 3.0, z: -2.0 },
+    { x: 3.5, z: 0.0 },
+    { x: 3.0, z: 2.0 },
+    { x: -3.0, z: 2.0 },
+    { x: -3.5, z: 0.0 },
+    { x: -3.0, z: -2.0 }
 ];
+
+const VALID_RESOLUTION = {
+    width: 20,
+    height: 20
+};
+
+const LEFT_OFFSET = {
+    position: [-0.1, 0, 0],
+    orientation: [0, 0, 0, 1]
+};
+
+const RIGHT_OFFSET = {
+    position: [0.1, 0, 0],
+    orientation: [0, 0, 0, 1]
+};
+
+const VALID_VIEWS = [{
+        eye:"left",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: LEFT_OFFSET,
+        resolution: VALID_RESOLUTION
+    }, {
+        eye:"right",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: RIGHT_OFFSET,
+        resolution: VALID_RESOLUTION
+    },
+];
+
+const NON_IMMERSIVE_VIEWS = [{
+        eye: "none",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: IDENTITY_TRANSFORM,
+        resolution: VALID_RESOLUTION,
+    }
+];
+
+const ALL_FEATURES = [
+    "viewer",
+    "local",
+    "local-floor",
+    "bounded-floor",
+    "unbounded",
+    "hit-test",
+];
+
+const TRACKED_IMMERSIVE_DEVICE = {
+    supportsImmersive: true,
+    supportedModes: [ "inline", "immersive-vr"],
+    views: VALID_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+
+const IMMERSIVE_AR_DEVICE = {
+  supportsImmersive: true,
+  supportedModes: [ "inline", "immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  supportedFeatures: ALL_FEATURES
+};
+
+const VALID_NON_IMMERSIVE_DEVICE = {
+    supportsImmersive: false,
+    supportedModes: ["inline"],
+    views: NON_IMMERSIVE_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+
+const VALID_CONTROLLER = {
+    handedness: "none",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+};
+
+const RIGHT_CONTROLLER = {
+    handedness: "right",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+};
+
+const SCREEN_CONTROLLER = {
+    handedness: "none",
+    targetRayMode: "screen",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: []
+};

@@ -31,9 +31,16 @@ function wait_for_message(iframe) {
 const script =
   '<script>' +
   '  window.onmessage = () => {' +
-  '    indexedDB.databases().then(' +
-  '      () => window.parent.postMessage({result: "no exception"}, "*"),' +
-  '      ex => window.parent.postMessage({result: ex.name}, "*"));' +
+  '    try { ' +
+  '      if (!indexedDB || !indexedDB.databases) {' +
+  '        window.parent.postMessage({result: "indexedDB.databases undefined"}, "*")' +
+  '      }' +
+  '      indexedDB.databases().then(' +
+  '        () => window.parent.postMessage({result: "no exception"}, "*"),' +
+  '        ex => window.parent.postMessage({result: ex.name}, "*"));' +
+  '    } catch(e) { ' +
+  '      window.parent.postMessage({result: e.name + " thrown, not rejected"}, "*")' +
+  '    }'+
   '  };' +
   '<\/script>';
 
@@ -50,6 +57,6 @@ promise_test(async t => {
   iframe.contentWindow.postMessage({}, '*');
   const message = await wait_for_message(iframe);
   assert_equals(message.result, 'SecurityError',
-                'Exception should be SecurityError');
+                'Promise should be rejected with SecurityError');
 }, 'IDBFactory.databases() in sandboxed iframe should reject');
 </script>

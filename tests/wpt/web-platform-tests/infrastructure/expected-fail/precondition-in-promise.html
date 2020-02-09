@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Precondition in promise</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+new Promise(() => {
+  assert_precondition(false);
+});
+</script>

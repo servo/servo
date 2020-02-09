@@ -23,17 +23,13 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test(function (t) {
-    if (!window.PerformanceElementTiming) {
-      assert_unreached("PerformanceElementTiming is not implemented");
-    }
+    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let beforeRender = performance.now();
     let numObservedElements = 0;
     let observedDiv1 = false;
     let observedDiv2Img = false;
     let observedDiv2Txt = false;
-    const index = window.location.href.lastIndexOf('/');
-    const pathname = window.location.href.substring(0, index) +
-        '/resources/square100.png';
+    const pathname = window.location.origin + '/element-timing/resources/square100.png';
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach(entry => {

@@ -3,8 +3,8 @@
 <title>Canvas test: 2d.imageData.create2.this</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
-<link rel="stylesheet" href="/common/canvas-tests.css">
+<script src="/2dcontext/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/2dcontext/resources/canvas-tests.css">
 <body class="show_output">
 
 <h1>2d.imageData.create2.this</h1>
@@ -19,9 +19,9 @@
 var t = async_test("createImageData(sw, sh) should throw when called with the wrong |this|");
 _addTest(function(canvas, ctx) {
 
-assert_throws(new TypeError(), function() { CanvasRenderingContext2D.prototype.createImageData.call(null, 1, 1); });
-assert_throws(new TypeError(), function() { CanvasRenderingContext2D.prototype.createImageData.call(undefined, 1, 1); });
-assert_throws(new TypeError(), function() { CanvasRenderingContext2D.prototype.createImageData.call({}, 1, 1); });
+assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(null, 1, 1); });
+assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(undefined, 1, 1); });
+assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call({}, 1, 1); });
 
 
 });

@@ -6,7 +6,7 @@
 
 use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
-use crate::values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyle;
 #[cfg(feature = "gecko")]
 use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
@@ -27,8 +27,10 @@ use style_traits::{ParseError, StyleParseErrorKind};
     ToShmem,
 )]
 pub enum ListStyleType {
-    /// <counter-style> | none
-    CounterStyle(CounterStyleOrNone),
+    /// `none`
+    None,
+    /// <counter-style>
+    CounterStyle(CounterStyle),
     /// <string>
     String(String),
 }
@@ -38,7 +40,7 @@ impl ListStyleType {
     /// Initial specified value for `list-style-type`.
     #[inline]
     pub fn disc() -> Self {
-        ListStyleType::CounterStyle(CounterStyleOrNone::disc())
+        ListStyleType::CounterStyle(CounterStyle::disc())
     }
 
     /// Convert from gecko keyword to list-style-type.
@@ -50,10 +52,10 @@ impl ListStyleType {
         use crate::gecko_bindings::structs;
 
         if value == structs::NS_STYLE_LIST_STYLE_NONE {
-            return ListStyleType::CounterStyle(CounterStyleOrNone::None);
+            return ListStyleType::None;
         }
 
-        ListStyleType::CounterStyle(CounterStyleOrNone::Name(CustomIdent(match value {
+        ListStyleType::CounterStyle(CounterStyle::Name(CustomIdent(match value {
             structs::NS_STYLE_LIST_STYLE_DISC => atom!("disc"),
             structs::NS_STYLE_LIST_STYLE_CIRCLE => atom!("circle"),
             structs::NS_STYLE_LIST_STYLE_SQUARE => atom!("square"),
@@ -73,10 +75,12 @@ impl Parse for ListStyleType {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+        if let Ok(style) = input.try(|i| CounterStyle::parse(context, i)) {
             return Ok(ListStyleType::CounterStyle(style));
         }
-
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(ListStyleType::None);
+        }
         Ok(ListStyleType::String(
             input.expect_string()?.as_ref().to_owned(),
         ))
@@ -104,7 +108,7 @@ pub struct QuotePair {
     pub closing: crate::OwnedStr,
 }
 
-/// Specified and computed `quotes` property.
+/// List of quote pairs for the specified/computed value of `quotes` property.
 #[derive(
     Clone,
     Debug,
@@ -117,12 +121,33 @@ pub struct QuotePair {
     ToResolvedValue,
     ToShmem,
 )]
-#[repr(C)]
-pub struct Quotes(
+#[repr(transparent)]
+pub struct QuoteList(
     #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
     pub crate::ArcSlice<QuotePair>,
 );
+
+/// Specified and computed `quotes` property: `auto`, `none`, or a list
+/// of characters.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub enum Quotes {
+    /// list of quote pairs
+    QuoteList(QuoteList),
+    /// auto (use lang-dependent quote marks)
+    Auto,
+}
 
 impl Parse for Quotes {
     fn parse<'i, 't>(
@@ -130,10 +155,17 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
+            .try(|input| input.expect_ident_matching("auto"))
+            .is_ok()
+        {
+            return Ok(Quotes::Auto);
+        }
+
+        if input
             .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(Self::default());
+            return Ok(Quotes::QuoteList(QuoteList::default()));
         }
 
         let mut quotes = Vec::new();
@@ -150,7 +182,9 @@ impl Parse for Quotes {
         }
 
         if !quotes.is_empty() {
-            Ok(Quotes(crate::ArcSlice::from_iter(quotes.into_iter())))
+            Ok(Quotes::QuoteList(QuoteList(crate::ArcSlice::from_iter(
+                quotes.into_iter(),
+            ))))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }

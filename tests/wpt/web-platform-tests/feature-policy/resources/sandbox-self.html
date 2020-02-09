@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Return fullscreen feature policy state from self and a sandboxed child frame</title>
+<script>
+  "use strict";
+  window.onload = () => {
+    let frame = document.createElement('iframe');
+    frame.src = "/feature-policy/resources/nested-sandbox.html";
+    frame.sandbox = "allow-scripts";
+
+    var handle_message = evt => {
+      if (evt.source === frame.contentWindow) {
+        window.parent.postMessage({
+          "child": document.featurePolicy.allowedFeatures().includes("fullscreen"),
+          "grandchild": evt.data
+        },"*");
+        document.body.removeChild(frame);
+        window.removeEventListener('message', handle_message);
+      }
+    };
+    window.addEventListener('message', handle_message);
+    document.body.appendChild(frame);
+  };
+</script>

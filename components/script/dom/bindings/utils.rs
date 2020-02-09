@@ -13,19 +13,26 @@ use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
+use crate::script_runtime::JSContext as SafeJSContext;
+use js::conversions::{jsstr_to_string, ToJSValConvertible};
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
 use js::glue::{UnwrapObjectDynamic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
-use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
+use js::glue::{
+    RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
+};
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{AutoIdVector, CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSAutoRealm, JSContext};
+use js::jsapi::{Heap, JSAutoRealm, JSContext, JS_FreezeObject};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_IsExceptionPending, JS_IsGlobalObject};
-use js::jsapi::{JS_ResolveStandardClass, JS_StringHasLatin1Chars, ObjectOpResult};
+use js::jsapi::{
+    JS_ResolveStandardClass, JS_StringHasLatin1Chars, ObjectOpResult, StringIsArrayIndex1,
+    StringIsArrayIndex2,
+};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_DeletePropertyById;
 use js::rust::wrappers::JS_ForwardGetPropertyTo;
@@ -116,6 +123,16 @@ impl Clone for DOMJSClass {
 }
 unsafe impl Sync for DOMJSClass {}
 
+/// Returns a JSVal representing a frozen array of ports
+pub fn to_frozen_array<T: ToJSValConvertible>(convertibles: &[T], cx: SafeJSContext) -> JSVal {
+    rooted!(in(*cx) let mut ports = UndefinedValue());
+    unsafe { convertibles.to_jsval(*cx, ports.handle_mut()) };
+
+    rooted!(in(*cx) let obj = ports.to_object());
+    unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
+    *ports
+}
+
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
 pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
@@ -161,28 +178,41 @@ pub unsafe fn get_property_on_prototype(
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
-pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
+pub unsafe fn get_array_index_from_id(cx: *mut JSContext, id: HandleId) -> Option<u32> {
     let raw_id = id.into();
-    unsafe {
-        if RUST_JSID_IS_INT(raw_id) {
-            return Some(RUST_JSID_TO_INT(raw_id) as u32);
-        }
+    if RUST_JSID_IS_INT(raw_id) {
+        return Some(RUST_JSID_TO_INT(raw_id) as u32);
+    }
+
+    if RUST_JSID_IS_VOID(raw_id) || !RUST_JSID_IS_STRING(raw_id) {
+        return None;
+    }
+
+    let s = jsstr_to_string(cx, RUST_JSID_TO_STRING(raw_id));
+    if s.len() == 0 {
+        return None;
+    }
+
+    let first = s.chars().next().unwrap();
+    if first.is_ascii_lowercase() {
+        return None;
+    }
+
+    let mut i: u32 = 0;
+    let is_array = if s.is_ascii() {
+        let chars = s.as_bytes();
+        StringIsArrayIndex1(chars.as_ptr() as *const _, chars.len() as u32, &mut i)
+    } else {
+        let chars = s.encode_utf16().collect::<Vec<u16>>();
+        let slice = chars.as_slice();
+        StringIsArrayIndex2(slice.as_ptr(), chars.len() as u32, &mut i)
+    };
+
+    if is_array {
+        Some(i)
+    } else {
         None
     }
-    // if id is length atom, -1, otherwise
-    // return if JSID_IS_ATOM(id) {
-    //     let atom = JSID_TO_ATOM(id);
-    //     //let s = *GetAtomChars(id);
-    //     if s > 'a' && s < 'z' {
-    //         return -1;
-    //     }
-    //
-    //     let i = 0;
-    //     let str = AtomToLinearString(JSID_TO_ATOM(id));
-    //     return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
-    // } else {
-    //     IdToInt32(cx, id);
-    // }
 }
 
 /// Find the enum equivelent of a string given by `v` in `pairs`.
@@ -353,7 +383,7 @@ pub unsafe extern "C" fn enumerate_global(
         return false;
     }
     for init_fun in InterfaceObjectMap::MAP.values() {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
     }
     true
 }
@@ -388,7 +418,7 @@ pub unsafe extern "C" fn resolve_global(
     let bytes = slice::from_raw_parts(ptr, length as usize);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
-        init_fun(cx, Handle::from_raw(obj));
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;

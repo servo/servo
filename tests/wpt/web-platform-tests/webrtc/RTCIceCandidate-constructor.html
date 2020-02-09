@@ -15,7 +15,7 @@
     // Note that current browsers pass this test but may throw TypeError for
     // different reason, i.e. they don't accept empty argument.
     // Further tests below are used to differentiate the errors.
-    assert_throws(new TypeError(), () => new RTCIceCandidate());
+    assert_throws_js(TypeError, () => new RTCIceCandidate());
   }, 'new RTCIceCandidate()');
 
   test(t => {
@@ -24,13 +24,13 @@
     // Note that current browsers pass this test but may throw TypeError for
     // different reason, i.e. they don't allow undefined candidate string.
     // Further tests below are used to differentiate the errors.
-    assert_throws(new TypeError(), () => new RTCIceCandidate({}));
+    assert_throws_js(TypeError, () => new RTCIceCandidate({}));
   }, 'new RTCIceCandidate({})');
 
   test(t => {
     // Checks that manually filling the default values for RTCIceCandidateInit
     // still throws because both sdpMid and sdpMLineIndex are null
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         candidate: '',
         sdpMid: null,
@@ -41,7 +41,7 @@
 
   test(t => {
     // Checks that explicitly setting both sdpMid and sdpMLineIndex null should throw
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         sdpMid: null,
         sdpMLineIndex: null
@@ -50,7 +50,7 @@
 
   test(t => {
     // Throws because both sdpMid and sdpMLineIndex are null by default
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         candidate: ''
       }));
@@ -58,7 +58,7 @@
 
   test(t => {
     // Throws because the candidate field is not nullable
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         candidate: null
       }));
@@ -66,7 +66,7 @@
 
   test(t => {
     // Throws because both sdpMid and sdpMLineIndex are null by default
-    assert_throws(new TypeError(),
+    assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         candidate: candidateString
       }));

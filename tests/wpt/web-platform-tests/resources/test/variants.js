@@ -1,11 +1,13 @@
 (function() {
   'use strict';
+  // NOTE: When new default variants are added DEFAULT_VARIANTS in conftest.py
+  // must also be updated
   var variants = {
     /**
      * Tests are executed in the absence of the global Promise constructor by
      * default in order to verify support for the Server browser engine.
      *
-     * https://github.com/w3c/web-platform-tests/issues/6266
+     * https://github.com/web-platform-tests/wpt/issues/6266
      */
     'default': {
       description: 'Global Promise constructor removed.',

@@ -44,6 +44,7 @@ impl InputEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -54,7 +55,7 @@ impl InputEvent {
             type_,
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.parent.view.deref(),
+            init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
             init.isComposing,

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transform Module Level 1: getComputedStyle().transformBox</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-box-property">
+<meta name="assert" content="Computed transform-box is the specified keyword.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("transform-box", "content-box");
+test_computed_value("transform-box", "border-box");
+test_computed_value("transform-box", "fill-box");
+test_computed_value("transform-box", "stroke-box");
+test_computed_value("transform-box", "view-box");
+</script>
+</body>
+</html>

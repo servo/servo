@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script type="module">
-import { storage } from "std:kv-storage";
+import storage from "std:kv-storage";
 
 test(() => {
   assert_equals(storage.backingStore, storage.backingStore);

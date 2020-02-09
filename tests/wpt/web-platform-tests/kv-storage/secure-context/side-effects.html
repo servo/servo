@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KV Storage: should fail in non-secure contexts in the fetching phase, not evaluation phase</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+setup({ allow_uncaught_exception: true });
+
+window.sideEffectsHappened = false;
+
+test(() => {
+  assert_false(self.isSecureContext, "This test must run in a non-secure context");
+}, "Prerequisite check");
+</script>
+
+<script type="module">
+import "./resources/test-side-effects.js";
+import "std:kv-storage";
+</script>
+
+<script type="module">
+test(() => {
+  assert_false(window.sideEffectsHappened, "The side effects module didn't evaluate either");
+});
+</script>

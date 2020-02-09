@@ -38,6 +38,7 @@ impl Text {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window, text: DOMString) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
         Ok(Text::new(text, &document))
@@ -68,7 +69,7 @@ impl TextMethods for Text {
         if let Some(ref parent) = parent {
             // Step 7.1.
             parent
-                .InsertBefore(new_node.upcast(), node.GetNextSibling().deref())
+                .InsertBefore(new_node.upcast(), node.GetNextSibling().as_deref())
                 .unwrap();
             // Steps 7.2-3.
             node.ranges()

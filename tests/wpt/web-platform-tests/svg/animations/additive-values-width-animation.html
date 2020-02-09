@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This tests values animation and additive='sum'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- an1: Change width from 0 to 50 to 100, all linear interpolated. As additive is set to sum it should add the current baseValue
+          to the new animated value each time a value from the values list is consumed. Expected:
+          At 0s, width=10, at 2s, width=50+10=60, at 4s, width=100+10=110.
+
+          Our testing harness will change the baseValue from 10 to 60 at 5s. The current animated value (before the script change)
+          is: <baseValue>+<animValue>: 10 + (100/6*5) = 93.333 at this point. As we change the baseValue to 60, the equation now looks like:
+          60 + (100/6*5) = 143.333. Before the script change the last second of the animation would have animated width from 85 to 110.
+          Due the script change its now animating from 93.999 to 143.333 during the last second.
+-->
+<rect width="10" height="100" fill="green">
+    <animate id="an1" attributeType="XML" attributeName="width" fill="freeze" additive="sum" values="0; 50; 100" begin="0s" dur="6s"/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect.width.animVal.value, 10, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample2() {
+    assert_approx_equals(rect.width.animVal.value, 60, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample3() {
+    assert_approx_equals(rect.width.animVal.value, 93.3, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function changeBaseVal() {
+    // At 5s, only change the baseVal.
+    rect.width.baseVal.value = 60;
+}
+
+function sample4() {
+    assert_approx_equals(rect.width.animVal.value, 143.33, epsilon);
+    assert_equals(rect.width.baseVal.value, 60);
+}
+
+function sample5() {
+    assert_approx_equals(rect.width.animVal.value, 160, epsilon);
+    assert_equals(rect.width.baseVal.value, 60);
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    // All animations in the test file use the same duration, so it's not needed to list all sample points individually for an5/an6/an7/an8.
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,   sample1],
+        ["an1", 3.0,   sample2],
+        ["an1", 4.999, sample3],
+        ["an1", 5.0,   changeBaseVal],
+        ["an1", 5.001, sample4],
+        ["an1", 6.001, sample5],
+        ["an1", 60.0,  sample5]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

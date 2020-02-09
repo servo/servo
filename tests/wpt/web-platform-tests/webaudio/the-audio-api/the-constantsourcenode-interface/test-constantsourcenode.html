@@ -22,16 +22,16 @@ test(function(t) {
 
   var csn = ac.createConstantSource();
 
-  assert_throws("InvalidStateError", function() {
+  assert_throws_dom("InvalidStateError", function() {
     csn.stop(1);
   }, "Start must be called before stop");
 
-  assert_throws(new RangeError(), function() {
+  assert_throws_js(RangeError, function() {
     csn.start(-1);
   }, "When can not be negative");
 
   csn.start(0);
-  assert_throws(new RangeError(), function() {
+  assert_throws_js(RangeError, function() {
     csn.stop(-1);
   }, "When can not be negative");
 }, "ConstantSourceNode stop and start");

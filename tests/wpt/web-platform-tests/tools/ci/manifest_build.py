@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 
 import requests
 
@@ -21,7 +22,6 @@ logger = logging.getLogger(__name__)
 class Status(object):
     SUCCESS = 0
     FAIL = 1
-    NEUTRAL = 78
 
 
 def run(cmd, return_stdout=False, **kwargs):
@@ -40,11 +40,11 @@ def create_manifest(path):
 def compress_manifest(path):
     for args in [["gzip", "-k", "-f", "--best"],
                  ["bzip2", "-k", "-f", "--best"],
-                 ["zstd", "-k", "-f", "--ultra", "-22"]]:
+                 ["zstd", "-k", "-f", "--ultra", "-22", "-q"]]:
         run(args + [path])
 
 
-def request(url, desc, data=None, json_data=None, params=None, headers=None):
+def request(url, desc, method=None, data=None, json_data=None, params=None, headers=None):
     github_token = os.environ.get("GITHUB_TOKEN")
     default_headers = {
         "Authorization": "token %s" % github_token,
@@ -58,12 +58,13 @@ def request(url, desc, data=None, json_data=None, params=None, headers=None):
     kwargs = {"params": params,
               "headers": _headers}
     try:
-        logger.info("Loading URL %s" % url)
+        logger.info("Requesting URL %s" % url)
         if json_data is not None or data is not None:
-            method = requests.post
+            if method is None:
+                method = requests.post
             kwargs["json"] = json_data
             kwargs["data"] = data
-        else:
+        elif method is None:
             method = requests.get
 
         resp = method(url, **kwargs)
@@ -106,37 +107,19 @@ def get_pr(owner, repo, sha):
     return pr["number"]
 
 
-def tag(owner, repo, sha, tag):
-    data = {"ref": "refs/tags/%s" % tag,
-            "sha": sha}
-    url = "https://api.github.com/repos/%s/%s/git/refs" % (owner, repo)
-
-    resp_data = request(url, "Tag creation", json_data=data)
-    if not resp_data:
-        return False
-
-    logger.info("Tagged %s as %s" % (sha, tag))
-    return True
-
-
-def create_release(manifest_path, owner, repo, sha, tag, summary, body):
-    if body:
-        body = "%s\n%s" % (summary, body)
-    else:
-        body = summary
-
+def create_release(manifest_path, owner, repo, sha, tag, body):
     create_url = "https://api.github.com/repos/%s/%s/releases" % (owner, repo)
     create_data = {"tag_name": tag,
+                   "target_commitish": sha,
                    "name": tag,
-                   "body": body}
-    create_data = request(create_url, "Release creation", json_data=create_data)
-    if not create_data:
+                   "body": body,
+                   "draft": True}
+    create_resp = request(create_url, "Release creation", json_data=create_data)
+    if not create_resp:
         return False
 
     # Upload URL contains '{?name,label}' at the end which we want to remove
-    upload_url = create_data["upload_url"].split("{", 1)[0]
-
-    success = True
+    upload_url = create_resp["upload_url"].split("{", 1)[0]
 
     upload_exts = [".gz", ".bz2", ".zst"]
     for upload_ext in upload_exts:
@@ -152,59 +135,57 @@ def create_release(manifest_path, owner, repo, sha, tag, summary, body):
         upload_resp = request(upload_url, "Manifest upload", data=upload_data, params=params,
                               headers={'Content-Type': 'application/octet-stream'})
         if not upload_resp:
-            success = False
+            return False
 
-    return success
+    release_id = create_resp["id"]
+    edit_url = "https://api.github.com/repos/%s/%s/releases/%s" % (owner, repo, release_id)
+    edit_data = {"draft": False}
+    edit_resp = request(edit_url, "Release publishing", method=requests.patch, json_data=edit_data)
+    if not edit_resp:
+        return False
+
+    logger.info("Released %s" % edit_resp["html_url"])
+    return True
 
 
-def should_run_action():
+def should_dry_run():
     with open(os.environ["GITHUB_EVENT_PATH"]) as f:
         event = json.load(f)
         logger.info(json.dumps(event, indent=2))
 
     if "pull_request" in event:
-        logger.info("Not tagging for PR")
-        return False
+        logger.info("Dry run for PR")
+        return True
     if event.get("ref") != "refs/heads/master":
-        logger.info("Not tagging for ref %s" % event.get("ref"))
-        return False
-    return True
+        logger.info("Dry run for ref %s" % event.get("ref"))
+        return True
+    return False
 
 
 def main():
-    repo_key = "GITHUB_REPOSITORY"
+    dry_run = should_dry_run()
 
-    if not should_run_action():
-        return Status.NEUTRAL
-
-    owner, repo = os.environ[repo_key].split("/", 1)
-
-    git = get_git_cmd(wpt_root)
-    head_rev = git("rev-parse", "HEAD")
-
-    pr = get_pr(owner, repo, head_rev)
-    if pr is None:
-        # This should only really happen during testing
-        tag_name = "merge_commit_%s" % head_rev
-    else:
-        tag_name = "merge_pr_%s" % pr
-
-    manifest_path = os.path.expanduser(os.path.join("~", "meta", "MANIFEST.json"))
-
-    os.makedirs(os.path.dirname(manifest_path))
+    manifest_path = os.path.join(tempfile.mkdtemp(), "MANIFEST.json")
 
     create_manifest(manifest_path)
 
     compress_manifest(manifest_path)
 
-    tagged = tag(owner, repo, head_rev, tag_name)
-    if not tagged:
+    owner, repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)
+
+    git = get_git_cmd(wpt_root)
+    head_rev = git("rev-parse", "HEAD")
+    body = git("show", "--no-patch", "--format=%B", "HEAD")
+
+    if dry_run:
+        return Status.SUCCESS
+
+    pr = get_pr(owner, repo, head_rev)
+    if pr is None:
         return Status.FAIL
+    tag_name = "merge_pr_%s" % pr
 
-    summary = git("show", "--no-patch", '--format="%s"', "HEAD")
-    body = git("show", "--no-patch", '--format="%b"', "HEAD")
-
-    if not create_release(manifest_path, owner, repo, head_rev, tag_name, summary, body):
+    if not create_release(manifest_path, owner, repo, head_rev, tag_name, body):
         return Status.FAIL
 
     return Status.SUCCESS

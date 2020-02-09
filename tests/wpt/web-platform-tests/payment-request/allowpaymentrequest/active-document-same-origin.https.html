@@ -13,7 +13,7 @@ async_test((t) => {
     const grabbedPaymentRequest = win.PaymentRequest;
     win.location.href = '/common/blank.html';
     iframe.onload = t.step_func_done(() => {
-      assert_throws({name: 'SecurityError'}, () => {
+      assert_throws_dom('SecurityError', () => {
         new grabbedPaymentRequest(...paymentArgs);
       });
     });

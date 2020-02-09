@@ -48,7 +48,7 @@ test(() => {
     start(controller) {
       controller.enqueue(0);
       controller.terminate();
-      assert_throws(new TypeError(), () => controller.enqueue(1), 'enqueue should throw');
+      assert_throws_js(TypeError, () => controller.enqueue(1), 'enqueue should throw');
     }
   });
 }, 'controller.enqueue() should throw after controller.terminate()');

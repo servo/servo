@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from client import (
+from .client import (
     Cookies,
     Element,
     Find,
@@ -8,7 +8,7 @@ from client import (
     Session,
     Timeouts,
     Window)
-from error import (
+from .error import (
     ElementNotSelectableException,
     ElementNotVisibleException,
     InvalidArgumentException,

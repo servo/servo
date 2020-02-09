@@ -7,13 +7,12 @@
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use crate::values::computed::text::LineHeight as ComputedLineHeight;
-use crate::values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
 use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::Spacing;
+use crate::values::generics::text::{GenericTextDecorationLength, Spacing};
 use crate::values::specified::length::NonNegativeLengthPercentage;
 use crate::values::specified::length::{FontRelativeLength, Length};
 use crate::values::specified::length::{LengthPercentage, NoCalcLength};
@@ -78,7 +77,6 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        use crate::values::computed::Length as ComputedLength;
         use crate::values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => GenericLineHeight::Normal,
@@ -90,9 +88,7 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lp) => {
                 let result = match non_negative_lp.0 {
                     LengthPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context
-                            .maybe_zoom_text(abs.to_computed_value(context).into())
-                            .0
+                        context.maybe_zoom_text(abs.to_computed_value(context))
                     },
                     LengthPercentage::Length(ref length) => length.to_computed_value(context),
                     LengthPercentage::Percentage(ref p) => FontRelativeLength::Em(p.0)
@@ -100,16 +96,8 @@ impl ToComputedValue for LineHeight {
                     LengthPercentage::Calc(ref calc) => {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
-                        let font_relative_length =
-                            FontRelativeLength::Em(computed_calc.percentage())
-                                .to_computed_value(context, FontBaseSize::CurrentStyle)
-                                .px();
-
-                        let absolute_length = computed_calc.unclamped_length().px();
-                        let pixel = computed_calc
-                            .clamping_mode
-                            .clamp(absolute_length + font_relative_length);
-                        ComputedLength::new(pixel)
+                        let base = context.style().get_font().clone_font_size().size();
+                        computed_calc.percentage_relative_to(base)
                     },
                 };
                 GenericLineHeight::Length(result.into())
@@ -134,7 +122,6 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[repr(C, u8)]
 pub enum TextOverflowSide {
@@ -425,7 +412,7 @@ impl Parse for TextTransform {
                 },
                 "full-size-kana" if !result.other_.intersects(TextTransformOther::FULL_SIZE_KANA) => {
                     result.other_.insert(TextTransformOther::FULL_SIZE_KANA)
-                }
+                },
                 _ => return Err(location.new_custom_error(
                     SelectorParseErrorKind::UnexpectedIdent(ident.clone())
                 )),
@@ -548,6 +535,7 @@ pub enum TextAlignKeyword {
     Left,
     Right,
     Center,
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     Justify,
     #[cfg(feature = "gecko")]
     MozCenter,
@@ -555,11 +543,11 @@ pub enum TextAlignKeyword {
     MozLeft,
     #[cfg(feature = "gecko")]
     MozRight,
-    #[cfg(feature = "servo")]
+    #[cfg(feature = "servo-layout-2013")]
     ServoCenter,
-    #[cfg(feature = "servo")]
+    #[cfg(feature = "servo-layout-2013")]
     ServoLeft,
-    #[cfg(feature = "servo")]
+    #[cfg(feature = "servo-layout-2013")]
     ServoRight,
     #[css(skip)]
     #[cfg(feature = "gecko")]
@@ -645,48 +633,34 @@ impl ToComputedValue for TextAlign {
     }
 }
 
+fn fill_mode_is_default_and_shape_exists(
+    fill: &TextEmphasisFillMode,
+    shape: &Option<TextEmphasisShapeKeyword>,
+) -> bool {
+    shape.is_some() && fill.is_filled()
+}
+
 /// Specified value of text-emphasis-style property.
+///
+/// https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[allow(missing_docs)]
 pub enum TextEmphasisStyle {
-    /// <fill> <shape>
-    Keyword(TextEmphasisKeywordValue),
+    /// [ <fill> || <shape> ]
+    Keyword {
+        #[css(contextual_skip_if = "fill_mode_is_default_and_shape_exists")]
+        fill: TextEmphasisFillMode,
+        shape: Option<TextEmphasisShapeKeyword>,
+    },
     /// `none`
     None,
-    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
-    String(String),
-}
-
-/// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub enum TextEmphasisKeywordValue {
-    /// <fill>
-    Fill(TextEmphasisFillMode),
-    /// <shape>
-    Shape(TextEmphasisShapeKeyword),
-    /// <fill> <shape>
-    FillAndShape(TextEmphasisFillMode, TextEmphasisShapeKeyword),
-}
-
-impl TextEmphasisKeywordValue {
-    fn fill(&self) -> Option<TextEmphasisFillMode> {
-        match *self {
-            TextEmphasisKeywordValue::Fill(fill) |
-            TextEmphasisKeywordValue::FillAndShape(fill, _) => Some(fill),
-            _ => None,
-        }
-    }
-
-    fn shape(&self) -> Option<TextEmphasisShapeKeyword> {
-        match *self {
-            TextEmphasisKeywordValue::Shape(shape) |
-            TextEmphasisKeywordValue::FillAndShape(_, shape) => Some(shape),
-            _ => None,
-        }
-    }
+    /// `<string>` (of which only the first grapheme cluster will be used).
+    String(crate::OwnedStr),
 }
 
 /// Fill mode for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum TextEmphasisFillMode {
     /// `filled`
     Filled,
@@ -694,10 +668,19 @@ pub enum TextEmphasisFillMode {
     Open,
 }
 
+impl TextEmphasisFillMode {
+    /// Whether the value is `filled`.
+    #[inline]
+    pub fn is_filled(&self) -> bool {
+        matches!(*self, TextEmphasisFillMode::Filled)
+    }
+}
+
 /// Shape keyword for the text-emphasis-style property
 #[derive(
     Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
+#[repr(u8)]
 pub enum TextEmphasisShapeKeyword {
     /// `dot`
     Dot,
@@ -711,77 +694,39 @@ pub enum TextEmphasisShapeKeyword {
     Sesame,
 }
 
-impl TextEmphasisShapeKeyword {
-    /// converts fill mode to a unicode char
-    pub fn char(&self, fill: TextEmphasisFillMode) -> &str {
-        let fill = fill == TextEmphasisFillMode::Filled;
-        match *self {
-            TextEmphasisShapeKeyword::Dot => {
-                if fill {
-                    "\u{2022}"
-                } else {
-                    "\u{25e6}"
-                }
-            },
-            TextEmphasisShapeKeyword::Circle => {
-                if fill {
-                    "\u{25cf}"
-                } else {
-                    "\u{25cb}"
-                }
-            },
-            TextEmphasisShapeKeyword::DoubleCircle => {
-                if fill {
-                    "\u{25c9}"
-                } else {
-                    "\u{25ce}"
-                }
-            },
-            TextEmphasisShapeKeyword::Triangle => {
-                if fill {
-                    "\u{25b2}"
-                } else {
-                    "\u{25b3}"
-                }
-            },
-            TextEmphasisShapeKeyword::Sesame => {
-                if fill {
-                    "\u{fe45}"
-                } else {
-                    "\u{fe46}"
-                }
-            },
-        }
-    }
-}
-
 impl ToComputedValue for TextEmphasisStyle {
     type ComputedValue = ComputedTextEmphasisStyle;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            TextEmphasisStyle::Keyword(ref keyword) => {
-                // FIXME(emilio): This should set the rule_cache_conditions
-                // properly.
-                let default_shape = if context.style().get_inherited_box().clone_writing_mode() ==
-                    SpecifiedWritingMode::HorizontalTb
-                {
-                    TextEmphasisShapeKeyword::Circle
-                } else {
-                    TextEmphasisShapeKeyword::Sesame
-                };
-                ComputedTextEmphasisStyle::Keyword(ComputedTextEmphasisKeywordValue {
-                    fill: keyword.fill().unwrap_or(TextEmphasisFillMode::Filled),
-                    shape: keyword.shape().unwrap_or(default_shape),
-                })
+            TextEmphasisStyle::Keyword { fill, shape } => {
+                let shape = shape.unwrap_or_else(|| {
+                    // FIXME(emilio, bug 1572958): This should set the
+                    // rule_cache_conditions properly.
+                    //
+                    // Also should probably use WritingMode::is_vertical rather
+                    // than the computed value of the `writing-mode` property.
+                    if context.style().get_inherited_box().clone_writing_mode() ==
+                        SpecifiedWritingMode::HorizontalTb
+                    {
+                        TextEmphasisShapeKeyword::Circle
+                    } else {
+                        TextEmphasisShapeKeyword::Sesame
+                    }
+                });
+                ComputedTextEmphasisStyle::Keyword { fill, shape }
             },
             TextEmphasisStyle::None => ComputedTextEmphasisStyle::None,
             TextEmphasisStyle::String(ref s) => {
                 // Passing `true` to iterate over extended grapheme clusters, following
                 // recommendation at http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
-                let string = s.graphemes(true).next().unwrap_or("").to_string();
-                ComputedTextEmphasisStyle::String(string)
+                //
+                // FIXME(emilio): Doing this at computed value time seems wrong.
+                // The spec doesn't say that this should be a computed-value
+                // time operation. This is observable from getComputedStyle().
+                let s = s.graphemes(true).next().unwrap_or("").to_string();
+                ComputedTextEmphasisStyle::String(s.into())
             },
         }
     }
@@ -789,9 +734,10 @@ impl ToComputedValue for TextEmphasisStyle {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            ComputedTextEmphasisStyle::Keyword(ref keyword) => TextEmphasisStyle::Keyword(
-                TextEmphasisKeywordValue::FillAndShape(keyword.fill, keyword.shape),
-            ),
+            ComputedTextEmphasisStyle::Keyword { fill, shape } => TextEmphasisStyle::Keyword {
+                fill,
+                shape: Some(shape),
+            },
             ComputedTextEmphasisStyle::None => TextEmphasisStyle::None,
             ComputedTextEmphasisStyle::String(ref string) => {
                 TextEmphasisStyle::String(string.clone())
@@ -814,7 +760,7 @@ impl Parse for TextEmphasisStyle {
 
         if let Ok(s) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
             // Handle <string>
-            return Ok(TextEmphasisStyle::String(s));
+            return Ok(TextEmphasisStyle::String(s.into()));
         }
 
         // Handle a pair of keywords
@@ -824,14 +770,17 @@ impl Parse for TextEmphasisStyle {
             shape = input.try(TextEmphasisShapeKeyword::parse).ok();
         }
 
-        // At least one of shape or fill must be handled
-        let keyword_value = match (fill, shape) {
-            (Some(fill), Some(shape)) => TextEmphasisKeywordValue::FillAndShape(fill, shape),
-            (Some(fill), None) => TextEmphasisKeywordValue::Fill(fill),
-            (None, Some(shape)) => TextEmphasisKeywordValue::Shape(shape),
-            _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-        };
-        Ok(TextEmphasisStyle::Keyword(keyword_value))
+        if shape.is_none() && fill.is_none() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        // If a shape keyword is specified but neither filled nor open is
+        // specified, filled is assumed.
+        let fill = fill.unwrap_or(TextEmphasisFillMode::Filled);
+
+        // We cannot do the same because the default `<shape>` depends on the
+        // computed writing-mode.
+        Ok(TextEmphasisStyle::Keyword { fill, shape })
     }
 }
 
@@ -1053,4 +1002,141 @@ pub enum OverflowWrap {
     Normal,
     BreakWord,
     Anywhere,
+}
+
+/// Implements text-decoration-skip-ink which takes the keywords auto | none
+///
+/// https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property
+#[repr(u8)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum TextDecorationSkipInk {
+    Auto,
+    None,
+}
+
+/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
+pub type TextDecorationLength = GenericTextDecorationLength<Length>;
+
+impl TextDecorationLength {
+    /// `Auto` value.
+    #[inline]
+    pub fn auto() -> Self {
+        GenericTextDecorationLength::Auto
+    }
+
+    /// Whether this is the `Auto` value.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        matches!(*self, GenericTextDecorationLength::Auto)
+    }
+}
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[value_info(other_values = "auto,under,left,right")]
+    #[repr(C)]
+    /// Specified keyword values for the text-underline-position property.
+    /// (Non-exclusive, but not all combinations are allowed: only `under` may occur
+    /// together with either `left` or `right`.)
+    /// https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property
+    pub struct TextUnderlinePosition: u8 {
+        /// Use automatic positioning below the alphabetic baseline.
+        const AUTO = 0;
+        /// Below the glyph box.
+        const UNDER = 1 << 0;
+        /// In vertical mode, place to the left of the text.
+        const LEFT = 1 << 1;
+        /// In vertical mode, place to the right of the text.
+        const RIGHT = 1 << 2;
+    }
+}
+
+impl Parse for TextUnderlinePosition {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<TextUnderlinePosition, ParseError<'i>> {
+        let mut result = TextUnderlinePosition::empty();
+
+        loop {
+            let location = input.current_source_location();
+            let ident = match input.next() {
+                Ok(&Token::Ident(ref ident)) => ident,
+                Ok(other) => return Err(location.new_unexpected_token_error(other.clone())),
+                Err(..) => break,
+            };
+
+            match_ignore_ascii_case! { ident,
+                "auto" if result.is_empty() => {
+                    return Ok(result);
+                },
+                "under" if !result.intersects(TextUnderlinePosition::UNDER) => {
+                    result.insert(TextUnderlinePosition::UNDER);
+                },
+                "left" if !result.intersects(TextUnderlinePosition::LEFT |
+                                             TextUnderlinePosition::RIGHT) => {
+                    result.insert(TextUnderlinePosition::LEFT);
+                },
+                "right" if !result.intersects(TextUnderlinePosition::LEFT |
+                                              TextUnderlinePosition::RIGHT) => {
+                    result.insert(TextUnderlinePosition::RIGHT);
+                },
+                _ => return Err(location.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                )),
+            }
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+impl ToCss for TextUnderlinePosition {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_empty() {
+            return dest.write_str("auto");
+        }
+
+        let mut writer = SequenceWriter::new(dest, " ");
+        let mut any = false;
+
+        macro_rules! maybe_write {
+            ($ident:ident => $str:expr) => {
+                if self.contains(TextUnderlinePosition::$ident) {
+                    any = true;
+                    writer.raw_item($str)?;
+                }
+            };
+        }
+
+        maybe_write!(UNDER => "under");
+        maybe_write!(LEFT => "left");
+        maybe_write!(RIGHT => "right");
+
+        debug_assert!(any);
+
+        Ok(())
+    }
 }

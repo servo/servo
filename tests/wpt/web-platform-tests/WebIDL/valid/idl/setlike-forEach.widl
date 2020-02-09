@@ -1,0 +1,9 @@
+interface ForEachA {
+  readonly setlike<DOMString>;
+  static void forEach();
+};
+
+interface ForEachB {
+  readonly setlike<DOMString>;
+  static readonly attribute long forEach;
+};

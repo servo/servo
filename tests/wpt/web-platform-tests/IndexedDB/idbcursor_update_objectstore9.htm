@@ -34,7 +34,7 @@
             assert_true(cursor instanceof IDBCursor, "cursor exists");
 
             cursor.continue();
-            assert_throws("InvalidStateError", function() {
+            assert_throws_dom("InvalidStateError", function() {
                 cursor.update({ pKey: "primaryKey_0", value: "value_0_updated" });
             });
 

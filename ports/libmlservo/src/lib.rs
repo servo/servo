@@ -11,12 +11,10 @@ use libc::{dup2, pipe, read};
 use log::info;
 use log::warn;
 use rust_webvr::api::MagicLeapVRService;
-use servo::euclid::TypedScale;
+use servo::euclid::Scale;
 use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
-use servo::webrender_api::DevicePixel;
-use servo::webrender_api::DevicePoint;
-use servo::webrender_api::LayoutPixel;
+use servo::webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel};
 use simpleservo::{self, deinit, gl_glue, MouseButton, ServoGlue, SERVO};
 use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
 use smallvec::SmallVec;
@@ -31,6 +29,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use webxr::magicleap::MagicLeapDiscovery;
 
 #[repr(u32)]
 pub enum MLLogLevel {
@@ -108,7 +107,7 @@ pub unsafe extern "C" fn init_servo(
     url_update: MLURLUpdate,
     keyboard: MLKeyboard,
     url: *const c_char,
-    args: *const c_char,
+    default_args: *const c_char,
     width: u32,
     height: u32,
     hidpi: f32,
@@ -119,7 +118,6 @@ pub unsafe extern "C" fn init_servo(
 
     let gl = gl_glue::egl::init().expect("EGL initialization failure");
 
-    let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
     let coordinates = Coordinates::new(
         0,
         0,
@@ -128,35 +126,55 @@ pub unsafe extern "C" fn init_servo(
         width as i32,
         height as i32,
     );
-    let args = if args.is_null() {
-        vec![]
-    } else {
-        CStr::from_ptr(args)
+
+    let mut url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
+
+    // If the URL has a space in it, then treat everything before the space as arguments
+    let args = if let Some(i) = url.rfind(' ') {
+        let (front, back) = url.split_at(i);
+        url = back;
+        front.split(' ').map(|s| s.to_owned()).collect()
+    } else if !default_args.is_null() {
+        CStr::from_ptr(default_args)
             .to_str()
             .unwrap_or("")
             .split(' ')
             .map(|s| s.to_owned())
             .collect()
+    } else {
+        Vec::new()
     };
+
     info!("got args: {:?}", args);
 
-    let vr_init = if landscape {
-        VRInitOptions::None
-    } else {
+    let vr_init = if !landscape {
         let name = String::from("Magic Leap VR Display");
-        let (service, heartbeat) =
-            MagicLeapVRService::new(name, ctxt, gl.clone()).expect("Failed to create VR service");
+        let (service, heartbeat) = MagicLeapVRService::new(name, ctxt, gl.gl_wrapper.clone())
+            .expect("Failed to create VR service");
         let service = Box::new(service);
         let heartbeat = Box::new(heartbeat);
         VRInitOptions::VRService(service, heartbeat)
+    } else {
+        VRInitOptions::None
     };
+
+    let xr_discovery: Option<Box<dyn webxr_api::Discovery>> = if !landscape {
+        let discovery = MagicLeapDiscovery::new(ctxt, gl.gl_wrapper.clone());
+        Some(Box::new(discovery))
+    } else {
+        None
+    };
+
     let opts = InitOptions {
         args,
         url: Some(url.to_string()),
         density: hidpi,
         enable_subpixel_text_antialiasing: false,
         vr_init,
+        xr_discovery,
         coordinates,
+        gl_context_pointer: Some(ctxt),
+        native_display_pointer: Some(disp),
     };
     let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));
@@ -172,11 +190,11 @@ pub unsafe extern "C" fn init_servo(
         keyboard,
     });
     info!("Starting servo");
-    simpleservo::init(opts, gl, wakeup, callbacks).expect("error initializing Servo");
+    simpleservo::init(opts, gl.gl_wrapper, wakeup, callbacks).expect("error initializing Servo");
 
     let result = Box::new(ServoInstance {
         scroll_state: ScrollState::TriggerUp,
-        scroll_scale: TypedScale::new(SCROLL_SCALE / hidpi),
+        scroll_scale: Scale::new(SCROLL_SCALE / hidpi),
         shut_down_complete,
     });
     Box::into_raw(result)
@@ -222,7 +240,7 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
         match servo.scroll_state {
             ScrollState::TriggerUp => {
                 servo.scroll_state = ScrollState::TriggerUp;
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
             },
             ScrollState::TriggerDown(start)
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
@@ -231,14 +249,14 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
             }
             ScrollState::TriggerDown(start) => {
                 servo.scroll_state = ScrollState::TriggerDragging(start, point);
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
                 let delta = (point - start) * servo.scroll_scale;
                 let start = start.to_i32();
                 let _ = call(|s| s.scroll_start(delta.x, delta.y, start.x, start.y));
             },
             ScrollState::TriggerDragging(start, prev) => {
                 servo.scroll_state = ScrollState::TriggerDragging(start, point);
-                let _ = call(|s| s.move_mouse(x, y));
+                let _ = call(|s| s.mouse_move(x, y));
                 let delta = (point - prev) * servo.scroll_scale;
                 let start = start.to_i32();
                 let _ = call(|s| s.scroll(delta.x, delta.y, start.x, start.y));
@@ -260,8 +278,8 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
             ScrollState::TriggerDown(start) if !down => {
                 servo.scroll_state = ScrollState::TriggerUp;
                 let _ = call(|s| s.mouse_up(start.x, start.y, MouseButton::Left));
-                let _ = call(|s| s.click(start.x, start.y));
-                let _ = call(|s| s.move_mouse(start.x, start.y));
+                let _ = call(|s| s.click(start.x as f32, start.y as f32));
+                let _ = call(|s| s.mouse_move(start.x, start.y));
             },
             ScrollState::TriggerDragging(start, prev) if !down => {
                 servo.scroll_state = ScrollState::TriggerUp;
@@ -347,6 +365,7 @@ impl HostTrait for HostCallbacks {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
     }
 
+    fn on_alert(&self, _message: String) {}
     fn on_load_started(&self) {}
     fn on_load_ended(&self) {}
     fn on_title_changed(&self, _title: String) {}
@@ -378,11 +397,17 @@ impl HostTrait for HostCallbacks {
             keyboard(self.app, show)
         }
     }
+
+    fn get_clipboard_contents(&self) -> Option<String> {
+        None
+    }
+
+    fn set_clipboard_contents(&self, _contents: String) {}
 }
 
 pub struct ServoInstance {
     scroll_state: ScrollState,
-    scroll_scale: TypedScale<f32, DevicePixel, LayoutPixel>,
+    scroll_scale: Scale<f32, DevicePixel, LayoutPixel>,
     shut_down_complete: Rc<Cell<bool>>,
 }
 
@@ -396,7 +421,7 @@ enum ScrollState {
 struct EventLoopWakerInstance;
 
 impl EventLoopWaker for EventLoopWakerInstance {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(EventLoopWakerInstance)
     }
 

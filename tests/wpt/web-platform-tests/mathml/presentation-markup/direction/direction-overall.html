@@ -4,6 +4,10 @@
     <meta charset="utf-8"/>
     <title>Verify dir attribute on various containers</title>
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
     <meta name="assert" content="Verify dir attribute on various containers.">
     <link rel="match" href="direction-overall-ref.html">
   </head>
@@ -43,19 +47,7 @@
       </math>
     </p>
 
-    <!-- dir="rtl" on <msqrt> should be ignored. The rectangle
-         inside this element should be displayed left-to-right. -->
-
-    <p>
-      msqrt:
-      <math>
-        <msqrt dir="rtl">
-          <mspace width="25px" height="25px" mathbackground="red"/>
-          <mspace width="25px" height="25px" mathbackground="green"/>
-          <mspace width="25px" height="25px" mathbackground="blue"/>
-        </msqrt>
-      </math>
-    </p>
-
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
   </body>
 </html>

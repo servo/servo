@@ -5,8 +5,9 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[Pref="dom.worklet.testing.enabled", Exposed=(Window), Constructor]
+[Pref="dom.worklet.testing.enabled", Exposed=(Window)]
 interface TestWorklet {
-   [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options);
+   [Throws] constructor();
+   [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options = {});
    DOMString? lookup(DOMString key);
 };

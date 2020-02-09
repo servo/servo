@@ -39,7 +39,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="support/spec-example-utils.js"></script>
     <script>
-    setup({explicit_done: true});
+    setup({single_test: true});
     document.fonts.ready.then(()=> {
       approxShapeTest('test', 'line-', 2, [48, 88, 128, 168, 180, 0]);
       done();

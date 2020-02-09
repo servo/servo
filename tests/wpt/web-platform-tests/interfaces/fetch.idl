@@ -5,9 +5,10 @@
 
 typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
 
-[Constructor(optional HeadersInit init),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Headers {
+  constructor(optional HeadersInit init);
+
   void append(ByteString name, ByteString value);
   void delete(ByteString name);
   ByteString? get(ByteString name);
@@ -15,6 +16,7 @@ interface Headers {
   void set(ByteString name, ByteString value);
   iterable<ByteString, ByteString>;
 };
+
 typedef (Blob or BufferSource or FormData or URLSearchParams or ReadableStream or USVString) BodyInit;
 interface mixin Body {
   readonly attribute ReadableStream? body;
@@ -27,9 +29,10 @@ interface mixin Body {
 };
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input, optional RequestInit init),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Request {
+  constructor(RequestInfo input, optional RequestInit init = {});
+
   readonly attribute ByteString method;
   readonly attribute USVString url;
   [SameObject] readonly attribute Headers headers;
@@ -72,8 +75,10 @@ enum RequestMode { "navigate", "same-origin", "no-cors", "cors" };
 enum RequestCredentials { "omit", "same-origin", "include" };
 enum RequestCache { "default", "no-store", "reload", "no-cache", "force-cache", "only-if-cached" };
 enum RequestRedirect { "follow", "error", "manual" };
-[Constructor(optional BodyInit? body = null, optional ResponseInit init), Exposed=(Window,Worker)]
-interface Response {
+
+[Exposed=(Window,Worker)]interface Response {
+  constructor(optional BodyInit? body = null, optional ResponseInit init = {});
+
   [NewObject] static Response error();
   [NewObject] static Response redirect(USVString url, optional unsigned short status = 302);
 
@@ -85,7 +90,6 @@ interface Response {
   readonly attribute boolean ok;
   readonly attribute ByteString statusText;
   [SameObject] readonly attribute Headers headers;
-  readonly attribute Promise<Headers> trailer;
 
   [NewObject] Response clone();
 };
@@ -98,6 +102,7 @@ dictionary ResponseInit {
 };
 
 enum ResponseType { "basic", "cors", "default", "error", "opaque", "opaqueredirect" };
+
 partial interface mixin WindowOrWorkerGlobalScope {
-  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init);
+  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };

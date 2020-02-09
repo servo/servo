@@ -4,9 +4,13 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
@@ -33,17 +37,19 @@ var promise2 = new Promise(function(resolve, reject) {
     };
 });
 Promise.all([promise1, promise2]).then(function(response1, response2) {
-    ctx.drawImage(response2, 50, 0, 50, 50);
-    ctx.drawImage(response1, 0, 0, 50, 50);
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 50, 50);
-    _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
-    _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
-});
-
-t.done();
+    var promise3 = createImageBitmap(response1);
+    var promise4 = createImageBitmap(response2);
+    Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+        ctx.drawImage(bitmap2, 50, 0, 50, 50);
+        ctx.drawImage(bitmap1, 0, 0, 50, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(0, 0, 50, 50);
+        _assertPixelApprox(offscreenCanvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
+        _assertPixelApprox(offscreenCanvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+    }, t_fail);
+}).then(t_pass, t_fail);
 
 });
 done();

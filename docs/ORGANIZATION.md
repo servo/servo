@@ -54,6 +54,8 @@
     * assorted utility methods and types that are commonly used throughout the project.
   * webdriver_server
     * In-process server to allow manipulating browser instances via a WebDriver client.
+  * webgpu
+    * Implementation of threads for the WebGPU API.
 * etc
   * Useful tools and scripts for developers.
 * mach

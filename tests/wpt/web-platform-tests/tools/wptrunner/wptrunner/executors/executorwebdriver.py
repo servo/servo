@@ -1,17 +1,19 @@
+from __future__ import absolute_import
 import json
 import os
 import socket
 import threading
 import time
 import traceback
-import urlparse
 import uuid
+from six.moves.urllib.parse import urljoin
 
 from .base import (CallbackHandler,
+                   CrashtestExecutor,
                    RefTestExecutor,
                    RefTestImplementation,
                    TestharnessExecutor,
-                   extra_timeout,
+                   TimedRunner,
                    strip_server)
 from .protocol import (BaseProtocolPart,
                        TestharnessProtocolPart,
@@ -21,7 +23,9 @@ from .protocol import (BaseProtocolPart,
                        SendKeysProtocolPart,
                        ActionSequenceProtocolPart,
                        TestDriverProtocolPart,
-                       GenerateTestReportProtocolPart)
+                       GenerateTestReportProtocolPart,
+                       SetPermissionProtocolPart,
+                       VirtualAuthenticatorProtocolPart)
 from ..testrunner import Stop
 
 import webdriver as client
@@ -29,12 +33,16 @@ import webdriver as client
 here = os.path.join(os.path.split(__file__)[0])
 
 
+class WebDriverCallbackHandler(CallbackHandler):
+    unimplemented_exc = (NotImplementedError, client.UnknownCommandException)
+
+
 class WebDriverBaseProtocolPart(BaseProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
-    def execute_script(self, script, async=False):
-        method = self.webdriver.execute_async_script if async else self.webdriver.execute_script
+    def execute_script(self, script, asynchronous=False):
+        method = self.webdriver.execute_async_script if asynchronous else self.webdriver.execute_script
         return method(script)
 
     def set_timeout(self, timeout):
@@ -51,6 +59,9 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
 
     def set_window(self, handle):
         self.webdriver.window_handle = handle
+
+    def load(self, url):
+        self.webdriver.url = url
 
     def wait(self):
         while True:
@@ -76,8 +87,8 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
     def load_runner(self, url_protocol):
         if self.runner_handle:
             self.webdriver.window_handle = self.runner_handle
-        url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
-                               "/testharness_runner.html")
+        url = urljoin(self.parent.executor.server_url(url_protocol),
+                      "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
 
         self.webdriver.url = url
@@ -86,6 +97,7 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         self.parent.base.execute_script(self.runner_script % format_map)
 
     def close_old_windows(self):
+        self.webdriver.actions.release()
         handles = [item for item in self.webdriver.handles if item != self.runner_handle]
         for handle in handles:
             try:
@@ -141,6 +153,9 @@ class WebDriverSelectorProtocolPart(SelectorProtocolPart):
 
     def elements_by_selector(self, selector):
         return self.webdriver.find.css(selector)
+
+    def elements_by_selector_and_frame(self, element_selector, frame):
+        return self.webdriver.find.css(element_selector, frame=frame)
 
 
 class WebDriverClickProtocolPart(ClickProtocolPart):
@@ -198,6 +213,46 @@ class WebDriverGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
         self.webdriver.send_session_command("POST", "reporting/generate_test_report", json_message)
 
 
+class WebDriverSetPermissionProtocolPart(SetPermissionProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_permission(self, descriptor, state, one_realm):
+        permission_params_dict = {
+            "descriptor": descriptor,
+            "state": state,
+        }
+        if one_realm is not None:
+            permission_params_dict["oneRealm"] = one_realm
+        self.webdriver.send_session_command("POST", "permissions", permission_params_dict)
+
+
+class WebDriverVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def add_virtual_authenticator(self, config):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator", config)
+
+    def remove_virtual_authenticator(self, authenticator_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s" % authenticator_id)
+
+    def add_credential(self, authenticator_id, credential):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/credential" % authenticator_id, credential)
+
+    def get_credentials(self, authenticator_id):
+        return self.webdriver.send_session_command("GET", "webauthn/authenticator/%s/credentials" % authenticator_id)
+
+    def remove_credential(self, authenticator_id, credential_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s/credentials/%s" % (authenticator_id, credential_id))
+
+    def remove_all_credentials(self, authenticator_id):
+        return self.webdriver.send_session_command("DELETE", "webauthn/authenticator/%s/credentials" % authenticator_id)
+
+    def set_user_verified(self, authenticator_id, uv):
+        return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv)
+
+
 class WebDriverProtocol(Protocol):
     implements = [WebDriverBaseProtocolPart,
                   WebDriverTestharnessProtocolPart,
@@ -206,7 +261,9 @@ class WebDriverProtocol(Protocol):
                   WebDriverSendKeysProtocolPart,
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,
-                  WebDriverGenerateTestReportProtocolPart]
+                  WebDriverGenerateTestReportProtocolPart,
+                  WebDriverSetPermissionProtocolPart,
+                  WebDriverVirtualAuthenticatorProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super(WebDriverProtocol, self).__init__(executor, browser)
@@ -224,14 +281,17 @@ class WebDriverProtocol(Protocol):
         self.webdriver = client.Session(host, port, capabilities=capabilities)
         self.webdriver.start()
 
-
     def teardown(self):
         self.logger.debug("Hanging up on WebDriver session")
         try:
-            self.webdriver.quit()
-        except Exception:
-            pass
-        del self.webdriver
+            self.webdriver.end()
+        except Exception as e:
+            message = str(getattr(e, "message", ""))
+            if message:
+                message += "\n"
+            message += traceback.format_exc(e)
+            self.logger.debug(message)
+        self.webdriver = None
 
     def is_alive(self):
         try:
@@ -245,39 +305,15 @@ class WebDriverProtocol(Protocol):
         self.testharness.load_runner(self.executor.last_environment["protocol"])
 
 
-class WebDriverRun(object):
-    def __init__(self, func, protocol, url, timeout):
-        self.func = func
-        self.result = None
-        self.protocol = protocol
-        self.url = url
-        self.timeout = timeout
-        self.result_flag = threading.Event()
-
-    def run(self):
-        timeout = self.timeout
-
+class WebDriverRun(TimedRunner):
+    def set_timeout(self):
         try:
-            self.protocol.base.set_timeout(timeout + extra_timeout)
+            self.protocol.base.set_timeout(self.timeout + self.extra_timeout)
         except client.UnknownErrorException:
             self.logger.error("Lost WebDriver connection")
             return Stop
 
-        executor = threading.Thread(target=self._run)
-        executor.start()
-
-        flag = self.result_flag.wait(timeout + 2 * extra_timeout)
-        if self.result is None:
-            if flag:
-                # flag is True unless we timeout; this *shouldn't* happen, but
-                # it can if self._run fails to set self.result due to raising
-                self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
-            else:
-                self.result = False, ("EXTERNAL-TIMEOUT", None)
-
-        return self.result
-
-    def _run(self):
+    def run_func(self):
         try:
             self.result = True, self.func(self.protocol, self.url, self.timeout)
         except (client.TimeoutException, client.ScriptTimeoutException):
@@ -327,10 +363,12 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
     def do_test(self, test):
         url = self.test_url(test)
 
-        success, data = WebDriverRun(self.do_testharness,
-                                    self.protocol,
-                                    url,
-                                    test.timeout * self.timeout_multiplier).run()
+        success, data = WebDriverRun(self.logger,
+                                     self.do_testharness,
+                                     self.protocol,
+                                     url,
+                                     test.timeout * self.timeout_multiplier,
+                                     self.extra_timeout).run()
 
         if success:
             return self.convert_result(test, data)
@@ -347,7 +385,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
                                                            parent_window,
                                                            timeout=5*self.timeout_multiplier)
         self.protocol.base.set_window(test_window)
-        handler = CallbackHandler(self.logger, protocol, test_window)
+        handler = WebDriverCallbackHandler(self.logger, protocol, test_window)
         protocol.webdriver.url = url
 
         if not self.supports_eager_pageload:
@@ -355,7 +393,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
 
         while True:
             result = protocol.base.execute_script(
-                self.script_resume % format_map, async=True)
+                self.script_resume % format_map, asynchronous=True)
 
             # As of 2019-03-29, WebDriver does not define expected behavior for
             # cases where the browser crashes during script execution:
@@ -389,7 +427,7 @@ if (location.href === "about:blank") {
   callback(true);
 } else {
   document.addEventListener("readystatechange", () => {if (document.readyState !== "loading") {callback(true)}});
-}""", async=True)
+}""", asynchronous=True)
             except client.JavascriptErrorException:
                 # We can get an error here if the script runs in the initial about:blank
                 # document before it has navigated, with the driver returning an error
@@ -416,8 +454,8 @@ class WebDriverRefTestExecutor(RefTestExecutor):
         self.close_after_done = close_after_done
         self.has_window = False
 
-        with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
-            self.wait_script = f.read()
+        with open(os.path.join(here, "test-wait.js")) as f:
+            self.wait_script = f.read() % {"classname": "reftest-wait"}
 
     def reset(self):
         self.implementation.reset()
@@ -442,25 +480,67 @@ class WebDriverRefTestExecutor(RefTestExecutor):
         return self.convert_result(test, result)
 
     def screenshot(self, test, viewport_size, dpi):
-        # https://github.com/w3c/wptrunner/issues/166
+        # https://github.com/web-platform-tests/wpt/issues/7135
         assert viewport_size is None
         assert dpi is None
 
-        return WebDriverRun(self._screenshot,
-                           self.protocol,
-                           self.test_url(test),
-                           test.timeout).run()
+        return WebDriverRun(self.logger,
+                            self._screenshot,
+                            self.protocol,
+                            self.test_url(test),
+                            test.timeout,
+                            self.extra_timeout).run()
 
     def _screenshot(self, protocol, url, timeout):
-        webdriver = protocol.webdriver
-        webdriver.url = url
+        self.protocol.base.load(url)
 
-        webdriver.execute_async_script(self.wait_script)
+        self.protocol.base.execute_script(self.wait_script, True)
 
-        screenshot = webdriver.screenshot()
+        screenshot = self.protocol.webdriver.screenshot()
 
         # strip off the data:img/png, part of the url
         if screenshot.startswith("data:image/png;base64,"):
             screenshot = screenshot.split(",", 1)[1]
 
         return screenshot
+
+
+class WebDriverCrashtestExecutor(CrashtestExecutor):
+    def __init__(self, browser, server_config, timeout_multiplier=1,
+                 screenshot_cache=None, close_after_done=True,
+                 debug_info=None, capabilities=None, **kwargs):
+        """WebDriver-based executor for reftests"""
+        CrashtestExecutor.__init__(self,
+                                   browser,
+                                   server_config,
+                                   screenshot_cache=screenshot_cache,
+                                   timeout_multiplier=timeout_multiplier,
+                                   debug_info=debug_info)
+        self.protocol = WebDriverProtocol(self, browser,
+                                          capabilities=capabilities)
+
+        with open(os.path.join(here, "test-wait.js")) as f:
+            self.wait_script = f.read() % {"classname": "test-wait"}
+
+    def do_test(self, test):
+        timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
+                   else None)
+
+        success, data = WebDriverRun(self.logger,
+                                     self.do_crashtest,
+                                     self.protocol,
+                                     self.test_url(test),
+                                     timeout,
+                                     self.extra_timeout).run()
+
+        if success:
+            return self.convert_result(test, data)
+
+        return (test.result_cls(*data), [])
+
+    def do_crashtest(self, protocol, url, timeout):
+        protocol.base.load(url)
+        protocol.base.execute_script(self.wait_script, asynchronous=True)
+
+        return {"status": "PASS",
+                "message": None}

@@ -2,19 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
+use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::blob::{normalize_type_string, Blob};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::realms::{AlreadyInRealm, InRealm};
+use crate::script_runtime::JSContext;
 use js::jsapi::Heap;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::Value as JSValue;
@@ -24,7 +25,7 @@ use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
-use std::cell::Ref;
+use script_traits::serializable::BlobImpl;
 use std::ptr;
 use std::rc::Rc;
 use std::str;
@@ -51,11 +52,9 @@ pub enum FetchedData {
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let in_compartment_proof = AlreadyInCompartment::assert(&object.global());
-    let promise = Promise::new_in_current_compartment(
-        &object.global(),
-        InCompartment::Already(&in_compartment_proof),
-    );
+    let in_realm_proof = AlreadyInRealm::assert(&object.global());
+    let promise =
+        Promise::new_in_current_realm(&object.global(), InRealm::Already(&in_realm_proof));
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
@@ -122,7 +121,7 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
-        BodyType::ArrayBuffer => unsafe { run_array_buffer_data_algorithm(cx, bytes) },
+        BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
     }
 }
 
@@ -133,20 +132,20 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
 }
 
 #[allow(unsafe_code)]
-fn run_json_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
-    rooted!(in(cx) let mut rval = UndefinedValue());
+    rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe {
         if !JS_ParseJSON(
-            cx,
+            *cx,
             json_text.as_ptr(),
             json_text.len() as u32,
             rval.handle_mut(),
         ) {
-            rooted!(in(cx) let mut exception = UndefinedValue());
-            assert!(JS_GetPendingException(cx, exception.handle_mut()));
-            JS_ClearPendingException(cx);
+            rooted!(in(*cx) let mut exception = UndefinedValue());
+            assert!(JS_GetPendingException(*cx, exception.handle_mut()));
+            JS_ClearPendingException(*cx);
             return Ok(FetchedData::JSException(RootedTraceableBox::from_box(
                 Heap::boxed(exception.get()),
             )));
@@ -166,7 +165,10 @@ fn run_blob_data_algorithm(
     } else {
         "".to_string()
     };
-    let blob = Blob::new(root, BlobImpl::new_from_bytes(bytes), mime_string);
+    let blob = Blob::new(
+        root,
+        BlobImpl::new_from_bytes(bytes, normalize_type_string(&mime_string)),
+    );
     Ok(FetchedData::BlobData(blob))
 }
 
@@ -200,13 +202,15 @@ fn run_form_data_algorithm(
 }
 
 #[allow(unsafe_code)]
-unsafe fn run_array_buffer_data_algorithm(
-    cx: *mut JSContext,
-    bytes: Vec<u8>,
-) -> Fallible<FetchedData> {
-    rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-    let arraybuffer =
-        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
+pub fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+    rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+    let arraybuffer = unsafe {
+        ArrayBuffer::create(
+            *cx,
+            CreateWith::Slice(&bytes),
+            array_buffer_ptr.handle_mut(),
+        )
+    };
     if arraybuffer.is_err() {
         return Err(Error::JSFailed);
     }

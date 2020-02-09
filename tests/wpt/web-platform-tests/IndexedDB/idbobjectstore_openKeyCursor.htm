@@ -112,19 +112,19 @@ store_test(function(t, db, tx, store) {
 }, "IDBObjectStore.openKeyCursor() - reverse iteration with range");
 
 store_test(function(t, db, tx, store) {
-    assert_throws("DataError", function() { store.openKeyCursor(NaN); },
+    assert_throws_dom("DataError", function() { store.openKeyCursor(NaN); },
         "openKeyCursor should throw on invalid number key");
-    assert_throws("DataError", function() { store.openKeyCursor(new Date(NaN)); },
+    assert_throws_dom("DataError", function() { store.openKeyCursor(new Date(NaN)); },
         "openKeyCursor should throw on invalid date key");
-    assert_throws("DataError", function() {
+    assert_throws_dom("DataError", function() {
         var cycle = [];
         cycle.push(cycle);
         store.openKeyCursor(cycle);
     }, "openKeyCursor should throw on invalid array key");
-    assert_throws("DataError", function() { store.openKeyCursor({}); },
+    assert_throws_dom("DataError", function() { store.openKeyCursor({}); },
         "openKeyCursor should throw on invalid key type");
     setTimeout(t.step_func(function() {
-        assert_throws("TransactionInactiveError", function() { store.openKeyCursor(); },
+        assert_throws_dom("TransactionInactiveError", function() { store.openKeyCursor(); },
             "openKeyCursor should throw if transaction is inactive");
         t.done();
     }), 0);

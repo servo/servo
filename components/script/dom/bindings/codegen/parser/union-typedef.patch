@@ -1,8 +1,8 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -2613,10 +2613,18 @@ class IDLUnionType(IDLType):
+@@ -2624,10 +2624,18 @@ class IDLUnionType(IDLType):
              return type.name
- 
+
          for (i, type) in enumerate(self.memberTypes):
 -            if not type.isComplete():
 +            # Exclude typedefs because if given "typedef (B or C) test",

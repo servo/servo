@@ -50,5 +50,28 @@ allowedTypes.forEach(function(type) {
     var doc = p.parseFromString("<foo>", type);
     assert_false(doc instanceof XMLDocument, "Should not be XMLDocument");
   }, "XMLDocument interface for incorrectly parsed document with type " + type);
+
+  test(function() {
+    var p = new DOMParser();
+    var doc = p.parseFromString(`
+      <html>
+        <head></head>
+        <body>
+          <script>document.x = 5;<\/script>
+          <noscript><p>test1</p><p>test2</p></noscript>
+        </body>
+      </html>`
+    , type);
+
+    assert_equals(doc.x, undefined, "script must not be executed on the inner document");
+    assert_equals(document.x, undefined, "script must not be executed on the outer document");
+
+    const body = doc.documentElement.children[1];
+    assert_equals(body.localName, "body");
+    assert_equals(body.children[1].localName, "noscript");
+    assert_equals(body.children[1].children.length, 2);
+    assert_equals(body.children[1].children[0].localName, "p");
+    assert_equals(body.children[1].children[1].localName, "p");
+  }, "scripting must be disabled with type " + type);
 });
 </script>

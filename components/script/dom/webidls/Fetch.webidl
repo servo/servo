@@ -6,6 +6,6 @@
 
 [Exposed=(Window,Worker)]
 
-partial interface WindowOrWorkerGlobalScope {
-  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init);
+partial interface mixin WindowOrWorkerGlobalScope {
+  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };

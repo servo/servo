@@ -7,6 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import print_function
+
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import shutil
@@ -16,20 +18,25 @@ import locale
 import os
 from os import path
 import platform
+import distro
 import re
 import contextlib
 import subprocess
 from subprocess import PIPE
+import six
 import sys
 import tarfile
 import zipfile
+import functools
 from xml.etree.ElementTree import XML
 from servo.util import download_file
-import urllib2
-from bootstrap import check_gstreamer_lib
+import six.moves.urllib as urllib
+from .bootstrap import check_gstreamer_lib
 
+from mach.decorators import CommandArgument
 from mach.registrar import Registrar
 import toml
+import json
 
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
@@ -98,13 +105,13 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
 
         # Sort file entries with the fixed locale
         with setlocale('C'):
-            file_list.sort(cmp=locale.strcoll)
+            file_list.sort(key=functools.cmp_to_key(locale.strcoll))
 
         # Use a temporary file and atomic rename to avoid partially-formed
         # packaging (in case of exceptional situations like running out of disk space).
         # TODO do this in a temporary folder after #11983 is fixed
         temp_file = '{}.temp~'.format(dest_archive)
-        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0644), 'w') as out_file:
+        with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0o644), 'wb') as out_file:
             if dest_archive.endswith('.zip'):
                 with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
@@ -130,10 +137,10 @@ def normalize_env(env):
     # want UTF-8, they shouldn't pass in a unicode instance.
     normalized_env = {}
     for k, v in env.items():
-        if isinstance(k, unicode):
+        if isinstance(k, six.text_type):
             k = k.encode('utf-8', 'strict')
 
-        if isinstance(v, unicode):
+        if isinstance(v, six.text_type):
             v = v.encode('utf-8', 'strict')
 
         normalized_env[k] = v
@@ -216,7 +223,7 @@ def append_to_path_env(string, env, name):
     env[name] = variable
 
 
-def set_osmesa_env(bin_path, env):
+def set_osmesa_env(bin_path, env, show_vars):
     """Set proper LD_LIBRARY_PATH and DRIVE for software rendering on Linux and OSX"""
     if is_linux():
         dep_path = find_dep_path_newest('osmesa-src', bin_path)
@@ -225,6 +232,9 @@ def set_osmesa_env(bin_path, env):
         osmesa_path = path.join(dep_path, "out", "lib", "gallium")
         append_to_path_env(osmesa_path, env, "LD_LIBRARY_PATH")
         env["GALLIUM_DRIVER"] = "softpipe"
+        if show_vars:
+            print("GALLIUM_DRIVER=" + env["GALLIUM_DRIVER"])
+            print("LD_LIBRARY_PATH=" + env["LD_LIBRARY_PATH"])
     elif is_macosx():
         osmesa_dep_path = find_dep_path_newest('osmesa-src', bin_path)
         if not osmesa_dep_path:
@@ -235,7 +245,29 @@ def set_osmesa_env(bin_path, env):
                                "out", "src", "mapi", "shared-glapi", ".libs")
         append_to_path_env(osmesa_path + ":" + glapi_path, env, "DYLD_LIBRARY_PATH")
         env["GALLIUM_DRIVER"] = "softpipe"
+        if show_vars:
+            print("GALLIUM_DRIVER=" + env["GALLIUM_DRIVER"])
+            print("DYLD_LIBRARY_PATH=" + env["DYLD_LIBRARY_PATH"])
     return env
+
+
+def gstreamer_root(target, env, topdir=None):
+    if is_windows():
+        arch = {
+            "x86_64": "X86_64",
+            "x86": "X86",
+            "aarch64": "ARM64",
+        }
+        gst_x64 = arch[target.split('-')[0]]
+        gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
+        gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
+        if env.get(gst_env) is not None:
+            return env.get(gst_env)
+        elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
+            return gst_default_path
+    elif is_linux():
+        return path.join(topdir, "support", "linux", "gstreamer", "gst")
+    return None
 
 
 class BuildNotFound(Exception):
@@ -297,7 +329,9 @@ class CommandBase(object):
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
         self.config["build"].setdefault("mode", "")
+        self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
+        self.config["build"].setdefault("layout-2020", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
@@ -312,38 +346,23 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-    _default_toolchain = None
+    _rust_toolchain = None
 
-    def toolchain(self):
-        return self.default_toolchain()
-
-    def default_toolchain(self):
-        if self._default_toolchain is None:
+    def rust_toolchain(self):
+        if self._rust_toolchain is None:
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
-                self._default_toolchain = f.read().strip()
-        return self._default_toolchain
+                self._rust_toolchain = f.read().strip()
+
+            if platform.system() == "Windows":
+                self._rust_toolchain += "-x86_64-pc-windows-msvc"
+
+        return self._rust_toolchain
 
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
-            try:
-                version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
-            except OSError as e:
-                if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
-                    print "It looks like rustup is not installed. See instructions at " \
-                          "https://github.com/servo/servo/#setting-up-your-environment"
-                    print
-                    return 1
-                raise
-            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-            if version < (1, 8, 0):
-                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
-                print "Try running 'rustup self update'."
-                return 1
-            toolchain = self.toolchain()
-            if platform.system() == "Windows":
-                toolchain += "-x86_64-pc-windows-msvc"
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
+            assert self.context.bootstrapped
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.rust_toolchain()] + args
         else:
             args[0] += BIN_SUFFIX
         return call(args, **kwargs)
@@ -363,9 +382,6 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
-
-    def get_gstreamer_path(self):
-        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gst")
 
     def get_binary_path(self, release, dev, target=None, android=False, magicleap=False, simpleservo=False):
         # TODO(autrilla): this function could still use work - it shouldn't
@@ -487,15 +503,15 @@ class CommandBase(object):
         nightly_date = nightly_date.strip()
         # Fetch the filename to download from the build list
         repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
-        req = urllib2.Request(
+        req = urllib.request.Request(
             "{}/{}/{}".format(repository_index, os_prefix, nightly_date))
         try:
-            response = urllib2.urlopen(req).read()
+            response = urllib.request.urlopen(req).read()
             tree = XML(response)
             namespaces = {'ns': tree.tag[1:tree.tag.index('}')]}
             file_to_download = tree.find('ns:Contents', namespaces).find(
                 'ns:Key', namespaces).text
-        except urllib2.URLError as e:
+        except urllib.error.URLError as e:
             print("Could not fetch the available nightly versions from the repository : {}".format(
                 e.reason))
             sys.exit(1)
@@ -541,7 +557,11 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target):
+    def needs_gstreamer_env(self, target, env, uwp=False, features=[]):
+        if uwp:
+            return False
+        if "media-dummy" in features:
+            return False
         try:
             if check_gstreamer_lib():
                 return False
@@ -553,32 +573,54 @@ class CommandBase(object):
         if "x86_64" not in effective_target or "android" in effective_target:
             # We don't build gstreamer for non-x86_64 / android yet
             return False
-        if sys.platform == "linux2":
-            if path.isdir(self.get_gstreamer_path()):
+        if is_linux() or is_windows():
+            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
                 return True
             else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.12). Please run ./mach bootstrap-gstreamer")
+(we need at least 1.16). Please run ./mach bootstrap-gstreamer")
         else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.12). If you're unable to \
+(we need at least 1.16). If you're unable to \
 install them, let us know by filing a bug!")
         return False
 
     def set_run_env(self, android=False):
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
-        if not android and self.needs_gstreamer_env(None):
-            gstpath = self.get_gstreamer_path()
+        if not android and self.needs_gstreamer_env(None, os.environ):
+            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir())
+            if gstpath is None:
+                return
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
             os.environ["GST_PLUGIN_SYSTEM_PATH"] = path.join(gstpath, "lib", "gstreamer-1.0")
             os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
             os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
+    def msvc_package_dir(self, package):
+        return path.join(self.context.sharedir, "msvc-dependencies", package, msvc_deps[package])
+
+    def vs_dirs(self):
+        assert 'windows' in host_triple()
+        vsinstalldir = os.environ.get('VSINSTALLDIR')
+        vs_version = os.environ.get('VisualStudioVersion')
+        if vsinstalldir and vs_version:
+            msbuild_version = get_msbuild_version(vs_version)
+        else:
+            (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
+        msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", msbuild_version, "Bin")
+        vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
+        return {
+            'msbuild': msbuildinstalldir,
+            'vsdir': vsinstalldir,
+            'vs_version': vs_version,
+            'vcdir': vcinstalldir,
+        }
+
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
-        if sys.platform == "win32" and type(env['PATH']) == unicode:
+        if sys.platform == "win32" and type(env['PATH']) == six.text_type:
             # On win32, the virtualenv's activate_this.py script sometimes ends up
             # turning os.environ['PATH'] into a unicode string.  This doesn't work
             # for passing env vars in to a process, so we force it back to ascii.
@@ -589,14 +631,11 @@ install them, let us know by filing a bug!")
         extra_path = []
         extra_lib = []
         if "msvc" in (target or host_triple()):
-            msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
-
-            def package_dir(package):
-                return path.join(msvc_deps_dir, package, msvc_deps[package])
-
-            extra_path += [path.join(package_dir("cmake"), "bin")]
-            extra_path += [path.join(package_dir("llvm"), "bin")]
-            extra_path += [path.join(package_dir("ninja"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
+            extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
+            extra_path += [self.msvc_package_dir("nuget")]
+            extra_path += [path.join(self.msvc_package_dir("xargo"))]
 
             arch = (target or host_triple()).split('-')[0]
             vcpkg_arch = {
@@ -604,40 +643,51 @@ install them, let us know by filing a bug!")
                 "i686": "x86-windows",
                 "aarch64": "arm64-windows",
             }
-            openssl_base_dir = path.join(package_dir("openssl"), vcpkg_arch[arch])
+            target_arch = vcpkg_arch[arch]
+            if uwp:
+                target_arch += "-uwp"
+            openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
 
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
             env["OPENSSL_LIB_DIR"] = path.join(openssl_base_dir, "lib")
-            env["OPENSSL_LIBS"] = "libeay32:ssleay32"
+            env["OPENSSL_LIBS"] = "libssl:libcrypto"
             # Link moztools, used for building SpiderMonkey
-            env["MOZTOOLS_PATH"] = os.pathsep.join([
-                path.join(package_dir("moztools"), "bin"),
-                path.join(package_dir("moztools"), "msys", "bin"),
-            ])
+            moztools_paths = [
+                path.join(self.msvc_package_dir("moztools"), "bin"),
+                path.join(self.msvc_package_dir("moztools"), "msys", "bin"),
+            ]
+            # In certain cases we need to ensure that tools with conflicting MSYS versions
+            # can be placed in the PATH ahead of the moztools directories.
+            moztools_path_prepend = env.get("MOZTOOLS_PATH_PREPEND", None)
+            if moztools_path_prepend:
+                moztools_paths.insert(0, moztools_path_prepend)
+            env["MOZTOOLS_PATH"] = os.pathsep.join(moztools_paths)
             # Link autoconf 2.13, used for building SpiderMonkey
-            env["AUTOCONF"] = path.join(package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
+            env["AUTOCONF"] = path.join(self.msvc_package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
             # Link LLVM
-            env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
+            env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
 
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
                 env["NATIVE_WIN32_PYTHON"] = sys.executable
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if self.needs_gstreamer_env(target):
-            gstpath = self.get_gstreamer_path()
+        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
+            gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib")
             # we append in the reverse order so that system gstreamer libraries
             # do not get precedence
             extra_path = [libpath] + extra_path
-            extra_lib = [libpath] + extra_path
+            extra_lib = [libpath] + extra_lib
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
-        if sys.platform == "linux2":
-            distro, version, _ = platform.linux_distribution()
-            if distro == "Ubuntu" and (version == "16.04" or version == "14.04"):
+        if is_linux():
+            distrib, version, _ = distro.linux_distribution()
+            distrib = six.ensure_str(distrib)
+            version = six.ensure_str(version)
+            if distrib == "Ubuntu" and (version == "16.04" or version == "14.04"):
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
@@ -720,7 +770,7 @@ install them, let us know by filing a bug!")
             ]).strip())
 
             git_info.append('')
-            git_info.append(git_sha)
+            git_info.append(six.ensure_str(git_sha))
             if git_is_dirty:
                 git_info.append('dirty')
 
@@ -729,36 +779,173 @@ install them, let us know by filing a bug!")
         if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"
 
+        # Work around https://github.com/servo/servo/issues/24446
+        # Argument-less str.split normalizes leading, trailing, and double spaces
+        env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
+
         return env
 
-    def ports_glutin_crate(self):
-        return path.join(self.context.topdir, "ports", "glutin")
+    @staticmethod
+    def build_like_command_arguments(decorated_function):
+        decorators = [
+            CommandArgument(
+                '--target', '-t',
+                default=None,
+                help='Cross compile for given target platform',
+            ),
+            CommandArgument(
+                '--media-stack',
+                default=None,
+                choices=["gstreamer", "dummy"],
+                help='Which media stack to use',
+            ),
+            CommandArgument(
+                '--android',
+                default=None,
+                action='store_true',
+                help='Build for Android',
+            ),
+            CommandArgument(
+                '--magicleap',
+                default=None,
+                action='store_true',
+                help='Build for Magic Leap',
+            ),
+            CommandArgument(
+                '--libsimpleservo',
+                default=None,
+                action='store_true',
+                help='Build the libsimpleservo library instead of the servo executable',
+            ),
+            CommandArgument(
+                '--features',
+                default=None,
+                help='Space-separated list of features to also build',
+                nargs='+',
+            ),
+            CommandArgument(
+                '--debug-mozjs',
+                default=None,
+                action='store_true',
+                help='Enable debug assertions in mozjs',
+            ),
+            CommandArgument(
+                '--with-debug-assertions',
+                default=None,
+                action='store_true',
+                help='Enable debug assertions in release',
+            ),
+            CommandArgument(
+                '--with-frame-pointer',
+                default=None,
+                action='store_true',
+                help='Build with frame pointer enabled, used by the background hang monitor.',
+            ),
+            CommandArgument('--with-raqote', default=None, action='store_true'),
+            CommandArgument('--with-layout-2020', default=None, action='store_true'),
+            CommandArgument('--with-layout-2013', default=None, action='store_true'),
+            CommandArgument('--without-wgl', default=None, action='store_true'),
+        ]
 
-    def add_manifest_path(self, args, android=False, libsimpleservo=False):
+        for decorator in decorators:
+            decorated_function = decorator(decorated_function)
+        return decorated_function
+
+    def pick_target_triple(self, target, android, magicleap):
+        if android is None:
+            android = self.config["build"]["android"]
+        if target and android:
+            assert self.handle_android_target(target)
+        if android and not target:
+            target = self.config["android"]["target"]
+        if magicleap and not target:
+            target = "aarch64-linux-android"
+        if target and not android and not magicleap:
+            android = self.handle_android_target(target)
+        return target, android
+
+    # A guess about which platforms should use the gstreamer media stack
+    def pick_media_stack(self, media_stack, target):
+        if not(media_stack):
+            if (
+                    not(target) or
+                    ("armv7" in target and "android" in target) or
+                    ("x86_64" in target)
+            ):
+                media_stack = "gstreamer"
+            else:
+                media_stack = "dummy"
+        return ["media-" + media_stack]
+
+    def run_cargo_build_like_command(
+        self, command, cargo_args,
+        env=None, verbose=False,
+        target=None, android=False, magicleap=False, libsimpleservo=False,
+        features=None, debug_mozjs=False, with_debug_assertions=False,
+        with_frame_pointer=False, with_raqote=False, without_wgl=False,
+        with_layout_2020=False, with_layout_2013=False,
+        uwp=False, media_stack=None,
+    ):
+        env = env or self.build_env()
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        args = []
         if "--manifest-path" not in args:
             if libsimpleservo or android:
-                manifest = self.ports_libsimpleservo_manifest(android)
+                if android:
+                    api = "jniapi"
+                else:
+                    api = "capi"
+                port = path.join("libsimpleservo", api)
             else:
-                manifest = self.ports_glutin_manifest()
-            args.append("--manifest-path")
-            args.append(manifest)
+                port = "glutin"
+            args += [
+                "--manifest-path",
+                path.join(self.context.topdir, "ports", port, "Cargo.toml"),
+            ]
+        if target:
+            args += ["--target", target]
 
-    def ports_glutin_manifest(self):
-        return path.join(self.context.topdir, "ports", "glutin", "Cargo.toml")
-
-    def ports_libsimpleservo_manifest(self, android=False):
-        if android:
-            api = "jniapi"
+        if features is None:  # If we're passed a list, mutate it even if it's empty
+            features = []
+        if self.config["build"]["debug-mozjs"] or debug_mozjs:
+            features.append("debugmozjs")
+        if not magicleap:
+            features.append("native-bluetooth")
+        if uwp:
+            features.append("canvas2d-raqote")
+            features.append("no-wgl")
+            features.append("uwp")
         else:
-            api = "capi"
-        return path.join(self.context.topdir, "ports", "libsimpleservo", api, "Cargo.toml")
+            # Non-UWP builds provide their own libEGL via mozangle.
+            features.append("egl")
+        if with_raqote and "canvas2d-azure" not in features:
+            features.append("canvas2d-raqote")
+        elif "canvas2d-azure" not in features:
+            features.append("canvas2d-raqote")
+        if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
+            features.append("layout-2020")
+        elif "layout-2020" not in features:
+            features.append("layout-2013")
+        if with_frame_pointer:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
+            features.append("profilemozjs")
+        if without_wgl:
+            features.append("no-wgl")
+        if self.config["build"]["webgl-backtrace"]:
+            features.append("webgl-backtrace")
+        if self.config["build"]["dom-backtrace"]:
+            features.append("dom-backtrace")
+        if with_debug_assertions or self.config["build"]["debug-assertions"]:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-    def servo_features(self):
-        """Return a list of optional features to enable for the Servo crate"""
-        features = []
-        if self.config["build"]["debug-mozjs"]:
-            features += ["debugmozjs"]
-        return features
+        assert "--features" not in cargo_args
+        args += ["--features", " ".join(features)]
+
+        if target and 'uwp' in target:
+            return call(["xargo", command] + args + cargo_args, env=env, verbose=verbose)
+        else:
+            return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")
@@ -808,7 +995,7 @@ install them, let us know by filing a bug!")
             return True
         return False
 
-    def ensure_bootstrapped(self, target=None):
+    def ensure_bootstrapped(self, target=None, rustup_components=None):
         if self.context.bootstrapped:
             return
 
@@ -818,7 +1005,48 @@ install them, let us know by filing a bug!")
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
 
+        if self.config["tools"]["use-rustup"]:
+            self.ensure_rustup_version()
+            toolchain = self.rust_toolchain()
+
+            status = subprocess.call(
+                ["rustup", "run", toolchain.encode("utf-8"), "rustc", "--version"],
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            )
+            if status:
+                check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
+
+            installed = check_output(
+                ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
+            )
+            for component in set(rustup_components or []) | {"rustc-dev"}:
+                if component.encode("utf-8") not in installed:
+                    check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
+
+            if target and "uwp" not in target and target.encode("utf-8") not in check_output(
+                ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
+            ):
+                check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
+
         self.context.bootstrapped = True
+
+    def ensure_rustup_version(self):
+        try:
+            version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+        except OSError as e:
+            if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                print("It looks like rustup is not installed. See instructions at "
+                      "https://github.com/servo/servo/#setting-up-your-environment")
+                print()
+                sys.exit(1)
+            raise
+        version = tuple(map(int, re.match(b"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+        version_needed = (1, 21, 0)
+        if version < version_needed:
+            print("rustup is at version %s.%s.%s, Servo requires %s.%s.%s or more recent." % (version + version_needed))
+            print("Try running 'rustup self update'.")
+            sys.exit(1)
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:
@@ -846,3 +1074,57 @@ install them, let us know by filing a bug!")
                     sys.exit(error)
             else:
                 print("Clobber not needed.")
+
+
+def find_highest_msvc_version_ext():
+    def vswhere(args):
+        program_files = (os.environ.get('PROGRAMFILES(X86)') or
+                         os.environ.get('PROGRAMFILES'))
+        if not program_files:
+            return []
+        vswhere = os.path.join(program_files, 'Microsoft Visual Studio',
+                               'Installer', 'vswhere.exe')
+        if not os.path.exists(vswhere):
+            return []
+        return json.loads(check_output([vswhere, '-format', 'json'] + args).decode(errors='ignore'))
+
+    for install in vswhere(['-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+                            '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK']):
+        version = install['installationVersion'].split('.')[0] + '.0'
+        yield (install['installationPath'], version, "Current" if version == '16.0' else version)
+
+
+def find_highest_msvc_version():
+    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
+    prog_files = os.environ.get("ProgramFiles(x86)")
+    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
+
+    vs_versions = ["2019", "2017"]
+    versions = {
+        ("2019", "vs"): "16.0",
+        ("2017", "vs"): "15.0",
+    }
+
+    for version in vs_versions:
+        for edition in editions:
+            vs_version = versions[version, "vs"]
+            msbuild_version = get_msbuild_version(vs_version)
+
+            vsinstalldir = os.path.join(base_vs_path, version, edition)
+            if os.path.exists(vsinstalldir):
+                return (vsinstalldir, vs_version, msbuild_version)
+
+    versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
+    if not versions:
+        print("Can't find MSBuild.exe installation under %s. Please set the VSINSTALLDIR and VisualStudioVersion" +
+              " environment variables" % base_vs_path)
+        sys.exit(1)
+    return versions[0]
+
+
+def get_msbuild_version(vs_version):
+    if vs_version in ("15.0", "14.0"):
+        msbuild_version = vs_version
+    else:
+        msbuild_version = "Current"
+    return msbuild_version

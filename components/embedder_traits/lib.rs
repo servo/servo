@@ -19,7 +19,9 @@ use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-use webrender_api::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+
+pub use webxr_api::MainThreadWaker as EventLoopWaker;
 
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
@@ -61,12 +63,6 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
-}
-
-/// Used to wake up the event loop, provided by the servo port/embedder.
-pub trait EventLoopWaker: 'static + Send {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send>;
-    fn wake(&self);
 }
 
 /// Sends messages to the embedder.
@@ -132,6 +128,10 @@ pub enum EmbedderMsg {
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(KeyboardEvent),
+    /// Gets system clipboard contents
+    GetClipboardContents(IpcSender<String>),
+    /// Sets system clipboard contents
+    SetClipboardContents(String),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// A favicon was detected
@@ -162,6 +162,9 @@ pub enum EmbedderMsg {
     Shutdown,
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
+    /// Notifies the embedder about media session events
+    /// (i.e. when there is metadata for the active media session, playback state changes...).
+    MediaSessionEvent(MediaSessionEvent),
 }
 
 impl Debug for EmbedderMsg {
@@ -175,6 +178,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
+            EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
+            EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
@@ -192,6 +197,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
             EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
+            EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
         }
     }
 }
@@ -200,3 +206,65 @@ impl Debug for EmbedderMsg {
 /// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FilterPattern(pub String);
+
+/// https://w3c.github.io/mediasession/#mediametadata
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MediaMetadata {
+    /// Title
+    pub title: String,
+    /// Artist
+    pub artist: String,
+    /// Album
+    pub album: String,
+}
+
+impl MediaMetadata {
+    pub fn new(title: String) -> Self {
+        Self {
+            title,
+            artist: "".to_owned(),
+            album: "".to_owned(),
+        }
+    }
+}
+
+/// https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate
+#[repr(i32)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionPlaybackState {
+    /// The browsing context does not specify whether it’s playing or paused.
+    None_ = 1,
+    /// The browsing context is currently playing media and it can be paused.
+    Playing,
+    /// The browsing context has paused media and it can be resumed.
+    Paused,
+}
+
+/// https://w3c.github.io/mediasession/#dictdef-mediapositionstate
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MediaPositionState {
+    pub duration: f64,
+    pub playback_rate: f64,
+    pub position: f64,
+}
+
+impl MediaPositionState {
+    pub fn new(duration: f64, playback_rate: f64, position: f64) -> Self {
+        Self {
+            duration,
+            playback_rate,
+            position,
+        }
+    }
+}
+
+/// Type of events sent from script to the embedder about the media session.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum MediaSessionEvent {
+    /// Indicates that the media metadata is available.
+    SetMetadata(MediaMetadata),
+    /// Indicates that the playback state has changed.
+    PlaybackStateChange(MediaSessionPlaybackState),
+    /// Indicates that the position state is set.
+    SetPositionState(MediaPositionState),
+}

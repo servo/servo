@@ -8,11 +8,11 @@ dictionary BluetoothPermissionDescriptor : PermissionDescriptor {
   DOMString deviceId;
   // These match RequestDeviceOptions.
   sequence<BluetoothLEScanFilterInit> filters;
-  sequence<BluetoothServiceUUID> optionalServices/* = []*/;
+  sequence<BluetoothServiceUUID> optionalServices = [];
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface BluetoothPermissionResult : PermissionStatus {
   // attribute FrozenArray<BluetoothDevice> devices;
   // Workaround until FrozenArray get implemented.

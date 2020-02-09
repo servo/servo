@@ -23,7 +23,7 @@
     }
     let observer = new PerformanceObserver(observe);
     observer.observe({ entryTypes: ["resource"] });
-    fetch(url);
+    fetch(url).then(r => r.text());
 </script>
 </body>
 </html>

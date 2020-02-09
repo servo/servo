@@ -33,7 +33,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should have thrown because record can't have void as value type.")
  
@@ -47,7 +47,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw,
                "Should have thrown on dictionary containing itself via record.")

@@ -12,88 +12,80 @@
 
   <body>
     <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
-
-      // Arbitrary sample rate. And we only need a few blocks for rendering to
-      // see if things are working.
-      let sampleRate = 8000;
-      let renderLength = 10 * RENDER_QUANTUM_FRAMES;
-
-      // Number of frames where the source is active.  Fairly arbitrary, but
-      // should be more than one render quantum and significantly less than
-      // |renderLength|.
-      let srcDurationFrames = 131;
-
-      // Frame at which the source should be connected to the convolver.
-      let connectFrame = 2 * RENDER_QUANTUM_FRAMES;
-
-      // AudioProcessor that counts the number of channels on its single input.
+      // AudioProcessor that sends a message to its AudioWorkletNode whenver the
+      // number of channels on its input changes.
       let filePath =
-          '../the-audioworklet-interface/processors/input-count-processor.js';
+          '../the-audioworklet-interface/processors/active-processing.js';
 
-      audit.define(
-          {label: 'Test', description: 'Active processing for ConvolverNode'},
-          async (task, should) => {
-            const context = new OfflineAudioContext({
-              numberOfChannels: 2,
-              length: renderLength,
-              sampleRate: sampleRate
+      const audit = Audit.createTaskRunner();
+
+      let context;
+
+      audit.define('initialize', (task, should) => {
+        // Create context and load the module
+        context = new AudioContext();
+        should(
+            context.audioWorklet.addModule(filePath),
+            'AudioWorklet module loading')
+            .beResolved()
+            .then(() => task.done());
+      });
+
+      audit.define('test', (task, should) => {
+        const src = new OscillatorNode(context);
+
+        const response = new AudioBuffer({numberOfChannels: 2, length: 150,
+        sampleRate: context.sampleRate});
+
+        const conv = new ConvolverNode(context, {buffer: response});
+
+        const testerNode =
+            new AudioWorkletNode(context, 'active-processing-tester', {
+              // Use as short a duration as possible to keep the test from
+              // taking too much time.
+              processorOptions: {testDuration: .5},
             });
 
-            // Don't mix the inputs to the destination!
-            context.destination.channelInterpretation = 'discrete';
+        // Expected number of output channels from the convolver node.  We should
+        // start with the number of inputs, because the source (oscillator) is
+        // actively processing.  When the source stops, the number of channels
+        // should change to 1.
+        const expectedValues = [2, 1];
+        let index = 0;
 
-            await context.audioWorklet.addModule(filePath);
+        testerNode.port.onmessage = event => {
+          let count = event.data.channelCount;
+          let finished = event.data.finished;
 
-            // Impulse response for the convolver.  Make it stereo so that
-            // the output is stereo.  The length isn't too important.
-            let response = new AudioBuffer({
-              numberOfChannels: 2,
-              length: 150,
-              sampleRate: context.sampleRate
-            });
+          // If we're finished, end testing.
+          if (finished) {
+            // Verify that we got the expected number of changes.
+            should(index, 'Number of distinct values')
+                .beEqualTo(expectedValues.length);
 
-            let src = new OscillatorNode(context);
-            let node = new ConvolverNode(context, {buffer: response});
-            let counter = new AudioWorkletNode(context, 'counter');
-
-            // Just to print a message that we created the graph with a
-            // convolver in it.
-            should(() => {
-              node.connect(counter).connect(context.destination);
-            }, 'Construction of graph with convolver').notThrow();
-
-            // Let the convolver run for a bit and then connect the source
-            // to it and start the source.
-            context.suspend(connectFrame / context.sampleRate)
-                .then(() => {
-                  src.connect(node);
-                  src.start();
-                  // Stop the source after some small number of frames.
-                  src.stop(
-                      context.currentTime +
-                      srcDurationFrames / context.sampleRate);
-                })
-                .then(() => context.resume());
-
-            const renderedBuffer = await context.startRendering();
-            const output = renderedBuffer.getChannelData(0);
-            // The convolver has a stereo response so it will produce
-            // stereo output for a mono or stereo input.  Initially,
-            // nothing is connected to the convolver so it is not actively
-            // processing and therefore produces a single channel of
-            // silence.  After a source is connected and started, the
-            // number of channels must be come 2.  When the source stops,
-            // the convolver node is no longer actively processing and
-            // must then produce a single channel of silence.
-            //
-            // We're not concerned here about when the changes happens. We
-            // only care that the number of channels changed
-            // appropriately.
-            should(output, 'Number of output channels of convolver')
-                .containValues([1, 2, 1]);
             task.done();
-          });
+            return;
+          }
+
+          if (index < expectedValues.length) {
+            // Verify that the number of channels matches the expected number of
+            // channels.
+            should(count, `Test ${index}: Number of convolver output channels`)
+                .beEqualTo(expectedValues[index]);
+          }
+
+          ++index;
+        };
+
+        // Create the graph and go
+        src.connect(conv).connect(testerNode).connect(context.destination);
+        src.start();
+
+        // Stop the source after a short time so we can test that the convolver
+        // changes to not actively processing and thus produces a single channel
+        // of silence.
+        src.stop(context.currentTime + .1);
+      });
 
       audit.run();
     </script>

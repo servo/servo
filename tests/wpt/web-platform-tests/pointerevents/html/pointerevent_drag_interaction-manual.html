@@ -9,7 +9,7 @@
         <script type="text/javascript" src="../pointerevent_support.js"></script>
         <script>
            var eventList = ['pointerdown', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture', 'dragstart'];
-        
+
            PhaseEnum = {
               DndWithoutCapture:   0,
               DndWithCapture:      1,
@@ -18,7 +18,7 @@
             };
             var phase = PhaseEnum.DndWithoutCapture;
             var received_events = [];
-        
+
             function resetTestState() {
                 phase = PhaseEnum.DndWithoutCapture;
             }
@@ -28,7 +28,7 @@
 
                 var target0 = document.querySelector('#target0');
                 var target1 = document.querySelector('#target1');
-                
+
                 function handleEvent(e) {
                     if (e.type == 'pointerdown') {
                        received_events = [];

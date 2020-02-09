@@ -17,7 +17,7 @@ use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
 use app_units::{Au, MAX_AU};
-use euclid::Point2D;
+use euclid::default::Point2D;
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;
@@ -43,7 +43,7 @@ enum AxisSize {
 impl AxisSize {
     /// Generate a new available cross or main axis size from the specified size of the container,
     /// containing block size, min constraint, and max constraint
-    pub fn new(size: Size, content_size: Option<Au>, min: Size, max: MaxSize) -> AxisSize {
+    pub fn new(size: &Size, content_size: Option<Au>, min: &Size, max: &MaxSize) -> AxisSize {
         match size {
             Size::Auto => AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None)),
             Size::LengthPercentage(ref lp) => match lp.maybe_to_used_value(content_size) {
@@ -58,10 +58,10 @@ impl AxisSize {
 /// and the container size, then return the used value of flex basis. it can be used to help
 /// determining the flex base size and to indicate whether the main size of the item
 /// is definite after flex size resolving.
-fn from_flex_basis(flex_basis: FlexBasis, main_length: Size, containing_length: Au) -> MaybeAuto {
+fn from_flex_basis(flex_basis: &FlexBasis, main_length: &Size, containing_length: Au) -> MaybeAuto {
     let width = match flex_basis {
         FlexBasis::Content => return MaybeAuto::Auto,
-        FlexBasis::Size(width) => width,
+        FlexBasis::Size(ref width) => width,
     };
 
     let width = match width {
@@ -135,7 +135,7 @@ impl FlexItem {
             // https://drafts.csswg.org/css-flexbox-1/#min-size-auto
             Direction::Inline => {
                 let basis = from_flex_basis(
-                    block.fragment.style.get_position().flex_basis,
+                    &block.fragment.style.get_position().flex_basis,
                     block.fragment.style.content_inline_size(),
                     containing_length,
                 );
@@ -170,7 +170,7 @@ impl FlexItem {
             },
             Direction::Block => {
                 let basis = from_flex_basis(
-                    block.fragment.style.get_position().flex_basis,
+                    &block.fragment.style.get_position().flex_basis,
                     block.fragment.style.content_block_size(),
                     containing_length,
                 );
@@ -452,7 +452,7 @@ impl FlexFlow {
     fn inline_mode_bubble_inline_sizes(&mut self) {
         // FIXME(emilio): This doesn't handle at all writing-modes.
         let fixed_width =
-            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+            !model::style_length(&self.block_flow.fragment.style().get_position().width, None)
                 .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
@@ -478,7 +478,7 @@ impl FlexFlow {
     // stripped out.
     fn block_mode_bubble_inline_sizes(&mut self) {
         let fixed_width =
-            !model::style_length(self.block_flow.fragment.style().get_position().width, None)
+            !model::style_length(&self.block_flow.fragment.style().get_position().width, None)
                 .is_auto();
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
@@ -960,9 +960,9 @@ impl Flow for FlexFlow {
             let style = &self.block_flow.fragment.style;
             let (specified_block_size, specified_inline_size) = if style.writing_mode.is_vertical()
             {
-                (style.get_position().width, style.get_position().height)
+                (&style.get_position().width, &style.get_position().height)
             } else {
-                (style.get_position().height, style.get_position().width)
+                (&style.get_position().height, &style.get_position().width)
             };
 
             let available_inline_size = AxisSize::new(

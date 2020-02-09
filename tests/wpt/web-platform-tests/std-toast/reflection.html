@@ -1,0 +1,24 @@
+<!doctype html>
+<title>HTML5 reflection tests:  std-toast</title>
+<meta name=timeout content=long>
+
+<div id=log></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/dom/original-harness.js"></script>
+<script src="/html/dom/new-harness.js"></script>
+
+<script type="module">
+import 'std:elements/toast';
+
+const toastElement = {
+    'std-toast': {
+        open: 'boolean',
+        type: {type: 'enum', keywords: ['success', 'error', 'warning']},
+    },
+};
+
+mergeElements(toastElement);
+</script>
+<script src="/html/dom/reflection.js" defer></script>

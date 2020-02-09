@@ -12,7 +12,7 @@
 
 <script>
 test(function () {
-    assert_throws({ name: "NotSupportedError" },
+    assert_throws_dom("NotSupportedError",
         function () {
             var canvas = document.getElementById("canvas");
             // Reset context
@@ -31,7 +31,7 @@ test(function () {
 }, "fillRect should not affect current default path and NotSupportedError should be thrown.");
 
 test(function () {
-    assert_throws({ name: "NotSupportedError" },
+    assert_throws_dom("NotSupportedError",
         function () {
             var canvas = document.getElementById("canvas");
             // Reset context
@@ -50,7 +50,7 @@ test(function () {
 }, "strokeRect should not affect current default path and NotSupportedError should be thrown.");
 
 test(function() {
-    assert_throws({ name: "NotSupportedError" },
+    assert_throws_dom("NotSupportedError",
         function () {
             var canvas = document.getElementById("canvas");
             // Reset context
@@ -69,7 +69,7 @@ test(function() {
 }, "fillText should not affect current default path and NotSupportedError should be thrown.");
 
 test(function() {
-    assert_throws({ name: "NotSupportedError" },
+    assert_throws_dom("NotSupportedError",
         function () {
             var canvas = document.getElementById("canvas");
             canvas.width = canvas.width;

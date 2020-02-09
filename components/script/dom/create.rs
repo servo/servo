@@ -46,6 +46,7 @@ use crate::dom::htmllegendelement::HTMLLegendElement;
 use crate::dom::htmllielement::HTMLLIElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlmapelement::HTMLMapElement;
+use crate::dom::htmlmenuelement::HTMLMenuElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlmeterelement::HTMLMeterElement;
 use crate::dom::htmlmodelement::HTMLModElement;
@@ -157,9 +158,9 @@ fn create_html_element(
                             // Step 6.1.1
                             unsafe {
                                 let _ac =
-                                    JSAutoRealm::new(cx, global.reflector().get_jsobject().get());
+                                    JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
                                 throw_dom_exception(cx, &global, error);
-                                report_pending_exception(cx, true);
+                                report_pending_exception(*cx, true);
                             }
 
                             // Step 6.1.2
@@ -189,14 +190,23 @@ fn create_html_element(
         }
     }
 
-    // Steps 7.1-7.2
+    // Steps 7.1-7.3
     let result = create_native_html_element(name.clone(), prefix, document, creator);
+    match is {
+        Some(is) => {
+            result.set_is(is);
+            result.set_custom_element_state(CustomElementState::Undefined);
+        },
+        None => {
+            if is_valid_custom_element_name(&*name.local) {
+                result.set_custom_element_state(CustomElementState::Undefined);
+            } else {
+                result.set_custom_element_state(CustomElementState::Uncustomized);
+            }
+        },
+    };
 
-    // Step 7.3
-    if is_valid_custom_element_name(&*name.local) || is.is_some() {
-        result.set_custom_element_state(CustomElementState::Undefined);
-    }
-
+    // Step 8
     result
 }
 
@@ -302,6 +312,7 @@ pub fn create_native_html_element(
         local_name!("map") => make!(HTMLMapElement),
         local_name!("mark") => make!(HTMLElement),
         local_name!("marquee") => make!(HTMLElement),
+        local_name!("menu") => make!(HTMLMenuElement),
         local_name!("meta") => make!(HTMLMetaElement),
         local_name!("meter") => make!(HTMLMeterElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:multicol

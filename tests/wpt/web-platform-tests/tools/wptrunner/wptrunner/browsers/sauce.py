@@ -9,9 +9,10 @@ import subprocess
 import tarfile
 import tempfile
 import time
-from cStringIO import StringIO as CStringIO
 
 import requests
+
+from six.moves import cStringIO as StringIO
 
 from .base import Browser, ExecutorBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
@@ -124,7 +125,7 @@ def env_options():
 def get_tar(url, dest):
     resp = requests.get(url, stream=True)
     resp.raise_for_status()
-    with tarfile.open(fileobj=CStringIO(resp.raw.read())) as f:
+    with tarfile.open(fileobj=StringIO(resp.raw.read())) as f:
         f.extractall(path=dest)
 
 

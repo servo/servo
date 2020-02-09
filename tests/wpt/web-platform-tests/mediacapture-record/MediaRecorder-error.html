@@ -76,7 +76,7 @@
         let recorder = new MediaRecorder(video);
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
-        assert_throws("InvalidStateError", function() {
+        assert_throws_dom("InvalidStateError", function() {
             recorder.start();
         });
     }, "MediaRecorder cannot start recording when MediaRecorder' state is not inactive and an InvalidStateError should be thrown");

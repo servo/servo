@@ -22,12 +22,15 @@ This function must return a value in one of the following four formats:
     content
 
 Above, `headers` is a list of (field name, value) pairs, and `content` is a
-string or an iterable returning strings. The `main` function may also update
-the response manually. For example, one may use `response.headers.set` to set a
-response header, and only return the content. One may even use this kind of
-handler, but manipulate the output socket directly, in which case the return
-value of the function, and the properties of the response object, will be
-ignored.
+string or an iterable returning strings.
+
+The `main` function may also update the response manually. For example, one may
+use `response.headers.set` to set a response header, and only return the
+content. One may even use this kind of handler, but manipulate the output
+socket directly. The `writer` property of the response exposes a
+`ResponseWriter` object that allows writing specific parts of the request or
+direct access to the underlying socket. If used, the return value of the
+`main` function and the properties of the `response` object will be ignored.
 
 The wptserver implements a number of Python APIs for controlling traffic.
 
@@ -38,6 +41,21 @@ The wptserver implements a number of Python APIs for controlling traffic.
    /tools/wptserve/docs/request
    /tools/wptserve/docs/response
    /tools/wptserve/docs/stash
+```
+
+### Python3 compatibility
+
+Even though Python3 is not fully supported at this point, some work is being
+done to add compatibility for it. This is why you can see in multiple places
+the use of the `six` python module which is meant to provide a set of simple
+utilities that work for both generation of python (see
+[docs](https://six.readthedocs.io/)). The module is vendored in
+tools/third_party/six/six.py.
+
+When an handler is added, it should be at least syntax-compatible with Python3.
+You can check that by running:
+```
+python3 -m py_compile <path/to/handler.py>
 ```
 
 ## Example: Dynamic HTTP headers

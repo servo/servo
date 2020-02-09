@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::PromiseRejectionEventMethods;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -14,8 +14,9 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -64,21 +65,14 @@ impl PromiseRejectionEvent {
         ev
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,
         init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>,
     ) -> Fallible<DomRoot<Self>> {
         let reason = init.reason.handle();
-        let promise = match init.promise.as_ref() {
-            Some(promise) => promise.clone(),
-            None => {
-                return Err(Error::Type(
-                    "required member promise is undefined.".to_string(),
-                ));
-            },
-        };
+        let promise = init.promise.clone();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
@@ -100,9 +94,8 @@ impl PromiseRejectionEventMethods for PromiseRejectionEvent {
         self.promise.clone()
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason
-    unsafe fn Reason(&self, _cx: *mut JSContext) -> JSVal {
+    fn Reason(&self, _cx: JSContext) -> JSVal {
         self.reason.get()
     }
 

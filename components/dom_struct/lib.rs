@@ -17,9 +17,8 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     }
     let attributes = quote! {
         #[derive(DenyPublicFields, DomObject, JSTraceable, MallocSizeOf)]
-        #[must_root]
+        #[unrooted_must_root_lint::must_root]
         #[repr(C)]
-        #[webidl]
     };
 
     // Work around https://github.com/rust-lang/rust/issues/46489
@@ -35,11 +34,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
             return quote!(#s2).into();
         }
         if let Fields::Named(ref f) = s.fields {
-            let f = f
-                .named
-                .first()
-                .expect("Must have at least one field")
-                .into_value();
+            let f = f.named.first().expect("Must have at least one field");
             let ident = f.ident.as_ref().expect("Must have named fields");
             let name = &s.ident;
             let ty = &f.ty;

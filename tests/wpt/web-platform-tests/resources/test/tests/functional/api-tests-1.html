@@ -28,6 +28,24 @@
     }
     on_event(window, "load", windowLoad);
 
+    test(function() {
+        var sequence = [];
+        var outer = document.createElement("div");
+        var inner = document.createElement("div");
+        outer.appendChild(inner);
+        document.body.appendChild(outer);
+        inner.addEventListener("click", function() {
+            sequence.push("inner");
+        }, false);
+
+        on_event(outer, "click", function() {
+            sequence.push("outer");
+        });
+        inner.click();
+
+        assert_array_equals(sequence, ["inner", "outer"]);
+    }, "on_event does not use event capture");
+
     // see the body onload below
     var load_test_attr = async_test("body element fires the onload event set from the attribute");
 </script>
@@ -101,12 +119,6 @@
     }
     test(assertArrayEqualsNumeric, "assert_array_equals with first param 1");
 
-    function basicAssertObjectEquals()
-    {
-        assert_object_equals([1, 2, [1, 2]], { 0: 1, 1: 2, 2: { 0: 1, 1: 2} }, "array is equal to object")
-    }
-    test(basicAssertObjectEquals, "basic assert_object_equals test");
-
     function basicAssertArrayApproxEquals()
     {
         assert_array_approx_equals([10, 11], [11, 10], 1, "[10, 11] is approximately (+/- 1) [11, 10]")
@@ -170,8 +182,20 @@
     test(function()
     {
         var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
+        assert_throws(0, function() {throw e});
+    }, "Test assert_throws with ambiguous DOM-exception expected to Fail");
+
+    test(function()
+    {
+        var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
         assert_throws("TEST_ERR", function() {throw e});
     }, "Test assert_throws with non-DOM-exception expected to Fail");
+
+    test(function()
+    {
+        var e = {code: DOMException.SYNTAX_ERR, name:"SyntaxError"}
+        assert_throws(DOMException.SYNTAX_ERR, function() {throw e});
+    }, "Test assert_throws with number code value expected to Pass");
 
     var t = async_test("Test step_func")
     setTimeout(
@@ -219,8 +243,20 @@
     },
     {
       "status_string": "FAIL",
+      "name": "Test assert_throws with ambiguous DOM-exception expected to Fail",
+      "message": "Test bug: ambiguous DOMException code 0 passed to assert_throws()",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
       "name": "Test assert_throws with non-DOM-exception expected to Fail",
       "message": "Test bug: unrecognized DOMException code \"TEST_ERR\" passed to assert_throws()",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test assert_throws with number code value expected to Pass",
+      "message": null,
       "properties": {}
     },
     {
@@ -375,12 +411,6 @@
     },
     {
       "status_string": "PASS",
-      "name": "basic assert_object_equals test",
-      "message": null,
-      "properties": {}
-    },
-    {
-      "status_string": "PASS",
       "name": "body element fires the onload event set from the attribute",
       "message": null,
       "properties": {}
@@ -406,6 +436,12 @@
     {
       "status_string": "PASS",
       "name": "window onload event fires when set from the handler",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "on_event does not use event capture",
       "message": null,
       "properties": {}
     }

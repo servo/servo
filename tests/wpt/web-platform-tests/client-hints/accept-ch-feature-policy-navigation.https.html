@@ -1,0 +1,33 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    "device-memory=true&dpr=false&viewport-width=false",
+    "",
+    "Client hints loaded on cross-origin iframe request with feature policy.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    "device-memory=true&dpr=false&viewport-width=true",
+    "",
+    "Client hints loaded on same-origin iframe request with feature policy.");
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    "",
+    "",
+    "Iframe trying to set Accept-CH-Lifetime.", "/client-hints/resources/iframe-accept-ch-lifetime.html");
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    "device-memory=true&dpr=false&viewport-width=false",
+    "",
+    "Client hints loaded on cross-origin iframe request with feature policy after attempting to set independently.");
+})();
+
+</script>
+</body>
+</html>

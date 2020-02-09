@@ -10,37 +10,40 @@ enum XREnvironmentBlendMode {
   "alpha-blend",
 };
 
+enum XRVisibilityState {
+  "visible",
+  "visible-blurred",
+  "hidden",
+};
+
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRSession : EventTarget {
   // // Attributes
-  readonly attribute XRSessionMode mode;
-  // readonly attribute XRPresentationContext outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
-  readonly attribute XRRenderState renderState;
+  readonly attribute XRVisibilityState visibilityState;
+  [SameObject] readonly attribute XRRenderState renderState;
+  [SameObject] readonly attribute XRInputSourceArray inputSources;
 
   // // Methods
+  [Throws] void updateRenderState(optional XRRenderStateInit state = {});
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
-  // workaround until we have FrozenArray
-  // see https://github.com/servo/servo/issues/10427#issuecomment-449593626
-  // FrozenArray<XRInputSource> getInputSources();
-  sequence<XRInputSource> getInputSources();
-
-  Promise<void> updateRenderState(optional XRRenderStateInit state);
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
 
-  // Promise<void> end();
+  Promise<void> end();
 
   // // Events
-  // attribute EventHandler onblur;
-  // attribute EventHandler onfocus;
-  // attribute EventHandler onend;
-  // attribute EventHandler onselect;
-  // attribute EventHandler oninputsourceschange;
-  // attribute EventHandler onselectstart;
-  // attribute EventHandler onselectend;
+  attribute EventHandler onend;
+  attribute EventHandler onselect;
+  attribute EventHandler onsqueeze;
+  attribute EventHandler oninputsourceschange;
+  attribute EventHandler onselectstart;
+  attribute EventHandler onselectend;
+  attribute EventHandler onsqueezestart;
+  attribute EventHandler onsqueezeend;
+  attribute EventHandler onvisibilitychange;
 };

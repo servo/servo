@@ -43,8 +43,8 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
 };
 
-[Exposed=Window, NoInterfaceObject]
-interface WebGLRenderingContextBase
+[Exposed=Window]
+interface mixin WebGLRenderingContextBase
 {
 
     /* ClearBufferMask */
@@ -650,19 +650,30 @@ interface WebGLRenderingContextBase
     void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
 
-    void uniform1fv(WebGLUniformLocation? location, Float32List v);
-    void uniform2fv(WebGLUniformLocation? location, Float32List v);
-    void uniform3fv(WebGLUniformLocation? location, Float32List v);
-    void uniform4fv(WebGLUniformLocation? location, Float32List v);
+    void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform2fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform3fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform4fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
 
-    void uniform1iv(WebGLUniformLocation? location, Int32List v);
-    void uniform2iv(WebGLUniformLocation? location, Int32List v);
-    void uniform3iv(WebGLUniformLocation? location, Int32List v);
-    void uniform4iv(WebGLUniformLocation? location, Int32List v);
+    void uniform1iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform2iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform3iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
+    void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
+                    optional GLuint srcLength = 0);
 
-    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
-    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
-    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
     void useProgram(WebGLProgram? program);
     void validateProgram(WebGLProgram program);
@@ -713,4 +724,4 @@ interface WebGLRenderingContext
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
 };
-WebGLRenderingContext implements WebGLRenderingContextBase;
+WebGLRenderingContext includes WebGLRenderingContextBase;

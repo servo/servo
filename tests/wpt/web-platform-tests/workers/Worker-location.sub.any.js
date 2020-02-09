@@ -1,6 +1,6 @@
 // META: global=!default, dedicatedworker, sharedworker
 test(() => {
-  assert_equals(String(WorkerLocation), "function WorkerLocation() { [native code] }");
+  assert_equals(String(WorkerLocation).replace(/\n/g, " ").replace(/\s\s+/g, " "), "function WorkerLocation() { [native code] }");
   assert_true(location instanceof Object);
   assert_equals(location.href, 'http://{{host}}:{{ports[http][0]}}/workers/Worker-location.sub.any.worker.js');
   assert_equals(location.origin, "http://{{host}}:{{ports[http][0]}}");

@@ -1,7 +1,0 @@
-brew "gnutls"
-brew "gstreamer"
-brew "gst-plugins-base"
-brew "gst-libav"
-brew "./etc/taskcluster/macos/Formula/gst-plugins-bad.rb"
-brew "gst-plugins-good"
-brew "gst-rtsp-server"

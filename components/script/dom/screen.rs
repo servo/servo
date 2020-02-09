@@ -12,11 +12,11 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::TypedSize2D;
+use euclid::Size2D;
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
-use webrender_api::DeviceIntSize;
+use webrender_api::units::DeviceIntSize;
 
 #[dom_struct]
 pub struct Screen {
@@ -40,7 +40,7 @@ impl Screen {
         )
     }
 
-    fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
+    fn screen_size(&self) -> Size2D<u32, CSSPixel> {
         let (send, recv) =
             ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window
@@ -49,11 +49,11 @@ impl Screen {
             .send(ScriptMsg::GetScreenSize(send))
             .unwrap();
         let dpr = self.window.device_pixel_ratio();
-        let screen = recv.recv().unwrap_or(TypedSize2D::zero());
+        let screen = recv.recv().unwrap_or(Size2D::zero());
         (screen.to_f32() / dpr).to_u32()
     }
 
-    fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
+    fn screen_avail_size(&self) -> Size2D<u32, CSSPixel> {
         let (send, recv) =
             ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window
@@ -62,7 +62,7 @@ impl Screen {
             .send(ScriptMsg::GetScreenAvailSize(send))
             .unwrap();
         let dpr = self.window.device_pixel_ratio();
-        let screen = recv.recv().unwrap_or(TypedSize2D::zero());
+        let screen = recv.recv().unwrap_or(Size2D::zero());
         (screen.to_f32() / dpr).to_u32()
     }
 }

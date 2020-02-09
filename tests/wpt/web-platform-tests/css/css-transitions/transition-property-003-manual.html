@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - none</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="2.1. The 'transition-property' Property" href="http://www.w3.org/TR/css3-transitions/#transition-property-property">
+<meta name="assert" content="The 'transition-duration' property set 'none' means that no property will be transitioned.">
+<style>
+  div {
+    height: 100px;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+  #ref {
+    background-color: yellow;
+    transition-duration: 2s;
+    transition-property: width;
+  }
+  #test {
+    background-color: blue;
+    transition-property: none;
+  }
+</style>
+<body>
+  <p>Click the 'Start' button below. Test passes if the width of yellow square grows smoothly but the blue grows immediately.</p>
+  <div id="ref"></div>
+  <div id="test"></div>
+  <button>Start</button>
+  <script>
+    (function() {
+      var button = document.querySelector("button"),
+          test = document.querySelector("#test"),
+          ref = document.querySelector("#ref");
+      button.addEventListener("click", function(evt) {
+        test.setAttribute("style", "width: 200px;");
+        ref.setAttribute("style", "width: 200px;");
+      }, false);
+    })();
+  </script>
+</body>

@@ -10,6 +10,14 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/interpolation-testcommon.js"></script>
   </head>
+  <style>
+    .parent {
+      offset-path: ray(30deg closest-side);
+    }
+    .target {
+      offset-path: ray(10deg closest-side);
+    }
+  </style>
   <body>
     <script>
       'use strict';
@@ -24,6 +32,48 @@
         property: 'offset-path',
         from: "ray(0deg closest-corner)",
         to: "none",
+      });
+
+      // Neutral keyframes use the inline style.
+      test_interpolation({
+        property: 'offset-path',
+        from: neutralKeyframe,
+        to: 'ray(20deg closest-side)',
+      }, [
+        {at: -0.3, expect: 'ray(7deg closest-side)'},
+        {at: 0, expect: 'ray(10deg closest-side)'},
+        {at: 0.3, expect: 'ray(13deg closest-side)'},
+        {at: 0.6, expect: 'ray(16deg closest-side)'},
+        {at: 1, expect: 'ray(20deg closest-side)'},
+        {at: 1.5, expect: 'ray(25deg closest-side)'},
+      ]);
+
+      // No interpolation to a ray from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'initial',
+        to: 'ray(20deg closest-side)',
+      });
+
+      // 'inherit' keyframes use the parent style.
+      test_interpolation({
+        property: 'offset-path',
+        from: 'inherit',
+        to: 'ray(20deg closest-side)',
+      }, [
+        {at: -0.3, expect: 'ray(33deg closest-side)'},
+        {at: 0, expect: 'ray(30deg closest-side)'},
+        {at: 0.3, expect: 'ray(27deg closest-side)'},
+        {at: 0.6, expect: 'ray(24deg closest-side)'},
+        {at: 1, expect: 'ray(20deg closest-side)'},
+        {at: 1.5, expect: 'ray(15deg closest-side)'},
+      ]);
+
+      // No interpolation to a ray from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'unset',
+        to: 'ray(20deg closest-side)',
       });
 
       // No interpolation to a ray from the initial value 'none'.

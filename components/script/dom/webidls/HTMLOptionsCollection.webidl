@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptionscollection
+[Exposed=Window]
 interface HTMLOptionsCollection : HTMLCollection {
   // inherits item(), namedItem()
   [CEReactions]

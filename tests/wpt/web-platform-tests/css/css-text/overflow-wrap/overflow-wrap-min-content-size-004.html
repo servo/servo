@@ -3,11 +3,13 @@
 <title>CSS Text Test: overflow-wrap: anywhere and intrinsic sizing</title>
 <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#overflow-wrap-property">
-<meta name="flags" content="">
+<meta name="flags" content="ahem">
 <link rel="match" href="reference/overflow-wrap-min-content-size-004-ref.html">
 <meta name="assert" content="Soft wrap opportunities introduced by overflow-wrap:break-word **are not** considered when calculating min-content intrinsic sizes.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <style>
 table {
+  font: 20px/1 Ahem;
   overflow-wrap: break-word;
   max-width: 0;
   border: 0;
@@ -19,6 +21,7 @@ td {
   color: transparent;
 }
 #red {
+  font: 20px/1 Ahem;
   position: absolute;
   z-index: -1;
   background: red;

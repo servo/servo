@@ -52,7 +52,7 @@
                 // to the new value; if the new value is the string "auto",
                 // then it must be interpreted as the special value auto.
                 assert_equals(textCue.line, "auto");
-                assert_throws(new TypeError, function() { textCue.line = "gazonk"; });
+                assert_throws_js(TypeError, function() { textCue.line = "gazonk"; });
                 assert_equals(textCue.line, "auto");
                 textCue.line = 42;
                 assert_equals(textCue.line, 42);
@@ -70,8 +70,8 @@
                 // On setting, if the new value is negative or greater than 100,
                 // then throw an IndexSizeError exception.
                 // Otherwise, set the text track cue text position to the new value.
-                assert_throws("IndexSizeError", function() { textCue.position = -200; });
-                assert_throws("IndexSizeError", function() { textCue.position = 110; });
+                assert_throws_dom("IndexSizeError", function() { textCue.position = -200; });
+                assert_throws_dom("IndexSizeError", function() { textCue.position = 110; });
                 textCue.position = 11;
                 assert_equals(textCue.position, 11);
 
@@ -79,8 +79,8 @@
                 // On setting, if the new value is negative or greater than 100,
                 // then throw an IndexSizeError exception.
                 // Otherwise, set the text track cue size to the new value.
-                assert_throws("IndexSizeError", function() { textCue.size = -200 });
-                assert_throws("IndexSizeError", function() { textCue.size = 110 });
+                assert_throws_dom("IndexSizeError", function() { textCue.size = -200 });
+                assert_throws_dom("IndexSizeError", function() { textCue.size = 110 });
                 textCue.size = 57;
                 assert_equals(textCue.size, 57);
 

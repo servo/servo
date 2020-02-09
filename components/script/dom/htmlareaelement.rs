@@ -18,7 +18,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
 use std::f32;
@@ -325,15 +325,6 @@ impl Activatable for HTMLAreaElement {
     fn pre_click_activation(&self) {}
 
     fn canceled_activation(&self) {}
-
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-    }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         follow_hyperlink(self.as_element(), None);

@@ -37,7 +37,8 @@
     let destUrl = get_host_info().HTTP_REMOTE_ORIGIN + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' + 'http://' + document.location.host;
     destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
-    destUrl += '&timing_allow=1';
+    destUrl += '&final_resource=' + "/resource-timing/resources/blank-with-tao.html";
+    destUrl += '&tao_steps=3';
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;
     frameContext.src = destUrl;

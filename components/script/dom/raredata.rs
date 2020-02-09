@@ -7,6 +7,7 @@ use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
 use crate::dom::mutationobserver::RegisteredObserver;
+use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
 use std::rc::Rc;
 
@@ -14,7 +15,7 @@ use std::rc::Rc;
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct NodeRareData {
     /// The shadow root the node belongs to.
     /// This is None if the node is not in a shadow tree or
@@ -22,10 +23,12 @@ pub struct NodeRareData {
     pub containing_shadow_root: Option<Dom<ShadowRoot>>,
     /// Registered observers for this node.
     pub mutation_observers: Vec<RegisteredObserver>,
+    /// Lazily-generated Unique Id for this node.
+    pub unique_id: Option<UniqueId>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct ElementRareData {
     /// https://dom.spec.whatwg.org/#dom-element-shadowroot
     /// The ShadowRoot this element is host of.

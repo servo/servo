@@ -1,6 +1,6 @@
 # The Servo Parallel Browser Engine Project
 
-[![Linux Build Status](https://img.shields.io/travis/servo/servo/master.svg?label=Linux%20build)](https://travis-ci.com/servo/servo)  [![Windows Build Status](https://img.shields.io/appveyor/ci/servo/servo/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/servo/servo/branch/master)  [![Changelog #228](https://img.shields.io/badge/changelog-%23228-9E978E.svg)](https://changelog.com/podcast/228)
+[![Linux Build Status](https://img.shields.io/travis/servo/servo/master.svg?label=Linux%20build)](https://travis-ci.com/servo/servo)  [![Changelog #228](https://img.shields.io/badge/changelog-%23228-9E978E.svg)](https://changelog.com/podcast/228)
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
@@ -54,32 +54,13 @@ Please select your operating system:
 
 Xcode version 10.2 or above is recommended.
 
-##### On macOS (homebrew)
+##### On macOS (Homebrew)
 
 ``` sh
 brew bundle install --file=etc/taskcluster/macos/Brewfile
-brew bundle install --file=etc/taskcluster/macos/Brewfile-gstreamer
+brew bundle install --file=etc/taskcluster/macos/Brewfile-build
 pip install virtualenv
 ```
-##### On macOS (MacPorts)
-
-``` sh
-sudo port install python27 py27-virtualenv cmake yasm llvm
-```
-##### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
-
-``` sh
-brew install openssl
-
-export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
-export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-
-./mach build ...
-```
-
-##### Note: Please make sure the required `PKG_CONFIG_PATH` environment variable is set the same as the one provided from `brew info libffi` ([Check this comment for more details](https://github.com/servo/servo/issues/23015#issuecomment-475050175)).
-
-If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
 
 #### On Debian-based Linuxes
 
@@ -94,10 +75,10 @@ sudo apt install git curl autoconf libx11-dev \
     libssl-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
     libharfbuzz-dev ccache clang libunwind-dev \
-    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
 ```
 
-Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
+Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up.
 
 If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
@@ -190,7 +171,7 @@ sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel M
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
-    pkg-config ttf-fira-sans harfbuzz ccache clang autoconf2.13 gstreamer gstreamer-vaapi
+    pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi
 ```
 #### On Gentoo Linux
 
@@ -209,10 +190,19 @@ export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
 #### On Windows (MSVC)
 
-1. Install Python for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine.
+1. Install Python 2.7 for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine. This is required for the build system execution and many dependencies.
+
 You should change the installation to install the "Add python.exe to Path" feature.
 
-2. Install virtualenv.
+2. Install Python 3.7 for Windows (https://www.python.org/downloads/release/python-374/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
+
+You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python37\python.exe' by doing:
+```
+setx PYTHON3 "C:\Python37\python.exe" /m
+```
+The `/m` will set it system-wide for all future command windows.
+
+3. Install virtualenv.
 
  In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
  ```
@@ -220,13 +210,31 @@ pip install virtualenv
 ```
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) development package following [these instructions](https://github.com/sdroege/gstreamer-rs#gstreamer-binaries-1). You will also need to add `C:\gstreamer\1.0\x86_64\lib` to your `LIB` environment variable.
+4. Install `pkg-config` either via [Chocolatey](https://chocolatey.org/install#installing-chocolatey)(`choco install pkgconfiglite`) or from [here](https://sourceforge.net/projects/pkgconfiglite/).
 
-4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
+5. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) MSVC packages. You need to download the two `.msi` files for your platform from the [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) website and install them. The currently recommended version is 1.16.0. i.e.:
+
+- [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
+- [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
+
+Note that the MinGW binaries will not work, so make sure that you install the MSVC the ones.
+
+Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
+
+6. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-5. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
-list of installed components. It is not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
+7. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
+list of installed components as well as the "Windows Universal C runtime." They are not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
+
+Note that version is hard to download online and is easier to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
+```
+choco install -y visualstudio2017community --package-parameters="'--add Microsoft.VisualStudio.Component.Git'"
+Update-SessionEnvironment #refreshing env due to Git install
+
+#--- UWP Workload and installing Windows Template Studio ---
+choco install -y visualstudio2017-workload-nativedesktop
+```
 
 ##### [Optional] Install LLVM for faster link times
 
@@ -256,6 +264,11 @@ linker = "lld-link.exe"
 > If you got the error `Cannot run mach in a path on a case-sensitive file system on Windows`:
 > 1. Open Command Prompt or PowerShell as administrator.
 > 2. Disable case-sensitive for servo path, `fsutil.exe file SetCaseSensitiveInfo X:\path\to\servo disable`
+
+> If you got the error `DLL file `api-ms-win-crt-runtime-l1-1-0.dll` not found!` then set
+> the `WindowsSdkDir` environment variable to an appropriate `Windows Kit` directory containing
+> `Redist\ucrt\DLLs\x64\api-ms-win-crt-runtime-l1-1-0.dll`, for example
+> `C:\Program Files (x86)\Windows Kits\10`.
 
 #### Cross-compilation for Android
 

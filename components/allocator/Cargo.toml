@@ -10,7 +10,7 @@ publish = false
 path = "lib.rs"
 
 [target.'cfg(not(windows))'.dependencies]
-jemalloc-sys = { version = "0.1.4" }
+jemalloc-sys = { version = "0.3.2" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["heapapi"] }

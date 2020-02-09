@@ -9,6 +9,7 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=Window]
 interface DocumentType : Node {
   [Constant]
   readonly attribute DOMString name;
@@ -18,4 +19,4 @@ interface DocumentType : Node {
   readonly attribute DOMString systemId;
 };
 
-DocumentType implements ChildNode;
+DocumentType includes ChildNode;

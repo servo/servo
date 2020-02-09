@@ -23,6 +23,7 @@ use crate::fetch::FetchCanceller;
 use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use dom_struct::dom_struct;
+use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -34,6 +35,7 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
 };
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
+use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
@@ -55,6 +57,9 @@ pub struct HTMLVideoElement {
     /// Load event blocker. Will block the load event while the poster frame
     /// is being fetched.
     load_blocker: DomRefCell<Option<LoadBlocker>>,
+    /// A copy of the last frame
+    #[ignore_malloc_size_of = "VideoFrame"]
+    last_frame: DomRefCell<Option<VideoFrame>>,
 }
 
 impl HTMLVideoElement {
@@ -70,6 +75,7 @@ impl HTMLVideoElement {
             generation_id: Cell::new(0),
             poster_frame_canceller: DomRefCell::new(Default::default()),
             load_blocker: Default::default(),
+            last_frame: Default::default(),
         }
     }
 
@@ -108,6 +114,27 @@ impl HTMLVideoElement {
         LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
     }
 
+    pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
+        let frame = self.htmlmediaelement.get_current_frame();
+        if frame.is_some() {
+            *self.last_frame.borrow_mut() = frame;
+        }
+
+        match self.last_frame.borrow().as_ref() {
+            Some(frame) => {
+                let size = Size2D::new(frame.get_width() as u32, frame.get_height() as u32);
+                if !frame.is_gl_texture() {
+                    let data = Some(ipc::IpcSharedMemory::from_bytes(&frame.get_data()));
+                    Some((data, size))
+                } else {
+                    // XXX(victor): here we only have the GL texture ID.
+                    Some((None, size))
+                }
+            },
+            None => None,
+        }
+    }
+
     /// https://html.spec.whatwg.org/multipage/#poster-frame
     fn fetch_poster_frame(&self, poster_url: &str) {
         // Step 1.
@@ -132,6 +159,8 @@ impl HTMLVideoElement {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             poster_url.clone().into(),
+            window.origin().immutable().clone(),
+            None,
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );

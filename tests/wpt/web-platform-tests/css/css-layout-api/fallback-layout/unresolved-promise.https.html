@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#invoke-a-layout-callback">
+<link rel="match" href="fallback-layout-fallback-ref.html">
+<meta name="assert" content="This test checks that a layout() class with a layout function that doesn't return a promise will fallback to block layout." />
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  width: 100px;
+}
+
+.child {
+  height: 100px;
+}
+
+@supports (display: layout(unresolved-promise)) {
+  .test {
+    display: layout(unresolved-promise);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('unresolved-promise', class {
+  async intrinsicSizes() {}
+  layout() { return new Promise(() => { /* never resolves */ }); }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

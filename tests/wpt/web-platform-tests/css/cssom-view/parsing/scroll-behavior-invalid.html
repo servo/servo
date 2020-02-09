@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSSOM View: parsing scroll-behavior with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior">
+<meta name="assert" content="scroll-behavior supports only the grammar 'auto | smooth'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("scroll-behavior", 'normal');
+test_invalid_value("scroll-behavior", 'auto smooth');
+test_invalid_value("scroll-behavior", 'auto, smooth');
+</script>
+</body>
+</html>

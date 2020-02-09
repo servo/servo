@@ -507,10 +507,10 @@ class HandshakerTest(unittest.TestCase):
             try:
                 handshaker.do_handshake()
                 self.fail('No exception thrown for \'%s\' case' % case_name)
-            except HandshakeException, e:
+            except HandshakeException as e:
                 self.assertTrue(expect_handshake_exception)
                 self.assertEqual(expected_status, e.status)
-            except VersionException, e:
+            except VersionException as e:
                 self.assertFalse(expect_handshake_exception)
 
 

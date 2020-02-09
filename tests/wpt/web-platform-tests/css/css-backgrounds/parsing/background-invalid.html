@@ -12,7 +12,11 @@
 </head>
 <body>
 <script>
+// <bg-layer> does not allow a <color>.
 test_invalid_value("background", "red, green");
+
+// A `/ <bg-size>` is only allowed directly after a <bg-position>.
+test_invalid_value("background", "black 0 url(https://example.invalid/) / cover");
 </script>
 </body>
 </html>

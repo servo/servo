@@ -14,14 +14,14 @@ use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDeriva
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use canvas_traits::webgl::{webgl_channel, WebGLVersion};
+use canvas_traits::webgl::{webgl_channel, GlType, WebGLVersion};
 use canvas_traits::webgl::{GLLimits, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
 use dom_struct::dom_struct;
-use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
+use mozangle::shaders::{ffi, BuiltInResources, Output, ShaderValidator};
 use std::cell::Cell;
 use std::os::raw::c_int;
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {
@@ -42,7 +42,7 @@ pub struct WebGLShader {
     compilation_status: Cell<ShaderCompilationStatus>,
 }
 
-static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
+static GLSLANG_INITIALIZATION: Once = Once::new();
 
 impl WebGLShader {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLShaderId, shader_type: u32) -> Self {
@@ -81,6 +81,121 @@ impl WebGLShader {
     }
 }
 
+// Based on https://searchfox.org/mozilla-central/rev/efdf9bb55789ea782ae3a431bda6be74a87b041e/gfx/angle/checkout/src/compiler/translator/ShaderLang.cpp#173
+fn default_validator() -> BuiltInResources {
+    BuiltInResources {
+        // Constants.
+        MaxVertexAttribs: 8,
+        MaxVertexUniformVectors: 128,
+        MaxVaryingVectors: 8,
+        MaxVertexTextureImageUnits: 0,
+        MaxCombinedTextureImageUnits: 8,
+        MaxTextureImageUnits: 8,
+        MaxFragmentUniformVectors: 16,
+        MaxDrawBuffers: 1,
+
+        // Extensions.
+        OES_standard_derivatives: 0,
+        OES_EGL_image_external: 0,
+        OES_EGL_image_external_essl3: 0,
+        NV_EGL_stream_consumer_external: 0,
+        ARB_texture_rectangle: 0,
+        EXT_blend_func_extended: 0,
+        EXT_draw_buffers: 0,
+        EXT_frag_depth: 0,
+        EXT_shader_texture_lod: 0,
+        WEBGL_debug_shader_precision: 0,
+        EXT_shader_framebuffer_fetch: 0,
+        NV_shader_framebuffer_fetch: 0,
+        NV_draw_buffers: 0,
+        ARM_shader_framebuffer_fetch: 0,
+        //OVR_multiview: 0,
+        OVR_multiview2: 0,
+        EXT_YUV_target: 0,
+        EXT_geometry_shader: 0,
+        OES_texture_storage_multisample_2d_array: 0,
+        //OES_texture_3d: 0,
+        ANGLE_texture_multisample: 0,
+        ANGLE_multi_draw: 0,
+
+        // Disable highp precision in fragment shader by default.
+        FragmentPrecisionHigh: 0,
+
+        // GLSL ES 3.0 constants.
+        MaxVertexOutputVectors: 16,
+        MaxFragmentInputVectors: 15,
+        MinProgramTexelOffset: -8,
+        MaxProgramTexelOffset: 7,
+
+        // Extension constants.
+        MaxDualSourceDrawBuffers: 0,
+        MaxViewsOVR: 4,
+
+        // Disable name hashing by default.
+        HashFunction: None,
+        ArrayIndexClampingStrategy:
+            ffi::ShArrayIndexClampingStrategy::SH_CLAMP_WITH_CLAMP_INTRINSIC,
+
+        MaxExpressionComplexity: 256,
+        MaxCallStackDepth: 256,
+        MaxFunctionParameters: 1024,
+
+        // ES 3.1 Revision 4, 7.2 Built-in Constants
+
+        // ES 3.1, Revision 4, 8.13 Texture minification
+        // "The value of MIN_PROGRAM_TEXTURE_GATHER_OFFSET must be less than or equal to the value of
+        // MIN_PROGRAM_TEXEL_OFFSET. The value of MAX_PROGRAM_TEXTURE_GATHER_OFFSET must be greater than
+        // or equal to the value of MAX_PROGRAM_TEXEL_OFFSET"
+        MinProgramTextureGatherOffset: -8,
+        MaxProgramTextureGatherOffset: 7,
+
+        MaxImageUnits: 4,
+        MaxVertexImageUniforms: 0,
+        MaxFragmentImageUniforms: 0,
+        MaxComputeImageUniforms: 0,
+        MaxCombinedImageUniforms: 0,
+
+        MaxUniformLocations: 1024,
+
+        MaxCombinedShaderOutputResources: 4,
+
+        MaxComputeWorkGroupCount: [65535, 65535, 65535],
+        MaxComputeWorkGroupSize: [128, 128, 64],
+        MaxComputeUniformComponents: 512,
+        MaxComputeTextureImageUnits: 16,
+
+        MaxComputeAtomicCounters: 8,
+        MaxComputeAtomicCounterBuffers: 1,
+
+        MaxVertexAtomicCounters: 0,
+        MaxFragmentAtomicCounters: 0,
+        MaxCombinedAtomicCounters: 8,
+        MaxAtomicCounterBindings: 1,
+
+        MaxVertexAtomicCounterBuffers: 0,
+        MaxFragmentAtomicCounterBuffers: 0,
+        MaxCombinedAtomicCounterBuffers: 1,
+        MaxAtomicCounterBufferSize: 32,
+
+        MaxUniformBufferBindings: 32,
+        MaxShaderStorageBufferBindings: 4,
+        MaxPointSize: 0.0,
+
+        MaxGeometryUniformComponents: 1024,
+        MaxGeometryUniformBlocks: 12,
+        MaxGeometryInputComponents: 64,
+        MaxGeometryOutputComponents: 64,
+        MaxGeometryOutputVertices: 256,
+        MaxGeometryTotalOutputComponents: 1024,
+        MaxGeometryTextureImageUnits: 16,
+        MaxGeometryAtomicCounterBuffers: 0,
+        MaxGeometryAtomicCounters: 0,
+        MaxGeometryShaderStorageBlocks: 0,
+        MaxGeometryShaderInvocations: 32,
+        MaxGeometryImageUniforms: 0,
+    }
+}
+
 impl WebGLShader {
     pub fn id(&self) -> WebGLShaderId {
         self.id
@@ -93,6 +208,7 @@ impl WebGLShader {
     /// glCompileShader
     pub fn compile(
         &self,
+        api_type: GlType,
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
         limits: &GLLimits,
@@ -107,22 +223,34 @@ impl WebGLShader {
 
         let source = self.source.borrow();
 
-        let params = BuiltInResources {
+        let mut params = BuiltInResources {
             MaxVertexAttribs: limits.max_vertex_attribs as c_int,
             MaxVertexUniformVectors: limits.max_vertex_uniform_vectors as c_int,
-            MaxVaryingVectors: limits.max_varying_vectors as c_int,
             MaxVertexTextureImageUnits: limits.max_vertex_texture_image_units as c_int,
             MaxCombinedTextureImageUnits: limits.max_combined_texture_image_units as c_int,
             MaxTextureImageUnits: limits.max_texture_image_units as c_int,
             MaxFragmentUniformVectors: limits.max_fragment_uniform_vectors as c_int,
+
+            MaxVertexOutputVectors: limits.max_vertex_output_vectors as c_int,
+            MaxFragmentInputVectors: limits.max_fragment_input_vectors as c_int,
+            MaxVaryingVectors: limits.max_varying_vectors as c_int,
+
             OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives>() as c_int,
             EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod>() as c_int,
+
             FragmentPrecisionHigh: 1,
-            ..BuiltInResources::default()
+            ..default_validator()
         };
+
+        if webgl_version == WebGLVersion::WebGL2 {
+            params.MinProgramTexelOffset = limits.min_program_texel_offset as c_int;
+            params.MaxProgramTexelOffset = limits.max_program_texel_offset as c_int;
+            params.MaxDrawBuffers = limits.max_draw_buffers as c_int;
+        }
+
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
-                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                let output_format = if api_type == GlType::Gles {
                     Output::Essl
                 } else {
                     Output::Glsl
@@ -130,7 +258,7 @@ impl WebGLShader {
                 ShaderValidator::for_webgl(self.gl_type, output_format, &params).unwrap()
             },
             WebGLVersion::WebGL2 => {
-                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                let output_format = if api_type == GlType::Gles {
                     Output::Essl
                 } else {
                     match (glsl_version.major, glsl_version.minor) {
@@ -177,12 +305,16 @@ impl WebGLShader {
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteShader(self.id));
+            let context = self.upcast::<WebGLObject>().context();
+            let cmd = WebGLCommand::DeleteShader(self.id);
+            if fallible {
+                context.send_command_ignored(cmd);
+            } else {
+                context.send_command(cmd);
+            }
         }
     }
 
@@ -229,6 +361,6 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }

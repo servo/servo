@@ -1,0 +1,37 @@
+<!doctype html>
+<title>Paced value animation doesn't overwrite keyTimes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta charset="utf-8">
+<link rel="author" title="Edvard Thörnros" href="mailto:edvardt@opera.com">
+<link rel="help" href="https://www.w3.org/TR/SMIL20/animation.html#animationNS-animateMotionElement">
+<link rel="bug" href="https://bugs.chromium.org/p/chromium/issues/detail?id=231525&hotlist_id=5524&sort=%20rank%20-ID">
+
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" width="500" height="500">
+  <rect x="151" y="1" width="98" height="98" fill="red"/>
+  <rect id="rect" x="0" y="0" width="100" height="100" fill="green">
+    <animate id="animate1" attributeName="x" dur="10s" calcMode="paced" values="100; 150; 200;" keyTimes="0; 0.2; 1"/>
+  </rect>
+</svg>
+
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      let svg = document.getElementById('svg');
+      let animate1 = document.getElementById('animate1');
+      let rect = document.getElementById('rect');
+      t.step_timeout(function() {
+        // animate1's keyTimes should not be affected by starting with calcMode=paced
+        animate1.setAttribute('calcMode', 'linear');
+        svg.pauseAnimations();
+        svg.setCurrentTime(2);
+        window.requestAnimationFrame(t.step_func(function() {
+          window.requestAnimationFrame(t.step_func_done(function() {
+            assert_approx_equals(rect.x.animVal.value, 150, 5);
+          }));
+        }));
+      }, 10);
+    });
+  });
+</script>

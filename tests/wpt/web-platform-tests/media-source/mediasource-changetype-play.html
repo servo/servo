@@ -2,7 +2,7 @@
 <!-- Copyright © 2018 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
-        <title>Exercise changeType for supported test types.</title>
+        <title>Exercise changeType for supported test types, using mime types WITH codecs (if applicable) for addSourceBuffer and changeType.</title>
         <meta name="timeout" content="long">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
@@ -23,14 +23,20 @@ function generateChangeTypeTests(audio_types, video_types) {
   // Generate audio-only changeType tests
   for (let audio1 of audio_types) {
     for (let audio2 of audio_types) {
-      mediaSourceChangeTypeTest(audio1, audio2, "Test audio-only changeType for " + audio1.type + " <-> " + audio2.type);
+      mediaSourceChangeTypeTest(
+          audio1, audio2,
+          "Test audio-only changeType for " +
+              audio1.type + " <-> " + audio2.type);
     }
   }
 
   // Generate video-only changeType tests
   for (let video1 of video_types) {
     for (let video2 of video_types) {
-      mediaSourceChangeTypeTest(video1, video2, "Test video-only changeType for " + video1.type + " <-> " + video2.type);
+      mediaSourceChangeTypeTest(
+          video1, video2,
+          "Test video-only changeType for " +
+              video1.type + " <-> " + video2.type);
     }
   }
 }

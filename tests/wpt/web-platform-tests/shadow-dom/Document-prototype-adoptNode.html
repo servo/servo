@@ -15,7 +15,7 @@
 function testAdoptNode(mode) {
     test(function () {
         var newDocument = document.implementation.createHTMLDocument();
-        assert_throws({'name': 'HierarchyRequestError'}, function () {
+        assert_throws_dom('HierarchyRequestError', function () {
             var element = document.createElement('div');
             var shadowRoot = element.attachShadow({mode: mode});
             newDocument.adoptNode(shadowRoot);

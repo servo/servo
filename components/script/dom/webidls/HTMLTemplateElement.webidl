@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltemplateelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLTemplateElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   readonly attribute DocumentFragment content;
 };

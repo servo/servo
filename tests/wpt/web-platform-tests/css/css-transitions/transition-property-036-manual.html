@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - padding-right</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="assert" content="Test checks that the 'padding-right' property is animatable.">
+<style>
+  #test {
+    padding-right: 0px;
+    transition-duration: 2s;
+    transition-property: padding-right;
+    transition-timing-function: linear;
+  }
+  #ref {
+    background-color: blue;
+    float: right;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the blue square below. Test passes if the blue square moves gradually not immediately from right to left until it stops.</p>
+  <div id="test">
+    <div id="ref"></div>
+  </div>
+  <script>
+    (function() {
+      var ref = document.querySelector("#ref");
+      ref.addEventListener("click", function(evt) {
+        document.querySelector("#test").setAttribute("style", "padding-right: 200px;");
+      }, false);
+    })();
+  </script>
+</body>

@@ -4,8 +4,12 @@
 
 WINDOWS_MSVC = {
     "cmake": "3.14.3",
-    "llvm": "8.0.0",
+    "llvm": "8.0.1",
     "moztools": "3.2",
     "ninja": "1.7.1",
-    "openssl": "1.0.2q-vs2017",
+    "nuget": "08-08-2019",
+    "openssl": "111.3.0+1.1.1c-vs2017-2019-09-18",
+    "gstreamer-uwp": "1.16.0.5",
+    "openxr-loader-uwp": "1.0",
+    "xargo": "v0.3.17",
 }

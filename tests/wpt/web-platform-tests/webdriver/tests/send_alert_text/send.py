@@ -4,7 +4,6 @@ from webdriver.error import NoSuchAlertException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.authentication import basic_authentication
 from tests.support.inline import inline
 from tests.support.sync import Poll
 
@@ -56,13 +55,6 @@ def test_alert_element_not_interactable(session, dialog_type):
 
     response = send_alert_text(session, "Federer")
     assert_error(response, "element not interactable")
-
-
-def test_alert_unsupported_operation(session):
-    session.url = basic_authentication()
-
-    response = send_alert_text(session, "Federer")
-    assert_error(response, "unsupported operation")
 
 
 @pytest.mark.parametrize("text", ["", "Federer", " Fed erer ", "Fed\terer"])

@@ -5,6 +5,7 @@
 <script src="/preload/resources/preload_helper.js"></script>
 <link rel=preload href="resources/square.png?pipe=trickle(d1)" as=image>
 <script>
+    setup({ single_test: true });
     var link = document.getElementsByTagName("link")[0]
     assert_equals(link.as, "image");
     link.addEventListener("load", () => {

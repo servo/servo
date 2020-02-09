@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#percentages">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/computed-testcommon.js"></script>
+<div id="container" style="width: 400px">
+  <div id="target"></div>
+  <div id="reference"></div>
+</div>
+<script>
+const property = 'margin-left';
+
+function test_percentage_equals(value, expected) {
+  const reference = document.getElementById('reference');
+  reference.style[property] = '';
+  reference.style[property] = expected;
+  const computed = getComputedStyle(reference)[property];
+  test_computed_value(property, value, computed);
+}
+
+// Identity tests
+test_percentage_equals('min(1%)', '1%');
+test_percentage_equals('max(1%)', '1%');
+
+// Nestings
+test_percentage_equals('min(20%, max(10%, 15%))', '15%');
+test_percentage_equals('max(10%, min(20%, 15%))', '15%');
+
+// General calculations
+test_percentage_equals('calc(min(10%, 20%) + 5%)', '15%');
+test_percentage_equals('calc(min(10%, 20%) - 5%)', '5%');
+test_percentage_equals('calc(min(10%, 20%) * 2)', '20%');
+test_percentage_equals('calc(min(10%, 20%) / 2)', '5%');
+test_percentage_equals('calc(max(10%, 20%) + 5%)', '25%');
+test_percentage_equals('calc(max(10%, 20%) - 5%)', '15%');
+test_percentage_equals('calc(max(10%, 20%) * 2)', '40%');
+test_percentage_equals('calc(max(10%, 20%) / 2)', '10%');
+test_percentage_equals('calc(min(10%, 20%) + max(10%, 5%))', '20%');
+test_percentage_equals('calc(min(10%, 20%) - max(10%, 5%))', '0%');
+</script>

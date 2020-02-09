@@ -8,7 +8,9 @@ pub mod history_traversal;
 pub mod media_element;
 pub mod networking;
 pub mod performance_timeline;
+pub mod port_message;
 pub mod remote_event;
+pub mod timer;
 pub mod user_interaction;
 pub mod websocket;
 
@@ -28,10 +30,12 @@ pub enum TaskSourceName {
     HistoryTraversal,
     Networking,
     PerformanceTimeline,
+    PortMessage,
     UserInteraction,
     RemoteEvent,
     MediaElement,
     Websocket,
+    Timer,
 }
 
 impl TaskSourceName {

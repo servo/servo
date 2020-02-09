@@ -64,7 +64,9 @@ public class JNIServo {
 
     public native void pinchZoomEnd(float factor, int x, int y);
 
-    public native void click(int x, int y);
+    public native void click(float x, float y);
+
+    public native void mediaSessionAction(int action);
 
     public static class ServoOptions {
       public String args;
@@ -74,6 +76,7 @@ public class JNIServo {
       public boolean enableSubpixelTextAntialiasing = true;
       public long VRExternalContext = 0;
       public String logStr;
+      public String gstDebugStr;
       public boolean enableLogs = false;
     }
 
@@ -93,6 +96,8 @@ public class JNIServo {
 
         void makeCurrent();
 
+        void onAlert(String message);
+
         void onAnimatingChanged(boolean animating);
 
         void onLoadStarted();
@@ -106,6 +111,12 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onShutdownComplete();
+
+        void onMediaSessionMetadata(String title, String artist, String album);
+
+        void onMediaSessionPlaybackStateChange(int state);
+
+        void onMediaSessionSetPositionState(float duration, float position, float playbackRate);
     }
 }
 

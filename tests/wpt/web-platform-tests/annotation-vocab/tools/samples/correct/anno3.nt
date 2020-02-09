@@ -1,5 +1,0 @@
-<http://example.org/website1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/dc/dcmitype/Text> .
-<http://example.org/video1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/dc/dcmitype/MovingImage> .
-<http://example.org/anno3> <http://www.w3.org/ns/oa#hasTarget> <http://example.org/website1> .
-<http://example.org/anno3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
-<http://example.org/anno3> <http://www.w3.org/ns/oa#hasBody> <http://example.org/video1> .

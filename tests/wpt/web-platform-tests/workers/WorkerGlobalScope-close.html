@@ -16,16 +16,31 @@ async_test(function(t) {
 async_test(function(t) {
   var worker = new Worker('support/WorkerGlobalScope-close.js');
   worker.postMessage("ping");
-    worker.onmessage = t.step_func(function(evt) {
+  worker.onmessage = t.step_func(function(evt) {
     assert_equals(evt.data, "pong");
-    // Tell the worker to close, then send a followup message. This message
-    // should not be delivered, since that would require JS to invoke the
-    //  onmessage handler, which does not happen after the JS fragment with
-    // 'close()' in it exits. So, the 'ping' should not come back as 'pong'.
+    // Tell the worker to close, then send a followup message.
     worker.postMessage("close");
+
+    // The worker may or may not be closing/closed by this call. If it is, the
+    // message won't be enqueued on the worker's event loop. If it isn't, the
+    // message will be enqueued but shouldn't be handled by the worker because
+    // the prior postMessage will cause the worker to close. In either case,
+    // the worker shouldn't postMessage back "pong".
+    //
+    // This also means that at this point we can't confidently test
+    // postMessage-ing a worker that will close nor a worker that is already
+    // closing/closed.
     worker.postMessage("ping");
-      worker.onmessage = t.step_func(function(evt) {
+
+    worker.onmessage = t.step_func(function(evt) {
       assert_not_equals(evt.data, "pong");
+
+      // The worker should definitely be closed by now, so we can confidently
+      // test postMessage-ing a closed worker. This postMessage shouldn't throw
+      // or cause the worker to postMessage back "pong" (it shouldn't receive
+      // any events after closing).
+      worker.postMessage("ping");
+
       t.step_timeout(function() { t.done(); }, 500);
     });
   });

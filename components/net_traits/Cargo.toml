@@ -13,15 +13,15 @@ test = false
 doctest = false
 
 [dependencies]
+content-security-policy = {version = "0.3.0", features = ["serde"]}
 cookie = "0.11"
 embedder_traits = { path = "../embedder_traits" }
-headers-core = "0.1"
 headers = "0.2"
 http = "0.1"
 hyper = "0.12"
 hyper_serde = "0.11"
-piston_image = {package = "image", version = "0.21"}
-ipc-channel = "0.11"
+piston_image = {package = "image", version = "0.22"}
+ipc-channel = "0.12"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
@@ -29,15 +29,15 @@ malloc_size_of_derive = "0.1"
 mime = "0.3"
 msg = {path = "../msg"}
 num-traits = "0.2"
+percent-encoding = "2.0"
 pixels = {path = "../pixels"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
-servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 time = "0.1"
-url = "1.2"
-uuid = {version = "0.7", features = ["v4", "serde"]}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+url = "2.0"
+uuid = {version = "0.8", features = ["v4", "serde"]}
+webrender_api = {git = "https://github.com/servo/webrender"}
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }

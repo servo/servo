@@ -17,11 +17,11 @@ dictionary XRWebGLLayerInit {
   // double framebufferScaleFactor = 1.0;
 };
 
-[SecureContext, Exposed=Window, Constructor(XRSession session,
-            XRWebGLRenderingContext context,
-            optional XRWebGLLayerInit layerInit),
-    Pref="dom.webxr.enabled"]
-interface XRWebGLLayer : XRLayer {
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRWebGLLayer {
+  [Throws] constructor(XRSession session,
+              XRWebGLRenderingContext context,
+              optional XRWebGLLayerInit layerInit = {});
   // // Attributes
   readonly attribute XRWebGLRenderingContext context;
 
@@ -30,9 +30,9 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute boolean stencil;
   readonly attribute boolean alpha;
 
-  // readonly attribute WebGLFramebuffer framebuffer;
-  // readonly attribute unsigned long framebufferWidth;
-  // readonly attribute unsigned long framebufferHeight;
+  readonly attribute WebGLFramebuffer? framebuffer;
+  readonly attribute unsigned long framebufferWidth;
+  readonly attribute unsigned long framebufferHeight;
 
   // // Methods
   XRViewport? getViewport(XRView view);

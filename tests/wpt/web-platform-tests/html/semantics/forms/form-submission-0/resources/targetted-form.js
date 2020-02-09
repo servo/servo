@@ -19,3 +19,10 @@ function submitPromise(form, iframe) {
     form.submit();
   });
 }
+
+function loadPromise(iframe) {
+  return new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = () => reject(new Error('iframe onerror fired'));
+  });
+}

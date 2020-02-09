@@ -142,3 +142,41 @@ test(function() {
     assert_equals(computedStyle.transitionProperty, 'water');
 }, "A var() cycle between a syntax:'*' property and an unregistered property is handled correctly.");
 </script>
+
+<style>
+#test5_parent {
+    --registered-5-c:foo;
+    --registered-5-d:bar;
+    --registered-5-e:baz;
+    color: green;
+}
+#test5 {
+    --registered-5-a:var(--registered-5-b,hello);
+    --registered-5-b:var(--registered-5-a,world);
+
+    --registered-5-c:var(--registered-5-a);
+    --registered-5-d:var(--registered-5-b);
+    --registered-5-e:var(--unknown);
+    color: var(--registered-5-e);
+}
+</style>
+<div id=test5_parent>
+    <div id=test5></div>
+</div>
+<script>
+test(function() {
+    CSS.registerProperty({name: '--registered-5-a', syntax: '*', inherits: true});
+    CSS.registerProperty({name: '--registered-5-b', syntax: '*', inherits: true});
+    CSS.registerProperty({name: '--registered-5-c', syntax: '*', inherits: true});
+    CSS.registerProperty({name: '--registered-5-d', syntax: '*', inherits: true});
+    CSS.registerProperty({name: '--registered-5-e', syntax: '*', inherits: true});
+
+    let computedStyle = getComputedStyle(test5);
+    assert_equals(computedStyle.getPropertyValue('--registered-5-a'), '');
+    assert_equals(computedStyle.getPropertyValue('--registered-5-b'), '');
+    assert_equals(computedStyle.getPropertyValue('--registered-5-c'), 'foo');
+    assert_equals(computedStyle.getPropertyValue('--registered-5-d'), 'bar');
+    assert_equals(computedStyle.getPropertyValue('--registered-5-e'), 'baz');
+    assert_equals(computedStyle.getPropertyValue('color'), 'rgb(0, 128, 0)');
+}, "Invalid at computed-value time triggers 'unset' behavior");
+</script>

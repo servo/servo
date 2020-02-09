@@ -6,6 +6,7 @@
 <div id=log></div>
 <iframe></iframe>
 <script>
+  setup({ single_test: true });
   onload = function() {
     var fr = document.querySelector("iframe")
     fr.contentWindow.location = "support/dummy.html"

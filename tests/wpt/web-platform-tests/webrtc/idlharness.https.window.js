@@ -114,7 +114,7 @@ idl_test(
       RTCRtpReceiver: [`new RTCPeerConnection().addTransceiver('audio').receiver`],
       RTCPeerConnectionIceEvent: [`new RTCPeerConnectionIceEvent('ice')`],
       RTCPeerConnectionIceErrorEvent: [
-        `new RTCPeerConnectionIceErrorEvent('ice-error', { errorCode: 701 });`
+        `new RTCPeerConnectionIceErrorEvent('ice-error', { port: 0, errorCode: 701 });`
       ],
       RTCTrackEvent: [`initTrackEvent()`],
       RTCErrorEvent: [`new RTCErrorEvent('error')`],

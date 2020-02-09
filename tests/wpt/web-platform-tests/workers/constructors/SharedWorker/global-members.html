@@ -1,34 +1,12 @@
-<!--
-var expected = 'self location close onerror importScripts navigator addEventListener removeEventListener dispatchEvent name onconnect setTimeout clearTimeout setInterval clearInterval'.split(' ');
-var log = '';
-for (var i = 0; i < expected.length; ++i) {
-  if (!(expected[i] in self))
-    log += expected[i] + ' did not exist\n';
-}
-onconnect = function(e) {
-  e.ports[0].postMessage(log);
-};
-/*
--->
 <!doctype html>
 <title>members of SharedWorkerGlobalScope</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
-(async_test()).step(function() {
-  var worker = new SharedWorker('#');
-  worker.port.addEventListener('message', this.step_func(function(e) {
+async_test(t => {
+  const worker = new SharedWorker('global-members.js');
+  worker.port.onmessage = t.step_func_done(e => {
     assert_equals(e.data, '');
-    this.done();
-  }), false);
-  worker.port.start();
-});
+  });
+}, 'Test if global members exist in a shared worker');
 </script>
-<!--
-*/
-//-->
-
-
-
-

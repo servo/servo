@@ -12,12 +12,17 @@ use style_traits::{CssWriter, ToCss};
 
 /// A generic value for a single side of a `border-image-width` property.
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
@@ -25,10 +30,13 @@ use style_traits::{CssWriter, ToCss};
 )]
 #[repr(C, u8)]
 pub enum GenericBorderImageSideWidth<LP, N> {
+    /// `<number>`
+    ///
+    /// NOTE: Numbers need to be before length-percentagess, in order to parse
+    /// them first, since `0` should be a number, not the `0px` length.
+    Number(N),
     /// `<length-or-percentage>`
     LengthPercentage(LP),
-    /// `<number>`
-    Number(N),
     /// `auto`
     Auto,
 }
@@ -37,12 +45,16 @@ pub use self::GenericBorderImageSideWidth as BorderImageSideWidth;
 
 /// A generic value for the `border-image-slice` property.
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
@@ -54,6 +66,7 @@ pub struct GenericBorderImageSlice<NumberOrPercentage> {
     #[css(field_bound)]
     pub offsets: Rect<NumberOrPercentage>,
     /// Whether to fill the middle part.
+    #[animation(constant)]
     #[css(represents_keyword)]
     pub fill: bool,
 }

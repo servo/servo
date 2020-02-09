@@ -1,5 +1,5 @@
 function assert_transfer_error(transferList) {
-  assert_throws("DataCloneError", () => self.postMessage({ get whatever() { throw new Error("You should not have gotten to this point") } }, "*", transferList));
+  assert_throws_dom("DataCloneError", () => self.postMessage({ get whatever() { throw new Error("You should not have gotten to this point") } }, "*", transferList));
 }
 
 test(() => {
@@ -17,14 +17,14 @@ function transfer_tests(name, create) {
   promise_test(async () => {
     const transferable = await create();
     self.postMessage(null, "*", [transferable]);
-    assert_throws("DataCloneError", () => self.postMessage(null, "*", [transferable]));
+    assert_throws_dom("DataCloneError", () => self.postMessage(null, "*", [transferable]));
   }, `Serialize should make the ${name} detached, so it cannot be transferred again`);
 
   promise_test(async () => {
     const transferable = await create(),
           customError = new Error("hi");
     self.postMessage(null, "*", [transferable]);
-    assert_throws(customError, () => self.postMessage({ get whatever() { throw customError } }, "*", [transferable]));
+    assert_throws_exactly(customError, () => self.postMessage({ get whatever() { throw customError } }, "*", [transferable]));
   }, `Serialize should throw before a detached ${name} is found`);
 
   promise_test(async () => {
@@ -36,7 +36,7 @@ function transfer_tests(name, create) {
         seen = true;
       }
     };
-    assert_throws("DataCloneError", () => self.postMessage(message, "*", [transferable]));
+    assert_throws_dom("DataCloneError", () => self.postMessage(message, "*", [transferable]));
     assert_true(seen);
   }, `Cannot transfer ${name} detached while the message was serialized`);
 }

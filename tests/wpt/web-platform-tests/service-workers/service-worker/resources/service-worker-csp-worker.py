@@ -18,12 +18,12 @@ test(function() {
   }, 'importScripts test for default-src');
 
 test(function() {
-    assert_throws(EvalError(),
-                  function() { eval('1 + 1'); },
-                  'eval() should throw EvalError.')
-    assert_throws(EvalError(),
-                  function() { new Function('1 + 1'); },
-                  'new Function() should throw EvalError.')
+    assert_throws_js(EvalError,
+                     function() { eval('1 + 1'); },
+                     'eval() should throw EvalError.')
+    assert_throws_js(EvalError,
+                     function() { new Function('1 + 1'); },
+                     'new Function() should throw EvalError.')
   }, 'eval test for default-src');
 
 async_test(function(t) {
@@ -73,12 +73,12 @@ test(function() {
   }, 'importScripts test for script-src');
 
 test(function() {
-    assert_throws(EvalError(),
-                  function() { eval('1 + 1'); },
-                  'eval() should throw EvalError.')
-    assert_throws(EvalError(),
-                  function() { new Function('1 + 1'); },
-                  'new Function() should throw EvalError.')
+    assert_throws_js(EvalError,
+                     function() { eval('1 + 1'); },
+                     'eval() should throw EvalError.')
+    assert_throws_js(EvalError,
+                     function() { new Function('1 + 1'); },
+                     'new Function() should throw EvalError.')
   }, 'eval test for script-src');
 
 async_test(function(t) {

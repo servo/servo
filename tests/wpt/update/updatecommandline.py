@@ -13,6 +13,8 @@ def create_parser():
     parser.add_argument("--token-file", action="store", type=wptcommandline.abs_path,
                         help="Path to file containing github token")
     parser.add_argument("--token", action="store", help="GitHub token to use")
+    parser.add_argument('--layout-2020', default=False, action="store_true",
+                        help="Use expected results for the 2020 layout engine")
     return parser
 
 

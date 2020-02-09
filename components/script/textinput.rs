@@ -450,12 +450,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         let allowed_to_insert_count = if let Some(max_length) = self.max_length {
             let len_after_selection_replaced =
                 self.utf16_len().saturating_sub(self.selection_utf16_len());
-            if len_after_selection_replaced >= max_length {
-                // If, after deleting the selection, the len is still greater than the max
-                // length, then don't delete/insert anything
-                return;
-            }
-
             max_length.saturating_sub(len_after_selection_replaced)
         } else {
             UTF16CodeUnits(usize::MAX)
@@ -877,6 +871,13 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.select_all();
                 KeyReaction::RedrawSelection
             })
+            .shortcut(CMD_OR_CONTROL, 'X', || {
+                if let Some(text) = self.get_selection_text() {
+                    self.clipboard_provider.set_clipboard_contents(text);
+                    self.delete_char(Direction::Backward);
+                }
+                KeyReaction::DispatchInput
+            })
             .shortcut(CMD_OR_CONTROL, 'C', || {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
@@ -989,7 +990,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines
             .iter()
             .fold(UTF16CodeUnits::zero(), |m, l| {
-                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1) // + 1 for the '\n'
+                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1)
+                // + 1 for the '\n'
             })
             .saturating_sub(UTF16CodeUnits::one())
     }

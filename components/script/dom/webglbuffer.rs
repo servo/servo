@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::inheritance::Castable;
@@ -15,6 +16,11 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult}
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use std::cell::Cell;
+
+fn target_is_copy_buffer(target: u32) -> bool {
+    target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
+        target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
+}
 
 #[dom_struct]
 pub struct WebGLBuffer {
@@ -65,11 +71,17 @@ impl WebGLBuffer {
         self.id
     }
 
-    pub fn buffer_data(&self, data: &[u8], usage: u32) -> WebGLResult<()> {
+    pub fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
-            WebGLRenderingContextConstants::DYNAMIC_DRAW => (),
+            WebGLRenderingContextConstants::DYNAMIC_DRAW |
+            WebGL2RenderingContextConstants::STATIC_READ |
+            WebGL2RenderingContextConstants::DYNAMIC_READ |
+            WebGL2RenderingContextConstants::STREAM_READ |
+            WebGL2RenderingContextConstants::STATIC_COPY |
+            WebGL2RenderingContextConstants::DYNAMIC_COPY |
+            WebGL2RenderingContextConstants::STREAM_COPY => (),
             _ => return Err(WebGLError::InvalidEnum),
         }
 
@@ -78,11 +90,7 @@ impl WebGLBuffer {
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.upcast::<WebGLObject>()
             .context()
-            .send_command(WebGLCommand::BufferData(
-                self.target.get().unwrap(),
-                receiver,
-                usage,
-            ));
+            .send_command(WebGLCommand::BufferData(target, receiver, usage));
         sender.send(data).unwrap();
         Ok(())
     }
@@ -91,21 +99,25 @@ impl WebGLBuffer {
         self.capacity.get()
     }
 
-    pub fn mark_for_deletion(&self) {
+    pub fn mark_for_deletion(&self, fallible: bool) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
         if self.is_deleted() {
-            self.delete();
+            self.delete(fallible);
         }
     }
 
-    fn delete(&self) {
+    fn delete(&self, fallible: bool) {
         assert!(self.is_deleted());
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DeleteBuffer(self.id));
+        let context = self.upcast::<WebGLObject>().context();
+        let cmd = WebGLCommand::DeleteBuffer(self.id);
+        if fallible {
+            context.send_command_ignored(cmd);
+        } else {
+            context.send_command(cmd);
+        }
     }
 
     pub fn is_marked_for_deletion(&self) -> bool {
@@ -120,11 +132,24 @@ impl WebGLBuffer {
         self.target.get()
     }
 
-    pub fn set_target(&self, target: u32) -> WebGLResult<()> {
-        if self.target.get().map_or(false, |t| t != target) {
+    fn can_bind_to(&self, new_target: u32) -> bool {
+        if let Some(current_target) = self.target.get() {
+            if [current_target, new_target]
+                .contains(&WebGLRenderingContextConstants::ELEMENT_ARRAY_BUFFER)
+            {
+                return target_is_copy_buffer(new_target) || new_target == current_target;
+            }
+        }
+        true
+    }
+
+    pub fn set_target_maybe(&self, target: u32) -> WebGLResult<()> {
+        if !self.can_bind_to(target) {
             return Err(WebGLError::InvalidOperation);
         }
-        self.target.set(Some(target));
+        if !target_is_copy_buffer(target) {
+            self.target.set(Some(target));
+        }
         Ok(())
     }
 
@@ -149,7 +174,7 @@ impl WebGLBuffer {
                 .expect("refcount underflowed"),
         );
         if self.is_deleted() {
-            self.delete();
+            self.delete(false);
         }
     }
 
@@ -160,6 +185,6 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        self.mark_for_deletion();
+        self.mark_for_deletion(true);
     }
 }

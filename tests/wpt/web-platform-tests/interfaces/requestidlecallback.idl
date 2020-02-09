@@ -4,7 +4,7 @@
 // Source: Cooperative Scheduling of Background Tasks (https://w3c.github.io/requestidlecallback/)
 
 partial interface Window {
-  unsigned long requestIdleCallback(IdleRequestCallback callback, optional IdleRequestOptions options);
+  unsigned long requestIdleCallback(IdleRequestCallback callback, optional IdleRequestOptions options = {});
   void cancelIdleCallback(unsigned long handle);
 };
 

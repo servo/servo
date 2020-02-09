@@ -48,6 +48,15 @@ def replace_end(s, old, new):
     return s[:-len(old)] + new
 
 
+def domains_are_distinct(a, b):
+    a_parts = a.split(".")
+    b_parts = b.split(".")
+    min_length = min(len(a_parts), len(b_parts))
+    slice_index = -1 * min_length
+
+    return a_parts[slice_index:] != b_parts[slice_index:]
+
+
 class WrapperHandler(object):
 
     __meta__ = abc.ABCMeta
@@ -342,7 +351,7 @@ class RoutesBuilder(object):
         if headers is None:
             headers = {}
         handler = handlers.StaticHandler(path, format_args, content_type, **headers)
-        self.add_handler(b"GET", str(route), handler)
+        self.add_handler("GET", str(route), handler)
 
     def add_mount_point(self, url_base, path):
         url_base = "/%s/" % url_base.strip("/") if url_base != "/" else "/"
@@ -798,6 +807,14 @@ class ConfigBuilder(config.ConfigBuilder):
             *args,
             **kwargs
         )
+        with self as c:
+            browser_host = c.get("browser_host")
+            alternate_host = c.get("alternate_hosts", {}).get("alt")
+
+            if not domains_are_distinct(browser_host, alternate_host):
+                raise ValueError(
+                    "Alternate host must be distinct from browser host"
+                )
 
     def _get_ws_doc_root(self, data):
         if data["ws_doc_root"] is not None:

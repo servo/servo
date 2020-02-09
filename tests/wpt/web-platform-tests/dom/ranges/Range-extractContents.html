@@ -95,7 +95,7 @@ function testExtractContents(i) {
 
     expectedFrag = myExtractContents(expectedRange);
     if (typeof expectedFrag == "string") {
-      assert_throws(expectedFrag, function() {
+      assert_throws_dom(expectedFrag, function() {
         actualRange.extractContents();
       });
     } else {

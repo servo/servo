@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-uievent
-[Constructor(DOMString type, optional UIEventInit eventInitDict)]
+[Exposed=Window]
 interface UIEvent : Event {
+  [Throws] constructor(DOMString type, optional UIEventInit eventInitDict = {});
   //  readonly    attribute WindowProxy? view;
   readonly attribute Window? view;
     readonly    attribute long         detail;

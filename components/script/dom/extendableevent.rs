@@ -11,8 +11,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
@@ -23,6 +23,7 @@ pub struct ExtendableEvent {
     extensions_allowed: bool,
 }
 
+#[allow(non_snake_case)]
 impl ExtendableEvent {
     pub fn new_inherited() -> ExtendableEvent {
         ExtendableEvent {
@@ -62,7 +63,7 @@ impl ExtendableEvent {
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method
-    pub fn WaitUntil(&self, _cx: *mut JSContext, _val: HandleValue) -> ErrorResult {
+    pub fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState);

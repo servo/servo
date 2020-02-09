@@ -6,8 +6,8 @@
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XR: EventTarget {
   // Methods
-  Promise<void> supportsSessionMode(XRSessionMode mode);
-  Promise<XRSession> requestSession(optional XRSessionCreationOptions parameters);
+  Promise<void> supportsSession(XRSessionMode mode);
+  Promise<XRSession> requestSession(XRSessionMode mode, optional  XRSessionInit parameters = {});
 
   // Events
   // attribute EventHandler ondevicechange;
@@ -24,9 +24,9 @@ enum XRSessionMode {
   "immersive-ar"
 };
 
-dictionary XRSessionCreationOptions {
-  XRSessionMode mode = "inline";
-  // XRPresentationContext outputContext;
+dictionary XRSessionInit {
+  sequence<any> requiredFeatures;
+  sequence<any> optionalFeatures;
 };
 
 partial interface XR {

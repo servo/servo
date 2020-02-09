@@ -34,11 +34,13 @@ test(() => {
 }, 'FormData constructor always produces UTF-8 _charset_ value.');
 
 async_test(t => {
-  frame1.onload = t.step_func_done(() => {
-    assert_not_equals(frame1.contentDocument.URL.indexOf('_charset_=windows-1252'), -1);
+  frame1.onload = t.step_func(() => {
+    if (frame1.contentWindow.location.href == "about:blank") { return; }
+    assert_not_equals(frame1.contentDocument.URL.indexOf('_charset_=windows-1252'), -1,"should see _charset_=windows-1252 in "+frame1.contentDocument.URL);
+    t.done();
   });
   form1.submit();
-}, '_charset_ control sets the expected encoding name.');
+},'_charset_ control sets the expected encoding name.');
 
 async_test(t => {
   frame2.onload = t.step_func_done(() => {

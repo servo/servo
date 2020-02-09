@@ -27,7 +27,7 @@ function assert_ArrayBuffer(actual, expected, message) {
 test(() => {
   const argument = { "initial": 0 };
   const memory = new WebAssembly.Memory(argument);
-  assert_throws(new TypeError(), () => memory.grow());
+  assert_throws_js(TypeError, () => memory.grow());
 }, "Missing arguments");
 
 test(t => {
@@ -51,7 +51,7 @@ test(t => {
   const fn = WebAssembly.Memory.prototype.grow;
 
   for (const thisValue of thisValues) {
-    assert_throws(new TypeError(), () => fn.call(thisValue, argument), `this=${format_value(thisValue)}`);
+    assert_throws_js(TypeError, () => fn.call(thisValue, argument), `this=${format_value(thisValue)}`);
   }
 }, "Branding");
 
@@ -145,7 +145,7 @@ test(() => {
   const oldMemory = memory.buffer;
   assert_ArrayBuffer(oldMemory, { "size": 1 }, "Buffer before growing");
 
-  assert_throws(new RangeError(), () => memory.grow(2));
+  assert_throws_js(RangeError, () => memory.grow(2));
   assert_equals(memory.buffer, oldMemory);
   assert_ArrayBuffer(memory.buffer, { "size": 1 }, "Buffer before trying to grow");
 }, "Zero initial growing too much");
@@ -166,7 +166,7 @@ for (const value of outOfRangeValues) {
   test(() => {
     const argument = { "initial": 0 };
     const memory = new WebAssembly.Memory(argument);
-    assert_throws(new TypeError(), () => memory.grow(value));
+    assert_throws_js(TypeError, () => memory.grow(value));
   }, `Out-of-range argument: ${format_value(value)}`);
 }
 

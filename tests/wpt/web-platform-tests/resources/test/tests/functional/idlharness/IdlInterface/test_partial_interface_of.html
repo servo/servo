@@ -4,8 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="variant" content="">
-  <meta name="variant" content="?keep-promise">
-  <title>idlharness: Partail interface</title>
+  <title>idlharness: Partial interface</title>
   <script src="/resources/test/variants.js"></script>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -94,6 +93,15 @@
         assert_false('L' in idlArray.members, 'L should be picked up');
       }, 'partial mixin dep implications');
     })();
+
+    // Name clash (partials)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        interface M { attribute any A; };
+        partial interface M { attribute any A; };`);
+      idlArray.collapse_partials();
+    })();
   </script>
   <script type="text/json" id="expected">
 {
@@ -155,6 +163,18 @@
       "status_string": "PASS",
       "properties": {},
       "message": null
+    },
+    {
+      "name": "Partial interface M: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface M: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member A is unique expected true got false"
     }
   ],
   "type": "complete"

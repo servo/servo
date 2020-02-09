@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Event dispatching on interval restart</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <rect width="100" height="100" fill="blue">
+    <animate attributeName="x" begin="0s; 10ms" end="20ms" from="0" to="100"
+             id="target"/>
+    <set attributeName="visibility" begin="0s" end="50ms" from="visible" to="visible"
+         id="timekeeper"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    let begin_count = 0, end_count = 0;
+    let target = document.getElementById("target");
+    target.addEventListener("beginEvent", t.step_func(() => {
+      begin_count++;
+    }));
+    target.addEventListener("endEvent", t.step_func(() => {
+      end_count++;
+    }));
+    let timekeeper = document.getElementById("timekeeper");
+    timekeeper.addEventListener("endEvent", t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        assert_equals(begin_count, end_count);
+      }));
+    }));
+  });
+</script>

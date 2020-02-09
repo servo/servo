@@ -12,6 +12,8 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
+#[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
+use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
@@ -61,43 +63,38 @@ where
 {
     use crate::Atom;
 
-    // FIXME(emilio): This should be an actual static.
-    lazy_static! {
-        static ref SPECIAL_HTML_ELEMENTS: [Atom; 16] = [
-            atom!("br"),
-            atom!("wbr"),
-            atom!("meter"),
-            atom!("progress"),
-            atom!("canvas"),
-            atom!("embed"),
-            atom!("object"),
-            atom!("audio"),
-            atom!("iframe"),
-            atom!("img"),
-            atom!("video"),
-            atom!("frame"),
-            atom!("frameset"),
-            atom!("input"),
-            atom!("textarea"),
-            atom!("select"),
-        ];
-    }
+    const SPECIAL_HTML_ELEMENTS: [Atom; 16] = [
+        atom!("br"),
+        atom!("wbr"),
+        atom!("meter"),
+        atom!("progress"),
+        atom!("canvas"),
+        atom!("embed"),
+        atom!("object"),
+        atom!("audio"),
+        atom!("iframe"),
+        atom!("img"),
+        atom!("video"),
+        atom!("frame"),
+        atom!("frameset"),
+        atom!("input"),
+        atom!("textarea"),
+        atom!("select"),
+    ];
 
     // https://drafts.csswg.org/css-display/#unbox-svg
     //
     // There's a note about "Unknown elements", but there's not a good way to
     // know what that means, or to get that information from here, and no other
     // UA implements this either.
-    lazy_static! {
-        static ref SPECIAL_SVG_ELEMENTS: [Atom; 6] = [
-            atom!("svg"),
-            atom!("a"),
-            atom!("g"),
-            atom!("use"),
-            atom!("tspan"),
-            atom!("textPath"),
-        ];
-    }
+    const SPECIAL_SVG_ELEMENTS: [Atom; 6] = [
+        atom!("svg"),
+        atom!("a"),
+        atom!("g"),
+        atom!("use"),
+        atom!("tspan"),
+        atom!("textPath"),
+    ];
 
     // https://drafts.csswg.org/css-display/#unbox-html
     if element.is_html_element() {
@@ -143,7 +140,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    computed to 'absolute' if the element is in a top layer.
     ///
     fn adjust_for_top_layer(&mut self) {
-        if !self.style.out_of_flow_positioned() && self.style.in_top_layer() {
+        if !self.style.is_absolutely_positioned() && self.style.in_top_layer() {
             self.style.mutate_box().set_position(Position::Absolute);
         }
     }
@@ -154,7 +151,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    value of 'float' is 'none'.
     ///
     fn adjust_for_position(&mut self) {
-        if self.style.out_of_flow_positioned() && self.style.floated() {
+        if self.style.is_absolutely_positioned() && self.style.is_floating() {
             self.style.mutate_box().set_float(Float::None);
         }
     }
@@ -175,11 +172,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
     /// A ::marker pseudo-element with 'list-style-position:outside' needs to
-    /// have its 'display' blockified.
+    /// have its 'display' blockified, unless the ::marker is for an inline
+    /// list-item (for which 'list-style-position:outside' behaves as 'inside').
+    /// https://drafts.csswg.org/css-lists-3/#list-style-position-property
     fn blockify_if_necessary<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
     {
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         use crate::computed_values::list_style_position::T as ListStylePosition;
 
         let mut blockify = false;
@@ -194,20 +194,20 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
         blockify_if!(is_root);
         if !self.skip_item_display_fixup(element) {
-            blockify_if!(layout_parent_style
-                .get_box()
-                .clone_display()
-                .is_item_container());
+            let parent_display = layout_parent_style.get_box().clone_display();
+            blockify_if!(parent_display.is_item_container());
         }
 
         let is_item_or_root = blockify;
 
-        blockify_if!(self.style.floated());
-        blockify_if!(self.style.out_of_flow_positioned());
+        blockify_if!(self.style.is_floating());
+        blockify_if!(self.style.is_absolutely_positioned());
+        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         blockify_if!(
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==
-                    ListStylePosition::Outside
+                    ListStylePosition::Outside &&
+                layout_parent_style.get_box().clone_display().inside() != DisplayInside::Inline
         );
 
         if !blockify {
@@ -243,7 +243,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
-        #[cfg(feature = "servo")]
+        #[cfg(feature = "servo-layout-2013")]
         {
             if self.style.get_parent_column().is_multicol() {
                 self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
@@ -278,6 +278,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_combine_upright(&mut self) {
         use crate::computed_values::text_combine_upright::T as TextCombineUpright;
         use crate::computed_values::writing_mode::T as WritingMode;
+        use crate::logical_geometry;
 
         let writing_mode = self.style.get_inherited_box().clone_writing_mode();
         let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
@@ -289,6 +290,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style
                 .mutate_inherited_box()
                 .set_writing_mode(WritingMode::HorizontalTb);
+            self.style.writing_mode =
+                logical_geometry::WritingMode::new(self.style.get_inherited_box());
         }
     }
 
@@ -367,7 +370,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use crate::computed_values::align_self::T as AlignSelf;
 
         if self.style.get_position().clone_align_self() == AlignSelf::Auto &&
-            !self.style.out_of_flow_positioned()
+            !self.style.is_absolutely_positioned()
         {
             let self_align = match layout_parent_style.get_position().clone_align_items() {
                 AlignItems::Stretch => AlignSelf::Stretch,
@@ -548,7 +551,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
         // Line break suppression should only be propagated to in-flow children.
-        if self.style.floated() || self.style.out_of_flow_positioned() {
+        if self.style.is_floating() || self.style.is_absolutely_positioned() {
             return false;
         }
         let parent_display = layout_parent_style.get_box().clone_display();

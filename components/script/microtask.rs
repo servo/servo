@@ -9,14 +9,15 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::script_runtime::notify_about_rejected_promises;
+use crate::script_runtime::{notify_about_rejected_promises, JSContext};
 use crate::script_thread::ScriptThread;
-use js::jsapi::{JSContext, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
+use js::jsapi::{JobQueueIsEmpty, JobQueueMayNotBeEmpty};
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -34,6 +35,7 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
+    User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
     CustomElementReaction,
@@ -52,21 +54,30 @@ pub struct EnqueuedPromiseCallback {
     pub pipeline: PipelineId,
 }
 
+/// A microtask that comes from a queueMicrotask() Javascript call,
+/// identical to EnqueuedPromiseCallback once it's on the queue
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct UserMicrotask {
+    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    pub callback: Rc<VoidFunction>,
+    pub pipeline: PipelineId,
+}
+
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     #[allow(unsafe_code)]
-    pub unsafe fn enqueue(&self, job: Microtask, cx: *mut JSContext) {
+    pub fn enqueue(&self, job: Microtask, cx: JSContext) {
         self.microtask_queue.borrow_mut().push(job);
-        JobQueueMayNotBeEmpty(cx);
+        unsafe { JobQueueMayNotBeEmpty(*cx) };
     }
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     #[allow(unsafe_code)]
-    pub unsafe fn checkpoint<F>(
+    pub fn checkpoint<F>(
         &self,
-        cx: *mut JSContext,
+        cx: JSContext,
         target_provider: F,
         globalscopes: Vec<DomRoot<GlobalScope>>,
     ) where
@@ -79,6 +90,8 @@ impl MicrotaskQueue {
         // Step 1
         self.performing_a_microtask_checkpoint.set(true);
 
+        debug!("Now performing a microtask checkpoint");
+
         // Steps 2
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
@@ -86,11 +99,16 @@ impl MicrotaskQueue {
 
             for (idx, job) in pending_queue.iter().enumerate() {
                 if idx == pending_queue.len() - 1 && self.microtask_queue.borrow().is_empty() {
-                    JobQueueIsEmpty(cx);
+                    unsafe { JobQueueIsEmpty(*cx) };
                 }
 
                 match *job {
                     Microtask::Promise(ref job) => {
+                        if let Some(target) = target_provider(job.pipeline) {
+                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                        }
+                    },
+                    Microtask::User(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }

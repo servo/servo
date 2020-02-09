@@ -29,10 +29,9 @@
 
 <script id="code" type="text/worklet">
 registerLayout('fallback-fn', class {
-  *intrinsicSizes() {}
-  *layout() {}
-  *layout(children, edges, constraints, styleMap) {
-    const childFragments = yield children.map(child => child.layoutNextFragment());
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await children.map(child => child.layoutNextFragment());
     return {autoBlockSize: 0, childFragments, data: {fn: function() {}}};
   }
 });

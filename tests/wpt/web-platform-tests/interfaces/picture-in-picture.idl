@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Picture-in-Picture (https://wicg.github.io/picture-in-picture/)
+// Source: Picture-in-Picture (https://w3c.github.io/picture-in-picture/)
 
 partial interface HTMLVideoElement {
   [NewObject] Promise<PictureInPictureWindow> requestPictureInPicture();
@@ -23,6 +23,7 @@ partial interface mixin DocumentOrShadowRoot {
   readonly attribute Element? pictureInPictureElement;
 };
 
+[Exposed=Window]
 interface PictureInPictureWindow : EventTarget {
   readonly attribute long width;
   readonly attribute long height;
@@ -30,11 +31,9 @@ interface PictureInPictureWindow : EventTarget {
   attribute EventHandler onresize;
 };
 
-[
-    Constructor(DOMString type, EnterPictureInPictureEventInit eventInitDict),
-    Exposed=Window
-]
+[Exposed=Window]
 interface EnterPictureInPictureEvent : Event {
+    constructor(DOMString type, EnterPictureInPictureEventInit eventInitDict);
     [SameObject] readonly attribute PictureInPictureWindow pictureInPictureWindow;
 };
 

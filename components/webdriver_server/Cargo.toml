@@ -12,23 +12,23 @@ path = "lib.rs"
 
 [dependencies]
 base64 = "0.10"
+compositing = {path = "../compositing"}
 cookie = "0.11"
 crossbeam-channel = "0.3"
-euclid = "0.19"
+euclid = "0.20"
 hyper = "0.12"
-image = "0.21"
-ipc-channel = "0.11"
+image = "0.22"
+ipc-channel = "0.12"
 keyboard-types = "0.4.3"
 log = "0.4"
 msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
 pixels = {path = "../pixels"}
-regex = "1.1"
 serde = "1"
 serde_json = "1"
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-url = "1.2"
-uuid = {version = "0.7", features = ["v4"]}
-webdriver = "0.39"
+style_traits = {path = "../style_traits"}
+url = "2.0"
+uuid = {version = "0.8", features = ["v4"]}
+webdriver = "0.40"

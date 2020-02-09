@@ -45,14 +45,15 @@ impl URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
-        init: Option<USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString>,
+        init: USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString,
     ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
         let query = URLSearchParams::new(global, None);
         match init {
-            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init)) => {
+            USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init) => {
                 // Step 2.
 
                 // Step 2-1.
@@ -64,12 +65,12 @@ impl URLSearchParams {
                 *query.list.borrow_mut() =
                     init.iter().map(|pair| (pair[0].to_string(), pair[1].to_string())).collect::<Vec<_>>();
             },
-            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringUSVStringRecord(init)) => {
+            USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringUSVStringRecord(init) => {
                 // Step 3.
                 *query.list.borrow_mut() =
                     (*init).iter().map(|(name, value)| (name.to_string(), value.to_string())).collect::<Vec<_>>();
             },
-            Some(USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVString(init)) => {
+            USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVString(init) => {
                 // Step 4.
                 let init_bytes = match init.0.chars().next() {
                     Some(first_char) if first_char == '?' => {
@@ -82,8 +83,7 @@ impl URLSearchParams {
 
                 *query.list.borrow_mut() =
                     form_urlencoded::parse(init_bytes).into_owned().collect();
-            },
-            None => {},
+            }
         }
 
         // Step 5.

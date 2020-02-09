@@ -1,0 +1,14 @@
+<html class="reftest-wait">
+<title>Test with reftest-wait</title>
+<link rel=match href=green.html>
+<style>
+:root {background-color:red}
+</style>
+<script>
+document.addEventListener("TestRendered",
+                          function() {
+                            document.documentElement.style.backgroundColor = "green";
+                            document.documentElement.className = "";
+                          });
+</script>
+</html>

@@ -21,7 +21,7 @@ async_test(t => {
   animation.oncancel = t.step_func_done(event => {
     assert_equals(event.currentTime, null,
       'event.currentTime should be null');
-    assert_equals(event.timelineTime, finishedTimelineTime,
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
       'event.timelineTime should equal to the animation timeline ' +
       'when finished promise is rejected');
   });

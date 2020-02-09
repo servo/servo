@@ -1249,7 +1249,11 @@ impl Animate for ComputedRotate {
         match (self, other) {
             (&Rotate::None, &Rotate::None) => Ok(Rotate::None),
             (&Rotate::Rotate3D(fx, fy, fz, fa), &Rotate::None) => {
-                // No need to normalize `none`, so animate angle directly.
+                // We always normalize direction vector for rotate3d() first, so we should also
+                // apply the same rule for rotate property. In other words, we promote none into
+                // a 3d rotate, and normalize both direction vector first, and then do
+                // interpolation.
+                let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 Ok(Rotate::Rotate3D(
                     fx,
                     fy,
@@ -1258,7 +1262,8 @@ impl Animate for ComputedRotate {
                 ))
             },
             (&Rotate::None, &Rotate::Rotate3D(tx, ty, tz, ta)) => {
-                // No need to normalize `none`, so animate angle directly.
+                // Normalize direction vector first.
+                let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 Ok(Rotate::Rotate3D(
                     tx,
                     ty,
@@ -1368,8 +1373,7 @@ impl ComputedTranslate {
                 LengthPercentage::zero(),
                 Length::zero(),
             ),
-            Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),
-            Translate::Translate(tx, ty) => (tx, ty, Length::zero()),
+            Translate::Translate(ref tx, ref ty, ref tz) => (tx.clone(), ty.clone(), tz.clone()),
         }
     }
 }
@@ -1379,19 +1383,12 @@ impl Animate for ComputedTranslate {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&Translate::None, &Translate::None) => Ok(Translate::None),
-            (&Translate::Translate3D(_, ..), _) | (_, &Translate::Translate3D(_, ..)) => {
-                let (from, to) = (self.resolve(), other.resolve());
-                Ok(Translate::Translate3D(
-                    from.0.animate(&to.0, procedure)?,
-                    from.1.animate(&to.1, procedure)?,
-                    from.2.animate(&to.2, procedure)?,
-                ))
-            },
             (&Translate::Translate(_, ..), _) | (_, &Translate::Translate(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
                 Ok(Translate::Translate(
                     from.0.animate(&to.0, procedure)?,
                     from.1.animate(&to.1, procedure)?,
+                    from.2.animate(&to.2, procedure)?,
                 ))
             },
         }
@@ -1417,8 +1414,7 @@ impl ComputedScale {
         // Unspecified scales default to 1
         match *self {
             Scale::None => (1.0, 1.0, 1.0),
-            Scale::Scale3D(sx, sy, sz) => (sx, sy, sz),
-            Scale::Scale(sx, sy) => (sx, sy, 1.),
+            Scale::Scale(sx, sy, sz) => (sx, sy, sz),
         }
     }
 }
@@ -1428,7 +1424,7 @@ impl Animate for ComputedScale {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&Scale::None, &Scale::None) => Ok(Scale::None),
-            (&Scale::Scale3D(_, ..), _) | (_, &Scale::Scale3D(_, ..)) => {
+            (&Scale::Scale(_, ..), _) | (_, &Scale::Scale(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
                 // For transform lists, we add by appending to the list of
                 // transform functions. However, ComputedScale cannot be
@@ -1436,24 +1432,12 @@ impl Animate for ComputedScale {
                 // result here.
                 if procedure == Procedure::Add {
                     // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
-                    return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
-                }
-                Ok(Scale::Scale3D(
-                    animate_multiplicative_factor(from.0, to.0, procedure)?,
-                    animate_multiplicative_factor(from.1, to.1, procedure)?,
-                    animate_multiplicative_factor(from.2, to.2, procedure)?,
-                ))
-            },
-            (&Scale::Scale(_, ..), _) | (_, &Scale::Scale(_, ..)) => {
-                let (from, to) = (self.resolve(), other.resolve());
-                // As with Scale3D, addition needs special handling.
-                if procedure == Procedure::Add {
-                    // scale(x1,y1)*scale(x2,y2) = scale(x1*x2, y1*y2)
-                    return Ok(Scale::Scale(from.0 * to.0, from.1 * to.1));
+                    return Ok(Scale::Scale(from.0 * to.0, from.1 * to.1, from.2 * to.2));
                 }
                 Ok(Scale::Scale(
                     animate_multiplicative_factor(from.0, to.0, procedure)?,
                     animate_multiplicative_factor(from.1, to.1, procedure)?,
+                    animate_multiplicative_factor(from.2, to.2, procedure)?,
                 ))
             },
         }

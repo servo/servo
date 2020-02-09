@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#interface-documentfragment
-[Constructor]
+[Exposed=Window]
 interface DocumentFragment : Node {
+  [Throws] constructor();
 };
 
-DocumentFragment implements NonElementParentNode;
-DocumentFragment implements ParentNode;
+DocumentFragment includes NonElementParentNode;
+DocumentFragment includes ParentNode;

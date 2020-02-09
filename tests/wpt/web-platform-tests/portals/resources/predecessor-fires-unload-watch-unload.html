@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+<script>
+function nextEvent(target, type) {
+  return new Promise((resolve, reject) => target.addEventListener(type, e => resolve(e), {once: true}));
+}
+
+onload = async function() {
+  const portal = document.createElement('portal');
+  portal.src = new URL('simple-portal.html', location.href);
+  document.body.appendChild(portal);
+  await nextEvent(portal, 'load');
+
+  let firedEvents = [];
+  for (let type of ['pagehide', 'unload']) {
+    nextEvent(window, type).then(() => {
+      firedEvents.push(type);
+      localStorage.setItem('predecessor-fires-unload-events', firedEvents.join(' '));
+    });
+  }
+
+  portal.activate();
+};
+</script>
+</body>

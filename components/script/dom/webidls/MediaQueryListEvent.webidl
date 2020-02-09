@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
-[Constructor(DOMString type, optional MediaQueryListEventInit eventInitDict), Exposed=(Window)]
+[Exposed=(Window)]
 interface MediaQueryListEvent : Event {
+  [Throws] constructor(DOMString type, optional MediaQueryListEventInit eventInitDict = {});
   readonly attribute DOMString media;
   readonly attribute boolean matches;
 };

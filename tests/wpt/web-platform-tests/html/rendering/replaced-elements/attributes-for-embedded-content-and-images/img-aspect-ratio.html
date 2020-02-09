@@ -1,0 +1,58 @@
+<!doctype html>
+<title>Image width and height attributes are used to infer aspect-ratio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<img src="/images/green.png">
+<img src="/images/green.png" width=100 height=125>
+<img src="" width=100 height=125>
+<img src="error.png" width=100 height=125>
+<img src="error.png">
+<script>
+let t = async_test("Image width and height attributes are used to infer aspect-ratio");
+function assert_ratio(img, expected) {
+  let epsilon = 0.001;
+  assert_approx_equals(parseFloat(getComputedStyle(img).width, 10) / parseFloat(getComputedStyle(img).height, 10), expected, epsilon);
+}
+// Create and append a new image and immediately check the ratio.
+// This is not racy because the spec requires the user agent to queue a task:
+// https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data
+t.step(function() {
+  var img = new Image();
+  img.width = 250;
+  img.height = 100;
+  img.src = "/images/blue.png";
+  document.body.appendChild(img);
+  assert_ratio(img, 2.5);
+
+  img = new Image();
+  img.setAttribute("width", "0.8");
+  img.setAttribute("height", "0.2");
+  img.src = "/images/blue.png";
+  document.body.appendChild(img);
+  assert_ratio(img, 4);
+
+  img = new Image();
+  img.setAttribute("width", "50%");
+  img.setAttribute("height", "25%");
+  img.src = "/images/blue.png";
+  document.body.appendChild(img);
+  // Percentages should be  ignored.
+  assert_equals(getComputedStyle(img).height, "0px");
+});
+
+onload = t.step_func_done(function() {
+  let images = document.querySelectorAll("img");
+  assert_ratio(images[0], 2.0); // Loaded image's aspect ratio, at least by default, overrides width / height ratio.
+  assert_ratio(images[1], 2.0); // 2.0 is the original aspect ratio of green.png
+  assert_equals(getComputedStyle(images[2]).height, "0px"); // aspect-ratio doesn't override intrinsic size of images that don't have any src.
+  assert_equals(getComputedStyle(images[3]).height, getComputedStyle(images[4]).height); // aspect-ratio doesn't override intrinsic size of error images.
+  assert_ratio(images[5], 133/106); // The original aspect ratio of blue.png
+});
+</script>

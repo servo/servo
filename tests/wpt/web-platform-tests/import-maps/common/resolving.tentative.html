@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script type="module">
+import { runTestsFromJSON } from "./resources/common-test-helper.js";
+
+for (const json of [
+  'resources/scopes.json',
+  'resources/empty-import-map.json',
+  'resources/packages-via-trailing-slashes.json',
+  'resources/tricky-specifiers.json',
+  'resources/url-specifiers.json',
+  'resources/data-base-url.json',
+  'resources/scopes-exact-vs-prefix.json',
+  'resources/overlapping-entries.json',
+]) {
+  promise_test(() =>
+    runTestsFromJSON(json),
+    "Test helper: fetching and sanity checking test JSON: " + json);
+}
+</script>

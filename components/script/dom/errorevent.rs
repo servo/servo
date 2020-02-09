@@ -14,8 +14,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -76,6 +77,7 @@ impl ErrorEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,
@@ -135,9 +137,8 @@ impl ErrorEventMethods for ErrorEvent {
         self.filename.borrow().clone()
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-error
-    unsafe fn Error(&self, _cx: *mut JSContext) -> JSVal {
+    fn Error(&self, _cx: JSContext) -> JSVal {
         self.error.get()
     }
 

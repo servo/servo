@@ -13,7 +13,7 @@
           mediasource_test(function(test, mediaElement, mediaSource)
           {
               mediaSource.endOfStream();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                           function() { mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE); },
                           "addSourceBuffer() threw an exception when in 'ended' state.");
               test.done();
@@ -21,7 +21,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws({name: "TypeError"},
+              assert_throws_js(TypeError,
                           function() { mediaSource.addSourceBuffer(""); },
                           "addSourceBuffer() threw an exception when passed an empty string.");
               test.done();
@@ -29,7 +29,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws("NotSupportedError",
+              assert_throws_dom("NotSupportedError",
                           function() { mediaSource.addSourceBuffer(null); },
                           "addSourceBuffer() threw an exception when passed null.");
               test.done();
@@ -37,7 +37,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws("NotSupportedError",
+              assert_throws_dom("NotSupportedError",
                           function() { mediaSource.addSourceBuffer("invalidType"); },
                           "addSourceBuffer() threw an exception for an unsupported type.");
               test.done();

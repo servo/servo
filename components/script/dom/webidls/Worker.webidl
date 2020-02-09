@@ -3,18 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#abstractworker
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface AbstractWorker {
+[Exposed=(Window,Worker)]
+interface mixin AbstractWorker {
     attribute EventHandler onerror;
 };
 
 // https://html.spec.whatwg.org/multipage/#worker
-[Constructor(USVString scriptURL, optional WorkerOptions options), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Worker : EventTarget {
+  [Throws] constructor(USVString scriptURL, optional WorkerOptions options = {});
   void terminate();
 
-  [Throws] void postMessage(any message/*, sequence<object> transfer*/);
-  // void postMessage(any message, optional PostMessageOptions options);
+  [Throws] void postMessage(any message, sequence<object> transfer);
+  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
 };
@@ -27,4 +28,4 @@ dictionary WorkerOptions {
 
 enum WorkerType { "classic", "module" };
 
-Worker implements AbstractWorker;
+Worker includes AbstractWorker;

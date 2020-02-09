@@ -1,0 +1,3 @@
+Accept-CH: Device-Memory, DPR, Viewport-Width
+Accept-CH-Lifetime: 1
+Feature-Policy: ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-lang 'none'

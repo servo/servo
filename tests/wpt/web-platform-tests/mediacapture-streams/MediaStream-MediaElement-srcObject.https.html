@@ -12,6 +12,7 @@
 the success callback in getUserMedia can be properly assigned to a video element
 via the <code>srcObject</code> attribute.</p>
 
+<audio id="aud"></audio>
 <video id="vid"></video>
 
 <div id='log'></div>
@@ -20,6 +21,11 @@ via the <code>srcObject</code> attribute.</p>
 <script>
 'use strict';
 const vid = document.getElementById("vid");
+
+function queueTask(f) {
+  window.onmessage = f;
+  window.postMessage("hi");
+}
 
 promise_test(async t => {
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
@@ -231,6 +237,98 @@ promise_test(async t => {
     "currentTime advanced after stopping");
 }, "Tests that a media element with an assigned MediaStream reports the currentTime attribute as expected");
 
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  await new Promise(r => t.step_timeout(r, 500));
+
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_between_exclusive(vid.currentTime, 0, 0.5,
+    "currentTime starts at 0 and has progressed at first timeupdate");
+}, "Tests that a media element with an assigned MediaStream starts its timeline at 0 regardless of when the MediaStream was created");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  vid.play();
+  await new Promise(r => vid.ontimeupdate = r);
+
+  vid.pause();
+  const pauseCurrentTime = vid.currentTime;
+
+  await new Promise(r => vid.onpause = r);
+  vid.ontimeupdate = () => assert_unreached("No timeupdate while paused");
+
+  await new Promise(r => t.step_timeout(r, 500));
+  assert_equals(vid.currentTime, pauseCurrentTime,
+    "currentTime does not change while paused");
+
+  vid.play();
+
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_between_exclusive(vid.currentTime - pauseCurrentTime, 0, 0.5,
+    "currentTime does not skip ahead after pause");
+}, "Tests that a media element with an assigned MediaStream does not advance currentTime while paused");
+
+promise_test(async t => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const stream = canvas.captureStream();
+  t.add_cleanup(() => {
+    vid.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  vid.srcObject = stream;
+
+  vid.ontimeupdate = () =>
+    assert_unreached("No timeupdate until potentially playing");
+
+  vid.play();
+
+  await new Promise(r => t.step_timeout(r, 1000));
+  assert_equals(vid.readyState, vid.HAVE_NOTHING,
+    "Video dimensions not known yet");
+
+  const start = performance.now();
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Wait for, and check, potentially playing
+  await new Promise(r => vid.oncanplay = r);
+  const canplayDuration = (performance.now() - start) / 1000;
+  // "canplay" was just dispatched from a task queued when the element became
+  // potentially playing. currentTime may not have progressed more than the time
+  // it took from becoming potentially playing to starting the
+  // canplay-dispatching task. Though the media clock and the js clock may be
+  // different, so we take double this duration, or 100ms, whichever is greater,
+  // as a safety margin.
+  const margin = Math.max(0.1, canplayDuration * 2);
+  assert_between_inclusive(vid.currentTime, 0, margin,
+    "currentTime has not advanced more than twice it took to dispatch canplay");
+  assert_false(vid.paused, "Media element is not paused");
+  assert_false(vid.ended, "Media element is not ended");
+  assert_equals(vid.error, null,
+    "Media element playback has not stopped due to errors");
+  assert_greater_than(vid.readyState, vid.HAVE_CURRENT_DATA,
+    "Media element playback is not blocked");
+  // Unclear how to check for "paused for user interaction" and "paused for
+  // in-band content".
+
+  await new Promise(r => vid.ontimeupdate = r);
+  assert_between_exclusive(vid.currentTime, 0, 1,
+    "currentTime advances while potentially playing");
+}, "Tests that a media element with an assigned MediaStream does not start advancing currentTime until potentially playing");
 
 promise_test(async t => {
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
@@ -263,6 +361,112 @@ promise_test(async t => {
   // otherwise the media element sets currentTime to 0 without ending.
   await new Promise(r => vid.onended = r);
 }, "Tests that the loop attribute has no effect on a media element with an assigned MediaStream");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => { vid.srcObject = null; });
+  vid.srcObject = stream;
+
+  await vid.play();
+
+  for (const track of stream.getTracks()) {
+    track.stop();
+  }
+
+  assert_false(stream.active, "MediaStream becomes inactive with only ended tracks");
+  assert_false(vid.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (sync)");
+
+  await Promise.resolve();
+  assert_false(vid.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (microtask)");
+
+  let ended = false;
+  vid.onended = () => ended = true;
+  await new Promise(r => queueTask(r));
+
+  assert_true(vid.ended, "HTMLMediaElement becomes ended asynchronously when its MediaStream provider becomes inactive");
+  assert_true(ended, "HTMLMediaElement fires the ended event asynchronously when its MediaStream provider becomes inactive");
+}, "Tests that a media element with an assigned MediaStream ends when the MediaStream becomes inactive through tracks ending");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  t.add_cleanup(() => {
+    aud.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  aud.srcObject = stream;
+
+  await aud.play();
+
+  for (const track of stream.getAudioTracks()) {
+    track.stop();
+  }
+
+  assert_true(stream.active, "MediaStream is still active with a live video track");
+  assert_false(aud.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (sync)");
+
+  await Promise.resolve();
+  assert_false(aud.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (microtask)");
+
+  let ended = false;
+  aud.onended = () => ended = true;
+  await new Promise(r => queueTask(r));
+
+  assert_true(aud.ended, "HTMLAudioElement becomes ended asynchronously when its MediaStream provider becomes inaudible");
+  assert_true(ended, "HTMLAudioElement fires the ended event asynchronously when its MediaStream provider becomes inaudible");
+}, "Tests that an audio element with an assigned MediaStream ends when the MediaStream becomes inaudible through audio tracks ending");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => { vid.srcObject = null; });
+  vid.srcObject = stream;
+
+  await vid.play();
+
+  for (const track of stream.getTracks()) {
+    stream.removeTrack(track);
+  }
+
+  assert_false(stream.active, "MediaStream becomes inactive with no tracks");
+  assert_false(vid.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (sync)");
+
+  await Promise.resolve();
+  assert_false(vid.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (microtask)");
+
+  let ended = false;
+  vid.onended = () => ended = true;
+  await new Promise(r => queueTask(r));
+
+  assert_true(vid.ended, "HTMLMediaElement becomes ended asynchronously when its MediaStream provider becomes inactive");
+  assert_true(ended, "HTMLMediaElement fires the ended event asynchronously when its MediaStream provider becomes inactive");
+}, "Tests that a media element with an assigned MediaStream ends when the MediaStream becomes inactive through track removal");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+  t.add_cleanup(() => {
+    aud.srcObject = null;
+    stream.getTracks().forEach(track => track.stop());
+  });
+  aud.srcObject = stream;
+
+  await aud.play();
+
+  for (const track of stream.getAudioTracks()) {
+    stream.removeTrack(track);
+  }
+
+  assert_true(stream.active, "MediaStream is still active with a live video track");
+  assert_false(aud.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (sync)");
+
+  await Promise.resolve();
+  assert_false(aud.ended, "HTMLMediaElement reports ended the next time the event loop reaches step 1 (microtask)");
+
+  let ended = false;
+  aud.onended = () => ended = true;
+  await new Promise(r => queueTask(r));
+
+  assert_true(aud.ended, "HTMLAudioElement becomes ended asynchronously when its MediaStream provider becomes inaudible");
+  assert_true(ended, "HTMLAudioElement fires the ended event asynchronously when its MediaStream provider becomes inaudible");
+}, "Tests that an audio element with an assigned MediaStream ends when the MediaStream becomes inaudible through track removal");
 </script>
 </body>
 </html>

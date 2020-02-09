@@ -1,5 +1,11 @@
 # wptserve Pipes
 
+Pipes are designed to allow simple manipulation of the way that
+static files are sent without requiring any custom code. They are also
+useful for cross-origin tests because they can be used to activate a
+substitution mechanism which can fill in details of ports and server
+names in the setup on which the tests are being run.
+
 ## Enabling
 
 Pipes are functions that may be used when serving files to alter parts
@@ -28,7 +34,9 @@ preventing the use of HTTP 1.1 keepalive.
 ### `sub`
 
 Used to substitute variables from the server environment, or from the
-request into the response.
+request into the response. A typical use case is for testing
+cross-domain since the exact domain name and ports of the servers are
+generally unknown.
 
 Substitutions are marked in a file using a block delimited by `{{`
 and `}}`. Inside the block the following variables are available:

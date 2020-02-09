@@ -7,13 +7,13 @@
  *
  */
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface GlobalCrypto {
+[Exposed=(Window,Worker)]
+interface mixin GlobalCrypto {
   readonly attribute Crypto crypto;
 };
 
-Window implements GlobalCrypto;
-WorkerGlobalScope implements GlobalCrypto;
+Window includes GlobalCrypto;
+WorkerGlobalScope includes GlobalCrypto;
 
 [Exposed=(Window,Worker)]
 interface Crypto {

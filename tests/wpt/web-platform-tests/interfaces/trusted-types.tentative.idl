@@ -3,7 +3,6 @@
 typedef (DOMString or TrustedHTML) HTMLString;
 typedef (DOMString or TrustedScript) ScriptString;
 typedef (DOMString or TrustedScriptURL) ScriptURLString;
-typedef (USVString or TrustedURL) URLString;
 
 [Exposed=(Window, Worker)]
 interface TrustedHTML {
@@ -21,11 +20,6 @@ interface TrustedScriptURL {
 };
 
 [Exposed=(Window, Worker)]
-interface TrustedURL {
-    stringifier;
-};
-
-[Exposed=(Window, Worker)]
 interface TrustedTypePolicyFactory {
     [Unforgeable] TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
     // All the policy object names that have been created
@@ -38,14 +32,12 @@ interface TrustedTypePolicy {
     [Unforgeable] TrustedHTML createHTML(DOMString input);
     [Unforgeable] TrustedScript createScript(DOMString input);
     [Unforgeable] TrustedScriptURL createScriptURL(DOMString input);
-    [Unforgeable] TrustedURL createURL(DOMString input);
 };
 
 dictionary TrustedTypePolicyOptions {
    CreateHTMLCallback createHTML;
    CreateScriptCallback createScript;
    CreateURLCallback createScriptURL;
-   CreateURLCallback createURL;
 };
 
 callback CreateHTMLCallback = DOMString (DOMString input);

@@ -73,6 +73,18 @@ t('form', 'meter');
 t('item', 'form');
 t('namedItem', 'form');
 
+// Never specified but implemented in WebKit/Chromium
+test(() => {
+  assert_false("onsearch" in window);
+}, "window.onsearch should not be supported");
+
+test(() => {
+  assert_false("onsearch" in document);
+}, "document.onsearch should not be supported");
+
+t('onsearch', 'input');
+t('incremental', 'input');
+
 // <input name=isindex>
 // removed in https://github.com/whatwg/html/commit/5c44abc734eb483f9a7ec79da5844d2fe63d9c3b
 async_test(function() {

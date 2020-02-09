@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-formdataevent-interface
-[Exposed=Window,
- Constructor(DOMString type, optional FormDataEventInit eventInitDict)]
+[Exposed=Window]
 interface FormDataEvent : Event {
+  [Throws] constructor(DOMString type, FormDataEventInit eventInitDict);
   readonly attribute FormData formData;
 };
 
 dictionary FormDataEventInit : EventInit {
-  /*required*/ FormData formData;
+  required FormData formData;
 };

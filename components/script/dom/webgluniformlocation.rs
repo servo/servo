@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use canvas_traits::webgl::WebGLContextId;
 use canvas_traits::webgl::WebGLProgramId;
 use dom_struct::dom_struct;
 
@@ -14,6 +15,7 @@ use dom_struct::dom_struct;
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
+    context_id: WebGLContextId,
     program_id: WebGLProgramId,
     link_generation: u64,
     size: Option<i32>,
@@ -23,6 +25,7 @@ pub struct WebGLUniformLocation {
 impl WebGLUniformLocation {
     fn new_inherited(
         id: i32,
+        context_id: WebGLContextId,
         program_id: WebGLProgramId,
         link_generation: u64,
         size: Option<i32>,
@@ -31,6 +34,7 @@ impl WebGLUniformLocation {
         Self {
             reflector_: Reflector::new(),
             id,
+            context_id,
             program_id,
             link_generation,
             size,
@@ -41,6 +45,7 @@ impl WebGLUniformLocation {
     pub fn new(
         window: &Window,
         id: i32,
+        context_id: WebGLContextId,
         program_id: WebGLProgramId,
         link_generation: u64,
         size: Option<i32>,
@@ -49,6 +54,7 @@ impl WebGLUniformLocation {
         reflect_dom_object(
             Box::new(Self::new_inherited(
                 id,
+                context_id,
                 program_id,
                 link_generation,
                 size,
@@ -65,6 +71,10 @@ impl WebGLUniformLocation {
 
     pub fn program_id(&self) -> WebGLProgramId {
         self.program_id
+    }
+
+    pub fn context_id(&self) -> WebGLContextId {
+        self.context_id
     }
 
     pub fn link_generation(&self) -> u64 {

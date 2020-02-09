@@ -7,7 +7,7 @@
   });
 
   window.addEventListener('message', function(e) {
-    if (ORIGIN !== window.location.origin)
+    if (SECURE_ORIGIN !== window.location.origin)
       return;
     if (window.location.origin !== e.origin)
       return;

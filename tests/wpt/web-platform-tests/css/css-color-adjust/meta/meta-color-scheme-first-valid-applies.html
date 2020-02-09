@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Color Adjust Test: multiple meta tags - first valid applies</title>
+<meta name="color-scheme">
+<meta name="color-scheme" content>
+<meta name="color-scheme" content="">
+<meta name="color-scheme" content="light,dark">
+<!-- This is first with a valid content value -->
+<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust-1/#color-scheme-meta">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  assert_root_color_scheme("dark", "Tree order decides which meta color-scheme applies.");
+</script>

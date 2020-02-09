@@ -1,0 +1,37 @@
+<!doctype html>
+
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script>
+        setup({allow_uncaught_exception: true});
+        async_test(function (test) {
+            const worker = new Worker("./resources/worker.js", {
+                type: "module"
+            });
+            worker.onmessage = test.unreached_func("A CSS Module within a web worker should not load.");
+            worker.onerror = test.step_func_done();
+        }, "A static import CSS Module within a web worker should not load.");
+
+        async_test(function (test) {
+            const worker = new Worker("./resources/worker-dynamic-import.js", {
+                type: "module"
+            });
+            worker.onmessage = test.step_func_done(e => {
+                assert_equals(e.data, "NOT LOADED");
+            });
+        }, "A dynamic import CSS Module within a web worker should not load.");
+
+        async_test(function (test) {
+            const worker = new Worker("./resources/basic.css", {
+                type: "module"
+            });
+            worker.onerror = test.step_func_done();
+        }, "A CSS Module within a web worker should not load.");
+
+    </script>
+
+</body>

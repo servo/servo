@@ -47,10 +47,7 @@
     div.style.height = `${refBox.height-4}px`;
     document.documentElement.classList.remove('reftest-wait');
   }
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 </script>
 </head>
 <body>
@@ -86,5 +83,7 @@
     </math>
   </p>
   <div id="frame"></div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
 </body>
 </html>

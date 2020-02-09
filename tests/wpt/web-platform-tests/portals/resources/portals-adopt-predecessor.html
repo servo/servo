@@ -8,6 +8,9 @@
   portal.src = `portals-adopt-predecessor-portal.html?test=${test}`;
   portal.onload = () => {
     portal.activate().then(() => {
+      window.addEventListener("portalactivate", e => {
+        window.opener.postMessage({test, message: "passed"}, "*");
+      });
       window.portalHost.addEventListener("message", e => {
         window.opener.postMessage({test, message: e.data}, "*");
       });

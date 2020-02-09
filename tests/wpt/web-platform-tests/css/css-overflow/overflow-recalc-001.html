@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: Overflow recalc after font-size change</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1036644">
+<link rel="match" href="reference/overflow-recalc-001-ref.html">
+<meta name="assert" content="Checks that overflow of an inline element is properly recomputed after changes on the descendants.">
+<script src="/common/reftest-wait.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#scroller {
+  height: 200px;
+  overflow: scroll;
+  position: relative;
+}
+#wrapper {
+  margin-top: 100px;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  font-family: Ahem;
+  line-height: 1;
+  color: green;
+}
+#red {
+  background: red;
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  top: 100px;
+  z-index: -1;
+}
+</style>
+<p>Test passes if there is <strong>no red</strong>.</p>
+<div id="scroller">
+  <div id="wrapper">
+    <span id="inlineouter">
+      <span id="inlineinner">X</span>
+    </span>
+  </div>
+  <div id="red"></div>
+</div>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    inlineinner.style.fontSize = "200px";
+    takeScreenshot();
+  }));
+</script>
+</html>

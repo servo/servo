@@ -1,0 +1,15 @@
+interface ReadOnly {
+  readonly setlike<DOMString>;
+};
+
+interface ReadWrite {
+  setlike<DOMString>;
+};
+
+interface ReadOnlyExtAttr {
+  readonly setlike<[Clamp] unsigned short>;
+};
+
+interface ReadWriteExtAttr {
+  setlike<[Clamp] unsigned short>;
+};

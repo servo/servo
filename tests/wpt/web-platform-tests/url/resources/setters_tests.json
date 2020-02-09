@@ -122,7 +122,7 @@
             "href": "gopher://example.net:1234",
             "new_value": "file",
             "expected": {
-                "href": "gopher://example.net:1234/",
+                "href": "gopher://example.net:1234",
                 "protocol": "gopher:"
             }
         },
@@ -212,7 +212,7 @@
         },
         {
             "href": "ssh://me@example.net",
-            "new_value": "gopher",
+            "new_value": "https",
             "expected": {
                 "href": "ssh://me@example.net",
                 "protocol": "ssh:"
@@ -597,7 +597,7 @@
             }
         },
         {
-            "comment": "Cannot-be-a-base means no password",
+            "comment": "Cannot-be-a-base means no host",
             "href": "data:text/plain,Stuff",
             "new_value": "example.net",
             "expected": {
@@ -685,6 +685,17 @@
                 "hostname": "[::1]",
                 "port": "2"
             }
+        },
+        {
+            "comment": "IPv6 literal address with port, crbug.com/1012416",
+            "href": "http://example.net",
+            "new_value": "[2001:db8::2]:4002",
+            "expected": {
+                "href": "http://[2001:db8::2]:4002/",
+                "host": "[2001:db8::2]:4002",
+                "hostname": "[2001:db8::2]",
+                "port": "4002"
+             }
         },
         {
             "comment": "Default port number is removed",
@@ -1074,7 +1085,7 @@
             }
         },
         {
-            "comment": "Cannot-be-a-base means no password",
+            "comment": "Cannot-be-a-base means no host",
             "href": "data:text/plain,Stuff",
             "new_value": "example.net",
             "expected": {

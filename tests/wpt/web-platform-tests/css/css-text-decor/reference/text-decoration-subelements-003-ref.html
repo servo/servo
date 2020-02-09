@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference case for text-decoration with subelements</title>
+    <style>
+      p {
+        margin: 0;
+        padding: 1em;
+      }
+      div.wrapper {
+        font-size: 2em;
+      }
+      div p {
+        position: absolute;
+      }
+      span.blue {
+        text-decoration: underline;
+        text-decoration: underline blue;
+      }
+      .hide {
+        color: transparent;
+        text-decoration: none;
+      }
+      sup.hide {
+        vertical-align: baseline;
+      }
+      sup.unhide {
+        color: initial;
+        text-decoration: underline;
+        text-decoration: underline green;
+      }
+      sup.strut {
+        color: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if all the text below has a continuous blue underline,
+        and the raised word “underlined” has an <i>extra</i> green underline.</p>
+    <div class=wrapper>
+      <p style="position: absolute;"><span class=blue>All this text should be <sup class=hide>underlined</sup>.</span><sup class=strut>x</sup></p>
+      <p class=hide style="position: absolute;">All this text should be <sup class=unhide>underlined</sup>.</p>
+    </div>
+  </body>
+</html>

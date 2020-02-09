@@ -102,6 +102,8 @@ function verifyStaticList(type, doc, root) {
  * null and undefined, and the handling of the empty string.
  */
 function runSpecialSelectorTests(type, root) {
+  let global = (root.ownerDocument || root).defaultView;
+
   test(function() { // 1
     assert_equals(root.querySelectorAll(null).length, 1, "This should find one element with the tag name 'NULL'.");
   }, type + ".querySelectorAll null")
@@ -111,7 +113,7 @@ function runSpecialSelectorTests(type, root) {
   }, type + ".querySelectorAll undefined")
 
   test(function() { // 3
-    assert_throws(TypeError(), function() {
+    assert_throws_js(global.TypeError, function() {
       root.querySelectorAll();
     }, "This should throw a TypeError.")
   }, type + ".querySelectorAll no parameter")
@@ -129,7 +131,7 @@ function runSpecialSelectorTests(type, root) {
   }, type + ".querySelector undefined")
 
   test(function() { // 6
-    assert_throws(TypeError(), function() {
+    assert_throws_js(global.TypeError, function() {
       root.querySelector();
     }, "This should throw a TypeError.")
   }, type + ".querySelector no parameter")
@@ -216,13 +218,13 @@ function runInvalidSelectorTest(type, root, selectors) {
     var q = s["selector"];
 
     test(function() {
-      assert_throws("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", function() {
         root.querySelector(q)
       })
     }, type + ".querySelector: " + n + ": " + q);
 
     test(function() {
-      assert_throws("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", function() {
         root.querySelectorAll(q)
       })
     }, type + ".querySelectorAll: " + n + ": " + q);

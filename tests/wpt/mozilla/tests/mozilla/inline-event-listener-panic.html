@@ -5,10 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-var e = document.body;
-e.setAttribute("onclick", "console.log('x')");
-assert_not_equals(e.onclick, null);
-assert_not_equals(e.onclick, null);
-done();
+test(function() {
+  var e = document.body;
+  e.setAttribute("onclick", "console.log('x')");
+  assert_not_equals(e.onclick, null);
+  assert_not_equals(e.onclick, null);
+});
 </script>
 </body>

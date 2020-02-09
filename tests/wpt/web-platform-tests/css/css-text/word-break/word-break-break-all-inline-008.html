@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>word-break: break-all on inline element</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" title="5.2. Breaking Rules for Letters: the word-break property" href="https://drafts.csswg.org/css-text-3/#word-break-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
+<meta name="flags" content="Ahem">
+<link rel="match" href="reference/word-break-break-all-010-ref.html">
+<meta name="assert" content="break-all doesn't allow breaking around punctuation characters">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+    font: 50px / 1 Ahem;
+}
+.fail {
+    background: green;
+    position: absolute;
+    color: red;
+    height: 100px;
+    z-index: -1;
+}
+.test {
+    color: green;
+    width: 1em;
+
+    word-break: break-all;
+}
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+<div class="fail">XX</div>
+<div class="test"><span>X</span><span>.</span></div>

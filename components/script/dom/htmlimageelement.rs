@@ -5,7 +5,7 @@
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -20,9 +20,12 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
+use crate::dom::element::{cors_setting_for_element, referrer_policy_for_element};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, RawLayoutElementHelpers,
+};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -37,10 +40,10 @@ use crate::dom::node::{
     document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::fetch::create_a_potential_cors_request;
 use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -50,21 +53,23 @@ use app_units::{Au, AU_PER_PX};
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, QualName};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{CanRequestImages, CorsStatus, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
-use net_traits::request::RequestBuilder;
+use net_traits::request::{CorsSettings, Destination, Initiator, RequestBuilder};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
+use servo_url::origin::ImmutableOrigin;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
-use std::cell::{Cell, RefMut};
+use std::cell::Cell;
 use std::char;
 use std::collections::HashSet;
 use std::default::Default;
@@ -130,7 +135,7 @@ enum ImageRequestPhase {
     Current,
 }
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
@@ -183,6 +188,7 @@ impl FetchResponseListener for ImageContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        debug!("got {:?} for {:?}", metadata.as_ref().map(|_| ()), self.url);
         self.image_cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
 
@@ -262,6 +268,34 @@ impl PreInvoke for ImageContext {
     }
 }
 
+#[derive(PartialEq)]
+pub(crate) enum FromPictureOrSrcSet {
+    Yes,
+    No,
+}
+
+// https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
+// This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+pub(crate) fn image_fetch_request(
+    img_url: ServoUrl,
+    origin: ImmutableOrigin,
+    pipeline_id: PipelineId,
+    cors_setting: Option<CorsSettings>,
+    referrer_policy: Option<ReferrerPolicy>,
+    from_picture_or_srcset: FromPictureOrSrcSet,
+) -> RequestBuilder {
+    let mut request =
+        create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None)
+            .origin(origin)
+            .pipeline_id(Some(pipeline_id))
+            .referrer_policy(referrer_policy);
+    if from_picture_or_srcset == FromPictureOrSrcSet::Yes {
+        request = request.initiator(Initiator::ImageSet);
+    }
+    request
+}
+
+#[allow(non_snake_case)]
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
@@ -269,6 +303,8 @@ impl HTMLImageElement {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
+            window.origin().immutable().clone(),
+            cors_setting_for_element(self.upcast()),
             UsePlaceholder::Yes,
             CanRequestImages::Yes,
         );
@@ -327,9 +363,18 @@ impl HTMLImageElement {
             }),
         );
 
-        let request = RequestBuilder::new(img_url.clone())
-            .origin(document.origin().immutable().clone())
-            .pipeline_id(Some(document.global().pipeline_id()));
+        let request = image_fetch_request(
+            img_url.clone(),
+            document.origin().immutable().clone(),
+            document.global().pipeline_id(),
+            cors_setting_for_element(self.upcast()),
+            referrer_policy_for_element(self.upcast()),
+            if Self::uses_srcset_or_picture(self.upcast()) {
+                FromPictureOrSrcSet::Yes
+            } else {
+                FromPictureOrSrcSet::No
+            },
+        );
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
@@ -781,6 +826,8 @@ impl HTMLImageElement {
             // Step 8
             Some(data) => data,
             None => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
@@ -798,37 +845,13 @@ impl HTMLImageElement {
                         if src_present || Self::uses_srcset_or_picture(elem) {
                             this.upcast::<EventTarget>().fire_event(atom!("error"));
                         }
-                        // FIXME(nox): According to the spec, setting the current
-                        // request to the broken state is done prior to queuing a
-                        // task, why is this here?
-                        this.abort_request(State::Broken, ImageRequestPhase::Current);
-                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
                     }),
                     window.upcast(),
                 );
                 return;
             },
         };
-        // Step 10.
-        let target = Trusted::new(self.upcast::<EventTarget>());
-        // FIXME(nox): Why are errors silenced here?
-        let _ = task_source.queue(
-            task!(fire_progress_event: move || {
-                let target = target.root();
 
-                let event = ProgressEvent::new(
-                    &target.global(),
-                    atom!("loadstart"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    false,
-                    0,
-                    0,
-                );
-                event.upcast::<Event>().fire(&target);
-            }),
-            window.upcast(),
-        );
         // Step 11
         let base_url = document.base_url();
         let parsed_url = base_url.join(&src.0);
@@ -838,6 +861,8 @@ impl HTMLImageElement {
                 self.prepare_image_request(&url, &src, pixel_density);
             },
             Err(_) => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 12.1-12.5.
                 let src = src.0;
                 // FIXME(nox): Why are errors silenced here?
@@ -850,13 +875,7 @@ impl HTMLImageElement {
                             current_request.source_url = Some(USVString(src))
                         }
                         this.upcast::<EventTarget>().fire_event(atom!("error"));
-                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
 
-                        // FIXME(nox): According to the spec, setting the current
-                        // request to the broken state is done prior to queuing a
-                        // task, why is this here?
-                        this.abort_request(State::Broken, ImageRequestPhase::Current);
-                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
                     }),
                     window.upcast(),
                 );
@@ -905,14 +924,13 @@ impl HTMLImageElement {
         *self.last_selected_source.borrow_mut() = selected_source.clone();
 
         // Step 6, check the list of available images
-        if !selected_source
-            .as_ref()
-            .map_or(false, |source| source.is_empty())
-        {
+        if let Some(src) = selected_source {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(
                     img_url.clone().into(),
+                    window.origin().immutable().clone(),
+                    cors_setting_for_element(self.upcast()),
                     UsePlaceholder::No,
                     CanRequestImages::No,
                 );
@@ -1068,6 +1086,8 @@ impl HTMLImageElement {
         // Step 14
         let response = image_cache.find_image_or_metadata(
             img_url.clone().into(),
+            window.origin().immutable().clone(),
+            cors_setting_for_element(self.upcast()),
             UsePlaceholder::No,
             CanRequestImages::Yes,
         );
@@ -1233,8 +1253,15 @@ impl HTMLImageElement {
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
-        let document = window.Document();
-        let image = HTMLImageElement::new(local_name!("img"), None, &document);
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("img")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+        );
+
+        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
         if let Some(w) = width {
             image.SetWidth(w);
         }
@@ -1266,7 +1293,7 @@ impl HTMLImageElement {
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
             .find(|n| {
                 n.upcast::<Element>()
-                    .get_string_attribute(&LocalName::from("name")) ==
+                    .get_string_attribute(&local_name!("name")) ==
                     last
             });
 
@@ -1274,6 +1301,10 @@ impl HTMLImageElement {
     }
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
+        if let Some(ref image) = self.current_request.borrow().image {
+            return image.cors_status == CorsStatus::Safe;
+        }
+
         self.current_request
             .borrow()
             .final_url

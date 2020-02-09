@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::InCompartment;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::XRBinding;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionCreationOptions;
+use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionInit;
 use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
@@ -22,13 +24,18 @@ use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
+use crate::realms::InRealm;
+use crate::script_thread::ScriptThread;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self as ipc_crate, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::rc::Rc;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
+use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
 #[dom_struct]
 pub struct XR {
@@ -36,7 +43,8 @@ pub struct XR {
     displays: DomRefCell<Vec<Dom<VRDisplay>>>,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
-    active_immersive_session: MutNullableDom<VRDisplay>,
+    active_immersive_session: MutNullableDom<XRSession>,
+    active_inline_sessions: DomRefCell<Vec<Dom<XRSession>>>,
     test: MutNullableDom<XRTest>,
 }
 
@@ -48,6 +56,7 @@ impl XR {
             gamepads: DomRefCell::new(Vec::new()),
             pending_immersive_session: Cell::new(false),
             active_immersive_session: Default::default(),
+            active_inline_sessions: DomRefCell::new(Vec::new()),
             test: Default::default(),
         }
     }
@@ -66,16 +75,24 @@ impl XR {
         self.pending_immersive_session.set(true)
     }
 
-    pub fn set_active_immersive_session(&self, session: &VRDisplay) {
+    pub fn set_active_immersive_session(&self, session: &XRSession) {
         // XXXManishearth when we support non-immersive (inline) sessions we should
         // ensure they never reach these codepaths
         self.pending_immersive_session.set(false);
         self.active_immersive_session.set(Some(session))
     }
 
-    pub fn deactivate_session(&self) {
-        self.pending_immersive_session.set(false);
-        self.active_immersive_session.set(None)
+    /// https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end
+    pub fn end_session(&self, session: &XRSession) {
+        // Step 3
+        if let Some(active) = self.active_immersive_session.get() {
+            if Dom::from_ref(&*active) == Dom::from_ref(session) {
+                self.active_immersive_session.set(None);
+            }
+        }
+        self.active_inline_sessions
+            .borrow_mut()
+            .retain(|sess| Dom::from_ref(&**sess) != Dom::from_ref(session));
     }
 }
 
@@ -85,59 +102,161 @@ impl Drop for XR {
     }
 }
 
+impl Into<SessionMode> for XRSessionMode {
+    fn into(self) -> SessionMode {
+        match self {
+            XRSessionMode::Immersive_vr => SessionMode::ImmersiveVR,
+            XRSessionMode::Immersive_ar => SessionMode::ImmersiveAR,
+            XRSessionMode::Inline => SessionMode::Inline,
+        }
+    }
+}
+
 impl XRMethods for XR {
     /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
-    fn SupportsSessionMode(&self, mode: XRSessionMode, comp: InCompartment) -> Rc<Promise> {
+    fn SupportsSession(&self, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
-        if mode == XRSessionMode::Immersive_vr {
-            promise.resolve_native(&());
-        } else {
-            // XXXManishearth support other modes
-            promise.reject_error(Error::NotSupported);
-        }
+        let promise = Promise::new(&self.global());
+        let mut trusted = Some(TrustedPromise::new(promise.clone()));
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                // router doesn't know this is only called once
+                let trusted = if let Some(trusted) = trusted.take() {
+                    trusted
+                } else {
+                    error!("supportsSession callback called twice!");
+                    return;
+                };
+                let message: Result<(), webxr_api::Error> = if let Ok(message) = message.to() {
+                    message
+                } else {
+                    error!("supportsSession callback given incorrect payload");
+                    return;
+                };
+                if let Ok(()) = message {
+                    let _ = task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                } else {
+                    let _ = task_source
+                        .queue_with_canceller(trusted.reject_task(Error::NotSupported), &canceller);
+                };
+            }),
+        );
+        window
+            .webxr_registry()
+            .supports_session(mode.into(), sender);
 
         promise
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
+    #[allow(unsafe_code)]
     fn RequestSession(
         &self,
-        options: &XRSessionCreationOptions,
-        comp: InCompartment,
+        mode: XRSessionMode,
+        init: RootedTraceableBox<XRSessionInit>,
+        comp: InRealm,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_compartment(&self.global(), comp);
-        if options.mode != XRSessionMode::Immersive_vr {
-            promise.reject_error(Error::NotSupported);
-            return promise;
-        }
+        let global = self.global();
+        let window = global.as_window();
+        let promise = Promise::new_in_current_realm(&global, comp);
 
-        if self.pending_or_active_session() {
-            promise.reject_error(Error::InvalidState);
-            return promise;
-        }
-        // we set pending immersive session to true further down
-        // to handle rejections in a cleaner way
-
-        let displays = self.get_displays();
-
-        let displays = match displays {
-            Ok(d) => d,
-            Err(_) => {
-                promise.reject_native(&());
+        if mode != XRSessionMode::Inline {
+            if !ScriptThread::is_user_interacting() {
+                promise.reject_error(Error::Security);
                 return promise;
-            },
+            }
+
+            if self.pending_or_active_session() {
+                promise.reject_error(Error::InvalidState);
+                return promise;
+            }
+
+            self.set_pending();
+        }
+
+        let mut required_features = vec![];
+        let mut optional_features = vec![];
+        let cx = global.get_cx();
+
+        // We are supposed to include "viewer" and on immersive devices "local"
+        // by default here, but this is handled directly in requestReferenceSpace()
+        if let Some(ref r) = init.requiredFeatures {
+            for feature in r {
+                unsafe {
+                    if let Ok(ConversionResult::Success(s)) =
+                        String::from_jsval(*cx, feature.handle(), ())
+                    {
+                        required_features.push(s)
+                    } else {
+                        warn!("Unable to convert required feature to string");
+                        if mode != XRSessionMode::Inline {
+                            self.pending_immersive_session.set(false);
+                        }
+                        promise.reject_error(Error::NotSupported);
+                        return promise;
+                    }
+                }
+            }
+        }
+
+        if let Some(ref o) = init.optionalFeatures {
+            for feature in o {
+                unsafe {
+                    if let Ok(ConversionResult::Success(s)) =
+                        String::from_jsval(*cx, feature.handle(), ())
+                    {
+                        optional_features.push(s)
+                    } else {
+                        warn!("Unable to convert optional feature to string");
+                    }
+                }
+            }
+        }
+
+        let init = SessionInit {
+            required_features,
+            optional_features,
         };
 
-        // XXXManishearth filter for displays which can_present
-        if displays.is_empty() {
-            promise.reject_error(Error::Security);
-        }
-
-        self.set_pending();
-
-        let session = XRSession::new(&self.global(), &displays[0]);
-        session.xr_present(promise.clone());
+        let mut trusted = Some(TrustedPromise::new(promise.clone()));
+        let this = Trusted::new(self);
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (frame_sender, frame_receiver) = ipc_crate::channel().unwrap();
+        let mut frame_receiver = Some(frame_receiver);
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                // router doesn't know this is only called once
+                let trusted = trusted.take().unwrap();
+                let this = this.clone();
+                let frame_receiver = frame_receiver.take().unwrap();
+                let message: Result<Session, webxr_api::Error> = if let Ok(message) = message.to() {
+                    message
+                } else {
+                    error!("requestSession callback given incorrect payload");
+                    return;
+                };
+                let _ = task_source.queue_with_canceller(
+                    task!(request_session: move || {
+                        this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
+                    }),
+                    &canceller,
+                );
+            }),
+        );
+        window
+            .webxr_registry()
+            .request_session(mode.into(), init, sender, frame_sender);
         promise
     }
 
@@ -148,6 +267,35 @@ impl XRMethods for XR {
 }
 
 impl XR {
+    fn session_obtained(
+        &self,
+        response: Result<Session, XRError>,
+        promise: Rc<Promise>,
+        mode: XRSessionMode,
+        frame_receiver: IpcReceiver<Frame>,
+    ) {
+        let session = match response {
+            Ok(session) => session,
+            Err(_) => {
+                if mode != XRSessionMode::Inline {
+                    self.pending_immersive_session.set(false);
+                }
+                promise.reject_error(Error::NotSupported);
+                return;
+            },
+        };
+
+        let session = XRSession::new(&self.global(), session, mode, frame_receiver);
+        if mode == XRSessionMode::Inline {
+            self.active_inline_sessions
+                .borrow_mut()
+                .push(Dom::from_ref(&*session));
+        } else {
+            self.set_active_immersive_session(&session);
+        }
+        promise.resolve_native(&session);
+    }
+
     pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) =

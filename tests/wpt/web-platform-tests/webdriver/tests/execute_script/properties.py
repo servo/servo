@@ -41,7 +41,9 @@ def test_idl_attribute_element(session):
         <p>bar
 
         <script>
-        const [foo, bar] = document.querySelectorAll("p");
+        const elements = document.querySelectorAll("p");
+        let foo = elements[0];
+        let bar = elements[1];
         foo.bar = bar;
         </script>
         """)

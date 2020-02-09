@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<!-- WARNING: These tests are preliminary and probably partly incorrect.  -->
+<title>CSSOM automated IDL tests</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#idl-index">
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<!--
+Provide some objects to test.
+Use a non-empty style attribute to get a non-empty CSSStyleDeclaration.
+-->
+<style id="styleElement" style="z-index: 0;">
+@import url("data:text/css,");
+@namespace x "y";
+@page { @top-left {} }
+@media all {}
+#test { color: green; }
+</style>
+
+<svg id="svgElement" style="height: 0;"></svg>
+
+<iframe id="xmlssPiIframe" src="support/xmlss-pi.xhtml" style="display: none;"></iframe>
+
+<h1>CSSOM IDL tests</h1>
+<div id=log></div>
+
+<script>
+'use strict';
+
+const waitForLoad = new Promise(r => { addEventListener('load', r); });
+
+idl_test(
+  ['cssom'],
+  ['SVG', 'uievents', 'html', 'dom'],
+  async idlArray => {
+    idlArray.add_objects({
+      Document: ['document', 'new Document()'],
+      StyleSheetList: ['document.styleSheets'],
+      CSSStyleSheet: ['sheet'],
+      MediaList: ['sheet.media'],
+      CSSRuleList: ['sheet.cssRules'],
+      CSSImportRule: ['sheet.cssRules[0]'],
+      CSSNamespaceRule: ['sheet.cssRules[1]'],
+      CSSPageRule: ['sheet.cssRules[2]'],
+      CSSMarginRule: ['sheet.cssRules[2].cssRules[0]'],
+      CSSMediaRule: ['sheet.cssRules[3]'],
+      CSSStyleRule: ['sheet.cssRules[4]'],
+      CSSStyleDeclaration: [
+        'sheet.cssRules[4].style', // CSSStyleRule
+        'sheet.cssRules[2].style', // CSSPageRule
+        'sheet.cssRules[2].cssRules[0].style', // CSSMarginRule
+        'style_element.style', // ElementCSSInlineStyle for HTMLElement
+        'svg_element.style', // ElementCSSInlineStyle for SVGElement
+        'getComputedStyle(svg_element)'
+      ],
+      ProcessingInstruction: ['xmlss_pi'],
+      Window: ['window'],
+      HTMLElement: [
+        'style_element',
+        'document.createElement("unknownelement")'
+      ],
+      SVGElement: ['svg_element'],
+    });
+
+    await waitForLoad;
+    self.style_element = document.getElementById('styleElement');
+    self.sheet = style_element.sheet;
+    self.svg_element = document.getElementById('svgElement');
+    self.xmlss_pi = document.getElementById('xmlssPiIframe').contentDocument.firstChild;
+  }
+);
+
+</script>

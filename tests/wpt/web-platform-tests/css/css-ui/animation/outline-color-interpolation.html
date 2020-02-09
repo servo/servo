@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>outline-color interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline-color">
+<meta name="assert" content="outline-color supports animation by computed value">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  outline-color: yellow;
+}
+.target {
+  width: 50px;
+  height: 50px;
+  background-color: black;
+  display: inline-block;
+  outline: 12px solid white;
+  margin: 12px 12px;
+  outline-color: blue;
+}
+.expected {
+  background-color: lime;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'outline-color',
+  from: neutralKeyframe,
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 255)'},
+  {at: 0, expect: 'rgb(0, 0, 255)'},
+  {at: 0.3, expect: 'rgb(0, 38, 179)'},
+  {at: 0.6, expect: 'rgb(0, 77, 102)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'outline-color',
+  from: 'initial',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0)'},
+  {at: 0, expect: 'rgb(0, 0, 0)'},
+  {at: 0.3, expect: 'rgb(0, 38, 0)'},
+  {at: 0.6, expect: 'rgb(0, 77, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'outline-color',
+  from: 'inherit',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(255, 255, 0)'},
+  {at: 0, expect: 'rgb(255, 255, 0)'},
+  {at: 0.3, expect: 'rgb(179, 217, 0)'},
+  {at: 0.6, expect: 'rgb(102, 179, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 65, 0)'},
+]);
+
+test_interpolation({
+  property: 'outline-color',
+  from: 'unset',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0)'},
+  {at: 0, expect: 'rgb(0, 0, 0)'},
+  {at: 0.3, expect: 'rgb(0, 38, 0)'},
+  {at: 0.6, expect: 'rgb(0, 77, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'outline-color',
+  from: 'white',
+  to: 'orange'
+}, [
+  {at: -0.3, expect: 'white'},
+  {at: 0, expect: 'white'},
+  {at: 0.3, expect: 'rgb(255, 228, 179)'},
+  {at: 0.6, expect: 'rgb(255, 201, 102)'},
+  {at: 1, expect: 'orange'},
+  {at: 1.5, expect: 'rgb(255, 120, 0)'},
+]);
+</script>

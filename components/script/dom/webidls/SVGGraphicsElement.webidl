@@ -10,7 +10,7 @@
 //  boolean clipped = false;
 //};
 
-[Abstract, Pref="dom.svg.enabled"]
+[Exposed=Window, Abstract, Pref="dom.svg.enabled"]
 interface SVGGraphicsElement : SVGElement {
   //[SameObject] readonly attribute SVGAnimatedTransformList transform;
 
@@ -19,4 +19,4 @@ interface SVGGraphicsElement : SVGElement {
   //DOMMatrix? getScreenCTM();
 };
 
-//SVGGraphicsElement implements SVGTests;
+//SVGGraphicsElement includes SVGTests;

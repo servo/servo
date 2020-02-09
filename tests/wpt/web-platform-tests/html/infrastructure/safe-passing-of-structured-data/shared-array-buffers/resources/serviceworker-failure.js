@@ -19,6 +19,7 @@ self.onmessage = e => {
 
 self.onmessageerror = e => {
   if (state === "we are expecting a messageerror due to the window sending us a SAB") {
+    assert_equals(e.constructor.name, "ExtendableMessageEvent", "type");
     assert_equals(e.data, null, "data");
     assert_equals(e.origin, self.origin, "origin");
     assert_not_equals(e.source, null, "source");

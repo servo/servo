@@ -4,11 +4,11 @@
 
 // https://w3c.github.io/FileAPI/#file
 
-[Constructor(sequence<BlobPart> fileBits,
-            DOMString fileName,
-            optional FilePropertyBag options),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface File : Blob {
+  [Throws] constructor(sequence<BlobPart> fileBits,
+              DOMString fileName,
+              optional FilePropertyBag options = {});
   readonly attribute DOMString name;
   readonly attribute long long lastModified;
 };

@@ -4,7 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
@@ -24,7 +24,6 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
-use std::cell::Ref;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]

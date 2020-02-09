@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLElement : Element {
+  [HTMLConstructor] constructor();
+
   // metadata attributes
   [CEReactions]
            attribute DOMString title;
@@ -67,7 +69,7 @@ partial interface HTMLElement {
   readonly attribute long offsetHeight;
 };
 
-HTMLElement implements GlobalEventHandlers;
-HTMLElement implements DocumentAndElementEventHandlers;
-HTMLElement implements ElementContentEditable;
-HTMLElement implements ElementCSSInlineStyle;
+HTMLElement includes GlobalEventHandlers;
+HTMLElement includes DocumentAndElementEventHandlers;
+HTMLElement includes ElementContentEditable;
+HTMLElement includes ElementCSSInlineStyle;

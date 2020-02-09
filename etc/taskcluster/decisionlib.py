@@ -14,6 +14,7 @@ Project-independent library for Taskcluster decision tasks
 """
 
 import base64
+import contextlib
 import datetime
 import hashlib
 import json
@@ -28,6 +29,7 @@ import taskcluster
 __all__ = [
     "CONFIG", "SHARED", "Task", "DockerWorkerTask",
     "GenericWorkerTask", "WindowsGenericWorkerTask", "MacOsGenericWorkerTask",
+    "make_repo_bundle",
 ]
 
 
@@ -56,6 +58,11 @@ class Config:
         self.git_url = os.environ.get("GIT_URL")
         self.git_ref = os.environ.get("GIT_REF")
         self.git_sha = os.environ.get("GIT_SHA")
+        self.git_bundle_shallow_ref = "refs/heads/shallow"
+
+        self.tc_root_url = os.environ.get("TASKCLUSTER_ROOT_URL")
+        self.default_provisioner_id = "proj-example"
+
 
     def task_id(self):
         if hasattr(self, "_task_id"):
@@ -90,10 +97,9 @@ class Shared:
         self.now = datetime.datetime.utcnow()
         self.found_or_created_indexed_tasks = {}
 
-        # taskclusterProxy URLs:
-        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features
-        self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
-        self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
+        options = {"rootUrl": os.environ["TASKCLUSTER_PROXY_URL"]}
+        self.queue_service = taskcluster.Queue(options)
+        self.index_service = taskcluster.Index(options)
 
     def from_now_json(self, offset):
         """
@@ -131,7 +137,7 @@ class Task:
         self.name = name
         self.description = ""
         self.scheduler_id = "taskcluster-github"
-        self.provisioner_id = "aws-provisioner-v1"
+        self.provisioner_id = CONFIG.default_provisioner_id
         self.worker_type = "github-worker"
         self.deadline_in = "1 day"
         self.expires_in = "1 year"
@@ -141,6 +147,10 @@ class Task:
         self.routes = []
         self.extra = {}
         self.treeherder_required = False
+        self.priority = None  # Defaults to 'lowest'
+        self.git_fetch_url = CONFIG.git_url
+        self.git_fetch_ref = CONFIG.git_ref
+        self.git_checkout_sha = CONFIG.git_sha
 
     # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
@@ -150,6 +160,7 @@ class Task:
     with_deadline_in = chaining(setattr, "deadline_in")
     with_expires_in = chaining(setattr, "expires_in")
     with_index_and_artifacts_expire_in = chaining(setattr, "index_and_artifacts_expire_in")
+    with_priority = chaining(setattr, "priority")
 
     with_dependencies = chaining(append_to_attr, "dependencies")
     with_scopes = chaining(append_to_attr, "scopes")
@@ -161,8 +172,7 @@ class Task:
         self.treeherder_required = True
         return self
 
-    def with_treeherder(self, category, symbol=None):
-        symbol = symbol or self.name
+    def with_treeherder(self, category, symbol, group_name=None, group_symbol=None):
         assert len(symbol) <= 25, symbol
         self.name = "%s: %s" % (category, self.name)
 
@@ -175,12 +185,16 @@ class Task:
         platform = parts[0]
         labels = parts[1:] or ["_"]
 
-        # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-treeherder/docs/task-treeherder-config
-        self.with_extra(treeherder={
-            "machine": {"platform": platform},
-            "labels": labels,
-            "symbol": symbol,
-        })
+        # https://github.com/mozilla/treeherder/blob/master/schemas/task-treeherder-config.yml
+        self.with_extra(treeherder=dict_update_if_truthy(
+            {
+                "machine": {"platform": platform},
+                "labels": labels,
+                "symbol": symbol,
+            },
+            groupName=group_name,
+            groupSymbol=group_symbol,
+        ))
 
         if CONFIG.treeherder_repository_name:
             assert CONFIG.git_sha
@@ -216,9 +230,14 @@ class Task:
         assert CONFIG.decision_task_id
         assert CONFIG.task_owner
         assert CONFIG.task_source
+
+        def dedup(xs):
+            seen = set()
+            return [x for x in xs if not (x in seen or seen.add(x))]
+
         queue_payload = {
             "taskGroupId": CONFIG.decision_task_id,
-            "dependencies": [CONFIG.decision_task_id] + self.dependencies,
+            "dependencies": dedup([CONFIG.decision_task_id] + self.dependencies),
             "schedulerId": self.scheduler_id,
             "provisionerId": self.provisioner_id,
             "workerType": self.worker_type,
@@ -245,9 +264,10 @@ class Task:
             scopes=scopes,
             routes=routes,
             extra=self.extra,
+            priority=self.priority,
         )
 
-        task_id = taskcluster.slugId().decode("utf8")
+        task_id = taskcluster.slugId()
         SHARED.queue_service.createTask(task_id, queue_payload)
         print("Scheduled %s: %s" % (task_id, self.name))
         return task_id
@@ -292,6 +312,29 @@ class Task:
 
         SHARED.found_or_created_indexed_tasks[index_path] = task_id
         return task_id
+
+    def with_curl_script(self, url, file_path):
+        return self \
+        .with_script("""
+            curl --retry 5 --connect-timeout 10 -Lf "%s" -o "%s"
+        """ % (url, file_path))
+
+    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
+        queue_service = CONFIG.tc_root_url + "/api/queue"
+        return self \
+        .with_dependencies(task_id) \
+        .with_curl_script(
+            queue_service + "/v1/task/%s/artifacts/public/%s" % (task_id, artifact_name),
+            os.path.join(out_directory, url_basename(artifact_name)),
+        )
+
+    def with_repo_bundle(self, **kwargs):
+        self.git_fetch_url = "../repo.bundle"
+        self.git_fetch_ref = CONFIG.git_bundle_shallow_ref
+        self.git_checkout_sha = "FETCH_HEAD"
+        return self \
+        .with_curl_artifact_script(CONFIG.decision_task_id, "repo.bundle") \
+        .with_repo(**kwargs)
 
 
 class GenericWorkerTask(Task):
@@ -447,9 +490,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             self.with_early_script("set PATH=%HOMEDRIVE%%HOMEPATH%\\{};%PATH%".format(p))
         return self
 
-    def with_repo(self, sparse_checkout=None, shallow=True):
+    def with_repo(self, sparse_checkout=None):
         """
-        Make a shallow clone the git repository at the start of the task.
+        Make a clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
         and creates the clone in a `repo` directory in the task’s home directory.
 
@@ -472,13 +515,16 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 type .git\\info\\sparse-checkout
             """
         git += """
-            git fetch {depth} %GIT_URL% %GIT_REF%
-            git reset --hard %GIT_SHA%
-        """.format(depth="--depth 1" if shallow else "")
+            git fetch --no-tags {} {}
+            git reset --hard {}
+        """.format(
+            assert_truthy(self.git_fetch_url),
+            assert_truthy(self.git_fetch_ref),
+            assert_truthy(self.git_checkout_sha),
+        )
         return self \
         .with_git() \
-        .with_script(git) \
-        .with_env(**git_env())
+        .with_script(git)
 
     def with_git(self):
         """
@@ -490,9 +536,22 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("git\\cmd") \
         .with_directory_mount(
             "https://github.com/git-for-windows/git/releases/download/" +
-                "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
-            sha256="424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
+                "v2.24.0.windows.2/MinGit-2.24.0.2-64-bit.zip",
+            sha256="c33aec6ae68989103653ca9fb64f12cabccf6c61d0dde30c50da47fc15cf66e2",
             path="git",
+        )
+
+    def with_curl_script(self, url, file_path):
+        self.with_curl()
+        return super().with_curl_script(url, file_path)
+
+    def with_curl(self):
+        return self \
+        .with_path_from_homedir("curl\\curl-7.67.0-win64-mingw\\bin") \
+        .with_directory_mount(
+            "https://curl.haxx.se/windows/dl-7.67.0_4/curl-7.67.0_4-win64-mingw.zip",
+            sha256="1d50deeac7f945ed75149e6300f6d21f007a6b942ab851a119ed76cdef27d714",
+            path="curl",
         )
 
     def with_rustup(self):
@@ -503,7 +562,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         return self \
         .with_path_from_homedir(".cargo\\bin") \
         .with_early_script(
-            "%HOMEDRIVE%%HOMEPATH%\\rustup-init.exe --default-toolchain none -y"
+            "%HOMEDRIVE%%HOMEPATH%\\rustup-init.exe --default-toolchain none --profile=minimal -y"
         ) \
         .with_file_mount("https://win.rustup.rs/x86_64", path="rustup-init.exe")
 
@@ -572,13 +631,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
 
 class UnixTaskMixin(Task):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.curl_scripts_count = 0
-
-    def with_repo(self, shallow=True):
+    def with_repo(self, alternate_object_dir=""):
         """
-        Make a shallow clone the git repository at the start of the task.
+        Make a clone the git repository at the start of the task.
         This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`
 
         * generic-worker: creates the clone in a `repo` directory
@@ -589,36 +644,21 @@ class UnixTaskMixin(Task):
           `git` and `ca-certificate` need to be installed in the Docker image.
 
         """
+        # Not using $GIT_ALTERNATE_OBJECT_DIRECTORIES since it causes
+        # "object not found - no match for id" errors when Cargo fetches git dependencies
         return self \
-        .with_env(**git_env()) \
-        .with_early_script("""
+        .with_script("""
             git init repo
             cd repo
-            git fetch {depth} "$GIT_URL" "$GIT_REF"
-            git reset --hard "$GIT_SHA"
-        """.format(depth="--depth 1" if shallow else ""))
-
-    def with_curl_script(self, url, file_path):
-        self.curl_scripts_count += 1
-        n = self.curl_scripts_count
-        return self \
-        .with_env(**{
-            "CURL_%s_URL" % n: url,
-            "CURL_%s_PATH" % n: file_path,
-        }) \
-        .with_script("""
-            mkdir -p $(dirname "$CURL_{n}_PATH")
-            curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
-        """.format(n=n))
-
-    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
-        return self \
-        .with_dependencies(task_id) \
-        .with_curl_script(
-            "https://queue.taskcluster.net/v1/task/%s/artifacts/public/%s"
-                % (task_id, artifact_name),
-            os.path.join(out_directory, url_basename(artifact_name)),
-        )
+            echo "{alternate}" > .git/objects/info/alternates
+            time git fetch --no-tags {} {}
+            time git reset --hard {}
+        """.format(
+            assert_truthy(self.git_fetch_url),
+            assert_truthy(self.git_fetch_ref),
+            assert_truthy(self.git_checkout_sha),
+            alternate=alternate_object_dir,
+        ))
 
 
 class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
@@ -653,10 +693,17 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
             pip install --user virtualenv
         """)
 
+    def with_python3(self):
+        return self.with_early_script("""
+            python3 -m ensurepip --user
+            python3 -m pip install --user virtualenv
+        """)
+
     def with_rustup(self):
         return self.with_early_script("""
             export PATH="$HOME/.cargo/bin:$PATH"
             which rustup || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+            rustup self update
         """)
 
 
@@ -795,15 +842,10 @@ def expand_dockerfile(dockerfile):
     return b"\n".join([expand_dockerfile(path), rest])
 
 
-def git_env():
-    assert CONFIG.git_url
-    assert CONFIG.git_ref
-    assert CONFIG.git_sha
-    return {
-        "GIT_URL": CONFIG.git_url,
-        "GIT_REF": CONFIG.git_ref,
-        "GIT_SHA": CONFIG.git_sha,
-    }
+def assert_truthy(x):
+    assert x
+    return x
+
 
 def dict_update_if_truthy(d, **kwargs):
     for key, value in kwargs.items():
@@ -818,3 +860,20 @@ def deindent(string):
 
 def url_basename(url):
     return url.rpartition("/")[-1]
+
+
+@contextlib.contextmanager
+def make_repo_bundle():
+    subprocess.check_call(["git", "config", "user.name", "Decision task"])
+    subprocess.check_call(["git", "config", "user.email", "nobody@mozilla.com"])
+    tree = subprocess.check_output(["git", "show", CONFIG.git_sha, "--pretty=%T", "--no-patch"])
+    message = "Shallow version of commit " + CONFIG.git_sha
+    commit = subprocess.check_output(["git", "commit-tree", tree.strip(), "-m", message])
+    subprocess.check_call(["git", "update-ref", CONFIG.git_bundle_shallow_ref, commit.strip()])
+    subprocess.check_call(["git", "show-ref"])
+    create = ["git", "bundle", "create", "../repo.bundle", CONFIG.git_bundle_shallow_ref]
+    with subprocess.Popen(create) as p:
+        yield
+        exit_code = p.wait()
+        if exit_code:
+            sys.exit(exit_code)

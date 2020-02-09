@@ -25,6 +25,7 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
+use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::{Node, ShadowIncluding};
@@ -35,6 +36,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::script_thread::ScriptThread;
+use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
@@ -62,6 +64,7 @@ use tendril::stream::LossyDecoder;
 
 mod async_html;
 mod html;
+mod prefetch;
 mod xml;
 
 #[dom_struct]
@@ -101,6 +104,12 @@ pub struct ServoParser {
     aborted: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
+    /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
+    // TODO: if we had speculative parsing, we could do this when speculatively
+    // building the DOM. https://github.com/servo/servo/pull/19203
+    prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    prefetch_input: DomRefCell<BufferQueue>,
 }
 
 #[derive(PartialEq)]
@@ -199,7 +208,7 @@ impl ServoParser {
 
         let fragment_context = FragmentContext {
             context_elem: context_node,
-            form_elem: form.deref(),
+            form_elem: form.as_deref(),
         };
 
         let parser = ServoParser::new(
@@ -403,6 +412,8 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
+            prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(document)),
+            prefetch_input: DomRefCell::new(BufferQueue::new()),
         }
     }
 
@@ -425,20 +436,50 @@ impl ServoParser {
         )
     }
 
+    fn push_tendril_input_chunk(&self, chunk: StrTendril) {
+        if chunk.is_empty() {
+            return;
+        }
+        // Per https://github.com/whatwg/html/issues/1495
+        // stylesheets should not be loaded for documents
+        // without browsing contexts.
+        // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
+        // suggests that no content should be preloaded in such a case.
+        // We're conservative, and only prefetch for documents
+        // with browsing contexts.
+        if self.document.browsing_context().is_some() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_input = self.prefetch_input.borrow_mut();
+            prefetch_input.push_back(chunk.clone());
+            self.prefetch_tokenizer
+                .borrow_mut()
+                .feed(&mut *prefetch_input);
+        }
+        // Push the chunk into the network input stream,
+        // which is tokenized lazily.
+        self.network_input.borrow_mut().push_back(chunk);
+    }
+
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        // For byte input, we convert it to text using the network decoder.
         let chunk = self
             .network_decoder
             .borrow_mut()
             .as_mut()
             .unwrap()
             .decode(chunk);
-        if !chunk.is_empty() {
-            self.network_input.borrow_mut().push_back(chunk);
-        }
+        self.push_tendril_input_chunk(chunk);
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        self.network_input.borrow_mut().push_back(chunk.into());
+        // The input has already been decoded as a string, so doesn't need
+        // to be decoded by the network decoder again.
+        let chunk = StrTendril::from(chunk);
+        self.push_tendril_input_chunk(chunk);
     }
 
     fn parse_sync(&self) {
@@ -517,6 +558,19 @@ impl ServoParser {
                 Err(script) => script,
             };
 
+            // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
+            // branch "An end tag whose tag name is "script"
+            // The spec says to perform the microtask checkpoint before
+            // setting the insertion mode back from Text, but this is not
+            // possible with the way servo and html5ever currently
+            // relate to each other, and hopefully it is not observable.
+            if is_execution_stack_empty() {
+                self.document
+                    .window()
+                    .upcast::<GlobalScope>()
+                    .perform_a_microtask_checkpoint();
+            }
+
             let script_nesting_level = self.script_nesting_level.get();
 
             self.script_nesting_level.set(script_nesting_level + 1);
@@ -586,7 +640,7 @@ enum ParserKind {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
     AsyncHtml(self::async_html::Tokenizer),
@@ -649,6 +703,8 @@ pub struct ParserContext {
     url: ServoUrl,
     /// timing data for this resource
     resource_timing: ResourceFetchTiming,
+    /// pushed entry index
+    pushed_entry_index: Option<usize>,
 }
 
 impl ParserContext {
@@ -659,6 +715,7 @@ impl ParserContext {
             id: id,
             url: url,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
+            pushed_entry_index: None,
         }
     }
 }
@@ -697,6 +754,31 @@ impl FetchResponseListener for ParserContext {
             .and_then(|meta| meta.content_type)
             .map(Serde::into_inner)
             .map(Into::into);
+
+        // https://www.w3.org/TR/CSP/#initialize-document-csp
+        // TODO: Implement step 1 (local scheme special case)
+        let csp_list = metadata.as_ref().and_then(|m| {
+            let h = m.headers.as_ref()?;
+            let mut csp = h.get_all("content-security-policy").iter();
+            // This silently ignores the CSP if it contains invalid Unicode.
+            // We should probably report an error somewhere.
+            let c = csp.next().and_then(|c| c.to_str().ok())?;
+            let mut csp_list = CspList::parse(
+                c,
+                csp::PolicySource::Header,
+                csp::PolicyDisposition::Enforce,
+            );
+            for c in csp {
+                let c = c.to_str().ok()?;
+                csp_list.append(CspList::parse(
+                    c,
+                    csp::PolicySource::Header,
+                    csp::PolicyDisposition::Enforce,
+                ));
+            }
+            Some(csp_list)
+        });
+
         let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
@@ -705,7 +787,11 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
+        parser.document.set_csp_list(csp_list);
+
         self.parser = Some(Trusted::new(&*parser));
+
+        self.submit_resource_timing();
 
         match content_type {
             Some(ref mime) if mime.type_() == mime::IMAGE => {
@@ -814,8 +900,16 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync();
         }
 
-        //TODO only submit if this is the current document resource
-        self.submit_resource_timing();
+        //TODO only update if this is the current document resource
+        if let Some(pushed_index) = self.pushed_entry_index {
+            let document = &parser.document;
+            let performance_entry =
+                PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+            document
+                .global()
+                .performance()
+                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -841,10 +935,10 @@ impl FetchResponseListener for ParserContext {
         //TODO nav_start and nav_start_precise
         let performance_entry =
             PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
-        document
+        self.pushed_entry_index = document
             .global()
             .performance()
-            .queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 }
 
@@ -878,7 +972,7 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct Sink {
     base_url: ServoUrl,
     document: Dom<Document>,
@@ -1164,11 +1258,30 @@ fn create_element_for_token(
     } else {
         CustomElementCreationMode::Asynchronous
     };
+
     let element = Element::create(name, is, document, creator, creation_mode);
 
-    // Step 8.
+    // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
+    // says to invoke sanitization "when an input element is first created";
+    // however, since sanitization requires content attributes to function,
+    // it can't mean that literally.
+    // Indeed, to make sanitization work correctly, we need to _not_ sanitize
+    // until after all content attributes have been added
+
+    let maybe_input = element.downcast::<HTMLInputElement>();
+    if let Some(input) = maybe_input {
+        input.disable_sanitization();
+    }
+
+    // Step 8
     for attr in attrs {
         element.set_attribute_from_parser(attr.name, attr.value, None);
+    }
+
+    // _now_ we can sanitize (and we sanitize now even if the "value"
+    // attribute isn't present!)
+    if let Some(input) = maybe_input {
+        input.enable_sanitization();
     }
 
     // Step 9.

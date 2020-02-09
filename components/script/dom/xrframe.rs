@@ -15,35 +15,46 @@ use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
-use webvr_traits::WebVRFrameData;
+use std::cell::Cell;
+use webxr_api::Frame;
 
 #[dom_struct]
 pub struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "defined in rust-webvr"]
-    data: WebVRFrameData,
+    data: Frame,
+    active: Cell<bool>,
+    animation_frame: Cell<bool>,
 }
 
 impl XRFrame {
-    fn new_inherited(session: &XRSession, data: WebVRFrameData) -> XRFrame {
+    fn new_inherited(session: &XRSession, data: Frame) -> XRFrame {
         XRFrame {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
             data,
+            active: Cell::new(false),
+            animation_frame: Cell::new(false),
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        session: &XRSession,
-        data: WebVRFrameData,
-    ) -> DomRoot<XRFrame> {
+    pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
             global,
             XRFrameBinding::Wrap,
         )
+    }
+
+    /// https://immersive-web.github.io/webxr/#xrframe-active
+    pub fn set_active(&self, active: bool) {
+        self.active.set(active);
+    }
+
+    /// https://immersive-web.github.io/webxr/#xrframe-animationframe
+    pub fn set_animation_frame(&self, animation_frame: bool) {
+        self.animation_frame.set(animation_frame);
     }
 }
 
@@ -61,13 +72,17 @@ impl XRFrameMethods for XRFrame {
         if self.session != reference.upcast::<XRSpace>().session() {
             return Err(Error::InvalidState);
         }
-        let pose = reference.get_viewer_pose(&self.data);
-        Ok(Some(XRViewerPose::new(
-            &self.global(),
-            &self.session,
-            pose,
-            &self.data,
-        )))
+
+        if !self.active.get() || !self.animation_frame.get() {
+            return Err(Error::InvalidState);
+        }
+
+        let pose = if let Some(pose) = reference.get_viewer_pose(&self.data) {
+            pose
+        } else {
+            return Ok(None);
+        };
+        Ok(Some(XRViewerPose::new(&self.global(), &self.session, pose)))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
@@ -79,9 +94,20 @@ impl XRFrameMethods for XRFrame {
         if self.session != space.session() || self.session != relative_to.session() {
             return Err(Error::InvalidState);
         }
-        let space = space.get_pose(&self.data);
-        let relative_to = relative_to.get_pose(&self.data);
-        let pose = relative_to.inverse().pre_mul(&space);
+        if !self.active.get() {
+            return Err(Error::InvalidState);
+        }
+        let space = if let Some(space) = space.get_pose(&self.data) {
+            space
+        } else {
+            return Ok(None);
+        };
+        let relative_to = if let Some(r) = relative_to.get_pose(&self.data) {
+            r
+        } else {
+            return Ok(None);
+        };
+        let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
 }

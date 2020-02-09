@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - opacity</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="assert" content="Test checks that the 'opacity' property is animatable.">
+<style>
+  #test {
+    background-color: red;
+    height: 100px;
+    opacity: 1;
+    transition-duration: 2s;
+    transition-property: opacity;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the red square below. Test passes if the red square blurs gradually not immediately until it disappears.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "opacity: 0;");
+      }, false);
+    })();
+  </script>
+</body>

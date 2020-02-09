@@ -69,6 +69,7 @@ impl GamepadEvent {
     }
 
     // https://w3c.github.io/gamepad/#gamepadevent-interface
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,

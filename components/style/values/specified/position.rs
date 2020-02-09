@@ -13,6 +13,7 @@ use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
 use crate::Atom;
@@ -25,6 +26,9 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The specified value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
+
+/// The specified value of an `auto | <position>`.
+pub type PositionOrAuto = GenericPositionOrAuto<Position>;
 
 /// The specified value of a horizontal position.
 pub type HorizontalPosition = PositionComponent<HorizontalPositionKeyword>;
@@ -94,13 +98,17 @@ impl Parse for Position {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
+        let position = Self::parse_three_value_quirky(context, input, AllowQuirks::No)?;
+        if position.is_three_value_syntax() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        Ok(position)
     }
 }
 
 impl Position {
-    /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(
+    /// Parses a `<bg-position>`, with quirks.
+    pub fn parse_three_value_quirky<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
@@ -183,6 +191,12 @@ impl Position {
     pub fn center() -> Self {
         Self::new(PositionComponent::Center, PositionComponent::Center)
     }
+
+    /// Returns true if this uses a 3 value syntax.
+    #[inline]
+    fn is_three_value_syntax(&self) -> bool {
+        self.horizontal.component_count() != self.vertical.component_count()
+    }
 }
 
 impl ToCss for Position {
@@ -252,6 +266,20 @@ impl<S> PositionComponent<S> {
     pub fn zero() -> Self {
         PositionComponent::Length(LengthPercentage::Percentage(Percentage::zero()))
     }
+
+    /// Returns the count of this component.
+    fn component_count(&self) -> usize {
+        match *self {
+            PositionComponent::Length(..) | PositionComponent::Center => 1,
+            PositionComponent::Side(_, ref lp) => {
+                if lp.is_some() {
+                    2
+                } else {
+                    1
+                }
+            },
+        }
+    }
 }
 
 impl<S: Side> ToComputedValue for PositionComponent<S> {
@@ -269,12 +297,7 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 let p = Percentage(1. - length.percentage());
                 let l = -length.unclamped_length();
                 // We represent `<end-side> <length>` as `calc(100% - <length>)`.
-                ComputedLengthPercentage::with_clamping_mode(
-                    l,
-                    Some(p),
-                    length.clamping_mode,
-                    /* was_calc = */ true,
-                )
+                ComputedLengthPercentage::with_clamping_mode(l, Some(p), length.clamping_mode)
             },
             PositionComponent::Side(_, Some(ref length)) |
             PositionComponent::Length(ref length) => length.to_computed_value(context),
@@ -679,8 +702,6 @@ fn is_name_code_point(c: char) -> bool {
 /// The syntax of this property also provides a visualization of the structure
 /// of the grid, making the overall layout of the grid container easier to
 /// understand.
-///
-/// cbindgen:derive-tagged-enum-copy-constructor=true
 #[repr(C, u8)]
 #[derive(
     Clone,

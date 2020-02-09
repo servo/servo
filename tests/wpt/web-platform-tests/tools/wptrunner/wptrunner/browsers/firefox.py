@@ -23,7 +23,9 @@ from .base import (get_free_port,
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
                                             MarionetteRefTestExecutor,  # noqa: F401
-                                            MarionetteWdspecExecutor)  # noqa: F401
+                                            MarionetteWdspecExecutor,  # noqa: F401
+                                            MarionetteCrashtestExecutor)  # noqa: F401
+from ..process import cast_env
 
 
 here = os.path.join(os.path.split(__file__)[0])
@@ -31,7 +33,8 @@ here = os.path.join(os.path.split(__file__)[0])
 __wptrunner__ = {"product": "firefox",
                  "check_args": "check_args",
                  "browser": "FirefoxBrowser",
-                 "executor": {"testharness": "MarionetteTestharnessExecutor",
+                 "executor": {"crashtest": "MarionetteCrashtestExecutor",
+                              "testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutor",
                               "wdspec": "MarionetteWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
@@ -61,6 +64,8 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
     # https://bugzilla.mozilla.org/show_bug.cgi?id=1538725
     elif run_info_data["os"] == "win" and run_info_data["processor"] == "aarch64":
         return 4
+    elif run_info_data.get("ccov"):
+        return 2
     return 1
 
 
@@ -79,7 +84,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
-            "lsan_dir": kwargs["lsan_dir"],
+            "enable_webrender": kwargs["enable_webrender"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
             "timeout_multiplier": get_timeout_multiplier(test_type,
@@ -124,6 +129,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         options["prefs"] = {
             "network.dns.localDomains": ",".join(server_config.domains_set)
         }
+        for pref, value in kwargs["extra_prefs"]:
+            options["prefs"].update({pref: Preferences.cast(value)})
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
         capabilities["acceptInsecureCerts"] = True
@@ -150,18 +157,31 @@ def env_options():
 
 def run_info_extras(**kwargs):
 
-    def get_bool_pref(pref):
+    def get_bool_pref_if_exists(pref):
         for key, value in kwargs.get('extra_prefs', []):
             if pref == key:
                 return value.lower() in ('true', '1')
-        return False
+        return None
+
+    def get_bool_pref(pref):
+        pref_value = get_bool_pref_if_exists(pref)
+        return pref_value if pref_value is not None else False
 
     rv = {"e10s": kwargs["gecko_e10s"],
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
-          "headless": "MOZ_HEADLESS" in os.environ,
-          "fission": get_bool_pref("fission.autostart"),
-          "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept")}
+          "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
+          "sw-e10s": True,
+          "fission": get_bool_pref("fission.autostart")}
+
+    # The value of `sw-e10s` defaults to whether the "parent_intercept"
+    # implementation is enabled for the current build. This value, however,
+    # can be overridden by explicitly setting the pref with the `--setpref` CLI
+    # flag, which is checked here.
+    sw_e10s_override = get_bool_pref_if_exists("dom.serviceWorkers.parent_intercept")
+    if sw_e10s_override is not None:
+        rv["sw-e10s"] = sw_e10s_override
+
     rv.update(run_info_browser_version(kwargs["binary"]))
     return rv
 
@@ -178,8 +198,8 @@ def run_info_browser_version(binary):
 
 
 def update_properties():
-    return (["debug", "webrender", "e10s", "os", "version", "processor", "bits"],
-            {"debug", "e10s", "webrender"})
+    return (["os", "debug", "webrender", "fission", "e10s", "sw-e10s", "processor"],
+            {"os": ["version"], "processor": ["bits"]})
 
 
 class FirefoxBrowser(Browser):
@@ -188,7 +208,7 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, lsan_dir=None, stackfix_dir=None,
+                 ca_certificate_path=None, e10s=False, enable_webrender=False, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly", headless=None, **kwargs):
         Browser.__init__(self, logger)
@@ -205,6 +225,7 @@ class FirefoxBrowser(Browser):
         self.ca_certificate_path = ca_certificate_path
         self.certutil_binary = certutil_binary
         self.e10s = e10s
+        self.enable_webrender = enable_webrender
         self.binary_args = binary_args
         self.config = config
         if stackfix_dir:
@@ -217,7 +238,6 @@ class FirefoxBrowser(Browser):
             self.init_timeout = self.init_timeout * timeout_multiplier
 
         self.asan = asan
-        self.lsan_dir = lsan_dir
         self.lsan_allowed = None
         self.lsan_max_stack_depth = None
         self.mozleak_allowed = None
@@ -258,14 +278,18 @@ class FirefoxBrowser(Browser):
 
         env = test_environment(xrePath=os.path.dirname(self.binary),
                                debugger=self.debug_info is not None,
-                               log=self.logger,
-                               lsanPath=self.lsan_dir)
+                               useLSan=True, log=self.logger)
 
         env["STYLO_THREADS"] = str(self.stylo_threads)
         if self.chaos_mode_flags is not None:
             env["MOZ_CHAOSMODE"] = str(self.chaos_mode_flags)
         if self.headless:
             env["MOZ_HEADLESS"] = "1"
+        if self.enable_webrender:
+            env["MOZ_WEBRENDER"] = "1"
+            env["MOZ_ACCELERATED"] = "1"
+        else:
+            env["MOZ_WEBRENDER"] = "0"
 
         preferences = self.load_prefs()
 
@@ -311,7 +335,7 @@ class FirefoxBrowser(Browser):
         self.runner = FirefoxRunner(profile=self.profile,
                                     binary=cmd[0],
                                     cmdargs=cmd[1:],
-                                    env=env,
+                                    env=cast_env(env),
                                     process_class=ProcessHandler,
                                     process_args={"processOutputLine": [self.on_output]})
 
@@ -465,7 +489,7 @@ class FirefoxBrowser(Browser):
             cmd = [self.certutil_binary] + list(args)
             self.logger.process_output("certutil",
                                        subprocess.check_output(cmd,
-                                                               env=env,
+                                                               env=cast_env(env),
                                                                stderr=subprocess.STDOUT),
                                        " ".join(cmd))
 

@@ -25,7 +25,7 @@ test_with_window((contentWindow, contentDocument) => {
   contentDocument.documentElement.appendChild(text);
   const element = contentDocument.createElement("custom-element");
   contentDocument.documentElement.appendChild(element);
-  assert_throws("HierarchyRequestError", () => text.before("", contentDocument.documentElement));
+  assert_throws_dom("HierarchyRequestError", () => text.before("", contentDocument.documentElement));
   assert_true(reactionRan);
 }, "Reaction must run even after the exception is thrown");
 </script>

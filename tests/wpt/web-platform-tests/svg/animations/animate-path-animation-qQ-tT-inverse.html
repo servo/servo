@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test path animation where coordinate modes of start and end differ. You should see PASS messages</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var path = createSVGElement("path");
+path.setAttribute("id", "path");
+path.setAttribute("d", "M -30 -30 q 30 0 30 30 t -30 30 Z");
+path.setAttribute("fill", "green");
+path.setAttribute("onclick", "executeTest()");
+path.setAttribute("transform", "translate(50, 50)");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "d");
+animate.setAttribute("from", "M -30 -30 q 30 0 30 30 t -30 30 Z");
+animate.setAttribute("to", "M -30 -30 Q 30 -30 30 0 T -30 30 Z");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+path.appendChild(animate);
+rootSVGElement.appendChild(path);
+
+// Setup animation test
+function sample1() {
+    // Check initial/end conditions
+    assert_equals(path.getAttribute('d'), "M -30 -30 q 30 0 30 30 t -30 30 Z");
+}
+
+function sample2() {
+    assert_equals(path.getAttribute('d'), "M -30 -30 q 37.5 0 37.5 30 t -37.5 30 Z");
+}
+
+function sample3() {
+    assert_equals(path.getAttribute('d'), "M -30 -30 Q 22.5 -30 22.5 0 T -30 30 Z");
+}
+
+function sample4() {
+    assert_equals(path.getAttribute('d'), "M -30 -30 Q 29.9925 -30 29.9925 0 T -30 30 Z");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 1.0,   sample2],
+        ["animation", 3.0,   sample3],
+        ["animation", 3.999, sample4],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.clickX = 40;
+window.clickY = 70;
+
+</script>

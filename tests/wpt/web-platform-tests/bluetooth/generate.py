@@ -8,9 +8,9 @@
 
 For each script-tests/X.js creates the following test files depending on the
 contents of X.js
-- getPrimaryService/X.html
-- getPrimaryServices/X.html
-- getPrimaryServices/X-with-uuid.html
+- getPrimaryService/X.https.window.js
+- getPrimaryServices/X.https.window.js
+- getPrimaryServices/X-with-uuid.https.window.js
 
 script-tests/X.js files should contain "CALLS([variation1 | variation2 | ...])"
 tokens that indicate what files to generate. Each variation in CALLS([...])
@@ -36,14 +36,14 @@ promise_test(() => {
 
 this script will generate:
 
-// getPrimaryService/example.html
+// getPrimaryService/example.https.window.js
 promise_test(() => {
     return navigator.bluetooth.requestDevice(...)
         .then(device => device.gatt.getPrimaryService('heart_rate'))
         .then(device => device.gatt.getPrimaryService('heart_rate'));
 }, 'example test for getPrimaryService');
 
-// getPrimaryServices/example-with-uuid.html
+// getPrimaryServices/example-with-uuid.https.window.js
 promise_test(() => {
     return navigator.bluetooth.requestDevice(...)
         .then(device => device.gatt.getPrimaryServices('heart_rate'))
@@ -81,7 +81,7 @@ def GetGeneratedTests():
         os.path.join(
             bluetooth_tests_dir,
             TEMPLATES_DIR,
-            'base_test_html.template'
+            'base_test_js.template'
         ), 'r')
     base_template_file_data = base_template_file_handle.read().decode('utf-8')
     base_template_file_handle.close()
@@ -140,7 +140,7 @@ def GetGeneratedTests():
             # Get test file name
             group_dir = os.path.basename(os.path.abspath(os.path.join(template, os.pardir)))
 
-            call_test_file_name = 'gen-{}{}.https.html'.format(template_name, '-with-uuid' if uuid_suffix else '')
+            call_test_file_name = 'gen-{}{}.https.window.js'.format(template_name, '-with-uuid' if uuid_suffix else '')
             call_test_file_path = os.path.join(bluetooth_tests_dir, group_dir, function_name, call_test_file_name)
 
             yield GeneratedTest(call_test_file_data, call_test_file_path, template)
@@ -150,7 +150,7 @@ def main():
     previous_generated_files = set()
     current_path = os.path.dirname(os.path.realpath(__file__))
     for root, _, filenames in os.walk(current_path):
-        for filename in fnmatch.filter(filenames, 'gen-*.https.html'):
+        for filename in fnmatch.filter(filenames, 'gen-*.https.window.js'):
             previous_generated_files.add(os.path.join(root, filename))
 
     generated_files = set()

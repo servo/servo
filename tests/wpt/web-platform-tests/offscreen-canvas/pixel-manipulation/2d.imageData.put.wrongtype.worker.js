@@ -4,19 +4,22 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("putImageData() does not accept non-ImageData objects");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
 var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
-assert_throws(new TypeError(), function() { ctx.putImageData(imgdata, 0, 0); });
-assert_throws(new TypeError(), function() { ctx.putImageData("cheese", 0, 0); });
-assert_throws(new TypeError(), function() { ctx.putImageData(42, 0, 0); });
-
+assert_throws_js(TypeError, function() { ctx.putImageData(imgdata, 0, 0); });
+assert_throws_js(TypeError, function() { ctx.putImageData("cheese", 0, 0); });
+assert_throws_js(TypeError, function() { ctx.putImageData(42, 0, 0); });
 t.done();
 
 });

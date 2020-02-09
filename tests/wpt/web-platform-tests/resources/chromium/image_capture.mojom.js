@@ -24,6 +24,8 @@
   MeteringMode.MANUAL = MeteringMode.NONE + 1;
   MeteringMode.SINGLE_SHOT = MeteringMode.MANUAL + 1;
   MeteringMode.CONTINUOUS = MeteringMode.SINGLE_SHOT + 1;
+  MeteringMode.MIN_VALUE = 0,
+  MeteringMode.MAX_VALUE = 3,
 
   MeteringMode.isKnownEnumValue = function(value) {
     switch (value) {
@@ -47,6 +49,8 @@
   RedEyeReduction.NEVER = 0;
   RedEyeReduction.ALWAYS = RedEyeReduction.NEVER + 1;
   RedEyeReduction.CONTROLLABLE = RedEyeReduction.ALWAYS + 1;
+  RedEyeReduction.MIN_VALUE = 0,
+  RedEyeReduction.MAX_VALUE = 2,
 
   RedEyeReduction.isKnownEnumValue = function(value) {
     switch (value) {
@@ -69,6 +73,8 @@
   FillLightMode.OFF = 0;
   FillLightMode.AUTO = FillLightMode.OFF + 1;
   FillLightMode.FLASH = FillLightMode.AUTO + 1;
+  FillLightMode.MIN_VALUE = 0,
+  FillLightMode.MAX_VALUE = 2,
 
   FillLightMode.isKnownEnumValue = function(value) {
     switch (value) {
@@ -175,6 +181,8 @@
     this.saturation = null;
     this.sharpness = null;
     this.focusDistance = null;
+    this.pan = null;
+    this.tilt = null;
     this.zoom = null;
     this.redEyeReduction = 0;
     this.height = null;
@@ -195,7 +203,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 168}
+      {version: 0, numBytes: 184}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -298,8 +306,20 @@
         return err;
 
 
-    // validate PhotoState.zoom
+    // validate PhotoState.pan
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 120, Range, false);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate PhotoState.tilt
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 128, Range, false);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate PhotoState.zoom
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 136, Range, false);
     if (err !== validator.validationError.NONE)
         return err;
 
@@ -307,32 +327,32 @@
 
 
     // validate PhotoState.redEyeReduction
-    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 128, RedEyeReduction);
+    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 144, RedEyeReduction);
     if (err !== validator.validationError.NONE)
         return err;
 
 
     // validate PhotoState.height
-    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 136, Range, false);
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 152, Range, false);
     if (err !== validator.validationError.NONE)
         return err;
 
 
     // validate PhotoState.width
-    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 144, Range, false);
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 160, Range, false);
     if (err !== validator.validationError.NONE)
         return err;
 
 
     // validate PhotoState.fillLightMode
-    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 152, 4, new codec.Enum(FillLightMode), false, [0], 0);
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 168, 4, new codec.Enum(FillLightMode), false, [0], 0);
     if (err !== validator.validationError.NONE)
         return err;
 
     return validator.validationError.NONE;
   };
 
-  PhotoState.encodedSize = codec.kStructHeaderSize + 160;
+  PhotoState.encodedSize = codec.kStructHeaderSize + 176;
 
   PhotoState.decode = function(decoder) {
     var packed;
@@ -361,6 +381,8 @@
     val.saturation = decoder.decodeStructPointer(Range);
     val.sharpness = decoder.decodeStructPointer(Range);
     val.focusDistance = decoder.decodeStructPointer(Range);
+    val.pan = decoder.decodeStructPointer(Range);
+    val.tilt = decoder.decodeStructPointer(Range);
     val.zoom = decoder.decodeStructPointer(Range);
     val.redEyeReduction = decoder.decodeStruct(codec.Int32);
     decoder.skip(1);
@@ -400,6 +422,8 @@
     encoder.encodeStructPointer(Range, val.saturation);
     encoder.encodeStructPointer(Range, val.sharpness);
     encoder.encodeStructPointer(Range, val.focusDistance);
+    encoder.encodeStructPointer(Range, val.pan);
+    encoder.encodeStructPointer(Range, val.tilt);
     encoder.encodeStructPointer(Range, val.zoom);
     encoder.encodeStruct(codec.Int32, val.redEyeReduction);
     encoder.skip(1);
@@ -483,6 +507,8 @@
     this.hasSaturation = false;
     this.hasSharpness = false;
     this.hasFocusDistance = false;
+    this.hasPan = false;
+    this.hasTilt = false;
     this.hasZoom = false;
     this.hasTorch = false;
     this.torch = false;
@@ -504,6 +530,8 @@
     this.saturation = 0;
     this.sharpness = 0;
     this.focusDistance = 0;
+    this.pan = 0;
+    this.tilt = 0;
     this.zoom = 0;
     this.fillLightMode = 0;
     this.width = 0;
@@ -523,7 +551,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 136}
+      {version: 0, numBytes: 152}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -580,8 +608,12 @@
 
 
 
+
+
+
+
     // validate PhotoSettings.fillLightMode
-    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 104, FillLightMode);
+    err = messageValidator.validateEnum(offset + codec.kStructHeaderSize + 120, FillLightMode);
     if (err !== validator.validationError.NONE)
         return err;
 
@@ -594,7 +626,7 @@
     return validator.validationError.NONE;
   };
 
-  PhotoSettings.encodedSize = codec.kStructHeaderSize + 128;
+  PhotoSettings.encodedSize = codec.kStructHeaderSize + 144;
 
   PhotoSettings.decode = function(decoder) {
     var packed;
@@ -615,15 +647,17 @@
     val.hasSaturation = (packed >> 1) & 1 ? true : false;
     val.hasSharpness = (packed >> 2) & 1 ? true : false;
     val.hasFocusDistance = (packed >> 3) & 1 ? true : false;
-    val.hasZoom = (packed >> 4) & 1 ? true : false;
-    val.hasTorch = (packed >> 5) & 1 ? true : false;
-    val.torch = (packed >> 6) & 1 ? true : false;
-    val.hasFillLightMode = (packed >> 7) & 1 ? true : false;
+    val.hasPan = (packed >> 4) & 1 ? true : false;
+    val.hasTilt = (packed >> 5) & 1 ? true : false;
+    val.hasZoom = (packed >> 6) & 1 ? true : false;
+    val.hasTorch = (packed >> 7) & 1 ? true : false;
     packed = decoder.readUint8();
-    val.hasWidth = (packed >> 0) & 1 ? true : false;
-    val.hasHeight = (packed >> 1) & 1 ? true : false;
-    val.hasRedEyeReduction = (packed >> 2) & 1 ? true : false;
-    val.redEyeReduction = (packed >> 3) & 1 ? true : false;
+    val.torch = (packed >> 0) & 1 ? true : false;
+    val.hasFillLightMode = (packed >> 1) & 1 ? true : false;
+    val.hasWidth = (packed >> 2) & 1 ? true : false;
+    val.hasHeight = (packed >> 3) & 1 ? true : false;
+    val.hasRedEyeReduction = (packed >> 4) & 1 ? true : false;
+    val.redEyeReduction = (packed >> 5) & 1 ? true : false;
     decoder.skip(1);
     val.whiteBalanceMode = decoder.decodeStruct(codec.Int32);
     val.exposureMode = decoder.decodeStruct(codec.Int32);
@@ -638,6 +672,8 @@
     val.saturation = decoder.decodeStruct(codec.Double);
     val.sharpness = decoder.decodeStruct(codec.Double);
     val.focusDistance = decoder.decodeStruct(codec.Double);
+    val.pan = decoder.decodeStruct(codec.Double);
+    val.tilt = decoder.decodeStruct(codec.Double);
     val.zoom = decoder.decodeStruct(codec.Double);
     val.fillLightMode = decoder.decodeStruct(codec.Int32);
     decoder.skip(1);
@@ -668,16 +704,18 @@
     packed |= (val.hasSaturation & 1) << 1
     packed |= (val.hasSharpness & 1) << 2
     packed |= (val.hasFocusDistance & 1) << 3
-    packed |= (val.hasZoom & 1) << 4
-    packed |= (val.hasTorch & 1) << 5
-    packed |= (val.torch & 1) << 6
-    packed |= (val.hasFillLightMode & 1) << 7
+    packed |= (val.hasPan & 1) << 4
+    packed |= (val.hasTilt & 1) << 5
+    packed |= (val.hasZoom & 1) << 6
+    packed |= (val.hasTorch & 1) << 7
     encoder.writeUint8(packed);
     packed = 0;
-    packed |= (val.hasWidth & 1) << 0
-    packed |= (val.hasHeight & 1) << 1
-    packed |= (val.hasRedEyeReduction & 1) << 2
-    packed |= (val.redEyeReduction & 1) << 3
+    packed |= (val.torch & 1) << 0
+    packed |= (val.hasFillLightMode & 1) << 1
+    packed |= (val.hasWidth & 1) << 2
+    packed |= (val.hasHeight & 1) << 3
+    packed |= (val.hasRedEyeReduction & 1) << 4
+    packed |= (val.redEyeReduction & 1) << 5
     encoder.writeUint8(packed);
     encoder.skip(1);
     encoder.encodeStruct(codec.Int32, val.whiteBalanceMode);
@@ -693,6 +731,8 @@
     encoder.encodeStruct(codec.Double, val.saturation);
     encoder.encodeStruct(codec.Double, val.sharpness);
     encoder.encodeStruct(codec.Double, val.focusDistance);
+    encoder.encodeStruct(codec.Double, val.pan);
+    encoder.encodeStruct(codec.Double, val.tilt);
     encoder.encodeStruct(codec.Double, val.zoom);
     encoder.encodeStruct(codec.Int32, val.fillLightMode);
     encoder.skip(1);

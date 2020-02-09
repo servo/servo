@@ -21,7 +21,7 @@ function runTest(config)
             return jwkSet + ',"test":"unknown"'.repeat(4000) + '}';
         }
 
-        return navigator.requestMediaKeySystemAccess(keySystem, getSimpleConfiguration()).then(function(access) {
+        var p = navigator.requestMediaKeySystemAccess(keySystem, getSimpleConfiguration()).then(function(access) {
             initDataType = access.getConfiguration().initDataTypes[0];
             initData = getInitData(initDataType);
             return access.createMediaKeys();
@@ -36,10 +36,8 @@ function runTest(config)
             assert_greater_than(jwkSet.length, 65536);
             var jwkSetArray = stringToUint8Array(jwkSet);
             return mediaKeySession.update(jwkSetArray);
-        }).then(function () {
-            assert_unreached('update() with a response longer than 64Kb succeed');
-        }).catch(function (error) {
-            assert_equals(error.name, 'TypeError');
         });
+
+        return promise_rejects_js(test, TypeError, p);
     }, 'update() with invalid response (longer than 64Kb characters) should fail.');
 }

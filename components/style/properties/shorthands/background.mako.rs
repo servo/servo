@@ -6,6 +6,7 @@
 
 // TODO: other background-* properties
 <%helpers:shorthand name="background"
+                    engines="gecko servo-2013 servo-2020"
                     sub_properties="background-color background-position-x background-position-y background-repeat
                                     background-attachment background-image background-size background-origin
                                     background-clip"
@@ -15,7 +16,7 @@
     use crate::properties::longhands::background_clip;
     use crate::properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use crate::properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use crate::values::specified::{Color, Position, PositionComponent};
+    use crate::values::specified::{AllowQuirks, Color, Position, PositionComponent};
     use crate::parser::Parse;
 
     // FIXME(emilio): Should be the same type!
@@ -64,7 +65,9 @@
                     }
                 }
                 if position.is_none() {
-                    if let Ok(value) = input.try(|input| Position::parse(context, input)) {
+                    if let Ok(value) = input.try(|input| {
+                        Position::parse_three_value_quirky(context, input, AllowQuirks::No)
+                    }) {
                         position = Some(value);
 
                         // Parse background size, if applicable.
@@ -191,6 +194,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="background-position"
+                    engines="gecko servo-2013 servo-2020"
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
@@ -211,7 +215,7 @@
         let mut any = false;
 
         input.parse_comma_separated(|input| {
-            let value = Position::parse_quirky(context, input, AllowQuirks::Yes)?;
+            let value = Position::parse_three_value_quirky(context, input, AllowQuirks::Yes)?;
             position_x.push(value.horizontal);
             position_y.push(value.vertical);
             any = true;

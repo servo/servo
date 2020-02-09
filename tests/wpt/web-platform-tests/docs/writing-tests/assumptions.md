@@ -11,7 +11,6 @@ tests can freely rely on these assumptions being true:
  * The initial value of `color` is `black`.
  * The user stylesheet is empty (except where indicated by the tests).
  * The device is interactive and uses scroll bars.
- * The device has the Ahem font installed.
  * The HTML `div` element is assigned `display: block;`, the
    `unicode-bidi` property may be declared, and no other property
    declarations.

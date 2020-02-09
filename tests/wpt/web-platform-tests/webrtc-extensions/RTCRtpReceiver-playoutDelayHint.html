@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for RTCRtpReceiver-playoutDelayHint attribute</title>
+<link rel="help" href="https://henbos.github.io/webrtc-extensions/#dom-rtcrtpreceiver-playoutdelayhint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict'
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.playoutDelayHint, null);
+}, 'audio playoutDelayHint is null by default');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.5;
+  assert_equals(receiver.playoutDelayHint, 0.5);
+}, 'audio playoutDelayHint accepts posititve values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  receiver.playoutDelayHint = 20.5;
+  assert_equals(receiver.playoutDelayHint, 20.5);
+}, 'audio playoutDelayHint accepts large positive values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.7
+  assert_throws_js(TypeError, () => {
+    receiver.playoutDelayHint = -0.5;
+  }, 'audio playoutDelayHint doesn\'t accept negative values');
+  assert_equals(receiver.playoutDelayHint, 0.7);
+}, 'audio playoutDelayHint returns last valid value on throw');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.0;
+  assert_equals(receiver.playoutDelayHint, 0.0);
+}, 'audio playoutDelayHint allows zero value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.5;
+  receiver.playoutDelayHint = null;
+  assert_equals(receiver.playoutDelayHint, null);
+}, 'audio playoutDelayHint allows to reset value to null');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.playoutDelayHint, null);
+}, 'video playoutDelayHint is null by default');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.5;
+  assert_equals(receiver.playoutDelayHint, 0.5);
+}, 'video playoutDelayHint accepts posititve values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  receiver.playoutDelayHint = 20.5;
+  assert_equals(receiver.playoutDelayHint, 20.5);
+}, 'video playoutDelayHint accepts large posititve values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.7
+  assert_throws_js(TypeError, () => {
+    receiver.playoutDelayHint = -0.5;
+  }, 'video playoutDelayHint doesn\'t accept negative values');
+  assert_equals(receiver.playoutDelayHint, 0.7);
+}, 'video playoutDelayHint returns last valid value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.0;
+  assert_equals(receiver.playoutDelayHint, 0.0);
+}, 'video playoutDelayHint allows zero value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  receiver.playoutDelayHint = 0.5;
+  receiver.playoutDelayHint = null;
+  assert_equals(receiver.playoutDelayHint, null);
+}, 'video playoutDelayHint allows to reset value to null');
+</script>
+</body>

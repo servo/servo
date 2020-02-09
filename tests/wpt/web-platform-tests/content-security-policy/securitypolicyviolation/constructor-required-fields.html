@@ -4,8 +4,8 @@
 <script>
     // basic tests.
     test(function() {
-      assert_throws(TypeError(),
-                    function() { new SecurityPolicyViolationEvent(); });
+      assert_throws_js(TypeError,
+                       function() { new SecurityPolicyViolationEvent(); });
     }, "SecurityPolicyViolationEvent constructor should throw with no parameters");
 
     test(function() {
@@ -27,7 +27,7 @@
 
     // missing required members
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           // documentURI: "http://example.com",
           referrer: "http://example.com",
@@ -45,7 +45,7 @@
     }, "SecurityPolicyViolationEvent constructor requires documentURI");
 
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           documentURI: "http://example.com",
           referrer: "http://example.com",
@@ -63,7 +63,7 @@
     }, "SecurityPolicyViolationEvent constructor requires violatedDirective");
 
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           documentURI: "http://example.com",
           referrer: "http://example.com",
@@ -81,7 +81,7 @@
     }, "SecurityPolicyViolationEvent constructor requires effectiveDirective");
 
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           documentURI: "http://example.com",
           referrer: "http://example.com",
@@ -99,7 +99,7 @@
     }, "SecurityPolicyViolationEvent constructor requires originalPolicy");
 
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           documentURI: "http://example.com",
           referrer: "http://example.com",
@@ -117,7 +117,7 @@
     }, "SecurityPolicyViolationEvent constructor requires disposition");
 
     test(function() {
-      assert_throws(TypeError(),
+      assert_throws_js(TypeError,
         function() { new SecurityPolicyViolationEvent("securitypolicyviolation", {
           documentURI: "http://example.com",
           referrer: "http://example.com",

@@ -114,7 +114,8 @@ promise_test(() => {
   return writer.abort('a').then(value => {
     assert_equals(value, undefined, 'fulfillment value must be undefined');
   });
-}, 'Fulfillment value of ws.abort() call must be undefined even if the underlying sink returns a non-undefined value');
+}, 'Fulfillment value of writer.abort() call must be undefined even if the underlying sink returns a non-undefined ' +
+   'value');
 
 promise_test(t => {
   const ws = new WritableStream({

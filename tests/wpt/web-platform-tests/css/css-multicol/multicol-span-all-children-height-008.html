@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: Test the borders drawing for a block split by column-span</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+  <link rel="match" href="multicol-span-all-children-height-008-ref.html">
+  <meta name="assert" content="This test verifies that the borders of block container with an auto block-size, split by column-span, are skipped on the sides adjacent to column-span.">
+
+  <!-- This test is adapted from multicol-span-all-children-height-005. -->
+
+  <style>
+  article {
+    column-count: 1;
+    column-fill: auto;
+    width: 200px;
+    background-color: lightgreen;
+  }
+  div.container {
+    height: auto;
+    border: 20px solid purple;
+    background-color: pink;
+  }
+  div.block {
+    width: 100px;
+    height: 100px;
+    background-color: yellow;
+  }
+  div.column-span {
+    column-span: all;
+    height: 50px;
+    background-color: lightblue;
+  }
+  </style>
+
+  <article>
+    <div class="container">
+      <div class="block">block1</div>
+      <div class="column-span">column-span1</div>
+      <div class="block">block2</div>
+      <div class="column-span">column-span2</div>
+      <div class="block">block3</div>
+    </div>
+  </article>
+</html>

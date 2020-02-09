@@ -9,12 +9,13 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::jsapi::JSObject;
 use js::jsapi::Type;
-use js::jsapi::{JSContext, JSObject};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
-use servo_rand::{Rng, ServoRng};
+use servo_rand::{RngCore, ServoRng};
 use std::ptr::NonNull;
 
 unsafe_no_jsmanaged_fields!(ServoRng);
@@ -47,9 +48,9 @@ impl Crypto {
 impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    unsafe fn GetRandomValues(
+    fn GetRandomValues(
         &self,
-        _cx: *mut JSContext,
+        _cx: JSContext,
         mut input: CustomAutoRooterGuard<ArrayBufferView>,
     ) -> Fallible<NonNull<JSObject>> {
         let array_type = input.get_array_type();
@@ -57,14 +58,14 @@ impl CryptoMethods for Crypto {
         if !is_integer_buffer(array_type) {
             return Err(Error::TypeMismatch);
         } else {
-            let mut data = input.as_mut_slice();
+            let mut data = unsafe { input.as_mut_slice() };
             if data.len() > 65536 {
                 return Err(Error::QuotaExceeded);
             }
             self.rng.borrow_mut().fill_bytes(&mut data);
         }
 
-        Ok(NonNull::new_unchecked(*input.underlying_object()))
+        unsafe { Ok(NonNull::new_unchecked(*input.underlying_object())) }
     }
 }
 

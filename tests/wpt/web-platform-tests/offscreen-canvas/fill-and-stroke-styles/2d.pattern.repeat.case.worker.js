@@ -4,16 +4,19 @@
 // Note:
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t = async_test("");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
 t.step(function() {
 
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-assert_throws("SYNTAX_ERR", function() { ctx.createPattern(offscreenCanvas, "Repeat"); });
-
+assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(offscreenCanvas, "Repeat"); });
 t.done();
 
 });

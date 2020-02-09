@@ -14,7 +14,7 @@ use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Resolution;
 use crate::Atom;
 use app_units::Au;
-use euclid::Size2D;
+use euclid::default::Size2D;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
     if let Some(pc) = device.pres_context() {
@@ -104,7 +104,7 @@ where
     };
 
     let size = get_size(device);
-    let value = AspectRatio(size.width.0 as u32, size.height.0 as u32);
+    let value = AspectRatio(size.width.0 as f32, size.height.0 as f32);
     RangeOrOperator::evaluate_with_query_value(range_or_operator, query_value, value)
 }
 
@@ -559,7 +559,7 @@ lazy_static! {
         feature!(
             atom!("aspect-ratio"),
             AllowsRanges::Yes,
-            Evaluator::IntRatio(eval_aspect_ratio),
+            Evaluator::NumberRatio(eval_aspect_ratio),
             ParsingRequirements::empty(),
         ),
         feature!(
@@ -583,7 +583,7 @@ lazy_static! {
         feature!(
             atom!("device-aspect-ratio"),
             AllowsRanges::Yes,
-            Evaluator::IntRatio(eval_device_aspect_ratio),
+            Evaluator::NumberRatio(eval_device_aspect_ratio),
             ParsingRequirements::empty(),
         ),
         feature!(
@@ -598,8 +598,7 @@ lazy_static! {
             atom!("device-pixel-ratio"),
             AllowsRanges::Yes,
             Evaluator::Float(eval_device_pixel_ratio),
-            ParsingRequirements::WEBKIT_PREFIX |
-                ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
+            ParsingRequirements::WEBKIT_PREFIX,
         ),
         // -webkit-transform-3d.
         feature!(

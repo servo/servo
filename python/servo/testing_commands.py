@@ -14,16 +14,16 @@ import re
 import sys
 import os
 import os.path as path
-import platform
 import copy
 from collections import OrderedDict
 import time
 import json
-import urllib2
-import urllib
+import six.moves.urllib as urllib
 import base64
 import shutil
 import subprocess
+from xml.etree.ElementTree import XML
+from six import iteritems
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -34,7 +34,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, check_call, set_osmesa_env,
+    call, check_call, check_output, set_osmesa_env,
 )
 from servo.util import host_triple
 
@@ -47,6 +47,9 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
+
+CLANGFMT_CPP_DIRS = ["support/hololens/"]
+CLANGFMT_VERSION = "8"
 
 TEST_SUITES = OrderedDict([
     ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
@@ -61,10 +64,11 @@ TEST_SUITES = OrderedDict([
               "include_arg": "test_name"}),
 ])
 
-TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.iteritems() if "paths" in v for path in v["paths"]}
+TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
 
 
 def create_parser_wpt():
+    import mozlog.commandline
     parser = wptcommandline.create_parser()
     parser.add_argument('--release', default=False, action="store_true",
                         help="Run with a release build of servo")
@@ -72,6 +76,10 @@ def create_parser_wpt():
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
+    parser.add_argument('--layout-2020', default=False, action="store_true",
+                        help="Use expected results for the 2020 layout engine")
+    parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
+                        help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
                         help="Always yield exit code of zero")
     return parser
@@ -158,7 +166,7 @@ class MachCommands(CommandBase):
                 return 1
 
         test_start = time.time()
-        for suite, tests in selected_suites.iteritems():
+        for suite, tests in iteritems(selected_suites):
             props = suites[suite]
             kwargs = props.get("kwargs", {})
             if tests:
@@ -174,7 +182,7 @@ class MachCommands(CommandBase):
     def suite_for_path(self, path_arg):
         if os.path.exists(path.abspath(path_arg)):
             abs_path = path.abspath(path_arg)
-            for prefix, suite in TEST_SUITES_BY_PREFIX.iteritems():
+            for prefix, suite in iteritems(TEST_SUITES_BY_PREFIX):
                 if abs_path.startswith(prefix):
                     return suite
         return None
@@ -189,9 +197,8 @@ class MachCommands(CommandBase):
     @CommandArgument('--submit', '-a', default=False, action="store_true",
                      help="submit the data to perfherder")
     def test_perf(self, base=None, date=None, submit=False):
-        self.set_software_rendering_env(True)
+        self.set_software_rendering_env(True, False)
 
-        self.ensure_bootstrapped()
         env = self.build_env()
         cmd = ["bash", "test_perf.sh"]
         if base:
@@ -214,7 +221,8 @@ class MachCommands(CommandBase):
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
                      help="Run tests with nocapture ( show test stdout )")
-    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
+    @CommandBase.build_like_command_arguments
+    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
         if test_name is None:
             test_name = []
 
@@ -247,7 +255,7 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "gfx",
-            "layout",
+            "layout_2013",
             "msg",
             "net",
             "net_traits",
@@ -277,23 +285,19 @@ class MachCommands(CommandBase):
             # in to the servo.exe build dir, so just point PATH to that.
             env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
 
-        features = self.servo_features()
         if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_glutin_manifest()]
+            args = []
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
                 args += ["-p", crate]
             args += test_patterns
 
-            if features:
-                args += ["--features", "%s" % ' '.join(features)]
-
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = self.call_rustup_run(args, env=env)
-            if err is not 0:
+            err = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
+            if err:
                 return err
 
     @Command('test-content',
@@ -305,6 +309,7 @@ class MachCommands(CommandBase):
         return 0
 
     def install_rustfmt(self):
+        self.ensure_bootstrapped()
         with open(os.devnull, "w") as devnull:
             if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
                                     stderr=devnull) != 0:
@@ -317,23 +322,44 @@ class MachCommands(CommandBase):
     @CommandArgument('--all', default=False, action="store_true", dest="all_files",
                      help="Check all files, and run the WPT lint in tidy, "
                           "even if unchanged")
+    @CommandArgument('--no-wpt', default=False, action="store_true", dest="no_wpt",
+                     help="Skip checking that web-platform-tests manifests are up to date")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    def test_tidy(self, all_files, no_progress, self_test, stylo):
+    @CommandArgument('--force-cpp', default=False, action="store_true", help="Force CPP check")
+    def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
         if self_test:
             return test_tidy.do_tests()
         else:
-            manifest_dirty = run_update(self.context.topdir, check_clean=True)
-            tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
+            if no_wpt:
+                manifest_dirty = False
+            else:
+                manifest_dirty = run_update(self.context.topdir, check_clean=True)
+            tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
-            if rustfmt_failed:
+
+            env = self.build_env()
+            clangfmt_failed = False
+            available, cmd, files = setup_clangfmt(env)
+            if available:
+                for file in files:
+                    stdout = check_output([cmd, "-output-replacements-xml", file], env=env)
+                    if len(XML(stdout)) > 0:
+                        print("%s is not formatted correctly." % file)
+                        clangfmt_failed = True
+            elif force_cpp:
+                print("Error: can't find suitable clang-format version. Required with --force-cpp.")
+                return True
+
+            if rustfmt_failed or clangfmt_failed:
                 print("Run `./mach fmt` to fix the formatting")
-            return tidy_failed or manifest_dirty or rustfmt_failed
+
+            return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -343,8 +369,6 @@ class MachCommands(CommandBase):
     @CommandArgument('tests', default=None, nargs="...",
                      help="Specific tests to run, relative to the tests directory")
     def test_webidl(self, quiet, tests):
-        self.ensure_bootstrapped()
-
         test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
                                                "dom", "bindings", "codegen", "parser"))
         # For the `import WebIDL` in runtests.py
@@ -352,7 +376,7 @@ class MachCommands(CommandBase):
 
         run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
 
         verbose = not quiet
         return run_globals["run_tests"](tests, verbose)
@@ -362,7 +386,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt_failure(self, **kwargs):
-        self.ensure_bootstrapped()
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(**kwargs)
@@ -372,7 +395,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
         if kwargs["always_succeed"]:
             return 0
@@ -397,7 +419,7 @@ class MachCommands(CommandBase):
     def _test_wpt(self, android=False, **kwargs):
         self.set_run_env(android)
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
-        os.environ["hosts_file_path"] = hosts_file_path
+        os.environ["HOST_FILE"] = hosts_file_path
         run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run.py"))
         return self.wptrunner(run_file, **kwargs)
 
@@ -419,7 +441,7 @@ class MachCommands(CommandBase):
 
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
-        self.set_software_rendering_env(kwargs['release'])
+        self.set_software_rendering_env(kwargs['release'], kwargs['debugger'])
 
         # By default, Rayon selects the number of worker threads
         # based on the available CPU count. This doesn't work very
@@ -444,7 +466,7 @@ class MachCommands(CommandBase):
             kwargs["binary_args"] = binary_args
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["run_tests"](**kwargs)
 
     @Command('update-manifest',
@@ -455,9 +477,15 @@ class MachCommands(CommandBase):
         return run_update(self.context.topdir, **kwargs)
 
     @Command('fmt',
-             description='Format the Rust source files with rustfmt',
+             description='Format the Rust and CPP source files with rustfmt and clang-format',
              category='testing')
-    def format_code(self, **kwargs):
+    def format_code(self):
+
+        env = self.build_env()
+        available, cmd, files = setup_clangfmt(env)
+        if available and len(files) > 0:
+            check_call([cmd, "-i"] + files, env=env)
+
         self.install_rustfmt()
         return self.call_rustup_run(["cargo", "fmt"])
 
@@ -466,7 +494,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=updatecommandline.create_parser())
     def update_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         patch = kwargs.get("patch", False)
 
@@ -475,14 +502,14 @@ class MachCommands(CommandBase):
             return 1
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_tests"](**kwargs)
 
     @Command('filter-intermittents',
              description='Given a WPT error summary file, filter out intermittents and other cruft.',
              category='testing')
     @CommandArgument('summary',
-                     help="Error summary log to take un")
+                     help="Error summary log to take in")
     @CommandArgument('--log-filteredsummary', default=None,
                      help='Print filtered log to file')
     @CommandArgument('--log-intermittents', default=None,
@@ -500,10 +527,7 @@ class MachCommands(CommandBase):
                 encoded_auth = base64.encodestring(file.read().strip()).replace('\n', '')
         failures = []
         with open(summary, "r") as file:
-            for line in file:
-                line_json = json.loads(line)
-                if 'status' in line_json:
-                    failures += [line_json]
+            failures = [json.loads(line) for line in file]
         actual_failures = []
         intermittents = []
         for failure in failures:
@@ -513,78 +537,44 @@ class MachCommands(CommandBase):
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
-                query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("%s/query.py?name=%s" % (tracker_api, query))
-                search = urllib2.urlopen(request)
+                query = urllib.parse.quote(failure['test'], safe='')
+                request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
-                if len(data) == 0:
-                    actual_failures += [failure]
-                else:
-                    intermittents += [failure]
+                is_intermittent = len(data) > 0
             else:
                 qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
                 # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
-                query = urllib2.quote(qstr, safe='+')
-                request = urllib2.Request("https://api.github.com/search/issues?q=%s" % query)
+                query = urllib.parse.quote(qstr, safe='+')
+                request = urllib.request.Request("https://api.github.com/search/issues?q=%s" % query)
                 if encoded_auth:
                     request.add_header("Authorization", "Basic %s" % encoded_auth)
-                search = urllib2.urlopen(request)
+                search = urllib.request.urlopen(request)
                 data = json.load(search)
-                if data['total_count'] == 0:
-                    actual_failures += [failure]
-                else:
-                    intermittents += [failure]
+                is_intermittent = data['total_count'] > 0
 
-        if reporter_api:
-            if reporter_api == 'default':
-                reporter_api = "https://build.servo.org/intermittent-failure-tracker"
-            if reporter_api.endswith('/'):
-                reporter_api = reporter_api[0:-1]
-            reported = set()
+            if is_intermittent:
+                intermittents.append(failure["output"])
+            else:
+                actual_failures.append(failure["output"])
 
-            proc = subprocess.Popen(
-                ["git", "log", "--oneline", "-1"],
-                stdout=subprocess.PIPE)
-            (last_merge, _) = proc.communicate()
-
-            # Extract the issue reference from "abcdef Auto merge of #NNN"
-            pull_request = int(last_merge.split(' ')[4][1:])
-
-            for intermittent in intermittents:
-                if intermittent['test'] in reported:
-                    continue
-                reported.add(intermittent['test'])
-
-                data = {
-                    'test_file': intermittent['test'],
-                    'platform': platform.system(),
-                    'builder': os.environ.get('BUILDER_NAME', 'BUILDER NAME MISSING'),
-                    'number': pull_request,
-                }
-                request = urllib2.Request("%s/record.py" % reporter_api, urllib.urlencode(data))
-                request.add_header('Accept', 'application/json')
-                response = urllib2.urlopen(request)
-                data = json.load(response)
-                if data['status'] != "success":
-                    print('Error reporting test failure: ' + data['error'])
+        def format(outputs, description, file=sys.stdout):
+            formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
+            file.write(formatted.encode("utf-8"))
 
         if log_intermittents:
-            with open(log_intermittents, "w") as intermittents_file:
-                for intermittent in intermittents:
-                    json.dump(intermittent, intermittents_file, indent=4)
-                    print("\n", end='', file=intermittents_file)
+            with open(log_intermittents, "wb") as file:
+                format(intermittents, "known-intermittent unexpected results", file)
 
-        output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
-        for failure in actual_failures:
-            json.dump(failure, output, indent=4)
-            print("\n", end='', file=output)
+        description = "unexpected results that are NOT known-intermittents"
+        if log_filteredsummary:
+            with open(log_filteredsummary, "wb") as file:
+                format(actual_failures, description, file)
 
-        if output is not sys.stdout:
-            output.close()
+        if actual_failures:
+            format(actual_failures, description)
 
-        if len(actual_failures) == 0:
-            return 0
-        return 1
+        return bool(actual_failures)
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
@@ -705,23 +695,22 @@ class MachCommands(CommandBase):
             width_col4 = max([len(str(x)) for x in result['Difference(%)']])
 
             for p, q, r, s in zip(['Test'], ['First Run'], ['Second Run'], ['Difference(%)']):
-                print ("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
-                       s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
-                       + "-------------------------------------------------------------------------")
+                print("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
+                      s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
+                      + "-------------------------------------------------------------------------")
 
             for a1, b1, c1, d1 in zip(result['Test'], result['Prev_Time'], result['Cur_Time'], result['Difference(%)']):
                 if d1 > 0:
-                    print ("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
                 elif d1 < 0:
-                    print ("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
                 else:
-                    print ("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
-                           str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
+                    print("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
+                          str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
     def jquery_test_runner(self, cmd, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -741,7 +730,6 @@ class MachCommands(CommandBase):
         return call([run_file, cmd, bin_path, base_dir])
 
     def dromaeo_test_runner(self, tests, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -765,17 +753,34 @@ class MachCommands(CommandBase):
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
 
-    def set_software_rendering_env(self, use_release):
+    def set_software_rendering_env(self, use_release, show_vars):
         # On Linux and mac, find the OSMesa software rendering library and
         # add it to the dynamic linker search path.
         try:
             bin_path = self.get_binary_path(use_release, not use_release)
-            if not set_osmesa_env(bin_path, os.environ):
+            if not set_osmesa_env(bin_path, os.environ, show_vars):
                 print("Warning: Cannot set the path to OSMesa library.")
         except BuildNotFound:
             # This can occur when cross compiling (e.g. arm64), in which case
             # we won't run the tests anyway so can safely ignore this step.
             pass
+
+
+def setup_clangfmt(env):
+    cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
+    try:
+        version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
+        print(version)
+        if not version.startswith("clang-format version {}.".format(CLANGFMT_VERSION)):
+            print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
+            return False, None, None
+    except OSError:
+        print("clang-format not installed. Skipping CPP formatting.")
+        return False, None, None
+    gitcmd = ['git', 'ls-files']
+    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS, universal_newlines=True).splitlines()
+    filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
+    return True, cmd, filtered
 
 
 def create_parser_create():
@@ -948,7 +953,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
                                           "components", "net", "tests",
                                           "cookie_http_state_utils.py"))
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_test_file"](cache_dir)
 
     @Command('update-webgl',
@@ -957,8 +962,6 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('--version', default='2.0.0',
                      help='WebGL conformance suite version')
     def update_webgl(self, version=None):
-        self.ensure_bootstrapped()
-
         base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
                                 "tests", "wpt", "mozilla", "tests", "webgl"))
         run_file = path.join(base_dir, "tools", "import-conformance-tests.py")
@@ -969,7 +972,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
             shutil.rmtree(dest_folder)
 
         run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
+        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
     @Command('smoketest',

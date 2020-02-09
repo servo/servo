@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test the block-size distribution across column-span split in a balancing multicol container</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  article {
+    column-count: 2;
+    width: 400px;
+    background-color: lightgreen;
+  }
+  div.container {
+    height: 200px;
+    background-color: pink;
+  }
+  div.block {
+    width: 100px;
+    height: 200px;
+    background-color: yellow;
+  }
+  div.column-span {
+    width: 400px;
+    height: 50px;
+    background-color: lightblue;
+  }
+  </style>
+
+  <article>
+    <div class="container">
+      <div class="block">block1</div>
+    </div>
+  </article>
+  <div class="column-span">column-span1</div>
+  <article>
+    <div class="container">
+      <div class="block">block2</div>
+    </div>
+  </article>
+  <div class="column-span">column-span2</div>
+  <article>
+    <div class="container" style="height: 50px;">
+      <div class="block">block3</div>
+    </div>
+  </article>
+</html>

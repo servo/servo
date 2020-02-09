@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Reference: Aligning grid items using 'auto' margins</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #grid {
+      display: grid;
+      position: relative;
+      background: grey;
+      grid-template-columns: 40% 60%;
+      grid-template-rows: 100px;
+      height: 200px;
+      width: auto;
+      justify-items: center;
+      align-items: start;
+  }
+  #item1 {
+      font: 20px/1 Ahem;
+      color: green;
+  }
+  #item2 {
+      font: 40px/1 Ahem;
+      color: blue;
+  }
+</style>
+<p>The test passes if it has the same visual effect as reference.</p>
+<div id="grid">
+    <div id="item1">XXX</div>
+    <div id="item2">XXXXX</div>
+</div>

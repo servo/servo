@@ -17,26 +17,34 @@ extern crate malloc_size_of_derive;
 extern crate serde;
 
 mod script_msg;
+pub mod serializable;
+pub mod transferable;
 pub mod webdriver_msg;
 
+use crate::serializable::BlobImpl;
+use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::Cursor;
-use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
+use embedder_traits::EventLoopWaker;
+use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
 use hyper::Method;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
+use log::warn;
+use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{
+    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId,
+};
+use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
@@ -50,20 +58,22 @@ use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use webrender_api::{
-    DeviceIntSize, DevicePixel, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
+use webrender_api::units::{
+    DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
+use webrender_api::{BuiltDisplayList, DocumentId, ExternalScrollId, ImageKey, ScrollClamping};
+use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult, ResourceUpdate};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use crate::script_msg::{
-    DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
+    DOMMessage, HistoryEntryReplacement, SWManagerMsg, SWManagerSenders, ScopeThings,
+    ServiceWorkerMsg,
 };
 pub use crate::script_msg::{
     EventResult, IFrameSize, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg,
@@ -78,6 +88,12 @@ malloc_size_of_is_0!(UntrustedNodeAddress);
 
 #[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
+
+impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
+    fn from(o: style_traits::dom::OpaqueNode) -> Self {
+        UntrustedNodeAddress(o.0 as *const c_void)
+    }
+}
 
 impl Serialize for UntrustedNodeAddress {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
@@ -118,10 +134,24 @@ pub enum LayoutControlMsg {
     PaintMetric(Epoch, u64),
 }
 
+/// The origin where a given load was initiated.
+/// Useful for origin checks, for example before evaluation a JS URL.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum LoadOrigin {
+    /// A load originating in the constellation.
+    Constellation,
+    /// A load originating in webdriver.
+    WebDriver,
+    /// A load originating in script.
+    Script(ImmutableOrigin),
+}
+
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
+    /// The origin where the load started.
+    pub load_origin: LoadOrigin,
     /// The URL.
     pub url: ServoUrl,
     /// The creator pipeline id if this is an about:blank load.
@@ -146,6 +176,9 @@ pub struct LoadData {
     pub referrer: Option<Referrer>,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
+
+    /// The source to use instead of a network response for a srcdoc document.
+    pub srcdoc: String,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -161,12 +194,14 @@ pub enum JsEvalResult {
 impl LoadData {
     /// Create a new `LoadData` object.
     pub fn new(
+        load_origin: LoadOrigin,
         url: ServoUrl,
         creator_pipeline_id: Option<PipelineId>,
         referrer: Option<Referrer>,
         referrer_policy: Option<ReferrerPolicy>,
     ) -> LoadData {
         LoadData {
+            load_origin,
             url: url,
             creator_pipeline_id: creator_pipeline_id,
             method: Method::GET,
@@ -175,6 +210,7 @@ impl LoadData {
             js_eval_result: None,
             referrer: referrer,
             referrer_policy: referrer_policy,
+            srcdoc: "".to_string(),
         }
     }
 }
@@ -199,8 +235,6 @@ pub struct NewLayoutInfo {
     pub window_size: WindowSizeData,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A shutdown channel so that layout can tell the content process to shut down when it's done.
-    pub content_process_shutdown_chan: Option<IpcSender<()>>,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -276,9 +310,12 @@ pub enum ConstellationControlMsg {
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
-    Viewport(PipelineId, Rect<f32>),
+    Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Notifies script of a new set of scroll offsets.
-    SetScrollState(PipelineId, Vec<(UntrustedNodeAddress, Vector2D<f32>)>),
+    SetScrollState(
+        PipelineId,
+        Vec<(UntrustedNodeAddress, Vector2D<f32, LayoutPixel>)>,
+    ),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread of a change to one of its document's activity
@@ -290,7 +327,12 @@ pub enum ConstellationControlMsg {
     NotifyVisibilityChange(PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    Navigate(PipelineId, BrowsingContextId, LoadData, bool),
+    NavigateIframe(
+        PipelineId,
+        BrowsingContextId,
+        LoadData,
+        HistoryEntryReplacement,
+    ),
     /// Post a message to a given window.
     PostMessage {
         /// The target of the message.
@@ -301,8 +343,11 @@ pub enum ConstellationControlMsg {
         source_browsing_context: TopLevelBrowsingContextId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
+        /// The source origin of the message.
+        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Vec<u8>,
+        data: StructuredSerializedData,
     },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
@@ -356,6 +401,8 @@ pub enum ConstellationControlMsg {
     WebVREvents(PipelineId, Vec<WebVREvent>),
     /// Notifies the script thread about a new recorded paint metric.
     PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
+    /// Notifies the media session about a user requested media session action.
+    MediaSessionAction(PipelineId, MediaSessionActionType),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -377,7 +424,7 @@ impl fmt::Debug for ConstellationControlMsg {
             SetDocumentActivity(..) => "SetDocumentActivity",
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
-            Navigate(..) => "Navigate",
+            NavigateIframe(..) => "NavigateIframe",
             PostMessage { .. } => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryState(..) => "UpdateHistoryState",
@@ -394,6 +441,7 @@ impl fmt::Debug for ConstellationControlMsg {
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
             ExitFullScreen(..) => "ExitFullScreen",
+            MediaSessionAction(..) => "MediaSessionAction",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -410,7 +458,7 @@ pub enum DocumentState {
 
 /// For a given pipeline, whether any animations are currently running
 /// and any animation callbacks are queued
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum AnimationState {
     /// Animations are active but no callbacks are queued
     AnimationsPresent,
@@ -533,14 +581,9 @@ pub struct TimerEventRequest(
     pub MsDuration,
 );
 
-/// Type of messages that can be sent to the timer scheduler.
+/// The message used to send a request to the timer scheduler.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum TimerSchedulerMsg {
-    /// Message to schedule a new timer event.
-    Request(TimerEventRequest),
-    /// Message to exit the timer scheduler.
-    Exit,
-}
+pub struct TimerSchedulerMsg(pub TimerEventRequest);
 
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
@@ -623,17 +666,23 @@ pub struct InitialScriptState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
-    pub content_process_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
     /// A channel to the webvr thread, if available.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+    /// The XR device registry
+    pub webxr_registry: webxr_api::Registry,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
-    pub webrender_api_sender: RenderApiSender,
+    pub webrender_api_sender: WebrenderIpcSender,
     /// Flag to indicate if the layout thread is busy handling a request.
     pub layout_is_busy: Arc<AtomicBool>,
+    /// Application window's GL Context for Media player
+    pub player_context: WindowGLContext,
+    /// Mechanism to force the compositor to process events.
+    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -669,6 +718,8 @@ pub enum IFrameSandboxState {
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuxiliaryBrowsingContextLoadInfo {
+    /// Load data containing the url to load
+    pub load_data: LoadData,
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
     /// The new top-level ID for the auxiliary.
@@ -694,7 +745,7 @@ pub struct IFrameLoadInfo {
     pub is_private: bool,
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
-    pub replace: bool,
+    pub replace: HistoryEntryReplacement,
 }
 
 /// Specifies the information required to load a URL in an iframe.
@@ -703,11 +754,13 @@ pub struct IFrameLoadInfoWithData {
     /// The information required to load an iframe.
     pub info: IFrameLoadInfo,
     /// Load data containing the url to load
-    pub load_data: Option<LoadData>,
+    pub load_data: LoadData,
     /// The old pipeline ID for this iframe, if a page was previously loaded.
     pub old_pipeline_id: Option<PipelineId>,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
+    /// The initial viewport size for this iframe.
+    pub window_size: WindowSizeData,
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.
@@ -725,18 +778,18 @@ pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_id: ExternalScrollId,
     /// The scrolling offset of this stacking context.
-    pub scroll_offset: Vector2D<f32>,
+    pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }
 
 /// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: TypedSize2D<f32, CSSPixel>,
+    pub initial_viewport: Size2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
+    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.
@@ -762,6 +815,12 @@ pub enum WebDriverCommandMsg {
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    /// Act as if keys were pressed or release in the browsing context with the given ID.
+    KeyboardAction(BrowsingContextId, KeyboardEvent),
+    /// Act as if the mouse was clicked in the browsing context with the given ID.
+    MouseButtonAction(MouseEventType, MouseButton, f32, f32),
+    /// Act as if the mouse was moved in the browsing context with the given ID.
+    MouseMoveAction(f32, f32),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,
@@ -769,100 +828,11 @@ pub enum WebDriverCommandMsg {
         IpcSender<WindowSizeData>,
     ),
     /// Take a screenshot of the window.
-    TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
-}
-
-/// Messages to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum ConstellationMsg {
-    /// Exit the constellation.
-    Exit,
-    /// Request that the constellation send the BrowsingContextId corresponding to the document
-    /// with the provided pipeline id
-    GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
-    /// Request that the constellation send the current pipeline id for the provided
-    /// browsing context id, over a provided channel.
-    GetPipeline(BrowsingContextId, IpcSender<Option<PipelineId>>),
-    /// Request that the constellation send the current focused top-level browsing context id,
-    /// over a provided channel.
-    GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
-    /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    /// Inform the constellation of a key event.
-    Keyboard(KeyboardEvent),
-    /// Whether to allow script to navigate.
-    AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page.
-    LoadUrl(TopLevelBrowsingContextId, ServoUrl),
-    /// Request to traverse the joint session history of the provided browsing context.
-    TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
-    /// Inform the constellation of a window being resized.
-    WindowSize(
-        Option<TopLevelBrowsingContextId>,
-        WindowSizeData,
-        WindowSizeType,
+    TakeScreenshot(
+        TopLevelBrowsingContextId,
+        Option<Rect<f32, CSSPixel>>,
+        IpcSender<Option<Image>>,
     ),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId, AnimationTickType),
-    /// Dispatch a webdriver command
-    WebDriverCommand(WebDriverCommandMsg),
-    /// Reload a top-level browsing context.
-    Reload(TopLevelBrowsingContextId),
-    /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
-    /// Dispatch WebVR events to the subscribed script threads.
-    WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
-    /// Create a new top level browsing context.
-    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
-    /// Close a top level browsing context.
-    CloseBrowser(TopLevelBrowsingContextId),
-    /// Panic a top level browsing context.
-    SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make browser visible.
-    SelectBrowser(TopLevelBrowsingContextId),
-    /// Forward an event to the script task of the given pipeline.
-    ForwardEvent(PipelineId, CompositorEvent),
-    /// Requesting a change to the onscreen cursor.
-    SetCursor(Cursor),
-    /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
-    EnableProfiler(Duration, Duration),
-    /// Disable the sampling profiler.
-    DisableProfiler,
-    /// Request to exit from fullscreen mode
-    ExitFullScreen(TopLevelBrowsingContextId),
-}
-
-impl fmt::Debug for ConstellationMsg {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ConstellationMsg::*;
-        let variant = match *self {
-            Exit => "Exit",
-            GetBrowsingContext(..) => "GetBrowsingContext",
-            GetPipeline(..) => "GetPipeline",
-            GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
-            IsReadyToSaveImage(..) => "IsReadyToSaveImage",
-            Keyboard(..) => "Keyboard",
-            AllowNavigationResponse(..) => "AllowNavigationResponse",
-            LoadUrl(..) => "LoadUrl",
-            TraverseHistory(..) => "TraverseHistory",
-            WindowSize(..) => "WindowSize",
-            TickAnimation(..) => "TickAnimation",
-            WebDriverCommand(..) => "WebDriverCommand",
-            Reload(..) => "Reload",
-            LogEntry(..) => "LogEntry",
-            WebVREvents(..) => "WebVREvents",
-            NewBrowser(..) => "NewBrowser",
-            CloseBrowser(..) => "CloseBrowser",
-            SendError(..) => "SendError",
-            SelectBrowser(..) => "SelectBrowser",
-            ForwardEvent(..) => "ForwardEvent",
-            SetCursor(..) => "SetCursor",
-            EnableProfiler(..) => "EnableProfiler",
-            DisableProfiler => "DisableProfiler",
-            ExitFullScreen(..) => "ExitFullScreen",
-        };
-        write!(formatter, "ConstellationMsg::{}", variant)
-    }
 }
 
 /// Resources required by workerglobalscopes
@@ -902,7 +872,7 @@ pub struct WorkerScriptLoadOrigin {
     /// the referrer policy which is used
     pub referrer_policy: Option<ReferrerPolicy>,
     /// the pipeline id of the entity requesting the load
-    pub pipeline_id: Option<PipelineId>,
+    pub pipeline_id: PipelineId,
 }
 
 /// Errors from executing a paint worklet
@@ -925,8 +895,8 @@ pub trait Painter: SpeculativePainter {
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(
         &self,
-        size: TypedSize2D<f32, CSSPixel>,
-        zoom: TypedScale<f32, CSSPixel, DevicePixel>,
+        size: Size2D<f32, CSSPixel>,
+        zoom: Scale<f32, CSSPixel, DevicePixel>,
         properties: Vec<(Atom, String)>,
         arguments: Vec<String>,
     ) -> Result<DrawAPaintImageResult, PaintWorkletError>;
@@ -970,5 +940,216 @@ impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
     pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
         self.sender.send((self.pipeline_id, msg))
+    }
+}
+
+/// A data-holder for serialized data and transferred objects.
+/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct StructuredSerializedData {
+    /// Data serialized by SpiderMonkey.
+    pub serialized: Vec<u8>,
+    /// Serialized in a structured callback,
+    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
+    /// Transferred objects.
+    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+}
+
+/// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortMessageTask {
+    /// The origin of this task.
+    pub origin: ImmutableOrigin,
+    /// A data-holder for serialized data and transferred objects.
+    pub data: StructuredSerializedData,
+}
+
+/// Messages for communication between the constellation and a global managing ports.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum MessagePortMsg {
+    /// Complete the transfer for a batch of ports.
+    CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
+    /// Complete the transfer of a single port,
+    /// whose transfer was pending because it had been requested
+    /// while a previous failed transfer was being rolled-back.
+    CompletePendingTransfer(MessagePortId, VecDeque<PortMessageTask>),
+    /// Remove a port, the entangled one doesn't exists anymore.
+    RemoveMessagePort(MessagePortId),
+    /// Handle a new port-message-task.
+    NewTask(MessagePortId, PortMessageTask),
+}
+
+/// The type of MediaSession action.
+/// https://w3c.github.io/mediasession/#enumdef-mediasessionaction
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum MediaSessionActionType {
+    /// The action intent is to resume playback.
+    Play,
+    /// The action intent is to pause the currently active playback.
+    Pause,
+    /// The action intent is to move the playback time backward by a short period (i.e. a few
+    /// seconds).
+    SeekBackward,
+    /// The action intent is to move the playback time forward by a short period (i.e. a few
+    /// seconds).
+    SeekForward,
+    /// The action intent is to either start the current playback from the beginning if the
+    /// playback has a notion, of beginning, or move to the previous item in the playlist if the
+    /// playback has a notion of playlist.
+    PreviousTrack,
+    /// The action is to move to the playback to the next item in the playlist if the playback has
+    /// a notion of playlist.
+    NextTrack,
+    /// The action intent is to skip the advertisement that is currently playing.
+    SkipAd,
+    /// The action intent is to stop the playback and clear the state if appropriate.
+    Stop,
+    /// The action intent is to move the playback time to a specific time.
+    SeekTo,
+}
+
+impl From<i32> for MediaSessionActionType {
+    fn from(value: i32) -> MediaSessionActionType {
+        match value {
+            1 => MediaSessionActionType::Play,
+            2 => MediaSessionActionType::Pause,
+            3 => MediaSessionActionType::SeekBackward,
+            4 => MediaSessionActionType::SeekForward,
+            5 => MediaSessionActionType::PreviousTrack,
+            6 => MediaSessionActionType::NextTrack,
+            7 => MediaSessionActionType::SkipAd,
+            8 => MediaSessionActionType::Stop,
+            9 => MediaSessionActionType::SeekTo,
+            _ => panic!("Unknown MediaSessionActionType"),
+        }
+    }
+}
+
+/// The set of WebRender operations that can be initiated by the content process.
+#[derive(Deserialize, Serialize)]
+pub enum WebrenderMsg {
+    /// Inform WebRender of the existence of this pipeline.
+    SendInitialTransaction(DocumentId, webrender_api::PipelineId),
+    /// Perform a scroll operation.
+    SendScrollNode(DocumentId, LayoutPoint, ExternalScrollId, ScrollClamping),
+    /// Inform WebRender of a new display list for the given pipeline.
+    SendDisplayList(
+        DocumentId,
+        webrender_api::Epoch,
+        LayoutSize,
+        webrender_api::PipelineId,
+        LayoutSize,
+        Vec<u8>,
+        BuiltDisplayListDescriptor,
+    ),
+    /// Perform a hit test operation. The result will be returned via
+    /// the provided channel sender.
+    HitTest(
+        DocumentId,
+        Option<webrender_api::PipelineId>,
+        WorldPoint,
+        HitTestFlags,
+        IpcSender<HitTestResult>,
+    ),
+    /// Create a new image key. The result will be returned via the
+    /// provided channel sender.
+    GenerateImageKey(IpcSender<ImageKey>),
+    /// Perform a resource update operation.
+    UpdateResources(Vec<ResourceUpdate>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+/// A mechanism to communicate with the parent process' WebRender instance.
+pub struct WebrenderIpcSender(IpcSender<WebrenderMsg>);
+
+impl WebrenderIpcSender {
+    /// Create a new WebrenderIpcSender object that wraps the provided channel sender.
+    pub fn new(sender: IpcSender<WebrenderMsg>) -> Self {
+        Self(sender)
+    }
+
+    /// Inform WebRender of the existence of this pipeline.
+    pub fn send_initial_transaction(
+        &self,
+        document: DocumentId,
+        pipeline: webrender_api::PipelineId,
+    ) {
+        if let Err(e) = self
+            .0
+            .send(WebrenderMsg::SendInitialTransaction(document, pipeline))
+        {
+            warn!("Error sending initial transaction: {}", e);
+        }
+    }
+
+    /// Perform a scroll operation.
+    pub fn send_scroll_node(
+        &self,
+        document: DocumentId,
+        point: LayoutPoint,
+        scroll_id: ExternalScrollId,
+        clamping: ScrollClamping,
+    ) {
+        if let Err(e) = self.0.send(WebrenderMsg::SendScrollNode(
+            document, point, scroll_id, clamping,
+        )) {
+            warn!("Error sending scroll node: {}", e);
+        }
+    }
+
+    /// Inform WebRender of a new display list for the given pipeline.
+    pub fn send_display_list(
+        &self,
+        document: DocumentId,
+        epoch: Epoch,
+        size: LayoutSize,
+        (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+    ) {
+        let (data, descriptor) = list.into_data();
+        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
+            document,
+            webrender_api::Epoch(epoch.0),
+            size,
+            pipeline,
+            size2,
+            data,
+            descriptor,
+        )) {
+            warn!("Error sending display list: {}", e);
+        }
+    }
+
+    /// Perform a hit test operation. Blocks until the operation is complete and
+    /// and a result is available.
+    pub fn hit_test(
+        &self,
+        document: DocumentId,
+        pipeline: Option<webrender_api::PipelineId>,
+        point: WorldPoint,
+        flags: HitTestFlags,
+    ) -> HitTestResult {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderMsg::HitTest(
+                document, pipeline, point, flags, sender,
+            ))
+            .expect("error sending hit test");
+        receiver.recv().expect("error receiving hit test result")
+    }
+
+    /// Create a new image key. Blocks until the key is available.
+    pub fn generate_image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderMsg::GenerateImageKey(sender))
+            .expect("error sending image key generation");
+        receiver.recv().expect("error receiving image key result")
+    }
+
+    /// Perform a resource update operation.
+    pub fn update_resources(&self, updates: Vec<ResourceUpdate>) {
+        if let Err(e) = self.0.send(WebrenderMsg::UpdateResources(updates)) {
+            warn!("error sending resource updates: {}", e);
+        }
     }
 }

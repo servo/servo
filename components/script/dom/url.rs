@@ -69,6 +69,7 @@ impl URL {
     }
 }
 
+#[allow(non_snake_case)]
 impl URL {
     // https://url.spec.whatwg.org/#constructors
     pub fn Constructor(
@@ -129,13 +130,15 @@ impl URL {
         let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = ServoUrl::parse(&url) {
-            if let Ok((id, _)) = parse_blob_url(&url) {
-                let resource_threads = global.resource_threads();
-                let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-                let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
-                let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+            if url.fragment().is_none() && origin == get_blob_origin(&url) {
+                if let Ok((id, _)) = parse_blob_url(&url) {
+                    let resource_threads = global.resource_threads();
+                    let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
+                    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
-                let _ = rx.recv().unwrap();
+                    let _ = rx.recv().unwrap();
+                }
             }
         }
     }
@@ -268,11 +271,6 @@ impl URLMethods for URL {
     fn SearchParams(&self) -> DomRoot<URLSearchParams> {
         self.search_params
             .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
-    }
-
-    // https://url.spec.whatwg.org/#dom-url-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
     }
 
     // https://url.spec.whatwg.org/#dom-url-username

@@ -32,6 +32,14 @@ function createScriptURLForDecendant(scriptOrigins) {
         location.href);
   }
   if (scriptOrigins.topLevel === 'remote' &&
+      scriptOrigins.descendant === 'same') {
+    url = new URL(
+        get_host_info().HTTPS_REMOTE_ORIGIN +
+        '/worklets/resources/' +
+        'import-same-origin-referrer-checker-worklet-script-from-remote-origin.sub.js');
+    return url;
+  }
+  if (scriptOrigins.topLevel === 'remote' &&
       scriptOrigins.descendant === 'remote') {
     return new URL(
         get_host_info().HTTPS_REMOTE_ORIGIN +
@@ -88,6 +96,7 @@ window.onmessage = e => {
   }
 
   const params = new URLSearchParams;
+  params.append('requestor_origin', document.location.origin);
   params.append('referrer_policy', referrerPolicy);
   params.append('expected_referrer', expectedReferrer);
 

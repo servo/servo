@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Non-reference case for text-decoration-skip-ink</title>
+        <style>
+           div{
+                 text-decoration-skip-ink: none;
+                 text-decoration: green underline;
+                 writing-mode: vertical-lr;
+                 text-orientation: upright;
+                 text-underline-offset: -0.5em;
+           }
+        </style>
+    </head>
+    <body>
+        <p>Test if underline skips the characters</p>
+        <div>ping pong</div>
+    </body>
+</html>

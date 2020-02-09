@@ -25,8 +25,8 @@ callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
 // https://html.spec.whatwg.org/multipage/#globaleventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface GlobalEventHandlers {
+[Exposed=Window]
+interface mixin GlobalEventHandlers {
            attribute EventHandler onabort;
            attribute EventHandler onblur;
            attribute EventHandler oncancel;
@@ -51,6 +51,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onended;
            attribute OnErrorEventHandler onerror;
            attribute EventHandler onfocus;
+           attribute EventHandler onformdata;
            attribute EventHandler oninput;
            attribute EventHandler oninvalid;
            attribute EventHandler onkeydown;
@@ -90,13 +91,13 @@ interface GlobalEventHandlers {
 };
 
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
            attribute EventHandler ontransitionend;
 };
 
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface WindowEventHandlers {
+[Exposed=Window]
+interface mixin WindowEventHandlers {
            attribute EventHandler onafterprint;
            attribute EventHandler onbeforeprint;
            attribute OnBeforeUnloadEventHandler onbeforeunload;
@@ -116,7 +117,7 @@ interface WindowEventHandlers {
 };
 
 // https://w3c.github.io/webvr/spec/1.1/#interface-window
-partial interface WindowEventHandlers {
+partial interface mixin WindowEventHandlers {
            attribute EventHandler onvrdisplayconnect;
            attribute EventHandler onvrdisplaydisconnect;
            attribute EventHandler onvrdisplayactivate;
@@ -127,8 +128,8 @@ partial interface WindowEventHandlers {
 };
 
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface DocumentAndElementEventHandlers {
+[Exposed=Window]
+interface mixin DocumentAndElementEventHandlers {
           attribute EventHandler oncopy;
           attribute EventHandler oncut;
           attribute EventHandler onpaste;

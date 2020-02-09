@@ -36,6 +36,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMapElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLModElementBinding;
@@ -46,6 +47,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLParamElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLPictureElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLPreElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
@@ -76,12 +78,13 @@ use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementSta
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
-use js::jsapi::{JSAutoRealm, JSContext, JSObject};
+use js::jsapi::{JSAutoRealm, JSObject};
 use js::rust::HandleObject;
 use js::rust::MutableHandleObject;
 use std::ptr;
@@ -99,7 +102,7 @@ where
     // Step 2 is checked in the generated caller code
 
     // Step 3
-    rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
+    rooted!(in(*window.get_cx()) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
         None => {
@@ -109,15 +112,15 @@ where
         },
     };
 
-    rooted!(in(window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
         return Err(Error::Security);
     }
 
     {
-        let _ac = JSAutoRealm::new(window.get_cx(), callee.get());
-        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+        let _ac = JSAutoRealm::new(*window.get_cx(), callee.get());
+        rooted!(in(*window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
+        rooted!(in(*window.get_cx()) let global_object = CurrentGlobalOrNull(*window.get_cx()));
 
         if definition.is_autonomous() {
             // Step 4
@@ -195,13 +198,13 @@ where
 /// This list should only include elements marked with the [HTMLConstructor] extended attribute.
 pub fn get_constructor_object_from_local_name(
     name: LocalName,
-    cx: *mut JSContext,
+    cx: JSContext,
     global: HandleObject,
     rval: MutableHandleObject,
 ) -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(cx, global, rval); }
+            $binding::GetConstructorObject(cx, global, rval);
             true
         })
     );
@@ -278,6 +281,7 @@ pub fn get_constructor_object_from_local_name(
         local_name!("map") => get_constructor!(HTMLMapElementBinding),
         local_name!("mark") => get_constructor!(HTMLElementBinding),
         local_name!("marquee") => get_constructor!(HTMLElementBinding),
+        local_name!("menu") => get_constructor!(HTMLMenuElementBinding),
         local_name!("meta") => get_constructor!(HTMLMetaElementBinding),
         local_name!("meter") => get_constructor!(HTMLMeterElementBinding),
         local_name!("nav") => get_constructor!(HTMLElementBinding),
@@ -291,6 +295,7 @@ pub fn get_constructor_object_from_local_name(
         local_name!("output") => get_constructor!(HTMLOutputElementBinding),
         local_name!("p") => get_constructor!(HTMLParagraphElementBinding),
         local_name!("param") => get_constructor!(HTMLParamElementBinding),
+        local_name!("picture") => get_constructor!(HTMLPictureElementBinding),
         local_name!("plaintext") => get_constructor!(HTMLPreElementBinding),
         local_name!("pre") => get_constructor!(HTMLPreElementBinding),
         local_name!("progress") => get_constructor!(HTMLProgressElementBinding),

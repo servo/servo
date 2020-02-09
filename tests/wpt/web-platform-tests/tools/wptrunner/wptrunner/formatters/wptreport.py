@@ -62,15 +62,15 @@ class WptreportFormatter(BaseFormatter):
         if 'run_info' in data:
             self.results['run_info'] = data['run_info']
         self.results['time_start'] = data['time']
+        self.results["results"] = []
 
     def suite_end(self, data):
         self.results['time_end'] = data['time']
-        self.results["results"] = []
         for test_name in self.raw_results:
             result = {"test": test_name}
             result.update(self.raw_results[test_name])
             self.results["results"].append(result)
-        return json.dumps(self.results)
+        return json.dumps(self.results) + "\n"
 
     def find_or_create_test(self, data):
         test_name = data["test"]
@@ -104,6 +104,8 @@ class WptreportFormatter(BaseFormatter):
         subtest["status"] = data["status"]
         if "expected" in data:
             subtest["expected"] = data["expected"]
+        if "known_intermittent" in data:
+            subtest["known_intermittent"] = data["known_intermittent"]
         if "message" in data:
             subtest["message"] = replace_lone_surrogate(data["message"])
 
@@ -114,6 +116,8 @@ class WptreportFormatter(BaseFormatter):
         test["status"] = data["status"]
         if "expected" in data:
             test["expected"] = data["expected"]
+        if "known_intermittent" in data:
+            test["known_intermittent"] = data["known_intermittent"]
         if "message" in data:
             test["message"] = replace_lone_surrogate(data["message"])
         if "reftest_screenshots" in data.get("extra", {}):
@@ -122,6 +126,11 @@ class WptreportFormatter(BaseFormatter):
                 for item in data["extra"]["reftest_screenshots"]
                 if type(item) == dict
             }
+        test_name = data["test"]
+        result = {"test": data["test"]}
+        result.update(self.raw_results[test_name])
+        self.results["results"].append(result)
+        self.raw_results.pop(test_name)
 
     def assertion_count(self, data):
         test = self.find_or_create_test(data)

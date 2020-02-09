@@ -40,7 +40,7 @@ promise_test(async t => {
   assert_equals(animations[0].startTime, animations[1].startTime,
     'CSS transitions started together have the same start time');
 
-  await waitForFrame();
+  await waitForAnimationFrames(1);
 
   div.style.backgroundColor = 'green';
 

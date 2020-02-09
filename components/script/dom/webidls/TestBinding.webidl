@@ -32,7 +32,7 @@ dictionary TestDictionary {
   Blob interfaceValue;
   any anyValue;
   object objectValue;
-  TestDictionaryDefaults dict = null;
+  TestDictionaryDefaults dict = {};
   sequence<TestDictionaryDefaults> seqDict;
   // Testing codegen to import Element correctly, ensure no other code references Element directly
   sequence<Element> elementSequence;
@@ -86,13 +86,13 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
-[Constructor,
- Constructor(sequence<unrestricted double> numberSequence),
- Constructor(unrestricted double num),
- Pref="dom.testbinding.enabled",
+[Pref="dom.testbinding.enabled",
  Exposed=(Window,Worker)
 ]
 interface TestBinding {
+           [Throws] constructor();
+           [Throws] constructor(sequence<unrestricted double> numberSequence);
+           [Throws] constructor(unrestricted double num);
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
            attribute octet octetAttribute;
@@ -461,33 +461,37 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
-  void passMozMap(record<DOMString, long> arg);
-  void passNullableMozMap(record<DOMString, long>? arg);
-  void passMozMapOfNullableInts(record<DOMString, long?> arg);
-  void passOptionalMozMapOfNullableInts(optional record<DOMString, long?> arg);
-  void passOptionalNullableMozMapOfNullableInts(optional record<DOMString, long?>? arg);
-  void passCastableObjectMozMap(record<DOMString, TestBinding> arg);
-  void passNullableCastableObjectMozMap(record<DOMString, TestBinding?> arg);
-  void passCastableObjectNullableMozMap(record<DOMString, TestBinding>? arg);
-  void passNullableCastableObjectNullableMozMap(record<DOMString, TestBinding?>? arg);
-  void passOptionalMozMap(optional record<DOMString, long> arg);
-  void passOptionalNullableMozMap(optional record<DOMString, long>? arg);
-  void passOptionalNullableMozMapWithDefaultValue(optional record<DOMString, long>? arg = null);
-  void passOptionalObjectMozMap(optional record<DOMString, TestBinding> arg);
-  void passStringMozMap(record<DOMString, DOMString> arg);
-  void passByteStringMozMap(record<DOMString, ByteString> arg);
-  void passMozMapOfMozMaps(record<DOMString, record<DOMString, long>> arg);
+  void passRecord(record<DOMString, long> arg);
+  void passRecordWithUSVStringKey(record<USVString, long> arg);
+  void passRecordWithByteStringKey(record<ByteString, long> arg);
+  void passNullableRecord(record<DOMString, long>? arg);
+  void passRecordOfNullableInts(record<DOMString, long?> arg);
+  void passOptionalRecordOfNullableInts(optional record<DOMString, long?> arg);
+  void passOptionalNullableRecordOfNullableInts(optional record<DOMString, long?>? arg);
+  void passCastableObjectRecord(record<DOMString, TestBinding> arg);
+  void passNullableCastableObjectRecord(record<DOMString, TestBinding?> arg);
+  void passCastableObjectNullableRecord(record<DOMString, TestBinding>? arg);
+  void passNullableCastableObjectNullableRecord(record<DOMString, TestBinding?>? arg);
+  void passOptionalRecord(optional record<DOMString, long> arg);
+  void passOptionalNullableRecord(optional record<DOMString, long>? arg);
+  void passOptionalNullableRecordWithDefaultValue(optional record<DOMString, long>? arg = null);
+  void passOptionalObjectRecord(optional record<DOMString, TestBinding> arg);
+  void passStringRecord(record<DOMString, DOMString> arg);
+  void passByteStringRecord(record<DOMString, ByteString> arg);
+  void passRecordOfRecords(record<DOMString, record<DOMString, long>> arg);
 
-  void passMozMapUnion((long or record<DOMString, ByteString>) init);
-  void passMozMapUnion2((TestBinding or record<DOMString, ByteString>) init);
-  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or record<DOMString, ByteString>) init);
+  void passRecordUnion((long or record<DOMString, ByteString>) init);
+  void passRecordUnion2((TestBinding or record<DOMString, ByteString>) init);
+  void passRecordUnion3((TestBinding or sequence<sequence<ByteString>> or record<DOMString, ByteString>) init);
 
-  record<DOMString, long> receiveMozMap();
-  record<DOMString, long>? receiveNullableMozMap();
-  record<DOMString, long?> receiveMozMapOfNullableInts();
-  record<DOMString, long?>? receiveNullableMozMapOfNullableInts();
-  record<DOMString, record<DOMString, long>> receiveMozMapOfMozMaps();
-  record<DOMString, any> receiveAnyMozMap();
+  record<DOMString, long> receiveRecord();
+  record<USVString, long> receiveRecordWithUSVStringKey();
+  record<ByteString, long> receiveRecordWithByteStringKey();
+  record<DOMString, long>? receiveNullableRecord();
+  record<DOMString, long?> receiveRecordOfNullableInts();
+  record<DOMString, long?>? receiveNullableRecordOfNullableInts();
+  record<DOMString, record<DOMString, long>> receiveRecordOfRecords();
+  record<DOMString, any> receiveAnyRecord();
 
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
@@ -556,6 +560,19 @@ interface TestBinding {
 
   GlobalScope entryGlobal();
   GlobalScope incumbentGlobal();
+
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromInterface;
+};
+
+[Exposed=(Window)]
+partial interface TestBinding {
+  readonly attribute boolean boolFromSemiExposedPartialInterface;
+};
+
+partial interface TestBinding {
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromPartialInterface;
 };
 
 callback SimpleCallback = void(any value);

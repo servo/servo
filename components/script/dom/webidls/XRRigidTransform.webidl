@@ -4,9 +4,9 @@
 
 // https://immersive-web.github.io/webxr/#xrrigidtransform-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled",
- Constructor(optional DOMPointInit position, optional DOMPointInit orientation)]
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRRigidTransform {
+  [Throws] constructor(optional DOMPointInit position = {}, optional DOMPointInit orientation = {});
   readonly attribute DOMPointReadOnly position;
   readonly attribute DOMPointReadOnly orientation;
   readonly attribute Float32Array matrix;

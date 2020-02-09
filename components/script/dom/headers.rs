@@ -14,9 +14,8 @@ use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
-use mime::{self, Mime};
+use net_traits::request::is_cors_safelisted_request_header;
 use std::cell::Cell;
-use std::result::Result;
 use std::str::{self, FromStr};
 
 #[dom_struct]
@@ -28,7 +27,7 @@ pub struct Headers {
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -51,6 +50,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         init: Option<HeadersInit>,
@@ -88,6 +88,9 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 7
+        // FIXME: this is NOT what WHATWG says to do when appending
+        // another copy of an existing header. HyperHeaders
+        // might not expose the information we need to do it right.
         let mut combined_value: Vec<u8> = vec![];
         if let Some(v) = self
             .header_list
@@ -98,10 +101,20 @@ impl HeadersMethods for Headers {
             combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
-        self.header_list.borrow_mut().insert(
-            HeaderName::from_str(&valid_name).unwrap(),
-            HeaderValue::from_bytes(&combined_value).unwrap(),
-        );
+        match HeaderValue::from_bytes(&combined_value) {
+            Ok(value) => {
+                self.header_list
+                    .borrow_mut()
+                    .insert(HeaderName::from_str(&valid_name).unwrap(), value);
+            },
+            Err(_) => {
+                // can't add the header, but we don't need to panic the browser over it
+                warn!(
+                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
+                    combined_value
+                );
+            },
+        };
         Ok(())
     }
 
@@ -195,7 +208,7 @@ impl Headers {
                 for (name, value) in h.header_list.borrow().iter() {
                     self.Append(
                         ByteString::new(Vec::from(name.as_str())),
-                        ByteString::new(Vec::from(value.to_str().unwrap().as_bytes())),
+                        ByteString::new(Vec::from(value.as_bytes())),
                     )?;
                 }
                 Ok(())
@@ -215,11 +228,9 @@ impl Headers {
                 }
                 Ok(())
             },
-            Some(HeadersInit::StringByteStringRecord(m)) => {
+            Some(HeadersInit::ByteStringByteStringRecord(m)) => {
                 for (key, value) in m.iter() {
-                    let key_vec = key.as_ref().to_string().into();
-                    let headers_key = ByteString::new(key_vec);
-                    self.Append(headers_key, value.clone())?;
+                    self.Append(key.clone(), value.clone())?;
                 }
                 Ok(())
             },
@@ -267,13 +278,13 @@ impl Headers {
             .map_or(vec![], |v| v.as_bytes().to_owned())
     }
 
-    pub fn sort_header_list(&self) -> Vec<(String, String)> {
+    pub fn sort_header_list(&self) -> Vec<(String, Vec<u8>)> {
         let borrowed_header_list = self.header_list.borrow();
         let headers_iter = borrowed_header_list.iter();
         let mut header_vec = vec![];
         for (name, value) in headers_iter {
             let name = name.as_str().to_owned();
-            let value = value.to_str().unwrap().to_owned();
+            let value = value.as_bytes().to_vec();
             let name_value = (name, value);
             header_vec.push(name_value);
         }
@@ -293,42 +304,13 @@ impl Iterable for Headers {
     fn get_value_at_index(&self, n: u32) -> ByteString {
         let sorted_header_vec = self.sort_header_list();
         let value = sorted_header_vec[n as usize].1.clone();
-        ByteString::new(value.into_bytes().to_vec())
+        ByteString::new(value)
     }
 
     fn get_key_at_index(&self, n: u32) -> ByteString {
         let sorted_header_vec = self.sort_header_list();
         let key = sorted_header_vec[n as usize].0.clone();
         ByteString::new(key.into_bytes().to_vec())
-    }
-}
-
-fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
-    let value_string = if let Ok(s) = str::from_utf8(value) {
-        s
-    } else {
-        return false;
-    };
-    let value_mime_result: Result<Mime, _> = value_string.parse();
-    match value_mime_result {
-        Err(_) => false,
-        Ok(value_mime) => match (value_mime.type_(), value_mime.subtype()) {
-            (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
-            (mime::MULTIPART, mime::FORM_DATA) |
-            (mime::TEXT, mime::PLAIN) => true,
-            _ => false,
-        },
-    }
-}
-
-// TODO: "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
-// ... once parsed, the value should not be failure.
-// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
-fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
-    match name {
-        "accept" | "accept-language" | "content-language" => true,
-        "content-type" => is_cors_safelisted_request_content_type(value),
-        _ => false,
     }
 }
 
@@ -374,32 +356,18 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 }
 
 // There is some unresolved confusion over the definition of a name and a value.
-// The fetch spec [1] defines a name as "a case-insensitive byte
-// sequence that matches the field-name token production. The token
-// productions are viewable in [2]." A field-name is defined as a
-// token, which is defined in [3].
-// ISSUE 1:
-// It defines a value as "a byte sequence that matches the field-content token production."
-// To note, there is a difference between field-content and
-// field-value (which is made up of field-content and obs-fold). The
-// current definition does not allow for obs-fold (which are white
-// space and newlines) in values. So perhaps a value should be defined
-// as "a byte sequence that matches the field-value token production."
-// However, this would then allow values made up entirely of white space and newlines.
-// RELATED ISSUE 2:
-// According to a previously filed Errata ID: 4189 in [4], "the
-// specified field-value rule does not allow single field-vchar
-// surrounded by whitespace anywhere". They provided a fix for the
-// field-content production, but ISSUE 1 has still not been resolved.
-// The production definitions likely need to be re-written.
-// [1] https://fetch.spec.whatwg.org/#concept-header-value
-// [2] https://tools.ietf.org/html/rfc7230#section-3.2
-// [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
-// [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
+//
+// As of December 2019, WHATWG has no formal grammar production for value;
+// https://fetch.spec.whatg.org/#concept-header-value just says not to have
+// newlines, nulls, or leading/trailing whitespace. It even allows
+// octets that aren't a valid UTF-8 encoding, and WPT tests reflect this.
+// The HeaderValue class does not fully reflect this, so headers
+// containing bytes with values 1..31 or 127 can't be created, failing
+// WPT tests but probably not affecting anything important on the real Internet.
 fn validate_name_and_value(name: ByteString, value: ByteString) -> Fallible<(String, Vec<u8>)> {
     let valid_name = validate_name(name)?;
-    if !is_field_content(&value) {
-        return Err(Error::Type("Value is not valid".to_string()));
+    if !is_legal_header_value(&value) {
+        return Err(Error::Type("Header value is not valid".to_string()));
     }
     Ok((valid_name, value.into()))
 }
@@ -426,13 +394,13 @@ pub fn normalize_value(value: ByteString) -> ByteString {
     }
 }
 
-fn is_HTTP_whitespace(byte: u8) -> bool {
+fn is_http_whitespace(byte: u8) -> bool {
     byte == b'\t' || byte == b'\n' || byte == b'\r' || byte == b' '
 }
 
 fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate() {
-        if !is_HTTP_whitespace(byte) {
+        if !is_http_whitespace(byte) {
             return Some(index);
         }
     }
@@ -441,7 +409,7 @@ fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
 
 fn index_of_last_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate().rev() {
-        if !is_HTTP_whitespace(byte) {
+        if !is_http_whitespace(byte) {
             return Some(index);
         }
     }
@@ -453,47 +421,40 @@ fn is_field_name(name: &ByteString) -> bool {
     is_token(&*name)
 }
 
-// https://tools.ietf.org/html/rfc7230#section-3.2
-// http://www.rfc-editor.org/errata_search.php?rfc=7230
-// Errata ID: 4189
-// field-content = field-vchar [ 1*( SP / HTAB / field-vchar )
-//                               field-vchar ]
-fn is_field_content(value: &ByteString) -> bool {
+// https://fetch.spec.whatg.org/#concept-header-value
+fn is_legal_header_value(value: &ByteString) -> bool {
     let value_len = value.len();
-
     if value_len == 0 {
-        return false;
+        return true;
     }
-    if !is_field_vchar(value[0]) {
-        return false;
-    }
-
-    if value_len > 2 {
-        for &ch in &value[1..value_len - 1] {
-            if !is_field_vchar(ch) && !is_space(ch) && !is_htab(ch) {
-                return false;
-            }
+    match value[0] {
+        b' ' | b'\t' => return false,
+        _ => {},
+    };
+    match value[value_len - 1] {
+        b' ' | b'\t' => return false,
+        _ => {},
+    };
+    for &ch in &value[..] {
+        match ch {
+            b'\0' | b'\n' | b'\r' => return false,
+            _ => {},
         }
     }
-
-    if !is_field_vchar(value[value_len - 1]) {
-        return false;
-    }
-
-    return true;
-}
-
-fn is_space(x: u8) -> bool {
-    x == b' '
-}
-
-fn is_htab(x: u8) -> bool {
-    x == b'\t'
-}
-
-// https://tools.ietf.org/html/rfc7230#section-3.2
-fn is_field_vchar(x: u8) -> bool {
-    is_vchar(x) || is_obs_text(x)
+    true
+    // If accepting non-UTF8 header values causes breakage,
+    // removing the above "true" and uncommenting the below code
+    // would ameliorate it while still accepting most reasonable headers:
+    //match str::from_utf8(value) {
+    //    Ok(_) => true,
+    //    Err(_) => {
+    //        warn!(
+    //            "Rejecting spec-legal but non-UTF8 header value: {:?}",
+    //            value
+    //        );
+    //        false
+    //    },
+    // }
 }
 
 // https://tools.ietf.org/html/rfc5234#appendix-B.1

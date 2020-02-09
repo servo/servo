@@ -24,12 +24,12 @@
             // will fail unless the async_test is created with the var name "test_pointerEvent".
             add_completion_callback(showPointerTypes);
 
-            var eventTested = false;
             var pointercancel_event = null;
             var detected_pointertypes = {};
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var actions_promise;
 
                 on_event(target0, "pointercancel", function (event) {
                     detected_pointertypes[event.pointerType] = true;
@@ -41,13 +41,14 @@
                 on_event(target0, "pointerout", function (event) {
                     if(event.pointerType == 'touch') {
                         if(pointercancel_event != null) {
-                            if (eventTested == false) {
-                                test_pointerout.step(function() {
-                                    assert_equals(event.pointerType, pointercancel_event.pointerType, "pointerType is same for pointercancel and pointerout");
-                                    assert_equals(event.isPrimary, pointercancel_event.isPrimary, "isPrimary is same for pointercancel and pointerout");
-                                });
-                                eventTested = true;
-                            }
+                            test_pointerout.step(function() {
+                                assert_equals(event.pointerType, pointercancel_event.pointerType, "pointerType is same for pointercancel and pointerout");
+                                assert_equals(event.isPrimary, pointercancel_event.isPrimary, "isPrimary is same for pointercancel and pointerout");
+                            });
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerout.done();
+                            });
                         }
                         else {
                             test_pointerout.step(function() {
@@ -58,13 +59,8 @@
                     }
                 });
 
-                // Inject touch inputs and wait for all the actions finish to end the test.
-                touchScrollInTarget(target0, 'down').then(function() {
-                    test_pointerout.step(function () {
-                        assert_true(eventTested, "pointerout should be received before the test finishes");
-                    }, "pointerout should be received before the test finishes");
-                    test_pointerout.done();
-                });
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
             }
 
         </script>

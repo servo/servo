@@ -10,100 +10,77 @@
   const noopPolicy = {
     'createHTML': (s) => s,
     'createScriptURL': (s) => s,
-    'createURL': (s) => s,
     'createScript': (s) => s,
   };
 
   // isHTML tests
   test(t => {
-    const p = TrustedTypes.createPolicy('html', noopPolicy);
+    const p = trustedTypes.createPolicy('html', noopPolicy);
     let html = p.createHTML(INPUTS.HTML);
 
-    assert_true(TrustedTypes.isHTML(html));
+    assert_true(trustedTypes.isHTML(html));
     let html2 = Object.create(html);
 
     // instanceof can pass, but we rely on isHTML
     assert_true(html2 instanceof TrustedHTML);
-    assert_false(TrustedTypes.isHTML(html2));
+    assert_false(trustedTypes.isHTML(html2));
 
     let html3 = Object.assign({}, html, {toString: () => 'fake'});
 
-    assert_false(TrustedTypes.isHTML(html3));
+    assert_false(trustedTypes.isHTML(html3));
   }, 'TrustedTypePolicyFactory.isHTML requires the object to be created via policy.');
 
   // isScript tests
   test(t => {
-    const p = TrustedTypes.createPolicy('script', noopPolicy);
+    const p = trustedTypes.createPolicy('script', noopPolicy);
     let script = p.createScript(INPUTS.SCRIPT);
 
-    assert_true(TrustedTypes.isScript(script));
+    assert_true(trustedTypes.isScript(script));
     let script2 = Object.create(script);
 
     // instanceof can pass, but we rely on isScript
     assert_true(script2 instanceof TrustedScript);
-    assert_false(TrustedTypes.isScript(script2));
+    assert_false(trustedTypes.isScript(script2));
 
     let script3 = Object.assign({}, script, {toString: () => 'fake'});
 
-    assert_false(TrustedTypes.isScript(script3));
+    assert_false(trustedTypes.isScript(script3));
   }, 'TrustedTypePolicyFactory.isScript requires the object to be created via policy.');
 
   // isScriptURL tests
   test(t => {
-    const p = TrustedTypes.createPolicy('script_url', noopPolicy);
+    const p = trustedTypes.createPolicy('script_url', noopPolicy);
     let script = p.createScriptURL(INPUTS.SCRIPTURL);
 
-    assert_true(TrustedTypes.isScriptURL(script));
+    assert_true(trustedTypes.isScriptURL(script));
     let script2 = Object.create(script);
 
     // instanceof can pass, but we rely on isScript
     assert_true(script2 instanceof TrustedScriptURL);
-    assert_false(TrustedTypes.isScriptURL(script2));
+    assert_false(trustedTypes.isScriptURL(script2));
 
     let script3 = Object.assign({}, script, {toString: () => 'fake'});
 
-    assert_false(TrustedTypes.isScriptURL(script3));
+    assert_false(trustedTypes.isScriptURL(script3));
   }, 'TrustedTypePolicyFactory.isScriptURL requires the object to be created via policy.');
-
-  // isURL tests
-  test(t => {
-    const p = TrustedTypes.createPolicy('url', noopPolicy);
-    let url = p.createURL(INPUTS.URL);
-
-    assert_true(TrustedTypes.isURL(url));
-    let url2 = Object.create(url);
-
-    // instanceof can pass, but we rely on isScript
-    assert_true(url2 instanceof TrustedURL);
-    assert_false(TrustedTypes.isURL(url2));
-
-    let url3 = Object.assign({}, url, {toString: () => 'fake'});
-
-    assert_false(TrustedTypes.isURL(url3));
-  }, 'TrustedTypePolicyFactory.isURL requires the object to be created via policy.');
 
   // Test non-object parameters.
   test(t => {
-    assert_false(TrustedTypes.isHTML(null));
-    assert_false(TrustedTypes.isHTML(123));
-    assert_false(TrustedTypes.isHTML(0.5));
-    assert_false(TrustedTypes.isHTML('test'));
-    assert_false(TrustedTypes.isHTML({}));
-    assert_false(TrustedTypes.isScript(null));
-    assert_false(TrustedTypes.isScript(123));
-    assert_false(TrustedTypes.isScript(0.5));
-    assert_false(TrustedTypes.isScript('test'));
-    assert_false(TrustedTypes.isScript({}));
-    assert_false(TrustedTypes.isURL(null));
-    assert_false(TrustedTypes.isURL(123));
-    assert_false(TrustedTypes.isURL(0.5));
-    assert_false(TrustedTypes.isURL('test'));
-    assert_false(TrustedTypes.isURL({}));
-    assert_false(TrustedTypes.isScriptURL(null));
-    assert_false(TrustedTypes.isScriptURL(123));
-    assert_false(TrustedTypes.isScriptURL(0.5));
-    assert_false(TrustedTypes.isScriptURL('test'));
-    assert_false(TrustedTypes.isScriptURL({}));
+    assert_false(trustedTypes.isHTML(null));
+    assert_false(trustedTypes.isHTML(123));
+    assert_false(trustedTypes.isHTML(0.5));
+    assert_false(trustedTypes.isHTML('test'));
+    assert_false(trustedTypes.isHTML({}));
+    assert_false(trustedTypes.isScript(null));
+    assert_false(trustedTypes.isScript(123));
+    assert_false(trustedTypes.isScript(0.5));
+    assert_false(trustedTypes.isScript('test'));
+    assert_false(trustedTypes.isScript({}));
+    assert_false(trustedTypes.isScriptURL(null));
+    assert_false(trustedTypes.isScriptURL(123));
+    assert_false(trustedTypes.isScriptURL(0.5));
+    assert_false(trustedTypes.isScriptURL('test'));
+    assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isXXX should accept anything without throwing.');
 
   // Redefinition tests, assign to property.
@@ -112,44 +89,33 @@
   //  what [Unforgeable] does. Hence, the tests use try {..} catch {} to cover
   //  both situationsm rather than expect_throws(...).)
   test(t => {
-    try { TrustedTypes.isHTML = () => 'fake'; } catch { }
-    assert_false(TrustedTypes.isHTML({}));
+    try { trustedTypes.isHTML = () => 'fake'; } catch { }
+    assert_false(trustedTypes.isHTML({}));
   }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined.');
 
   test(t => {
-    try { TrustedTypes.isScript = () => 'fake'; } catch { }
-    assert_false(TrustedTypes.isScript({}));
+    try { trustedTypes.isScript = () => 'fake'; } catch { }
+    assert_false(trustedTypes.isScript({}));
   }, 'TrustedTypePolicyFactory.isScript cannot be redefined.');
 
   test(t => {
-    try { TrustedTypes.isScriptURL = () => 'fake'; } catch { }
-    assert_false(TrustedTypes.isScriptURL({}));
+    try { trustedTypes.isScriptURL = () => 'fake'; } catch { }
+    assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined.');
-
-  test(t => {
-    try { TrustedTypes.isURL = () => 'fake'; } catch { }
-    assert_false(TrustedTypes.isURL({}));
-  }, 'TrustedTypePolicyFactory.isURL cannot be redefined.');
 
   // Redefinition tests, via Object.defineProperty.
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isHTML', () => 'fake'); } catch { }
-    assert_false(TrustedTypes.isHTML({}));
+    try { Object.defineProperty(trustedTypes, 'isHTML', () => 'fake'); } catch { }
+    assert_false(trustedTypes.isHTML({}));
   }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined via defineProperty.');
 
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isScript', () => 'fake'); } catch { }
-    assert_false(TrustedTypes.isScript({}));
+    try { Object.defineProperty(trustedTypes, 'isScript', () => 'fake'); } catch { }
+    assert_false(trustedTypes.isScript({}));
   }, 'TrustedTypePolicyFactory.isScript cannot be redefined via definePropert.');
 
   test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isScriptURL', () => 'fake'); } catch { }
-    assert_false(TrustedTypes.isScriptURL({}));
+    try { Object.defineProperty(trustedTypes, 'isScriptURL', () => 'fake'); } catch { }
+    assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined via definePropert.');
-
-  test(t => {
-    try { Object.defineProperty(TrustedTypes, 'isURL', () => 'fake'); } catch { }
-    assert_false(TrustedTypes.isURL({}));
-  }, 'TrustedTypePolicyFactory.isURL cannot be redefined via definePropert.');
-
 </script>

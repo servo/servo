@@ -3,7 +3,7 @@
     <head>
         <title>touch-action: basic verification</title>
         <meta name="assert" content="TA15.20 - The touch-action CSS property determines whether touch input MAY trigger default behavior supplied by the user agent.
-        auto: The user agent MAY determine any permitted touch behaviors, such as panning and zooming manipulations of the viewport, for touches that begin on the element. 
+        auto: The user agent MAY determine any permitted touch behaviors, such as panning and zooming manipulations of the viewport, for touches that begin on the element.
         none: Touches that begin on the element MUST NOT trigger default touch behaviors.
         pan-x: The user agent MAY consider touches that begin on the element only for the purposes of horizontally scrolling the element's nearest ancestor with horizontally scrollable content.
         pan-y: The user agent MAY consider touches that begin on the element only for the purposes of vertically scrolling the element's nearest ancestor with vertically scrollable content.
@@ -51,9 +51,21 @@
         <div class="test defnone" id="stylesheet-none" expected="none"></div>
         <div class="test defnone" id="explicit-auto" style="touch-action: auto;" expected="auto"></div>
         <div class="test" id="explicit-pan-x" style="touch-action: pan-x;" expected="pan-x"></div>
+        <div class="test" id="explicit-pan-left" style="touch-action: pan-left;" expected="pan-left"></div>
+        <div class="test" id="explicit-pan-right" style="touch-action: pan-right;" expected="pan-right"></div>
         <div class="test" id="explicit-pan-y" style="touch-action: pan-y;" expected="pan-y"></div>
+        <div class="test" id="explicit-pan-up" style="touch-action: pan-up;" expected="pan-up"></div>
+        <div class="test" id="explicit-pan-down" style="touch-action: pan-down;" expected="pan-down"></div>
         <div class="test" id="explicit-pan-x-pan-y" style="touch-action: pan-x pan-y;" expected="pan-x pan-y"></div>
         <div class="test" id="explicit-pan-y-pan-x" style="touch-action: pan-y pan-x;" expected="pan-x pan-y"></div>
+        <div class="test" id="explicit-pan-left-pan-up" style="touch-action: pan-left pan-up;" expected="pan-left pan-up"></div>
+        <div class="test" id="explicit-pan-left-pan-down" style="touch-action: pan-left pan-down;" expected="pan-left pan-down"></div>
+        <div class="test" id="explicit-pan-right-pan-up" style="touch-action: pan-right pan-up;" expected="pan-right pan-up"></div>
+        <div class="test" id="explicit-pan-right-pan-down" style="touch-action: pan-right pan-down;" expected="pan-right pan-down"></div>
+        <div class="test" id="explicit-pan-up-pan-left" style="touch-action: pan-up pan-left;" expected="pan-left pan-up"></div>
+        <div class="test" id="explicit-pan-up-pan-right" style="touch-action: pan-up pan-right;" expected="pan-right pan-up"></div>
+        <div class="test" id="explicit-pan-down-pan-left" style="touch-action: pan-down pan-left;" expected="pan-left pan-down"></div>
+        <div class="test" id="explicit-pan-down-pan-right" style="touch-action: pan-down pan-right;" expected="pan-right pan-down"></div>
         <div class="test" id="explicit-manipulation" style="touch-action: manipulation;" expected="manipulation"></div>
         <div class="test" id="explicit-none" style="touch-action: none;" expected="none"></div>
         <div class="test" id="explicit-invalid-1" style="touch-action: bogus;" expected="auto"></div>

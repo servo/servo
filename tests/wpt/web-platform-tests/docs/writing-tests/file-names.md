@@ -16,11 +16,6 @@ are mutually exclusive.
 `-manual`
  : Indicates that a test is a non-automated test.
 
-`-support`
- : Indicates that a file is not a test but a support file.  Not
-   required for files in a directory called `resources`, `tools` or
-   `support`.
-
 `-visual`
  : Indicates that a file is a visual test.
 
@@ -63,6 +58,8 @@ themselves precede any test type flag, but are otherwise unordered.
    context why the test is tentative and what needs to be resolved to make it
    non-tentative.
 
+It's preferable that `.window`, `.worker`, and `.any` are immediately followed
+by their final `.js` extension.
 
 [server-side substitution]: https://wptserve.readthedocs.io/en/latest/pipes.html#sub
 [RFC 2119]: https://tools.ietf.org/html/rfc2119

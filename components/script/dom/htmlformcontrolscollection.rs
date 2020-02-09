@@ -6,16 +6,17 @@ use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollecti
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use std::iter;
 
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
@@ -24,17 +25,17 @@ pub struct HTMLFormControlsCollection {
 
 impl HTMLFormControlsCollection {
     fn new_inherited(
-        root: &Node,
+        root: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> HTMLFormControlsCollection {
         HTMLFormControlsCollection {
-            collection: HTMLCollection::new_inherited(root, filter),
+            collection: HTMLCollection::new_inherited(root.upcast::<Node>(), filter),
         }
     }
 
     pub fn new(
         window: &Window,
-        root: &Node,
+        root: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLFormControlsCollection> {
         reflect_dom_object(
@@ -46,6 +47,7 @@ impl HTMLFormControlsCollection {
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLFormControlsCollection) implements Length
+    #[allow(non_snake_case)]
     pub fn Length(&self) -> u32 {
         self.collection.Length()
     }
@@ -76,12 +78,16 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 Some(RadioNodeListOrElement::Element(elem))
             } else {
                 // Step 4-5
-                let once = iter::once(DomRoot::upcast::<Node>(elem));
-                let list = once.chain(peekable.map(DomRoot::upcast));
                 let global = self.global();
                 let window = global.as_window();
+                // okay to unwrap: root's type was checked in the constructor
+                let collection_root = self.collection.root_node();
+                let form = collection_root.downcast::<HTMLFormElement>().unwrap();
+                // There is only one way to get an HTMLCollection,
+                // specifically HTMLFormElement::Elements(),
+                // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_simple_list(window, list),
+                    RadioNodeList::new_controls_except_image_inputs(window, form, name),
                 ))
             }
         // Step 3

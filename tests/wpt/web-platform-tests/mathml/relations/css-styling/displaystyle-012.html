@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="match" href="displaystyle-012-ref.html"/>
+    <meta name="assert" content="Test the effect on displaystyle on munder, mover and munderover">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <math>
+      <mstyle displaystyle="true">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+        <mover><mo movablelimits="true">O</mo><mo>O</mo></mover>
+        <munderover><mo movablelimits="true">O</mo><mo>O</mo><mo>O</mo></munderover>
+      </mstyle>
+      <mstyle displaystyle="false">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+        <mover><mo movablelimits="true">O</mo><mo>O</mo></mover>
+        <munderover><mo movablelimits="true">O</mo><mo>O</mo><mo>O</mo></munderover>
+      </mstyle>
+    </math>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_movablelimits");</script>
+  </body>
+</html>

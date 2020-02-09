@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    :focus-visible {
+      outline: darkgreen auto 5px;
+    }
+
+    #el:focus:not(:focus-visible) {
+      background-color: tomato;;
+      outline: 0;
+    }
+  </style>
+</head>
+<body>
+  This test checks that programmatically focusing an element after a keypress causes <code>:focus-visible</code> to match.
+  <ol id="instructions">
+    <li>Use the tab key to move focus to the button below that says "Tab to me and press ENTER."</li>
+    <li>Press ENTER.</li>
+    <li>If the element that says "I will be focused programmatically." has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
+  </ol>
+  <br />
+  <button id="button">Tab to me and press ENTER.</button>
+  <div id="el" tabindex="-1">I will be focused programmatically.</el>
+  <script>
+  if ("async_test" in window) {
+    async_test(function(t) {
+      button.addEventListener("click", t.step_func(() => {
+        el.focus();
+      }));
+      el.addEventListener("focus", t.step_func(function() {
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
+        t.done();
+      }));
+    }, "Programmatic focus after keypress should match :focus-visible");
+  } else {
+    button.addEventListener("click", () => {
+      el.focus();
+    });
+  }
+  </script>
+</body>
+</html>

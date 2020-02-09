@@ -14,7 +14,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
-        if !no_bound.contains(&param.ident) {
+        if !no_bound.iter().any(|name| name.is_ident(&param.ident)) {
             cg::add_predicate(
                 &mut where_clause,
                 parse_quote!(#param: crate::values::distance::ComputeSquaredDistance),

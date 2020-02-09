@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test the column rules' block-size with nested balancing multicol container</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  .outer {
+    column-count: 1;
+    column-rule: 6px solid black;
+    column-fill: auto;
+    background-color: rgba(0, 0, 255, 0.3);
+    width: 200px;
+    height: 300px;
+  }
+  .inner {
+    column-count: 1;
+    column-rule: 3px solid gray;
+    column-fill: auto;
+    background-color: rgba(255, 0, 255, 0.3);
+  }
+  .inner-block {
+    background-color: rgba(0, 255, 0, 0.3);
+  }
+  .space {
+    height: 100px;
+  }
+  </style>
+
+  <article class="outer">
+    <article class="inner">
+      <div class="inner-block" style="height: 300px;"></div>
+    </article>
+    <article class="inner" style="height: 200px;">
+      <div class="inner-block" style="height: 200px;"></div>
+      <div class="inner-block" style="height: 100px;"></div>
+      <div class="space"></div>
+    </article>
+  </article>
+</html>

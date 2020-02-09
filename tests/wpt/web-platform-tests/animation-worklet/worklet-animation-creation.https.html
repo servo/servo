@@ -113,7 +113,7 @@ function CreateKeyframeEffect(element) {
     await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
     let constructorFunc = function() { new WorkletAnimation(
         'test-animator', []); };
-    assert_throws('NotSupportedError', constructorFunc);
+    assert_throws_dom('NotSupportedError', constructorFunc);
   }, 'If there are no effects specified, object construction should fail');
 
   promise_test(async t => {
@@ -136,6 +136,6 @@ function CreateKeyframeEffect(element) {
     let constructorFunc = function() {
         new WorkletAnimation('unregistered-animator', effect);
     };
-    assert_throws('InvalidStateError', constructorFunc);
+    assert_throws_dom('InvalidStateError', constructorFunc);
   }, 'Constructing worklet animation for unregisested animator should throw');
 </script>

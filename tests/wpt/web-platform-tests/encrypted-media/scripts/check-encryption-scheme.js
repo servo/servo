@@ -38,4 +38,9 @@ function runTest(config, qualifier)
   promise_test(
       () => checkEncryptionScheme('cbcs'),
       testnamePrefix(qualifier, config.keysystem) + ' support for "cbcs" encryption scheme.');
+
+  promise_test(
+      () => checkEncryptionScheme('cbcs-1-9'),
+      testnamePrefix(qualifier, config.keysystem) +
+          ' support for "cbcs-1-9" encryption scheme.');
 }

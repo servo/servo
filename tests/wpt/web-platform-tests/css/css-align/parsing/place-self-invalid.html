@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-self with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-self">
+<meta name="assert" content="place-self supports only the grammar '<align-self> <justify-self>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("place-self", "space-around");
+test_invalid_value("place-self", "space-between");
+test_invalid_value("place-self", "space-evenly");
+
+test_invalid_value("place-self", "right");
+test_invalid_value("place-self", "unsafe left");
+test_invalid_value("place-self", "right start");
+test_invalid_value("place-self", "unsafe left stretch");
+
+test_invalid_value("place-self", "normal flex-start baseline");
+
+test_invalid_value("place-self", "baseline safe");
+</script>
+</body>
+</html>

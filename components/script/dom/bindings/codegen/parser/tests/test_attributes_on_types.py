@@ -209,6 +209,18 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
+            typedef [TreatNullAs=EmptyString] JSString Foo;
+        """)
+        parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Should not allow [TreatNullAs] on JSString")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
             interface Foo {
                void foo([Clamp] Bar arg);
             };

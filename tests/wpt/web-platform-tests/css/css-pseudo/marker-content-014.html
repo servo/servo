@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-014-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-values/#viewport-relative-lengths">
+<meta name="assert" content="Checks that viewport units in ::marker are recalculated when viewport size changes.">
+<style>
+iframe {
+  width: 300px;
+  border: none;
+}
+iframe.big {
+  width: 600px;
+}
+</style>
+<body>
+<script src="/common/reftest-wait.js"></script>
+<script>
+"use strict";
+const code = `
+  <!DOCTYPE html>
+  <style>
+  ::marker {
+    font-size: 3vw;
+  }
+  ol {
+    float: left;
+  }
+  .inside {
+    list-style-position: inside;
+  }
+  .decimal {
+    list-style-type: decimal;
+  }
+  .string {
+    list-style-type: "1. ";
+  }
+  .marker::marker {
+    content: "1. ";
+  }
+  </style>
+  <ol>
+    <li class="decimal">item</li>
+    <li class="string">item</li>
+    <li class="marker">item</li>
+  </ol>
+  <ol class="inside">
+    <li class="decimal">item</li>
+    <li class="string">item</li>
+    <li class="marker">item</li>
+  </ol>
+`;
+const iframe = document.createElement("iframe");
+iframe.src = "data:text/html," + encodeURI(code);
+iframe.addEventListener("load", function() {
+  requestAnimationFrame(() => {
+    iframe.classList.add("big");
+    takeScreenshot();
+  });
+}, {once: true});
+document.body.appendChild(iframe);
+</script>
+</body>
+</html>

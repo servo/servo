@@ -5,12 +5,12 @@
 <body>
 <script>
   test(t => {
-    let factory = window.TrustedTypes;
+    let factory = window.trustedTypes;
     assert_true(factory instanceof TrustedTypePolicyFactory);
-  }, "factory = window.TrustedTypes");
+  }, "factory = window.trustedTypes");
 
   test(t => {
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       let factory = new TrustedTypePolicyFactory();
     });
   }, "factory construction fails");

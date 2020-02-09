@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animation of pseudo-element is stopped properly in presence of dynamic DOM change that reconstructs the layout tree</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1564366">
+<link rel="match" href="animation-pseudo-dynamic-001-ref.html">
+<style>
+@keyframes anim {
+  from { background-color: red }
+  to { background-color: red }
+}
+.test {
+  display: flex;
+}
+.test::before {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+.tweak::before {
+  animation: anim 2s linear infinite;
+}
+</style>
+<div class="test tweak">foo</div>
+<script>
+onload = function() {
+  const div = document.querySelector(".test");
+  const pseudoStyle = getComputedStyle(div, "::before");
+  div.getBoundingClientRect(); // update layout
+  div.classList.remove("tweak");
+  div.innerHTML = ""; // This is necessary to trigger the bug.
+}
+</script>

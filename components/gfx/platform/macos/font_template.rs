@@ -3,9 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use core_foundation::array::CFArray;
+use core_foundation::base::{CFType, TCFType};
+use core_foundation::dictionary::CFDictionary;
+use core_foundation::string::CFString;
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text::font::CTFont;
+use core_text::font_collection;
+use core_text::font_descriptor;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
@@ -13,9 +19,10 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{Error as IoError, Read};
 use std::ops::Deref;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use webrender_api::NativeFontHandle;
 
@@ -86,7 +93,34 @@ impl FontTemplateData {
                         Err(_) => None,
                     }
                 },
-                None => core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok(),
+                None => {
+                    // We can't rely on Core Text to load a font for us by postscript
+                    // name here, due to https://github.com/servo/servo/issues/23290.
+                    // The APIs will randomly load the wrong font, forcing us to use
+                    // the roundabout route of creating a Core Graphics font from a
+                    // a set of descriptors and then creating a Core Text font from
+                    // that one.
+
+                    let attributes: CFDictionary<CFString, CFType> =
+                        CFDictionary::from_CFType_pairs(&[(
+                            CFString::new("NSFontNameAttribute"),
+                            CFString::new(&*self.identifier).as_CFType(),
+                        )]);
+
+                    let descriptor = font_descriptor::new_from_attributes(&attributes);
+                    let descriptors = CFArray::from_CFTypes(&[descriptor]);
+                    let collection = font_collection::new_from_descriptors(&descriptors);
+                    collection.get_descriptors().and_then(|descriptors| {
+                        let descriptor = descriptors.get(0).unwrap();
+                        let font_path = Path::new(&descriptor.font_path().unwrap()).to_owned();
+                        fs::read(&font_path).ok().and_then(|bytes| {
+                            let fontprov = CGDataProvider::from_buffer(Arc::new(bytes));
+                            CGFont::from_data_provider(fontprov).ok().map(|cgfont| {
+                                core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)
+                            })
+                        })
+                    })
+                },
             };
             if let Some(ctfont) = ctfont {
                 ctfonts.insert(pt_size_key, ctfont);

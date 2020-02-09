@@ -1,8 +1,9 @@
 from .base import Browser, ExecutorBrowser, require_arg
-from .base import get_timeout_multiplier   # noqa: F401
+from .base import get_timeout_multiplier, certificate_domain_list  # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
-                                           WebDriverRefTestExecutor)  # noqa: F401
+                                           WebDriverRefTestExecutor,  # noqa: F401
+                                           WebDriverCrashtestExecutor)  # noqa: F401
 from ..executors.executorwebkit import WebKitDriverWdspecExecutor  # noqa: F401
 from ..webdriver_server import WebKitDriverServer
 
@@ -13,7 +14,8 @@ __wptrunner__ = {"product": "webkit",
                  "browser_kwargs": "browser_kwargs",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WebKitDriverWdspecExecutor"},
+                              "wdspec": "WebKitDriverWdspecExecutor",
+                              "crashtest": "WebDriverCrashtestExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
@@ -47,9 +49,7 @@ def capabilities_for_port(server_config, **kwargs):
             browser_options_key: {
                 "binary": kwargs["binary"],
                 "args": kwargs.get("binary_args", []),
-                "certificates": [
-                    {"host": server_config["browser_host"],
-                     "certificateFile": kwargs["host_cert_path"]}]}}
+                "certificates": certificate_domain_list(server_config.domains_set, kwargs["host_cert_path"])}}
 
     return {}
 
@@ -101,7 +101,7 @@ class WebKitBrowser(Browser):
         # TODO(ato): This only indicates the driver is alive,
         # and doesn't say anything about whether a browser session
         # is active.
-        return self.server.is_alive()
+        return self.server.is_alive
 
     def cleanup(self):
         self.stop()

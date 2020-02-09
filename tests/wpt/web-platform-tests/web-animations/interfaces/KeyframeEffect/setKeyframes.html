@@ -34,7 +34,7 @@ for (const subtest of gKeyframesTests) {
 for (const subtest of gInvalidKeyframesTests) {
   test(t => {
     const effect = new KeyframeEffect(target, {});
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       effect.setKeyframes(subtest.input);
     });
   }, `KeyframeEffect constructor throws with ${subtest.desc}`);

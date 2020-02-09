@@ -46,6 +46,7 @@ impl DocumentFragment {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 

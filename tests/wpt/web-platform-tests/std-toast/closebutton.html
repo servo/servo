@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Toast: closebutton tests</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main></main>
+
+<script type="module">
+import { showToast } from 'std:elements/toast';
+import { testToastElement } from './resources/helpers.js';
+
+testToastElement((toast) => {
+    toast.setAttribute('closebutton', '');
+
+    assert_true(toast.closeButton);
+}, 'the closeButton property returns true with an empty attribute');
+
+testToastElement((toast) => {
+    toast.setAttribute('closebutton', 'dismiss');
+
+    assert_equals(toast.closeButton, 'dismiss');
+}, 'the closeButton property returns the set attribute value');
+
+testToastElement((toast) => {
+    assert_false(toast.closeButton);
+}, 'the closeButton property returns false with no attribute');
+
+testToastElement((toast) => {
+    toast.setAttribute('closebutton', '');
+    assert_true(toast.closeButton);
+
+    toast.setAttribute('closebutton', 'dismiss');
+    assert_equals(toast.closeButton, 'dismiss');
+
+    toast.removeAttribute('closebutton');
+    assert_false(toast.closeButton);
+}, 'the closeButton property changes when the attribute changes');
+
+testToastElement((toast) => {
+    toast.closeButton = 'dismiss';
+
+    assert_equals(toast.getAttribute('closebutton'), 'dismiss');
+}, 'setting the closeButton property to any string changes the attribute to that string');
+
+testToastElement((toast) => {
+    toast.closeButton = '';
+
+    assert_equals(toast.getAttribute('closebutton'), '');
+}, 'setting the closeButton property to empty string changes the attribute to empty string');
+
+testToastElement((toast) => {
+    toast.closeButton = true;
+
+    assert_equals(toast.getAttribute('closebutton'), '');
+}, 'setting the closeButton property to true changes the attribute to empty string');
+
+testToastElement((toast) => {
+    toast.closeButton = false;
+
+    assert_false(toast.hasAttribute('closebutton'));
+}, 'setting the closeButton property to false removes the attribute');
+
+testToastElement((toast) => {
+    toast.closeButton = undefined;
+
+    assert_equals(toast.getAttribute('closebutton'), 'undefined');
+}, 'setting the closeButton property to undefined stringifies and sets to that');
+
+testToastElement((toast) => {
+    toast.closeButton = null;
+
+    assert_equals(toast.getAttribute('closebutton'), 'null');
+}, 'setting the closeButton property to null stringifies and sets to that');
+
+testToastElement((toast) => {
+    toast.closeButton = {};
+
+    assert_equals(toast.getAttribute('closebutton'), '[object Object]');
+}, 'setting the closeButton property to {} stringifies and sets to [object Object]');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: true });
+
+    assert_equals(toast.getAttribute('closebutton'), '');
+}, 'setting the showToast closeButton option to true sets the closebutton attribute to empty string');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: 'dismiss' });
+
+    assert_equals(toast.getAttribute('closebutton'), 'dismiss');
+}, 'setting the showToast closeButton option to some string sets that string as the closebutton attribute');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: '' });
+
+    assert_equals(toast.getAttribute('closebutton'), '');
+}, 'setting the showToast closeButton option to empty string sets the closebutton attribute to empty string');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: {} });
+
+    assert_equals(toast.getAttribute('closebutton'), '[object Object]');
+}, 'setting the showToast closeButton option to {} sets the closebutton attribute to [object Object]');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: document.createElement('span') });
+
+    assert_equals(toast.getAttribute('closebutton'), '[object HTMLSpanElement]');
+}, 'passing an HTML element into the closeButton option of showToast stringifies and sets it to the closebutton attribute');
+
+test(() => {
+    const toast = showToast('Message', { closeButton: false });
+
+    assert_false(toast.hasAttribute('closebutton'));
+}, 'setting the showToast closeButton option to false does not put a close button on the toast');
+
+test(() => {
+    const toast = showToast('Message');
+
+    assert_false(toast.hasAttribute('closebutton'));
+}, 'calling showToast without the closeButton option does not put a closebutton on the toast');
+</script>

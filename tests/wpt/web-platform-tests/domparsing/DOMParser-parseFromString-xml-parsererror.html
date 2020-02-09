@@ -35,4 +35,16 @@ const xhtml_prologue = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     assert_equals(parsererrors.length, 1, 'expecting one parsererror');
   }, document.title + ', ' + fragment);
 });
+
+[
+  'text/xml',
+  'application/xml',
+  'application/xhtml+xml',
+  'image/svg+xml'
+].forEach(mimeType => {
+  test(() => {
+    const doc = (new DOMParser()).parseFromString('<span x:test="testing">1</span>', mimeType);
+    assert_equals(doc.contentType, mimeType);
+  }, `${mimeType} is preserved in the error document`);
+})
 </script>

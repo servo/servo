@@ -1,7 +1,7 @@
 // spec link: https://html.spec.whatwg.org/#dom-offscreencanvas
 
 importScripts("/resources/testharness.js");
-importScripts("/common/canvas-tests.js");
+importScripts("/2dcontext/resources/canvas-tests.js");
 
 var t1 = async_test("Test that calling OffscreenCanvas's constructor generates correct width and height.");
 t1.step(function() {
@@ -25,19 +25,19 @@ t2.step(function() {
     assert_equals(offscreenCanvas1.width, 0);
     assert_equals(offscreenCanvas1.height, 0);
 
-    assert_throws(new TypeError(), function() { new OffscreenCanvas(-1, -1); });
+    assert_throws_js(TypeError, function() { new OffscreenCanvas(-1, -1); });
 
     var offscreenCanvas2 = new OffscreenCanvas(null, null);
     assert_equals(offscreenCanvas2.width, 0);
     assert_equals(offscreenCanvas2.height, 0);
 
-    assert_throws(new TypeError(), function() { offscreenCanvas2.width = -1; });
-    assert_throws(new TypeError(), function() { offscreenCanvas2.height = -1; });
+    assert_throws_js(TypeError, function() { offscreenCanvas2.width = -1; });
+    assert_throws_js(TypeError, function() { offscreenCanvas2.height = -1; });
 
     var obj = {Name: "John Doe", Age: 30};
-    assert_throws(new TypeError(), function() { offscreenCanvas2.width = obj; });
-    assert_throws(new TypeError(), function() { offscreenCanvas2.height = obj; });
-    assert_throws(new TypeError(), function() { new OffscreenCanvas(obj, obj); });
+    assert_throws_js(TypeError, function() { offscreenCanvas2.width = obj; });
+    assert_throws_js(TypeError, function() { offscreenCanvas2.height = obj; });
+    assert_throws_js(TypeError, function() { new OffscreenCanvas(obj, obj); });
     t2.done();
 });
 

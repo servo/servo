@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<style>
+@font-face {
+    font-family: "AppleSystemUISerif";
+    src: local("ui-serif");
+}
+@font-face {
+    font-family: "AppleSystemUIMonospaced";
+    src: local("ui-monospaced");
+}
+@font-face {
+    font-family: "AppleSystemUIRounded";
+    src: local("ui-rounded");
+}
+@font-face {
+    font-family: "AppleSystemUISansSerif";
+    src: local("ui-sans-serif");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFontSerif";
+    src: local(".AppleSystemUIFontSerif");
+}
+@font-face {
+    font-family: "DotSFNSMono";
+    src: local(".SF NS Mono");
+}
+@font-face {
+    font-family: "DotSFUIMono";
+    src: local(".SF UI Mono");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFontRounded";
+    src: local(".AppleSystemUIFontRounded");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFont";
+    src: local(".AppleSystemUIFont");
+}
+</style>
+</head>
+<body>
+This test makes sure that the bold versions of the design system UI fonts work in @font-face. The test passes if all the text below is bold.
+<div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISerif';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUIMonospaced';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUIRounded';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISansSerif';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontSerif';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotSFNSMono';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotSFUIMono';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontRounded';">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFont';">HeJllo</div>
+</div>
+</body>
+</html>

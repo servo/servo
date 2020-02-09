@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Grid Layout Test: Support for 'grid-auto-columns' and
+      'grid-auto-rows' properties with implicit tracks after and before the
+      explicit grid</title>
+    <link rel="help" href="https://drafts.csswg.org/css-grid/#auto-tracks">
+    <link rel="match" href="../reference/grid-support-grid-auto-columns-rows-003-ref.html">
+    <style>
+    #wrapper {
+      display: grid;
+      grid-template-columns: 50px 50px 50px 50px;
+    }
+
+    /* Implicit and explicit grid track sizes */
+    .grid {
+      display: grid;
+      grid-auto-rows: 2px 3px;
+      grid-auto-columns: 2px 3px;
+    }
+    #one   .grid { grid-template: 5px / 5px; }
+    #two   .grid { grid-template: 5px 5px / 5px 5px; }
+    #three .grid { grid-template: 5px 5px 5px / 5px 5px 5px; }
+
+    /* Grid item positions. */
+    .item-left1    { grid-area: auto / auto / 1 / 1; }
+    .item-explicit { grid-area: 1 / 1 / -1 / -1; }
+    .item-right1   { grid-area: -1 / -1; }
+
+    #zero  .item-left3  { grid-area: auto / auto / -3 / -3; }
+    #zero  .item-left2  { grid-area: auto / auto / -2 / -2; }
+    #zero  .item-right2 { grid-area: 2 / 2; }
+    #zero  .item-right3 { grid-area: 3 / 3; }
+    #one   .item-left3  { grid-area: auto / auto / -4 / -4; }
+    #one   .item-left2  { grid-area: auto / auto / -3 / -3; }
+    #one   .item-right2 { grid-area: 3 / 3; }
+    #one   .item-right3 { grid-area: 4 / 4; }
+    #two   .item-left3  { grid-area: auto / auto / -5 / -5; }
+    #two   .item-left2  { grid-area: auto / auto / -4 / -4; }
+    #two   .item-right2 { grid-area: 4 / 4; }
+    #two   .item-right3 { grid-area: 5 / 5; }
+    #three .item-left3  { grid-area: auto / auto / -6 / -6; }
+    #three .item-left2  { grid-area: auto / auto / -5 / -5; }
+    #three .item-right2 { grid-area: 5 / 5; }
+    #three .item-right3 { grid-area: 6 / 6; }
+
+    /* Colors */
+    .item-left3    { background: #ff0; }
+    .item-left2    { background: #ff0; }
+    .item-left1    { background: #ff0; }
+    .item-explicit { background: #f0f; }
+    .item-right1   { background: #0ff; }
+    .item-right2   { background: #0ff; }
+    .item-right3   { background: #0ff; }
+    </style>
+    <script>
+      function createDivWithClass(className, parent) {
+        let element = document.createElement('div');
+        element.className = className || '';
+        if (!parent) {
+          parent = document.body;
+        }
+        parent.appendChild(element);
+        return element;
+      }
+
+      function generate(parentId) {
+        let parent = document.getElementById(parentId);
+
+        for (let leftNum = 0; leftNum <= 3; ++leftNum) {
+          for (let rightNum = 0; rightNum <= 3; ++rightNum) {
+            let grid = leftNum + rightNum > 0
+              ? createDivWithClass("grid", parent)
+              : null;
+
+            for (let i = 1; i <= leftNum; ++i) {
+              createDivWithClass("item-left" + i, grid);
+            }
+
+            if (leftNum + rightNum > 0) {
+              createDivWithClass("item-explicit", grid);
+            }
+
+            for (let i = 1; i <= rightNum; ++i) {
+              createDivWithClass("item-right" + i, grid);
+            }
+          }
+        }
+      }
+
+      function run() {
+        // This is equal to something like this:
+        // <div class="grid">
+        //   <div class="item-left3"></div>
+        //   <div class="item-left2"></div>
+        //   <div class="item-left1"></div>
+        //   <div class="item-explicit"></div>
+        //   <div class="item-right1"></div>
+        //   <div class="item-right2"></div>
+        //   <div class="item-right3"></div>
+        // </div>
+        // Generate the grid examples with 0~3 left items and 0~3 right items.
+        // The item-explicit is placed inside the 0x0 ~ 3x3 explicit tracks.
+        generate("zero");
+        generate("one");
+        generate("two");
+        generate("three");
+
+        document.documentElement.offsetHeight;
+        document.documentElement.classList.remove('reftest-wait');
+      }
+    </script>
+  </head>
+  <body onload="run()">
+    <div id="wrapper">
+      <!-- Zero explicit track -->
+      <div id="zero"></div>
+
+      <!-- One explicit track -->
+      <div id="one"></div>
+
+      <!-- Two explicit tracks -->
+      <div id="two"></div>
+
+      <!-- Three explicit tracks -->
+      <div id="three"></div>
+    </div>
+  </body>
+</html>

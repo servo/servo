@@ -30,7 +30,7 @@ impl Sampler for DummySampler {
 
 // Several types in this file are currently not used in a Linux or Windows build.
 #[allow(dead_code)]
-pub type Address = *const libc::uint8_t;
+pub type Address = *const u8;
 
 /// The registers used for stack unwinding
 #[allow(dead_code)]

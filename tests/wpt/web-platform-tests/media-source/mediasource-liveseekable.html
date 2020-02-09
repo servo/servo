@@ -10,7 +10,7 @@ test(function(test)
 {
     var mediaSource = new MediaSource();
     assert_equals(mediaSource.readyState, "closed", "media source is closed.");
-    assert_throws("InvalidStateError", function() { mediaSource.setLiveSeekableRange(0, 1); });
+    assert_throws_dom("InvalidStateError", function() { mediaSource.setLiveSeekableRange(0, 1); });
 }, "setLiveSeekableRange throws an InvalidStateError exception if the readyState attribute is not 'open'");
 
 
@@ -18,7 +18,7 @@ test(function(test)
 {
     var mediaSource = new MediaSource();
     assert_equals(mediaSource.readyState, "closed", "media source is closed.");
-    assert_throws("InvalidStateError", function() { mediaSource.clearLiveSeekableRange(); });
+    assert_throws_dom("InvalidStateError", function() { mediaSource.clearLiveSeekableRange(); });
 }, "clearLiveSeekableRange throws an InvalidStateError exception if the readyState attribute is not 'open'");
 
 
@@ -49,7 +49,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 mediasource_test(function(test, mediaElement, mediaSource)
 {
     mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
-    assert_throws(new TypeError(), function() { mediaSource.setLiveSeekableRange(-1, 1); });
+    assert_throws_js(TypeError, function() { mediaSource.setLiveSeekableRange(-1, 1); });
     test.done();
 }, "setLiveSeekableRange throws a TypeError if start is negative");
 
@@ -57,7 +57,7 @@ mediasource_test(function(test, mediaElement, mediaSource)
 mediasource_test(function(test, mediaElement, mediaSource)
 {
     mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
-    assert_throws(new TypeError(), function() { mediaSource.setLiveSeekableRange(2, 1); });
+    assert_throws_js(TypeError, function() { mediaSource.setLiveSeekableRange(2, 1); });
     test.done();
 }, "setLiveSeekableRange throws a TypeError if start is greater than end");
 

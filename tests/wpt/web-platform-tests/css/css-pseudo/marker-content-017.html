@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-017-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#declaring-a-list-item">
+<meta name="assert" content="Checks that ::marker can be created inside a non-replaced <img>.">
+<style>
+img {
+  display: list-item;
+}
+img.inside {
+  list-style-position: inside;
+}
+img::marker {
+  content: '[marker]';
+}
+</style>
+<ol>
+  <img src="about:invalid" alt="alt" class="inside" />
+  <img src="about:invalid" alt="alt" />
+  <li>item</li>
+</ol>

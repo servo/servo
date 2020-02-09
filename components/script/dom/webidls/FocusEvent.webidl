@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-FocusEvent
-[Constructor(DOMString typeArg, optional FocusEventInit focusEventInitDict),
- Exposed=Window]
+[Exposed=Window]
 interface FocusEvent : UIEvent {
+  [Throws] constructor(DOMString typeArg, optional FocusEventInit focusEventInitDict = {});
   readonly attribute EventTarget?   relatedTarget;
 };
 

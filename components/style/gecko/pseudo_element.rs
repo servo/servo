@@ -140,6 +140,12 @@ impl PseudoElement {
         *self == PseudoElement::FieldsetContent
     }
 
+    /// Whether this pseudo-element is the ::-moz-color-swatch pseudo.
+    #[inline]
+    pub fn is_color_swatch(&self) -> bool {
+        *self == PseudoElement::MozColorSwatch
+    }
+
     /// Whether this pseudo-element is lazily-cascaded.
     #[inline]
     pub fn is_lazy(&self) -> bool {
@@ -182,12 +188,16 @@ impl PseudoElement {
     /// Property flag that properties must have to apply to this pseudo-element.
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {
-        match *self {
-            PseudoElement::FirstLetter => Some(PropertyFlags::APPLIES_TO_FIRST_LETTER),
-            PseudoElement::FirstLine => Some(PropertyFlags::APPLIES_TO_FIRST_LINE),
-            PseudoElement::Placeholder => Some(PropertyFlags::APPLIES_TO_PLACEHOLDER),
-            _ => None,
-        }
+        Some(match *self {
+            PseudoElement::FirstLetter => PropertyFlags::APPLIES_TO_FIRST_LETTER,
+            PseudoElement::FirstLine => PropertyFlags::APPLIES_TO_FIRST_LINE,
+            PseudoElement::Placeholder => PropertyFlags::APPLIES_TO_PLACEHOLDER,
+            PseudoElement::Cue => PropertyFlags::APPLIES_TO_CUE,
+            PseudoElement::Marker if static_prefs::pref!("layout.css.marker.restricted") => {
+                PropertyFlags::APPLIES_TO_MARKER
+            },
+            _ => return None,
+        })
     }
 
     /// Whether this pseudo-element should actually exist if it has

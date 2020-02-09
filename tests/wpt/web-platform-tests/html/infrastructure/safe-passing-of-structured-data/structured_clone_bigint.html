@@ -23,7 +23,7 @@
         //the worker is used for each test in sequence
         //worker's callback will be set for each test
         //worker's internal onmessage echoes the data back to this thread through postMessage
-        worker = new Worker("./echo.js");
+        worker = new Worker("./resources/echo-worker.js");
         testCollection = [
             function() {
                 var t = async_test("Primitive BigInt is cloned");

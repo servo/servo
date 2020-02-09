@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlembedelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLEmbedElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //         attribute DOMString src;
   // [CEReactions]

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>fractions bar</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
     <meta name="assert" content="Verifies painting of the fraction bar">
     <link rel="match" href="frac-bar-001-ref.html">
     <style type="text/css">
@@ -25,10 +25,8 @@
     </style>
     <script src="/common/reftest-wait.js"></script>
     <script>
-      window.addEventListener("load", () => {
-        // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-        requestAnimationFrame(() => { document.fonts.ready.then(adjustPositionOfFraction); });
-      });
+      window.addEventListener("load", () => { document.fonts.ready.then(adjustPositionOfFraction); });
+
       function adjustPositionOfFraction()
       {
         requestAnimationFrame(() => {
@@ -51,5 +49,7 @@
         </mfrac>
       </math>
     </div>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
   </body>
 </html>

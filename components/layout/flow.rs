@@ -44,7 +44,7 @@ use crate::table_row::TableRowFlow;
 use crate::table_rowgroup::TableRowGroupFlow;
 use crate::table_wrapper::TableWrapperFlow;
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::StackingContextId;
 use num_traits::cast::FromPrimitive;
@@ -64,8 +64,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthPercentageOrAuto;
-use webrender_api::LayoutTransform;
+use webrender_api::units::LayoutTransform;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
 /// is of type `BaseFlow` or some type that also implements this trait.
@@ -1020,13 +1019,13 @@ impl BaseFlow {
                         flags.insert(FlowFlags::IS_ABSOLUTELY_POSITIONED);
 
                         let logical_position = style.logical_position();
-                        if logical_position.inline_start == LengthPercentageOrAuto::Auto &&
-                            logical_position.inline_end == LengthPercentageOrAuto::Auto
+                        if logical_position.inline_start.is_auto() &&
+                            logical_position.inline_end.is_auto()
                         {
                             flags.insert(FlowFlags::INLINE_POSITION_IS_STATIC);
                         }
-                        if logical_position.block_start == LengthPercentageOrAuto::Auto &&
-                            logical_position.block_end == LengthPercentageOrAuto::Auto
+                        if logical_position.block_start.is_auto() &&
+                            logical_position.block_end.is_auto()
                         {
                             flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC);
                         }
@@ -1113,13 +1112,12 @@ impl BaseFlow {
                 let logical_position = style.logical_position();
                 self.flags.set(
                     FlowFlags::INLINE_POSITION_IS_STATIC,
-                    logical_position.inline_start == LengthPercentageOrAuto::Auto &&
-                        logical_position.inline_end == LengthPercentageOrAuto::Auto,
+                    logical_position.inline_start.is_auto() &&
+                        logical_position.inline_end.is_auto(),
                 );
                 self.flags.set(
                     FlowFlags::BLOCK_POSITION_IS_STATIC,
-                    logical_position.block_start == LengthPercentageOrAuto::Auto &&
-                        logical_position.block_end == LengthPercentageOrAuto::Auto,
+                    logical_position.block_start.is_auto() && logical_position.block_end.is_auto(),
                 );
             }
         }

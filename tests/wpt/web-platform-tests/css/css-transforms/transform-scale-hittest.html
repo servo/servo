@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-scale">
+<link rel="help" href="http://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface">
+<link rel="help" href="https://crbug.com/1015801">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#normal {
+  width: 100px;
+  height: 10px;
+  position: absolute;
+  top: 0px;
+}
+
+#scaled {
+  width: 1px;
+  height: 1px;
+  transform: scaleX(100) scaleY(100);
+  transform-origin: 0px 0px;
+  position: absolute;
+  top: 10px;
+  z-index: 1; /* Hit test #scaled before #normal */
+}
+</style>
+<div id=normal></div>
+<div id=scaled></div>
+<script>
+test(() => {
+  const result = document.elementFromPoint(50, 9);
+  assert_equals(result, document.getElementById('normal'));
+}, 'Hit test within unscaled box');
+
+test(() => {
+  const result = document.elementFromPoint(50, 9.1);
+  assert_equals(result, document.getElementById('scaled'));
+}, 'Hit test intersecting scaled box');
+</script>

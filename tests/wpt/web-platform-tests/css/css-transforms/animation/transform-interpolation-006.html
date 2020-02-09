@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>transform interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-property">
+<meta name="assert" content="transform supports animation as a transform list">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  transform: translate(30px);
+}
+.target {
+  color: white;
+  width: 100px;
+  height: 100px;
+  background-color: black;
+  display: inline-block;
+  overflow: hidden;
+  transform: translate(10px);
+}
+.expected {
+  background-color: green;
+}
+.parent {
+  transform: 30px;
+}
+.target > div {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  background: orange;
+  margin: 1px;
+}
+.test {
+  overflow: hidden;
+}
+</style>
+
+<body>
+  <template id="target-template">
+    <div></div>
+ </template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'transform',
+  from: neutralKeyframe,
+  to: 'translate(20px)',
+}, [
+  {at: -1, expect: 'translate(0px)'},
+  {at: 0, expect: 'translate(10px)'},
+  {at: 0.25, expect: 'translate(12.5px)'},
+  {at: 0.75, expect: 'translate(17.5px)'},
+  {at: 1, expect: 'translate(20px)'},
+  {at: 2, expect: 'translate(30px)'},
+]);
+
+test_interpolation({
+  property: 'transform',
+  from: 'initial',
+  to: 'translate(20px)',
+}, [
+  {at: -1, expect: 'translate(-20px)'},
+  {at: 0, expect: 'translate(0px)'},
+  {at: 0.25, expect: 'translate(5px)'},
+  {at: 0.75, expect: 'translate(15px)'},
+  {at: 1, expect: 'translate(20px)'},
+  {at: 2, expect: 'translate(40px)'},
+]);
+
+test_interpolation({
+  property: 'transform',
+  from: 'inherit',
+  to: 'translate(20px)',
+}, [
+  {at: -1, expect: 'translate(40px)'},
+  {at: 0, expect: 'translate(30px)'},
+  {at: 0.25, expect: 'translate(27.5px)'},
+  {at: 0.75, expect: 'translate(22.5px)'},
+  {at: 1, expect: 'translate(20px)'},
+  {at: 2, expect: 'translate(10px)'},
+]);
+
+test_interpolation({
+  property: 'transform',
+  from: 'unset',
+  to: 'translate(20px)',
+}, [
+  {at: -1, expect: 'translate(-20px)'},
+  {at: 0, expect: 'translate(0px)'},
+  {at: 0.25, expect: 'translate(5px)'},
+  {at: 0.75, expect: 'translate(15px)'},
+  {at: 1, expect: 'translate(20px)'},
+  {at: 2, expect: 'translate(40px)'},
+]);
+</script>

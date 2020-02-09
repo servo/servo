@@ -10,7 +10,6 @@
 //   that these modules won't have to depend on layout.
 
 use crossbeam_channel::{Receiver, Sender};
-use euclid::TypedSize2D;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -19,8 +18,9 @@ use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use servo_geometry::DeviceIndependentPixel;
+use script_traits::{
+    ConstellationControlMsg, LayoutControlMsg, WebrenderIpcSender, WindowSizeData,
+};
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -43,14 +43,12 @@ pub trait LayoutThreadFactory {
         font_cache_thread: FontCacheThread,
         time_profiler_chan: time::ProfilerChan,
         mem_profiler_chan: mem::ProfilerChan,
-        content_process_shutdown_chan: Option<IpcSender<()>>,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: WebrenderIpcSender,
         webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
-        initial_window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        window_size: WindowSizeData,
         dump_display_list: bool,
         dump_display_list_json: bool,
         dump_style_tree: bool,

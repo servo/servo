@@ -53,17 +53,24 @@ impl<I> ImageLayer<I> {
 pub enum GenericImage<Gradient, MozImageRect, ImageUrl> {
     /// A `<url()>` image.
     Url(ImageUrl),
+
     /// A `<gradient>` image.  Gradients are rather large, and not nearly as
     /// common as urls, so we box them here to keep the size of this enum sane.
     Gradient(Box<Gradient>),
+
     /// A `-moz-image-rect` image.  Also fairly large and rare.
+    // not cfg’ed out on non-Gecko to avoid `error[E0392]: parameter `MozImageRect` is never used`
+    // Instead we make MozImageRect an empty enum
     Rect(Box<MozImageRect>),
+
     /// A `-moz-element(# <element-id>)`
+    #[cfg(feature = "gecko")]
     #[css(function = "-moz-element")]
     Element(Atom),
+
     /// A paint worklet image.
     /// <https://drafts.css-houdini.org/css-paint-api/>
-    #[cfg(feature = "servo")]
+    #[cfg(feature = "servo-layout-2013")]
     PaintWorklet(PaintWorklet),
 }
 
@@ -73,9 +80,21 @@ pub use self::GenericImage as Image;
 /// <https://drafts.csswg.org/css-images/#gradients>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C)]
-pub struct GenericGradient<LineDirection, Length, LengthPercentage, Position, Color> {
+pub struct GenericGradient<
+    LineDirection,
+    LengthPercentage,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+    Color,
+> {
     /// Gradients can be linear or radial.
-    pub kind: GenericGradientKind<LineDirection, Length, LengthPercentage, Position>,
+    pub kind: GenericGradientKind<
+        LineDirection,
+        NonNegativeLength,
+        NonNegativeLengthPercentage,
+        Position,
+    >,
     /// The color stops and interpolation hints.
     pub items: crate::OwnedSlice<GenericGradientItem<Color, LengthPercentage>>,
     /// True if this is a repeating gradient.
@@ -101,11 +120,19 @@ pub enum GradientCompatMode {
 /// A gradient kind.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C, u8)]
-pub enum GenericGradientKind<LineDirection, Length, LengthPercentage, Position> {
+pub enum GenericGradientKind<
+    LineDirection,
+    NonNegativeLength,
+    NonNegativeLengthPercentage,
+    Position,
+> {
     /// A linear gradient.
     Linear(LineDirection),
     /// A radial gradient.
-    Radial(GenericEndingShape<Length, LengthPercentage>, Position),
+    Radial(
+        GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>,
+        Position,
+    ),
 }
 
 pub use self::GenericGradientKind as GradientKind;
@@ -115,11 +142,11 @@ pub use self::GenericGradientKind as GradientKind;
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericEndingShape<Length, LengthPercentage> {
+pub enum GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage> {
     /// A circular gradient.
-    Circle(GenericCircle<Length>),
+    Circle(GenericCircle<NonNegativeLength>),
     /// An elliptic gradient.
-    Ellipse(GenericEllipse<LengthPercentage>),
+    Ellipse(GenericEllipse<NonNegativeLengthPercentage>),
 }
 
 pub use self::GenericEndingShape as EndingShape;
@@ -127,9 +154,9 @@ pub use self::GenericEndingShape as EndingShape;
 /// A circle shape.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C, u8)]
-pub enum GenericCircle<Length> {
+pub enum GenericCircle<NonNegativeLength> {
     /// A circle radius.
-    Radius(Length),
+    Radius(NonNegativeLength),
     /// A circle extent.
     Extent(ShapeExtent),
 }
@@ -141,9 +168,9 @@ pub use self::GenericCircle as Circle;
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericEllipse<LengthPercentage> {
+pub enum GenericEllipse<NonNegativeLengthPercentage> {
     /// An ellipse pair of radii.
-    Radii(LengthPercentage, LengthPercentage),
+    Radii(NonNegativeLengthPercentage, NonNegativeLengthPercentage),
     /// An ellipse extent.
     Extent(ShapeExtent),
 }
@@ -303,8 +330,9 @@ where
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::Rect(ref rect) => rect.to_css(dest),
-            #[cfg(feature = "servo")]
+            #[cfg(feature = "servo-layout-2013")]
             Image::PaintWorklet(ref paint_worklet) => paint_worklet.to_css(dest),
+            #[cfg(feature = "gecko")]
             Image::Element(ref selector) => {
                 dest.write_str("-moz-element(#")?;
                 serialize_atom_identifier(selector, dest)?;
@@ -314,11 +342,12 @@ where
     }
 }
 
-impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
+impl<D, LP, NL, NLP, P, C> ToCss for Gradient<D, LP, NL, NLP, P, C>
 where
     D: LineDirection,
-    L: ToCss,
-    LoP: ToCss,
+    LP: ToCss,
+    NL: ToCss,
+    NLP: ToCss,
     P: ToCss,
     C: ToCss,
 {

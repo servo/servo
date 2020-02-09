@@ -35,7 +35,7 @@ test(function() {
 }, "Passing undefined to Headers constructor");
 
 test(function() {
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(null);
   });
 }, "Passing null to Headers constructor");
@@ -126,7 +126,7 @@ test(function() {
   this.add_cleanup(clearLog);
   var record = { a: "b", "\uFFFF": "d" };
   var proxy = new Proxy(record, loggingHandler);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(proxy);
   });
 
@@ -151,7 +151,7 @@ test(function() {
   this.add_cleanup(clearLog);
   var record = { a: "\uFFFF", c: "d" }
   var proxy = new Proxy(record, loggingHandler);
-  assert_throws(new TypeError, function() {
+  assert_throws_js(TypeError, function() {
     var h = new Headers(proxy);
   });
 
@@ -256,8 +256,8 @@ test(function() {
   var proxy = new Proxy(lyingProxy, loggingHandler);
 
   // Returning duplicate keys from ownKeys() throws a TypeError.
-  assert_throws(new TypeError(),
-                function() { var h = new Headers(proxy); });
+  assert_throws_js(TypeError,
+                   function() { var h = new Headers(proxy); });
 
   assert_equals(log.length, 2);
   // The first thing is the [[Get]] of Symbol.iterator to figure out whether
@@ -279,8 +279,8 @@ test(function() {
     },
     c: "d" };
   var proxy = new Proxy(record, loggingHandler);
-  assert_throws(new TypeError(),
-                function() { var h = new Headers(proxy); });
+  assert_throws_js(TypeError,
+                   function() { var h = new Headers(proxy); });
 
   assert_equals(log.length, 7);
   // The first thing is the [[Get]] of Symbol.iterator to figure out whether

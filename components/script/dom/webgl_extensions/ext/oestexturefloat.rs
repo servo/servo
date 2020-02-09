@@ -49,21 +49,15 @@ impl WebGLExtension for OESTextureFloat {
 
     fn enable(ext: &WebGLExtensions) {
         ext.enable_tex_type(webgl::FLOAT);
-        if !ext.supports_gl_extension("GL_OES_texture_float") {
-            ext.add_effective_tex_internal_format(webgl::RGBA, webgl::FLOAT, gl::RGBA32F);
-            ext.add_effective_tex_internal_format(webgl::RGB, webgl::FLOAT, gl::RGB32F);
-            ext.add_effective_tex_internal_format(
-                webgl::LUMINANCE,
-                webgl::FLOAT,
-                gl::LUMINANCE32F_ARB,
-            );
-            ext.add_effective_tex_internal_format(webgl::ALPHA, webgl::FLOAT, gl::ALPHA32F_ARB);
-            ext.add_effective_tex_internal_format(
-                webgl::LUMINANCE_ALPHA,
-                webgl::FLOAT,
-                gl::LUMINANCE_ALPHA32F_ARB,
-            );
-        }
+        ext.add_effective_tex_internal_format(webgl::RGBA, webgl::FLOAT, gl::RGBA32F);
+        ext.add_effective_tex_internal_format(webgl::RGB, webgl::FLOAT, gl::RGB32F);
+        ext.add_effective_tex_internal_format(webgl::LUMINANCE, webgl::FLOAT, gl::LUMINANCE32F_ARB);
+        ext.add_effective_tex_internal_format(webgl::ALPHA, webgl::FLOAT, gl::ALPHA32F_ARB);
+        ext.add_effective_tex_internal_format(
+            webgl::LUMINANCE_ALPHA,
+            webgl::FLOAT,
+            gl::LUMINANCE_ALPHA32F_ARB,
+        );
     }
 
     fn name() -> &'static str {

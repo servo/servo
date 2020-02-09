@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlquoteelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLQuoteElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //          attribute DOMString cite;
 };

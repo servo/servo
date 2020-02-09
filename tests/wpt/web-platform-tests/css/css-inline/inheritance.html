@@ -18,11 +18,13 @@
 <script>
 assert_not_inherited('alignment-baseline', 'baseline', 'central');
 assert_not_inherited('baseline-shift', '0px', '10px');
-assert_inherited('dominant-baseline', 'normal', 'central');
+assert_inherited('dominant-baseline', 'auto', 'central');
 assert_not_inherited('initial-letters', 'normal', '2 3');
 assert_inherited('initial-letters-align', 'alphabetic', 'hanging');
 assert_inherited('initial-letters-wrap', 'none', 'grid');
 assert_not_inherited('initial-sizing', 'normal', 'stretch');
+// https://www.w3.org/TR/CSS2/visudet.html#propdef-line-height
+assert_inherited('line-height', 'normal', '20px');
 assert_not_inherited('vertical-align', 'baseline', '10px');
 </script>
 </body>

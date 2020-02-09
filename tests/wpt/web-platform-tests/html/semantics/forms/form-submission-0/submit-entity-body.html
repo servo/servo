@@ -96,7 +96,7 @@ function run_simple_test() {
   var testframe = document.getElementById("testframe");
   var testdocument = testframe.contentWindow.document;
   testdocument.body.innerHTML =
-    "<form id=testform method=post action=\"form-submission.py\" enctype=\"" + test_obj.enctype + "\">" +
+    "<form id=testform method=post action=\"/html/semantics/forms/form-submission-0/resources/form-submission.py?query=1\" enctype=\"" + test_obj.enctype + "\">" +
     test_obj.input +
     test_obj.submitelement +
     "</form>";

@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlframesetelement
-[HTMLConstructor]
+[Exposed=Window]
 interface HTMLFrameSetElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // [CEReactions]
   //         attribute DOMString cols;
   // [CEReactions]
   //         attribute DOMString rows;
 };
 
-HTMLFrameSetElement implements WindowEventHandlers;
+HTMLFrameSetElement includes WindowEventHandlers;

@@ -22,7 +22,7 @@ use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::ServoArc;
 use app_units::Au;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::StackingContextId;
@@ -61,11 +61,11 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{LengthPercentage, LengthPercentageOrAuto, Size, VerticalAlign};
+use style::values::computed::{Size, VerticalAlign};
 use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
-use style::Zero;
-use webrender_api::{self, LayoutTransform};
+use webrender_api;
+use webrender_api::units::LayoutTransform;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1328,13 +1328,17 @@ impl Fragment {
                 return;
             },
             _ => {
-                let margin = self.style().logical_margin();
-                self.margin.inline_start =
-                    MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
-                        .specified_or_zero();
-                self.margin.inline_end =
-                    MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
-                        .specified_or_zero();
+                let (inline_start, inline_end) = {
+                    let margin = self.style().logical_margin();
+                    (
+                        MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
+                            .specified_or_zero(),
+                        MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
+                            .specified_or_zero(),
+                    )
+                };
+                self.margin.inline_start = inline_start;
+                self.margin.inline_end = inline_end;
             },
         }
 
@@ -1383,13 +1387,17 @@ impl Fragment {
             _ => {
                 // NB: Percentages are relative to containing block inline-size (not block-size)
                 // per CSS 2.1.
-                let margin = self.style().logical_margin();
-                self.margin.block_start =
-                    MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
-                        .specified_or_zero();
-                self.margin.block_end =
-                    MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
-                        .specified_or_zero();
+                let (block_start, block_end) = {
+                    let margin = self.style().logical_margin();
+                    (
+                        MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
+                            .specified_or_zero(),
+                        MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
+                            .specified_or_zero(),
+                    )
+                };
+                self.margin.block_start = block_start;
+                self.margin.block_end = block_end;
             },
         }
     }
@@ -1457,14 +1465,14 @@ impl Fragment {
     pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>) -> LogicalSize<Au> {
             let offsets = style.logical_position();
-            let offset_i = if offsets.inline_start != LengthPercentageOrAuto::Auto {
+            let offset_i = if !offsets.inline_start.is_auto() {
                 MaybeAuto::from_style(offsets.inline_start, container_size.inline)
                     .specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.inline_end, container_size.inline)
                     .specified_or_zero()
             };
-            let offset_b = if offsets.block_start != LengthPercentageOrAuto::Auto {
+            let offset_b = if !offsets.block_start.is_auto() {
                 MaybeAuto::from_style(offsets.block_start, container_size.block).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.block_end, container_size.block).specified_or_zero()
@@ -2519,13 +2527,19 @@ impl Fragment {
                         {
                             continue;
                         }
-                        if inline_context_node.style.logical_margin().inline_end !=
-                            LengthPercentageOrAuto::zero()
+                        if !inline_context_node
+                            .style
+                            .logical_margin()
+                            .inline_end
+                            .is_definitely_zero()
                         {
                             return false;
                         }
-                        if inline_context_node.style.logical_padding().inline_end !=
-                            LengthPercentage::zero()
+                        if !inline_context_node
+                            .style
+                            .logical_padding()
+                            .inline_end
+                            .is_definitely_zero()
                         {
                             return false;
                         }
@@ -2545,13 +2559,19 @@ impl Fragment {
                         {
                             continue;
                         }
-                        if inline_context_node.style.logical_margin().inline_start !=
-                            LengthPercentageOrAuto::zero()
+                        if !inline_context_node
+                            .style
+                            .logical_margin()
+                            .inline_start
+                            .is_definitely_zero()
                         {
                             return false;
                         }
-                        if inline_context_node.style.logical_padding().inline_start !=
-                            LengthPercentage::zero()
+                        if !inline_context_node
+                            .style
+                            .logical_padding()
+                            .inline_start
+                            .is_definitely_zero()
                         {
                             return false;
                         }
@@ -2670,8 +2690,12 @@ impl Fragment {
         // this.
         let relative_position = self.relative_position(relative_containing_block_size);
         border_box
-            .translate_by_size(&relative_position.to_physical(self.style.writing_mode))
-            .translate(&stacking_relative_flow_origin)
+            .translate(
+                relative_position
+                    .to_physical(self.style.writing_mode)
+                    .to_vector(),
+            )
+            .translate(*stacking_relative_flow_origin)
     }
 
     /// Given the stacking-context-relative border box, returns the stacking-context-relative
@@ -2788,8 +2812,11 @@ impl Fragment {
         // FIXME(pcwalton): I'm not a fan of the way this makes us crawl though so many styles all
         // the time. Can't we handle relative positioning by just adjusting `border_box`?
         let relative_position = self.relative_position(relative_containing_block_size);
-        border_box =
-            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
+        border_box = border_box.translate(
+            relative_position
+                .to_physical(self.style.writing_mode)
+                .to_vector(),
+        );
         let mut overflow = Overflow::from_rect(&border_box);
 
         // Box shadows cause us to draw outside our border box.
@@ -2802,7 +2829,7 @@ impl Fragment {
                 Au::from(box_shadow.base.blur) * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow
                 .paint
-                .union(&border_box.translate(&offset).inflate(inflation, inflation))
+                .union(&border_box.translate(offset).inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
@@ -3171,7 +3198,11 @@ impl Fragment {
             -transform_origin_z,
         );
 
-        Some(pre_transform.pre_mul(&transform).pre_mul(&post_transform))
+        Some(
+            pre_transform
+                .pre_transform(&transform)
+                .pre_transform(&post_transform),
+        )
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -3181,7 +3212,7 @@ impl Fragment {
     ) -> Option<LayoutTransform> {
         match self.style().get_box().perspective {
             Perspective::Length(length) => {
-                let perspective_origin = self.style().get_box().perspective_origin;
+                let perspective_origin = &self.style().get_box().perspective_origin;
                 let perspective_origin = Point2D::new(
                     perspective_origin
                         .horizontal
@@ -3209,8 +3240,8 @@ impl Fragment {
 
                 Some(
                     pre_transform
-                        .pre_mul(&perspective_matrix)
-                        .pre_mul(&post_transform),
+                        .pre_transform(&perspective_matrix)
+                        .pre_transform(&post_transform),
                 )
             },
             Perspective::None => None,
@@ -3377,8 +3408,8 @@ impl Overflow {
     }
 
     pub fn translate(&mut self, by: &Vector2D<Au>) {
-        self.scroll = self.scroll.translate(by);
-        self.paint = self.paint.translate(by);
+        self.scroll = self.scroll.translate(*by);
+        self.paint = self.paint.translate(*by);
     }
 }
 

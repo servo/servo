@@ -4,15 +4,15 @@
 
 // https://w3c.github.io/ServiceWorker/#extendablemessage-event-section
 
-[Constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict),
- Exposed=ServiceWorker,
+[Exposed=ServiceWorker,
  Pref="dom.serviceworker.enabled"]
 interface ExtendableMessageEvent : ExtendableEvent {
+  [Throws] constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict = {});
   readonly attribute any data;
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
   // [SameObject] readonly attribute (Client or ServiceWorker /*or MessagePort*/)? source;
-  // readonly attribute FrozenArray<MessagePort>? ports;
+  readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };
 
 dictionary ExtendableMessageEventInit : ExtendableEventInit {

@@ -18,7 +18,7 @@ use crate::layout_debug;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
 use std::cmp::max;
@@ -403,11 +403,6 @@ impl Flow for TableRowFlow {
                 let child_row_span;
                 {
                     let child_table_cell = kid.as_mut_table_cell();
-                    child_specified_inline_size = child_table_cell
-                        .block_flow
-                        .fragment
-                        .style
-                        .content_inline_size();
                     child_column_span = child_table_cell.column_span;
                     child_row_span = child_table_cell.row_span;
 
@@ -422,6 +417,13 @@ impl Flow for TableRowFlow {
                             &mut self.preliminary_collapsed_borders,
                         )
                     }
+
+                    child_specified_inline_size = child_table_cell
+                        .block_flow
+                        .fragment
+                        .style
+                        .content_inline_size()
+                        .clone();
                 }
 
                 // Collect minimum and preferred inline-sizes of the cell for automatic table layout

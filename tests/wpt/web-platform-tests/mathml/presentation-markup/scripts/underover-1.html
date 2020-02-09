@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Underscripts and Overscripts parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mundermover">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <meta name="assert" content="Elements munder, mover, munderover correctly .">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace, mo {
     font-size: 10px;
@@ -29,6 +30,8 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       for (var i = 0; i <= 3; i++) {
         assert_approx_equals(getBox("under" + i + "base").middle, getBox("baseline").bottom, e, "munder " + i + ": base is placed on the baseline");
@@ -40,6 +43,8 @@
     }, "Alignment of the base on the baseline");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       for (var i = 0; i <= 3; i++) {
         assert_approx_equals(getBox("under" + i + "under").center, getBox("under" + i + "base").center, e, "munder " + i + ": base and script are horizontally centered");
@@ -52,6 +57,8 @@
     }, "Horizontal alignments of base and scripts");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       for (var i = 0; i <= 3; i++) {
         assert_greater_than_equal(getBox("under" + i + "under").top, getBox("under" + i + "base").bottom, "munder " + i + ": script is under base");
         assert_less_than_equal(getBox("over" + i + "over").bottom, getBox("over" + i + "base").top, "mover " + i + ": script is over base");
@@ -63,6 +70,8 @@
     }, "Relative vertical positions of base and scripts");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
       for (var i = 0; i <= 3; i++) {
         assert_approx_equals(getBox("under" + i).width, Math.max(getBox("under" + i + "base").width, getBox("under" + i + "under").width), e, "munder " + i + ": width is determined by the maximum of width of base and script");
@@ -74,6 +83,8 @@
     }, "Width of scripted elements");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 3.2;
       for (var i = 0; i <= 3; i++) {
         assert_approx_equals(getBox("under" + i).height, getBox("under" + i + "base").height + getBox("under" + i + "under").height + e, e, "munder " + i + ": height is determined by the sum of heights of base and script plus some spacing.");

@@ -6,6 +6,9 @@ These are the workers (`Worker`, `SharedWorker`) tests for the
 See also
 [testharness.js API > Web Workers](https://web-platform-tests.org/writing-tests/testharness-api.html#web-workers).
 
+Note that because workers are defined in the HTML Standard, the idlharness.js
+tests are in [/html/dom]([/html/dom) instead of here.
+
 ## Writing `*.any.js`
 
 The easiest and most recommended way to write tests for workers

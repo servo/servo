@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(feature = "unstable", feature(core_intrinsics))]
-#![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
+#![feature(core_intrinsics)]
 #![feature(drain_filter)]
 #![feature(inner_deref)]
 #![feature(plugin)]
-#![feature(type_alias_enum_variants)]
+#![feature(register_tool)]
 #![deny(unsafe_code)]
-#![allow(non_snake_case)]
 #![doc = "The script crate contains all matters DOM."]
-#![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
+#![allow(deprecated)] // FIXME: Can we make `allow` only apply to the `plugin` crate attribute?
+#![plugin(script_plugins)]
+#![register_tool(unrooted_must_root_lint)]
 
 #[macro_use]
 extern crate bitflags;
@@ -48,36 +48,73 @@ extern crate servo_atoms;
 #[macro_use]
 extern crate style;
 
+#[warn(deprecated)]
 #[macro_use]
 mod task;
+#[warn(deprecated)]
 mod body;
+#[warn(deprecated)]
 pub mod clipboard_provider;
+#[warn(deprecated)]
 mod devtools;
+#[warn(deprecated)]
 pub mod document_loader;
+#[warn(deprecated)]
 #[macro_use]
 mod dom;
-mod compartments;
+#[warn(deprecated)]
+mod canvas_state;
+mod euclidext;
+#[warn(deprecated)]
 pub mod fetch;
+#[warn(deprecated)]
 mod image_listener;
+#[warn(deprecated)]
+mod init;
+#[warn(deprecated)]
 mod layout_image;
+#[warn(deprecated)]
 mod mem;
+#[warn(deprecated)]
 mod microtask;
+#[warn(deprecated)]
 mod network_listener;
+#[warn(deprecated)]
+mod realms;
+#[warn(deprecated)]
+mod script_module;
+#[warn(deprecated)]
 pub mod script_runtime;
+#[warn(deprecated)]
 #[allow(unsafe_code)]
 pub mod script_thread;
+#[warn(deprecated)]
 mod serviceworker_manager;
+#[warn(deprecated)]
 mod serviceworkerjob;
+#[warn(deprecated)]
 mod stylesheet_loader;
+#[warn(deprecated)]
 mod stylesheet_set;
+#[warn(deprecated)]
 mod task_manager;
+#[warn(deprecated)]
 mod task_queue;
+#[warn(deprecated)]
 mod task_source;
+#[warn(deprecated)]
 pub mod test;
+#[warn(deprecated)]
 pub mod textinput;
+#[warn(deprecated)]
 mod timers;
+#[warn(deprecated)]
 mod unpremultiplytable;
+#[warn(deprecated)]
 mod webdriver_handlers;
+
+pub use init::{init, init_service_workers};
+pub use script_runtime::JSEngineSetup;
 
 /// A module with everything layout can use from script.
 ///
@@ -97,68 +134,4 @@ pub mod layout_exports {
     pub use crate::dom::node::{LayoutNodeHelpers, Node};
     pub use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
     pub use crate::dom::text::Text;
-}
-
-use crate::dom::bindings::codegen::RegisterBindings;
-use crate::dom::bindings::proxyhandler;
-use crate::serviceworker_manager::ServiceWorkerManager;
-use script_traits::SWManagerSenders;
-
-#[cfg(target_os = "linux")]
-#[allow(unsafe_code)]
-fn perform_platform_specific_initialization() {
-    use std::mem;
-    // 4096 is default max on many linux systems
-    const MAX_FILE_LIMIT: libc::rlim_t = 4096;
-
-    // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
-    // of iframes.
-    unsafe {
-        let mut rlim: libc::rlimit = mem::uninitialized();
-        match libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
-            0 => {
-                if rlim.rlim_cur >= MAX_FILE_LIMIT {
-                    // we have more than enough
-                    return;
-                }
-
-                rlim.rlim_cur = match rlim.rlim_max {
-                    libc::RLIM_INFINITY => MAX_FILE_LIMIT,
-                    _ => {
-                        if rlim.rlim_max < MAX_FILE_LIMIT {
-                            rlim.rlim_max
-                        } else {
-                            MAX_FILE_LIMIT
-                        }
-                    },
-                };
-                match libc::setrlimit(libc::RLIMIT_NOFILE, &rlim) {
-                    0 => (),
-                    _ => warn!("Failed to set file count limit"),
-                };
-            },
-            _ => warn!("Failed to get file count limit"),
-        };
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn perform_platform_specific_initialization() {}
-
-pub fn init_service_workers(sw_senders: SWManagerSenders) {
-    // Spawn the service worker manager passing the constellation sender
-    ServiceWorkerManager::spawn_manager(sw_senders);
-}
-
-#[allow(unsafe_code)]
-pub fn init() {
-    unsafe {
-        proxyhandler::init();
-
-        // Create the global vtables used by the (generated) DOM
-        // bindings to implement JS proxies.
-        RegisterBindings::RegisterProxyHandlers();
-    }
-
-    perform_platform_specific_initialization();
 }

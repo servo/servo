@@ -5,13 +5,18 @@
 // https://html.spec.whatwg.org/multipage/#workernavigator
 [Exposed=Worker]
 interface WorkerNavigator {};
-WorkerNavigator implements NavigatorID;
-WorkerNavigator implements NavigatorLanguage;
-//WorkerNavigator implements NavigatorOnLine;
+WorkerNavigator includes NavigatorID;
+WorkerNavigator includes NavigatorLanguage;
+//WorkerNavigator includes NavigatorOnLine;
 
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 
 [Exposed=(Worker)]
 partial interface WorkerNavigator {
   [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
+};
+
+[Exposed=DedicatedWorker]
+partial interface WorkerNavigator {
+    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
 };

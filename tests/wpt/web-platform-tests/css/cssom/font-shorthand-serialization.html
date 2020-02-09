@@ -10,8 +10,8 @@
 <script>
     test(function() {
         var target = document.getElementById('target');
-        assert_equals(target.style.cssText, 'font: 10px/1 Ahem;');
-        assert_equals(target.style.font, '10px/1 Ahem');
+        assert_equals(target.style.cssText, 'font: 10px / 1 Ahem;');
+        assert_equals(target.style.font, '10px / 1 Ahem');
     }, "The font shorthand should be serialized just like any other shorthand.");
 </script>
 </html>

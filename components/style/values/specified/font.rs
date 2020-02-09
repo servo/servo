@@ -11,16 +11,15 @@ use crate::properties::longhands::system_font::SystemFont;
 use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
-use crate::values::computed::{Context, ToComputedValue};
+use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
+use crate::values::generics::font::VariationValue;
 use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
-use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, Percentage};
 use crate::values::CustomIdent;
 use crate::Atom;
-use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -229,7 +228,7 @@ impl Parse for SpecifiedFontStyle {
                     .unwrap_or_else(|_| Self::default_angle());
 
                 generics::FontStyle::Oblique(angle)
-            }
+            },
         })
     }
 }
@@ -481,6 +480,115 @@ impl ToComputedValue for FontStretch {
     }
 }
 
+/// CSS font keywords
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToCss,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum KeywordSize {
+    #[css(keyword = "xx-small")]
+    XXSmall,
+    XSmall,
+    Small,
+    Medium,
+    Large,
+    XLarge,
+    #[css(keyword = "xx-large")]
+    XXLarge,
+    #[css(keyword = "xxx-large")]
+    XXXLarge,
+}
+
+impl KeywordSize {
+    /// Convert to an HTML <font size> value
+    #[inline]
+    pub fn html_size(self) -> u8 {
+        self as u8
+    }
+}
+
+impl Default for KeywordSize {
+    fn default() -> Self {
+        KeywordSize::Medium
+    }
+}
+
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToCss,
+    ToShmem,
+)]
+/// Additional information for keyword-derived font sizes.
+pub struct KeywordInfo {
+    /// The keyword used
+    pub kw: KeywordSize,
+    /// A factor to be multiplied by the computed size of the keyword
+    #[css(skip)]
+    pub factor: f32,
+    /// An additional fixed offset to add to the kw * factor in the case of
+    /// `calc()`.
+    #[css(skip)]
+    pub offset: CSSPixelLength,
+}
+
+impl KeywordInfo {
+    /// KeywordInfo value for font-size: medium
+    pub fn medium() -> Self {
+        Self::new(KeywordSize::Medium)
+    }
+
+    fn new(kw: KeywordSize) -> Self {
+        KeywordInfo {
+            kw,
+            factor: 1.,
+            offset: CSSPixelLength::new(0.),
+        }
+    }
+
+    /// Computes the final size for this font-size keyword, accounting for
+    /// text-zoom.
+    fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
+        let base = context.maybe_zoom_text(self.kw.to_computed_value(context).0);
+        base * self.factor + context.maybe_zoom_text(self.offset)
+    }
+
+    /// Given a parent keyword info (self), apply an additional factor/offset to
+    /// it.
+    pub fn compose(self, factor: f32, offset: CSSPixelLength) -> Self {
+        KeywordInfo {
+            kw: self.kw,
+            factor: self.factor * factor,
+            offset: self.offset * factor + offset,
+        }
+    }
+}
+
+impl SpecifiedValueInfo for KeywordInfo {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        <KeywordSize as SpecifiedValueInfo>::collect_completion_keywords(f);
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// A specified font-size value
 pub enum FontSize {
@@ -652,27 +760,6 @@ impl ToComputedValue for FontSizeAdjust {
     }
 }
 
-/// Additional information for specified keyword-derived font sizes.
-pub type KeywordInfo = generics::KeywordInfo<NonNegativeLength>;
-
-impl KeywordInfo {
-    /// Computes the final size for this font-size keyword, accounting for
-    /// text-zoom.
-    pub fn to_computed_value(&self, context: &Context) -> NonNegativeLength {
-        let base = context.maybe_zoom_text(self.kw.to_computed_value(context));
-        base.scale_by(self.factor) + context.maybe_zoom_text(self.offset)
-    }
-
-    /// Given a parent keyword info (self), apply an additional factor/offset to it
-    pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
-        KeywordInfo {
-            kw: self.kw,
-            factor: self.factor * factor,
-            offset: self.offset.scale_by(factor) + offset,
-        }
-    }
-}
-
 /// This is the ratio applied for font-size: larger
 /// and smaller by both Firefox and Chrome
 const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
@@ -685,18 +772,18 @@ impl ToComputedValue for KeywordSize {
     type ComputedValue = NonNegativeLength;
     #[inline]
     fn to_computed_value(&self, _: &Context) -> NonNegativeLength {
+        let medium = Length::new(FONT_MEDIUM_PX as f32);
         // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-        match *self {
-            KeywordSize::XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
-            KeywordSize::XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-            KeywordSize::Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-            KeywordSize::Medium => Au::from_px(FONT_MEDIUM_PX),
-            KeywordSize::Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-            KeywordSize::XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-            KeywordSize::XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
-            KeywordSize::XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-        }
-        .into()
+        NonNegative(match *self {
+            KeywordSize::XXSmall => medium * 3.0 / 5.0,
+            KeywordSize::XSmall => medium * 3.0 / 4.0,
+            KeywordSize::Small => medium * 8.0 / 9.0,
+            KeywordSize::Medium => medium,
+            KeywordSize::Large => medium * 6.0 / 5.0,
+            KeywordSize::XLarge => medium * 3.0 / 2.0,
+            KeywordSize::XXLarge => medium * 2.0,
+            KeywordSize::XXXLarge => medium * 3.0,
+        })
     }
 
     #[inline]
@@ -711,7 +798,6 @@ impl ToComputedValue for KeywordSize {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
         use crate::context::QuirksMode;
-        use crate::values::specified::length::au_to_int_px;
 
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
@@ -762,22 +848,21 @@ impl ToComputedValue for KeywordSize {
             Atom::with(gecko_font.mLanguage.mRawPtr, |atom| {
                 cx.font_metrics_provider
                     .get_size(atom, gecko_font.mGenericID)
-                    .0
             })
         };
 
-        let base_size_px = au_to_int_px(base_size as f32);
+        let base_size_px = base_size.px().round() as i32;
         let html_size = self.html_size() as usize;
-        if base_size_px >= 9 && base_size_px <= 16 {
+        NonNegative(if base_size_px >= 9 && base_size_px <= 16 {
             let mapping = if cx.quirks_mode == QuirksMode::Quirks {
                 QUIRKS_FONT_SIZE_MAPPING
             } else {
                 FONT_SIZE_MAPPING
             };
-            Au::from_px(mapping[(base_size_px - 9) as usize][html_size]).into()
+            Length::new(mapping[(base_size_px - 9) as usize][html_size] as f32)
         } else {
-            Au(FONT_SIZE_FACTORS[html_size] * base_size / 100).into()
-        }
+            base_size * FONT_SIZE_FACTORS[html_size] as f32 / 100.0
+        })
     }
 
     #[inline]
@@ -789,20 +874,17 @@ impl ToComputedValue for KeywordSize {
 impl FontSize {
     /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
     pub fn from_html_size(size: u8) -> Self {
-        FontSize::Keyword(
-            match size {
-                // If value is less than 1, let it be 1.
-                0 | 1 => KeywordSize::XSmall,
-                2 => KeywordSize::Small,
-                3 => KeywordSize::Medium,
-                4 => KeywordSize::Large,
-                5 => KeywordSize::XLarge,
-                6 => KeywordSize::XXLarge,
-                // If value is greater than 7, let it be 7.
-                _ => KeywordSize::XXXLarge,
-            }
-            .into(),
-        )
+        FontSize::Keyword(KeywordInfo::new(match size {
+            // If value is less than 1, let it be 1.
+            0 | 1 => KeywordSize::XSmall,
+            2 => KeywordSize::Small,
+            3 => KeywordSize::Medium,
+            4 => KeywordSize::Large,
+            5 => KeywordSize::XLarge,
+            6 => KeywordSize::XXLarge,
+            // If value is greater than 7, let it be 7.
+            _ => KeywordSize::XXXLarge,
+        }))
     }
 
     /// Compute it against a given base font size
@@ -819,7 +901,7 @@ impl FontSize {
                 .get_parent_font()
                 .clone_font_size()
                 .keyword_info
-                .map(|i| i.compose(factor, Au(0).into()))
+                .map(|i| i.compose(factor, CSSPixelLength::new(0.)))
         };
         let mut info = None;
         let size = match *self {
@@ -829,22 +911,20 @@ impl FontSize {
                     // Tack the em unit onto the factor
                     info = compose_keyword(em);
                 }
-                value.to_computed_value(context, base_size).into()
+                value.to_computed_value(context, base_size)
             },
             FontSize::Length(LengthPercentage::Length(NoCalcLength::ServoCharacterWidth(
                 value,
-            ))) => value.to_computed_value(base_size.resolve(context)).into(),
+            ))) => value.to_computed_value(base_size.resolve(context)),
             FontSize::Length(LengthPercentage::Length(NoCalcLength::Absolute(ref l))) => {
-                context.maybe_zoom_text(l.to_computed_value(context).into())
+                context.maybe_zoom_text(l.to_computed_value(context))
             },
-            FontSize::Length(LengthPercentage::Length(ref l)) => {
-                l.to_computed_value(context).into()
-            },
+            FontSize::Length(LengthPercentage::Length(ref l)) => l.to_computed_value(context),
             FontSize::Length(LengthPercentage::Percentage(pc)) => {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
-                base_size.resolve(context).scale_by(pc.0).into()
+                base_size.resolve(context) * pc.0
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let parent = context.style().get_parent_font().clone_font_size();
@@ -871,29 +951,32 @@ impl FontSize {
                             context,
                             FontBaseSize::InheritedStyleButStripEmUnits,
                         )
-                        .length_component();
+                        .unclamped_length();
 
-                    info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
+                    info = parent.keyword_info.map(|i| i.compose(ratio, abs));
                 }
                 let calc = calc.to_computed_value_zoomed(context, base_size);
-                calc.to_used_value(base_size.resolve(context)).into()
+                // FIXME(emilio): we _could_ use clamp_to_non_negative()
+                // everywhere, without affecting behavior in theory, since the
+                // others should reject negatives during parsing. But SMIL
+                // allows parsing negatives, and relies on us _not_ doing that
+                // clamping. That's so bonkers :(
+                calc.percentage_relative_to(base_size.resolve(context))
+                    .clamp_to_non_negative()
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
                 info = Some(i);
-                i.to_computed_value(context)
+                i.to_computed_value(context).clamp_to_non_negative()
             },
             FontSize::Smaller => {
                 info = compose_keyword(1. / LARGER_FONT_SIZE_RATIO);
                 FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
                     .to_computed_value(context, base_size)
-                    .into()
             },
             FontSize::Larger => {
                 info = compose_keyword(LARGER_FONT_SIZE_RATIO);
-                FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO)
-                    .to_computed_value(context, base_size)
-                    .into()
+                FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO).to_computed_value(context, base_size)
             },
 
             FontSize::System(_) => {
@@ -903,12 +986,18 @@ impl FontSize {
                 }
                 #[cfg(feature = "gecko")]
                 {
-                    context.cached_system_font.as_ref().unwrap().font_size.size
+                    context
+                        .cached_system_font
+                        .as_ref()
+                        .unwrap()
+                        .font_size
+                        .size
+                        .0
                 }
             },
         };
         computed::FontSize {
-            size: size,
+            size: NonNegative(size),
             keyword_info: info,
         }
     }
@@ -952,7 +1041,7 @@ impl FontSize {
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {
-            return Ok(FontSize::Keyword(kw.into()));
+            return Ok(FontSize::Keyword(KeywordInfo::new(kw)));
         }
 
         try_match_ident_ignore_ascii_case! { input,
@@ -998,6 +1087,7 @@ bitflags! {
 #[derive(
     Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
 )]
+#[repr(C, u8)]
 /// Set of variant alternates
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
@@ -1005,10 +1095,10 @@ pub enum VariantAlternates {
     Stylistic(CustomIdent),
     /// Enables display with stylistic sets
     #[css(comma, function)]
-    Styleset(#[css(iterable)] Box<[CustomIdent]>),
+    Styleset(#[css(iterable)] crate::OwnedSlice<CustomIdent>),
     /// Enables display of specific character variants
     #[css(comma, function)]
-    CharacterVariant(#[css(iterable)] Box<[CustomIdent]>),
+    CharacterVariant(#[css(iterable)] crate::OwnedSlice<CustomIdent>),
     /// Enables display of swash glyphs
     #[css(function)]
     Swash(CustomIdent),
@@ -1023,11 +1113,20 @@ pub enum VariantAlternates {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
+#[repr(transparent)]
 /// List of Variant Alternates
 pub struct VariantAlternatesList(
-    #[css(if_empty = "normal", iterable)] pub Box<[VariantAlternates]>,
+    #[css(if_empty = "normal", iterable)] crate::OwnedSlice<VariantAlternates>,
 );
 
 impl VariantAlternatesList {
@@ -1059,7 +1158,7 @@ impl FontVariantAlternates {
     #[inline]
     /// Get initial specified value with VariantAlternatesList
     pub fn get_initial_specified_value() -> Self {
-        FontVariantAlternates::Value(VariantAlternatesList(vec![].into_boxed_slice()))
+        FontVariantAlternates::Value(Default::default())
     }
 
     system_font_methods!(FontVariantAlternates, font_variant_alternates);
@@ -1093,16 +1192,14 @@ impl Parse for FontVariantAlternates {
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontVariantAlternates, ParseError<'i>> {
-        let mut alternates = Vec::new();
         if input
             .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantAlternates::Value(VariantAlternatesList(
-                alternates.into_boxed_slice(),
-            )));
+            return Ok(FontVariantAlternates::Value(Default::default()));
         }
 
+        let mut alternates = Vec::new();
         let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
         macro_rules! check_if_parsed(
             ($input:expr, $flag:path) => (
@@ -1112,15 +1209,15 @@ impl Parse for FontVariantAlternates {
                 parsed_alternates |= $flag;
             )
         );
-        while let Ok(_) = input.try(|input| {
-            // FIXME: remove clone() when lifetimes are non-lexical
-            match input.next()?.clone() {
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
-                    check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
-                    alternates.push(VariantAlternates::HistoricalForms);
-                    Ok(())
-                },
-                Token::Function(ref name) => input.parse_nested_block(|i| {
+        while let Ok(_) = input.try(|input| match *input.next()? {
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
+                check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
+                alternates.push(VariantAlternates::HistoricalForms);
+                Ok(())
+            },
+            Token::Function(ref name) => {
+                let name = name.clone();
+                input.parse_nested_block(|i| {
                     match_ignore_ascii_case! { &name,
                         "swash" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
@@ -1156,7 +1253,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into_boxed_slice()));
+                            alternates.push(VariantAlternates::Styleset(idents.into()));
                             Ok(())
                         },
                         "character-variant" => {
@@ -1165,21 +1262,21 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into_boxed_slice()));
+                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
                             Ok(())
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                     }
-                }),
-                _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            }
+                })
+            },
+            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }) {}
 
         if parsed_alternates.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(FontVariantAlternates::Value(VariantAlternatesList(
-            alternates.into_boxed_slice(),
+            alternates.into(),
         )))
     }
 }

@@ -8,12 +8,14 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
@@ -22,9 +24,11 @@ use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, QualName};
 use std::cell::Cell;
+use std::convert::TryInto;
 use style::element_state::ElementState;
 use style::str::{split_html_space_chars, str_join};
 
@@ -72,6 +76,38 @@ impl HTMLOptionElement {
         )
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-option
+    #[allow(non_snake_case)]
+    pub fn Option(
+        window: &Window,
+        text: DOMString,
+        value: Option<DOMString>,
+        default_selected: bool,
+        selected: bool,
+    ) -> Fallible<DomRoot<HTMLOptionElement>> {
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("option")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+        );
+
+        let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
+
+        if !text.is_empty() {
+            option.upcast::<Node>().SetTextContent(Some(text))
+        }
+
+        if let Some(val) = value {
+            option.SetValue(val)
+        }
+
+        option.SetDefaultSelected(default_selected);
+        option.set_selectedness(selected);
+        Ok(option)
+    }
+
     pub fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
     }
@@ -91,6 +127,41 @@ impl HTMLOptionElement {
                 select.pick_option(self);
             }
             select.ask_for_reset();
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-option-index
+    fn index(&self) -> i32 {
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
+            if let Some(select_parent) = parent.downcast::<HTMLSelectElement>() {
+                // return index in parent select's list of options
+                return self.index_in_select(select_parent);
+            } else if parent.is::<HTMLOptGroupElement>() {
+                if let Some(grandparent) = parent.GetParentNode() {
+                    if let Some(select_grandparent) = grandparent.downcast::<HTMLSelectElement>() {
+                        // return index in grandparent select's list of options
+                        return self.index_in_select(select_grandparent);
+                    }
+                }
+            }
+        }
+        // "If the option element is not in a list of options,
+        // then the option element's index is zero."
+        // self is neither a child of a select, nor a grandchild of a select
+        // via an optgroup, so it is not in a list of options
+        0
+    }
+
+    fn index_in_select(&self, select: &HTMLSelectElement) -> i32 {
+        match select.list_of_options().position(|n| &*n == self) {
+            Some(index) => index.try_into().unwrap_or(0),
+            None => {
+                // shouldn't happen but not worth a browser panic
+                warn!(
+                    "HTMLOptionElement called index_in_select at a select that did not contain it"
+                );
+                0
+            },
         }
     }
 }
@@ -190,6 +261,11 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-index
+    fn Index(&self) -> i32 {
+        self.index()
     }
 }
 

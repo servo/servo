@@ -38,7 +38,7 @@ pub enum SettleType {
     Reject(Error),
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
 pub struct Job {
     pub job_type: JobType,
@@ -97,7 +97,7 @@ impl PartialEq for Job {
     }
 }
 
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
 pub struct JobQueue(pub DomRefCell<HashMap<ServoUrl, Vec<Job>>>);
 

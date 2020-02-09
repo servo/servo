@@ -29,7 +29,7 @@ interface Bluetooth : EventTarget {
   attribute EventHandler onavailabilitychanged;
   [SameObject]
   readonly attribute BluetoothDevice? referringDevice;
-  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
+  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 Bluetooth includes BluetoothDeviceEventHandlers;
 Bluetooth includes CharacteristicEventHandlers;
@@ -60,10 +60,10 @@ interface BluetoothPermissionResult : PermissionStatus {
 
 [
   Exposed=Window,
-  Constructor(DOMString type, optional ValueEventInit initDict),
   SecureContext
 ]
 interface ValueEvent : Event {
+  constructor(DOMString type, optional ValueEventInit initDict = {});
   readonly attribute any value;
 };
 
@@ -95,10 +95,10 @@ interface BluetoothServiceDataMap {
 };
 [
   Exposed=Window,
-  Constructor(DOMString type, BluetoothAdvertisingEventInit init),
   SecureContext
 ]
 interface BluetoothAdvertisingEvent : Event {
+  constructor(DOMString type, BluetoothAdvertisingEventInit init);
   [SameObject]
   readonly attribute BluetoothDevice device;
   readonly attribute FrozenArray<UUID> uuids;

@@ -258,9 +258,9 @@ class _MuxMockDispatcher(object):
                 raise ValueError('Cannot handle path %r' % request.path)
             if not request.server_terminated:
                 request.ws_stream.close_connection()
-        except ConnectionTerminatedException, e:
+        except ConnectionTerminatedException as e:
             self.channel_events[request.channel_id].exception = e
-        except Exception, e:
+        except Exception as e:
             self.channel_events[request.channel_id].exception = e
             raise
 

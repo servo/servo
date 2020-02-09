@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Default styles for ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that ::marker gets assigned some styles in UA origin." />
+<style>
+.outside { list-style-position: outside }
+.inside { list-style-position: inside }
+.symbol { list-style-type: symbol }
+.decimal { list-style-type: decimal }
+.string { list-style-type: "string" }
+.marker::marker { content: "marker" }
+</style>
+<div id="log"></div>
+<ul>
+  <li class="outside symbol">outside symbol</li>
+  <li class="outside decimal">outside decimal</li>
+  <li class="outside string">outside string</li>
+  <li class="outside marker">outside marker</li>
+  <li class="inside symbol">inside symbol</li>
+  <li class="inside decimal">inside decimal</li>
+  <li class="inside string">inside string</li>
+  <li class="inside marker">inside marker</li>
+</ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script>
+const defaultStyles = [
+  ["unicode-bidi", "isolate"],
+  ["font-variant-numeric", "tabular-nums"],
+];
+for (const target of document.querySelectorAll("li")) {
+  const cs = getComputedStyle(target, "::marker");
+  for (const [prop, value] of defaultStyles) {
+    test(function() {
+      assert_equals(cs.getPropertyValue(prop), value);
+    }, `Computed value of '${prop}' for ${target.className}`);
+  }
+}
+</script>

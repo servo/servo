@@ -14,7 +14,7 @@ use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use crate::table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use app_units::Au;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
 use std::fmt;

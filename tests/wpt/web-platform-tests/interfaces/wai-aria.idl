@@ -21,6 +21,7 @@ interface mixin AriaAttributes {
   attribute FrozenArray<Element>? ariaControlsElements;
   attribute DOMString? ariaCurrent;
   attribute FrozenArray<Element>? ariaDescribedByElements;
+  attribute DOMString? ariaDescription;
   attribute Element? ariaDetailsElement;
   attribute DOMString? ariaDisabled;
   attribute Element? ariaErrorMessageElement;

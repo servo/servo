@@ -30,7 +30,7 @@ promise_test(t => {
             return;
           }
 
-          let {i, result} = msg;
+          let {i, result} = msg.data;
 
           assert_in_array(i, [0, 1, 2], "Any message events must come from expected sources");
           assert_equals(result, i + 1, `iframe ${i} must return ${i+1}`);

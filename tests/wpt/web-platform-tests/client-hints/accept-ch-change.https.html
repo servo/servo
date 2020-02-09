@@ -1,0 +1,75 @@
+<html>
+<title>Accept-CH test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-and-add-load-event.js"></script>
+
+<!--
+Apart from this webpage, the test opens two more html web page. One test is run
+in this web page, and two in the other web pages.
+-->
+
+<script>
+
+// This test fetches resources/accept_ch.html. The response headers to
+// that webpage contains only the Accept-CH header. These preferences should be
+// stored so that the next request to the same origin is sent with the
+// requested client hint headers.
+
+// Next, to verify that the origin preferences were persisted by the user
+// agent, this test fetches resources/expect_client_hints_headers.html in a new
+// window. Fetching of resources/expect_client_hints_headers.html verifies that
+// the user agent does send the client hints in the request headers.
+
+// After this, the same is done but with a differet Accept-CH header, to test
+// that the preferences change after receiving a different header.
+
+// First, verify the initial state to make sure that the browser does not have
+// client hints preferences cached from a previous run of the test.
+promise_test(t => {
+  return fetch("resources/echo-client-hints-received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser did not include client hints in the request
+    // headers when fetching echo_client_hints_received.py.
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+  });
+}, "Precondition: Test that the browser does not have client hints preferences cached");
+
+function acceptChLoaded() {
+  // Open a new window. Verify that the user agent does attach the client hints.
+  open_and_add_load_event("resources/expect-client-hints-headers.html", changeCh);
+}
+
+function changeCh() {
+  // Use new window to overwrite client hint preferences, then verify new
+  // settings have been saved
+  open_and_add_load_event("resources/accept-ch-different.html", verifyChangeCh);
+}
+
+function verifyChangeCh() {
+  // Use new window to overwrite client hint preferences, then verify new
+  // settings have been saved
+  open_and_add_load_event("resources/expect-client-hints-headers-different.html", clearCh);
+}
+
+function clearCh() {
+  // Use new window to overwrite client hint preferences, then verify new
+  // settings have been saved
+  open_and_add_load_event("resources/accept-ch-empty.html", verifyClearCh);
+}
+
+function verifyClearCh() {
+  // Use new window to overwrite client hint preferences, then verify new
+  // settings have been saved
+  open_and_add_load_event("resources/do-not-expect-client-hints.html", null);
+}
+
+// Fetching this webpage should cause user-agent to persist client hint
+// preferences for the origin.
+open_and_add_load_event("resources/accept-ch.html", acceptChLoaded);
+
+</script>
+</body>
+</html>

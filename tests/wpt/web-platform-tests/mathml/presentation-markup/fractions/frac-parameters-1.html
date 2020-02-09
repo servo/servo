@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Fraction parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
 <meta name="assert" content="Element mfrac correctly uses the fraction parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -20,32 +21,32 @@
     src: url("/fonts/math/fraction-denominatordisplaystylegapmin5000-rulethickness1000.woff");
   }
   @font-face {
-    font-family: denominatordisplaystyleshiftdown6000-rulethickness1000;
-    src: url("/fonts/math/fraction-denominatordisplaystyleshiftdown6000-rulethickness1000.woff");
+    font-family: denominatordisplaystyleshiftdown6000-axisheight1000-rulethickness1000;
+    src: url("/fonts/math/fraction-denominatordisplaystyleshiftdown6000-axisheight1000-rulethickness1000.woff");
   }
   @font-face {
     font-family: denominatorgapmin4000-rulethickness1000;
     src: url("/fonts/math/fraction-denominatorgapmin4000-rulethickness1000.woff");
   }
   @font-face {
-    font-family: denominatorshiftdown3000-rulethickness1000;
-    src: url("/fonts/math/fraction-denominatorshiftdown3000-rulethickness1000.woff");
+    font-family: denominatorshiftdown3000-axisheight1000-rulethickness1000;
+    src: url("/fonts/math/fraction-denominatorshiftdown3000-axisheight1000-rulethickness1000.woff");
   }
   @font-face {
     font-family: numeratordisplaystylegapmin8000-rulethickness1000;
     src: url("/fonts/math/fraction-numeratordisplaystylegapmin8000-rulethickness1000.woff");
   }
   @font-face {
-    font-family: numeratordisplaystyleshiftup2000-rulethickness1000;
-    src: url("/fonts/math/fraction-numeratordisplaystyleshiftup2000-rulethickness1000.woff");
+    font-family: numeratordisplaystyleshiftup2000-axisheight1000-rulethickness1000;
+    src: url("/fonts/math/fraction-numeratordisplaystyleshiftup2000-axisheight1000-rulethickness1000.woff");
   }
   @font-face {
     font-family: numeratorgapmin9000-rulethickness1000;
     src: url("/fonts/math/fraction-numeratorgapmin9000-rulethickness1000.woff");
   }
   @font-face {
-    font-family: numeratorshiftup11000-rulethickness1000;
-    src: url("/fonts/math/fraction-numeratorshiftup11000-rulethickness1000.woff");
+    font-family: numeratorshiftup11000-axisheight1000-rulethickness1000;
+    src: url("/fonts/math/fraction-numeratorshiftup11000-axisheight1000-rulethickness1000.woff");
   }
   @font-face {
     font-family: rulethickness10000;
@@ -61,13 +62,12 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 7000 * emToPx;
       var v2 = 1000 * emToPx;
       assert_approx_equals(getBox("ref0001").top - getBox("num0001").bottom,
@@ -75,54 +75,72 @@
     }, "AxisHeight");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 5000 * emToPx;
       assert_approx_equals(getBox("den0002").top - getBox("ref0002").bottom,
                            v1, epsilon, "mfrac: denominator gap");
     }, "DenominatorDisplayStyleGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 6000 * emToPx;
       assert_approx_equals(getBox("den0003").top - getBox("ref0003").bottom,
                            v1, epsilon, "mfrac: denominator shift");
     }, "DenominatorDisplayStyleShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 4000 * emToPx;
       assert_approx_equals(getBox("den0004").top - getBox("ref0004").bottom,
                            v1, epsilon, "mfrac: denominator gap");
     }, "DenominatorGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 3000 * emToPx;
       assert_approx_equals(getBox("den0005").top - getBox("ref0005").bottom,
                            v1, epsilon, "mfrac: denominator shift");
     }, "DenominatorShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 8000 * emToPx;
       assert_approx_equals(getBox("ref0006").top - getBox("num0006").bottom,
                            v1, epsilon, "mfrac: numerator gap");
     }, "NumeratorDisplayStyleGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 2000 * emToPx;
       assert_approx_equals(getBox("ref0007").top - getBox("num0007").bottom,
                            v1, epsilon, "mfrac: numerator shift");
     }, "NumeratorDisplayStyleShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 9000 * emToPx;
       assert_approx_equals(getBox("ref0008").top - getBox("num0008").bottom,
                            v1, epsilon, "mfrac: numerator gap");
     }, "NumeratorGapMin");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 11000 * emToPx;
       assert_approx_equals(getBox("ref0009").top - getBox("num0009").bottom,
                            v1, epsilon, "mfrac: numerator shift");
     }, "NumeratorShiftDown");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 10000 * emToPx;
       assert_approx_equals(getBox("den0010").top - getBox("num0010").bottom,
                            v1, epsilon, "mfrac: rule thickness");
@@ -156,7 +174,7 @@
   </p>
   <hr/>
   <p>
-    <math display="block" style="font-family: denominatordisplaystyleshiftdown6000-rulethickness1000;">
+    <math display="block" style="font-family: denominatordisplaystyleshiftdown6000-axisheight1000-rulethickness1000;">
       <mspace id="ref0003" width="3em" height="1em" style="background: green"/>
       <mfrac>
         <mspace width="3em"/>
@@ -177,7 +195,7 @@
   </p>
   <hr/>
   <p>
-    <math style="font-family: denominatorshiftdown3000-rulethickness1000;">
+    <math style="font-family: denominatorshiftdown3000-axisheight1000-rulethickness1000;">
       <mspace id="ref0005" width="3em" height="1em" style="background: green"/>
       <mfrac>
         <mspace width="3em"/>
@@ -198,7 +216,7 @@
   </p>
   <hr/>
   <p>
-    <math display="block" style="font-family: numeratordisplaystyleshiftup2000-rulethickness1000;">
+    <math display="block" style="font-family: numeratordisplaystyleshiftup2000-axisheight1000-rulethickness1000;">
       <mspace id="ref0007" width="3em"
               depth="1em" style="background: green"/>
       <mfrac>
@@ -220,7 +238,7 @@
   </p>
   <hr/>
   <p>
-    <math style="font-family: numeratorshiftup11000-rulethickness1000;">
+    <math style="font-family: numeratorshiftup11000-axisheight1000-rulethickness1000;">
       <mspace id="ref0009" width="3em"
               depth="1em" style="background: green"/>
       <mfrac>

@@ -15,8 +15,9 @@ use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrpose::VRPose;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float64Array};
 use std::cell::Cell;
 use std::ptr;
@@ -98,9 +99,9 @@ impl Gamepad {
         );
 
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
-            let _ = Float64Array::create(cx, CreateWith::Slice(&state.axes), array.handle_mut());
+            let _ = Float64Array::create(*cx, CreateWith::Slice(&state.axes), array.handle_mut());
         }
         gamepad.axes.set(array.get());
 
@@ -136,8 +137,8 @@ impl GamepadMethods for Gamepad {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
-    unsafe fn Axes(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
-        NonNull::new_unchecked(self.axes.get())
+    fn Axes(&self, _cx: JSContext) -> NonNull<JSObject> {
+        unsafe { NonNull::new_unchecked(self.axes.get()) }
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
@@ -172,7 +173,7 @@ impl Gamepad {
         self.timestamp.set(state.timestamp);
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let axes: Float64Array = self.axes.get());
+            typedarray!(in(*cx) let axes: Float64Array = self.axes.get());
             if let Ok(mut array) = axes {
                 array.update(&state.axes);
             }

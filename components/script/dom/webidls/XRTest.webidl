@@ -8,18 +8,31 @@
 interface XRTest {
   // Simulates connecting a device to the system.
   // Used to instantiate a fake device for use in tests.
-  Promise<FakeXRDeviceController> simulateDeviceConnection(FakeXRDeviceInit init);
-
-  // // Simulates a device being disconnected from the system.
-  // Promise<void> simulateDeviceDisconnection(XRDevice);
+  Promise<FakeXRDevice> simulateDeviceConnection(FakeXRDeviceInit init);
 
   // // Simulates a user activation (aka user gesture) for the current scope.
   // // The activation is only guaranteed to be valid in the provided function and only applies to WebXR
   // // Device API methods.
-  // void simulateUserActivation(Function);
+  void simulateUserActivation(Function f);
+
+  // // Disconnect all fake devices
+  Promise<void> disconnectAllDevices();
 };
 
 dictionary FakeXRDeviceInit {
-    // TODO: Subject to change to match spec changes.
     required boolean supportsImmersive;
+    required sequence<FakeXRViewInit> views;
+
+    // this is actually sequence<any>, but we don't support
+    // non-string features anyway
+    sequence<DOMString> supportedFeatures;
+    boolean supportsUnbounded = false;
+    // Whether the space supports tracking in inline sessions
+    boolean supportsTrackingInInline = true;
+    // The bounds coordinates. If null, bounded reference spaces are not supported.
+    sequence<FakeXRBoundsPoint> boundsCoodinates;
+    // Eye level used for calculating floor-level spaces
+    FakeXRRigidTransformInit floorOrigin;
+    FakeXRRigidTransformInit viewerOrigin;
 };
+

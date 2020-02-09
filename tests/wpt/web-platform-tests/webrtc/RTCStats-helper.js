@@ -547,15 +547,17 @@ function validateMediaStreamTrackStats(statsReport, stats) {
     assert_optional_unsigned_int_field(stats, 'partialFramesLost');
     assert_optional_unsigned_int_field(stats, 'fullFramesLost');
   } else {
-    assert_number_field(stats, 'audioLevel');
-    assert_optional_number_field(stats, 'totalAudioEnergy');
+    if (stats['remoteSource']) {
+      assert_number_field(stats, 'audioLevel');
+      assert_optional_number_field(stats, 'totalAudioEnergy');
+      assert_optional_number_field(stats, 'totalSamplesDuration');
+    }
     assert_optional_boolean_field(stats, 'voiceActivityFlag');
     assert_optional_number_field(stats, 'echoReturnLoss');
     assert_optional_number_field(stats, 'echoReturnLossEnhancement');
 
     assert_optional_unsigned_int_field(stats, 'totalSamplesSent');
     assert_optional_unsigned_int_field(stats, 'totalSamplesReceived');
-    assert_optional_number_field(stats, 'totalSamplesDuration');
     assert_optional_unsigned_int_field(stats, 'concealedSamples');
     assert_optional_unsigned_int_field(stats, 'concealmentEvents');
     assert_optional_number_field(stats, 'jitterBufferDelay');

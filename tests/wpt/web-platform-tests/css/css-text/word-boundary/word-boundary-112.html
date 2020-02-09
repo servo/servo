@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-detection:auto(th) and expansion</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-detection">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-expansion">
+<link rel="match" href="reference/word-boundary-112-ref.html">
+<meta name="assert" content="word-boundary-detection:auto(th) inserts virtual word boundaries at reasonable points, which can then be expanded into spaces">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-boundary-detection: auto(th);
+  word-boundary-expansion: space;
+}
+#ref {
+  border-color: blue;
+}
+</style>
+<!--
+
+This test should pass even in UAs that don't support word-boundary-detection:auto(th)
+since inserting virtual word boundaries is the default for south-east-asian languages.
+-->
+
+<p>Test passes if the black box is identical to the blue one.
+
+<div id=test lang=th>กรุงเทพคือสวยงาม</div>
+<div id=ref lang=th>กรุงเทพ คือ สวยงาม</div>

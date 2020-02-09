@@ -10,7 +10,7 @@ use crate::values::computed::length::{Length, LengthPercentage};
 use crate::values::computed::{Context, NonNegativeLength, NonNegativeNumber, ToComputedValue};
 use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
-use crate::values::generics::text::Spacing;
+use crate::values::generics::text::{GenericTextDecorationLength, Spacing};
 use crate::values::specified::text::{self as specified, TextOverflowSide};
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};
@@ -19,12 +19,16 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::TextAlignKeyword as TextAlign;
-pub use crate::values::specified::TextTransform;
+pub use crate::values::specified::TextUnderlinePosition;
 pub use crate::values::specified::{LineBreak, OverflowWrap, WordBreak};
 pub use crate::values::specified::{TextDecorationLine, TextEmphasisPosition};
+pub use crate::values::specified::{TextDecorationSkipInk, TextTransform};
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
+
+/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
+pub type TextDecorationLength = GenericTextDecorationLength<Length>;
 
 /// A computed value for the `letter-spacing` property.
 #[repr(transparent)]
@@ -172,17 +176,16 @@ impl TextDecorationsInEffect {
     /// Computes the text-decorations in effect for a given style.
     #[cfg(feature = "servo")]
     pub fn from_style(style: &StyleBuilder) -> Self {
-        use crate::values::computed::Display;
-
         // Start with no declarations if this is an atomic inline-level box;
         // otherwise, start with the declarations in effect and add in the text
         // decorations that this block specifies.
-        let mut result = match style.get_box().clone_display() {
-            Display::InlineBlock | Display::InlineTable => Self::default(),
-            _ => style
+        let mut result = if style.get_box().clone_display().is_atomic_inline_level() {
+            Self::default()
+        } else {
+            style
                 .get_parent_inherited_text()
                 .text_decorations_in_effect
-                .clone(),
+                .clone()
         };
 
         let line = style.get_text().clone_text_decoration_line();
@@ -195,22 +198,19 @@ impl TextDecorationsInEffect {
     }
 }
 
-/// computed value for the text-emphasis-style property
+/// Computed value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
+#[allow(missing_docs)]
+#[repr(C, u8)]
 pub enum TextEmphasisStyle {
-    /// Keyword value for the text-emphasis-style property (`filled` `open`)
-    Keyword(TextEmphasisKeywordValue),
+    /// [ <fill> || <shape> ]
+    Keyword {
+        #[css(skip_if = "TextEmphasisFillMode::is_filled")]
+        fill: TextEmphasisFillMode,
+        shape: TextEmphasisShapeKeyword,
+    },
     /// `none`
     None,
-    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
-    String(String),
-}
-
-/// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
-pub struct TextEmphasisKeywordValue {
-    /// fill for the text-emphasis-style property
-    pub fill: TextEmphasisFillMode,
-    /// shape for the text-emphasis-style property
-    pub shape: TextEmphasisShapeKeyword,
+    /// `<string>` (of which only the first grapheme cluster will be used).
+    String(crate::OwnedStr),
 }

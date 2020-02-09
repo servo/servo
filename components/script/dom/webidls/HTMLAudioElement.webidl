@@ -3,5 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlaudioelement
-[HTMLConstructor, NamedConstructor=Audio(optional DOMString src)]
-interface HTMLAudioElement : HTMLMediaElement {};
+[Exposed=Window, NamedConstructor=Audio(optional DOMString src)]
+interface HTMLAudioElement : HTMLMediaElement {
+  [HTMLConstructor] constructor();
+};

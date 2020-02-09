@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::{AlreadyInCompartment, InCompartment};
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -20,11 +18,12 @@ use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFram
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
-use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
@@ -37,7 +36,6 @@ use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
 use crate::dom::cdatasection::CDATASection;
-use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -51,7 +49,6 @@ use crate::dom::element::CustomElementCreationMode;
 use crate::dom::element::{
     Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit,
 };
-use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
@@ -80,9 +77,7 @@ use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowInc
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
-use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::progressevent::ProgressEvent;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::servoparser::ServoParser;
@@ -96,28 +91,32 @@ use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
-use crate::dom::webglcontextevent::WebGLContextEvent;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
+use crate::realms::{AlreadyInRealm, InRealm};
+use crate::script_runtime::JSContext;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
+use canvas_traits::webgl::{self, SwapChainId, WebGLContextId, WebGLMsg};
+use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
-use euclid::Point2D;
+use euclid::default::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
-use keyboard_types::{Key, KeyState, Modifiers};
+use js::jsapi::{JSObject, JSRuntime};
+use keyboard_types::{Code, Key, KeyState};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
     ProgressiveWebMetric,
@@ -131,6 +130,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
+use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
@@ -142,9 +142,10 @@ use script_traits::{
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::pref;
+use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefMut};
+use std::borrow::Cow;
+use std::cell::Cell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
@@ -161,8 +162,8 @@ use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
-use url::percent_encoding::percent_decode;
 use url::Host;
+use uuid::Uuid;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -368,6 +369,8 @@ pub struct Document {
     page_showing: Cell<bool>,
     /// Whether the document is salvageable.
     salvageable: Cell<bool>,
+    /// Whether the document was aborted with an active parser
+    active_parser_was_aborted: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
     /// List of responsive images
@@ -385,6 +388,17 @@ pub struct Document {
     shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
     /// Whether any of the shadow roots need the stylesheets flushed.
     shadow_roots_styles_changed: Cell<bool>,
+    /// List of registered media controls.
+    /// We need to keep this list to allow the media controls to
+    /// access the "privileged" document.servoGetMediaControls(id) API,
+    /// where `id` needs to match any of the registered ShadowRoots
+    /// hosting the media controls UI.
+    media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
+    /// List of all WebGL context IDs that need flushing.
+    dirty_webgl_contexts: DomRefCell<HashMap<WebGLContextId, Dom<WebGLRenderingContext>>>,
+    /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
+    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    csp_list: DomRefCell<Option<CspList>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -436,6 +450,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
+#[allow(non_snake_case)]
 impl Document {
     #[inline]
     pub fn loader(&self) -> Ref<DocumentLoader> {
@@ -487,56 +502,69 @@ impl Document {
     pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
-        // Set the document's activity level, reflow if necessary, and suspend or resume timers.
-        if activity != self.activity.get() {
-            self.activity.set(activity);
-            if activity == DocumentActivity::FullyActive {
-                self.title_changed();
-                self.dirty_all_nodes();
-                self.window()
-                    .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
-                self.window().resume();
-                // html.spec.whatwg.org/multipage/#history-traversal
-                // Step 4.6
-                if self.ready_state.get() == DocumentReadyState::Complete {
-                    let document = Trusted::new(self);
-                    self.window
-                        .task_manager()
-                        .dom_manipulation_task_source()
-                        .queue(
-                            task!(fire_pageshow_event: move || {
-                                let document = document.root();
-                                let window = document.window();
-                                // Step 4.6.1
-                                if document.page_showing.get() {
-                                    return;
-                                }
-                                // Step 4.6.2
-                                document.page_showing.set(true);
-                                // Step 4.6.4
-                                let event = PageTransitionEvent::new(
-                                    window,
-                                    atom!("pageshow"),
-                                    false, // bubbles
-                                    false, // cancelable
-                                    true, // persisted
-                                );
-                                let event = event.upcast::<Event>();
-                                event.set_trusted(true);
-                                // FIXME(nox): Why are errors silenced here?
-                                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                                    document.upcast(),
-                                    &event,
-                                );
-                            }),
-                            self.window.upcast(),
-                        )
-                        .unwrap();
-                }
-            } else {
-                self.window().suspend();
-            }
+        if activity == self.activity.get() {
+            return;
         }
+
+        // Set the document's activity level, reflow if necessary, and suspend or resume timers.
+        self.activity.set(activity);
+        let media = ServoMedia::get().unwrap();
+        let pipeline_id = self.window().pipeline_id().expect("doc with no pipeline");
+        let client_context_id =
+            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
+
+        if activity != DocumentActivity::FullyActive {
+            self.window().suspend();
+            media.suspend(&client_context_id);
+            return;
+        }
+
+        self.title_changed();
+        self.dirty_all_nodes();
+        self.window()
+            .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
+        self.window().resume();
+        media.resume(&client_context_id);
+
+        if self.ready_state.get() != DocumentReadyState::Complete {
+            return;
+        }
+
+        // html.spec.whatwg.org/multipage/#history-traversal
+        // Step 4.6
+        let document = Trusted::new(self);
+        self.window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(
+                task!(fire_pageshow_event: move || {
+                    let document = document.root();
+                    let window = document.window();
+                    // Step 4.6.1
+                    if document.page_showing.get() {
+                        return;
+                    }
+                    // Step 4.6.2
+                    document.page_showing.set(true);
+                    // Step 4.6.4
+                    let event = PageTransitionEvent::new(
+                        window,
+                        atom!("pageshow"),
+                        false, // bubbles
+                        false, // cancelable
+                        true, // persisted
+                    );
+                    let event = event.upcast::<Event>();
+                    event.set_trusted(true);
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
+                }),
+                self.window.upcast(),
+            )
+            .unwrap();
     }
 
     pub fn origin(&self) -> &MutableOrigin {
@@ -603,7 +631,7 @@ impl Document {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("href"))
             });
-        self.base_element.set(base.deref());
+        self.base_element.set(base.as_deref());
     }
 
     pub fn dom_count(&self) -> u32 {
@@ -748,7 +776,7 @@ impl Document {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.deref());
+        self.set_target_element(target.as_deref());
 
         let point = target
             .as_ref()
@@ -789,7 +817,7 @@ impl Document {
                 y,
                 global_scope.pipeline_id().root_scroll_id(),
                 ScrollBehavior::Instant,
-                target.deref(),
+                target.as_deref(),
             );
         }
     }
@@ -853,7 +881,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        if self.focused == self.possibly_focused.get().deref() {
+        if self.focused == self.possibly_focused.get().as_deref() {
             return;
         }
         if let Some(ref elem) = self.focused.get() {
@@ -868,7 +896,7 @@ impl Document {
             }
         }
 
-        self.focused.set(self.possibly_focused.get().deref());
+        self.focused.set(self.possibly_focused.get().as_deref());
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
@@ -1215,7 +1243,7 @@ impl Document {
         }
 
         // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.deref());
+        prev_mouse_over_target.set(maybe_new_target.as_deref());
 
         self.window
             .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
@@ -1411,7 +1439,8 @@ impl Document {
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
         if keyboard_event.state == KeyState::Down &&
-            keyboard_event.key.legacy_charcode() != 0 &&
+            is_character_value_key(&(keyboard_event.key)) &&
+            !keyboard_event.is_composing &&
             cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -1445,35 +1474,20 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            match keyboard_event.key {
-                Key::Character(ref letter)
-                    if letter == " " && keyboard_event.state == KeyState::Up =>
-                {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        synthetic_click_activation(
-                            el,
-                            false,
-                            false,
-                            false,
-                            false,
-                            ActivationSource::NotFromClick,
-                        )
-                    }
+            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
+                keyboard_event.state == KeyState::Up
+            {
+                let maybe_elem = target.downcast::<Element>();
+                if let Some(el) = maybe_elem {
+                    synthetic_click_activation(
+                        el,
+                        false,
+                        false,
+                        false,
+                        false,
+                        ActivationSource::NotFromClick,
+                    )
                 }
-                Key::Enter if keyboard_event.state == KeyState::Up => {
-                    let maybe_elem = target.downcast::<Element>();
-                    if let Some(el) = maybe_elem {
-                        if let Some(a) = el.as_maybe_activatable() {
-                            let ctrl = keyboard_event.modifiers.contains(Modifiers::CONTROL);
-                            let alt = keyboard_event.modifiers.contains(Modifiers::ALT);
-                            let shift = keyboard_event.modifiers.contains(Modifiers::SHIFT);
-                            let meta = keyboard_event.modifiers.contains(Modifiers::META);
-                            a.implicit_submission(ctrl, alt, shift, meta);
-                        }
-                    }
-                },
-                _ => (),
             }
         }
 
@@ -1715,9 +1729,10 @@ impl Document {
     pub fn fetch_async(
         &self,
         load: LoadType,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
+        request.csp_list = self.get_csp_list().map(|x| x.clone());
         let mut loader = self.loader.borrow_mut();
         loader.fetch_async(load, request, fetch_target);
     }
@@ -1892,15 +1907,19 @@ impl Document {
                 }
             }
         }
+
+        let global_scope = self.window.upcast::<GlobalScope>();
         // Step 10, 14
+        // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
         if !self.salvageable.get() {
-            // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
-            let global_scope = self.window.upcast::<GlobalScope>();
             // Step 1 of clean-up steps.
             global_scope.close_event_sources();
             let msg = ScriptMsg::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+        // https://w3c.github.io/FileAPI/#lifeTime
+        global_scope.clean_up_all_file_resources();
+
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
     }
@@ -2247,6 +2266,7 @@ impl Document {
 
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
+            self.active_parser_was_aborted.set(true);
             parser.abort();
             self.salvageable.set(false);
         }
@@ -2456,6 +2476,59 @@ impl Document {
         if let Some(i) = index {
             self.responsive_images.borrow_mut().remove(i);
         }
+    }
+
+    pub fn register_media_controls(&self, controls: &ShadowRoot) -> String {
+        let id = Uuid::new_v4().to_string();
+        self.media_controls
+            .borrow_mut()
+            .insert(id.clone(), Dom::from_ref(controls));
+        id
+    }
+
+    pub fn unregister_media_controls(&self, id: &str) {
+        if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
+            let media_controls = DomRoot::from_ref(&**media_controls);
+            media_controls.Host().detach_shadow();
+        } else {
+            debug_assert!(false, "Trying to unregister unknown media controls");
+        }
+    }
+
+    pub fn add_dirty_canvas(&self, context: &WebGLRenderingContext) {
+        self.dirty_webgl_contexts
+            .borrow_mut()
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
+    }
+
+    pub fn flush_dirty_canvases(&self) {
+        let dirty_context_ids: Vec<_> = self
+            .dirty_webgl_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .map(|(id, _)| SwapChainId::Context(id))
+            .collect();
+
+        if dirty_context_ids.is_empty() {
+            return;
+        }
+
+        let (sender, receiver) = webgl::webgl_channel().unwrap();
+        self.window
+            .webgl_chan()
+            .expect("Where's the WebGL channel?")
+            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender))
+            .unwrap();
+        receiver.recv().unwrap();
+    }
+}
+
+fn is_character_value_key(key: &Key) -> bool {
+    match key {
+        Key::Character(_) | Key::Enter => true,
+        _ => false,
     }
 }
 
@@ -2742,6 +2815,7 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
+            active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
@@ -2750,7 +2824,39 @@ impl Document {
             delayed_tasks: Default::default(),
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
+            media_controls: DomRefCell::new(HashMap::new()),
+            dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
+            csp_list: DomRefCell::new(None),
         }
+    }
+
+    pub fn set_csp_list(&self, csp_list: Option<CspList>) {
+        *self.csp_list.borrow_mut() = csp_list;
+    }
+
+    pub fn get_csp_list(&self) -> Option<Ref<CspList>> {
+        ref_filter_map(self.csp_list.borrow(), Option::as_ref)
+    }
+
+    /// https://www.w3.org/TR/CSP/#should-block-inline
+    pub fn should_elements_inline_type_behavior_be_blocked(
+        &self,
+        el: &Element,
+        type_: csp::InlineCheckType,
+        source: &str,
+    ) -> csp::CheckResult {
+        let element = csp::Element {
+            nonce: el
+                .get_attribute(&ns!(), &local_name!("nonce"))
+                .map(|attr| Cow::Owned(attr.value().to_string())),
+        };
+        // TODO: Instead of ignoring violations, report them.
+        self.get_csp_list()
+            .map(|c| {
+                c.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+                    .0
+            })
+            .unwrap_or(csp::CheckResult::Allowed)
     }
 
     /// Prevent any JS or layout from running until the corresponding call to
@@ -2794,6 +2900,7 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
+    #[allow(non_snake_case)]
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
@@ -2865,7 +2972,7 @@ impl Document {
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
         let doc = self.GetDocumentElement();
-        let maybe_node = doc.deref().map(Castable::upcast::<Node>);
+        let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
         let iter = maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
@@ -3063,11 +3170,9 @@ impl Document {
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let in_compartment_proof = AlreadyInCompartment::assert(&self.global());
-        let promise = Promise::new_in_current_compartment(
-            &self.global(),
-            InCompartment::Already(&in_compartment_proof),
-        );
+        let in_realm_proof = AlreadyInRealm::assert(&self.global());
+        let promise =
+            Promise::new_in_current_realm(&self.global(), InRealm::Already(&in_realm_proof));
         let mut error = false;
 
         // Step 4
@@ -3134,11 +3239,8 @@ impl Document {
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let in_compartment_proof = AlreadyInCompartment::assert(&global);
-        let promise = Promise::new_in_current_compartment(
-            &global,
-            InCompartment::Already(&in_compartment_proof),
-        );
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let promise = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));
@@ -3519,7 +3621,7 @@ impl DocumentMethods for Document {
     fn CreateElement(
         &self,
         mut local_name: DOMString,
-        options: &ElementCreationOptions,
+        options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -3540,7 +3642,12 @@ impl DocumentMethods for Document {
         };
 
         let name = QualName::new(None, ns, LocalName::from(local_name));
-        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        let is = match options {
+            StringOrElementCreationOptions::String(_) => None,
+            StringOrElementCreationOptions::ElementCreationOptions(options) => {
+                options.is.as_ref().map(|is| LocalName::from(&**is))
+            },
+        };
         Ok(Element::create(
             name,
             is,
@@ -3555,11 +3662,16 @@ impl DocumentMethods for Document {
         &self,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
-        options: &ElementCreationOptions,
+        options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
-        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        let is = match options {
+            StringOrElementCreationOptions::String(_) => None,
+            StringOrElementCreationOptions::ElementCreationOptions(options) => {
+                options.is.as_ref().map(|is| LocalName::from(&**is))
+            },
+        };
         Ok(Element::create(
             name,
             is,
@@ -3582,7 +3694,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(
-            &self.window,
+            &self,
             name.clone(),
             value,
             name,
@@ -3602,7 +3714,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
-            &self.window,
+            &self,
             local_name,
             value,
             qualified_name,
@@ -3706,15 +3818,14 @@ impl DocumentMethods for Document {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
             ))),
-            "closeevent" => Ok(DomRoot::upcast(CloseEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
+            "compositionevent" | "textevent" => Ok(DomRoot::upcast(
+                CompositionEvent::new_uninitialized(&self.window),
+            )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
             ))),
-            "errorevent" => Ok(DomRoot::upcast(ErrorEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
+            // FIXME(#25136): devicemotionevent, deviceorientationevent
+            // FIXME(#7529): dragevent
             "events" | "event" | "htmlevents" | "svgevents" => {
                 Ok(Event::new_uninitialized(&self.window.upcast()))
             },
@@ -3731,15 +3842,6 @@ impl DocumentMethods for Document {
             "mouseevent" | "mouseevents" => {
                 Ok(DomRoot::upcast(MouseEvent::new_uninitialized(&self.window)))
             },
-            "pagetransitionevent" => Ok(DomRoot::upcast(PageTransitionEvent::new_uninitialized(
-                &self.window,
-            ))),
-            "popstateevent" => Ok(DomRoot::upcast(PopStateEvent::new_uninitialized(
-                &self.window,
-            ))),
-            "progressevent" => Ok(DomRoot::upcast(ProgressEvent::new_uninitialized(
-                self.window.upcast(),
-            ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 &self.window,
                 "".into(),
@@ -3751,9 +3853,6 @@ impl DocumentMethods for Document {
                 &TouchList::new(&self.window, &[]),
             ))),
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(&self.window))),
-            "webglcontextevent" => Ok(DomRoot::upcast(WebGLContextEvent::new_uninitialized(
-                &self.window,
-            ))),
             _ => Err(Error::NotSupported),
         }
     }
@@ -3873,7 +3972,7 @@ impl DocumentMethods for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().deref())
+                        .InsertBefore(child, parent.GetFirstChild().as_deref())
                         .unwrap()
                 },
             }
@@ -3958,11 +4057,11 @@ impl DocumentMethods for Document {
 
         // Step 2.
         let old_body = self.GetBody();
-        if old_body.deref() == Some(new_body) {
+        if old_body.as_deref() == Some(new_body) {
             return Ok(());
         }
 
-        match (self.get_html_element(), &old_body) {
+        match (self.GetDocumentElement(), &old_body) {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
                 let root = root.upcast::<Node>();
@@ -4192,11 +4291,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(
-        &self,
-        _cx: *mut JSContext,
-        name: DOMString,
-    ) -> Option<NonNull<JSObject>> {
+    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -4244,7 +4339,7 @@ impl DocumentMethods for Document {
         }
         let name = Atom::from(name);
         let root = self.upcast::<Node>();
-        {
+        unsafe {
             // Step 1.
             let mut elements = root
                 .traverse_preorder(ShadowIncluding::No)
@@ -4265,9 +4360,11 @@ impl DocumentMethods for Document {
         // Step 4.
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
-        Some(NonNull::new_unchecked(
-            collection.reflector().get_jsobject().get(),
-        ))
+        unsafe {
+            Some(NonNull::new_unchecked(
+                collection.reflector().get_jsobject().get(),
+            ))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -4361,18 +4458,25 @@ impl DocumentMethods for Document {
             return Ok(DomRoot::from_ref(self));
         }
 
+        // Step 7
+        if self.active_parser_was_aborted.get() {
+            return Ok(DomRoot::from_ref(self));
+        }
+
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
         window_from_node(self).set_navigation_start();
 
-        // Step 7
+        // Step 8
         // TODO: https://github.com/servo/servo/issues/21937
         if self.has_browsing_context() {
+            // spec says "stop document loading",
+            // which is a process that does more than just abort
             self.abort();
         }
 
-        // Step 8
+        // Step 9
         for node in self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
@@ -4380,16 +4484,16 @@ impl DocumentMethods for Document {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 9
+        // Step 10
         if self.window.Document() == DomRoot::from_ref(self) {
             self.window.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 10
+        // Step 11
         // TODO: https://github.com/servo/servo/issues/21936
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Step 11
+        // Step 12
         if self.is_fully_active() {
             let mut new_url = entry_responsible_document.url();
             if entry_responsible_document != DomRoot::from_ref(self) {
@@ -4399,13 +4503,13 @@ impl DocumentMethods for Document {
             self.set_url(new_url);
         }
 
-        // Step 12
+        // Step 13
         // TODO: https://github.com/servo/servo/issues/21938
 
-        // Step 13
+        // Step 14
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
-        // Step 14
+        // Step 15
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
@@ -4415,20 +4519,20 @@ impl DocumentMethods for Document {
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url());
 
-        // Step 15
+        // Step 16
         self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 16
-        // Handled when creating the parser in step 14
-
         // Step 17
+        // Handled when creating the parser in step 15
+
+        // Step 18
         Ok(DomRoot::from_ref(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
     fn Open_(
         &self,
-        url: DOMString,
+        url: USVString,
         target: DOMString,
         features: DOMString,
     ) -> Fallible<DomRoot<WindowProxy>> {
@@ -4453,8 +4557,8 @@ impl DocumentMethods for Document {
             return Err(Error::InvalidState);
         }
 
-        if !self.is_active() {
-            // Step 3.
+        // Step 3 - what specifies the is_active() part here?
+        if !self.is_active() || self.active_parser_was_aborted.get() {
             return Ok(());
         }
 
@@ -4551,6 +4655,16 @@ impl DocumentMethods for Document {
     fn ExitFullscreen(&self) -> Rc<Promise> {
         self.exit_fullscreen()
     }
+
+    // check-tidy: no specs after this line
+    // Servo only API to get an instance of the controls of a specific
+    // media element matching the given id.
+    fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
+        match self.media_controls.borrow().get(&*id) {
+            Some(m) => Ok(DomRoot::from_ref(&*m)),
+            None => Err(Error::InvalidAccess),
+        }
+    }
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
@@ -4643,7 +4757,7 @@ impl AnimationFrameCallback {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 struct PendingInOrderScriptVec {
     scripts: DomRefCell<VecDeque<PendingScript>>,
 }
@@ -4681,7 +4795,7 @@ impl PendingInOrderScriptVec {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,
     load: Option<ScriptResult>,

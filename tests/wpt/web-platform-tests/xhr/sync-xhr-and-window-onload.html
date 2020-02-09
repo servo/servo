@@ -1,0 +1,25 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test((t) => {
+  let onloadIsCalled = false;
+  window.addEventListener('load', () => {
+    onloadIsCalled = true;
+  }, {once: true});
+  document.addEventListener('readystatechange', t.step_func(() => {
+    if (document.readyState !== 'complete') {
+      return;
+    }
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'resources/pass.txt', false /* async */);
+    xhr.send();
+    assert_false(onloadIsCalled);
+    // The load event eventually arrives.
+    window.addEventListener('load', t.step_func_done(() => {
+    }), {once: 'true'});
+  }));
+}, 'sync XHR should not fire window.onload synchronously');
+</script>
+</body>

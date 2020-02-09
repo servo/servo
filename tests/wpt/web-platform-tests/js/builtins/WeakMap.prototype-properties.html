@@ -25,16 +25,16 @@ function test_length(fun, expected) {
 function test_thisval(fun, args) {
   // Step 1-2
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       WeakMap.prototype[fun].apply(null, args);
     });
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       WeakMap.prototype[fun].apply(undefined, args);
     });
   }, "WeakMap.prototype." + fun + ": ToObject on this")
   // Step 3
   test(function() {
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       WeakMap.prototype[fun].apply({}, args);
     });
   }, "WeakMap.prototype." + fun + ": this has no [[WeakMapData]] internal property")

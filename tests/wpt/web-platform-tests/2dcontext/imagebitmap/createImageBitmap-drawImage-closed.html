@@ -3,7 +3,7 @@
 <title>attempt to draw a closed ImageBitmap to a 2d canvas throws INVALID_STATE_ERR</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/canvas-tests.js"></script>
+<script src="/2dcontext/resources/canvas-tests.js"></script>
 <script>
 promise_test(function(t) {
     return new Promise(function(resolve, reject) {
@@ -21,7 +21,7 @@ promise_test(function(t) {
         canvas.height = 16;
 
         const ctx = canvas.getContext("2d");
-        assert_throws("InvalidStateError", function() { ctx.drawImage(imageBitmap, 0, 0); });
+        assert_throws_dom("InvalidStateError", function() { ctx.drawImage(imageBitmap, 0, 0); });
     });
 });
 </script>

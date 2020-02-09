@@ -3,7 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/helper.sub.js"></script>
 
-<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<meta http-equiv="Content-Security-Policy" content="trusted-types *; require-trusted-types-for 'script';">
 <body>
 <script>
   // setTimeout tests
@@ -18,14 +18,14 @@
   // String assignments throw.
   test(t => {
     window.timeoutTestString = t.unreached_func();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       setTimeout("window.timeoutTestString();");
     });
   }, "`window.setTimeout(string)` throws.");
 
   // Null assignment throws.
   test(t => {
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       setTimeout(null);
     });
   }, "`window.setTimeout(null)` throws.");
@@ -42,21 +42,21 @@
   // String assignments throw.
   test(t => {
     window.intervalTestString = t.unreached_func();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       setInterval("window.intervalTestString()");
     });
   }, "`window.setInterval(string)` throws.");
 
   // Null assignment throws.
   test(t => {
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       setInterval(null);
     });
   }, "`window.setInterval(null)` throws.");
 
   // After default policy creation string assignment implicitly calls createScript.
   test(t => {
-    let policy = window.TrustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
+    let policy = window.trustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
     setTimeout(INPUTS.SCRIPT);
     setInterval(INPUTS.SCRIPT);
   }, "`setTimeout(string)`, `setInterval(string)` via default policy (successful Script transformation).");

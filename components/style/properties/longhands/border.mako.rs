@@ -23,22 +23,22 @@
     ${helpers.predefined_type(
         "border-%s-color" % side_name, "Color",
         "computed_value::T::currentcolor()",
-        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
+        engines="gecko servo-2013 servo-2020",
+        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-color"),
         spec=maybe_logical_spec(side, "color"),
         animation_value_type="AnimatedColor",
         logical=is_logical,
         logical_group="border-color",
         allow_quirks="No" if is_logical else "Yes",
-        flags="APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
     )}
 
     ${helpers.predefined_type(
         "border-%s-style" % side_name, "BorderStyle",
         "specified::BorderStyle::None",
-        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
+        engines="gecko servo-2013 servo-2020",
+        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-style"),
         spec=maybe_logical_spec(side, "style"),
-        flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="discrete" if not is_logical else "none",
         logical=is_logical,
         logical_group="border-style",
@@ -49,13 +49,13 @@
         "border-%s-width" % side_name,
         "BorderSideWidth",
         "crate::values::computed::NonNegativeLength::new(3.)",
+        engines="gecko servo-2013 servo-2020",
         computed_type="crate::values::computed::NonNegativeLength",
-        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
+        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-width"),
         spec=maybe_logical_spec(side, "width"),
         animation_value_type="NonNegativeLength",
         logical=is_logical,
         logical_group="border-width",
-        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks="No" if is_logical else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline"
     )}
@@ -75,10 +75,10 @@
         "BorderCornerRadius",
         "computed::BorderCornerRadius::zero()",
         "parse",
+        engines="gecko servo-2013 servo-2020",
         extra_prefixes=prefixes,
         spec=maybe_logical_spec(corner, "radius"),
         boxed=True,
-        flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="BorderCornerRadius",
         logical_group="border-radius",
         logical=is_logical,
@@ -88,18 +88,18 @@
 ${helpers.single_keyword(
     "box-decoration-break",
     "slice clone",
+    engines="gecko",
     gecko_enum_prefix="StyleBoxDecorationBreak",
     spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
-    products="gecko",
     animation_value_type="discrete",
 )}
 
 ${helpers.single_keyword(
     "-moz-float-edge",
     "content-box margin-box",
+    engines="gecko",
     gecko_ffi_name="mFloatEdge",
     gecko_enum_prefix="StyleFloatEdge",
-    products="gecko",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
     animation_value_type="discrete",
 )}
@@ -107,24 +107,24 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "border-image-source",
     "ImageLayer",
+    engines="gecko servo-2013 servo-2020",
     initial_value="computed::ImageLayer::none()",
     initial_specified_value="specified::ImageLayer::none()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
-    boxed=product == "servo",
+    boxed=engine == "servo-2013",
     ignored_when_colors_disabled=True
 )}
 
 ${helpers.predefined_type(
     "border-image-outset",
     "NonNegativeLengthOrNumberRect",
+    engines="gecko servo-2013 servo-2020",
     initial_value="generics::rect::Rect::all(computed::NonNegativeLengthOrNumber::zero())",
     initial_specified_value="generics::rect::Rect::all(specified::NonNegativeLengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
-    animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    animation_value_type="NonNegativeLengthOrNumberRect",
     boxed=True,
 )}
 
@@ -132,30 +132,30 @@ ${helpers.predefined_type(
     "border-image-repeat",
     "BorderImageRepeat",
     "computed::BorderImageRepeat::stretch()",
+    engines="gecko servo-2013 servo-2020",
     initial_specified_value="specified::BorderImageRepeat::stretch()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat",
-    flags="APPLIES_TO_FIRST_LETTER",
 )}
 
 ${helpers.predefined_type(
     "border-image-width",
     "BorderImageWidth",
+    engines="gecko servo-2013 servo-2020",
     initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",
     initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
-    animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    animation_value_type="BorderImageWidth",
     boxed=True,
 )}
 
 ${helpers.predefined_type(
     "border-image-slice",
     "BorderImageSlice",
+    engines="gecko servo-2013 servo-2020",
     initial_value="computed::BorderImageSlice::hundred_percent()",
     initial_specified_value="specified::BorderImageSlice::hundred_percent()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
-    animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    animation_value_type="BorderImageSlice",
     boxed=True,
 )}

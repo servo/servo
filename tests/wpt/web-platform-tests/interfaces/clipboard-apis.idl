@@ -7,7 +7,7 @@ dictionary ClipboardEventInit : EventInit {
   DataTransfer? clipboardData = null;
 };
 
-[Constructor(DOMString type, optional ClipboardEventInit eventInitDict), Exposed=Window]
+[Constructor(DOMString type, optional ClipboardEventInit eventInitDict = {}), Exposed=Window]
 interface ClipboardEvent : Event {
   readonly attribute DataTransfer? clipboardData;
 };
@@ -31,11 +31,11 @@ typedef Promise<ClipboardItemDataType> ClipboardItemData;
 callback ClipboardItemDelayedCallback = ClipboardItemData ();
 
 [Constructor(record<DOMString, ClipboardItemData> items,
-    optional ClipboardItemOptions options),
+    optional ClipboardItemOptions options = {}),
  Exposed=Window] interface ClipboardItem {
   static ClipboardItem createDelayed(
       record<DOMString, ClipboardItemDelayedCallback> items,
-      optional ClipboardItemOptions options);
+      optional ClipboardItemOptions options = {});
 
   readonly attribute PresentationStyle presentationStyle;
   readonly attribute long long lastModified;

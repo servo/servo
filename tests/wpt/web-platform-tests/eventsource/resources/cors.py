@@ -4,7 +4,7 @@ from wptserve import pipes
 def run_other(request, response, path):
     #This is a terrible hack
     environ = {"__file__": path}
-    execfile(path, environ, environ)
+    exec(compile(open(path, "r").read(), path, 'exec'), environ, environ)
     rv = environ["main"](request, response)
     return rv
 

@@ -51,34 +51,34 @@
         1024,
         "Correct default value for frequencyBinCount"
       );
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 0;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 1;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 8;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 100;
       }); // non-power of two
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 2049;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 4097;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 8193;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 16385;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 32769;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.fftSize = 65536;
       });
       analyser.fftSize = 1024;
@@ -98,16 +98,16 @@
         -30,
         "Correct default value for maxDecibels"
       );
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.minDecibels = -30;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.minDecibels = -29;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.maxDecibels = -100;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.maxDecibels = -101;
       });
 
@@ -115,10 +115,10 @@
         Math.abs(analyser.smoothingTimeConstant - 0.8) < 0.001,
         "Correct default value for smoothingTimeConstant"
       );
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.smoothingTimeConstant = -0.1;
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser.smoothingTimeConstant = 1.1;
       });
       analyser.smoothingTimeConstant = 0;
@@ -170,34 +170,34 @@
         "Correct default value for smoothingTimeConstant"
       );
 
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 0 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 1 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 8 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 100 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 2049 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 4097 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 8193 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 16385 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 32769 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { fftSize: 65536 });
       });
       analyser = new AnalyserNode(context, { fftSize: 1024 });
@@ -207,23 +207,23 @@
         "Correct new value for frequencyBinCount"
       );
 
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { minDecibels: -30 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { minDecibels: -29 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { maxDecibels: -100 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { maxDecibels: -101 });
       });
 
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { smoothingTimeConstant: -0.1 });
       });
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         analyser = new AnalyserNode(context, { smoothingTimeConstant: -1.1 });
       });
       analyser = new AnalyserNode(context, { smoothingTimeConstant: 0 });

@@ -6,19 +6,19 @@
 <script>
 var video = document.createElement('video');
 test(function(){
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
         video.addTextTrack('foo');
     });
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
         video.addTextTrack(undefined);
     });
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
         video.addTextTrack(null);
     });
 }, document.title + ' bogus first arg');
 
 test(function(){
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
         video.addTextTrack('SUBTITLES');
     });
 }, document.title + ' uppercase first arg');

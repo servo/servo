@@ -21,12 +21,12 @@ interface PermissionStatus : EventTarget {
 
 [Exposed=(Window)]
 partial interface Navigator {
-  readonly attribute Permissions permissions;
+  [SameObject] readonly attribute Permissions permissions;
 };
 
 [Exposed=(Worker)]
 partial interface WorkerNavigator {
-  readonly attribute Permissions permissions;
+  [SameObject] readonly attribute Permissions permissions;
 };
 
 [Exposed=(Window,Worker)]

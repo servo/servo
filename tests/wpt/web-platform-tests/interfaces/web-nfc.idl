@@ -1,88 +1,87 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Web NFC API (https://w3c.github.io/web-nfc/)
+// Source: Web NFC (https://w3c.github.io/web-nfc/)
 
-dictionary NDEFMessage {
-  USVString url;
-  sequence<NDEFRecord> records;
+[SecureContext, Exposed=Window]
+interface NDEFMessage {
+  constructor(NDEFMessageInit messageInit);
+  readonly attribute FrozenArray<NDEFRecord> records;
 };
 
-typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NDEFRecordData;
+dictionary NDEFMessageInit {
+  required sequence<NDEFRecordInit> records;
+};
 
-dictionary NDEFRecord {
-  NDEFRecordType recordType;
+typedef (DOMString or BufferSource or NDEFMessageInit) NDEFRecordDataSource;
+
+[SecureContext, Exposed=Window]
+interface NDEFRecord {
+  constructor(NDEFRecordInit recordInit);
+
+  readonly attribute USVString recordType;
+  readonly attribute USVString? mediaType;
+  readonly attribute USVString? id;
+  readonly attribute DataView? data;
+
+  readonly attribute USVString? encoding;
+  readonly attribute USVString? lang;
+
+  sequence<NDEFRecord>? toRecords();
+};
+
+dictionary NDEFRecordInit {
+  required USVString recordType;
   USVString mediaType;
-  NDEFRecordData data;
+  USVString id;
+
+  USVString encoding;
+  USVString lang;
+
+  NDEFRecordDataSource data;
 };
 
-enum NDEFRecordType {
-  "empty",
-  "text",
-  "url",
-  "json",
-  "opaque"
+typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;
+
+[SecureContext, Exposed=Window]
+interface NDEFWriter {
+  constructor();
+
+  Promise<void> write(NDEFMessageSource message, optional NDEFWriteOptions options={});
 };
 
-typedef (DOMString or ArrayBuffer or NDEFMessage) NDEFMessageSource;
+[SecureContext, Exposed=Window]
+interface NDEFReader : EventTarget {
+  constructor();
 
-[Constructor(), SecureContext, Exposed=Window]
-interface NFCWriter {
-  Promise<void> push(NDEFMessageSource message, optional NFCPushOptions options);
-};
-
-[Constructor(optional NFCReaderOptions options), SecureContext, Exposed=Window]
-interface NFCReader : EventTarget {
-  attribute EventHandler onreading;
   attribute EventHandler onerror;
+  attribute EventHandler onreading;
 
-  void start();
-  void stop();
+  Promise<void> scan(optional NDEFScanOptions options={});
 };
 
-[Constructor(DOMString type, NFCReadingEventInit readingEventInitDict), SecureContext, Exposed=Window]
-interface NFCReadingEvent : Event {
+[SecureContext, Exposed=Window]
+interface NDEFReadingEvent : Event {
+  constructor(DOMString type, NDEFReadingEventInit readingEventInitDict);
+
   readonly attribute DOMString serialNumber;
-  readonly attribute object message;  // NDEFMessage
+  [SameObject] readonly attribute NDEFMessage message;
 };
 
-dictionary NFCReadingEventInit : EventInit {
+dictionary NDEFReadingEventInit : EventInit {
   DOMString? serialNumber = "";
-  required NDEFMessage message;
+  required NDEFMessageInit message;
 };
 
-[Constructor(DOMString type, NFCErrorEventInit errorEventInitDict), SecureContext, Exposed=Window]
-interface NFCErrorEvent : Event {
-  readonly attribute DOMException error;
-};
-
-dictionary NFCErrorEventInit : EventInit {
-  required DOMException error;
-};
-
-enum NDEFCompatibility {
-  "nfc-forum",
-  "vendor",
-  "any"
-};
-
-dictionary NFCPushOptions {
-  NFCPushTarget target = "any";
-  unrestricted double timeout = Infinity;
+dictionary NDEFWriteOptions {
   boolean ignoreRead = true;
+  boolean overwrite = true;
   AbortSignal? signal;
-  NDEFCompatibility compatibility = "nfc-forum";
 };
 
-enum NFCPushTarget {
-  "tag",
-  "peer",
-  "any"
-};
-
-dictionary NFCReaderOptions {
-  USVString url = "";
-  NDEFRecordType recordType;
-  USVString mediaType = "";
-  NDEFCompatibility compatibility = "nfc-forum";
+dictionary NDEFScanOptions {
+  USVString id;
+  USVString recordType;
+  USVString mediaType;
+  AbortSignal? signal;
 };

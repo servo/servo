@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: CSS Properties and Values API Level 1 (https://drafts.css-houdini.org/css-properties-values-api-1/)
 
-dictionary PropertyDescriptor {
+dictionary PropertyDefinition {
   required DOMString name;
            DOMString syntax       = "*";
   required boolean   inherits;
@@ -11,5 +11,17 @@ dictionary PropertyDescriptor {
 };
 
 partial namespace CSS {
-  void registerProperty(PropertyDescriptor descriptor);
+  void registerProperty(PropertyDefinition definition);
+};
+
+partial interface CSSRule {
+    const unsigned short PROPERTY_RULE = 18;
+};
+
+[Exposed=Window]
+interface CSSPropertyRule : CSSRule {
+    readonly attribute CSSOMString name;
+    readonly attribute CSSOMString syntax;
+    readonly attribute boolean inherits;
+    readonly attribute CSSOMString? initialValue;
 };

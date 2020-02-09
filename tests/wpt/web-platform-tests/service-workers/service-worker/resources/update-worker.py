@@ -1,46 +1,60 @@
-import time
+import urllib
+
+def redirect_response(request, response, visited_count):
+  # |visited_count| is used as a unique id to differentiate responses
+  # every time.
+  location = 'empty.js'
+  if 'Redirect' in request.GET:
+      location = urllib.unquote(request.GET['Redirect'])
+  return (301,
+  [
+    ('Cache-Control', 'no-cache, must-revalidate'),
+    ('Pragma', 'no-cache'),
+    ('Content-Type', 'application/javascript'),
+    ('Location', location),
+  ],
+  '/* %s */' % str(visited_count))
+
+def not_found_response():
+  return 404, [('Content-Type', 'text/plain')], "Page not found"
+
+def ok_response(request, response, visited_count,
+                extra_body='', mime_type='application/javascript'):
+  # |visited_count| is used as a unique id to differentiate responses
+  # every time.
+  return (
+    [
+      ('Cache-Control', 'no-cache, must-revalidate'),
+      ('Pragma', 'no-cache'),
+      ('Content-Type', mime_type)
+    ],
+    '/* %s */ %s' % (str(visited_count), extra_body))
 
 def main(request, response):
-    # Set mode to 'init' for initial fetch.
-    mode = 'init'
-    if 'mode' in request.cookies:
-        mode = request.cookies['mode'].value
+  key = request.GET["Key"]
+  mode = request.GET["Mode"]
 
-    # no-cache itself to ensure the user agent finds a new version for each update.
-    headers = [('Cache-Control', 'no-cache, must-revalidate'),
-               ('Pragma', 'no-cache')]
+  visited_count = request.server.stash.take(key)
+  if visited_count is None:
+    visited_count = 0
 
-    content_type = ''
-    extra_body = ''
+  # Keep how many times the test requested this resource.
+  visited_count += 1
+  request.server.stash.put(key, visited_count)
 
-    if mode == 'init':
-        # Set a normal mimetype.
-        # Set cookie value to 'normal' so the next fetch will work in 'normal' mode.
-        content_type = 'application/javascript'
-        response.set_cookie('mode', 'normal')
-    elif mode == 'normal':
-        # Set a normal mimetype.
-        # Set cookie value to 'error' so the next fetch will work in 'error' mode.
-        content_type = 'application/javascript'
-        response.set_cookie('mode', 'error');
-    elif mode == 'error':
-        # Set a disallowed mimetype.
-        # Set cookie value to 'syntax-error' so the next fetch will work in 'syntax-error' mode.
-        content_type = 'text/html'
-        response.set_cookie('mode', 'syntax-error');
-    elif mode == 'syntax-error':
-        # Set cookie value to 'throw-install' so the next fetch will work in 'throw-install' mode.
-        content_type = 'application/javascript'
-        response.set_cookie('mode', 'throw-install');
-        extra_body = 'badsyntax(isbad;'
-    elif mode == 'throw-install':
-        # Unset and delete cookie to clean up the test setting.
-        content_type = 'application/javascript'
-        response.delete_cookie('mode')
-        extra_body = "addEventListener('install', function(e) { throw new Error('boom'); });"
+  # Return a response based on |mode| only when it's the second time (== update).
+  if visited_count == 2:
+    if mode == 'normal':
+      return ok_response(request, response, visited_count)
+    if mode == 'bad_mime_type':
+      return ok_response(request, response, visited_count, mime_type='text/html')
+    if mode == 'not_found':
+      return not_found_response()
+    if mode == 'redirect':
+      return redirect_response(request, response, visited_count)
+    if mode == 'syntax_error':
+      return ok_response(request, response, visited_count, extra_body='badsyntax(isbad;')
+    if mode == 'throw_install':
+      return ok_response(request, response, visited_count, extra_body="addEventListener('install', function(e) { throw new Error('boom'); });")
 
-    headers.append(('Content-Type', content_type))
-    # Return a different script for each access.  Use .time() and .clock() for
-    # best time resolution across different platforms.
-    return headers, '/* %s %s */ %s' % (time.time(), time.clock(), extra_body)
-
+  return ok_response(request, response, visited_count)

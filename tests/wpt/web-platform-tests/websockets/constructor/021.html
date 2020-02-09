@@ -7,5 +7,5 @@
 <meta name="variant" content="?wss">
 <div id=log></div>
 <script>
-test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://certo2.oslo.osa/protocol_array",["foobar, foobar"])})});
+test(function() {assert_throws_dom("SyntaxError", function(){new WebSocket("ws://certo2.oslo.osa/protocol_array",["foobar, foobar"])})});
 </script>

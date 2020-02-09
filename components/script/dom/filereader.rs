@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compartments::enter_realm;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
@@ -22,14 +21,14 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
-use crate::task::TaskCanceller;
-use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
+use crate::realms::enter_realm;
+use crate::script_runtime::JSContext;
+use crate::task_source::file_reading::FileReadingTask;
 use crate::task_source::{TaskSource, TaskSourceName};
 use base64;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
@@ -37,8 +36,6 @@ use mime::{self, Mime};
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::ptr;
-use std::sync::Arc;
-use std::thread;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {
@@ -162,6 +159,7 @@ impl FileReader {
         )
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
         Ok(FileReader::new(global))
     }
@@ -232,12 +230,11 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    #[allow(unsafe_code)]
     pub fn process_read_eof(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         data: ReadMetaData,
-        blob_contents: Arc<Vec<u8>>,
+        blob_contents: Vec<u8>,
     ) {
         let fr = filereader.root();
 
@@ -280,8 +277,6 @@ impl FileReader {
             fr.dispatch_progress_event(atom!("loadend"), 0, None);
         }
         return_on_abort!();
-        // Step 9
-        fr.terminate_ongoing_reading();
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -312,14 +307,14 @@ impl FileReader {
     #[allow(unsafe_code)]
     fn perform_readasarraybuffer(
         result: &DomRefCell<Option<FileReaderResult>>,
-        cx: *mut JSContext,
+        cx: JSContext,
         _: ReadMetaData,
         bytes: &[u8],
     ) {
         unsafe {
-            rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             assert!(
-                ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
+                ArrayBuffer::create(*cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
                     .is_ok()
             );
 
@@ -391,12 +386,14 @@ impl FileReaderMethods for FileReader {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#dfn-result
-    unsafe fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
+    fn GetResult(&self, _: JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
-                result.set((*arr_buffer.ptr.get()).to_object());
+                unsafe {
+                    result.set((*arr_buffer.ptr.get()).to_object());
+                }
                 StringOrObject::Object(result)
             },
         })
@@ -427,6 +424,7 @@ impl FileReader {
         self.generation_id.set(GenerationId(prev_id + 1));
     }
 
+    /// <https://w3c.github.io/FileAPI/#readOperation>
     fn read(
         &self,
         function: FileReaderFunction,
@@ -442,32 +440,42 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 3
-        let blob_contents = Arc::new(blob.get_bytes().unwrap_or(vec![]));
+        *self.result.borrow_mut() = None;
 
         let type_ = blob.Type();
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
-        let fr = Trusted::new(self);
+        let GenerationId(prev_id) = self.generation_id.get();
+        self.generation_id.set(GenerationId(prev_id + 1));
         let gen_id = self.generation_id.get();
 
+        // Step 10, in parallel, wait on stream promises to resolve and queue tasks.
+
+        // TODO: follow the spec which requires implementing blob `get_stream`,
+        // see https://github.com/servo/servo/issues/25209
+
+        // Currently bytes are first read "sync", and then the appropriate tasks are queued.
+
+        // Read the blob bytes "sync".
+        let blob_contents = blob.get_bytes().unwrap_or_else(|_| vec![]);
+
+        let filereader = Trusted::new(self);
         let global = self.global();
         let canceller = global.task_canceller(TaskSourceName::FileReading);
         let task_source = global.file_reading_task_source();
 
-        thread::Builder::new()
-            .name("file reader async operation".to_owned())
-            .spawn(move || {
-                perform_annotated_read_operation(
-                    gen_id,
-                    load_data,
-                    blob_contents,
-                    fr,
-                    task_source,
-                    canceller,
-                )
-            })
-            .expect("Thread spawning failed");
+        // Queue tasks as appropriate.
+        let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
+        task_source.queue_with_canceller(task, &canceller).unwrap();
+
+        if !blob_contents.is_empty() {
+            let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
+            task_source.queue_with_canceller(task, &canceller).unwrap();
+        }
+
+        let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, load_data, blob_contents);
+        task_source.queue_with_canceller(task, &canceller).unwrap();
 
         Ok(())
     }
@@ -475,24 +483,4 @@ impl FileReader {
     fn change_ready_state(&self, state: FileReaderReadyState) {
         self.ready_state.set(state);
     }
-}
-
-// https://w3c.github.io/FileAPI/#thread-read-operation
-fn perform_annotated_read_operation(
-    gen_id: GenerationId,
-    data: ReadMetaData,
-    blob_contents: Arc<Vec<u8>>,
-    filereader: TrustedFileReader,
-    task_source: FileReadingTaskSource,
-    canceller: TaskCanceller,
-) {
-    // Step 4
-    let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
-    task_source.queue_with_canceller(task, &canceller).unwrap();
-
-    let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
-    task_source.queue_with_canceller(task, &canceller).unwrap();
-
-    let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents);
-    task_source.queue_with_canceller(task, &canceller).unwrap();
 }

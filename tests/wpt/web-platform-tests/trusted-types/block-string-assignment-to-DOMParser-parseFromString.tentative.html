@@ -3,7 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/helper.sub.js"></script>
 
-<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<meta http-equiv="Content-Security-Policy" content="trusted-types *; require-trusted-types-for 'script';">
 <body>
 <script>
   // Trusted HTML assignments do not throw.
@@ -18,7 +18,7 @@
   // String assignments throw.
   test(t => {
     var parser = new DOMParser();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var doc = parser.parseFromString("Fail", "text/html");
     });
   }, "`document.innerText = string` throws.");
@@ -26,14 +26,14 @@
   // Null assignment throws.
   test(t => {
     var parser = new DOMParser();
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       var doc = parser.parseFromString(null, "text/html");
     });
   }, "'document.innerText = null' throws");
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
     let parser = new DOMParser();
     let doc = parser.parseFromString(INPUTS.HTML, "text/html");
     assert_equals(doc.body.innerText, RESULTS.HTML);

@@ -16,10 +16,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use uuid::Uuid;
 
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
@@ -108,10 +110,10 @@ impl ServiceWorkerRegistration {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: global.pipeline_id(),
         };
 
-        let worker_id = global.get_next_worker_id();
+        let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
         let init = prepare_workerscope_init(&global, None);
         ScopeThings {

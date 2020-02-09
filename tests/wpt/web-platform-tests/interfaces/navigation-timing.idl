@@ -13,8 +13,8 @@ interface PerformanceNavigationTiming : PerformanceResourceTiming {
     readonly        attribute DOMHighResTimeStamp domComplete;
     readonly        attribute DOMHighResTimeStamp loadEventStart;
     readonly        attribute DOMHighResTimeStamp loadEventEnd;
-    readonly        attribute NavigationType type;
-    readonly        attribute unsigned short redirectCount;
+    readonly        attribute NavigationType      type;
+    readonly        attribute unsigned short      redirectCount;
     [Default] object toJSON();
 };
 

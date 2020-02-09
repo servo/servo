@@ -21,6 +21,21 @@ pub struct CompositionEvent {
 }
 
 impl CompositionEvent {
+    pub fn new_inherited() -> CompositionEvent {
+        CompositionEvent {
+            uievent: UIEvent::new_inherited(),
+            data: DOMString::new(),
+        }
+    }
+
+    pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
+        reflect_dom_object(
+            Box::new(CompositionEvent::new_inherited()),
+            window,
+            CompositionEventBinding::Wrap,
+        )
+    }
+
     pub fn new(
         window: &Window,
         type_: DOMString,
@@ -43,6 +58,7 @@ impl CompositionEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -53,7 +69,7 @@ impl CompositionEvent {
             type_,
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.parent.view.deref(),
+            init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
         );

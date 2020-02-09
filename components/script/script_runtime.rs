@@ -5,9 +5,16 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
+#![allow(dead_code)]
+
+use crate::body::BodyOperations;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::conversions::get_dom_class;
 use crate::dom::bindings::conversions::private_from_object;
+use crate::dom::bindings::conversions::root_from_handleobject;
+use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{trace_refcounted_objects, LiveDOMReferences};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -21,15 +28,27 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
+use crate::dom::response::Response;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
+use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
+use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
-use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, JobQueueTraps, SetBuildId};
+use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun};
+use js::glue::{JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk};
+use js::glue::{
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
+};
 use js::jsapi::ContextOptionsRef;
+use js::jsapi::InitConsumeStreamCallback;
+use js::jsapi::InitDispatchToEventLoop;
+use js::jsapi::MimeType;
+use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
+use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
 use js::jsapi::{HandleObject, Heap, JobQueue};
-use js::jsapi::{JSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
+use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{
@@ -37,19 +56,22 @@ use js::jsapi::{
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
 use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
+use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
-use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
+use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::Handle;
+use js::rust::HandleObject as RustHandleObject;
 use js::rust::IntoHandle;
-use js::rust::JSEngine;
 use js::rust::ParentRuntime;
 use js::rust::Runtime as RustRuntime;
+use js::rust::{JSEngine, JSEngineHandle};
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use servo_config::opts;
 use servo_config::pref;
 use std::cell::Cell;
+use std::ffi::CString;
 use std::fmt;
 use std::io::{stdout, Write};
 use std::ops::Deref;
@@ -58,7 +80,9 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
+use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
 
@@ -114,6 +138,7 @@ pub enum ScriptThreadEventCategory {
     ImageCacheMsg,
     InputEvent,
     NetworkEvent,
+    PortMessage,
     Resize,
     ScriptEvent,
     SetScrollState,
@@ -139,10 +164,14 @@ pub trait ScriptPort {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut JSContext) -> *mut JSObject {
+unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
     wrap_panic(
         AssertUnwindSafe(|| {
-            GlobalScope::incumbent()
+            let incumbent_global = GlobalScope::incumbent();
+
+            assert!(incumbent_global.is_some());
+
+            incumbent_global
                 .map(|g| g.reflector().get_jsobject().get())
                 .unwrap_or(ptr::null_mut())
         }),
@@ -166,12 +195,13 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
 #[allow(unsafe_code)]
 unsafe extern "C" fn enqueue_promise_job(
     extra: *const c_void,
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     _promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
     incumbent_global: HandleObject,
 ) -> bool {
+    let cx = JSContext::from_ptr(cx);
     wrap_panic(
         AssertUnwindSafe(|| {
             let microtask_queue = &*(extra as *const MicrotaskQueue);
@@ -193,7 +223,7 @@ unsafe extern "C" fn enqueue_promise_job(
 #[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
 unsafe extern "C" fn promise_rejection_tracker(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
     _data: *mut c_void,
@@ -201,7 +231,8 @@ unsafe extern "C" fn promise_rejection_tracker(
     // TODO: Step 2 - If script's muted errors is true, terminate these steps.
 
     // Step 3.
-    let global = GlobalScope::from_context(cx);
+    let cx = JSContext::from_ptr(cx);
+    let global = GlobalScope::from_context(*cx);
 
     wrap_panic(
         AssertUnwindSafe(|| {
@@ -245,7 +276,8 @@ unsafe extern "C" fn promise_rejection_tracker(
                         let cx = target.global().get_cx();
                         let root_promise = trusted_promise.root();
 
-                        rooted!(in(cx) let reason = GetPromiseResult(root_promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let mut reason = UndefinedValue());
+                        JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),
@@ -270,9 +302,8 @@ unsafe extern "C" fn promise_rejection_tracker(
 #[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises
 pub fn notify_about_rejected_promises(global: &GlobalScope) {
+    let cx = global.get_cx();
     unsafe {
-        let cx = global.get_cx();
-
         // Step 2.
         if global.get_uncaught_rejections().borrow().len() > 0 {
             // Step 1.
@@ -309,7 +340,8 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                         }
 
                         // Step 4-2.
-                        rooted!(in(cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));
+                        rooted!(in(*cx) let mut reason = UndefinedValue());
+                        JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
 
                         let event = PromiseRejectionEvent::new(
                             &target.global(),
@@ -366,27 +398,53 @@ impl Deref for Runtime {
     }
 }
 
+pub struct JSEngineSetup(JSEngine);
+
+impl JSEngineSetup {
+    pub fn new() -> Self {
+        let engine = JSEngine::init().unwrap();
+        *JS_ENGINE.lock().unwrap() = Some(engine.handle());
+        Self(engine)
+    }
+}
+
+impl Drop for JSEngineSetup {
+    fn drop(&mut self) {
+        *JS_ENGINE.lock().unwrap() = None;
+
+        while !self.0.can_shutdown() {
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+}
+
 lazy_static! {
-    static ref JS_ENGINE: Arc<JSEngine> = JSEngine::init().unwrap();
+    static ref JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn new_child_runtime(parent: ParentRuntime) -> Runtime {
-    new_rt_and_cx_with_parent(Some(parent))
+pub unsafe fn new_child_runtime(
+    parent: ParentRuntime,
+    networking_task_source: Option<NetworkingTaskSource>,
+) -> Runtime {
+    new_rt_and_cx_with_parent(Some(parent), networking_task_source)
 }
 
 #[allow(unsafe_code)]
-pub fn new_rt_and_cx() -> Runtime {
-    unsafe { new_rt_and_cx_with_parent(None) }
+pub fn new_rt_and_cx(networking_task_source: Option<NetworkingTaskSource>) -> Runtime {
+    unsafe { new_rt_and_cx_with_parent(None, networking_task_source) }
 }
 
 #[allow(unsafe_code)]
-unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
+unsafe fn new_rt_and_cx_with_parent(
+    parent: Option<ParentRuntime>,
+    networking_task_source: Option<NetworkingTaskSource>,
+) -> Runtime {
     LiveDOMReferences::initialize();
     let runtime = if let Some(parent) = parent {
         RustRuntime::create_with_parent(parent)
     } else {
-        RustRuntime::new(JS_ENGINE.clone())
+        RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
     };
     let cx = runtime.cx();
 
@@ -401,13 +459,37 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
         SetGCSliceCallback(cx, Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: HandleObject) -> bool {
+    unsafe extern "C" fn empty_wrapper_callback(_: *mut RawJSContext, _: HandleObject) -> bool {
         true
     }
     SetDOMCallbacks(cx, &DOM_CALLBACKS);
     SetPreserveWrapperCallback(cx, Some(empty_wrapper_callback));
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(cx);
+
+    unsafe extern "C" fn dispatch_to_event_loop(
+        closure: *mut c_void,
+        dispatchable: *mut JSRunnable,
+    ) -> bool {
+        let networking_task_src: &NetworkingTaskSource = &*(closure as *mut NetworkingTaskSource);
+        let runnable = Runnable(dispatchable);
+        let task = task!(dispatch_to_event_loop_message: move || {
+            runnable.run(RustRuntime::get(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
+        });
+
+        networking_task_src.queue_unconditionally(task).is_ok()
+    }
+
+    if let Some(source) = networking_task_source {
+        let networking_task_src = Box::new(source);
+        InitDispatchToEventLoop(
+            cx,
+            Some(dispatch_to_event_loop),
+            Box::into_raw(networking_task_src) as *mut c_void,
+        );
+    }
+
+    InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
 
     let microtask_queue = Rc::new(MicrotaskQueue::default());
     let job_queue = CreateJobQueue(
@@ -416,6 +498,8 @@ unsafe fn new_rt_and_cx_with_parent(parent: Option<ParentRuntime>) -> Runtime {
     );
     SetJobQueue(cx, job_queue);
     SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
+
+    EnsureModuleHooksInitialized(runtime.rt());
 
     set_gc_zeal_options(cx);
 
@@ -589,7 +673,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 }
 
 #[allow(unsafe_code)]
-pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
+pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
 
     unsafe {
@@ -655,7 +739,7 @@ thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     progress: GCProgress,
     desc: *const GCDescription,
 ) {
@@ -695,7 +779,7 @@ unsafe extern "C" fn gc_slice_callback(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn debug_gc_callback(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     status: JSGCStatus,
     _data: *mut os::raw::c_void,
 ) {
@@ -731,11 +815,11 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 
 #[allow(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
-unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
+unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 
     let level = match pref!(js.mem.gc.zeal.level) {
-        level @ 0...14 => level as u8,
+        level @ 0..=14 => level as u8,
         _ => return,
     };
     let frequency = match pref!(js.mem.gc.zeal.frequency) {
@@ -747,4 +831,177 @@ unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
 
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
-unsafe fn set_gc_zeal_options(_: *mut JSContext) {}
+unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+#[derive(Clone, Copy)]
+pub struct JSContext(*mut RawJSContext);
+
+#[allow(unsafe_code)]
+impl JSContext {
+    pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
+        JSContext(raw_js_context)
+    }
+}
+
+#[allow(unsafe_code)]
+impl Deref for JSContext {
+    type Target = *mut RawJSContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub struct StreamConsumer(*mut JSStreamConsumer);
+
+#[allow(unsafe_code)]
+impl StreamConsumer {
+    pub fn consume_chunk(&self, stream: &[u8]) -> bool {
+        unsafe {
+            let stream_ptr = stream.as_ptr();
+            return StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len());
+        }
+    }
+
+    pub fn stream_end(&self) {
+        unsafe {
+            StreamConsumerStreamEnd(self.0);
+        }
+    }
+
+    pub fn stream_error(&self, error_code: usize) {
+        unsafe {
+            StreamConsumerStreamError(self.0, error_code);
+        }
+    }
+
+    pub fn note_response_urls(
+        &self,
+        maybe_url: Option<String>,
+        maybe_source_map_url: Option<String>,
+    ) {
+        unsafe {
+            let maybe_url = maybe_url.map(|url| CString::new(url).unwrap());
+            let maybe_source_map_url = maybe_source_map_url.map(|url| CString::new(url).unwrap());
+
+            let maybe_url_param = match maybe_url.as_ref() {
+                Some(url) => url.as_ptr(),
+                None => ptr::null(),
+            };
+            let maybe_source_map_url_param = match maybe_source_map_url.as_ref() {
+                Some(url) => url.as_ptr(),
+                None => ptr::null(),
+            };
+
+            StreamConsumerNoteResponseURLs(self.0, maybe_url_param, maybe_source_map_url_param);
+        }
+    }
+}
+
+/// Implements the steps to compile webassembly response mentioned here
+/// <https://webassembly.github.io/spec/web-api/#compile-a-potential-webassembly-response>
+#[allow(unsafe_code)]
+unsafe extern "C" fn consume_stream(
+    _cx: *mut RawJSContext,
+    obj: HandleObject,
+    _mime_type: MimeType,
+    _consumer: *mut JSStreamConsumer,
+) -> bool {
+    let cx = JSContext::from_ptr(_cx);
+    let global = GlobalScope::from_context(*cx);
+
+    //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
+    if let Ok(unwrapped_source) =
+        root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), *cx)
+    {
+        //Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
+        let mimetype = unwrapped_source.Headers().extract_mime_type();
+
+        //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
+        if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response has unsupported MIME type".to_string()),
+            );
+            return false;
+        }
+
+        //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
+        match unwrapped_source.Type() {
+            DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
+            _ => {
+                throw_dom_exception(
+                    cx,
+                    &global,
+                    Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                );
+                return false;
+            },
+        }
+
+        //Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
+        if !unwrapped_source.Ok() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response does not have ok status".to_string()),
+            );
+            return false;
+        }
+
+        // Step 2.6.1 If response body is locked, return with a TypeError and abort these substeps.
+        if unwrapped_source.is_locked() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("There was an error consuming the Response".to_string()),
+            );
+            return false;
+        }
+
+        // Step 2.6.2 If response body is alreaady consumed, return with a TypeError and abort these substeps.
+        if unwrapped_source.get_body_used() {
+            throw_dom_exception(
+                cx,
+                &global,
+                Error::Type("Response already consumed".to_string()),
+            );
+            return false;
+        }
+        unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
+    } else {
+        //Step 3 Upon rejection of source, return with reason.
+        throw_dom_exception(
+            cx,
+            &global,
+            Error::Type("expected Response or Promise resolving to Response".to_string()),
+        );
+        return false;
+    }
+    return true;
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
+    error!(
+        "Error initializing StreamConsumer: {:?}",
+        RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
+    );
+}
+
+pub struct Runnable(*mut JSRunnable);
+
+#[allow(unsafe_code)]
+unsafe impl Sync for Runnable {}
+#[allow(unsafe_code)]
+unsafe impl Send for Runnable {}
+
+#[allow(unsafe_code)]
+impl Runnable {
+    fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
+        unsafe {
+            DispatchableRun(cx, self.0, maybe_shutting_down);
+        }
+    }
+}

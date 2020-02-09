@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: getComputedStyle().boxShadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#box-shadow">
+<meta name="assert" content="box-shadow computes to none or a list.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    color: blue;
+    font-size: 20px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+const currentColor = 'rgb(0, 0, 255)';
+test_computed_value('box-shadow', 'none');
+test_computed_value('box-shadow', '1px 2px', currentColor + ' 1px 2px 0px 0px');
+test_computed_value('box-shadow', 'currentcolor -1em -2em 3em -4em', currentColor + ' -20px -40px 60px -80px');
+test_computed_value('box-shadow', 'rgb(0, 255, 0) 1px 2px 3px 4px inset');
+</script>
+</body>
+</html>

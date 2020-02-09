@@ -59,7 +59,7 @@ test(() => {
     start(c) {
       c.enqueue('a');
       c.error(new Error('generic error'));
-      assert_throws(new TypeError(), () => c.enqueue('b'), 'enqueue() should throw');
+      assert_throws_js(TypeError, () => c.enqueue('b'), 'enqueue() should throw');
     }
   });
 }, 'errored TransformStream should not enqueue new chunks');
@@ -109,7 +109,7 @@ promise_test(t => {
 }, 'when controller.error is followed by a rejection, the error reason should come from controller.error');
 
 test(() => {
-  assert_throws(new URIError(), () => new TransformStream({
+  assert_throws_js(URIError, () => new TransformStream({
     start() { throw new URIError('start thrown error'); },
     transform() {}
   }), 'constructor should throw');
@@ -120,7 +120,7 @@ test(() => {
     size() { throw new URIError('size thrown error'); }
   };
 
-  assert_throws(new URIError(), () => new TransformStream({
+  assert_throws_js(URIError, () => new TransformStream({
     start(c) {
       c.enqueue('a');
     },
@@ -139,7 +139,7 @@ test(() => {
     }
   };
 
-  assert_throws(new URIError(), () => new TransformStream({
+  assert_throws_js(URIError, () => new TransformStream({
     start(c) {
       controller = c;
       c.enqueue('a');

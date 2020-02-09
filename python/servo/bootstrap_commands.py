@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 import traceback
-import urllib2
+import six.moves.urllib as urllib
 import glob
 
 from mach.decorators import (
@@ -34,18 +34,6 @@ from servo.util import delete, download_bytes, download_file, extract, check_has
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('env',
-             description='Print environment setup commands',
-             category='bootstrap')
-    def env(self):
-        env = self.build_env()
-        print("export RUSTFLAGS=%s" % env.get("RUSTFLAGS", ""))
-        print("export PATH=%s" % env.get("PATH", ""))
-        if sys.platform == "darwin":
-            print("export DYLD_LIBRARY_PATH=%s" % env.get("DYLD_LIBRARY_PATH", ""))
-        else:
-            print("export LD_LIBRARY_PATH=%s" % env.get("LD_LIBRARY_PATH", ""))
-
     @Command('bootstrap',
              description='Install required packages for building.',
              category='bootstrap')
@@ -157,6 +145,7 @@ class MachCommands(CommandBase):
             ]
         if build:
             components += [
+                "platform-tools",
                 "platforms;android-18",
             ]
 
@@ -231,7 +220,7 @@ class MachCommands(CommandBase):
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
@@ -255,7 +244,7 @@ class MachCommands(CommandBase):
 
             with open(path.join(preload_path, preload_filename), 'w') as fd:
                 json.dump(entries, fd, indent=4)
-        except ValueError, e:
+        except ValueError as e:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
@@ -269,7 +258,7 @@ class MachCommands(CommandBase):
 
         try:
             content = download_bytes("Public suffix list", list_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download the public suffix list; are you connected to the internet?")
             sys.exit(1)
 
@@ -292,8 +281,7 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        default_toolchain = self.default_toolchain()
-        print("Current Rust version for Servo: {}".format(default_toolchain))
+        print("Current Rust version for Servo: {}".format(self.rust_toolchain()))
         old_toolchains = []
         keep = int(keep)
         stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain'])

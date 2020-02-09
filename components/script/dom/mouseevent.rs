@@ -2,20 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Point2D;
+use euclid::default::Point2D;
 use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
@@ -27,6 +29,12 @@ pub struct MouseEvent {
     screen_y: Cell<i32>,
     client_x: Cell<i32>,
     client_y: Cell<i32>,
+    page_x: Cell<i32>,
+    page_y: Cell<i32>,
+    x: Cell<i32>,
+    y: Cell<i32>,
+    offset_x: Cell<i32>,
+    offset_y: Cell<i32>,
     ctrl_key: Cell<bool>,
     shift_key: Cell<bool>,
     alt_key: Cell<bool>,
@@ -45,6 +53,12 @@ impl MouseEvent {
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
             client_y: Cell::new(0),
+            page_x: Cell::new(0),
+            page_y: Cell::new(0),
+            x: Cell::new(0),
+            y: Cell::new(0),
+            offset_x: Cell::new(0),
+            offset_y: Cell::new(0),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),
@@ -104,9 +118,13 @@ impl MouseEvent {
         );
         ev.buttons.set(buttons);
         ev.point_in_target.set(point_in_target);
+        // TODO: Set proper values in https://github.com/servo/servo/issues/24415
+        ev.page_x.set(client_x);
+        ev.page_y.set(client_y);
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -119,7 +137,7 @@ impl MouseEvent {
             type_,
             bubbles,
             cancelable,
-            init.parent.parent.view.deref(),
+            init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
             init.screenX,
             init.screenY,
@@ -130,8 +148,8 @@ impl MouseEvent {
             init.parent.shiftKey,
             init.parent.metaKey,
             init.button,
-            0,
-            init.relatedTarget.deref(),
+            init.buttons,
+            init.relatedTarget.as_deref(),
             None,
         );
         Ok(event)
@@ -161,6 +179,78 @@ impl MouseEventMethods for MouseEvent {
     // https://w3c.github.io/uievents/#widl-MouseEvent-clientY
     fn ClientY(&self) -> i32 {
         self.client_y.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex
+    fn PageX(&self) -> i32 {
+        if self.upcast::<Event>().dispatching() {
+            self.page_x.get()
+        } else {
+            let global = self.global();
+            let window = global.as_window();
+            window.current_viewport().origin.x.to_px() + self.client_x.get()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey
+    fn PageY(&self) -> i32 {
+        if self.upcast::<Event>().dispatching() {
+            self.page_y.get()
+        } else {
+            let global = self.global();
+            let window = global.as_window();
+            window.current_viewport().origin.y.to_px() + self.client_y.get()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-x
+    fn X(&self) -> i32 {
+        self.client_x.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-y
+    fn Y(&self) -> i32 {
+        self.client_y.get()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx
+    fn OffsetX(&self) -> i32 {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            match event.GetTarget() {
+                Some(target) => {
+                    if let Some(node) = target.downcast::<Node>() {
+                        let rect = node.client_rect();
+                        self.client_x.get() - rect.origin.x
+                    } else {
+                        self.offset_x.get()
+                    }
+                },
+                None => self.offset_x.get(),
+            }
+        } else {
+            self.PageX()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety
+    fn OffsetY(&self) -> i32 {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            match event.GetTarget() {
+                Some(target) => {
+                    if let Some(node) = target.downcast::<Node>() {
+                        let rect = node.client_rect();
+                        self.client_y.get() - rect.origin.y
+                    } else {
+                        self.offset_y.get()
+                    }
+                },
+                None => self.offset_y.get(),
+            }
+        } else {
+            self.PageY()
+        }
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-ctrlKey

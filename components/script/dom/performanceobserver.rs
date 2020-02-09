@@ -61,6 +61,7 @@ impl PerformanceObserver {
         reflect_dom_object(Box::new(observer), global, PerformanceObserverBinding::Wrap)
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,

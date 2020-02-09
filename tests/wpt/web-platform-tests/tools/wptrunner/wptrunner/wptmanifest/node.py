@@ -1,3 +1,5 @@
+from six.moves import range
+
 class NodeVisitor(object):
     def visit(self, node):
         # This is ugly as hell, but we don't have multimethods and
@@ -57,8 +59,9 @@ class DataNode(Node):
             index = len(self.children)
             while index > 0 and isinstance(self.children[index - 1], DataNode):
                 index -= 1
-            for i in xrange(index):
-                assert other.data != self.children[i].data
+            for i in range(index):
+                if other.data == self.children[i].data:
+                    raise ValueError("Duplicate key %s" % self.children[i].data)
             self.children.insert(index, other)
 
 
@@ -67,9 +70,11 @@ class KeyValueNode(Node):
         # Append that retains the invariant that conditional nodes
         # come before unconditional nodes
         other.parent = self
-        if isinstance(other, ValueNode):
+        if not isinstance(other, (ListNode, ValueNode, ConditionalNode)):
+            raise TypeError
+        if isinstance(other, (ListNode, ValueNode)):
             if self.children:
-                assert not isinstance(self.children[-1], ValueNode)
+                assert not isinstance(self.children[-1], (ListNode, ValueNode))
             self.children.append(other)
         else:
             if self.children and isinstance(self.children[-1], ValueNode):
@@ -94,7 +99,17 @@ class AtomNode(ValueNode):
 
 
 class ConditionalNode(Node):
-    pass
+    def append(self, other):
+        if not len(self.children):
+            if not isinstance(other, (BinaryExpressionNode, UnaryExpressionNode, VariableNode)):
+                raise TypeError
+        else:
+            if len(self.children) > 1:
+                raise ValueError
+            if not isinstance(other, (ListNode, ValueNode)):
+                raise TypeError
+        other.parent = self
+        self.children.append(other)
 
 
 class UnaryExpressionNode(Node):

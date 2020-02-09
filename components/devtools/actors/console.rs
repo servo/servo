@@ -10,15 +10,19 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::object::ObjectActor;
 use crate::protocol::JsonPacketStream;
+use crate::{ConsoleAPICall, ConsoleMessage, ConsoleMsg, PageErrorMsg};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
 use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
-use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg};
+use devtools_traits::{
+    CachedConsoleMessageTypes, ConsoleAPI, DevtoolScriptControlMsg, LogLevel, PageError,
+};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
 use std::net::TcpStream;
+use time::precise_time_ns;
 use uuid::Uuid;
 
 trait EncodableConsoleMessage {
@@ -35,9 +39,7 @@ impl EncodableConsoleMessage for CachedConsoleMessage {
 }
 
 #[derive(Serialize)]
-struct StartedListenersTraits {
-    customNetworkRequest: bool,
-}
+struct StartedListenersTraits;
 
 #[derive(Serialize)]
 struct StartedListenersReply {
@@ -107,6 +109,7 @@ pub struct ConsoleActor {
     pub pipeline: PipelineId,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<Vec<TcpStream>>,
+    pub cached_events: RefCell<Vec<CachedConsoleMessage>>,
 }
 
 impl ConsoleActor {
@@ -187,6 +190,58 @@ impl ConsoleActor {
         };
         std::result::Result::Ok(reply)
     }
+
+    pub(crate) fn handle_page_error(&self, page_error: PageError) {
+        self.cached_events
+            .borrow_mut()
+            .push(CachedConsoleMessage::PageError(page_error.clone()));
+        let msg = PageErrorMsg {
+            from: self.name(),
+            type_: "pageError".to_owned(),
+            pageError: page_error,
+        };
+        for stream in &mut *self.streams.borrow_mut() {
+            stream.write_json_packet(&msg);
+        }
+    }
+
+    pub(crate) fn handle_console_api(&self, console_message: ConsoleMessage) {
+        let level = match console_message.logLevel {
+            LogLevel::Debug => "debug",
+            LogLevel::Info => "info",
+            LogLevel::Warn => "warn",
+            LogLevel::Error => "error",
+            _ => "log",
+        }
+        .to_owned();
+        self.cached_events
+            .borrow_mut()
+            .push(CachedConsoleMessage::ConsoleAPI(ConsoleAPI {
+                type_: "ConsoleAPI".to_owned(),
+                level: level.clone(),
+                filename: console_message.filename.clone(),
+                lineNumber: console_message.lineNumber as u32,
+                functionName: "".to_string(), //TODO
+                timeStamp: precise_time_ns(),
+                private: false,
+                arguments: vec![console_message.message.clone()],
+            }));
+        let msg = ConsoleAPICall {
+            from: self.name(),
+            type_: "consoleAPICall".to_owned(),
+            message: ConsoleMsg {
+                level: level,
+                timeStamp: precise_time_ns(),
+                arguments: vec![console_message.message],
+                filename: console_message.filename,
+                lineNumber: console_message.lineNumber,
+                columnNumber: console_message.columnNumber,
+            },
+        };
+        for stream in &mut *self.streams.borrow_mut() {
+            stream.write_json_packet(&msg);
+        }
+    }
 }
 
 impl Actor for ConsoleActor {
@@ -220,24 +275,27 @@ impl Actor for ConsoleActor {
                         s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
                 }
-                let (chan, port) = ipc::channel().unwrap();
-                self.script_chan
-                    .send(DevtoolScriptControlMsg::GetCachedMessages(
-                        self.pipeline,
-                        message_types,
-                        chan,
-                    ))
-                    .unwrap();
-                let messages = port
-                    .recv()
-                    .map_err(|_| ())?
-                    .into_iter()
-                    .map(|message| {
-                        let json_string = message.encode().unwrap();
+                let mut messages = vec![];
+                for event in self.cached_events.borrow().iter() {
+                    let include = match event {
+                        CachedConsoleMessage::PageError(_)
+                            if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) =>
+                        {
+                            true
+                        },
+                        CachedConsoleMessage::ConsoleAPI(_)
+                            if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) =>
+                        {
+                            true
+                        },
+                        _ => false,
+                    };
+                    if include {
+                        let json_string = event.encode().unwrap();
                         let json = serde_json::from_str::<Value>(&json_string).unwrap();
-                        json.as_object().unwrap().to_owned()
-                    })
-                    .collect();
+                        messages.push(json.as_object().unwrap().to_owned())
+                    }
+                }
 
                 let msg = GetCachedMessagesReply {
                     from: self.name(),
@@ -249,13 +307,15 @@ impl Actor for ConsoleActor {
 
             "startListeners" => {
                 //TODO: actually implement listener filters that support starting/stopping
+                let listeners = msg.get("listeners").unwrap().as_array().unwrap().to_owned();
                 let msg = StartedListenersReply {
                     from: self.name(),
                     nativeConsoleAPI: true,
-                    startedListeners: vec!["PageError".to_owned(), "ConsoleAPI".to_owned()],
-                    traits: StartedListenersTraits {
-                        customNetworkRequest: true,
-                    },
+                    startedListeners: listeners
+                        .into_iter()
+                        .map(|s| s.as_str().unwrap().to_owned())
+                        .collect(),
+                    traits: StartedListenersTraits,
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

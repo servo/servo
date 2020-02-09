@@ -6,8 +6,9 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script>
+        setup({ single_test: true });
         window.addEventListener('securitypolicyviolation', function(e) {
-            test(function() { assert_unreached("securitypolicyviolat was fired")});
+            assert_unreached("securitypolicyviolat was fired");
         });
     </script>
     </head>

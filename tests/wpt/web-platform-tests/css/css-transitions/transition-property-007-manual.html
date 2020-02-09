@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - border-bottom-color</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="assert" content="Test checks that the 'border-bottom-color' property animatable.">
+<style>
+  #test {
+    border: 10px solid red;
+    height: 90px;
+    transition-duration: 2s;
+    transition-property: border-bottom-color;
+    transition-timing-function: linear;
+    width: 90px;
+  }
+</style>
+<body>
+  <p>Click the square with red border below. Test passes if the color of bottom border transforms to green gradually not immediately.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var div = document.querySelector("#test");
+      div.addEventListener("click", function(evt) {
+        div.setAttribute("style", "border-bottom-color: green;");
+      }, false);
+    })();
+  </script>
+</body>

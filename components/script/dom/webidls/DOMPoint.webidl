@@ -10,10 +10,12 @@
  */
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double z = 0, optional unrestricted double w = 1),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface DOMPoint : DOMPointReadOnly {
+    [Throws] constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+                optional unrestricted double z = 0, optional unrestricted double w = 1);
+    [NewObject] static DOMPoint fromPoint(optional DOMPointInit other = {});
+
     inherit attribute unrestricted double x;
     inherit attribute unrestricted double y;
     inherit attribute unrestricted double z;

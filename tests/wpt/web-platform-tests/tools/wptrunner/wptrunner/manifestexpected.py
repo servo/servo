@@ -1,11 +1,13 @@
 import os
-from six.moves.urllib.parse import urljoin
 from collections import deque
+from six import string_types, text_type
+from six.moves.urllib.parse import urljoin
 
-from wptmanifest.backends import static
-from wptmanifest.backends.base import ManifestItem
 
-import expected
+from .wptmanifest.backends import static
+from .wptmanifest.backends.base import ManifestItem
+
+from . import expected
 
 """Manifest structure used to store expected results of a test.
 
@@ -42,11 +44,22 @@ def int_prop(name, node):
         return None
 
 
+def list_prop(name, node):
+    """List property"""
+    try:
+        list_prop = node.get(name)
+        if isinstance(list_prop, string_types):
+            return [list_prop]
+        return list(list_prop)
+    except KeyError:
+        return []
+
+
 def tags(node):
     """Set of tags that have been applied to the test"""
     try:
         value = node.get("tags")
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, text_type):
             return {value}
         return set(value)
     except KeyError:
@@ -55,7 +68,7 @@ def tags(node):
 
 def prefs(node):
     def value(ini_value):
-        if isinstance(ini_value, (str, unicode)):
+        if isinstance(ini_value, text_type):
             return tuple(pref_piece.strip() for pref_piece in ini_value.split(':', 1))
         else:
             # this should be things like @Reset, which are apparently type 'object'
@@ -63,7 +76,7 @@ def prefs(node):
 
     try:
         node_prefs = node.get("prefs")
-        if type(node_prefs) in (str, unicode):
+        if isinstance(node_prefs, text_type):
             rv = dict(value(node_prefs))
         else:
             rv = dict(value(item) for item in node_prefs)
@@ -75,7 +88,7 @@ def prefs(node):
 def set_prop(name, node):
     try:
         node_items = node.get(name)
-        if isinstance(node_items, (str, unicode)):
+        if isinstance(node_items, text_type):
             rv = {node_items}
         else:
             rv = set(node_items)
@@ -88,7 +101,7 @@ def leak_threshold(node):
     rv = {}
     try:
         node_items = node.get("leak-threshold")
-        if isinstance(node_items, (str, unicode)):
+        if isinstance(node_items, text_type):
             node_items = [node_items]
         for item in node_items:
             process, value = item.rsplit(":", 1)
@@ -145,7 +158,7 @@ def fuzzy_prop(node):
     if not isinstance(value, list):
         value = [value]
     for item in value:
-        if not isinstance(item, (str, unicode)):
+        if not isinstance(item, text_type):
             rv.append(item)
             continue
         parts = item.rsplit(":", 1)
@@ -288,6 +301,14 @@ class ExpectedManifest(ManifestItem):
     def fuzzy(self):
         return fuzzy_prop(self)
 
+    @property
+    def expected(self):
+        return list_prop("expected", self)[0]
+
+    @property
+    def known_intermittent(self):
+        return list_prop("expected", self)[1:]
+
 
 class DirectoryManifest(ManifestItem):
     @property
@@ -415,6 +436,14 @@ class TestNode(ManifestItem):
     def fuzzy(self):
         return fuzzy_prop(self)
 
+    @property
+    def expected(self):
+        return list_prop("expected", self)[0]
+
+    @property
+    def known_intermittent(self):
+        return list_prop("expected", self)[1:]
+
     def append(self, node):
         """Add a subtest to the current test
 
@@ -451,7 +480,7 @@ def get_manifest(metadata_root, test_path, url_base, run_info):
     """
     manifest_path = expected.expected_path(metadata_root, test_path)
     try:
-        with open(manifest_path) as f:
+        with open(manifest_path, "rb") as f:
             return static.compile(f,
                                   run_info,
                                   data_cls_getter=data_cls_getter,
@@ -470,7 +499,7 @@ def get_dir_manifest(path, run_info):
                      values should be computed.
     """
     try:
-        with open(path) as f:
+        with open(path, "rb") as f:
             return static.compile(f,
                                   run_info,
                                   data_cls_getter=lambda x,y: DirectoryManifest)

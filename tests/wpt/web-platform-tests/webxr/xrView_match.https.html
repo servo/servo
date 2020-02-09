@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<canvas />
+
+<script>
+
+let testName = "XRFrame contains the expected views";
+
+const fakeViews = [{
+        eye:"left",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: LEFT_OFFSET,
+        resolution: VALID_RESOLUTION
+    }, {
+        eye:"right",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: RIGHT_OFFSET,
+        resolution: VALID_RESOLUTION
+    },
+];
+
+let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: fakeViews,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    return session.requestReferenceSpace('local').then((referenceSpace) => new Promise((resolve) => {
+      function onFrame(time, xrFrame) {
+        let pose = xrFrame.getViewerPose(referenceSpace);
+        assert_not_equals(pose, null);
+        assert_not_equals(pose.views, null);
+        assert_equals(pose.views.length, 2);
+
+        {
+          let pose2 = xrFrame.getPose(viewerSpace, referenceSpace);
+          assert_not_equals(pose2, null);
+
+          // This pose should have the same transform as the viewer pose, but without
+          // the views array. It should be an XRPose instead of the XRViewerPose derived
+          // class.
+          assert_true(pose2 instanceof XRPose);
+          assert_false(pose2 instanceof XRViewerPose);
+          assert_not_equals(pose2.transform, null);
+          assert_not_equals(pose2.transform.matrix, null);
+          assert_matrix_approx_equals(pose.transform.matrix, pose2.transform.matrix);
+        }
+
+        // Ensure that two views are provided.
+        let leftView = pose.views[0];
+        let rightView = pose.views[1];
+
+        // Ensure that the views are the right type.
+        assert_true(leftView instanceof XRView);
+        assert_true(rightView instanceof XRView);
+
+        // Ensure that they have the expected eye enums.
+        assert_equals(leftView.eye, "left");
+        assert_equals(rightView.eye, "right");
+
+        // Ensure they have the expected projection matrices.
+        assert_not_equals(leftView.projectionMatrix, null);
+        assert_not_equals(rightView.projectionMatrix, null);
+
+        assert_matrix_approx_equals(leftView.projectionMatrix, VALID_PROJECTION_MATRIX);
+        assert_matrix_approx_equals(rightView.projectionMatrix, VALID_PROJECTION_MATRIX);
+
+        // Finished test.
+        resolve();
+      }
+
+      session.requestAnimationFrame(onFrame);
+    }));
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

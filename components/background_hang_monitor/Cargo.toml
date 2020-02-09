@@ -14,12 +14,10 @@ doctest = false
 
 [dependencies]
 backtrace = "0.3"
-bitflags = "1.0"
-ipc-channel = "0.11"
+ipc-channel = "0.12"
 libc = "0.2"
 log = "0.4"
 msg = {path = "../msg"}
-serde = "1.0.60"
 serde_json = "1.0"
 crossbeam-channel = "0.3"
 
@@ -27,8 +25,8 @@ crossbeam-channel = "0.3"
 lazy_static = "1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-mach = "0.2.3"
+mach = "0.3"
 
 [target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
-nix = "0.13"
+nix = "0.14"
 unwind-sys = "0.1.1"

@@ -2,12 +2,24 @@
 // message from the worker and responds with the list of imported modules.
 
 const sourcePromise = new Promise(resolve => {
-  self.onmessage = e => {
-    // DedicatedWorkerGlobalScope doesn't fill in e.source,
-    // so use e.target instead.
-    const source = e.source ? e.source : e.target;
-    resolve(source);
-  };
+  if ('DedicatedWorkerGlobalScope' in self &&
+      self instanceof DedicatedWorkerGlobalScope) {
+    self.onmessage = e => {
+      resolve(e.target);
+    };
+  } else if (
+      'SharedWorkerGlobalScope' in self &&
+      self instanceof SharedWorkerGlobalScope) {
+    self.onconnect = e => {
+      resolve(e.ports[0]);
+    };
+  } else if (
+      'ServiceWorkerGlobalScope' in self &&
+      self instanceof ServiceWorkerGlobalScope) {
+    self.onmessage = e => {
+      resolve(e.source);
+    };
+  }
 });
 
 const importedModulesPromise =

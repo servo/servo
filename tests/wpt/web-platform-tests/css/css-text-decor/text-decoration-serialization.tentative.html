@@ -8,10 +8,11 @@
 <script>
 test(() => {
   const style = getComputedStyle(document.querySelector('div'));
-  // Chrome serializes as "underline solid rgb(0, 0, 0)" while Edge, Firefox an
-  // Safari use "underline", which Chrome used to do as well. The spec should
-  // probably require "underline":
-  // https://github.com/w3c/csswg-drafts/issues/1564
-  assert_equals(style.getPropertyValue("text-decoration"), "underline");
+  const currentColor = "rgb(0, 0, 0)"; // The default color value is black.
+  // The default computed value of text-decoration-color is depended on the
+  // current color value, and it is an rgb() value, instead of `currentcolor`.
+  // This is an ambiguous part in the spec, anyway.
+  assert_equals(style.getPropertyValue("text-decoration"),
+                "underline " + currentColor);
 });
 </script>

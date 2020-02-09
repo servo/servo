@@ -13,9 +13,9 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-[Constructor(DOMString type, optional CustomEventInit eventInitDict),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface CustomEvent : Event {
+  [Throws] constructor(DOMString type, optional CustomEventInit eventInitDict = {});
   readonly attribute any detail;
 
   void initCustomEvent(DOMString type, boolean bubbles, boolean cancelable, any detail);

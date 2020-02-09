@@ -1,5 +1,22 @@
 # Testing Servo on Taskcluster
 
+## In-tree and out-of-tree configuration
+
+Where possible, we prefer keeping Taskcluster-related configuration and code in this directory,
+set up CI so that testing of a given git branch uses the version in that branch.
+That way, anyone can make changes (such installing a new system dependency
+[in a `Dockerfile`](#docker-images)) in the same PR that relies on those changes.
+
+For some things however that is not practical,
+or some deployment step that mutates global state is required.
+That configuration is split between the [mozilla/community-tc-config] and
+[servo/taskcluster-config] repositories,
+managed by the Taskcluster team and the Servo team repsectively.
+
+[mozilla/community-tc-config]: https://github.com/mozilla/community-tc-config/blob/master/config/projects.yml
+[servo/taskcluster-config]: https://github.com/servo/taskcluster-config/tree/master/config
+
+
 ## Homu
 
 When a pull request is reviewed and the appropriate command is given,
@@ -31,10 +48,10 @@ So a common pattern is to have it only run a single initial task called a *decis
 that can have complex logic based on code and data in the repository
 to build an arbitrary [task graph].
 
-[GitHub integration service]: https://docs.taskcluster.net/docs/manual/using/github
-[as a GitHub App]: https://github.com/apps/taskcluster
-[`.taskcluster.yml`]: https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1
-[task graph]: https://docs.taskcluster.net/docs/manual/using/task-graph
+[GitHub integration service]: https://community-tc.services.mozilla.com/docs/manual/using/github
+[as a GitHub App]: https://github.com/apps/community-tc-integration/
+[`.taskcluster.yml`]: https://community-tc.services.mozilla.com/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1
+[task graph]: https://community-tc.services.mozilla.com/docs/manual/using/task-graph
 
 
 ## Servo’s decision task
@@ -56,7 +73,7 @@ as it only needs to clone the repository and run Python.
 [`taskcluster-bootstrap-docker-images`]: https://github.com/servo/taskcluster-bootstrap-docker-images/
 
 
-## In-tree Docker images
+## Docker images
 
 [Similar to Firefox][firefox], Servo’s decision task supports running other tasks
 in Docker images built on-demand, based on `Dockerfile`s in the main repository.
@@ -105,13 +122,13 @@ The logic for all this is in [`decision_task.py`](decision_task.py)
 and can be modified in any pull request.
 
 [web-platform-tests]: https://github.com/web-platform-tests/wpt
-[artifact]: https://docs.taskcluster.net/docs/manual/using/artifacts
+[artifact]: https://community-tc.services.mozilla.com/docs/manual/using/artifacts
 
 
 ## Log artifacts
 
 Taskcluster automatically save the `stdio` output of a task as an artifact,
-and as special support for seeing and streaming that output while the task is still running.
+and has special support for showing and streaming that output while the task is still running.
 
 Servo’s decision task additionally looks for `*.log` arguments to its tasks’s commands,
 assumes they instruct a program to create a log file with that name,
@@ -145,10 +162,6 @@ Scopes that start with `assume:` are special,
 they expand to the scopes defined in the matching roles.
 In this case, the [`repo:github.com/servo/servo:branch:*`][branches] role matches.
 
-Servo admins have scope `auth:update-role:repo:github.com/servo/*` which allows them
-to edit that role in the web UI and grant more scopes to these tasks
-(if that person has the new scope themselves).
-
 The [`project:servo:decision-task/base`][base]
 and [`project:servo:decision-task/trusted`][trusted] roles
 centralize the set of scopes granted to the decision task.
@@ -159,14 +172,19 @@ Only the `base` role is granted to tasks executed when a pull request is opened.
 These tasks are less trusted because they run before the code has been reviewed,
 and anyone can open a PR.
 
-[Scopes]: https://docs.taskcluster.net/docs/manual/design/apis/hawk/scopes
-[web UI]: https://tools.taskcluster.net/
-[credentials]: https://tools.taskcluster.net/credentials
-[Roles]: https://docs.taskcluster.net/docs/manual/design/apis/hawk/roles
-[expand]: https://docs.taskcluster.net/docs/reference/platform/taskcluster-auth/docs/roles
-[branches]: https://tools.taskcluster.net/auth/roles/repo%3Agithub.com%2Fservo%2Fservo%3Abranch%3A*
-[base]: https://tools.taskcluster.net/auth/roles/project%3Aservo%3Adecision-task%2Fbase
-[trusted]: https://tools.taskcluster.net/auth/roles/project%3Aservo%3Adecision-task%2Ftrusted
+Members of the [@servo/taskcluster-admins] GitHub team are granted
+the scope `assume:project-admin:servo`, which is necessary to deploy changes
+to those roles from the [servo/taskcluster-config] repository.
+
+[Scopes]: https://community-tc.services.mozilla.com/docs/manual/design/apis/hawk/scopes
+[web UI]: https://community-tc.services.mozilla.com/
+[credentials]: https://community-tc.services.mozilla.com/profile
+[Roles]: https://community-tc.services.mozilla.com/docs/manual/design/apis/hawk/roles
+[expand]: https://community-tc.services.mozilla.com/docs/reference/platform/taskcluster-auth/docs/roles
+[branches]: https://community-tc.services.mozilla.com/auth/roles/repo%3Agithub.com%2Fservo%2Fservo%3Abranch%3A*
+[base]: https://community-tc.services.mozilla.com/auth/roles/project%3Aservo%3Adecision-task%2Fbase
+[trusted]: https://community-tc.services.mozilla.com/auth/roles/project%3Aservo%3Adecision-task%2Ftrusted
+[@servo/taskcluster-admins]: https://github.com/orgs/servo/teams/taskcluster-admins
 
 
 ## Daily tasks
@@ -182,43 +200,62 @@ Scopes available to the daily decision task need to be both requested in the hoo
 and granted through the [`hook-id:project-servo/daily`] role.
 
 Because they do not have something similar to GitHub statuses that link to them,
-daily tasks are indexed under the [`project.servo.servo.daily`] namespace.
+daily tasks are indexed under the [`project.servo.daily`] namespace.
 
-[`project.servo.servo.daily`]: https://tools.taskcluster.net/index/project.servo.servo.daily
-
-[`project-servo/daily`]: https://tools.taskcluster.net/hooks/project-servo/daily
-[Hooks service]: https://docs.taskcluster.net/docs/manual/using/scheduled-tasks
-[`hook-id:project-servo/daily`]: https://tools.taskcluster.net/auth/roles/hook-id%3Aproject-servo%2Fdaily
-
-
-## AWS EC2 workers
-
-Tasks scheduled with the `servo-docker-worker` worker type run in a Linux environment,
-in a Docker container, on an AWS EC2 virtual machine.
-
-These machines are short-lived “spot instances”.
-They are started automatically as needed by the [AWS provisioner]
-when the existing capacity is insufficient to execute queued tasks.
-They terminate themselves after being idle without work for a while,
-or unconditionally after a few days.
-Because these workers are short-lived,
-we don’t need to worry about evicting old entries from Cargo’s or rustup’s download cache,
-for example.
-
-Servo admins can view and edit the [worker type definition] which configures the provisioner,
-in particular with the types of EC2 instances to be used.
-
-[AWS provisioner]: https://docs.taskcluster.net/docs/reference/integrations/aws-provisioner/references/api
-[worker type definition]: https://tools.taskcluster.net/aws-provisioner/servo-docker-worker/view
+[`project.servo.daily`]: https://tools.taskcluster.net/index/project.servo.daily
+[`project-servo/daily`]: https://github.com/servo/taskcluster-config/blob/master/config/hooks.yml
+[Hooks service]: https://community-tc.services.mozilla.com/docs/manual/using/scheduled-tasks
+[`hook-id:project-servo/daily`]: https://github.com/servo/taskcluster-config/blob/master/config/roles.yml
 
 
-## Other worker types
+## Servo’s worker pools
 
-See respective `README.md` files for:
+Each task is assigned to a “worker pool”.
+Servo has several, for the different environments a task can run in:
 
-* [Windows](windows/README.md), also short-lived workers on EC2
-* [macOS](macos/README.md), Mac Minis hosted by Macstadium
-* [Non-virtualized Linux](packet.net/README.md), hosted by Packet.net
+* `docker` and `docker-untrusted` provide a Linux environment with full `root` privileges,
+  in a Docker container running a [Docker image](#docker-images) of the task’s choice,
+  in a short-lived virtual machine,
+  on Google Cloud Platform.
+
+  Instances are started automatically as needed
+  when the existing capacity is insufficient to execute queued tasks.
+  They terminate themselves after being idle without work for a while,
+  or unconditionally after a few days.
+  Because these workers are short-lived,
+  we don’t need to worry about evicting old entries from Cargo’s or rustup’s download cache,
+  for example.
+
+  [The Taskcluster team manages][mozilla/community-tc-config]
+  the configuration and VM image for these two pools.
+  The latter has fewer scopes. It runs automated testing of pull requests
+  as soon as they’re opened or updated, before any review.
+
+* `win2016` runs Windows Server 2016 on AWS EC2.
+  Like with Docker tasks, workers are short-lived and started automatically.
+  The configuration and VM image for this pool
+  is [managed by the Servo team][servo/taskcluster-config].
+
+  Tasks run as an unprivileged user.
+  Because creating an new the VM image is slow and deploying it mutates global state,
+  when a tool does not require system-wide installation
+  we prefer having each task obtain it as needed by extracting an archive in a directory.
+  See calls of `with_directory_mount` and `with_repacked_msi` in
+  [`decision_task.py`](decision_task.py) and [`decisionlib.py`](decisionlib.py).
+
+* `macos` runs, you guessed it, macOS.
+  Tasks run on dedicated hardware provided long-term by Macstadium.
+  The system-wide configuration of those machines
+  is [managed by the Servo team][servo/taskcluster-config] through SaltStack.
+  There is a task-owned (but preserved across tasks) install of Homebrew,
+  with `Brewfile`s [in this repository](macos/).
+
+  This [Workers] page lists the current state of each macOS worker.
+  (A similar page exists for other each worker pools, but as of this writing it has
+  [usability issues](https://github.com/taskcluster/taskcluster/issues/1972)
+  with short-lived workers.)
+
+[Workers]: https://community-tc.services.mozilla.com/provisioners/proj-servo/worker-types/macos
 
 
 ## Taskcluster − Treeherder integration
@@ -226,37 +263,15 @@ See respective `README.md` files for:
 See [`treeherder.md`](treeherder.md).
 
 
-## Self-service, Bugzilla, and IRC
+## Self-service, IRC, and Bugzilla
 
-Taskcluster is designed to be “self-service” as much as possible,
-with features like in-tree `.taskcluster.yml`
-or the web UI for modifying the worker type definitions.
-However some changes like adding a new worker type still require Taskcluster admin access.
-For those, file requests on Bugzilla under [Taskcluster :: Service Request][req].
+Taskcluster is designed to be “self-service” as much as possible.
+Between this repository [servo/taskcluster-config] and [mozilla/community-tc-config],
+anyone should be able to submit PRs for any part of the configuration.
 
-For asking for help less formally, try the `#servo` or `#taskcluster` channels on Mozilla IRC.
+Feel free to ask for help on the `#servo` or `#taskcluster` channels on Mozilla IRC.
 
-[req]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Taskcluster&component=Service%20Request
+For issue reports or feature requests on various bits of Taskcluster *software*,
+file bugs [in Mozilla’s Bugzilla, under `Taskcluster`][bug].
 
-
-## Configuration recap
-
-We try to keep as much as possible of our Taskcluster configuration in this repository.
-To modify those, submit a pull request.
-
-* The [`.taskcluster.yml`][tc.yml] file,
-  for starting decision tasks in reaction to GitHub events
-* The [`etc/ci/decision_task.py`](decision_task.py) file,
-  defining what other tasks to schedule
-
-However some configuration needs to be handled separately.
-Modifying those requires Servo-project-level administrative access.
-
-* The [`aws-provisioner/servo-docker-worker`][worker type definition] worker type definition,
-  for EC2 instances configuration
-* The [`project-servo/daily`] hook definition,
-  for starting daily decision tasks
-* The [`hook-id:project-servo/daily`] role,
-  for scopes granted to those tasks
-* The [`repo:github.com/servo/servo:branch:*`][branches] role,
-  for scopes granted to tasks responding to a GitHub push to the repository (includin by Homu)
+[bug]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Taskcluster

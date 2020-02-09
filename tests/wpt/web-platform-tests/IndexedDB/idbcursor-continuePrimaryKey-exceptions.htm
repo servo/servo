@@ -29,7 +29,7 @@ async_test(function(t) {
             assert_class_string(cursor, 'IDBCursorWithValue',
                 'result should be a cursor');
 
-            assert_throws('InvalidAccessError', function() {
+            assert_throws_dom('InvalidAccessError', function() {
                 cursor.continuePrimaryKey(2, 2);
             }, 'continuePrimaryKey() should throw if source is not an index');
         });
@@ -87,7 +87,7 @@ async_test(function(t) {
                 assert_equals(cursor.primaryKey, testcase.expected_primaryKey,
                     'primaryKey should match');
 
-                assert_throws('InvalidAccessError', function() {
+                assert_throws_dom('InvalidAccessError', function() {
                     cursor.continuePrimaryKey(
                         testcase.continue_key,
                         testcase.continue_primaryKey);

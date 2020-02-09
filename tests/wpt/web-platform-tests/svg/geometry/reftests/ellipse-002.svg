@@ -1,0 +1,17 @@
+<svg width="300" height="200" viewBox="6000 7000 600 400"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Ellipse coordinates and radii specified in user units</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match"  href="ellipse-ref.svg" />
+  <style>
+    ellipse {
+      cx: 6150px;
+      cy: 7240px;
+      rx: 120px;
+      ry: 100px;
+      fill: blue;
+    }
+  </style>
+  <ellipse />
+</svg>

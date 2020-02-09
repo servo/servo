@@ -84,3 +84,24 @@ def test_config_json_length():
     with ConfigBuilder() as c:
         data = json.dumps(c.as_dict())
     assert len(data) <= 0x7FFF
+
+def test_alternate_host_unspecified():
+    ConfigBuilder(browser_host="web-platform.test")
+
+@pytest.mark.parametrize("primary, alternate", [
+    ("web-platform.test", "web-platform.test"),
+    ("a.web-platform.test", "web-platform.test"),
+    ("web-platform.test", "a.web-platform.test"),
+    ("a.web-platform.test", "a.web-platform.test"),
+])
+def test_alternate_host_invalid(primary, alternate):
+    with pytest.raises(ValueError):
+        ConfigBuilder(browser_host=primary, alternate_hosts={"alt": alternate})
+
+@pytest.mark.parametrize("primary, alternate", [
+    ("web-platform.test", "not-web-platform.test"),
+    ("a.web-platform.test", "b.web-platform.test"),
+    ("web-platform-tests.dev", "web-platform-tests.live"),
+])
+def test_alternate_host_valid(primary, alternate):
+    ConfigBuilder(browser_host=primary, alternate_hosts={"alt": alternate})

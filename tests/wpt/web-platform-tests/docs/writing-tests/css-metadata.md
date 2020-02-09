@@ -92,7 +92,7 @@ href="https://www.w3.org/TR/CSS21/colors.html#background-properties" />
 
 The following flags are **deprecated** and should not be declared by new tests.
 Tests which satisfy the described criteria should simply be designated as
-"manual" using [the `-manual` file name flag][file-name-flags].
+"manual" using [the `-manual` file name flag](file-names).
 
 <table>
 <tr>
@@ -189,5 +189,3 @@ Examples of good test assertions:
 * "This test checks that 'text-indent' affects only the first line
   of a block container if that line is also the first formatted line
   of an element."
-
-[file-name-flags]: {{ site.baseurl }}{% link _writing-tests/file-names.md %}

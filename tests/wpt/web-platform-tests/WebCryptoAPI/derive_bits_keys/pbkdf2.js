@@ -1,4 +1,4 @@
-function run_test() {
+function define_tests() {
     // May want to test prefixed implementations.
     var subtle = self.crypto.subtle;
 
@@ -12,7 +12,7 @@ function run_test() {
     // What kinds of keys can be created with deriveKey? The following:
     var derivedKeyTypes = testData.derivedKeyTypes;
 
-    setUpBaseKeys(passwords)
+    return setUpBaseKeys(passwords)
     .then(function(allKeys) {
         // We get several kinds of base keys. Normal ones that can be used for
         // derivation operations, ones that lack the deriveBits usage, ones
@@ -229,13 +229,6 @@ function run_test() {
 
             });
         });
-
-        done();
-    }, function(err) {
-        subsetTest(test, function(test) {
-            assert_unreached("setUpBaseKeys failed with error '" + err.message + "'");
-        }, "setUpBaseKeys");
-        done();
     });
 
     // Deriving bits and keys requires starting with a base key, which is created

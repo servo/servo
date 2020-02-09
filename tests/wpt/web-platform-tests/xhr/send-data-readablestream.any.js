@@ -3,7 +3,7 @@
 function assert_xhr(stream) {
   const client = new XMLHttpRequest();
   client.open("POST", "...");
-  assert_throws(new TypeError(), () => client.send(stream));
+  assert_throws_js(TypeError, () => client.send(stream));
 }
 
 test(() => {

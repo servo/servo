@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS Grid Layout Test: getComputedValue().opacity</title>
+<title>CSS Grid Layout Test: getComputedStyle().opacity</title>
 <link rel="help" href="https://www.w3.org/TR/css-color-3/#opacity">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -16,6 +16,10 @@ test_computed_value("opacity", "0.5");
 test_computed_value("opacity", "0");
 test_computed_value("opacity", "-2", "0");
 test_computed_value("opacity", "3", "1");
+test_computed_value("opacity", "-100%", "0");
+test_computed_value("opacity", "50%", "0.5");
+test_computed_value("opacity", "300%", "1");
+
 </script>
 </body>
 </html>

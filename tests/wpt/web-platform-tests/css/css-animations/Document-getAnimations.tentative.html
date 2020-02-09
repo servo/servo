@@ -50,6 +50,24 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
+  const animation1 = 'animLeft 100s'
+  const animation2 = 'animBottom 100s'
+  div.style.animation = animation1;
+  const animations1 = document.getAnimations();
+  assert_equals(animations1.length, 1,
+                'getAnimations returns all running CSS Animations');
+  div.style.animation = animation2 + ', ' + animation1;
+  const animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'getAnimations returns all running CSS Animations');
+  assert_equals(animations[0].animationName, 'animBottom',
+                'Order of first animation returned');
+  assert_equals(animations[1].animationName, 'animLeft',
+                'Order of second animation returned');
+}, 'Order of CSS Animations - within an element unaffected by start time');
+
+test(t => {
+  const div = addDiv(t);
   div.style.animation = 'animLeft 100s, animTop 100s, animRight 100s, ' +
                         'animBottom 100s';
 
@@ -298,12 +316,12 @@ test(t => {
 
     if (pseudo) {
       assert_equals(
-        actual.effect.target.element,
+        actual.effect.target,
         element,
         `Animation #${index + 1} has expected target`
       );
       assert_equals(
-        actual.effect.target.type,
+        actual.effect.pseudoElement,
         pseudo,
         `Animation #${index + 1} has expected pseudo type`
       );
@@ -312,6 +330,11 @@ test(t => {
         actual.effect.target,
         element,
         `Animation #${index + 1} has expected target`
+      );
+      assert_equals(
+        actual.effect.pseudoElement,
+        null,
+        `Animation #${index + 1} has null pseudo type`
       );
     }
   }

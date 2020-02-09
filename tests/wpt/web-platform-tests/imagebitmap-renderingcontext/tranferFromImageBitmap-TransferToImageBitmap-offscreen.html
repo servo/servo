@@ -36,7 +36,7 @@ promise_test(function() {
         var myCanvas2 = document.createElement('canvas');
         var myCtx2 = myCanvas2.getContext('bitmaprenderer');
         myCtx2.transferFromImageBitmap(bitmapCanvas.transferToImageBitmap());
-        testCanvas(myCanvas2, 0, 0, 0, 255);
+        testCanvas(myCanvas2, 0, 0, 0, 0);
     }
 
     var greenCanvas = document.createElement('canvas');

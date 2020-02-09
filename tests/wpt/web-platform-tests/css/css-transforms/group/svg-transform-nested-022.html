@@ -19,7 +19,7 @@
     <p>The test passes if there is a green square and no red.</p>
     <svg>
         <rect x="41" y="41" width="78" height="78" fill="red"/> <!-- this rect is outside the group to catch failures of the group transform -->
-        <g transform="translateX(20)">
+        <g transform="translate(20 0)">
             <rect x="42" y="41" width="156" height="78" fill="red" transform="scaleX(0.5)"/> <!-- false positive if scaleX is negative -->
             <rect width="40" height="40" fill="green" transform="matrix(-2 0 0 -2 100 120)"/>
         </g>

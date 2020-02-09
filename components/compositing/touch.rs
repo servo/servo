@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use self::TouchState::*;
-use euclid::TypedScale;
-use euclid::{TypedPoint2D, TypedVector2D};
+use euclid::{Point2D, Scale, Vector2D};
 use script_traits::{EventResult, TouchId};
 use style_traits::DevicePixel;
 
@@ -19,11 +18,11 @@ pub struct TouchHandler {
 #[derive(Clone, Copy, Debug)]
 pub struct TouchPoint {
     pub id: TouchId,
-    pub point: TypedPoint2D<f32, DevicePixel>,
+    pub point: Point2D<f32, DevicePixel>,
 }
 
 impl TouchPoint {
-    pub fn new(id: TouchId, point: TypedPoint2D<f32, DevicePixel>) -> Self {
+    pub fn new(id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
         TouchPoint {
             id: id,
             point: point,
@@ -60,9 +59,9 @@ pub enum TouchAction {
     /// Simulate a mouse click.
     Click,
     /// Scroll by the provided offset.
-    Scroll(TypedVector2D<f32, DevicePixel>),
+    Scroll(Vector2D<f32, DevicePixel>),
     /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, TypedVector2D<f32, DevicePixel>),
+    Zoom(f32, Vector2D<f32, DevicePixel>),
     /// Send a JavaScript event to content.
     DispatchEvent,
     /// Don't do anything.
@@ -77,7 +76,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_touch_down(&mut self, id: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
         let point = TouchPoint::new(id, point);
         self.active_touch_points.push(point);
 
@@ -90,11 +89,7 @@ impl TouchHandler {
         };
     }
 
-    pub fn on_touch_move(
-        &mut self,
-        id: TouchId,
-        point: TypedPoint2D<f32, DevicePixel>,
-    ) -> TouchAction {
+    pub fn on_touch_move(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
         let idx = match self.active_touch_points.iter_mut().position(|t| t.id == id) {
             Some(i) => i,
             None => {
@@ -128,7 +123,7 @@ impl TouchHandler {
                 let (d1, c1) = self.pinch_distance_and_center();
 
                 let magnification = d1 / d0;
-                let scroll_delta = c1 - c0 * TypedScale::new(magnification);
+                let scroll_delta = c1 - c0 * Scale::new(magnification);
 
                 TouchAction::Zoom(magnification, scroll_delta)
             },
@@ -145,11 +140,7 @@ impl TouchHandler {
         action
     }
 
-    pub fn on_touch_up(
-        &mut self,
-        id: TouchId,
-        _point: TypedPoint2D<f32, DevicePixel>,
-    ) -> TouchAction {
+    pub fn on_touch_up(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) -> TouchAction {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
@@ -182,7 +173,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_touch_cancel(&mut self, id: TouchId, _point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
@@ -225,7 +216,7 @@ impl TouchHandler {
         self.active_touch_points.len()
     }
 
-    fn pinch_distance_and_center(&self) -> (f32, TypedPoint2D<f32, DevicePixel>) {
+    fn pinch_distance_and_center(&self) -> (f32, Point2D<f32, DevicePixel>) {
         debug_assert_eq!(self.touch_count(), 2);
         let p0 = self.active_touch_points[0].point;
         let p1 = self.active_touch_points[1].point;

@@ -1,5 +1,5 @@
 
-function run_test() {
+function define_tests() {
     // May want to test prefixed implementations.
     var subtle = self.crypto.subtle;
 
@@ -14,7 +14,7 @@ function run_test() {
     // What kinds of keys can be created with deriveKey? The following:
     var derivedKeyTypes = testData.derivedKeyTypes;
 
-    setUpBaseKeys(derivedKeys)
+    return setUpBaseKeys(derivedKeys)
     .then(function(allKeys) {
         // We get several kinds of base keys. Normal ones that can be used for
         // derivation operations, ones that lack the deriveBits usage, ones
@@ -86,7 +86,7 @@ function run_test() {
                             // - illegal name for hash algorithm (NotSupportedError)
                             var badHash = hashName.substring(0, 3) + hashName.substring(4);
                             subsetTest(promise_test, function(test) {
-                                var badAlgorithm = {name: "HKDF", salt: salts[saltSize], hash: badHash};
+                                var badAlgorithm = {name: "HKDF", salt: salts[saltSize], hash: badHash, info: algorithm.info};
                                 return subtle.deriveKey(badAlgorithm, baseKeys[derivedKeySize], derivedKeyType.algorithm, true, derivedKeyType.usages)
                                 .then(function(key) {
                                     assert_unreached("bad hash name should have thrown an NotSupportedError");
@@ -143,9 +143,9 @@ function run_test() {
                         subsetTest(promise_test, function(test) {
                             return subtle.deriveBits(algorithm, baseKeys[derivedKeySize], null)
                             .then(function(derivation) {
-                                assert_unreached("null length should have thrown an TypeError");
+                                assert_unreached("null length should have thrown an OperationError");
                             }, function(err) {
-                                assert_equals(err.name, "TypeError", "deriveBits with null length correctly threw OperationError: " + err.message);
+                                assert_equals(err.name, "OperationError", "deriveBits with null length correctly threw OperationError: " + err.message);
                             });
                         }, testName + " with null length");
 
@@ -162,7 +162,7 @@ function run_test() {
                         // - illegal name for hash algorithm (NotSupportedError)
                         var badHash = hashName.substring(0, 3) + hashName.substring(4);
                         subsetTest(promise_test, function(test) {
-                            var badAlgorithm = {name: "HKDF", salt: salts[saltSize], hash: badHash};
+                            var badAlgorithm = {name: "HKDF", salt: salts[saltSize], hash: badHash, info: algorithm.info};
                             return subtle.deriveBits(badAlgorithm, baseKeys[derivedKeySize], 256)
                             .then(function(derivation) {
                                 assert_unreached("bad hash name should have thrown an NotSupportedError");
@@ -232,13 +232,6 @@ function run_test() {
 
             });
         });
-
-        done();
-    }, function(err) {
-        subsetTest(test, function(test) {
-            assert_unreached("setUpBaseKeys failed with error '" + err.message + "'");
-        }, "setUpBaseKeys");
-        done();
     });
 
     // Deriving bits and keys requires starting with a base key, which is created

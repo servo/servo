@@ -113,8 +113,8 @@ root.runParallelAsyncHarness = function(options) {
             });
         });
 
-        // conclude test (possibly abort)
-        setTimeout(function() {
+        // conclude slice (possibly abort)
+        var concludeSlice = function() {
             tests.forEach(function(data) {
                 // perform individual "done" test-case
                 cases.forEach(function(name) {
@@ -135,7 +135,10 @@ root.runParallelAsyncHarness = function(options) {
 
             // next test please, give the browser 50ms to do catch its breath
             setTimeout(runLoop, 50);
-        }, duration);
+        }
+
+        // wait on RAF before cleanup to make sure all queued event handlers have run
+        setTimeout(function() {requestAnimationFrame(concludeSlice)},duration);
     }
 
     // allow DOMContentLoaded before actually doing something

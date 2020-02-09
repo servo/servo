@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test advertised required document policy</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>  </head>
+  <body>
+    <h1>Test advertised required document policy</h1>
+<script>
+// The top-level document has a document policy, as well as a required document
+// policy (for subframes) which is stricter. This test should load (the required
+// policy should not block this page,) but the requirements should be applied to
+// nested content.
+
+callbacks = {};
+
+window.addEventListener('message', ev => {
+  var id = ev.data.id;
+  if (id && callbacks[id]) {
+    callbacks[id](ev.data.requiredPolicy || null);
+  }
+});
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy.py?id=1";
+  callbacks["1"] = t.step_func_done(result => {
+    assert_equals(result, "unoptimized-lossless-images;bpp=1.0");
+  });
+  document.body.appendChild(iframe);
+}, "Child frame with no explicit policy should have the same required policy as its parent.");
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy.py?id=2";
+  iframe.policy = "unoptimized-lossless-images;bpp=4";
+  callbacks["2"] = t.step_func_done(result => {
+    assert_equals(result, "unoptimized-lossless-images;bpp=1.0");
+  });
+  document.body.appendChild(iframe);
+}, "Child frame with a less strict required policy should have the stricter value from the parent's policy applied.");
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy.py?id=3";
+  iframe.policy = "unoptimized-lossless-images;bpp=0.9";
+  callbacks["3"] = t.step_func_done(result => {
+    assert_equals(result, "unoptimized-lossless-images;bpp=0.9");
+  });
+  document.body.appendChild(iframe);
+}, "Child frame may have a stricter policy than the parent.");
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.src = "/document-policy/echo-policy.py?id=4";
+  iframe.policy = "no-font-display-late-swap";
+  callbacks["4"] = t.step_func_done(result => {
+    assert_equals(result, "no-font-display-late-swap, unoptimized-lossless-images;bpp=1.0");
+  });
+  document.body.appendChild(iframe);
+}, "Any unrelated policy directives should combine with the parent's required policy.");
+    </script>
+  </body>
+</html>

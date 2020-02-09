@@ -1,0 +1,9 @@
+@media not all and (prefers-color-scheme: dark) {
+  :root {
+    background-color: red !important;
+  }
+  body::before {
+    font-size: 64px;
+    content: "Test must be run with preferred dark color scheme.";
+  }
+}

@@ -43,31 +43,31 @@ Object.keys(possiblePositions).forEach(function(position) {
 });
 
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     el.insertAdjacentElement('afterbegin',
     document.implementation.createDocumentType("html"))
   })
 }, 'invalid object argument insertAdjacentElement')
 test(function() {
   var el = document.implementation.createHTMLDocument().documentElement;
-  assert_throws("HIERARCHY_REQUEST_ERR", function() {
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() {
     el.insertAdjacentElement('beforebegin', document.createElement('banane'))
   })
 }, 'invalid caller object insertAdjacentElement')
 test(function() {
   var el = document.implementation.createHTMLDocument().documentElement;
-  assert_throws("HIERARCHY_REQUEST_ERR", function() {
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() {
     el.insertAdjacentText('beforebegin', 'tomate farcie')
   })
 }, 'invalid caller object insertAdjacentText')
 test(function() {
   var div = document.createElement('h3');
-  assert_throws("SYNTAX_ERR", function() {
+  assert_throws_dom("SYNTAX_ERR", function() {
     el.insertAdjacentElement('heeeee', div)
   })
 }, "invalid syntax for insertAdjacentElement")
 test(function() {
-  assert_throws("SYNTAX_ERR", function() {
+  assert_throws_dom("SYNTAX_ERR", function() {
     el.insertAdjacentText('hoooo', 'magret de canard')
   })
 }, "invalid syntax for insertAdjacentText")

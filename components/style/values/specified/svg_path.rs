@@ -46,7 +46,7 @@ impl SVGPathData {
 
     /// Create a normalized copy of this path by converting each relative
     /// command to an absolute command.
-    fn normalize(&self) -> Box<[PathCommand]> {
+    pub fn normalize(&self) -> Self {
         let mut state = PathTraversalState {
             subpath_start: CoordPair::new(0.0, 0.0),
             pos: CoordPair::new(0.0, 0.0),
@@ -56,7 +56,8 @@ impl SVGPathData {
             .iter()
             .map(|seg| seg.normalize(&mut state))
             .collect::<Vec<_>>();
-        result.into_boxed_slice()
+
+        SVGPathData(crate::ArcSlice::from_iter(result.into_iter()))
     }
 }
 
@@ -119,8 +120,9 @@ impl Animate for SVGPathData {
         // re-normalize again.
         let result = self
             .normalize()
+            .0
             .iter()
-            .zip(other.normalize().iter())
+            .zip(other.normalize().0.iter())
             .map(|(a, b)| a.animate(&b, procedure))
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -134,8 +136,9 @@ impl ComputeSquaredDistance for SVGPathData {
             return Err(());
         }
         self.normalize()
+            .0
             .iter()
-            .zip(other.normalize().iter())
+            .zip(other.normalize().0.iter())
             .map(|(this, other)| this.compute_squared_distance(&other))
             .sum()
     }
@@ -625,40 +628,26 @@ impl<'a> PathParser<'a> {
                 break;
             }
 
-            match self.chars.next() {
-                Some(command) => {
-                    let abs = if command.is_ascii_uppercase() {
-                        IsAbsolute::Yes
-                    } else {
-                        IsAbsolute::No
-                    };
-                    macro_rules! parse_command {
-                        ( $($($p:pat)|+ => $parse_func:ident,)* ) => {
-                            match command {
-                                $(
-                                    $($p)|+ => {
-                                        skip_wsp(&mut self.chars);
-                                        self.$parse_func(abs)?;
-                                    },
-                                )*
-                                _ => return Err(()),
-                            }
-                        }
-                    }
-                    parse_command!(
-                        b'Z' | b'z' => parse_closepath,
-                        b'L' | b'l' => parse_lineto,
-                        b'H' | b'h' => parse_h_lineto,
-                        b'V' | b'v' => parse_v_lineto,
-                        b'C' | b'c' => parse_curveto,
-                        b'S' | b's' => parse_smooth_curveto,
-                        b'Q' | b'q' => parse_quadratic_bezier_curveto,
-                        b'T' | b't' => parse_smooth_quadratic_bezier_curveto,
-                        b'A' | b'a' => parse_elliptical_arc,
-                    );
-                },
-                _ => break, // no more commands.
-            }
+            let command = self.chars.next().unwrap();
+            let abs = if command.is_ascii_uppercase() {
+                IsAbsolute::Yes
+            } else {
+                IsAbsolute::No
+            };
+
+            skip_wsp(&mut self.chars);
+            match command {
+                b'Z' | b'z' => self.parse_closepath(),
+                b'L' | b'l' => self.parse_lineto(abs),
+                b'H' | b'h' => self.parse_h_lineto(abs),
+                b'V' | b'v' => self.parse_v_lineto(abs),
+                b'C' | b'c' => self.parse_curveto(abs),
+                b'S' | b's' => self.parse_smooth_curveto(abs),
+                b'Q' | b'q' => self.parse_quadratic_bezier_curveto(abs),
+                b'T' | b't' => self.parse_smooth_quadratic_bezier_curveto(abs),
+                b'A' | b'a' => self.parse_elliptical_arc(abs),
+                _ => return Err(()),
+            }?;
         }
         Ok(())
     }
@@ -692,7 +681,7 @@ impl<'a> PathParser<'a> {
     }
 
     /// Parse "closepath" command.
-    fn parse_closepath(&mut self, _absolute: IsAbsolute) -> Result<(), ()> {
+    fn parse_closepath(&mut self) -> Result<(), ()> {
         self.path.push(PathCommand::ClosePath);
         Ok(())
     }

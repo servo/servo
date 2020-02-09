@@ -302,4 +302,31 @@ test(function() {
   input.value = "foo\r\r\n\n\0";
   assert_equals(input.value, "#000000");
 }, "value IDL attribute of input type color with value attribute");
+
+// MODE FILENAME
+test(function () {
+  var input = document.createElement("input");
+  input.type = "file";
+
+  for (const emptyValue of ["", null]) {
+    input.value = emptyValue;
+    assert_equals(input.value, "", `input.value is empty after assigning ${emptyValue}`);
+  }
+
+  for (const invalidValue of ["foo", 10, undefined]) {
+    assert_throws_dom("InvalidStateError", () => {
+      input.value = invalidValue;
+    });
+    assert_equals(input.value, "", `input.value is empty after assigning ${invalidValue}`);
+  }
+}, "value IDL attribute of input type file without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.setAttribute("value", "bar");
+  assert_equals(input.value, "", "input.value is empty even with a value attribute");
+
+  input.value = "";
+  assert_equals(input.getAttribute("value"), "bar", "Setting input.value does not change the value attribute");
+}, "value IDL attribute of input type file with value attribute");
 </script>

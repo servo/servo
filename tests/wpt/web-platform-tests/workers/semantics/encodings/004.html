@@ -1,13 +1,3 @@
-<!--
-onconnect = function(e) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', '003-1.py?x=å', false);
-  xhr.send();
-  var passed = xhr.responseText == 'PASS';
-  e.ports[0].postMessage(passed);
-}
-/*
--->
 <!doctype html>
 <title>URL encoding, shared worker</title>
 <script src="/resources/testharness.js"></script>
@@ -15,13 +5,10 @@ onconnect = function(e) {
 <div id=log></div>
 <script>
 async_test(function() {
-  var worker = new SharedWorker('#');
+  var worker = new SharedWorker('004.js');
   worker.port.onmessage = this.step_func(function(e) {
     assert_true(e.data);
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->

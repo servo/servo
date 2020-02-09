@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Inline Layout: getComputedStyle().verticalAlign</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#propdef-vertical-align">
+<meta name="assert" content="vertical-align computed value is as specified, with lengths made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("vertical-align", "baseline");
+test_computed_value("vertical-align", "sub");
+test_computed_value("vertical-align", "super");
+test_computed_value("vertical-align", "top");
+test_computed_value("vertical-align", "text-top");
+test_computed_value("vertical-align", "middle");
+test_computed_value("vertical-align", "bottom");
+test_computed_value("vertical-align", "text-bottom");
+test_computed_value("vertical-align", "-10px");
+test_computed_value("vertical-align", "20%");
+test_computed_value("vertical-align", "calc(20% + 10px)");
+test_computed_value("vertical-align", "calc(10px - 0.5em)", "-10px");
+
+// TODO: Test against the CSS Inline Layout grammar when browsers support it.
+</script>
+</body>
+</html>

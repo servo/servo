@@ -19,23 +19,23 @@ const gInvalidTestCases = [
 for (const {property, values, desc} of gInvalidTestCases) {
   test(t => {
     let styleMap = createInlineStyleMap(t, '');
-    assert_throws(new TypeError(), () => styleMap.set(property, ...values));
+    assert_throws_js(TypeError, () => styleMap.set(property, ...values));
   }, 'Setting a StylePropertyMap with ' + desc + ' throws TypeError');
 }
 
 test(t => {
   let styleMap = createInlineStyleMap(t, '');
-  assert_throws(new TypeError(), () => styleMap.set('width', CSS.px(10), CSS.px(10)));
+  assert_throws_js(TypeError, () => styleMap.set('width', CSS.px(10), CSS.px(10)));
 }, 'Setting a non list-valued property with multiple arguments throws TypeError');
 
 test(t => {
   let styleMap = createInlineStyleMap(t, '');
-  assert_throws(new TypeError(), () => styleMap.set('width', '1s, 2s'));
+  assert_throws_js(TypeError, () => styleMap.set('width', '1s, 2s'));
 }, 'Setting a non list-valued property with list-valued string throws TypeError');
 
 test(t => {
   let styleMap = createInlineStyleMap(t, '');
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     styleMap.set('transition-duration', '1s', new CSSUnparsedValue([]));
   });
 }, 'Setting a list-valued property with a CSSUnparsedValue and other ' +
@@ -43,7 +43,7 @@ test(t => {
 
 test(t => {
   let styleMap = createInlineStyleMap(t, '');
-  assert_throws(new TypeError(), () => {
+  assert_throws_js(TypeError, () => {
     styleMap.set('transition-duration', '1s', 'var(--A)');
   });
 }, 'Setting a list-valued property with a var ref() and other values ' +

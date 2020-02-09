@@ -4,8 +4,11 @@
 
 use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
 use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -15,7 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::node::{document_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -83,18 +86,6 @@ impl Activatable for HTMLLabelElement {
             );
         }
     }
-
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(
-        &self,
-        _ctrl_key: bool,
-        _shift_key: bool,
-        _alt_key: bool,
-        _meta_key: bool,
-    ) {
-        //FIXME: Investigate and implement implicit submission for label elements
-        // Issue filed at https://github.com/servo/servo/issues/8263
-    }
 }
 
 impl HTMLLabelElementMethods for HTMLLabelElement {
@@ -111,10 +102,6 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-label-control
     fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
-        if !self.upcast::<Node>().is_in_doc() {
-            return None;
-        }
-
         let for_attr = match self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("for"))
@@ -123,13 +110,40 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
             None => return self.first_labelable_descendant(),
         };
 
-        let for_value = for_attr.value();
-        document_from_node(self)
-            .get_element_by_id(for_value.as_atom())
-            .and_then(DomRoot::downcast::<HTMLElement>)
-            .into_iter()
-            .filter(|e| e.is_labelable_element())
-            .next()
+        let for_value = for_attr.Value();
+
+        // "If the attribute is specified and there is an element in the tree
+        // whose ID is equal to the value of the for attribute, and the first
+        // such element in tree order is a labelable element, then that
+        // element is the label element's labeled control."
+        // Two subtle points here: we need to search the _tree_, which is
+        // not necessarily the document if we're detached from the document,
+        // and we only consider one element even if a later element with
+        // the same ID is labelable.
+
+        let maybe_found = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty())
+            .traverse_preorder(ShadowIncluding::No)
+            .find_map(|e| {
+                if let Some(htmle) = e.downcast::<HTMLElement>() {
+                    if htmle.upcast::<Element>().Id() == for_value {
+                        Some(DomRoot::from_ref(htmle))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            });
+        // We now have the element that we would return, but only return it
+        // if it's labelable.
+        if let Some(ref maybe_labelable) = maybe_found {
+            if maybe_labelable.is_labelable_element() {
+                return maybe_found;
+            }
+        }
+        None
     }
 }
 

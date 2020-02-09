@@ -12,25 +12,12 @@ typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
 
-// interface WebGLQuery : WebGLObject {
-// };
-
-// interface WebGLSampler : WebGLObject {
-// };
-
-// interface WebGLSync : WebGLObject {
-// };
-
-// interface WebGLTransformFeedback : WebGLObject {
-// };
-
 // interface WebGLVertexArrayObject : WebGLObject {
 // };
 
-// typedef ([AllowShared] Uint32Array or sequence<GLuint>) Uint32List;
+typedef (/*[AllowShared]*/ Uint32Array or sequence<GLuint>) Uint32List;
 
-[NoInterfaceObject]
-interface WebGL2RenderingContextBase
+interface mixin WebGL2RenderingContextBase
 {
   const GLenum READ_BUFFER                                   = 0x0C02;
   const GLenum UNPACK_ROW_LENGTH                             = 0x0CF2;
@@ -309,18 +296,18 @@ interface WebGL2RenderingContextBase
   void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
   void bufferSubData(GLenum target, GLintptr dstByteOffset, /*[AllowShared]*/ BufferSource srcData);
   // WebGL2:
-  // void bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
-  //                 optional GLuint length = 0);
-  // void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] ArrayBufferView srcData,
-  //                    GLuint srcOffset, optional GLuint length = 0);
+  void bufferData(GLenum target, /*[AllowShared]*/ ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
+                  optional GLuint length = 0);
+  void bufferSubData(GLenum target, GLintptr dstByteOffset, /*[AllowShared]*/ ArrayBufferView srcData,
+                     GLuint srcOffset, optional GLuint length = 0);
 
-  // void copyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset,
-  //                        GLintptr writeOffset, GLsizeiptr size);
+  void copyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset,
+                         GLintptr writeOffset, GLsizeiptr size);
   // MapBufferRange, in particular its read-only and write-only modes,
   // can not be exposed safely to JavaScript. GetBufferSubData
   // replaces it for the purpose of fetching data back from the GPU.
-  // void getBufferSubData(GLenum target, GLintptr srcByteOffset, [AllowShared] ArrayBufferView dstBuffer,
-  //                       optional GLuint dstOffset = 0, optional GLuint length = 0);
+  void getBufferSubData(GLenum target, GLintptr srcByteOffset, /*[AllowShared]*/ ArrayBufferView dstBuffer,
+                        optional GLuint dstOffset = 0, optional GLuint length = 0);
 
   /* Framebuffer objects */
   // void blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0,
@@ -438,58 +425,34 @@ interface WebGL2RenderingContextBase
   // [WebGLHandlesContextLoss] GLint getFragDataLocation(WebGLProgram program, DOMString name);
 
   /* Uniforms */
-  // void uniform1ui(WebGLUniformLocation? location, GLuint v0);
-  // void uniform2ui(WebGLUniformLocation? location, GLuint v0, GLuint v1);
-  // void uniform3ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2);
-  // void uniform4ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
+  void uniform1ui(WebGLUniformLocation? location, GLuint v0);
+  void uniform2ui(WebGLUniformLocation? location, GLuint v0, GLuint v1);
+  void uniform3ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2);
+  void uniform4ui(WebGLUniformLocation? location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 
-  // void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
+  void uniform1uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform2uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform3uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
+  void uniform4uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
+                   optional GLuint srcLength = 0);
 
-  // void uniform1iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
+  void uniformMatrix3x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix4x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
-  // void uniform1uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform2uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform3uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
-  // void uniform4uiv(WebGLUniformLocation? location, Uint32List data, optional GLuint srcOffset = 0,
-  //                 optional GLuint srcLength = 0);
+  void uniformMatrix2x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix4x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
-  // void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4x2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-
-  // void uniformMatrix2x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4x3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-
-  // void uniformMatrix2x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix3x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                         optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-  // void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-  //                       optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix2x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
+  void uniformMatrix3x4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
+                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
   /* Vertex attribs */
   // void vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w);
@@ -510,10 +473,10 @@ interface WebGL2RenderingContextBase
   void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
                   /*[AllowShared]*/ ArrayBufferView? dstData);
   // WebGL2:
-  // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-  //                 GLintptr offset);
-  // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-  //                 [AllowShared] ArrayBufferView dstData, GLuint dstOffset);
+  void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+                  GLintptr offset);
+  void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+                  /*[AllowShared]*/ ArrayBufferView dstData, GLuint dstOffset);
 
   /* Multiple Render Targets */
   // void drawBuffers(sequence<GLenum> buffers);
@@ -528,33 +491,33 @@ interface WebGL2RenderingContextBase
   // void clearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 
   /* Query Objects */
-  /*WebGLQuery? createQuery();
+  WebGLQuery? createQuery();
   void deleteQuery(WebGLQuery? query);
-  [WebGLHandlesContextLoss] GLboolean isQuery(WebGLQuery? query);
+  /*[WebGLHandlesContextLoss]*/ GLboolean isQuery(WebGLQuery? query);
   void beginQuery(GLenum target, WebGLQuery query);
   void endQuery(GLenum target);
   WebGLQuery? getQuery(GLenum target, GLenum pname);
-  any getQueryParameter(WebGLQuery query, GLenum pname);*/
+  any getQueryParameter(WebGLQuery query, GLenum pname);
 
   /* Sampler Objects */
-  /*WebGLSampler? createSampler();
+  WebGLSampler? createSampler();
   void deleteSampler(WebGLSampler? sampler);
   [WebGLHandlesContextLoss] GLboolean isSampler(WebGLSampler? sampler);
   void bindSampler(GLuint unit, WebGLSampler? sampler);
   void samplerParameteri(WebGLSampler sampler, GLenum pname, GLint param);
   void samplerParameterf(WebGLSampler sampler, GLenum pname, GLfloat param);
-  any getSamplerParameter(WebGLSampler sampler, GLenum pname);*/
+  any getSamplerParameter(WebGLSampler sampler, GLenum pname);
 
   /* Sync objects */
-  /*WebGLSync? fenceSync(GLenum condition, GLbitfield flags);
+  WebGLSync? fenceSync(GLenum condition, GLbitfield flags);
   [WebGLHandlesContextLoss] GLboolean isSync(WebGLSync? sync);
   void deleteSync(WebGLSync? sync);
   GLenum clientWaitSync(WebGLSync sync, GLbitfield flags, GLuint64 timeout);
   void waitSync(WebGLSync sync, GLbitfield flags, GLint64 timeout);
-  any getSyncParameter(WebGLSync sync, GLenum pname);*/
+  any getSyncParameter(WebGLSync sync, GLenum pname);
 
   /* Transform Feedback */
-  /*WebGLTransformFeedback? createTransformFeedback();
+  WebGLTransformFeedback? createTransformFeedback();
   void deleteTransformFeedback(WebGLTransformFeedback? tf);
   [WebGLHandlesContextLoss] GLboolean isTransformFeedback(WebGLTransformFeedback? tf);
   void bindTransformFeedback (GLenum target, WebGLTransformFeedback? tf);
@@ -563,18 +526,18 @@ interface WebGL2RenderingContextBase
   void transformFeedbackVaryings(WebGLProgram program, sequence<DOMString> varyings, GLenum bufferMode);
   WebGLActiveInfo? getTransformFeedbackVarying(WebGLProgram program, GLuint index);
   void pauseTransformFeedback();
-  void resumeTransformFeedback();*/
+  void resumeTransformFeedback();
 
   /* Uniform Buffer Objects and Transform Feedback Buffers */
-  // void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);
-  // void bindBufferRange(GLenum target, GLuint index, WebGLBuffer? buffer, GLintptr offset, GLsizeiptr size);
+  void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);
+  void bindBufferRange(GLenum target, GLuint index, WebGLBuffer? buffer, GLintptr offset, GLsizeiptr size);
   // any getIndexedParameter(GLenum target, GLuint index);
-  // sequence<GLuint>? getUniformIndices(WebGLProgram program, sequence<DOMString> uniformNames);
-  // any getActiveUniforms(WebGLProgram program, sequence<GLuint> uniformIndices, GLenum pname);
-  // GLuint getUniformBlockIndex(WebGLProgram program, DOMString uniformBlockName);
-  // any getActiveUniformBlockParameter(WebGLProgram program, GLuint uniformBlockIndex, GLenum pname);
-  // DOMString? getActiveUniformBlockName(WebGLProgram program, GLuint uniformBlockIndex);
-  // void uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+  sequence<GLuint>? getUniformIndices(WebGLProgram program, sequence<DOMString> uniformNames);
+  any getActiveUniforms(WebGLProgram program, sequence<GLuint> uniformIndices, GLenum pname);
+  GLuint getUniformBlockIndex(WebGLProgram program, DOMString uniformBlockName);
+  any getActiveUniformBlockParameter(WebGLProgram program, GLuint uniformBlockIndex, GLenum pname);
+  DOMString? getActiveUniformBlockName(WebGLProgram program, GLuint uniformBlockIndex);
+  void uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 
   /* Vertex Array Objects */
   /*WebGLVertexArrayObject? createVertexArray();
@@ -583,9 +546,9 @@ interface WebGL2RenderingContextBase
   void bindVertexArray(WebGLVertexArrayObject? array);*/
 };
 
-[Pref="dom.webgl2.enabled"]
+[Exposed=Window, Pref="dom.webgl2.enabled"]
 interface WebGL2RenderingContext
 {
 };
-WebGL2RenderingContext implements WebGLRenderingContextBase;
-WebGL2RenderingContext implements WebGL2RenderingContextBase;
+WebGL2RenderingContext includes WebGLRenderingContextBase;
+WebGL2RenderingContext includes WebGL2RenderingContextBase;

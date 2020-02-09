@@ -167,11 +167,22 @@
     var urlSearchParamsBlob = new Blob([urlSearchParamsData], { "type": urlSearchParamsType });
     formData.append("name", textData);
 
+    // https://fetch.spec.whatwg.org/#concept-body-package-data
+    // "UTF-8 decoded without BOM" is used for formData(), either in
+    // "multipart/form-data" and "application/x-www-form-urlencoded" cases,
+    // so BOMs in the values should be kept.
+    // (The "application/x-www-form-urlencoded" cases are tested in
+    // url/urlencoded-parser.any.js)
+    var textDataWithBom = "\uFEFFquick\uFEFFfox\uFEFF";
+    var formTextDataWithBom = stringToMultipartFormTextData(multipartBoundary, "name", textDataWithBom);
+    var formTextDataWithBomExpectedForMultipartFormData = stringToMultipartFormTextData(multipartBoundary, "name", textDataWithBom);
+
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyText, "from text to text");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyBlob, "from text to blob");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyArrayBuffer, "from text to arrayBuffer");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyJSON, "from text to json");
     checkResponseBody(responsePromise(formTextData, formTextResponseInit), formTextData, checkBodyFormDataMultipart, "from text with correct multipart type to formData");
+    checkResponseBody(responsePromise(formTextDataWithBom, formTextResponseInit), formTextDataWithBomExpectedForMultipartFormData, checkBodyFormDataMultipart, "from text with correct multipart type to formData with BOM");
     checkResponseBody(responsePromise(formTextData, textResponseInit), undefined, checkBodyFormDataError, "from text without correct multipart type to formData (error case)");
     checkResponseBody(responsePromise(urlSearchParamsData, urlSearchParamsResponseInit), urlSearchParamsData, checkBodyFormDataUrlencoded, "from text with correct urlencoded type to formData");
     checkResponseBody(responsePromise(urlSearchParamsData, textResponseInit), undefined, checkBodyFormDataError, "from text without correct urlencoded type to formData (error case)");

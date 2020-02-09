@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#angles">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_valid_angle(value, expected) {
+  test_valid_value('transform', `rotate(${value})`, `rotate(${expected})`);
+}
+
+test_valid_angle('min(1deg)', 'min(1deg)');
+test_valid_angle('min(1rad)', 'min(1rad)');
+test_valid_angle('min(1turn)', 'min(1turn)');
+test_valid_angle('min(1grad)', 'min(1grad)');
+test_valid_angle('max(1deg)', 'max(1deg)');
+test_valid_angle('max(1rad)', 'max(1rad)');
+test_valid_angle('max(1turn)', 'max(1turn)');
+test_valid_angle('max(1grad)', 'max(1grad)');
+
+test_valid_angle('min(1deg, 2deg, 3deg)', 'min(1deg, 2deg, 3deg)');
+test_valid_angle('min(3deg, 2deg, 1deg)', 'min(3deg, 2deg, 1deg)');
+test_valid_angle('min(90deg, 1.57rad, 0.25turn)', 'min(90deg, 1.57rad, 0.25turn)');
+test_valid_angle('min(0.25turn, 1.57rad, 90deg)', 'min(0.25turn, 1.57rad, 90deg)');
+test_valid_angle('max(1deg, 2deg, 3deg)', 'max(1deg, 2deg, 3deg)');
+test_valid_angle('max(3deg, 2deg, 1deg)', 'max(3deg, 2deg, 1deg)');
+test_valid_angle('max(90deg, 1.57rad, 0.25turn)', 'max(90deg, 1.57rad, 0.25turn)');
+test_valid_angle('max(0.25turn, 1.57rad, 90deg)', 'max(0.25turn, 1.57rad, 90deg)');
+
+test_valid_angle('calc(min(1deg) + min(2deg))', 'calc(min(1deg) + min(2deg))');
+test_valid_angle('calc(max(1deg) + max(2deg))', 'calc(max(1deg) + max(2deg))');
+test_valid_angle('calc(1rad + min(1deg))', 'calc(1rad + min(1deg))');
+test_valid_angle('calc(min(1deg) + 1rad)', 'calc(1rad + min(1deg))');
+test_valid_angle('calc(1rad + max(1deg))', 'calc(1rad + max(1deg))');
+test_valid_angle('calc(max(1deg) + 1rad)', 'calc(1rad + max(1deg))');
+
+</script>

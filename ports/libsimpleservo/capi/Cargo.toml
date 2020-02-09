@@ -15,25 +15,36 @@ bench = false
 [dependencies]
 simpleservo = { path = "../api" }
 log = "0.4"
+lazy_static = "1"
 env_logger = "0.6"
+backtrace = "0.3"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+libc = "0.2"
+winapi = {version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"]}
 
 [build-dependencies]
-cbindgen = "0.8"
+cbindgen = "0.9"
 
 [features]
-azure_backend = ["simpleservo/azure_backend"]
+canvas2d-azure = ["simpleservo/canvas2d-azure"]
+canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 debugmozjs = ["simpleservo/debugmozjs"]
-default = ["unstable", "default-except-unstable"]
-default-except-unstable = ["webdriver", "max_log_level"]
+default = ["webdriver", "max_log_level"]
+media-dummy = ["simpleservo/media-dummy"]
+media-gstreamer = ["simpleservo/media-gstreamer"]
+egl = ["simpleservo/egl"]
 energy-profiling = ["simpleservo/energy-profiling"]
 googlevr = ["simpleservo/googlevr"]
 js_backtrace = ["simpleservo/js_backtrace"]
+layout-2013 = ["simpleservo/layout-2013"]
+layout-2020 = ["simpleservo/layout-2020"]
 max_log_level = ["simpleservo/max_log_level"]
 native-bluetooth = ["simpleservo/native-bluetooth"]
-no_wgl = ["simpleservo/no_wgl"]
+no-wgl = ["simpleservo/no-wgl"]
 oculusvr = ["simpleservo/oculusvr"]
-raqote_backend = ["simpleservo/raqote_backend"]
-unstable = ["simpleservo/unstable"]
+profilemozjs = ["simpleservo/profilemozjs"]
+refcell_backtrace = ["simpleservo/refcell_backtrace"]
 uwp = ["simpleservo/uwp"]
 webdriver = ["simpleservo/webdriver"]
 webgl_backtrace = ["simpleservo/webgl_backtrace"]

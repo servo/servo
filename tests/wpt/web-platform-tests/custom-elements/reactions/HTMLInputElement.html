@@ -11,7 +11,7 @@
 <script src="./resources/reactions.js"></script>
 <body>
 <script>
-if (HTMLInputElement.prototype.capture) {
+if ('capture' in HTMLInputElement.prototype) {
     test(() => {
         const element = define_build_in_custom_element(['capture'], HTMLInputElement, 'input');
         const instance = document.createElement('input', { is: element.name });
@@ -20,7 +20,7 @@ if (HTMLInputElement.prototype.capture) {
         instance['capture'] = 'user';
         const logEntries = element.takeLog();
         assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), {name: 'capture', oldValue: '', newValue: 'user', namespace: null});
+        assert_attribute_log_entry(logEntries.last(), {name: 'capture', oldValue: null, newValue: 'user', namespace: null});
     }, 'capture on HTMLInputElement must enqueue an attributeChanged reaction when adding new attribute');
 
     test(() => {
@@ -43,7 +43,7 @@ if (HTMLInputElement.prototype.capture) {
         instance['capture'] = 'asdf';
         const logEntries = element.takeLog();
         assert_array_equals(logEntries.types(), ['attributeChanged']);
-        assert_attribute_log_entry(logEntries.last(), {name: 'capture', oldValue: '', newValue: 'asdf', namespace: null});
+        assert_attribute_log_entry(logEntries.last(), {name: 'capture', oldValue: null, newValue: 'asdf', namespace: null});
     }, 'capture on HTMLInputElement must enqueue an attributeChanged reaction when adding invalid value default');
 
     test(() => {

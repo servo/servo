@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    function handleMessage(e) {
+      if (e.data == "focus") {
+        let button = document.querySelector("button");
+        button.onfocus = () => e.source.postMessage({focused: true}, "*");
+        button.focus();
+      }
+    }
+
+    if (window.portalHost)
+      window.portalHost.onmessage = handleMessage;
+
+    window.onmessage = handleMessage;
+
+    window.onportalactivate = e => {
+      let portal = e.adoptPredecessor();
+      document.body.appendChild(portal);
+      portal.onmessage = handleMessage;
+    };
+
+    window.onfocus = () => {
+      if (window.portalHost)
+        window.portalHost.postMessage("window focused", "*");
+    };
+  </script>
+  <button>A</button>
+</body>

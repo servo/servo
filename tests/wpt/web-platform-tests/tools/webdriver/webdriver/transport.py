@@ -1,9 +1,9 @@
-import httplib
 import json
 import select
-import urlparse
+from six.moves.urllib import parse as urlparse
+from six.moves import http_client as httplib
 
-import error
+from . import error
 
 from six import text_type
 
@@ -191,4 +191,4 @@ class HTTPWireProtocol(object):
         return self.connection.getresponse()
 
     def _has_unread_data(self):
-        return self._conn and select.select([self._conn.sock], [], [], 0)[0]
+        return self._conn and self._conn.sock and select.select([self._conn.sock], [], [], 0)[0]

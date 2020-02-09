@@ -617,7 +617,7 @@ const visibilityType = {
                                          composite });
       testAnimationSamples(animation, idlName,
                            [{ time: 0,    expected: 'visible' },
-                            { time: 1000, expected: 'visible' }]);
+                            { time: 1000, expected: 'hidden' }]);
     }, `${property}: onto "visible"`);
 
     test(t => {
@@ -2195,7 +2195,6 @@ const filterListType = {
     test(t => {
       const idlName = propertyToIDL(property);
       const target = createTestElement(t, setup);
-      target.style.color = "rgba(255, 0, 0, 0.4)";
       const animation = target.animate(
         { [idlName]:
           ['blur(0px)',
@@ -2204,9 +2203,9 @@ const filterListType = {
 
       testAnimationSamples(animation, idlName,
         [{ time: 500,
-           // The lacuna value of drop-shadow's color is taken from
-           // the color property.
-           expected: 'blur(5px) drop-shadow(rgba(85, 0, 170, 0.6) 5px 5px 5px' }]);
+           // Per the spec: The initial value for interpolation is all length values
+           // set to 0 and the used color set to transparent.
+           expected: 'blur(5px) drop-shadow(rgba(0, 0, 255, 0.4) 5px 5px 5px)' }]);
     }, `${property}: interpolate different length of filter-function-list`
        + ' with drop-shadow function');
 

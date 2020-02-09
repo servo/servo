@@ -6,10 +6,9 @@
  * https://url.spec.whatwg.org/#interface-urlsearchparams
  */
 
-[Constructor(
-  optional (sequence<sequence<USVString>> or record<USVString, USVString> or USVString) init/* = ""*/
-), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface URLSearchParams {
+  [Throws] constructor(optional (sequence<sequence<USVString>> or record<USVString, USVString> or USVString) init = "");
   void append(USVString name, USVString value);
   void delete(USVString name);
   USVString? get(USVString name);

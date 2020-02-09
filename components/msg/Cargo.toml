@@ -13,10 +13,14 @@ test = false
 doctest = false
 
 [dependencies]
+lazy_static = "1"
+ipc-channel = "0.12"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
+parking_lot = "0.9"
 serde = "1.0.60"
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+servo_url = {path = "../url"}
+webrender_api = {git = "https://github.com/servo/webrender"}
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}

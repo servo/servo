@@ -54,9 +54,9 @@ for key in keys:
     value1 = data1.get(key)
     value2 = data2.get(key)
     if value1 and not(value2):
-        print ("{}Test {}: missing from {}.{}".format(WARNING, key, args.file2, END))
+        print("{}Test {}: missing from {}.{}".format(WARNING, key, args.file2, END))
     elif value2 and not(value1):
-        print ("{}Test {}: missing from {}.{}".format(WARNING, key, args.file1, END))
+        print("{}Test {}: missing from {}.{}".format(WARNING, key, args.file1, END))
     elif value1 and value2:
         total1 += value1
         total2 += value2

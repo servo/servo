@@ -3,13 +3,14 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
   <canvas id="webgl-canvas"></canvas>
   <script>
 
     xr_promise_test(
       "A lost webglCanvasContext should not be able to set xr compatibility",
      (t) => {
-      return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+      return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
         .then( (controller) => {
           webglCanvas = document.getElementById('webgl-canvas');
           gl = webglCanvas.getContext('webgl', {xrCompatible: true});
