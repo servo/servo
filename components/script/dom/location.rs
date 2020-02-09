@@ -165,7 +165,7 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn SetHost(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        // If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+        // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
         if !self.get_url().cannot_be_a_base() {
             self.set_url_component(value, UrlHelper::SetHost);
         }
@@ -187,7 +187,7 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn SetHostname(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        // If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+        // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
         if !self.get_url().cannot_be_a_base() {
             self.set_url_component(value, UrlHelper::SetHostname);
         }
@@ -222,7 +222,7 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
     fn SetPathname(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        // If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+        // Step 3: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
         if !self.get_url().cannot_be_a_base() {
             self.set_url_component(value, UrlHelper::SetPathname);
         }
@@ -239,7 +239,7 @@ impl LocationMethods for Location {
     fn SetPort(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
         let url = self.get_url();
-        // If copyURL cannot have a username/password/port, then return.
+        // Step 4: If copyURL cannot have a username/password/port, then return.
         // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
         if url.has_host() && !url.cannot_be_a_base() && url.scheme() != "file" {
             self.set_url_component(value, UrlHelper::SetPort);
@@ -256,7 +256,7 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
     fn SetProtocol(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
-        // If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
+        // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
         let scheme = value.split(':').next().unwrap();
         if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") {
             self.set_url_component(value, UrlHelper::SetProtocol);
