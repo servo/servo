@@ -163,7 +163,8 @@ impl Angle {
 ///   https://github.com/w3c/fxtf-drafts/issues/228
 ///
 /// See also: https://github.com/w3c/csswg-drafts/issues/1162.
-enum AllowUnitlessZeroAngle {
+#[allow(missing_docs)]
+pub enum AllowUnitlessZeroAngle {
     Yes,
     No,
 }
@@ -203,7 +204,7 @@ impl Angle {
         Self::parse_internal(context, input, AllowUnitlessZeroAngle::Yes)
     }
 
-    fn parse_internal<'i, 't>(
+    pub(super) fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_unitless_zero: AllowUnitlessZeroAngle,

@@ -465,6 +465,54 @@ trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);
 
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedZero,
+    ToCss,
+    ToResolvedValue,
+)]
+#[repr(C, u8)]
+pub enum AngleOrPercentage {
+    Percentage(Percentage),
+    Angle(Angle),
+}
+
+impl ToComputedValue for specified::AngleOrPercentage {
+    type ComputedValue = AngleOrPercentage;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> AngleOrPercentage {
+        match *self {
+            specified::AngleOrPercentage::Percentage(percentage) => {
+                AngleOrPercentage::Percentage(percentage.to_computed_value(context))
+            },
+            specified::AngleOrPercentage::Angle(angle) => {
+                AngleOrPercentage::Angle(angle.to_computed_value(context))
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &AngleOrPercentage) -> Self {
+        match *computed {
+            AngleOrPercentage::Percentage(percentage) => {
+                specified::AngleOrPercentage::Percentage(ToComputedValue::from_computed_value(
+                    &percentage,
+                ))
+            },
+            AngleOrPercentage::Angle(angle) => {
+                specified::AngleOrPercentage::Angle(ToComputedValue::from_computed_value(&angle))
+            },
+        }
+    }
+}
+
 /// A `<number>` value.
 pub type Number = CSSFloat;
 

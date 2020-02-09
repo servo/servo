@@ -31,7 +31,7 @@ use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKin
 pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
-pub use self::angle::Angle;
+pub use self::angle::{Angle, AllowUnitlessZeroAngle};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
@@ -129,6 +129,47 @@ pub mod time;
 pub mod transform;
 pub mod ui;
 pub mod url;
+
+/// <angle> | <percentage>
+/// https://drafts.csswg.org/css-values/#typedef-angle-percentage
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub enum AngleOrPercentage {
+    Percentage(Percentage),
+    Angle(Angle),
+}
+
+impl AngleOrPercentage {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_unitless_zero: AllowUnitlessZeroAngle,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(per) = input.try(|i| Percentage::parse(context, i)) {
+            return Ok(AngleOrPercentage::Percentage(per));
+        }
+
+        Angle::parse_internal(context, input, allow_unitless_zero).map(AngleOrPercentage::Angle)
+    }
+
+    /// Allow unitless angles, used for conic-gradients as specified by the spec.
+    /// https://drafts.csswg.org/css-images-4/#valdef-conic-gradient-angle
+    pub fn parse_with_unitless<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        AngleOrPercentage::parse_internal(context, input, AllowUnitlessZeroAngle::Yes)
+    }
+}
+
+impl Parse for AngleOrPercentage {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        AngleOrPercentage::parse_internal(context, input, AllowUnitlessZeroAngle::No)
+    }
+}
 
 /// Parse a `<number>` value, with a given clamping mode.
 fn parse_number_with_clamping_mode<'i, 't>(
