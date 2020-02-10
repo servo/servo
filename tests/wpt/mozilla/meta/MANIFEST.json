@@ -1,5 +1,14 @@
 {
  "items": {
+  "conformancechecker": {
+   "css/position_fixed_scroll.html": []
+  },
+  "crashtest": {
+   "css/position_fixed_scroll.html": []
+  },
+  "manual": {
+   "css/position_fixed_scroll.html": []
+  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -5057,6 +5066,18 @@
      {}
     ]
    ],
+   "css/position_fixed_scroll.html": [
+    [
+     "css/position_fixed_scroll.html",
+     [
+      [
+       "/_mozilla/css/position_fixed_scroll_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/position_fixed_simple_a.html": [
     [
      "css/position_fixed_simple_a.html",
@@ -8977,6 +8998,10 @@
    "css/position_fixed_overflow_b.html": [
     []
    ],
+   "css/position_fixed_scroll.html": [],
+   "css/position_fixed_scroll_ref.html": [
+    []
+   ],
    "css/position_fixed_simple_b.html": [
     []
    ],
@@ -11253,6 +11278,7 @@
      {}
     ]
    ],
+   "css/position_fixed_scroll.html": [],
    "css/stylesheet_media_queries.html": [
     [
      "css/stylesheet_media_queries.html",
@@ -12596,6 +12622,12 @@
      {}
     ]
    ]
+  },
+  "visual": {
+   "css/position_fixed_scroll.html": []
+  },
+  "wdspec": {
+   "css/position_fixed_scroll.html": []
   }
  },
  "paths": {
@@ -16957,6 +16989,14 @@
   ],
   "css/position_fixed_overflow_b.html": [
    "a8947566153c187ba3191084f89d0163bc5b666e",
+   "support"
+  ],
+  "css/position_fixed_scroll.html": [
+   "712265957f2c2ff0102eab09219b44bc5bf7f032",
+   "reftest"
+  ],
+  "css/position_fixed_scroll_ref.html": [
+   "dc2e72a96ac2d82f038605812c79b9f78c1547dd",
    "support"
   ],
   "css/position_fixed_simple_a.html": [

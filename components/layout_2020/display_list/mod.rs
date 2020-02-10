@@ -14,8 +14,10 @@ use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
+use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
+
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
@@ -245,6 +247,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder) {
         builder.clipping_and_scrolling_scope(|builder| {
+            self.adjust_spatial_id_for_positioning(builder);
             self.build_hit_test(builder);
             self.build_background(builder);
             self.build_border(builder);
@@ -262,6 +265,18 @@ impl<'a> BuilderForBoxFragment<'a> {
                 child.build_display_list(builder, &content_rect)
             }
         });
+    }
+
+    fn adjust_spatial_id_for_positioning(&self, builder: &mut DisplayListBuilder) {
+        if self.fragment.style.get_box().position != ComputedPosition::Fixed {
+            return;
+        }
+
+        // TODO(mrobinson): Eventually this should use the spatial id of the reference
+        // frame that is the parent of this one once we have full support for stacking
+        // contexts and transforms.
+        builder.current_space_and_clip.spatial_id =
+            wr::SpatialId::root_reference_frame(builder.wr.pipeline_id);
     }
 
     fn build_scroll_frame_if_necessary(&self, builder: &mut DisplayListBuilder) {
