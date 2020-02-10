@@ -223,7 +223,9 @@ impl FragmentTreeRoot {
                         .to_physical(fragment.style.writing_mode, containing_block)
                         .translate(containing_block.origin.to_vector());
                     for child in &fragment.children {
-                        do_iteration(child, &new_containing_block, process_func);
+                        if !do_iteration(child, &new_containing_block, process_func) {
+                            return false;
+                        }
                     }
                 },
                 Fragment::Anonymous(fragment) => {
@@ -232,7 +234,9 @@ impl FragmentTreeRoot {
                         .to_physical(fragment.mode, containing_block)
                         .translate(containing_block.origin.to_vector());
                     for child in &fragment.children {
-                        do_iteration(child, &new_containing_block, process_func);
+                        if !do_iteration(child, &new_containing_block, process_func) {
+                            return false;
+                        }
                     }
                 },
                 _ => {},
