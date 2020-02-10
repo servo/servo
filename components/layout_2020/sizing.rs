@@ -148,8 +148,12 @@ impl BoxContentSizes {
         let margin = style.margin();
         pbm_lengths += border.inline_sum();
         let mut add = |x: LengthPercentage| {
-            pbm_lengths += x.length_component();
-            pbm_percentages += x.percentage_component();
+            if let Some(l) = x.to_length() {
+                pbm_lengths += l;
+            }
+            if let Some(p) = x.to_percentage() {
+                pbm_percentages += p;
+            }
         };
         add(padding.inline_start);
         add(padding.inline_end);

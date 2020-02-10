@@ -159,8 +159,12 @@ impl InlineFormattingContext {
             }
 
             fn add_lengthpercentage(&mut self, lp: LengthPercentage) {
-                self.add_length(lp.length_component());
-                self.current_line_percentages += lp.percentage_component();
+                if let Some(l) = lp.to_length() {
+                    self.add_length(l);
+                }
+                if let Some(p) = lp.to_percentage() {
+                    self.current_line_percentages += p;
+                }
             }
 
             fn add_length(&mut self, l: Length) {
