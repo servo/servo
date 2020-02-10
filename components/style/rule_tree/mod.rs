@@ -1458,7 +1458,6 @@ impl StrongRuleNode {
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_PADDING;
         use crate::properties::{CSSWideKeyword, LonghandId};
         use crate::properties::{PropertyDeclaration, PropertyDeclarationId};
-        use crate::values::specified::Color;
         use std::borrow::Cow;
 
         // Reset properties:
@@ -1581,11 +1580,11 @@ impl StrongRuleNode {
 
                     if is_author {
                         if !author_colors_allowed {
-                            // FIXME(emilio): this looks wrong, this should
-                            // do: if color is not transparent, then return
-                            // true, or something.
                             if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
-                                return *color == Color::transparent();
+                                if color.is_transparent() {
+                                    return true;
+                                }
+                                continue;
                             }
                         }
                         return true;
