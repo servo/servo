@@ -172,10 +172,10 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "mask-image",
-    "ImageLayer",
+    "Image",
     engines="gecko",
-    initial_value="computed::ImageLayer::none()",
-    initial_specified_value="specified::ImageLayer::none()",
+    initial_value="computed::Image::None",
+    initial_specified_value="specified::Image::None",
     parse_method="parse_with_cors_anonymous",
     spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
     vector=True,

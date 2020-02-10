@@ -32,24 +32,6 @@ use std::fmt::{self, Write};
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
-/// A specified image layer.
-pub type ImageLayer = generic::GenericImageLayer<Image>;
-
-impl ImageLayer {
-    /// This is a specialization of Either with an alternative parse
-    /// method to provide anonymous CORS headers for the Image url fetch.
-    pub fn parse_with_cors_anonymous<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
-            return Ok(generic::GenericImageLayer::Image(v));
-        }
-        input.expect_ident_matching("none")?;
-        Ok(generic::GenericImageLayer::None)
-    }
-}
-
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl>;
@@ -118,8 +100,8 @@ pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-#[cfg(feature = "gecko")]
-pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
+#[cfg(all(feature = "gecko", not(feature = "cbindgen")))]
+pub type MozImageRect = generic::GenericMozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
 
 #[cfg(not(feature = "gecko"))]
 #[derive(
@@ -141,6 +123,9 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(generic::Image::None);
+        }
         if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
             return Ok(generic::Image::Url(url));
         }

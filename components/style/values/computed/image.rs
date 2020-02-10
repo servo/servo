@@ -22,9 +22,6 @@ use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
-/// A computed image layer.
-pub type ImageLayer = generic::GenericImageLayer<Image>;
-
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl>;
@@ -65,7 +62,7 @@ pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
 
 /// Computed values for `-moz-image-rect(...)`.
 #[cfg(feature = "gecko")]
-pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, ComputedImageUrl>;
+pub type MozImageRect = generic::GenericMozImageRect<NumberOrPercentage, ComputedImageUrl>;
 
 /// Empty enum on non-gecko
 #[cfg(not(feature = "gecko"))]

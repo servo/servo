@@ -71,6 +71,10 @@ impl Parse for ClippingShape {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(ShapeSource::None);
+        }
+
         if is_clip_path_path_enabled(context) {
             if let Ok(p) = input.try(|i| Path::parse(context, i)) {
                 return Ok(ShapeSource::Path(p));
@@ -91,7 +95,14 @@ impl Parse for FloatAreaShape {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        // Need to parse this here so that `Image::parse_with_cors_anonymous`
+        // doesn't parse it.
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(ShapeSource::None);
+        }
+
         if let Ok(image) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
+            debug_assert_ne!(image, Image::None);
             return Ok(ShapeSource::ImageOrUrl(image));
         }
 
@@ -108,10 +119,6 @@ where
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None);
-        }
-
         fn parse_component<U: Parse>(
             context: &ParserContext,
             input: &mut Parser,
