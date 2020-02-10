@@ -10,11 +10,12 @@ use crate::parser::ParserContext;
 use crate::values::computed;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
-use crate::values::specified::{Angle, Time};
+use crate::values::specified::{self, Angle, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
+use std::{cmp, mem};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
@@ -31,8 +32,30 @@ pub enum MathFunction {
     Clamp,
 }
 
+/// This determines the order in which we serialize members of a calc()
+/// sum.
+///
+/// See https://drafts.csswg.org/css-values-4/#sort-a-calculations-children
+#[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
+enum SortKey {
+    Number,
+    Percentage,
+    Ch,
+    Deg,
+    Em,
+    Ex,
+    Px,
+    Rem,
+    Sec,
+    Vh,
+    Vmax,
+    Vmin,
+    Vw,
+    Other,
+}
+
 /// Whether we're a `min` or `max` function.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MinMaxOp {
     /// `min()`
     Min,
@@ -41,7 +64,7 @@ pub enum MinMaxOp {
 }
 
 /// A node inside a `Calc` expression's AST.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CalcNode {
     /// `<length>`
     Length(NoCalcLength),
@@ -201,27 +224,37 @@ macro_rules! impl_generic_to_type {
                 // Equivalent to cmp::max(min, cmp::min(center, max))
                 //
                 // But preserving units when appropriate.
+                let center_float = center.$to_float();
+                let min_float = min.$to_float();
+                let max_float = max.$to_float();
+
                 let mut result = center;
-                if result.$to_float() > max.$to_float() {
+                let mut result_float = center_float;
+
+                if result_float > max_float {
                     result = max;
+                    result_float = max_float;
                 }
-                if result.$to_float() < min.$to_float() {
-                    result = min;
+
+                if result_float < min_float {
+                    min
+                } else {
+                    result
                 }
-                result
             },
             Self::MinMax(ref nodes, op) => {
                 let mut result = nodes[0].$to_self()?;
+                let mut result_float = result.$to_float();
                 for node in nodes.iter().skip(1) {
                     let candidate = node.$to_self()?;
                     let candidate_float = candidate.$to_float();
-                    let result_float = result.$to_float();
                     let candidate_wins = match op {
                         MinMaxOp::Min => candidate_float < result_float,
                         MinMaxOp::Max => candidate_float > result_float,
                     };
                     if candidate_wins {
                         result = candidate;
+                        result_float = candidate_float;
                     }
                 }
                 result
@@ -233,6 +266,20 @@ macro_rules! impl_generic_to_type {
             Self::Number(..) => return Err(()),
         })
     }}
+}
+
+impl PartialOrd for CalcNode {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        use self::CalcNode::*;
+        match (self, other) {
+            (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
+            (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
+            (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
+            (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
+            (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
+            _ => None,
+        }
+    }
 }
 
 impl CalcNode {
@@ -286,8 +333,221 @@ impl CalcNode {
                 max.mul_by(scalar);
                 // For negatives we need to swap min / max.
                 if scalar < 0. {
-                    std::mem::swap(min, max);
+                    mem::swap(min, max);
                 }
+            },
+        }
+    }
+
+    fn calc_node_sort_key(&self) -> SortKey {
+        match *self {
+            Self::Number(..) => SortKey::Number,
+            Self::Percentage(..) => SortKey::Percentage,
+            Self::Time(..) => SortKey::Sec,
+            Self::Angle(..) => SortKey::Deg,
+            Self::Length(ref l) => {
+                match *l {
+                    NoCalcLength::Absolute(..) => SortKey::Px,
+                    NoCalcLength::FontRelative(ref relative) => {
+                        match *relative {
+                            FontRelativeLength::Ch(..) => SortKey::Ch,
+                            FontRelativeLength::Em(..) => SortKey::Em,
+                            FontRelativeLength::Ex(..) => SortKey::Ex,
+                            FontRelativeLength::Rem(..) => SortKey::Rem,
+                        }
+                    },
+                    NoCalcLength::ViewportPercentage(ref vp) => {
+                        match *vp {
+                            ViewportPercentageLength::Vh(..) => SortKey::Vh,
+                            ViewportPercentageLength::Vw(..) => SortKey::Vw,
+                            ViewportPercentageLength::Vmax(..) => SortKey::Vmax,
+                            ViewportPercentageLength::Vmin(..) => SortKey::Vmin,
+                        }
+                    },
+                    NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
+                }
+            },
+            Self::Sum(..) | Self::MinMax(..) | Self::Clamp { .. } => SortKey::Other,
+        }
+    }
+
+    /// Tries to merge one sum to another, that is, perform `x` + `y`.
+    ///
+    /// Only handles leaf nodes, it's the caller's responsibility to simplify
+    /// them before calling this if needed.
+    fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> { use
+        self::CalcNode::*;
+
+        match (self, other) { (&mut Number(ref mut one), &Number(ref other)) |
+            (&mut Percentage(ref mut one), &Percentage(ref other)) => { *one +=
+                *other; } (&mut Angle(ref mut one), &Angle(ref other)) => { *one
+                    = specified::Angle::from_calc(one.degrees() +
+                        other.degrees()); } (&mut Time(ref mut one), &Time(ref
+                            other)) => { *one =
+                            specified::Time::from_calc(one.seconds() +
+                                other.seconds()); } (&mut Length(ref mut one),
+                                &Length(ref other)) => { *one =
+                                    one.try_sum(other)?; } _ => return Err(()),
+        }
+
+        Ok(()) }
+
+    /// Simplifies and sorts the calculation. This is only needed if it's going
+    /// to be preserved after parsing (so, for `<length-percentage>`). Otherwise
+    /// we can just evaluate it and we'll come up with a simplified value
+    /// anyways.
+    fn simplify_and_sort_children(&mut self) {
+        macro_rules! replace_self_with {
+            ($slot:expr) => {{
+                let result = mem::replace($slot, Self::Number(0.));
+                mem::replace(self, result);
+            }}
+        }
+        match *self {
+            Self::Clamp { ref mut min, ref mut center, ref mut max } => {
+                min.simplify_and_sort_children();
+                center.simplify_and_sort_children();
+                max.simplify_and_sort_children();
+
+                // NOTE: clamp() is max(min, min(center, max))
+                let min_cmp_center = match min.partial_cmp(&center) {
+                    Some(o) => o,
+                    None => return,
+                };
+
+                // So if we can prove that min is more than center, then we won,
+                // as that's what we should always return.
+                if matches!(min_cmp_center, cmp::Ordering::Greater) {
+                    return replace_self_with!(&mut **min);
+                }
+
+                // Otherwise try with max.
+                let max_cmp_center = match max.partial_cmp(&center) {
+                    Some(o) => o,
+                    None => return,
+                };
+
+                if matches!(max_cmp_center, cmp::Ordering::Less) {
+                    // max is less than center, so we need to return effectively
+                    // `max(min, max)`.
+                    let max_cmp_min = match max.partial_cmp(&min) {
+                        Some(o) => o,
+                        None => {
+                            debug_assert!(
+                                false,
+                                "We compared center with min and max, how are \
+                                 min / max not comparable with each other?"
+                            );
+                            return;
+                        },
+                    };
+
+                    if matches!(max_cmp_min, cmp::Ordering::Less) {
+                        return replace_self_with!(&mut **min);
+                    }
+
+                    return replace_self_with!(&mut **max);
+                }
+
+                // Otherwise we're the center node.
+                return replace_self_with!(&mut **center);
+            },
+            Self::MinMax(ref mut children, op) => {
+                for child in &mut **children {
+                    child.simplify_and_sort_children();
+                }
+
+                let winning_order = match op {
+                    MinMaxOp::Min => cmp::Ordering::Less,
+                    MinMaxOp::Max => cmp::Ordering::Greater,
+                };
+
+                let mut result = 0;
+                for i in 1..children.len() {
+                    let o = match children[i].partial_cmp(&children[result]) {
+                        // We can't compare all the children, so we can't
+                        // know which one will actually win. Bail out and
+                        // keep ourselves as a min / max function.
+                        //
+                        // TODO: Maybe we could simplify compatible children,
+                        // see https://github.com/w3c/csswg-drafts/issues/4756
+                        None => return,
+                        Some(o) => o,
+                    };
+
+                    if o == winning_order {
+                        result = i;
+                    }
+                }
+
+                replace_self_with!(&mut children[result]);
+            },
+            Self::Sum(ref mut children_slot) => {
+                let mut sums_to_merge = SmallVec::<[_; 3]>::new();
+                let mut extra_kids = 0;
+                for (i, child) in children_slot.iter_mut().enumerate() {
+                    child.simplify_and_sort_children();
+                    if let Self::Sum(ref mut children) = *child {
+                        extra_kids += children.len();
+                        sums_to_merge.push(i);
+                    }
+                }
+
+                // If we only have one kid, we've already simplified it, and it
+                // doesn't really matter whether it's a sum already or not, so
+                // lift it up and continue.
+                if children_slot.len() == 1 {
+                    return replace_self_with!(&mut children_slot[0]);
+                }
+
+                let mut children = mem::replace(children_slot, Box::new([])).into_vec();
+
+                if !sums_to_merge.is_empty() {
+                    children.reserve(extra_kids - sums_to_merge.len());
+                    // Merge all our nested sums, in reverse order so that the
+                    // list indices are not invalidated.
+                    for i in sums_to_merge.drain(..).rev() {
+                        let kid_children = match children.swap_remove(i) {
+                            Self::Sum(c) => c,
+                            _ => unreachable!(),
+                        };
+
+                        // This would be nicer with
+                        // https://github.com/rust-lang/rust/issues/59878 fixed.
+                        children.extend(kid_children.into_vec());
+                    }
+                }
+
+                debug_assert!(
+                    children.len() >= 2,
+                    "Should still have multiple kids!"
+                );
+
+                // Sort by spec order.
+                children.sort_unstable_by_key(|c| c.calc_node_sort_key());
+
+                // NOTE: if the function returns true, by the docs of dedup_by,
+                // a is removed.
+                children.dedup_by(|a, b| b.try_sum_in_place(a).is_ok());
+
+                if children.len() == 1 {
+                    // If only one children remains, lift it up, and carry on.
+                    replace_self_with!(&mut children[0]);
+                } else {
+                    // Else put our simplified children back.
+                    mem::replace(children_slot, children.into_boxed_slice());
+                }
+            },
+            Self::Length(ref mut len) => {
+                if let NoCalcLength::Absolute(ref mut absolute_length) = *len {
+                    *absolute_length = AbsoluteLength::Px(absolute_length.to_px());
+                }
+            }
+            Self::Percentage(..) |
+            Self::Angle(..) |
+            Self::Time(..) |
+            Self::Number(..) => {
+                // These are leaves already, nothing to do.
             },
         }
     }
@@ -509,13 +769,14 @@ impl CalcNode {
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
     fn to_length_or_percentage(
-        &self,
+        &mut self,
         clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthPercentage, ()> {
         let mut ret = CalcLengthPercentage {
             clamping_mode,
             ..Default::default()
         };
+        self.simplify_and_sort_children();
         self.add_length_or_percentage_to(&mut ret, 1.0)?;
         Ok(ret)
     }

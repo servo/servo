@@ -96,6 +96,17 @@ impl FontRelativeLength {
         }
     }
 
+    fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+        use self::FontRelativeLength::*;
+        Ok(match (self, other) {
+            (&Em(one), &Em(other)) => Em(one + other),
+            (&Ex(one), &Ex(other)) => Ex(one + other),
+            (&Ch(one), &Ch(other)) => Ch(one + other),
+            (&Rem(one), &Rem(other)) => Rem(one + other),
+            _ => return Err(()),
+        })
+    }
+
     /// Computes the font-relative length.
     pub fn to_computed_value(
         &self,
@@ -247,6 +258,17 @@ impl ViewportPercentageLength {
         }
     }
 
+    fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+        use self::ViewportPercentageLength::*;
+        Ok(match (self, other) {
+            (&Vw(one), &Vw(other)) => Vw(one + other),
+            (&Vh(one), &Vh(other)) => Vh(one + other),
+            (&Vmin(one), &Vmin(other)) => Vmin(one + other),
+            (&Vmax(one), &Vmax(other)) => Vmax(one + other),
+            _ => return Err(()),
+        })
+    }
+
     /// Computes the given viewport-relative length for the given viewport size.
     pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> CSSPixelLength {
         let (factor, length) = match *self {
@@ -351,6 +373,12 @@ impl ToComputedValue for AbsoluteLength {
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         AbsoluteLength::Px(computed.px())
+    }
+}
+
+impl PartialOrd for AbsoluteLength {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        self.to_px().partial_cmp(&other.to_px())
     }
 }
 
@@ -468,6 +496,21 @@ impl NoCalcLength {
         })
     }
 
+    /// Try to sume two lengths if compatible into the left hand side.
+    pub(crate) fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+        use self::NoCalcLength::*;
+
+        Ok(match (self, other) {
+            (&Absolute(ref one), &Absolute(ref other)) => Absolute(*one + *other),
+            (&FontRelative(ref one), &FontRelative(ref other)) => FontRelative(one.try_sum(other)?),
+            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => ViewportPercentage(one.try_sum(other)?),
+            (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => {
+                ServoCharacterWidth(CharacterWidth(one.0 + other.0))
+            },
+            _ => return Err(()),
+        })
+    }
+
     /// Get a px value without context.
     #[inline]
     pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
@@ -485,6 +528,24 @@ impl NoCalcLength {
 }
 
 impl SpecifiedValueInfo for NoCalcLength {}
+
+impl PartialOrd for NoCalcLength {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        use self::NoCalcLength::*;
+        match (self, other) {
+            (&Absolute(ref one), &Absolute(ref other)) => one.to_px().partial_cmp(&other.to_px()),
+            (&FontRelative(ref one), &FontRelative(ref other)) => one.partial_cmp(other),
+            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => one.partial_cmp(other),
+            (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => one.0.partial_cmp(&other.0),
+            _ => {
+                // This will at least catch issues some of the time... Maybe
+                // could be worth a derive thing?
+                debug_assert_ne!(self, other, "Forgot a match arm?");
+                None
+            }
+        }
+    }
+}
 
 impl Zero for NoCalcLength {
     fn zero() -> Self {
@@ -534,6 +595,23 @@ impl Mul<CSSFloat> for Length {
     }
 }
 
+impl PartialOrd for FontRelativeLength {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        use self::FontRelativeLength::*;
+        match (self, other) {
+            (&Em(ref one), &Em(ref other)) => one.partial_cmp(other),
+            (&Ex(ref one), &Ex(ref other)) => one.partial_cmp(other),
+            (&Ch(ref one), &Ch(ref other)) => one.partial_cmp(other),
+            (&Rem(ref one), &Rem(ref other)) => one.partial_cmp(other),
+            _ => {
+                // This will at least catch issues some of the time.
+                debug_assert_ne!(self, other, "Forgot a match arm?");
+                None
+            }
+        }
+    }
+}
+
 impl Mul<CSSFloat> for FontRelativeLength {
     type Output = FontRelativeLength;
 
@@ -558,6 +636,23 @@ impl Mul<CSSFloat> for ViewportPercentageLength {
             ViewportPercentageLength::Vh(v) => ViewportPercentageLength::Vh(v * scalar),
             ViewportPercentageLength::Vmin(v) => ViewportPercentageLength::Vmin(v * scalar),
             ViewportPercentageLength::Vmax(v) => ViewportPercentageLength::Vmax(v * scalar),
+        }
+    }
+}
+
+impl PartialOrd for ViewportPercentageLength {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        use self::ViewportPercentageLength::*;
+        match (self, other) {
+            (&Vw(ref one), &Vw(ref other)) => one.partial_cmp(other),
+            (&Vh(ref one), &Vh(ref other)) => one.partial_cmp(other),
+            (&Vmin(ref one), &Vmin(ref other)) => one.partial_cmp(other),
+            (&Vmax(ref one), &Vmax(ref other)) => one.partial_cmp(other),
+            _ => {
+                // This will at least catch issues some of the time.
+                debug_assert_ne!(self, other, "Forgot a match arm?");
+                None
+            }
         }
     }
 }
