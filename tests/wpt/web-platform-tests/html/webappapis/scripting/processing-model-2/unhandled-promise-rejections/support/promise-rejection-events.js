@@ -831,30 +831,29 @@ if ('document' in self) {
 
     var p = Promise.reject();
 
-    setTimeout(function() {
-      queueTask(function() {
-        sequenceOfEvents.push('task before catch');
-        checkSequence();
-      });
-
-      p.catch(function() {
-        sequenceOfEvents.push('catch');
-        checkSequence();
-      });
-
-      queueTask(function() {
-        sequenceOfEvents.push('task after catch');
-        checkSequence();
-      });
-
-      sequenceOfEvents.push('after catch');
-      checkSequence();
-    }, 10);
-
     function unhandled(ev) {
       if (ev.promise === p) {
         sequenceOfEvents.push('unhandled');
         checkSequence();
+        setTimeout(function() {
+          queueTask(function() {
+            sequenceOfEvents.push('task before catch');
+            checkSequence();
+          });
+
+          p.catch(function() {
+            sequenceOfEvents.push('catch');
+            checkSequence();
+          });
+
+          queueTask(function() {
+            sequenceOfEvents.push('task after catch');
+           checkSequence();
+          });
+
+          sequenceOfEvents.push('after catch');
+          checkSequence();
+        }, 10);
       }
     }
 
