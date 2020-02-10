@@ -27,7 +27,6 @@ libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 net_traits = {path = "../net_traits"}
-ordered-float = "1.0"
 range = {path = "../range"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}

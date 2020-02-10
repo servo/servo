@@ -10,7 +10,7 @@ use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTe
 use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
 use crate::linked_list::split_off_head;
 use app_units::Au;
-use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
+use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
@@ -195,7 +195,24 @@ impl TextRunScanner {
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
-                word_spacing = inherited_text_style.word_spacing.to_hash_key();
+                word_spacing = inherited_text_style
+                    .word_spacing
+                    .to_length()
+                    .map(|l| l.into())
+                    .unwrap_or_else(|| {
+                        let space_width = font_group
+                            .borrow_mut()
+                            .find_by_codepoint(&mut font_context, ' ')
+                            .and_then(|font| {
+                                let font = font.borrow();
+                                font.glyph_index(' ')
+                                    .map(|glyph_id| font.glyph_h_advance(glyph_id))
+                            })
+                            .unwrap_or(font::LAST_RESORT_GLYPH_ADVANCE);
+                        inherited_text_style
+                            .word_spacing
+                            .to_used_value(Au::from_f64_px(space_width))
+                    });
                 text_rendering = inherited_text_style.text_rendering;
                 word_break = inherited_text_style.word_break;
             }

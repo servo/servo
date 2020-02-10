@@ -434,9 +434,7 @@ impl Shaper {
         // We elect to only space the two required code points.
         if character == ' ' || character == '\u{a0}' {
             // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            let (length, percent) = options.word_spacing;
-            advance =
-                (advance + length) + Au::new((advance.0 as f32 * percent.into_inner()) as i32);
+            advance += options.word_spacing;
         }
 
         advance

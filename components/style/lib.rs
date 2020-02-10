@@ -72,7 +72,6 @@ extern crate num_cpus;
 extern crate num_derive;
 extern crate num_integer;
 extern crate num_traits;
-extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
 extern crate precomputed_hash;
