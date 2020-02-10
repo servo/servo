@@ -73,6 +73,10 @@ pub struct CalcVariant {
     ptr: *mut CalcLengthPercentage,
 }
 
+// `CalcLengthPercentage` is `Send + Sync` as asserted below.
+unsafe impl Send for CalcVariant {}
+unsafe impl Sync for CalcVariant {}
+
 #[doc(hidden)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -130,10 +134,14 @@ enum Tag {
 // All the members should be 64 bits, even in 32-bit builds.
 #[allow(unused)]
 unsafe fn static_assert() {
+    fn assert_send_and_sync<T: Send + Sync>() {}
     std::mem::transmute::<u64, LengthVariant>(0u64);
     std::mem::transmute::<u64, PercentageVariant>(0u64);
     std::mem::transmute::<u64, CalcVariant>(0u64);
     std::mem::transmute::<u64, LengthPercentage>(0u64);
+    assert_send_and_sync::<LengthVariant>();
+    assert_send_and_sync::<PercentageVariant>();
+    assert_send_and_sync::<CalcLengthPercentage>();
 }
 
 impl Drop for LengthPercentage {

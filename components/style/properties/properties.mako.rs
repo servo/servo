@@ -2895,9 +2895,17 @@ pub struct ComputedValues {
     /// We maintain this distinction in servo to reduce the amount of special
     /// casing.
     inner: ComputedValuesInner,
+
+    /// The pseudo-element that we're using.
+    pseudo: Option<PseudoElement>,
 }
 
 impl ComputedValues {
+    /// Returns the pseudo-element that this style represents.
+    pub fn pseudo(&self) -> Option<<&PseudoElement> {
+        self.pseudo.as_ref()
+    }
+
     /// Returns whether this style's display value is equal to contents.
     pub fn is_display_contents(&self) -> bool {
         self.get_box().clone_display().is_contents()
@@ -3000,7 +3008,7 @@ impl ComputedValues {
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
-        _: Option<<&PseudoElement>,
+        pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         flags: ComputedValueFlags,
@@ -3020,7 +3028,8 @@ impl ComputedValues {
             % for style_struct in data.active_style_structs():
                 ${style_struct.ident},
             % endfor
-            }
+            },
+            pseudo: pseudo.cloned(),
         })
     }
 
@@ -3835,7 +3844,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 #[allow(missing_docs)]
 mod lazy_static_module {
     use crate::logical_geometry::WritingMode;
-    use create::computed_value_flags::ComputedValueFlags;
+    use crate::computed_value_flags::ComputedValueFlags;
     use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs};
 
@@ -3867,7 +3876,8 @@ mod lazy_static_module {
                 rules: None,
                 visited_style: None,
                 flags: ComputedValueFlags::empty(),
-            }
+            },
+            pseudo: None,
         };
     }
 }

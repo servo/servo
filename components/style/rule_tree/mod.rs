@@ -138,6 +138,7 @@ impl StyleSource {
 
     // This is totally unsafe, should be removed when we figure out the cause of
     // bug 1607553.
+    #[cfg(feature = "gecko")]
     unsafe fn dump_unchecked<W: Write>(&self, writer: &mut W) {
         if let Some(ref rule) = self.0.as_first() {
             let rule = rule.read_unchecked();
@@ -149,6 +150,7 @@ impl StyleSource {
     // This is totally unsafe, should be removed when we figure out the cause of
     // bug 1607553.
     #[inline]
+    #[cfg(feature = "gecko")]
     unsafe fn read_unchecked(&self) -> &PropertyDeclarationBlock {
         let block: &Locked<PropertyDeclarationBlock> = match self.0.borrow() {
             ArcUnionBorrow::First(ref rule) => &rule.get().read_unchecked().block,
@@ -1739,10 +1741,23 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        if cfg!(debug_assertions) || crate::gecko_bindings::structs::GECKO_IS_NIGHTLY {
+        #[cfg(feature = "gecko")]
+        #[inline(always)]
+        fn assert_on_release() -> bool {
+            crate::gecko_bindings::structs::GECKO_IS_NIGHTLY
+        }
+
+        #[cfg(feature = "servo")]
+        fn assert_on_release() -> bool {
+            false
+        }
+
+        if cfg!(debug_assertions) || assert_on_release() {
             let children = node.children.read();
             if !children.is_empty() {
                 let mut crash_str = vec![];
+
+                #[cfg(feature = "gecko")]
                 unsafe {
                     // Try to unsafely collect some information of this before
                     // crashing the process.
@@ -1755,6 +1770,7 @@ impl Drop for StrongRuleNode {
                         crash_str.push(b'\n');
                     });
                 }
+
                 panic!("Children left in the rule tree on drop: {}", String::from_utf8_lossy(&crash_str).trim());
             }
         }

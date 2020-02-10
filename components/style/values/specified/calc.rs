@@ -881,7 +881,17 @@ impl CalcNode {
             return Ok(MathFunction::Calc);
         }
 
-        if !static_prefs::pref!("layout.css.comparison-functions.enabled") {
+        #[cfg(feature = "gecko")]
+        fn comparison_functions_enabled() -> bool {
+            static_prefs::pref!("layout.css.comparison-functions.enabled")
+        }
+
+        #[cfg(feature = "servo")]
+        fn comparison_functions_enabled() -> bool {
+            false
+        }
+
+        if !comparison_functions_enabled() {
             return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
         }
 

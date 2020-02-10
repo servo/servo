@@ -165,6 +165,11 @@ impl Device {
         RGBA::new(255, 255, 255, 255)
     }
 
+    /// Returns the default color color.
+    pub fn default_color(&self) -> RGBA {
+        RGBA::new(0, 0, 0, 255)
+    }
+
     /// Returns safe area insets
     pub fn safe_area_insets(&self) -> SideOffsets2D<f32, CSSPixel> {
         SideOffsets2D::zero()
