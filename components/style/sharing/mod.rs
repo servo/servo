@@ -173,7 +173,7 @@ impl ValidationData {
         E: TElement,
     {
         if !element.has_part_attr() {
-            return &[]
+            return &[];
         }
         self.part_list.get_or_insert_with(|| {
             let mut list = SmallVec::<[Atom; 5]>::new();

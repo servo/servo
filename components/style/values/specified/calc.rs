@@ -20,7 +20,7 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// The name of the mathematical function that we're parsing.
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum MathFunction {
     /// `calc()`: https://drafts.csswg.org/css-values-4/#funcdef-calc
     Calc,
@@ -36,7 +36,7 @@ pub enum MathFunction {
 /// sum.
 ///
 /// See https://drafts.csswg.org/css-values-4/#sort-a-calculations-children
-#[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum SortKey {
     Number,
     Percentage,
@@ -55,7 +55,7 @@ enum SortKey {
 }
 
 /// Whether we're a `min` or `max` function.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MinMaxOp {
     /// `min()`
     Min,
@@ -216,7 +216,11 @@ macro_rules! impl_generic_to_type {
                 }
                 $from_float(sum)
             },
-            Self::Clamp { ref min, ref center, ref max } => {
+            Self::Clamp {
+                ref min,
+                ref center,
+                ref max,
+            } => {
                 let min = min.$to_self()?;
                 let center = center.$to_self()?;
                 let max = max.$to_self()?;
@@ -265,7 +269,7 @@ macro_rules! impl_generic_to_type {
             Self::Percentage(..) |
             Self::Number(..) => return Err(()),
         })
-    }}
+    }};
 }
 
 impl PartialOrd for CalcNode {
@@ -327,7 +331,11 @@ impl CalcNode {
                 }
             },
             // Multiplication is distributive across these.
-            Self::Clamp { ref mut min, ref mut center, ref mut max } => {
+            Self::Clamp {
+                ref mut min,
+                ref mut center,
+                ref mut max,
+            } => {
                 min.mul_by(scalar);
                 center.mul_by(scalar);
                 max.mul_by(scalar);
@@ -345,27 +353,21 @@ impl CalcNode {
             Self::Percentage(..) => SortKey::Percentage,
             Self::Time(..) => SortKey::Sec,
             Self::Angle(..) => SortKey::Deg,
-            Self::Length(ref l) => {
-                match *l {
-                    NoCalcLength::Absolute(..) => SortKey::Px,
-                    NoCalcLength::FontRelative(ref relative) => {
-                        match *relative {
-                            FontRelativeLength::Ch(..) => SortKey::Ch,
-                            FontRelativeLength::Em(..) => SortKey::Em,
-                            FontRelativeLength::Ex(..) => SortKey::Ex,
-                            FontRelativeLength::Rem(..) => SortKey::Rem,
-                        }
-                    },
-                    NoCalcLength::ViewportPercentage(ref vp) => {
-                        match *vp {
-                            ViewportPercentageLength::Vh(..) => SortKey::Vh,
-                            ViewportPercentageLength::Vw(..) => SortKey::Vw,
-                            ViewportPercentageLength::Vmax(..) => SortKey::Vmax,
-                            ViewportPercentageLength::Vmin(..) => SortKey::Vmin,
-                        }
-                    },
-                    NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
-                }
+            Self::Length(ref l) => match *l {
+                NoCalcLength::Absolute(..) => SortKey::Px,
+                NoCalcLength::FontRelative(ref relative) => match *relative {
+                    FontRelativeLength::Ch(..) => SortKey::Ch,
+                    FontRelativeLength::Em(..) => SortKey::Em,
+                    FontRelativeLength::Ex(..) => SortKey::Ex,
+                    FontRelativeLength::Rem(..) => SortKey::Rem,
+                },
+                NoCalcLength::ViewportPercentage(ref vp) => match *vp {
+                    ViewportPercentageLength::Vh(..) => SortKey::Vh,
+                    ViewportPercentageLength::Vw(..) => SortKey::Vw,
+                    ViewportPercentageLength::Vmax(..) => SortKey::Vmax,
+                    ViewportPercentageLength::Vmin(..) => SortKey::Vmin,
+                },
+                NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
             },
             Self::Sum(..) | Self::MinMax(..) | Self::Clamp { .. } => SortKey::Other,
         }
@@ -375,22 +377,28 @@ impl CalcNode {
     ///
     /// Only handles leaf nodes, it's the caller's responsibility to simplify
     /// them before calling this if needed.
-    fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> { use
-        self::CalcNode::*;
+    fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
+        use self::CalcNode::*;
 
-        match (self, other) { (&mut Number(ref mut one), &Number(ref other)) |
-            (&mut Percentage(ref mut one), &Percentage(ref other)) => { *one +=
-                *other; } (&mut Angle(ref mut one), &Angle(ref other)) => { *one
-                    = specified::Angle::from_calc(one.degrees() +
-                        other.degrees()); } (&mut Time(ref mut one), &Time(ref
-                            other)) => { *one =
-                            specified::Time::from_calc(one.seconds() +
-                                other.seconds()); } (&mut Length(ref mut one),
-                                &Length(ref other)) => { *one =
-                                    one.try_sum(other)?; } _ => return Err(()),
+        match (self, other) {
+            (&mut Number(ref mut one), &Number(ref other)) |
+            (&mut Percentage(ref mut one), &Percentage(ref other)) => {
+                *one += *other;
+            },
+            (&mut Angle(ref mut one), &Angle(ref other)) => {
+                *one = specified::Angle::from_calc(one.degrees() + other.degrees());
+            },
+            (&mut Time(ref mut one), &Time(ref other)) => {
+                *one = specified::Time::from_calc(one.seconds() + other.seconds());
+            },
+            (&mut Length(ref mut one), &Length(ref other)) => {
+                *one = one.try_sum(other)?;
+            },
+            _ => return Err(()),
         }
 
-        Ok(()) }
+        Ok(())
+    }
 
     /// Simplifies and sorts the calculation. This is only needed if it's going
     /// to be preserved after parsing (so, for `<length-percentage>`). Otherwise
@@ -401,10 +409,14 @@ impl CalcNode {
             ($slot:expr) => {{
                 let result = mem::replace($slot, Self::Number(0.));
                 mem::replace(self, result);
-            }}
+            }};
         }
         match *self {
-            Self::Clamp { ref mut min, ref mut center, ref mut max } => {
+            Self::Clamp {
+                ref mut min,
+                ref mut center,
+                ref mut max,
+            } => {
                 min.simplify_and_sort_children();
                 center.simplify_and_sort_children();
                 max.simplify_and_sort_children();
@@ -518,10 +530,7 @@ impl CalcNode {
                     }
                 }
 
-                debug_assert!(
-                    children.len() >= 2,
-                    "Should still have multiple kids!"
-                );
+                debug_assert!(children.len() >= 2, "Should still have multiple kids!");
 
                 // Sort by spec order.
                 children.sort_unstable_by_key(|c| c.calc_node_sort_key());
@@ -542,11 +551,8 @@ impl CalcNode {
                 if let NoCalcLength::Absolute(ref mut absolute_length) = *len {
                     *absolute_length = AbsoluteLength::Px(absolute_length.to_px());
                 }
-            }
-            Self::Percentage(..) |
-            Self::Angle(..) |
-            Self::Time(..) |
-            Self::Number(..) => {
+            },
+            Self::Percentage(..) | Self::Angle(..) | Self::Time(..) | Self::Number(..) => {
                 // These are leaves already, nothing to do.
             },
         }
@@ -604,11 +610,9 @@ impl CalcNode {
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
                 Ok(CalcNode::Percentage(unit_value))
             },
-            (&Token::ParenthesisBlock, _) => {
-                input.parse_nested_block(|input| {
-                    CalcNode::parse_argument(context, input, expected_unit)
-                })
-            },
+            (&Token::ParenthesisBlock, _) => input.parse_nested_block(|input| {
+                CalcNode::parse_argument(context, input, expected_unit)
+            }),
             (&Token::Function(ref name), _) => {
                 let function = CalcNode::math_function(name, location)?;
                 CalcNode::parse(context, input, function, expected_unit)
@@ -644,16 +648,17 @@ impl CalcNode {
                         max: Box::new(max),
                     })
                 },
-                MathFunction::Min |
-                MathFunction::Max => {
+                MathFunction::Min | MathFunction::Max => {
                     // TODO(emilio): The common case for parse_comma_separated
                     // is just one element, but for min / max is two, really...
                     //
                     // Consider adding an API to cssparser to specify the
                     // initial vector capacity?
-                    let arguments = input.parse_comma_separated(|input| {
-                        Self::parse_argument(context, input, expected_unit)
-                    })?.into_boxed_slice();
+                    let arguments = input
+                        .parse_comma_separated(|input| {
+                            Self::parse_argument(context, input, expected_unit)
+                        })?
+                        .into_boxed_slice();
 
                     let op = match function {
                         MathFunction::Min => MinMaxOp::Min,
@@ -662,7 +667,7 @@ impl CalcNode {
                     };
 
                     Ok(Self::MinMax(arguments, op))
-                }
+                },
             }
         })
     }
@@ -751,7 +756,9 @@ impl CalcNode {
                     let number = match rhs.to_number() {
                         Ok(n) if n != 0. => n,
                         _ => {
-                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
                         },
                     };
                     node.mul_by(1. / number);
@@ -838,10 +845,9 @@ impl CalcNode {
                     child.add_length_or_percentage_to(ret, factor)?;
                 }
             },
-            CalcNode::MinMax(..) |
-            CalcNode::Clamp { .. } => {
+            CalcNode::MinMax(..) | CalcNode::Clamp { .. } => {
                 // FIXME(emilio): Implement min/max/clamp for length-percentage.
-                return Err(())
+                return Err(());
             },
             CalcNode::Angle(..) | CalcNode::Time(..) | CalcNode::Number(..) => return Err(()),
         }

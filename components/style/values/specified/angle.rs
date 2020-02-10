@@ -228,9 +228,7 @@ impl Angle {
                 let function = CalcNode::math_function(name, location)?;
                 CalcNode::parse_angle(context, input, function)
             },
-            Token::Number { value, .. } if value == 0. && allow_unitless_zero => {
-                Ok(Angle::zero())
-            },
+            Token::Number { value, .. } if value == 0. && allow_unitless_zero => Ok(Angle::zero()),
             ref t => {
                 let t = t.clone();
                 Err(input.new_unexpected_token_error(t))

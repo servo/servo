@@ -1767,12 +1767,19 @@ impl Drop for StrongRuleNode {
                         crash_str.push(b'\n');
                     }
                     children.each(|child| {
-                        (*child.ptr()).source.as_ref().unwrap().dump_unchecked(&mut crash_str);
+                        (*child.ptr())
+                            .source
+                            .as_ref()
+                            .unwrap()
+                            .dump_unchecked(&mut crash_str);
                         crash_str.push(b'\n');
                     });
                 }
 
-                panic!("Children left in the rule tree on drop: {}", String::from_utf8_lossy(&crash_str).trim());
+                panic!(
+                    "Children left in the rule tree on drop: {}",
+                    String::from_utf8_lossy(&crash_str).trim()
+                );
             }
         }
 

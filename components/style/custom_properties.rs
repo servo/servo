@@ -12,7 +12,9 @@ use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValu
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
 use crate::stylesheets::{Origin, PerOrigin};
 use crate::Atom;
-use cssparser::{CowRcStr, Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use cssparser::{
+    CowRcStr, Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType,
+};
 use indexmap::IndexMap;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -525,10 +527,7 @@ pub struct CustomPropertiesBuilder<'a> {
 
 impl<'a> CustomPropertiesBuilder<'a> {
     /// Create a new builder, inheriting from a given custom properties map.
-    pub fn new(
-        inherited: Option<&'a Arc<CustomPropertiesMap>>,
-        device: &'a Device,
-    ) -> Self {
+    pub fn new(inherited: Option<&'a Arc<CustomPropertiesMap>>, device: &'a Device) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
             reverted: Default::default(),
@@ -576,8 +575,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // environment variable here, perform substitution here instead
                 // of forcing a full traversal in `substitute_all` afterwards.
                 let value = if !has_references && unparsed_value.references_environment {
-                    let result =
-                        substitute_references_in_value(unparsed_value, &map, &self.device);
+                    let result = substitute_references_in_value(unparsed_value, &map, &self.device);
                     match result {
                         Ok(new_value) => Arc::new(new_value),
                         Err(..) => {

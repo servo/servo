@@ -16,7 +16,7 @@ use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Scale, Size2D, SideOffsets2D};
+use euclid::{Scale, SideOffsets2D, Size2D};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};

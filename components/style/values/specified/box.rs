@@ -267,8 +267,7 @@ impl Display {
     /// Whether this is `display: inline` (or `inline list-item`).
     #[inline]
     pub fn is_inline_flow(&self) -> bool {
-        self.outside() == DisplayOutside::Inline &&
-            self.inside() == DisplayInside::Flow
+        self.outside() == DisplayOutside::Inline && self.inside() == DisplayInside::Flow
     }
 
     /// Returns whether this `display` value is some kind of list-item.

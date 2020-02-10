@@ -111,7 +111,9 @@ impl FontRelativeLength {
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Em(..) | Ex(..) | Ch(..) | Rem(..) => {} }
+                match *self {
+                    Em(..) | Ex(..) | Ch(..) | Rem(..) => {},
+                }
                 debug_unreachable!("Forgot to handle unit in try_sum()")
             },
         })
@@ -283,7 +285,9 @@ impl ViewportPercentageLength {
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Vw(..) | Vh(..) | Vmin(..) | Vmax(..) => {} }
+                match *self {
+                    Vw(..) | Vh(..) | Vmin(..) | Vmax(..) => {},
+                }
                 debug_unreachable!("Forgot to handle unit in try_sum()")
             },
         })
@@ -527,14 +531,21 @@ impl NoCalcLength {
         Ok(match (self, other) {
             (&Absolute(ref one), &Absolute(ref other)) => Absolute(*one + *other),
             (&FontRelative(ref one), &FontRelative(ref other)) => FontRelative(one.try_sum(other)?),
-            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => ViewportPercentage(one.try_sum(other)?),
+            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => {
+                ViewportPercentage(one.try_sum(other)?)
+            },
             (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => {
                 ServoCharacterWidth(CharacterWidth(one.0 + other.0))
             },
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Absolute(..) | FontRelative(..) | ViewportPercentage(..) | ServoCharacterWidth(..) => {} }
+                match *self {
+                    Absolute(..) |
+                    FontRelative(..) |
+                    ViewportPercentage(..) |
+                    ServoCharacterWidth(..) => {},
+                }
                 debug_unreachable!("Forgot to handle unit in try_sum()")
             },
         })
@@ -569,12 +580,21 @@ impl PartialOrd for NoCalcLength {
         match (self, other) {
             (&Absolute(ref one), &Absolute(ref other)) => one.to_px().partial_cmp(&other.to_px()),
             (&FontRelative(ref one), &FontRelative(ref other)) => one.partial_cmp(other),
-            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => one.partial_cmp(other),
-            (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => one.0.partial_cmp(&other.0),
+            (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => {
+                one.partial_cmp(other)
+            },
+            (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => {
+                one.0.partial_cmp(&other.0)
+            },
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Absolute(..) | FontRelative(..) | ViewportPercentage(..) | ServoCharacterWidth(..) => {} }
+                match *self {
+                    Absolute(..) |
+                    FontRelative(..) |
+                    ViewportPercentage(..) |
+                    ServoCharacterWidth(..) => {},
+                }
                 debug_unreachable!("Forgot an arm in partial_cmp?")
             },
         }
@@ -645,7 +665,9 @@ impl PartialOrd for FontRelativeLength {
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Em(..) | Ex(..) | Ch(..) | Rem(..) => {} }
+                match *self {
+                    Em(..) | Ex(..) | Ch(..) | Rem(..) => {},
+                }
                 debug_unreachable!("Forgot an arm in partial_cmp?")
             },
         }
@@ -696,7 +718,9 @@ impl PartialOrd for ViewportPercentageLength {
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
-                match *self { Vw(..) | Vh(..) | Vmin(..) | Vmax(..) => {} }
+                match *self {
+                    Vw(..) | Vh(..) | Vmin(..) | Vmax(..) => {},
+                }
                 debug_unreachable!("Forgot an arm in partial_cmp?")
             },
         }
@@ -957,7 +981,8 @@ impl LengthPercentage {
             },
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(name, location)?;
-                let calc = CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
+                let calc =
+                    CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))
             },
             _ => return Err(location.new_unexpected_token_error(token.clone())),

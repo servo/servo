@@ -9,7 +9,9 @@
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 
-pub use super::specified::{AlignContent, AlignItems, ContentDistribution, JustifyContent, SelfAlignment};
+pub use super::specified::{
+    AlignContent, AlignItems, ContentDistribution, JustifyContent, SelfAlignment,
+};
 pub use super::specified::{AlignSelf, JustifySelf};
 
 /// The computed value for the `justify-items` property.

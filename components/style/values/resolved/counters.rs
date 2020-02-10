@@ -23,8 +23,10 @@ impl ToResolvedValue for computed::Content {
 
     #[inline]
     fn to_resolved_value(self, context: &Context) -> Self {
-        let is_before_or_after =
-            context.style.pseudo().map_or(false, |p| p.is_before_or_after());
+        let is_before_or_after = context
+            .style
+            .pseudo()
+            .map_or(false, |p| p.is_before_or_after());
 
         match self {
             Self::Normal if is_before_or_after => Self::None,
@@ -43,4 +45,3 @@ impl ToResolvedValue for computed::Content {
         resolved
     }
 }
-

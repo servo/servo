@@ -145,15 +145,7 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
 ///
 /// https://drafts.csswg.org/css-content/#propdef-content
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
 )]
 #[repr(u8)]
 pub enum GenericContent<ImageUrl> {

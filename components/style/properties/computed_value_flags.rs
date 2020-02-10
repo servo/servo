@@ -75,9 +75,9 @@ impl ComputedValueFlags {
     #[inline]
     fn inherited_flags() -> Self {
         ComputedValueFlags::IS_RELEVANT_LINK_VISITED |
-        ComputedValueFlags::CAN_BE_FRAGMENTED |
-        ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
-        ComputedValueFlags::HAS_TEXT_DECORATION_LINES
+            ComputedValueFlags::CAN_BE_FRAGMENTED |
+            ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
+            ComputedValueFlags::HAS_TEXT_DECORATION_LINES
     }
 
     /// Flags that may be propagated to descendants.

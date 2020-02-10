@@ -501,11 +501,9 @@ impl ToComputedValue for specified::AngleOrPercentage {
     #[inline]
     fn from_computed_value(computed: &AngleOrPercentage) -> Self {
         match *computed {
-            AngleOrPercentage::Percentage(percentage) => {
-                specified::AngleOrPercentage::Percentage(ToComputedValue::from_computed_value(
-                    &percentage,
-                ))
-            },
+            AngleOrPercentage::Percentage(percentage) => specified::AngleOrPercentage::Percentage(
+                ToComputedValue::from_computed_value(&percentage),
+            ),
             AngleOrPercentage::Angle(angle) => {
                 specified::AngleOrPercentage::Angle(ToComputedValue::from_computed_value(&angle))
             },
