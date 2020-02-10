@@ -95,7 +95,7 @@ impl ToLayout for TransformStyle {
     type Type = wr::TransformStyle;
     fn to_layout(&self) -> Self::Type {
         match *self {
-            TransformStyle::Auto | TransformStyle::Flat => wr::TransformStyle::Flat,
+            TransformStyle::Flat => wr::TransformStyle::Flat,
             TransformStyle::Preserve3d => wr::TransformStyle::Preserve3D,
         }
     }

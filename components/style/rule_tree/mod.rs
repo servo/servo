@@ -1718,6 +1718,7 @@ impl Clone for StrongRuleNode {
 }
 
 impl Drop for StrongRuleNode {
+    #[cfg_attr(feature = "servo", allow(unused_mut))]
     fn drop(&mut self) {
         let node = unsafe { &*self.ptr() };
 

@@ -378,6 +378,19 @@ impl LengthPercentage {
         }
     }
 
+    /// Converts to a `<percentage>` if possible.
+    #[inline]
+    pub fn to_percentage(&self) -> Option<Percentage> {
+        match self.unpack() {
+            Unpacked::Length(..) => None,
+            Unpacked::Percentage(p) => Some(p),
+            Unpacked::Calc(ref c) => {
+                debug_assert!(!c.length.is_zero());
+                None
+            }
+        }
+    }
+
     /// Return the specified percentage if any.
     #[inline]
     pub fn specified_percentage(&self) -> Option<Percentage> {
@@ -405,7 +418,7 @@ impl LengthPercentage {
 
     /// Convert the computed value into used value.
     #[inline]
-    fn maybe_to_used_value(&self, container_len: Option<Length>) -> Option<Au> {
+    pub fn maybe_to_used_value(&self, container_len: Option<Length>) -> Option<Au> {
         self.maybe_percentage_relative_to(container_len).map(Au::from)
     }
 

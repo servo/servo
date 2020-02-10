@@ -113,6 +113,7 @@ impl Parse for Content {
     // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
     // no-close-quote ]+
     // TODO: <uri>, attr(<identifier>)
+    #[cfg_attr(feature = "servo", allow(unused_mut))]
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

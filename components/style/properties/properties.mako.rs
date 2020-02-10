@@ -2902,6 +2902,7 @@ pub struct ComputedValues {
 
 impl ComputedValues {
     /// Returns the pseudo-element that this style represents.
+    #[cfg(feature = "servo")]
     pub fn pseudo(&self) -> Option<<&PseudoElement> {
         self.pseudo.as_ref()
     }

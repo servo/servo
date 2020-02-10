@@ -168,8 +168,9 @@ pub enum GenericContent<ImageUrl> {
 pub use self::GenericContent as Content;
 
 impl<ImageUrl> Content<ImageUrl> {
+    /// Whether `self` represents list of items.
     #[inline]
-    pub(crate) fn is_items(&self) -> bool {
+    pub fn is_items(&self) -> bool {
         matches!(*self, Self::Items(..))
     }
 
