@@ -107,7 +107,7 @@ pub fn animate_multiplicative_factor(
 /// be equal or an error is returned.
 ///
 /// If a variant is annotated with `#[animation(error)]`, the corresponding
-/// `match` arm is not generated.
+/// `match` arm returns an error.
 ///
 /// If the two values are not similar, an error is returned unless a fallback
 /// function has been specified through `#[animate(fallback)]`.
