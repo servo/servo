@@ -16,7 +16,8 @@ use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionPlaybackState, VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionPlaybackState, PromptResult,
+    VRInitOptions,
 };
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::{null, null_mut};
@@ -394,8 +395,8 @@ impl HostTrait for HostCallbacks {
             .unwrap();
     }
 
-    fn on_alert(&self, message: String) {
-        debug!("on_alert");
+    fn prompt_alert(&self, message: String, _trusted: bool) {
+        debug!("prompt_alert");
         let env = self.jvm.get_env().unwrap();
         let s = match new_string(&env, &message) {
             Ok(s) => s,
@@ -409,6 +410,21 @@ impl HostTrait for HostCallbacks {
             &[s],
         )
         .unwrap();
+    }
+
+    fn prompt_ok_cancel(&self, message: String, _trusted: bool) -> PromptResult {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        PromptResult::Secondary
+    }
+
+    fn prompt_yes_no(&self, message: String, _trusted: bool) -> PromptResult {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        PromptResult::Secondary
+    }
+
+    fn prompt_input(&self, message: String, default: String, _trusted: bool) -> Option<String> {
+        warn!("Input prompt not implemented. {}", message);
+        Some(default)
     }
 
     fn on_load_started(&self) {

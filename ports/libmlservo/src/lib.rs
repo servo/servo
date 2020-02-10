@@ -16,7 +16,9 @@ use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel};
 use simpleservo::{self, deinit, gl_glue, MouseButton, ServoGlue, SERVO};
-use simpleservo::{Coordinates, EventLoopWaker, HostTrait, InitOptions, VRInitOptions};
+use simpleservo::{
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, PromptResult, VRInitOptions,
+};
 use smallvec::SmallVec;
 use std::cell::Cell;
 use std::ffi::CStr;
@@ -365,7 +367,25 @@ impl HostTrait for HostCallbacks {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
     }
 
-    fn on_alert(&self, _message: String) {}
+    fn prompt_alert(&self, message: String, _trusted: bool) {
+        warn!("Prompt Alert: {}", message);
+    }
+
+    fn prompt_ok_cancel(&self, message: String, _trusted: bool) -> PromptResult {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        PromptResult::Secondary
+    }
+
+    fn prompt_yes_no(&self, message: String, _trusted: bool) -> PromptResult {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        PromptResult::Secondary
+    }
+
+    fn prompt_input(&self, message: String, default: String, _trusted: bool) -> Option<String> {
+        warn!("Input prompt not implemented. {}", message);
+        Some(default)
+    }
+
     fn on_load_started(&self) {}
     fn on_load_ended(&self) {}
     fn on_title_changed(&self, _title: String) {}

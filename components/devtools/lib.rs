@@ -39,7 +39,8 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
-use ipc_channel::ipc::IpcSender;
+use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
+use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -135,13 +136,13 @@ struct ResponseStartUpdateMsg {
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
-pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
+pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = unbounded();
     {
         let sender = sender.clone();
         thread::Builder::new()
             .name("Devtools".to_owned())
-            .spawn(move || run_server(sender, receiver, port))
+            .spawn(move || run_server(sender, receiver, port, embedder))
             .expect("Thread spawning failed");
     }
     sender
@@ -151,6 +152,7 @@ fn run_server(
     sender: Sender<DevtoolsControlMsg>,
     receiver: Receiver<DevtoolsControlMsg>,
     port: u16,
+    embedder: EmbedderProxy,
 ) {
     let listener = TcpListener::bind(&("0.0.0.0", port)).unwrap();
 
@@ -553,7 +555,17 @@ fn run_server(
         .spawn(move || {
             // accept connections and process them, spawning a new thread for each one
             for stream in listener.incoming() {
-                // connection succeeded
+                // Prompt user for permission
+                let (embedder_sender, receiver) =
+                    ipc::channel().expect("Failed to create IPC channel!");
+                let message = "Accept incoming devtools connection?".to_owned();
+                let prompt = PromptDefinition::YesNo(message, embedder_sender);
+                let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Trusted);
+                embedder.send((None, msg));
+                if receiver.recv().unwrap() != PromptResult::Primary {
+                    continue;
+                }
+                // connection succeeded and accepted
                 sender
                     .send(DevtoolsControlMsg::FromChrome(
                         ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()),

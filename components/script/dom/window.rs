@@ -74,7 +74,7 @@ use crossbeam_channel::{unbounded, Sender, TryRecvError};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, EventLoopWaker};
+use embedder_traits::{EmbedderMsg, EventLoopWaker, PromptDefinition, PromptOrigin, PromptResult};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{channel, IpcSender};
@@ -620,9 +620,30 @@ impl WindowMethods for Window {
         }
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = EmbedderMsg::Alert(s.to_string(), sender);
+        let prompt = PromptDefinition::Alert(s.to_string(), sender);
+        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
         self.send_to_embedder(msg);
         receiver.recv().unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-confirm
+    fn Confirm(&self, s: DOMString) -> bool {
+        let (sender, receiver) =
+            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let prompt = PromptDefinition::OkCancel(s.to_string(), sender);
+        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
+        self.send_to_embedder(msg);
+        receiver.recv().unwrap() == PromptResult::Primary
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-prompt
+    fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
+        let (sender, receiver) =
+            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let prompt = PromptDefinition::Input(message.to_string(), default.to_string(), sender);
+        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
+        self.send_to_embedder(msg);
+        receiver.recv().unwrap().map(|s| s.into())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop

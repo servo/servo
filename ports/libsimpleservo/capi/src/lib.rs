@@ -18,7 +18,7 @@ use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
     Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
-    MediaSessionPlaybackState, MouseButton, VRInitOptions,
+    MediaSessionPlaybackState, MouseButton, PromptResult, VRInitOptions,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -205,7 +205,6 @@ where
 pub struct CHostCallbacks {
     pub flush: extern "C" fn(),
     pub make_current: extern "C" fn(),
-    pub on_alert: extern "C" fn(message: *const c_char),
     pub on_load_started: extern "C" fn(),
     pub on_load_ended: extern "C" fn(),
     pub on_title_changed: extern "C" fn(title: *const c_char),
@@ -222,6 +221,14 @@ pub struct CHostCallbacks {
     pub on_media_session_playback_state_change: extern "C" fn(state: CMediaSessionPlaybackState),
     pub on_media_session_set_position_state:
         extern "C" fn(duration: f64, position: f64, playback_rate: f64),
+    pub prompt_alert: extern "C" fn(message: *const c_char, trusted: bool),
+    pub prompt_ok_cancel: extern "C" fn(message: *const c_char, trusted: bool) -> CPromptResult,
+    pub prompt_yes_no: extern "C" fn(message: *const c_char, trusted: bool) -> CPromptResult,
+    pub prompt_input: extern "C" fn(
+        message: *const c_char,
+        default: *const c_char,
+        trusted: bool,
+    ) -> *const c_char,
 }
 
 /// Servo options
@@ -251,6 +258,23 @@ impl CMouseButton {
             CMouseButton::Left => MouseButton::Left,
             CMouseButton::Right => MouseButton::Right,
             CMouseButton::Middle => MouseButton::Middle,
+        }
+    }
+}
+
+#[repr(C)]
+pub enum CPromptResult {
+    Dismissed,
+    Primary,
+    Secondary,
+}
+
+impl CPromptResult {
+    pub fn convert(&self) -> PromptResult {
+        match self {
+            CPromptResult::Primary => PromptResult::Primary,
+            CPromptResult::Secondary => PromptResult::Secondary,
+            CPromptResult::Dismissed => PromptResult::Dismissed,
         }
     }
 }
@@ -698,12 +722,6 @@ impl HostTrait for HostCallbacks {
         (self.0.make_current)();
     }
 
-    fn on_alert(&self, message: String) {
-        debug!("on_alert");
-        let message = CString::new(message).expect("Can't create string");
-        (self.0.on_alert)(message.as_ptr());
-    }
-
     fn on_load_started(&self) {
         debug!("on_load_started");
         (self.0.on_load_started)();
@@ -796,5 +814,36 @@ impl HostTrait for HostCallbacks {
             duration, position, playback_rate
         );
         (self.0.on_media_session_set_position_state)(duration, position, playback_rate);
+    }
+
+    fn prompt_alert(&self, message: String, trusted: bool) {
+        debug!("prompt_alert");
+        let message = CString::new(message).expect("Can't create string");
+        (self.0.prompt_alert)(message.as_ptr(), trusted);
+    }
+
+    fn prompt_ok_cancel(&self, message: String, trusted: bool) -> PromptResult {
+        debug!("prompt_ok_cancel");
+        let message = CString::new(message).expect("Can't create string");
+        (self.0.prompt_ok_cancel)(message.as_ptr(), trusted).convert()
+    }
+
+    fn prompt_yes_no(&self, message: String, trusted: bool) -> PromptResult {
+        debug!("prompt_yes_no");
+        let message = CString::new(message).expect("Can't create string");
+        (self.0.prompt_yes_no)(message.as_ptr(), trusted).convert()
+    }
+
+    fn prompt_input(&self, message: String, default: String, trusted: bool) -> Option<String> {
+        debug!("prompt_input");
+        let message = CString::new(message).expect("Can't create string");
+        let default = CString::new(default).expect("Can't create string");
+        let raw_contents = (self.0.prompt_input)(message.as_ptr(), default.as_ptr(), trusted);
+        if raw_contents.is_null() {
+            return None;
+        }
+        let c_str = unsafe { CStr::from_ptr(raw_contents) };
+        let contents_str = c_str.to_str().expect("Can't create str");
+        Some(contents_str.to_owned())
     }
 }
