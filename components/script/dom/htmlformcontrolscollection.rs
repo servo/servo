@@ -5,10 +5,11 @@
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -21,25 +22,30 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
     collection: HTMLCollection,
+    form: Dom<HTMLFormElement>,
 }
 
 impl HTMLFormControlsCollection {
     fn new_inherited(
-        root: &HTMLFormElement,
+        form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> HTMLFormControlsCollection {
+        let root_of_form = form
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
         HTMLFormControlsCollection {
-            collection: HTMLCollection::new_inherited(root.upcast::<Node>(), filter),
+            collection: HTMLCollection::new_inherited(&*root_of_form, filter),
+            form: Dom::from_ref(form),
         }
     }
 
     pub fn new(
         window: &Window,
-        root: &HTMLFormElement,
+        form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLFormControlsCollection> {
         reflect_dom_object(
-            Box::new(HTMLFormControlsCollection::new_inherited(root, filter)),
+            Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
             HTMLFormControlsCollectionBinding::Wrap,
         )
@@ -80,14 +86,11 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 // Step 4-5
                 let global = self.global();
                 let window = global.as_window();
-                // okay to unwrap: root's type was checked in the constructor
-                let collection_root = self.collection.root_node();
-                let form = collection_root.downcast::<HTMLFormElement>().unwrap();
                 // There is only one way to get an HTMLCollection,
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(window, form, name),
+                    RadioNodeList::new_controls_except_image_inputs(window, &*self.form, name),
                 ))
             }
         // Step 3
