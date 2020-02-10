@@ -257,12 +257,15 @@ impl LocationMethods for Location {
     fn SetProtocol(&self, value: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;
         // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
-        let scheme = value.split(':').next().unwrap();
-        if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") {
-            self.set_url_component(value, UrlHelper::SetProtocol);
+        if let Ok(scheme) = value.split(':').next() {
+            if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") {
+                self.set_url_component(value, UrlHelper::SetProtocol);
+            }
+            Ok(())
+        } else {
+            Err(Error::Syntax)
         }
-        Ok(())
-    }
+    }    
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
     fn GetSearch(&self) -> Fallible<USVString> {
