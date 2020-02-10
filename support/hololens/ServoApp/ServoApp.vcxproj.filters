@@ -865,7 +865,6 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\swresample-3.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
-    <None Include="$(OpenXRLoaderBinaryRoot)\bin\openxr_loader.dll" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
