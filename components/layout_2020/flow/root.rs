@@ -204,52 +204,44 @@ impl FragmentTreeRoot {
     where
         F: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
     {
-        fn do_iteration<M>(
-            fragment: &Fragment,
+        fn recur<M>(
+            fragments: &[Fragment],
             containing_block: &PhysicalRect<Length>,
             process_func: &mut M,
         ) -> bool
         where
             M: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
         {
-            if !process_func(fragment, containing_block) {
-                return false;
-            }
+            for fragment in fragments {
+                if !process_func(fragment, containing_block) {
+                    return false;
+                }
 
-            match fragment {
-                Fragment::Box(fragment) => {
-                    let new_containing_block = fragment
-                        .content_rect
-                        .to_physical(fragment.style.writing_mode, containing_block)
-                        .translate(containing_block.origin.to_vector());
-                    for child in &fragment.children {
-                        if !do_iteration(child, &new_containing_block, process_func) {
+                match fragment {
+                    Fragment::Box(fragment) => {
+                        let new_containing_block = fragment
+                            .content_rect
+                            .to_physical(fragment.style.writing_mode, containing_block)
+                            .translate(containing_block.origin.to_vector());
+                        if !recur(&fragment.children, &new_containing_block, process_func) {
                             return false;
                         }
-                    }
-                },
-                Fragment::Anonymous(fragment) => {
-                    let new_containing_block = fragment
-                        .rect
-                        .to_physical(fragment.mode, containing_block)
-                        .translate(containing_block.origin.to_vector());
-                    for child in &fragment.children {
-                        if !do_iteration(child, &new_containing_block, process_func) {
+                    },
+                    Fragment::Anonymous(fragment) => {
+                        let new_containing_block = fragment
+                            .rect
+                            .to_physical(fragment.mode, containing_block)
+                            .translate(containing_block.origin.to_vector());
+                        if !recur(&fragment.children, &new_containing_block, process_func) {
                             return false;
                         }
-                    }
-                },
-                _ => {},
+                    },
+                    _ => {},
+                }
             }
-
             true
         }
-
-        for child in &self.children {
-            if !do_iteration(child, &self.initial_containing_block, process_func) {
-                break;
-            }
-        }
+        recur(&self.children, &self.initial_containing_block, process_func);
     }
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
