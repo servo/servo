@@ -23,7 +23,7 @@ use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
-use style::properties::{style_structs, ComputedValues};
+use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style_traits::CSSPixel;
 
@@ -200,21 +200,18 @@ impl FragmentTreeRoot {
         ))
     }
 
-    fn iterate_through_fragments<F>(&self, process_func: &mut F)
-    where
-        F: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
-    {
-        fn recur<M>(
+    fn find<T>(
+        &self,
+        mut process_func: impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
+    ) -> Option<T> {
+        fn recur<T>(
             fragments: &[Fragment],
             containing_block: &PhysicalRect<Length>,
-            process_func: &mut M,
-        ) -> bool
-        where
-            M: FnMut(&Fragment, &PhysicalRect<Length>) -> bool,
-        {
+            process_func: &mut impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
+        ) -> Option<T> {
             for fragment in fragments {
-                if !process_func(fragment, containing_block) {
-                    return false;
+                if let Some(result) = process_func(fragment, containing_block) {
+                    return Some(result);
                 }
 
                 match fragment {
@@ -223,8 +220,10 @@ impl FragmentTreeRoot {
                             .content_rect
                             .to_physical(fragment.style.writing_mode, containing_block)
                             .translate(containing_block.origin.to_vector());
-                        if !recur(&fragment.children, &new_containing_block, process_func) {
-                            return false;
+                        if let Some(result) =
+                            recur(&fragment.children, &new_containing_block, process_func)
+                        {
+                            return Some(result);
                         }
                     },
                     Fragment::Anonymous(fragment) => {
@@ -232,21 +231,27 @@ impl FragmentTreeRoot {
                             .rect
                             .to_physical(fragment.mode, containing_block)
                             .translate(containing_block.origin.to_vector());
-                        if !recur(&fragment.children, &new_containing_block, process_func) {
-                            return false;
+                        if let Some(result) =
+                            recur(&fragment.children, &new_containing_block, process_func)
+                        {
+                            return Some(result);
                         }
                     },
                     _ => {},
                 }
             }
-            true
+            None
         }
-        recur(&self.children, &self.initial_containing_block, process_func);
+        recur(
+            &self.children,
+            &self.initial_containing_block,
+            &mut process_func,
+        )
     }
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
-        let mut rect = PhysicalRect::zero();
-        let mut process = |fragment: &Fragment, containing_block: &PhysicalRect<Length>| {
+        let mut bounding_box = PhysicalRect::zero();
+        self.find(|fragment, containing_block| {
             let fragment_relative_rect = match fragment {
                 Fragment::Box(fragment) if fragment.tag == requested_node => fragment
                     .border_rect()
@@ -257,32 +262,29 @@ impl FragmentTreeRoot {
                 Fragment::Box(_) |
                 Fragment::Text(_) |
                 Fragment::Image(_) |
-                Fragment::Anonymous(_) => return true,
+                Fragment::Anonymous(_) => return None,
             };
 
-            rect = fragment_relative_rect
+            bounding_box = fragment_relative_rect
                 .translate(containing_block.origin.to_vector())
-                .union(&rect);
-            return true;
-        };
-
-        self.iterate_through_fragments(&mut process);
+                .union(&bounding_box);
+            None::<()>
+        });
 
         Rect::new(
             Point2D::new(
-                Au::from_f32_px(rect.origin.x.px()),
-                Au::from_f32_px(rect.origin.y.px()),
+                Au::from_f32_px(bounding_box.origin.x.px()),
+                Au::from_f32_px(bounding_box.origin.y.px()),
             ),
             Size2D::new(
-                Au::from_f32_px(rect.size.width.px()),
-                Au::from_f32_px(rect.size.height.px()),
+                Au::from_f32_px(bounding_box.size.width.px()),
+                Au::from_f32_px(bounding_box.size.height.px()),
             ),
         )
     }
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
-        let mut border_dimensions = Rect::zero();
-        let mut process = |fragment: &Fragment, containing_block: &PhysicalRect<Length>| {
+        self.find(|fragment, containing_block| {
             let (style, padding_rect) = match fragment {
                 Fragment::Box(fragment) if fragment.tag == requested_node => {
                     (&fragment.style, fragment.padding_rect())
@@ -290,7 +292,7 @@ impl FragmentTreeRoot {
                 Fragment::Box(_) |
                 Fragment::Text(_) |
                 Fragment::Image(_) |
-                Fragment::Anonymous(_) => return true,
+                Fragment::Anonymous(_) => return None,
             };
 
             // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
@@ -302,26 +304,22 @@ impl FragmentTreeRoot {
             if display.inside() == style::values::specified::box_::DisplayInside::Flow &&
                 display.outside() == style::values::specified::box_::DisplayOutside::Inline
             {
-                return false;
+                return Some(Rect::zero());
             }
 
-            let style_structs::Border {
-                border_top_width: top_width,
-                border_left_width: left_width,
-                ..
-            } = *style.get_border();
-
             let padding_rect = padding_rect.to_physical(style.writing_mode, &containing_block);
-            border_dimensions.size.width = padding_rect.size.width.px() as i32;
-            border_dimensions.size.height = padding_rect.size.height.px() as i32;
-            border_dimensions.origin.y = top_width.px() as i32;
-            border_dimensions.origin.x = left_width.px() as i32;
-
-            false
-        };
-
-        self.iterate_through_fragments(&mut process);
-
-        border_dimensions
+            let border = style.get_border();
+            Some(Rect::new(
+                Point2D::new(
+                    border.border_left_width.px() as i32,
+                    border.border_top_width.px() as i32,
+                ),
+                Size2D::new(
+                    padding_rect.size.width.px() as i32,
+                    padding_rect.size.height.px() as i32,
+                ),
+            ))
+        })
+        .unwrap_or_else(Rect::zero)
     }
 }
