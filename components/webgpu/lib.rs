@@ -7,7 +7,7 @@ extern crate log;
 #[macro_use]
 pub extern crate wgpu_core as wgpu;
 
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_config::pref;
 use smallvec::SmallVec;
@@ -16,6 +16,7 @@ use smallvec::SmallVec;
 pub enum WebGPUResponse {
     RequestAdapter(String, WebGPUAdapter, WebGPU),
     RequestDevice(WebGPUDevice, WebGPUQueue, wgpu::instance::DeviceDescriptor),
+    MapReadAsync(IpcSharedMemory),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -41,7 +42,7 @@ pub enum WebGPURequest {
         wgpu::resource::BufferDescriptor,
     ),
     CreateBufferMapped(
-        IpcSender<(WebGPUBuffer, Vec<u8>)>,
+        IpcSender<WebGPUBuffer>,
         WebGPUDevice,
         wgpu::id::BufferId,
         wgpu::resource::BufferDescriptor,
@@ -79,7 +80,14 @@ pub enum WebGPURequest {
         wgpu::id::ShaderModuleId,
         Vec<u32>,
     ),
-    UnmapBuffer(WebGPUBuffer),
+    MapReadAsync(
+        IpcSender<WebGPUResponseResult>,
+        wgpu::id::BufferId,
+        wgpu::id::DeviceId,
+        u32,
+        u64,
+    ),
+    UnmapBuffer(wgpu::id::DeviceId, WebGPUBuffer, Vec<u8>),
     DestroyBuffer(WebGPUBuffer),
     CreateCommandEncoder(
         IpcSender<WebGPUCommandEncoder>,
@@ -251,27 +259,26 @@ impl WGPU {
                 },
                 WebGPURequest::CreateBufferMapped(sender, device, id, descriptor) => {
                     let global = &self.global;
-                    let buffer_size = descriptor.size as usize;
-
-                    let (buffer_id, arr_buff_ptr) = gfx_select!(id =>
+                    let (buffer_id, _arr_buff_ptr) = gfx_select!(id =>
                         global.device_create_buffer_mapped(device.0, &descriptor, id));
                     let buffer = WebGPUBuffer(buffer_id);
 
-                    let mut array_buffer = Vec::with_capacity(buffer_size);
-                    unsafe {
-                        array_buffer.set_len(buffer_size);
-                        std::ptr::copy(arr_buff_ptr, array_buffer.as_mut_ptr(), buffer_size);
-                    };
-                    if let Err(e) = sender.send((buffer, array_buffer)) {
+                    if let Err(e) = sender.send(buffer) {
                         warn!(
                             "Failed to send response to WebGPURequest::CreateBufferMapped ({})",
                             e
                         )
                     }
                 },
-                WebGPURequest::UnmapBuffer(buffer) => {
+                WebGPURequest::UnmapBuffer(device_id, buffer, array_buffer) => {
                     let global = &self.global;
-                    gfx_select!(buffer.0 => global.buffer_unmap(buffer.0));
+
+                    gfx_select!(buffer.0 => global.device_set_buffer_sub_data(
+                        device_id,
+                        buffer.0,
+                        0,
+                        array_buffer.as_slice()
+                    ));
                 },
                 WebGPURequest::DestroyBuffer(buffer) => {
                     let global = &self.global;
@@ -411,6 +418,43 @@ impl WGPU {
                             e
                         )
                     }
+                },
+                WebGPURequest::MapReadAsync(sender, buffer_id, device_id, usage, size) => {
+                    let global = &self.global;
+                    let on_read = move |status: wgpu::resource::BufferMapAsyncStatus,
+                                        ptr: *const u8| {
+                        match status {
+                            wgpu::resource::BufferMapAsyncStatus::Success => {
+                                let array_buffer =
+                                    unsafe { std::slice::from_raw_parts(ptr, size as usize) };
+                                if let Err(e) = sender.send(Ok(WebGPUResponse::MapReadAsync(
+                                    IpcSharedMemory::from_bytes(array_buffer),
+                                ))) {
+                                    warn!(
+                                        "Failed to send response to WebGPURequest::MapReadAsync ({})",
+                                        e
+                                    )
+                                }
+                            },
+                            _ => {
+                                if let Err(e) = sender
+                                    .send(Err("MapReadAsync: Failed to map buffer".to_owned()))
+                                {
+                                    warn!(
+                                        "Failed to send response to WebGPURequest::MapReadAsync ({})",
+                                        e
+                                    )
+                                }
+                            },
+                        }
+                    };
+                    gfx_select!(buffer_id => global.buffer_map_async(
+                        buffer_id,
+                        wgpu::resource::BufferUsage::from_bits(usage).unwrap(),
+                        0..size,
+                        wgpu::resource::BufferMapOperation::Read(Box::new(on_read))
+                    ));
+                    gfx_select!(device_id => global.device_poll(device_id, true));
                 },
                 WebGPURequest::Submit(queue_id, command_buffer_ids) => {
                     let global = &self.global;

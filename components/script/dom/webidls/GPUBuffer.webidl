@@ -5,7 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpubuffer
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUBuffer {
-    // Promise<ArrayBuffer> mapReadAsync();
+    Promise<ArrayBuffer> mapReadAsync();
     // Promise<ArrayBuffer> mapWriteAsync();
     void unmap();
 
