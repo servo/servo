@@ -194,6 +194,11 @@ export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 
 You should change the installation to install the "Add python.exe to Path" feature.
 
+You will also need to set the `PYTHON2` environment variable, e.g., to 'C:\Python27\python.exe' by doing:
+```
+setx PYTHON2 "C:\Python27\python.exe" /m
+```
+
 2. Install Python 3.7 for Windows (https://www.python.org/downloads/release/python-374/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
 
 You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python37\python.exe' by doing:
