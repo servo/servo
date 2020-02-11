@@ -6,6 +6,7 @@ use crate::create_embedder_proxy;
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
+use net::resource_thread::CoreResourceThreadPool;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
@@ -14,10 +15,13 @@ use servo_config::set_pref;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[test]
 fn test_filemanager() {
-    let filemanager = FileManager::new(create_embedder_proxy());
+    let pool = CoreResourceThreadPool::new(1);
+    let pool_handle = Arc::new(pool);
+    let filemanager = FileManager::new(create_embedder_proxy(), Arc::downgrade(&pool_handle));
     set_pref!(dom.testing.html_input_element.select_files.enabled, true);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
