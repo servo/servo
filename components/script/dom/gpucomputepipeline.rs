@@ -3,51 +3,46 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::{
-    self, GPUShaderModuleMethods,
+use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::{
+    GPUComputePipelineBinding, GPUComputePipelineMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webgpu::WebGPUShaderModule;
+use webgpu::WebGPUComputePipeline;
 
 #[dom_struct]
-pub struct GPUShaderModule {
+pub struct GPUComputePipeline {
     reflector_: Reflector,
     label: DomRefCell<Option<DOMString>>,
-    shader_module: WebGPUShaderModule,
+    compute_pipeline: WebGPUComputePipeline,
 }
 
-impl GPUShaderModule {
-    fn new_inherited(shader_module: WebGPUShaderModule) -> GPUShaderModule {
+impl GPUComputePipeline {
+    fn new_inherited(compute_pipeline: WebGPUComputePipeline) -> GPUComputePipeline {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
-            shader_module,
+            compute_pipeline,
         }
     }
 
     pub fn new(
         global: &GlobalScope,
-        shader_module: WebGPUShaderModule,
-    ) -> DomRoot<GPUShaderModule> {
+        compute_pipeline: WebGPUComputePipeline,
+    ) -> DomRoot<GPUComputePipeline> {
         reflect_dom_object(
-            Box::new(GPUShaderModule::new_inherited(shader_module)),
+            Box::new(GPUComputePipeline::new_inherited(compute_pipeline)),
             global,
-            GPUShaderModuleBinding::Wrap,
+            GPUComputePipelineBinding::Wrap,
         )
     }
 }
 
-impl GPUShaderModule {
-    pub fn id(&self) -> WebGPUShaderModule {
-        self.shader_module
-    }
-}
-
-impl GPUShaderModuleMethods for GPUShaderModule {
+impl GPUComputePipelineMethods for GPUComputePipeline {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {
         self.label.borrow().clone()

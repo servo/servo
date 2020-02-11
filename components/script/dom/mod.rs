@@ -322,6 +322,7 @@ pub mod gpubindgroup;
 pub mod gpubindgrouplayout;
 pub mod gpubuffer;
 pub mod gpubufferusage;
+pub mod gpucomputepipeline;
 pub mod gpudevice;
 pub mod gpupipelinelayout;
 pub mod gpushadermodule;

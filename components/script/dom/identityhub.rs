@@ -6,8 +6,8 @@ use smallvec::SmallVec;
 use webgpu::wgpu::{
     hub::IdentityManager,
     id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId,
-        ShaderModuleId,
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, ComputePipelineId, DeviceId,
+        PipelineLayoutId, ShaderModuleId,
     },
     Backend,
 };
@@ -19,6 +19,7 @@ pub struct IdentityHub {
     buffers: IdentityManager,
     bind_groups: IdentityManager,
     bind_group_layouts: IdentityManager,
+    compute_pipelines: IdentityManager,
     pipeline_layouts: IdentityManager,
     shader_modules: IdentityManager,
     backend: Backend,
@@ -32,6 +33,7 @@ impl IdentityHub {
             buffers: IdentityManager::default(),
             bind_groups: IdentityManager::default(),
             bind_group_layouts: IdentityManager::default(),
+            compute_pipelines: IdentityManager::default(),
             pipeline_layouts: IdentityManager::default(),
             shader_modules: IdentityManager::default(),
             backend,
@@ -56,6 +58,10 @@ impl IdentityHub {
 
     fn create_bind_group_layout_id(&mut self) -> BindGroupLayoutId {
         self.bind_group_layouts.alloc(self.backend)
+    }
+
+    fn create_compute_pipeline_id(&mut self) -> ComputePipelineId {
+        self.compute_pipelines.alloc(self.backend)
     }
 
     fn create_pipeline_layout_id(&mut self) -> PipelineLayoutId {
@@ -147,6 +153,10 @@ impl Identities {
 
     pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
         self.select(backend).create_bind_group_layout_id()
+    }
+
+    pub fn create_compute_pipeline_id(&mut self, backend: Backend) -> ComputePipelineId {
+        self.select(backend).create_compute_pipeline_id()
     }
 
     pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {

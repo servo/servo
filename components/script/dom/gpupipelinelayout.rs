@@ -56,6 +56,12 @@ impl GPUPipelineLayout {
     }
 }
 
+impl GPUPipelineLayout {
+    pub fn id(&self) -> WebGPUPipelineLayout {
+        self.pipeline_layout
+    }
+}
+
 impl GPUPipelineLayoutMethods for GPUPipelineLayout {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

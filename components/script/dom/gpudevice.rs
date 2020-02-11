@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
     GPUBindGroupLayoutBindings, GPUBindGroupLayoutDescriptor, GPUBindingType,
 };
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
+use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{self, GPUDeviceMethods};
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
@@ -25,6 +26,7 @@ use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
+use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -558,5 +560,33 @@ impl GPUDeviceMethods for GPUDevice {
 
         let shader_module = receiver.recv().unwrap();
         GPUShaderModule::new(&self.global(), shader_module)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline
+    fn CreateComputePipeline(
+        &self,
+        descriptor: &GPUComputePipelineDescriptor,
+    ) -> DomRoot<GPUComputePipeline> {
+        let pipeline = descriptor.parent.layout.id();
+        let program = descriptor.computeStage.module.id();
+        let entry_point = descriptor.computeStage.entryPoint.to_string();
+        let id = self
+            .global()
+            .wgpu_create_compute_pipeline_id(self.device.0.backend());
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.channel
+            .0
+            .send(WebGPURequest::CreateComputePipeline(
+                sender,
+                self.device,
+                id,
+                pipeline.0,
+                program.0,
+                entry_point,
+            ))
+            .expect("Failed to create WebGPU ComputePipeline");
+
+        let compute_pipeline = receiver.recv().unwrap();
+        GPUComputePipeline::new(&self.global(), compute_pipeline)
     }
 }
