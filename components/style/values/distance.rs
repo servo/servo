@@ -19,9 +19,6 @@ use std::ops::Add;
 /// If a variant is annotated with `#[animation(error)]`, the corresponding
 /// `match` arm returns an error.
 ///
-/// If the two values are not similar, an error is returned unless a fallback
-/// function has been specified through `#[distance(fallback)]`.
-///
 /// Trait bounds for type parameter `Foo` can be opted out of with
 /// `#[animation(no_bound(Foo))]` on the type definition, trait bounds for
 /// fields can be opted into with `#[distance(field_bound)]` on the field.

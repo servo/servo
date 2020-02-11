@@ -6,12 +6,11 @@ use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantA
 use derive_common::cg;
 use proc_macro2::TokenStream;
 use quote::TokenStreamExt;
-use syn::{DeriveInput, Path, WhereClause};
+use syn::{DeriveInput, WhereClause};
 use synstructure;
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {
     let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
-    let input_attrs = cg::parse_input_attrs::<DistanceInputAttrs>(&input);
     let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
@@ -43,11 +42,6 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
         match_body.append_all(quote! { _ => unsafe { debug_unreachable!() } });
     }
 
-    let fallback = match input_attrs.fallback {
-        Some(fallback) => quote! { #fallback(self, other) },
-        None => quote! { Err(()) },
-    };
-
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
@@ -60,7 +54,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
                 other: &Self,
             ) -> Result<crate::values::distance::SquaredDistance, ()> {
                 if std::mem::discriminant(self) != std::mem::discriminant(other) {
-                    return #fallback;
+                    return Err(());
                 }
                 match (self, other) {
                     #match_body
@@ -122,12 +116,6 @@ fn derive_variant_arm(
     return quote! {
         (&#this_pattern, &#other_pattern) => Ok(#sum),
     };
-}
-
-#[darling(attributes(distance), default)]
-#[derive(Default, FromDeriveInput)]
-struct DistanceInputAttrs {
-    fallback: Option<Path>,
 }
 
 #[darling(attributes(distance), default)]
