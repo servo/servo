@@ -15,14 +15,12 @@ use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
-/// A clipping shape, for `clip-path`.
-pub type GenericClippingShape<BasicShape, Url> = GenericShapeSource<BasicShape, ShapeGeometryBox, Url>;
-
 /// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
@@ -57,9 +55,6 @@ impl Default for ShapeGeometryBox {
     }
 }
 
-/// A float area shape, for `shape-outside`.
-pub type GenericFloatAreaShape<BasicShape, Image> = GenericShapeSource<BasicShape, ShapeBox, Image>;
-
 /// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -67,6 +62,7 @@ pub type GenericFloatAreaShape<BasicShape, Image> = GenericShapeSource<BasicShap
     Animate,
     Clone,
     Copy,
+    ComputeSquaredDistance,
     Debug,
     Eq,
     MallocSizeOf,
@@ -93,12 +89,13 @@ impl Default for ShapeBox {
     }
 }
 
-/// A shape source, for some reference box.
+/// A value for the `clip-path` property.
 #[allow(missing_docs)]
-#[animation(no_bound(I))]
+#[animation(no_bound(U))]
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
@@ -110,22 +107,49 @@ impl Default for ShapeBox {
     ToShmem,
 )]
 #[repr(u8)]
-pub enum GenericShapeSource<BasicShape, ReferenceBox, I>
-where
-    ReferenceBox: Default + PartialEq,
-{
-    #[animation(error)]
-    ImageOrUrl(I),
-    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ReferenceBox),
-    #[animation(error)]
-    Box(ReferenceBox),
-    #[css(function)]
-    Path(Path),
+pub enum GenericClipPath<BasicShape, U> {
     #[animation(error)]
     None,
+    #[animation(error)]
+    Url(U),
+    #[css(function)]
+    Path(Path),
+    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ShapeGeometryBox),
+    #[animation(error)]
+    Box(ShapeGeometryBox),
 }
 
-pub use self::GenericShapeSource as ShapeSource;
+pub use self::GenericClipPath as ClipPath;
+
+/// A value for the `shape-outside` property.
+#[allow(missing_docs)]
+#[animation(no_bound(I))]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum GenericShapeOutside<BasicShape, I> {
+    #[animation(error)]
+    None,
+    #[animation(error)]
+    Image(I),
+    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ShapeBox),
+    #[animation(error)]
+    Box(ShapeBox),
+}
+
+pub use self::GenericShapeOutside as ShapeOutside;
 
 #[allow(missing_docs)]
 #[derive(
@@ -340,6 +364,7 @@ pub enum FillRule {
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
@@ -360,33 +385,13 @@ pub struct Path {
     pub path: SVGPathData,
 }
 
-// FIXME(nox): Implement ComputeSquaredDistance for T types and stop
-// using PartialEq here, this will let us derive this impl.
-impl<B, T, U> ComputeSquaredDistance for ShapeSource<B, T, U>
-where
-    B: ComputeSquaredDistance,
-    T: Default + PartialEq,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (
-                &ShapeSource::Shape(ref this, ref this_box),
-                &ShapeSource::Shape(ref other, ref other_box),
-            ) if this_box == other_box => this.compute_squared_distance(other),
-            (&ShapeSource::Path(ref this), &ShapeSource::Path(ref other))
-                if this.fill == other.fill =>
-            {
-                this.path.compute_squared_distance(&other.path)
-            },
-            _ => Err(()),
-        }
+impl<B, U> ToAnimatedZero for ClipPath<B, U> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
     }
 }
 
-impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U>
-where
-    T: Default + PartialEq,
-{
+impl<B, U> ToAnimatedZero for ShapeOutside<B, U> {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
     }

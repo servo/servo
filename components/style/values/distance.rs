@@ -81,6 +81,16 @@ impl ComputeSquaredDistance for Au {
     }
 }
 
+impl<T> ComputeSquaredDistance for Box<T>
+where
+    T: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        (**self).compute_squared_distance(&**other)
+    }
+}
+
 impl<T> ComputeSquaredDistance for Option<T>
 where
     T: ComputeSquaredDistance,

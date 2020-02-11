@@ -679,10 +679,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "shape-outside",
-    "basic_shape::FloatAreaShape",
-    "generics::basic_shape::ShapeSource::None",
+    "basic_shape::ShapeOutside",
+    "generics::basic_shape::ShapeOutside::None",
     engines="gecko",
-    animation_value_type="basic_shape::FloatAreaShape",
+    animation_value_type="basic_shape::ShapeOutside",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 
