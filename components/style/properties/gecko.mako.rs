@@ -41,7 +41,6 @@ use std::mem::{forget, MaybeUninit};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{Percentage, TransitionProperty};
-use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
 use crate::values::generics::column::ColumnCount;
@@ -1433,7 +1432,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           clear transition-duration transition-delay
                           transition-timing-function transition-property
-                          shape-outside -webkit-line-clamp""" %>
+                          -webkit-line-clamp""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -1692,8 +1691,6 @@ fn static_assert() {
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
     ${impl_animation_timing_function()}
-
-    <% impl_shape_source("shape_outside", "mShapeOutside") %>
 
     #[allow(non_snake_case)]
     pub fn set__webkit_line_clamp(&mut self, v: longhands::_webkit_line_clamp::computed_value::T) {
@@ -2202,84 +2199,8 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-// Set SVGPathData to StyleShapeSource.
-fn set_style_svg_path(
-    shape_source: &mut structs::mozilla::StyleShapeSource,
-    servo_path: values::specified::svg_path::SVGPathData,
-    fill: values::generics::basic_shape::FillRule,
-) {
-    // Setup path.
-    unsafe {
-        bindings::Gecko_SetToSVGPath(
-            shape_source,
-            servo_path.0.forget(),
-            fill,
-        );
-    }
-}
-
-<%def name="impl_shape_source(ident, gecko_ffi_name)">
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use crate::values::generics::basic_shape::ShapeSource;
-        use crate::gecko_bindings::structs::StyleShapeSourceType;
-
-        let ref mut ${ident} = self.gecko.${gecko_ffi_name};
-
-        // clean up existing struct.
-        unsafe { bindings::Gecko_DestroyShapeSource(${ident}) };
-
-        ${ident}.mType = StyleShapeSourceType::None;
-
-        match v {
-            ShapeSource::None => {} // don't change the type
-            ShapeSource::ImageOrUrl(image) => {
-                % if ident == "clip_path":
-                use crate::values::generics::image::Image;
-
-                let image = Image::Url(ComputedImageUrl(image));
-                % endif
-                unsafe {
-                    bindings::Gecko_NewShapeImage(${ident});
-                    let style_image = &mut *${ident}.__bindgen_anon_1.mShapeImage.as_mut().mPtr;
-                    *style_image = image;
-                }
-            }
-            ShapeSource::Box(reference) => {
-                ${ident}.mReferenceBox = reference.into();
-                ${ident}.mType = StyleShapeSourceType::Box;
-            }
-            ShapeSource::Path(p) => set_style_svg_path(${ident}, p.path, p.fill),
-            ShapeSource::Shape(servo_shape, reference_box) => {
-                unsafe {
-                    ${ident}.__bindgen_anon_1.mBasicShape.as_mut().mPtr =
-                        Box::into_raw(servo_shape);
-                }
-                ${ident}.mReferenceBox = reference_box.into();
-                ${ident}.mType = StyleShapeSourceType::Shape;
-            }
-        }
-
-    }
-
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        (&self.gecko.${gecko_ffi_name}).into()
-    }
-
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::bindings::Gecko_CopyShapeSourceFrom;
-        unsafe {
-            Gecko_CopyShapeSourceFrom(&mut self.gecko.${gecko_ffi_name}, &other.gecko.${gecko_ffi_name});
-        }
-    }
-
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-</%def>
-
 <% skip_svg_longhands = """
 mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-position-y mask-size mask-image
-clip-path
 """
 %>
 <%self:impl_trait style_struct_name="SVG"
@@ -2288,7 +2209,6 @@ clip-path
     <% impl_common_image_layer_properties("mask") %>
     <% impl_simple_image_array_property("mode", "mask", "mMask", "mMaskMode", "SVG") %>
     <% impl_simple_image_array_property("composite", "mask", "mMask", "mComposite", "SVG") %>
-    <% impl_shape_source("clip_path", "mClipPath") %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
