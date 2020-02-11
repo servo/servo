@@ -98,7 +98,10 @@ use std::sync::Arc;
 use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::wgpu::{
-    id::{AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId},
+    id::{
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, DeviceId, PipelineLayoutId,
+        ShaderModuleId,
+    },
     Backend,
 };
 
@@ -2127,6 +2130,12 @@ impl GlobalScope {
         self.gpu_id_hub
             .borrow_mut()
             .create_pipeline_layout_id(backend)
+    }
+
+    pub fn wgpu_create_shader_module_id(&self, backend: Backend) -> ShaderModuleId {
+        self.gpu_id_hub
+            .borrow_mut()
+            .create_shader_module_id(backend)
     }
 }
 

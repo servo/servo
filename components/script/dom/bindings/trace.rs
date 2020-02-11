@@ -153,7 +153,7 @@ use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{
     WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer, WebGPUDevice,
-    WebGPUPipelineLayout,
+    WebGPUPipelineLayout, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
@@ -536,6 +536,7 @@ unsafe_no_jsmanaged_fields!(WebGPUBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
 unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
+unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
