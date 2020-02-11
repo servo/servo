@@ -2247,7 +2247,6 @@ fn set_style_svg_path(
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use crate::values::generics::basic_shape::ShapeSource;
         use crate::gecko_bindings::structs::StyleShapeSourceType;
-        use crate::gecko_bindings::structs::StyleGeometryBox;
 
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
 
@@ -2275,13 +2274,12 @@ fn set_style_svg_path(
                 ${ident}.mType = StyleShapeSourceType::Box;
             }
             ShapeSource::Path(p) => set_style_svg_path(${ident}, p.path, p.fill),
-            ShapeSource::Shape(servo_shape, maybe_box) => {
+            ShapeSource::Shape(servo_shape, reference_box) => {
                 unsafe {
                     ${ident}.__bindgen_anon_1.mBasicShape.as_mut().mPtr =
                         Box::into_raw(servo_shape);
                 }
-                ${ident}.mReferenceBox =
-                    maybe_box.map(Into::into).unwrap_or(StyleGeometryBox::NoBox);
+                ${ident}.mReferenceBox = reference_box.into();
                 ${ident}.mType = StyleShapeSourceType::Shape;
             }
         }

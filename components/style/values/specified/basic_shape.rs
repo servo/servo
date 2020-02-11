@@ -9,8 +9,7 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::values::generics::basic_shape as generic;
-use crate::values::generics::basic_shape::{GeometryBox, Path, PolygonCoord};
-use crate::values::generics::basic_shape::{ShapeBox, ShapeSource};
+use crate::values::generics::basic_shape::{Path, PolygonCoord, ShapeSource};
 use crate::values::generics::rect::Rect;
 use crate::values::specified::border::BorderRadius;
 use crate::values::specified::image::Image;
@@ -26,13 +25,13 @@ use style_traits::{ParseError, StyleParseErrorKind};
 pub use crate::values::generics::basic_shape::FillRule;
 
 /// A specified clipping shape.
-pub type ClippingShape = generic::ClippingShape<BasicShape, SpecifiedUrl>;
+pub type ClippingShape = generic::GenericClippingShape<BasicShape, SpecifiedUrl>;
 
 /// A specified float area shape.
-pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
+pub type FloatAreaShape = generic::GenericFloatAreaShape<BasicShape, Image>;
 
 /// A specified basic shape.
-pub type BasicShape = generic::BasicShape<
+pub type BasicShape = generic::GenericBasicShape<
     HorizontalPosition,
     VerticalPosition,
     LengthPercentage,
@@ -112,7 +111,7 @@ impl Parse for FloatAreaShape {
 
 impl<ReferenceBox, ImageOrUrl> ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
 where
-    ReferenceBox: Parse,
+    ReferenceBox: Parse + Default + PartialEq,
 {
     /// The internal parser for ShapeSource.
     fn parse_common<'i, 't>(
@@ -142,29 +141,12 @@ where
         }
 
         if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(Box::new(shp), ref_box));
+            return Ok(ShapeSource::Shape(Box::new(shp), ref_box.unwrap_or_default()));
         }
 
         ref_box
             .map(ShapeSource::Box)
             .ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-}
-
-impl Parse for GeometryBox {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(shape_box) = input.try(ShapeBox::parse) {
-            return Ok(GeometryBox::ShapeBox(shape_box));
-        }
-
-        try_match_ident_ignore_ascii_case! { input,
-            "fill-box" => Ok(GeometryBox::FillBox),
-            "stroke-box" => Ok(GeometryBox::StrokeBox),
-            "view-box" => Ok(GeometryBox::ViewBox),
-        }
     }
 }
 

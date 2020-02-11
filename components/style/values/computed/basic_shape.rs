@@ -15,10 +15,10 @@ use crate::values::generics::basic_shape as generic;
 pub use crate::values::generics::basic_shape::FillRule;
 
 /// A computed clipping shape.
-pub type ClippingShape = generic::ClippingShape<BasicShape, ComputedUrl>;
+pub type ClippingShape = generic::GenericClippingShape<BasicShape, ComputedUrl>;
 
 /// A computed float area shape.
-pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
+pub type FloatAreaShape = generic::GenericFloatAreaShape<BasicShape, Image>;
 
 /// A computed basic shape.
 pub type BasicShape = generic::GenericBasicShape<

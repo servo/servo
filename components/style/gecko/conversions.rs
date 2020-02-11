@@ -99,7 +99,7 @@ pub mod basic_shape {
     };
     use crate::values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape};
     use crate::values::computed::motion::OffsetPath;
-    use crate::values::generics::basic_shape::{GeometryBox, Path, ShapeBox, ShapeSource};
+    use crate::values::generics::basic_shape::{ShapeGeometryBox, Path, ShapeBox, ShapeSource};
     use crate::values::specified::SVGPathData;
 
     impl StyleShapeSource {
@@ -109,7 +109,7 @@ pub mod basic_shape {
             &self,
         ) -> Option<ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>>
         where
-            ReferenceBox: From<StyleGeometryBox>,
+            ReferenceBox: From<StyleGeometryBox> + Default + PartialEq,
         {
             match self.mType {
                 StyleShapeSourceType::None => Some(ShapeSource::None),
@@ -117,11 +117,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::Shape => {
                     let other_shape = unsafe { &*self.__bindgen_anon_1.mBasicShape.as_ref().mPtr };
                     let shape = Box::new(other_shape.clone());
-                    let reference_box = if self.mReferenceBox == StyleGeometryBox::NoBox {
-                        None
-                    } else {
-                        Some(self.mReferenceBox.into())
-                    };
+                    let reference_box = self.mReferenceBox.into();
                     Some(ShapeSource::Shape(shape, reference_box))
                 },
                 StyleShapeSourceType::Image => None,
@@ -207,33 +203,32 @@ pub mod basic_shape {
         }
     }
 
-    impl From<GeometryBox> for StyleGeometryBox {
-        fn from(reference: GeometryBox) -> Self {
+    impl From<ShapeGeometryBox> for StyleGeometryBox {
+        fn from(reference: ShapeGeometryBox) -> Self {
             use crate::gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                GeometryBox::ShapeBox(shape_box) => From::from(shape_box),
-                GeometryBox::FillBox => FillBox,
-                GeometryBox::StrokeBox => StrokeBox,
-                GeometryBox::ViewBox => ViewBox,
+                ShapeGeometryBox::ShapeBox(shape_box) => From::from(shape_box),
+                ShapeGeometryBox::FillBox => FillBox,
+                ShapeGeometryBox::StrokeBox => StrokeBox,
+                ShapeGeometryBox::ViewBox => ViewBox,
+                ShapeGeometryBox::ElementDependent => NoBox,
             }
         }
     }
 
-    // Will panic on NoBox
-    // Ideally these would be implemented on Option<T>,
-    // but coherence doesn't like that and TryFrom isn't stable
-    impl From<StyleGeometryBox> for GeometryBox {
+    impl From<StyleGeometryBox> for ShapeGeometryBox {
         fn from(reference: StyleGeometryBox) -> Self {
             use crate::gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                ContentBox => GeometryBox::ShapeBox(ShapeBox::ContentBox),
-                PaddingBox => GeometryBox::ShapeBox(ShapeBox::PaddingBox),
-                BorderBox => GeometryBox::ShapeBox(ShapeBox::BorderBox),
-                MarginBox => GeometryBox::ShapeBox(ShapeBox::MarginBox),
-                FillBox => GeometryBox::FillBox,
-                StrokeBox => GeometryBox::StrokeBox,
-                ViewBox => GeometryBox::ViewBox,
-                _ => panic!("Unexpected StyleGeometryBox while converting to GeometryBox"),
+                ContentBox => ShapeGeometryBox::ShapeBox(ShapeBox::ContentBox),
+                PaddingBox => ShapeGeometryBox::ShapeBox(ShapeBox::PaddingBox),
+                BorderBox => ShapeGeometryBox::ShapeBox(ShapeBox::BorderBox),
+                MarginBox => ShapeGeometryBox::ShapeBox(ShapeBox::MarginBox),
+                FillBox => ShapeGeometryBox::FillBox,
+                StrokeBox => ShapeGeometryBox::StrokeBox,
+                ViewBox => ShapeGeometryBox::ViewBox,
+                NoBox => ShapeGeometryBox::ElementDependent,
+                NoClip | Text | MozAlmostPadding => unreachable!(),
             }
         }
     }
