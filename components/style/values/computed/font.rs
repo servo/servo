@@ -308,8 +308,10 @@ pub enum SingleFontFamily {
 #[allow(missing_docs)]
 pub enum GenericFontFamily {
     /// No generic family specified, only for internal usage.
+    ///
+    /// NOTE(emilio): Gecko code relies on this variant being zero.
     #[css(skip)]
-    None,
+    None = 0,
     Serif,
     SansSerif,
     #[parse(aliases = "-moz-fixed")]
