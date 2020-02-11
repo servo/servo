@@ -279,14 +279,7 @@ pub fn main_fetch(
             false
         };
 
-        if (same_origin && !cors_flag ) ||
-            current_url.scheme() == "data" ||
-            current_url.scheme() == "file" || // FIXME: Fetch spec has already dropped filtering against file:
-                                              //        and about: schemes, but CSS tests will break on loading Ahem
-                                              //        since we load them through a file: URL.
-            current_url.scheme() == "about" ||
-            request.mode == RequestMode::Navigate
-        {
+        if (same_origin && !cors_flag) || current_url.scheme() == "data" {
             // Substep 1.
             request.response_tainting = ResponseTainting::Basic;
 
