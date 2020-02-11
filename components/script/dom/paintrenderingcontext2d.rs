@@ -340,7 +340,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
         &self,
         image: CanvasImageSource,
         repetition: DOMString,
-    ) -> Fallible<DomRoot<CanvasPattern>> {
+    ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.context.CreatePattern(image, repetition)
     }
 

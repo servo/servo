@@ -895,12 +895,14 @@ impl CanvasState {
         global: &GlobalScope,
         image: CanvasImageSource,
         mut repetition: DOMString,
-    ) -> Fallible<DomRoot<CanvasPattern>> {
+    ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let (image_data, image_size) = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
+                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                if !image.is_usable()? {
+                    return Ok(None);
+                }
+
                 image
                     .get_url()
                     .and_then(|url| {
@@ -933,13 +935,13 @@ impl CanvasState {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            Ok(CanvasPattern::new(
+            Ok(Some(CanvasPattern::new(
                 global,
                 image_data,
                 image_size,
                 rep,
                 self.is_origin_clean(image),
-            ))
+            )))
         } else {
             Err(Error::Syntax)
         }
