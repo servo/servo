@@ -972,7 +972,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         if os.path.isdir(redist_dir):
             for p in os.listdir(redist_dir)[::-1]:
                 redist_path = path.join(redist_dir, p)
-                for v in ["VC141", "VC150", "VC160"]:
+                for v in ["VC141", "VC142", "VC150", "VC160"]:
                     # there are two possible paths
                     # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
                     redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
