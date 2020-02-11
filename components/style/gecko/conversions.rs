@@ -10,87 +10,10 @@
 
 #![allow(unsafe_code)]
 
-use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, Matrix4x4Components};
-use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
+use crate::gecko_bindings::structs::{self, Matrix4x4Components, nsresult};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
-use crate::values::computed::{Gradient, Image, TextAlign};
-use crate::values::generics::image::GenericImage;
-use crate::values::generics::rect::Rect;
-
-impl nsStyleImage {
-    /// Set a given Servo `Image` value into this `nsStyleImage`.
-    pub fn set(&mut self, image: Image) {
-        match image {
-            GenericImage::None => unsafe {
-                bindings::Gecko_SetNullImageValue(self);
-            },
-            GenericImage::Gradient(boxed_gradient) => self.set_gradient(boxed_gradient),
-            GenericImage::Url(ref url) => unsafe {
-                bindings::Gecko_SetLayerImageImageValue(self, url);
-            },
-            GenericImage::Rect(ref image_rect) => {
-                unsafe {
-                    bindings::Gecko_SetLayerImageImageValue(self, &image_rect.url);
-                    bindings::Gecko_InitializeImageCropRect(self);
-
-                    // Set CropRect
-                    let ref mut rect = *self.mCropRect.mPtr;
-                    *rect = Rect(
-                        image_rect.top,
-                        image_rect.right,
-                        image_rect.bottom,
-                        image_rect.left,
-                    );
-                }
-            },
-            GenericImage::Element(ref element) => unsafe {
-                bindings::Gecko_SetImageElement(self, element.as_ptr());
-            },
-        }
-    }
-
-    fn set_gradient(&mut self, gradient: Box<Gradient>) {
-        unsafe {
-            bindings::Gecko_SetGradientImageValue(self, Box::into_raw(gradient));
-        }
-    }
-
-    /// Converts into Image.
-    pub unsafe fn to_image(&self) -> Image {
-        use crate::gecko_bindings::structs::nsStyleImageType;
-        use crate::values::computed::MozImageRect;
-
-        match self.mType {
-            nsStyleImageType::eStyleImageType_Null => GenericImage::None,
-            nsStyleImageType::eStyleImageType_Image => {
-                let url = self.__bindgen_anon_1.mImage.as_ref().clone();
-                if self.mCropRect.mPtr.is_null() {
-                    GenericImage::Url(url)
-                } else {
-                    let rect = &*self.mCropRect.mPtr;
-                    GenericImage::Rect(Box::new(MozImageRect {
-                        url,
-                        top: rect.0,
-                        right: rect.1,
-                        bottom: rect.2,
-                        left: rect.3,
-                    }))
-                }
-            },
-            nsStyleImageType::eStyleImageType_Gradient => {
-                let gradient: &Gradient = &**self.__bindgen_anon_1.mGradient.as_ref();
-                GenericImage::Gradient(Box::new(gradient.clone()))
-            },
-            nsStyleImageType::eStyleImageType_Element => {
-                use crate::gecko_string_cache::Atom;
-                let atom = bindings::Gecko_GetImageElement(self);
-                GenericImage::Element(Atom::from_raw(atom))
-            },
-        }
-    }
-}
+use crate::values::computed::TextAlign;
 
 pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
@@ -148,9 +71,8 @@ pub mod basic_shape {
                     use crate::values::generics::image::Image as GenericImage;
 
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let image = shape_image.to_image();
-                    match image {
-                        GenericImage::Url(url) => ShapeSource::ImageOrUrl(url.0),
+                    match *shape_image {
+                        GenericImage::Url(ref url) => ShapeSource::ImageOrUrl(url.0.clone()),
                         _ => panic!("ClippingShape doesn't support non-url images"),
                     }
                 },
@@ -166,8 +88,7 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::Image => unsafe {
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let image = shape_image.to_image();
-                    ShapeSource::ImageOrUrl(image)
+                    ShapeSource::ImageOrUrl(shape_image.clone())
                 },
                 _ => other
                     .to_shape_source()
