@@ -16,6 +16,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
+use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -1413,6 +1414,15 @@ impl CanvasState {
             a as f32, b as f32, c as f32, d as f32, e as f32, f as f32,
         ));
         self.update_transform()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
+    pub fn get_transform(&self, global: &GlobalScope) -> DomRoot<DOMMatrix> {
+        let (sender, receiver) = ipc::channel::<Transform2D<f32>>().unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::GetTransform(sender));
+        let transform = receiver.recv().unwrap();
+
+        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform

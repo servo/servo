@@ -18,6 +18,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
+use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
@@ -222,6 +223,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
     fn Transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
         self.canvas_state.borrow().transform(a, b, c, d, e, f)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
+    fn GetTransform(&self) -> DomRoot<DOMMatrix> {
+        self.canvas_state.borrow().get_transform(&self.global())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
