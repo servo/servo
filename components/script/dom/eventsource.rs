@@ -32,7 +32,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
@@ -339,7 +339,12 @@ impl FetchResponseListener for EventSourceContext {
             Ok(fm) => {
                 let meta = match fm {
                     FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+                    FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
+                        FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect => {
+                            return self.fail_the_connection()
+                        },
+                        _ => unsafe_,
+                    },
                 };
                 let mime = match meta.content_type {
                     None => return self.fail_the_connection(),
@@ -352,7 +357,13 @@ impl FetchResponseListener for EventSourceContext {
                 self.announce_the_connection();
             },
             Err(_) => {
-                self.reestablish_the_connection();
+                // The spec advises failing here if reconnecting would be
+                // "futile", with no more specific advice; WPT tests
+                // consider a non-http(s) scheme to be futile.
+                match self.event_source.root().url.scheme() {
+                    "http" | "https" => self.reestablish_the_connection(),
+                    _ => self.fail_the_connection(),
+                }
             },
         }
     }
