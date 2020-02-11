@@ -5,6 +5,9 @@
 #![deny(unsafe_code)]
 #![feature(exact_size_is_empty)]
 
+#[macro_use]
+extern crate serde;
+
 pub mod context;
 pub mod data;
 pub mod display_list;
@@ -14,6 +17,8 @@ mod flow;
 mod formatting_contexts;
 mod fragments;
 mod geom;
+#[macro_use]
+pub mod layout_debug;
 mod opaque_node;
 mod positioned;
 pub mod query;

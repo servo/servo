@@ -18,19 +18,19 @@ pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 
 pub(crate) mod flow_relative {
-    #[derive(Clone)]
+    #[derive(Clone, Serialize)]
     pub(crate) struct Vec2<T> {
         pub inline: T,
         pub block: T,
     }
 
-    #[derive(Clone)]
+    #[derive(Clone, Serialize)]
     pub(crate) struct Rect<T> {
         pub start_corner: Vec2<T>,
         pub size: Vec2<T>,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Serialize)]
     pub(crate) struct Sides<T> {
         pub inline_start: T,
         pub inline_end: T,

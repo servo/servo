@@ -30,6 +30,7 @@ use style_traits::CSSPixel;
 
 pub struct BoxTreeRoot(BlockFormattingContext);
 
+#[derive(Serialize)]
 pub struct FragmentTreeRoot {
     /// The children of the root of the fragment tree.
     children: Vec<Fragment>,

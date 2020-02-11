@@ -6,6 +6,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -16,6 +17,7 @@ use style::values::computed::Length;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
+#[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
     Anonymous(AnonymousFragment),
@@ -43,19 +45,21 @@ pub(crate) struct BoxFragment {
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub(crate) struct CollapsedMargin {
     max_positive: Length,
     min_negative: Length,
 }
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting itself.
+#[derive(Serialize)]
 pub(crate) struct AnonymousFragment {
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
@@ -340,5 +344,39 @@ impl CollapsedMargin {
 
     pub fn solve(&self) -> Length {
         self.max_positive + self.min_negative
+    }
+}
+
+impl Serialize for BoxFragment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = serializer.serialize_struct("BoxFragment", 6)?;
+        serializer.serialize_field("content_rect", &self.content_rect)?;
+        serializer.serialize_field("padding", &self.padding)?;
+        serializer.serialize_field("border", &self.border)?;
+        serializer.serialize_field("margin", &self.margin)?;
+        serializer.serialize_field(
+            "block_margins_collapsed_with_children",
+            &self.block_margins_collapsed_with_children,
+        )?;
+        serializer.serialize_field("children", &self.children)?;
+        serializer.end()
+    }
+}
+
+impl Serialize for TextFragment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = serializer.serialize_struct("TextFragment", 3)?;
+        serializer.serialize_field("rect", &self.rect)?;
+        serializer.serialize_field("ascent", &self.ascent)?;
+        serializer.serialize_field("glyphs", &self.glyphs)?;
+        serializer.end()
+    }
+}
+
+impl Serialize for ImageFragment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = serializer.serialize_struct("ImageFragment", 1)?;
+        serializer.serialize_field("rect", &self.rect)?;
+        serializer.end()
     }
 }
