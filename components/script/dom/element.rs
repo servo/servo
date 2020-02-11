@@ -1758,10 +1758,17 @@ impl Element {
     // https://w3c.github.io/DOM-Parsing/#parsing
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
-        let context_document = document_from_node(self);
         // TODO(#11995): XML case.
         let new_children = ServoParser::parse_html_fragment(self, markup);
         // Step 3.
+        // w3c/DOM-Parsing#61
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content().upcast::<Node>().owner_doc()
+            } else {
+                document_from_node(self)
+            }
+        };
         let fragment = DocumentFragment::new(&context_document);
         // Step 4.
         for child in new_children {
