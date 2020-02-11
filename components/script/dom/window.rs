@@ -1784,7 +1784,7 @@ impl Window {
     }
 
     pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ClientRectQuery(node.to_opaque())) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
@@ -2372,7 +2372,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
             &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
             &QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
-            &QueryMsg::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+            &QueryMsg::ClientRectQuery(_n) => "\tClientRectQuery",
             &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
             &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
             &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",

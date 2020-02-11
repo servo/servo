@@ -115,7 +115,7 @@ pub enum NodesFromPointQueryType {
 pub enum QueryMsg {
     ContentBoxQuery(OpaqueNode),
     ContentBoxesQuery(OpaqueNode),
-    NodeGeometryQuery(OpaqueNode),
+    ClientRectQuery(OpaqueNode),
     NodeScrollGeometryQuery(OpaqueNode),
     OffsetParentQuery(OpaqueNode),
     TextIndexQuery(OpaqueNode, Point2D<f32>),
@@ -152,7 +152,7 @@ impl ReflowGoal {
                 QueryMsg::ElementInnerTextQuery(_) => true,
                 QueryMsg::ContentBoxQuery(_) |
                 QueryMsg::ContentBoxesQuery(_) |
-                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::ClientRectQuery(_) |
                 QueryMsg::NodeScrollGeometryQuery(_) |
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
@@ -173,7 +173,7 @@ impl ReflowGoal {
                 QueryMsg::ElementInnerTextQuery(_) => true,
                 QueryMsg::ContentBoxQuery(_) |
                 QueryMsg::ContentBoxesQuery(_) |
-                QueryMsg::NodeGeometryQuery(_) |
+                QueryMsg::ClientRectQuery(_) |
                 QueryMsg::NodeScrollGeometryQuery(_) |
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |

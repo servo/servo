@@ -952,7 +952,7 @@ impl LayoutThread {
                         &QueryMsg::NodesFromPointQuery(..) => {
                             rw_data.nodes_from_point_response = Vec::new();
                         },
-                        &QueryMsg::NodeGeometryQuery(_) => {
+                        &QueryMsg::ClientRectQuery(_) => {
                             rw_data.client_rect_response = Rect::zero();
                         },
                         &QueryMsg::NodeScrollGeometryQuery(_) => {
@@ -1233,7 +1233,7 @@ impl LayoutThread {
                     );
                     rw_data.text_index_response = process_text_index_request(node, point_in_node);
                 },
-                &QueryMsg::NodeGeometryQuery(node) => {
+                &QueryMsg::ClientRectQuery(node) => {
                     rw_data.client_rect_response = process_node_geometry_request(node);
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
