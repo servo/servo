@@ -20,7 +20,7 @@ use crate::dom::pluginarray::PluginArray;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
-use crate::dom::xr::XR;
+use crate::dom::xrsystem::XRSystem;
 use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use std::rc::Rc;
@@ -32,7 +32,7 @@ pub struct Navigator {
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
     service_worker: MutNullableDom<ServiceWorkerContainer>,
-    xr: MutNullableDom<XR>,
+    xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
@@ -183,8 +183,8 @@ impl NavigatorMethods for Navigator {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-navigator-xr
-    fn Xr(&self) -> DomRoot<XR> {
-        self.xr.or_init(|| XR::new(&self.global()))
+    fn Xr(&self) -> DomRoot<XRSystem> {
+        self.xr.or_init(|| XRSystem::new(&self.global()))
     }
 
     /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices

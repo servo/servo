@@ -4,9 +4,9 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
-use crate::dom::bindings::codegen::Bindings::XRBinding;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionInit;
-use crate::dom::bindings::codegen::Bindings::XRBinding::{XRMethods, XRSessionMode};
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding;
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionInit;
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{XRSessionMode, XRSystemMethods};
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -38,7 +38,7 @@ use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
 #[dom_struct]
-pub struct XR {
+pub struct XRSystem {
     eventtarget: EventTarget,
     displays: DomRefCell<Vec<Dom<VRDisplay>>>,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
@@ -48,9 +48,9 @@ pub struct XR {
     test: MutNullableDom<XRTest>,
 }
 
-impl XR {
-    fn new_inherited() -> XR {
-        XR {
+impl XRSystem {
+    fn new_inherited() -> XRSystem {
+        XRSystem {
             eventtarget: EventTarget::new_inherited(),
             displays: DomRefCell::new(Vec::new()),
             gamepads: DomRefCell::new(Vec::new()),
@@ -61,8 +61,12 @@ impl XR {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XR> {
-        let root = reflect_dom_object(Box::new(XR::new_inherited()), global, XRBinding::Wrap);
+    pub fn new(global: &GlobalScope) -> DomRoot<XRSystem> {
+        let root = reflect_dom_object(
+            Box::new(XRSystem::new_inherited()),
+            global,
+            XRSystemBinding::Wrap,
+        );
         root.register();
         root
     }
@@ -96,7 +100,7 @@ impl XR {
     }
 }
 
-impl Drop for XR {
+impl Drop for XRSystem {
     fn drop(&mut self) {
         self.unregister();
     }
@@ -112,7 +116,7 @@ impl Into<SessionMode> for XRSessionMode {
     }
 }
 
-impl XRMethods for XR {
+impl XRSystemMethods for XRSystem {
     /// https://immersive-web.github.io/webxr/#dom-xr-issessionsupported
     fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
@@ -267,7 +271,7 @@ impl XRMethods for XR {
     }
 }
 
-impl XR {
+impl XRSystem {
     fn session_obtained(
         &self,
         response: Result<Session, XRError>,
@@ -442,7 +446,7 @@ impl XR {
 }
 
 // Gamepad
-impl XR {
+impl XRSystem {
     fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
         self.gamepads
             .borrow()
