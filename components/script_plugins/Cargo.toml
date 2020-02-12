@@ -11,6 +11,3 @@ plugin = true
 
 [features]
 unrooted_must_root_lint = []
-
-[dependencies]
-matches = "0.1"

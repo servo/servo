@@ -3658,7 +3658,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
- "matches",
  "mime",
  "mime_guess",
  "msg",
@@ -4835,9 +4834,6 @@ dependencies = [
 [[package]]
 name = "script_plugins"
 version = "0.0.1"
-dependencies = [
- "matches",
-]
 
 [[package]]
 name = "script_plugins_tests"
@@ -4906,7 +4902,6 @@ dependencies = [
  "derive_more 0.99.2",
  "fxhash",
  "log",
- "matches",
  "phf",
  "phf_codegen",
  "precomputed-hash",
@@ -5652,7 +5647,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
- "matches",
  "new_debug_unreachable",
  "num-derive",
  "num-integer",

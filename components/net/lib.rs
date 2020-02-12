@@ -11,8 +11,6 @@ extern crate log;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]
-extern crate matches;
-#[macro_use]
 extern crate profile_traits;
 #[macro_use]
 extern crate serde;

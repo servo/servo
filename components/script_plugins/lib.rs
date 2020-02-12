@@ -19,8 +19,6 @@
 #![feature(rustc_private)]
 #![cfg(feature = "unrooted_must_root_lint")]
 
-#[macro_use]
-extern crate matches;
 extern crate rustc;
 extern crate rustc_driver;
 extern crate rustc_hir;
