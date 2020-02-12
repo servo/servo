@@ -352,19 +352,22 @@ impl SingleFontFamily {
         };
 
         let mut value = first_ident.as_ref().to_owned();
+        let mut serialize_quoted = value.contains(' ');
 
         // These keywords are not allowed by themselves.
         // The only way this value can be valid with with another keyword.
         if reserved {
             let ident = input.expect_ident()?;
+            serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
         }
         while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+            serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
         }
-        let syntax = if value.starts_with(' ') || value.ends_with(' ') || value.contains("  ") {
+        let syntax = if serialize_quoted {
             // For font family names which contains special white spaces, e.g.
             // `font-family: \ a\ \ b\ \ c\ ;`, it is tricky to serialize them
             // as identifiers correctly. Just mark them quoted so we don't need
