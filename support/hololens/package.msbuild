@@ -9,6 +9,6 @@
       </ConfigAndPlatform>
     </ItemGroup>
     <MSBuild Projects="%%SOLUTION%%" Targets="Build"
-             Properties="Configuration=%(ConfigAndPlatform.Identity);Platform=%(ConfigAndPlatform.Platform);AppxBundle=Always;AppxBundlePlatforms=%%PACKAGE_PLATFORMS%%;UseSubFolderForOutputDirDuringMultiPlatformBuild=false;AppxPackageSigningEnabled=false"/>
+             Properties="Configuration=%(ConfigAndPlatform.Identity);Platform=%(ConfigAndPlatform.Platform);AppxBundle=Always;AppxBundlePlatforms=%%PACKAGE_PLATFORMS%%;UseSubFolderForOutputDirDuringMultiPlatformBuild=false"/>
   </Target>
 </Project>
