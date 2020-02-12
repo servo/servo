@@ -897,6 +897,10 @@ impl CustomElementReactionStack {
                 }
 
                 let cx = element.global().get_cx();
+                // We might be here during HTML parsing, rather than
+                // during Javscript execution, and so we typically aren't
+                // already in a realm here.
+                let _ac = JSAutoRealm::new(*cx, element.global().reflector().get_jsobject().get());
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(*cx) let mut name_value = UndefinedValue());
