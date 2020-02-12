@@ -331,7 +331,7 @@ class MachCommands(CommandBase):
             android_arch = self.config["android"]["arch"]
 
             # Build OpenSSL for android
-            env["OPENSSL_VERSION"] = "1.0.2k"
+            env["OPENSSL_VERSION"] = "1.1.1d"
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
@@ -580,7 +580,7 @@ class MachCommands(CommandBase):
 
             # The Open SSL configuration
             env.setdefault("OPENSSL_DIR", path.join(target_path, target, "native", "openssl"))
-            env.setdefault("OPENSSL_VERSION", "1.0.2k")
+            env.setdefault("OPENSSL_VERSION", "1.1.1d")
             env.setdefault("OPENSSL_STATIC", "1")
 
             # GStreamer configuration
