@@ -7,7 +7,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
+use crate::fragments::{AnonymousFragment, BoxFragment, DebugId, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
@@ -713,6 +713,7 @@ impl TextRun {
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
                     tag: self.tag,
+                    debug_id: DebugId::new(),
                     parent_style: self.parent_style.clone(),
                     rect,
                     ascent: font_ascent.into(),

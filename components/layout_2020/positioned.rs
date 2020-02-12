@@ -5,7 +5,7 @@
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, DebugId, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};

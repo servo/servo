@@ -4,6 +4,7 @@
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::layout_debug;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -27,6 +28,7 @@ pub(crate) enum Fragment {
 
 pub(crate) struct BoxFragment {
     pub tag: OpaqueNode,
+    pub debug_id: DebugId,
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -61,6 +63,7 @@ pub(crate) struct CollapsedMargin {
 /// Can contain child fragments with relative coordinates, but does not contribute to painting itself.
 #[derive(Serialize)]
 pub(crate) struct AnonymousFragment {
+    pub debug_id: DebugId,
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
     pub mode: WritingMode,
@@ -70,6 +73,7 @@ pub(crate) struct AnonymousFragment {
 }
 
 pub(crate) struct TextFragment {
+    pub debug_id: DebugId,
     pub tag: OpaqueNode,
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
@@ -79,6 +83,7 @@ pub(crate) struct TextFragment {
 }
 
 pub(crate) struct ImageFragment {
+    pub debug_id: DebugId,
     pub style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
     pub image_key: ImageKey,
@@ -123,6 +128,7 @@ impl Fragment {
 impl AnonymousFragment {
     pub fn no_op(mode: WritingMode) -> Self {
         Self {
+            debug_id: DebugId::new(),
             children: vec![],
             rect: Rect::zero(),
             mode,
@@ -140,6 +146,7 @@ impl AnonymousFragment {
             )
         });
         AnonymousFragment {
+            debug_id: DebugId::new(),
             rect,
             children,
             mode,
@@ -179,6 +186,7 @@ impl BoxFragment {
             });
         BoxFragment {
             tag,
+            debug_id: DebugId::new(),
             style,
             children,
             content_rect,
@@ -349,7 +357,8 @@ impl CollapsedMargin {
 
 impl Serialize for BoxFragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("BoxFragment", 6)?;
+        let mut serializer = serializer.serialize_struct("BoxFragment", 7)?;
+        serializer.serialize_field("debug_id", &self.debug_id)?;
         serializer.serialize_field("content_rect", &self.content_rect)?;
         serializer.serialize_field("padding", &self.padding)?;
         serializer.serialize_field("border", &self.border)?;
@@ -365,7 +374,8 @@ impl Serialize for BoxFragment {
 
 impl Serialize for TextFragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("TextFragment", 3)?;
+        let mut serializer = serializer.serialize_struct("TextFragment", 4)?;
+        serializer.serialize_field("debug_id", &self.debug_id)?;
         serializer.serialize_field("rect", &self.rect)?;
         serializer.serialize_field("ascent", &self.ascent)?;
         serializer.serialize_field("glyphs", &self.glyphs)?;
@@ -375,8 +385,45 @@ impl Serialize for TextFragment {
 
 impl Serialize for ImageFragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("ImageFragment", 1)?;
+        let mut serializer = serializer.serialize_struct("ImageFragment", 2)?;
+        serializer.serialize_field("debug_id", &self.debug_id)?;
         serializer.serialize_field("rect", &self.rect)?;
         serializer.end()
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[derive(Clone)]
+pub struct DebugId;
+
+#[cfg(debug_assertions)]
+#[derive(Clone)]
+pub struct DebugId(u16);
+
+#[cfg(not(debug_assertions))]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId
+    }
+}
+
+#[cfg(debug_assertions)]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId(layout_debug::generate_unique_debug_id())
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&format!("{:p}", &self))
+    }
+}
+
+#[cfg(debug_assertions)]
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0)
     }
 }

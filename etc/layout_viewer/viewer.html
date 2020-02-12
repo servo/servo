@@ -57,8 +57,8 @@
                     <div class="row">
                         <div class="col-sm-12">
                             <div class='panel panel-default'>
-                                <div class='panel-heading'>Flow Tree</div>
-                                <div class='panel-body' id="flow-tree"></div>
+                                <div class='panel-heading'>Fragment Tree</div>
+                                <div class='panel-body' id="fragment-tree"></div>
                             </div>
                         </div>
                         <div class="col-sm-12">
@@ -90,28 +90,19 @@
         <script src="js/formatters.min.js"></script>
 
         <script>
-            function get_base(trace_node) {
-                if (typeof(trace_node.data.base) == "undefined" && typeof(trace_node.data.block_flow) != "undefined") {
-                  return trace_node.data.block_flow.base;
-                }
-                else {
-                  return trace_node.data.base;
-                }
-            }
-
-            function create_flow_tree(trace_node) {
+            function create_fragment_tree(trace_node) {
+                var fragment = Object.values(trace_node)[0];
                 var node = {
                     text: Object.keys(trace_node)[0],
-//                    id: base.id,
-//                    icon: "dummy",
-//                    href: "#diff-" + base.id
+                    id: fragment.id,
+                    icon: "dummy",
+                    href: "#diff-" + fragment.id
                 };
 
-                var fragment = Object.values(trace_node)[0];
                 if (fragment.children) {
                   var children = [];
                   for (var i=0 ; i < fragment.children.length ; ++i) {
-                      children.push(create_flow_tree(fragment.children[i]));
+                      children.push(create_fragment_tree(fragment.children[i]));
                   }
 
                   if (children.length > 0) {
@@ -134,25 +125,25 @@
             }
 
             function flatten_trace(trace_node) {
-                var flow_tree = create_flow_tree(Object.values(trace_node)[0]);
+                var fragment_tree = create_fragment_tree(Object.values(trace_node)[0]);
 
                 //var flow_hash = {};
                 //create_flow_hash(trace_node[0], flow_hash);
 
                 return {
-                    tree: flow_tree,
+                    tree: fragment_tree,
                     //flows: flow_hash,
                 }
             }
 
-            function create_tree_node(trace_node) {
+            function create_trace_tree_node(trace_node) {
                 var pre_trace = flatten_trace(trace_node.pre);
                 var post_trace = flatten_trace(trace_node.post);
 
                 var tree_node = {
-                    text: Object.keys(trace_node)[0],
+                    text: trace_node.name,
                     icon: "dummy",
-                    flow_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
+                    fragment_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
                     //pre: pre_trace.flows,
                     //post: post_trace.flows,
                 };
@@ -161,7 +152,7 @@
                 if (trace_node.children) {
                   var children = [];
                   for (var i=0 ; i < trace_node.children.length ; ++i) {
-                      children.push(create_tree_node(trace_node.children[i]));
+                      children.push(create_trace_tree_node(trace_node.children[i]));
                   }
 
                   if (children.length > 0) {
@@ -172,11 +163,11 @@
                 return tree_node;
             }
 
-            function update_flow_tree_bgcolor(flow_tree_node, node_color_hash) {
-                flow_tree_node.backColor = node_color_hash[flow_tree_node.id];
-                if (flow_tree_node.nodes !== undefined) {
-                    for (var i=0 ; i < flow_tree_node.nodes.length ; ++i) {
-                        update_flow_tree_bgcolor(flow_tree_node.nodes[i], node_color_hash)
+            function update_fragment_tree_bgcolor(fragment_tree_node, node_color_hash) {
+                fragment_tree_node.backColor = node_color_hash[fragment_tree_node.id];
+                if (fragment_tree_node.nodes !== undefined) {
+                    for (var i=0 ; i < fragment_tree_node.nodes.length ; ++i) {
+                        update_fragment_tree_bgcolor(fragment_tree_node.nodes[i], node_color_hash)
                     }
                 }
             }
@@ -185,7 +176,7 @@
                 jsondiffpatch.formatters.html.hideUnchanged();
 
                 var node_color_hash = {};
-                var tree = [ create_tree_node(data) ];
+                var tree = [ create_trace_tree_node(data) ];
                 $('#trace-tree').treeview({data: tree, levels: 3});
                 $('#trace-tree').on('nodeSelected', function(event, node) {
                     $("#flow-diffs").empty();
@@ -228,8 +219,8 @@
                         }
                     }
 
-                    update_flow_tree_bgcolor(node.flow_tree, node_color_hash);
-                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
+                    update_fragment_tree_bgcolor(node.fragment_tree, node_color_hash);
+                    $('#fragment-tree').treeview({data: [node.fragment_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
                 });
 
                 $('#trace-tree').treeview(true).selectNode(0);

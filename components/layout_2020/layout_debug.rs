@@ -10,9 +10,14 @@ use serde_json::{to_string, to_value, Value};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
+#[cfg(debug_assertions)]
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
+
+#[cfg(debug_assertions)]
+static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Scope;
 
@@ -78,6 +83,12 @@ impl Drop for Scope {
             }
         });
     }
+}
+
+/// Generate a unique ID for Fragments.
+#[cfg(debug_assertions)]
+pub fn generate_unique_debug_id() -> u16 {
+    DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16
 }
 
 /// Begin a layout debug trace. If this has not been called,

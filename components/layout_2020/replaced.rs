@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom_traversal::NodeExt;
-use crate::fragments::{Fragment, ImageFragment};
+use crate::fragments::{DebugId, Fragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
@@ -113,6 +113,7 @@ impl ReplacedContent {
                 .and_then(|image| image.id)
                 .map(|image_key| {
                     Fragment::Image(ImageFragment {
+                        debug_id: DebugId::new(),
                         style: style.clone(),
                         rect: Rect {
                             start_corner: Vec2::zero(),
