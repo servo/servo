@@ -28,7 +28,7 @@ use std::ops::{Add, Mul};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
-pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
+pub use super::image::{EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};
 pub use crate::values::specified::calc::CalcLengthPercentage;
 

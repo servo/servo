@@ -180,7 +180,7 @@ pub enum ShapeExtent {
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericGradientItem<Color, LengthPercentage> {
+pub enum GenericGradientItem<Color, T> {
     /// A simple color stop, without position.
     SimpleColorStop(Color),
     /// A complex color stop, with a position.
@@ -188,10 +188,10 @@ pub enum GenericGradientItem<Color, LengthPercentage> {
         /// The color for the stop.
         color: Color,
         /// The position for the stop.
-        position: LengthPercentage,
+        position: T,
     },
     /// An interpolation hint.
-    InterpolationHint(LengthPercentage),
+    InterpolationHint(T),
 }
 
 pub use self::GenericGradientItem as GradientItem;
@@ -201,17 +201,17 @@ pub use self::GenericGradientItem as GradientItem;
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
-pub struct ColorStop<Color, LengthPercentage> {
+pub struct ColorStop<Color, T> {
     /// The color of this stop.
     pub color: Color,
     /// The position of this stop.
-    pub position: Option<LengthPercentage>,
+    pub position: Option<T>,
 }
 
-impl<Color, LengthPercentage> ColorStop<Color, LengthPercentage> {
+impl<Color, T> ColorStop<Color, T> {
     /// Convert the color stop into an appropriate `GradientItem`.
     #[inline]
-    pub fn into_item(self) -> GradientItem<Color, LengthPercentage> {
+    pub fn into_item(self) -> GradientItem<Color, T> {
         match self.position {
             Some(position) => GradientItem::ComplexColorStop {
                 color: self.color,

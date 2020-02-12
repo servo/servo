@@ -54,12 +54,6 @@ pub enum LineDirection {
     Corner(HorizontalPositionKeyword, VerticalPositionKeyword),
 }
 
-/// A computed gradient item.
-pub type GradientItem = generic::GenericGradientItem<Color, LengthPercentage>;
-
-/// A computed color stop.
-pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
-
 /// Computed values for `-moz-image-rect(...)`.
 #[cfg(feature = "gecko")]
 pub type MozImageRect = generic::GenericMozImageRect<NumberOrPercentage, ComputedImageUrl>;
