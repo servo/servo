@@ -153,7 +153,8 @@ use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{
     WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer,
-    WebGPUComputePipeline, WebGPUDevice, WebGPUPipelineLayout, WebGPUShaderModule,
+    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
+    WebGPUPipelineLayout, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
@@ -531,13 +532,16 @@ unsafe_no_jsmanaged_fields!(RefCell<Option<WebGPU>>);
 unsafe_no_jsmanaged_fields!(RefCell<Identities>);
 unsafe_no_jsmanaged_fields!(WebGPU);
 unsafe_no_jsmanaged_fields!(WebGPUAdapter);
-unsafe_no_jsmanaged_fields!(WebGPUDevice);
 unsafe_no_jsmanaged_fields!(WebGPUBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
 unsafe_no_jsmanaged_fields!(WebGPUComputePipeline);
 unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
 unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
+unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
+unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
+unsafe_no_jsmanaged_fields!(WebGPUDevice);
+unsafe_no_jsmanaged_fields!(webgpu::wgpu::command::RawPass);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);

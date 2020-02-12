@@ -81,6 +81,27 @@ pub enum WebGPURequest {
     ),
     UnmapBuffer(WebGPUBuffer),
     DestroyBuffer(WebGPUBuffer),
+    CreateCommandEncoder(
+        IpcSender<WebGPUCommandEncoder>,
+        WebGPUDevice,
+        // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
+        // wgpu::command::CommandEncoderDescriptor,
+        wgpu::id::CommandEncoderId,
+    ),
+    CopyBufferToBuffer(
+        wgpu::id::CommandEncoderId,
+        wgpu::id::BufferId,
+        wgpu::BufferAddress,
+        wgpu::id::BufferId,
+        wgpu::BufferAddress,
+        wgpu::BufferAddress,
+    ),
+    CommandEncoderFinish(
+        IpcSender<WebGPUCommandBuffer>,
+        wgpu::id::CommandEncoderId,
+        // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
+        // wgpu::command::CommandBufferDescriptor,
+    ),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -345,6 +366,47 @@ impl WGPU {
                         )
                     }
                 },
+                WebGPURequest::CreateCommandEncoder(sender, device, id) => {
+                    let global = &self.global;
+                    let id = gfx_select!(id => global.device_create_command_encoder(device.0, &Default::default(), id));
+                    if let Err(e) = sender.send(WebGPUCommandEncoder(id)) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CreateCommandEncoder ({})",
+                            e
+                        )
+                    }
+                },
+                WebGPURequest::CopyBufferToBuffer(
+                    command_encoder_id,
+                    source,
+                    source_offset,
+                    destination,
+                    destination_offset,
+                    size,
+                ) => {
+                    let global = &self.global;
+                    let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_buffer(
+                        command_encoder_id,
+                        source,
+                        source_offset,
+                        destination,
+                        destination_offset,
+                        size
+                    ));
+                },
+                WebGPURequest::CommandEncoderFinish(sender, command_encoder_id) => {
+                    let global = &self.global;
+                    let command_buffer_id = gfx_select!(command_encoder_id => global.command_encoder_finish(
+                        command_encoder_id,
+                        &wgpu::command::CommandBufferDescriptor::default()
+                    ));
+                    if let Err(e) = sender.send(WebGPUCommandBuffer(command_buffer_id)) {
+                        warn!(
+                            "Failed to send response to WebGPURequest::CommandEncoderFinish ({})",
+                            e
+                        )
+                    }
+                },
                 WebGPURequest::Exit(sender) => {
                     self.deinit();
                     if let Err(e) = sender.send(()) {
@@ -380,3 +442,5 @@ webgpu_resource!(WebGPUBindGroupLayout, wgpu::id::BindGroupLayoutId);
 webgpu_resource!(WebGPUComputePipeline, wgpu::id::ComputePipelineId);
 webgpu_resource!(WebGPUPipelineLayout, wgpu::id::PipelineLayoutId);
 webgpu_resource!(WebGPUShaderModule, wgpu::id::ShaderModuleId);
+webgpu_resource!(WebGPUCommandEncoder, wgpu::id::CommandEncoderId);
+webgpu_resource!(WebGPUCommandBuffer, wgpu::id::CommandBufferId);
