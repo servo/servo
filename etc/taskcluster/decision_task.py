@@ -332,6 +332,7 @@ def windows_uwp_x64():
             "python mach build --dev --target=x86_64-uwp-windows-msvc",
             "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
             "python mach test-tidy --force-cpp --no-wpt",
+            "python ./etc/test_uwp.py",
         )
         .with_artifacts(appx_artifact(debug=True))
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())

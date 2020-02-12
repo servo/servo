@@ -59,7 +59,7 @@ public:
   void Stop() { capi::stop(); }
   bool LoadUri(hstring uri) { return capi::load_uri(*hstring2char(uri)); }
   void ChangeVisibility(bool visible) { capi::change_visibility(visible); }
-  bool IsUriValid(hstring uri) {
+  static bool IsUriValid(hstring uri) {
     return capi::is_uri_valid(*hstring2char(uri));
   }
   void Scroll(float dx, float dy, float x, float y) {

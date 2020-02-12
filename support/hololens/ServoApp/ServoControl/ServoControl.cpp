@@ -253,6 +253,15 @@ void ServoControl::ChangeVisibility(bool visible) {
 void ServoControl::Stop() {
   RunOnGLThread([=] { mServo->Stop(); });
 }
+
+void ServoControl::SetArgs(hstring args) {
+  if (Servo::IsUriValid(args)) {
+    mInitialURL = args;
+  } else {
+    mArgs = args;
+  }
+}
+
 hstring ServoControl::LoadURIOrSearch(hstring input) {
   // Initial input is valid
   if (mServo->IsUriValid(input)) {

@@ -99,7 +99,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 
   void SetTransientMode(bool transient) { mTransient = transient; }
 
-  void SetArgs(hstring args) { mArgs = args; }
+  void SetArgs(hstring args);
 
   virtual void WakeUp();
   virtual void OnServoLoadStarted();

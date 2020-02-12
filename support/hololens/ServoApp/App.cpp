@@ -65,6 +65,11 @@ void App::OnLaunched(LaunchActivatedEventArgs const &e) {
   Frame rootFrame{nullptr};
   this->createRootFrame(rootFrame, e.PrelaunchActivated(),
                         box_value(e.Arguments()));
+  if (e.Kind() != Windows::ApplicationModel::Activation::ActivationKind::
+                      CommandLineLaunch) {
+    auto page = rootFrame.Content().try_as<BrowserPage>();
+    page->SetArgs(e.Arguments());
+  }
 }
 
 void App::OnActivated(IActivatedEventArgs const &args) {
