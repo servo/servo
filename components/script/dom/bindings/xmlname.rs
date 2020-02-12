@@ -10,15 +10,10 @@ use html5ever::{LocalName, Namespace, Prefix};
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
+    // Step 2.
     match xml_name_type(qualified_name) {
-        XMLName::InvalidXMLName => {
-            // Step 1.
-            Err(Error::InvalidCharacter)
-        },
-        XMLName::Name => {
-            // Step 2.
-            Err(Error::Namespace)
-        },
+        XMLName::InvalidXMLName => Err(Error::InvalidCharacter),
+        XMLName::Name => Err(Error::InvalidCharacter), // see whatwg/dom#671
         XMLName::QName => Ok(()),
     }
 }
