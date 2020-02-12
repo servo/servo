@@ -185,22 +185,12 @@ impl Performance {
 
     /// Add a PerformanceObserver to the list of observers with a set of
     /// observed entry types.
-    pub fn add_observer(
+
+    pub fn add_multiple_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
         entry_types: Vec<DOMString>,
-        buffered: bool,
     ) {
-        if buffered {
-            let buffer = self.buffer.borrow();
-            let mut new_entries = entry_types
-                .iter()
-                .flat_map(|e| buffer.get_entries_by_name_and_type(None, Some(e.clone())))
-                .collect::<DOMPerformanceEntryList>();
-            let mut obs_entries = observer.entries();
-            obs_entries.append(&mut new_entries);
-            observer.set_entries(obs_entries);
-        }
         let mut observers = self.observers.borrow_mut();
         match observers.iter().position(|o| *o.observer == *observer) {
             // If the observer is already in the list, we only update the observed
@@ -210,6 +200,46 @@ impl Performance {
             None => observers.push(PerformanceObserver {
                 observer: DomRoot::from_ref(observer),
                 entry_types,
+            }),
+        };
+    }
+
+    pub fn add_single_type_observer(
+        &self,
+        observer: &DOMPerformanceObserver,
+        entry_type: &DOMString,
+        buffered: bool,
+    ) {
+        if buffered {
+            let buffer = self.buffer.borrow();
+            let mut new_entries =
+                buffer.get_entries_by_name_and_type(None, Some(entry_type.clone()));
+            if new_entries.len() > 0 {
+                let mut obs_entries = observer.entries();
+                obs_entries.append(&mut new_entries);
+                observer.set_entries(obs_entries);
+            }
+
+            if !self.pending_notification_observers_task.get() {
+                self.pending_notification_observers_task.set(true);
+                let task_source = self.global().performance_timeline_task_source();
+                task_source.queue_notification(&self.global());
+            }
+        }
+        let mut observers = self.observers.borrow_mut();
+        match observers.iter().position(|o| *o.observer == *observer) {
+            // If the observer is already in the list, we only update
+            // the observed entry types.
+            Some(p) => {
+                // Append the type if not already present, otherwise do nothing
+                if !observers[p].entry_types.contains(entry_type) {
+                    observers[p].entry_types.push(entry_type.clone())
+                }
+            },
+            // Otherwise, we create and insert the new PerformanceObserver.
+            None => observers.push(PerformanceObserver {
+                observer: DomRoot::from_ref(observer),
+                entry_types: vec![entry_type.clone()],
             }),
         };
     }
@@ -287,18 +317,13 @@ impl Performance {
         // Step 7.2.
         // We have to operate over a copy of the performance observers to avoid
         // the risk of an observer's callback modifying the list of registered
-        // observers.
+        // observers. This is a shallow copy, so observers can
+        // disconnect themselves by using the argument of their own callback.
         let observers: Vec<DomRoot<DOMPerformanceObserver>> = self
             .observers
             .borrow()
             .iter()
-            .map(|o| {
-                DOMPerformanceObserver::new(
-                    &self.global(),
-                    o.observer.callback(),
-                    o.observer.entries(),
-                )
-            })
+            .map(|o| DomRoot::from_ref(&*o.observer))
             .collect();
 
         // Step 7.3.
