@@ -100,22 +100,23 @@
             }
 
             function create_flow_tree(trace_node) {
-                var base = get_base(trace_node);
-
                 var node = {
-                    text: trace_node.class + " (" + base.id + ")",
-                    id: base.id,
-                    icon: "dummy",
-                    href: "#diff-" + base.id
+                    text: Object.keys(trace_node)[0],
+//                    id: base.id,
+//                    icon: "dummy",
+//                    href: "#diff-" + base.id
                 };
 
-                var children = [];
-                for (var i=0 ; i < base.children.length ; ++i) {
-                    children.push(create_flow_tree(base.children[i]));
-                }
+                var fragment = Object.values(trace_node)[0];
+                if (fragment.children) {
+                  var children = [];
+                  for (var i=0 ; i < fragment.children.length ; ++i) {
+                      children.push(create_flow_tree(fragment.children[i]));
+                  }
 
-                if (children.length > 0) {
-                    node.nodes = children;
+                  if (children.length > 0) {
+                      node.nodes = children;
+                  }
                 }
 
                 return node;
@@ -125,22 +126,22 @@
                 var base = get_base(trace_node);
                 flow_hash[base.id] = trace_node;
 
-                for (var i=0 ; i < base.children.length ; ++i) {
+                for (var i=0 ; i < trace_node.children.length ; ++i) {
                     create_flow_hash(base.children[i], flow_hash);
                 }
 
-                delete base.children;
+                delete trace_node.children;
             }
 
             function flatten_trace(trace_node) {
-                var flow_tree = create_flow_tree(trace_node.children[0]);
+                var flow_tree = create_flow_tree(Object.values(trace_node)[0]);
 
-                var flow_hash = {};
-                create_flow_hash(trace_node.children[0], flow_hash);
+                //var flow_hash = {};
+                //create_flow_hash(trace_node[0], flow_hash);
 
                 return {
                     tree: flow_tree,
-                    flows: flow_hash,
+                    //flows: flow_hash,
                 }
             }
 
@@ -149,21 +150,23 @@
                 var post_trace = flatten_trace(trace_node.post);
 
                 var tree_node = {
-                    text: trace_node.name,
+                    text: Object.keys(trace_node)[0],
                     icon: "dummy",
                     flow_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
-                    pre: pre_trace.flows,
-                    post: post_trace.flows,
+                    //pre: pre_trace.flows,
+                    //post: post_trace.flows,
                 };
 
-                var children = [];
+                var trace_node = Object.values(trace_node)[0];
+                if (trace_node.children) {
+                  var children = [];
+                  for (var i=0 ; i < trace_node.children.length ; ++i) {
+                      children.push(create_tree_node(trace_node.children[i]));
+                  }
 
-                for (var i=0 ; i < trace_node.children.length ; ++i) {
-                    children.push(create_tree_node(trace_node.children[i]));
-                }
-
-                if (children.length > 0) {
-                    tree_node.nodes = children;
+                  if (children.length > 0) {
+                      tree_node.nodes = children;
+                  }
                 }
 
                 return tree_node;
