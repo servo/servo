@@ -18,7 +18,7 @@ use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
-use net_traits::filemanager_thread::RelativePos;
+use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
 };
@@ -56,6 +56,7 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
+    pub file_token: FileTokenCheck,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
 }
@@ -755,12 +756,12 @@ fn scheme_fetch(
             let (done_sender, done_receiver) = unbounded();
             *done_chan = Some((done_sender.clone(), done_receiver));
             *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-            let check_url_validity = true;
+
             if let Err(err) = context.filemanager.fetch_file(
                 &done_sender,
                 context.cancellation_listener.clone(),
                 id,
-                check_url_validity,
+                &context.file_token,
                 origin,
                 &mut response,
                 range,

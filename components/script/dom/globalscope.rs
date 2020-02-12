@@ -1380,8 +1380,7 @@ impl GlobalScope {
         let resource_threads = self.resource_threads();
         let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let origin = get_blob_origin(&self.get_url());
-        let check_url_validity = false;
-        let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
+        let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
         recv
     }
