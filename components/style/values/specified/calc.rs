@@ -10,15 +10,61 @@ use crate::parser::ParserContext;
 use crate::values::computed;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
-use crate::values::specified::{Angle, Time};
+use crate::values::specified::{self, Angle, Time};
 use crate::values::{CSSFloat, CSSInteger};
-use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
+use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
+use smallvec::SmallVec;
 use std::fmt::{self, Write};
+use std::{cmp, mem};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
+/// The name of the mathematical function that we're parsing.
+#[derive(Clone, Copy, Debug)]
+pub enum MathFunction {
+    /// `calc()`: https://drafts.csswg.org/css-values-4/#funcdef-calc
+    Calc,
+    /// `min()`: https://drafts.csswg.org/css-values-4/#funcdef-min
+    Min,
+    /// `max()`: https://drafts.csswg.org/css-values-4/#funcdef-max
+    Max,
+    /// `clamp()`: https://drafts.csswg.org/css-values-4/#funcdef-clamp
+    Clamp,
+}
+
+/// This determines the order in which we serialize members of a calc()
+/// sum.
+///
+/// See https://drafts.csswg.org/css-values-4/#sort-a-calculations-children
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+enum SortKey {
+    Number,
+    Percentage,
+    Ch,
+    Deg,
+    Em,
+    Ex,
+    Px,
+    Rem,
+    Sec,
+    Vh,
+    Vmax,
+    Vmin,
+    Vw,
+    Other,
+}
+
+/// Whether we're a `min` or `max` function.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MinMaxOp {
+    /// `min()`
+    Min,
+    /// `max()`
+    Max,
+}
+
 /// A node inside a `Calc` expression's AST.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CalcNode {
     /// `<length>`
     Length(NoCalcLength),
@@ -30,14 +76,20 @@ pub enum CalcNode {
     Percentage(CSSFloat),
     /// `<number>`
     Number(CSSFloat),
-    /// An expression of the form `x + y`
-    Sum(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x - y`
-    Sub(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x * y`
-    Mul(Box<CalcNode>, Box<CalcNode>),
-    /// An expression of the form `x / y`
-    Div(Box<CalcNode>, Box<CalcNode>),
+    /// An expression of the form `x + y + ...`. Subtraction is represented by
+    /// the negated expression of the right hand side.
+    Sum(Box<[CalcNode]>),
+    /// A `min()` / `max()` function.
+    MinMax(Box<[CalcNode]>, MinMaxOp),
+    /// A `clamp()` function.
+    Clamp {
+        /// The minimum value.
+        min: Box<CalcNode>,
+        /// The central value.
+        center: Box<CalcNode>,
+        /// The maximum value.
+        max: Box<CalcNode>,
+    },
 }
 
 /// An expected unit we intend to parse within a `calc()` expression.
@@ -150,7 +202,362 @@ impl ToCss for CalcLengthPercentage {
 
 impl SpecifiedValueInfo for CalcLengthPercentage {}
 
+macro_rules! impl_generic_to_type {
+    ($self:ident, $self_variant:ident, $to_self:ident, $to_float:ident, $from_float:path) => {{
+        if let Self::$self_variant(ref v) = *$self {
+            return Ok(v.clone());
+        }
+
+        Ok(match *$self {
+            Self::Sum(ref expressions) => {
+                let mut sum = 0.;
+                for sub in &**expressions {
+                    sum += sub.$to_self()?.$to_float();
+                }
+                $from_float(sum)
+            },
+            Self::Clamp {
+                ref min,
+                ref center,
+                ref max,
+            } => {
+                let min = min.$to_self()?;
+                let center = center.$to_self()?;
+                let max = max.$to_self()?;
+
+                // Equivalent to cmp::max(min, cmp::min(center, max))
+                //
+                // But preserving units when appropriate.
+                let center_float = center.$to_float();
+                let min_float = min.$to_float();
+                let max_float = max.$to_float();
+
+                let mut result = center;
+                let mut result_float = center_float;
+
+                if result_float > max_float {
+                    result = max;
+                    result_float = max_float;
+                }
+
+                if result_float < min_float {
+                    min
+                } else {
+                    result
+                }
+            },
+            Self::MinMax(ref nodes, op) => {
+                let mut result = nodes[0].$to_self()?;
+                let mut result_float = result.$to_float();
+                for node in nodes.iter().skip(1) {
+                    let candidate = node.$to_self()?;
+                    let candidate_float = candidate.$to_float();
+                    let candidate_wins = match op {
+                        MinMaxOp::Min => candidate_float < result_float,
+                        MinMaxOp::Max => candidate_float > result_float,
+                    };
+                    if candidate_wins {
+                        result = candidate;
+                        result_float = candidate_float;
+                    }
+                }
+                result
+            },
+            Self::Length(..) |
+            Self::Angle(..) |
+            Self::Time(..) |
+            Self::Percentage(..) |
+            Self::Number(..) => return Err(()),
+        })
+    }};
+}
+
+impl PartialOrd for CalcNode {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        use self::CalcNode::*;
+        match (self, other) {
+            (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
+            (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
+            (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
+            (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
+            (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
+            _ => None,
+        }
+    }
+}
+
 impl CalcNode {
+    fn negate(&mut self) {
+        self.mul_by(-1.);
+    }
+
+    fn mul_by(&mut self, scalar: f32) {
+        match *self {
+            Self::Length(ref mut l) => {
+                // FIXME: For consistency this should probably convert absolute
+                // lengths into pixels.
+                *l = *l * scalar;
+            },
+            Self::Number(ref mut n) => {
+                *n *= scalar;
+            },
+            Self::Angle(ref mut a) => {
+                *a = Angle::from_calc(a.degrees() * scalar);
+            },
+            Self::Time(ref mut t) => {
+                *t = Time::from_calc(t.seconds() * scalar);
+            },
+            Self::Percentage(ref mut p) => {
+                *p *= scalar;
+            },
+            // Multiplication is distributive across this.
+            Self::Sum(ref mut children) => {
+                for node in &mut **children {
+                    node.mul_by(scalar);
+                }
+            },
+            // This one is a bit trickier.
+            Self::MinMax(ref mut children, ref mut op) => {
+                for node in &mut **children {
+                    node.mul_by(scalar);
+                }
+
+                // For negatives we need to invert the operation.
+                if scalar < 0. {
+                    *op = match *op {
+                        MinMaxOp::Min => MinMaxOp::Max,
+                        MinMaxOp::Max => MinMaxOp::Min,
+                    }
+                }
+            },
+            // Multiplication is distributive across these.
+            Self::Clamp {
+                ref mut min,
+                ref mut center,
+                ref mut max,
+            } => {
+                min.mul_by(scalar);
+                center.mul_by(scalar);
+                max.mul_by(scalar);
+                // For negatives we need to swap min / max.
+                if scalar < 0. {
+                    mem::swap(min, max);
+                }
+            },
+        }
+    }
+
+    fn calc_node_sort_key(&self) -> SortKey {
+        match *self {
+            Self::Number(..) => SortKey::Number,
+            Self::Percentage(..) => SortKey::Percentage,
+            Self::Time(..) => SortKey::Sec,
+            Self::Angle(..) => SortKey::Deg,
+            Self::Length(ref l) => match *l {
+                NoCalcLength::Absolute(..) => SortKey::Px,
+                NoCalcLength::FontRelative(ref relative) => match *relative {
+                    FontRelativeLength::Ch(..) => SortKey::Ch,
+                    FontRelativeLength::Em(..) => SortKey::Em,
+                    FontRelativeLength::Ex(..) => SortKey::Ex,
+                    FontRelativeLength::Rem(..) => SortKey::Rem,
+                },
+                NoCalcLength::ViewportPercentage(ref vp) => match *vp {
+                    ViewportPercentageLength::Vh(..) => SortKey::Vh,
+                    ViewportPercentageLength::Vw(..) => SortKey::Vw,
+                    ViewportPercentageLength::Vmax(..) => SortKey::Vmax,
+                    ViewportPercentageLength::Vmin(..) => SortKey::Vmin,
+                },
+                NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
+            },
+            Self::Sum(..) | Self::MinMax(..) | Self::Clamp { .. } => SortKey::Other,
+        }
+    }
+
+    /// Tries to merge one sum to another, that is, perform `x` + `y`.
+    ///
+    /// Only handles leaf nodes, it's the caller's responsibility to simplify
+    /// them before calling this if needed.
+    fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
+        use self::CalcNode::*;
+
+        match (self, other) {
+            (&mut Number(ref mut one), &Number(ref other)) |
+            (&mut Percentage(ref mut one), &Percentage(ref other)) => {
+                *one += *other;
+            },
+            (&mut Angle(ref mut one), &Angle(ref other)) => {
+                *one = specified::Angle::from_calc(one.degrees() + other.degrees());
+            },
+            (&mut Time(ref mut one), &Time(ref other)) => {
+                *one = specified::Time::from_calc(one.seconds() + other.seconds());
+            },
+            (&mut Length(ref mut one), &Length(ref other)) => {
+                *one = one.try_sum(other)?;
+            },
+            _ => return Err(()),
+        }
+
+        Ok(())
+    }
+
+    /// Simplifies and sorts the calculation. This is only needed if it's going
+    /// to be preserved after parsing (so, for `<length-percentage>`). Otherwise
+    /// we can just evaluate it and we'll come up with a simplified value
+    /// anyways.
+    fn simplify_and_sort_children(&mut self) {
+        macro_rules! replace_self_with {
+            ($slot:expr) => {{
+                let result = mem::replace($slot, Self::Number(0.));
+                mem::replace(self, result);
+            }};
+        }
+        match *self {
+            Self::Clamp {
+                ref mut min,
+                ref mut center,
+                ref mut max,
+            } => {
+                min.simplify_and_sort_children();
+                center.simplify_and_sort_children();
+                max.simplify_and_sort_children();
+
+                // NOTE: clamp() is max(min, min(center, max))
+                let min_cmp_center = match min.partial_cmp(&center) {
+                    Some(o) => o,
+                    None => return,
+                };
+
+                // So if we can prove that min is more than center, then we won,
+                // as that's what we should always return.
+                if matches!(min_cmp_center, cmp::Ordering::Greater) {
+                    return replace_self_with!(&mut **min);
+                }
+
+                // Otherwise try with max.
+                let max_cmp_center = match max.partial_cmp(&center) {
+                    Some(o) => o,
+                    None => return,
+                };
+
+                if matches!(max_cmp_center, cmp::Ordering::Less) {
+                    // max is less than center, so we need to return effectively
+                    // `max(min, max)`.
+                    let max_cmp_min = match max.partial_cmp(&min) {
+                        Some(o) => o,
+                        None => {
+                            debug_assert!(
+                                false,
+                                "We compared center with min and max, how are \
+                                 min / max not comparable with each other?"
+                            );
+                            return;
+                        },
+                    };
+
+                    if matches!(max_cmp_min, cmp::Ordering::Less) {
+                        return replace_self_with!(&mut **min);
+                    }
+
+                    return replace_self_with!(&mut **max);
+                }
+
+                // Otherwise we're the center node.
+                return replace_self_with!(&mut **center);
+            },
+            Self::MinMax(ref mut children, op) => {
+                for child in &mut **children {
+                    child.simplify_and_sort_children();
+                }
+
+                let winning_order = match op {
+                    MinMaxOp::Min => cmp::Ordering::Less,
+                    MinMaxOp::Max => cmp::Ordering::Greater,
+                };
+
+                let mut result = 0;
+                for i in 1..children.len() {
+                    let o = match children[i].partial_cmp(&children[result]) {
+                        // We can't compare all the children, so we can't
+                        // know which one will actually win. Bail out and
+                        // keep ourselves as a min / max function.
+                        //
+                        // TODO: Maybe we could simplify compatible children,
+                        // see https://github.com/w3c/csswg-drafts/issues/4756
+                        None => return,
+                        Some(o) => o,
+                    };
+
+                    if o == winning_order {
+                        result = i;
+                    }
+                }
+
+                replace_self_with!(&mut children[result]);
+            },
+            Self::Sum(ref mut children_slot) => {
+                let mut sums_to_merge = SmallVec::<[_; 3]>::new();
+                let mut extra_kids = 0;
+                for (i, child) in children_slot.iter_mut().enumerate() {
+                    child.simplify_and_sort_children();
+                    if let Self::Sum(ref mut children) = *child {
+                        extra_kids += children.len();
+                        sums_to_merge.push(i);
+                    }
+                }
+
+                // If we only have one kid, we've already simplified it, and it
+                // doesn't really matter whether it's a sum already or not, so
+                // lift it up and continue.
+                if children_slot.len() == 1 {
+                    return replace_self_with!(&mut children_slot[0]);
+                }
+
+                let mut children = mem::replace(children_slot, Box::new([])).into_vec();
+
+                if !sums_to_merge.is_empty() {
+                    children.reserve(extra_kids - sums_to_merge.len());
+                    // Merge all our nested sums, in reverse order so that the
+                    // list indices are not invalidated.
+                    for i in sums_to_merge.drain(..).rev() {
+                        let kid_children = match children.swap_remove(i) {
+                            Self::Sum(c) => c,
+                            _ => unreachable!(),
+                        };
+
+                        // This would be nicer with
+                        // https://github.com/rust-lang/rust/issues/59878 fixed.
+                        children.extend(kid_children.into_vec());
+                    }
+                }
+
+                debug_assert!(children.len() >= 2, "Should still have multiple kids!");
+
+                // Sort by spec order.
+                children.sort_unstable_by_key(|c| c.calc_node_sort_key());
+
+                // NOTE: if the function returns true, by the docs of dedup_by,
+                // a is removed.
+                children.dedup_by(|a, b| b.try_sum_in_place(a).is_ok());
+
+                if children.len() == 1 {
+                    // If only one children remains, lift it up, and carry on.
+                    replace_self_with!(&mut children[0]);
+                } else {
+                    // Else put our simplified children back.
+                    mem::replace(children_slot, children.into_boxed_slice());
+                }
+            },
+            Self::Length(ref mut len) => {
+                if let NoCalcLength::Absolute(ref mut absolute_length) = *len {
+                    *absolute_length = AbsoluteLength::Px(absolute_length.to_px());
+                }
+            },
+            Self::Percentage(..) | Self::Angle(..) | Self::Time(..) | Self::Number(..) => {
+                // These are leaves already, nothing to do.
+            },
+        }
+    }
+
     /// Tries to parse a single element in the expression, that is, a
     /// `<length>`, `<angle>`, `<time>`, `<percentage>`, according to
     /// `expected_unit`.
@@ -203,11 +610,12 @@ impl CalcNode {
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
                 Ok(CalcNode::Percentage(unit_value))
             },
-            (&Token::ParenthesisBlock, _) => {
-                input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
-            },
-            (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
+            (&Token::ParenthesisBlock, _) => input.parse_nested_block(|input| {
+                CalcNode::parse_argument(context, input, expected_unit)
+            }),
+            (&Token::Function(ref name), _) => {
+                let function = CalcNode::math_function(name, location)?;
+                CalcNode::parse(context, input, function, expected_unit)
             },
             (t, _) => Err(location.new_unexpected_token_error(t.clone())),
         }
@@ -219,9 +627,58 @@ impl CalcNode {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
         expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
-        let mut root = Self::parse_product(context, input, expected_unit)?;
+        // TODO: Do something different based on the function name. In
+        // particular, for non-calc function we need to take a list of
+        // comma-separated arguments and such.
+        input.parse_nested_block(|input| {
+            match function {
+                MathFunction::Calc => Self::parse_argument(context, input, expected_unit),
+                MathFunction::Clamp => {
+                    let min = Self::parse_argument(context, input, expected_unit)?;
+                    input.expect_comma()?;
+                    let center = Self::parse_argument(context, input, expected_unit)?;
+                    input.expect_comma()?;
+                    let max = Self::parse_argument(context, input, expected_unit)?;
+                    Ok(Self::Clamp {
+                        min: Box::new(min),
+                        center: Box::new(center),
+                        max: Box::new(max),
+                    })
+                },
+                MathFunction::Min | MathFunction::Max => {
+                    // TODO(emilio): The common case for parse_comma_separated
+                    // is just one element, but for min / max is two, really...
+                    //
+                    // Consider adding an API to cssparser to specify the
+                    // initial vector capacity?
+                    let arguments = input
+                        .parse_comma_separated(|input| {
+                            Self::parse_argument(context, input, expected_unit)
+                        })?
+                        .into_boxed_slice();
+
+                    let op = match function {
+                        MathFunction::Min => MinMaxOp::Min,
+                        MathFunction::Max => MinMaxOp::Max,
+                        _ => unreachable!(),
+                    };
+
+                    Ok(Self::MinMax(arguments, op))
+                },
+            }
+        })
+    }
+
+    fn parse_argument<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        expected_unit: CalcUnit,
+    ) -> Result<Self, ParseError<'i>> {
+        let mut sum = SmallVec::<[CalcNode; 1]>::new();
+        sum.push(Self::parse_product(context, input, expected_unit)?);
 
         loop {
             let start = input.state();
@@ -232,14 +689,12 @@ impl CalcNode {
                     }
                     match *input.next()? {
                         Token::Delim('+') => {
-                            let rhs = Self::parse_product(context, input, expected_unit)?;
-                            let new_root = CalcNode::Sum(Box::new(root), Box::new(rhs));
-                            root = new_root;
+                            sum.push(Self::parse_product(context, input, expected_unit)?);
                         },
                         Token::Delim('-') => {
-                            let rhs = Self::parse_product(context, input, expected_unit)?;
-                            let new_root = CalcNode::Sub(Box::new(root), Box::new(rhs));
-                            root = new_root;
+                            let mut rhs = Self::parse_product(context, input, expected_unit)?;
+                            rhs.negate();
+                            sum.push(rhs);
                         },
                         ref t => {
                             let t = t.clone();
@@ -254,7 +709,11 @@ impl CalcNode {
             }
         }
 
-        Ok(root)
+        Ok(if sum.len() == 1 {
+            sum.drain(..).next().unwrap()
+        } else {
+            Self::Sum(sum.into_boxed_slice())
+        })
     }
 
     /// Parse a top-level `calc` expression, and all the products that may
@@ -271,20 +730,38 @@ impl CalcNode {
         input: &mut Parser<'i, 't>,
         expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
-        let mut root = Self::parse_one(context, input, expected_unit)?;
+        let mut node = Self::parse_one(context, input, expected_unit)?;
 
         loop {
             let start = input.state();
             match input.next() {
                 Ok(&Token::Delim('*')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
-                    let new_root = CalcNode::Mul(Box::new(root), Box::new(rhs));
-                    root = new_root;
+                    if let Ok(rhs) = rhs.to_number() {
+                        node.mul_by(rhs);
+                    } else if let Ok(number) = node.to_number() {
+                        node = rhs;
+                        node.mul_by(number);
+                    } else {
+                        // One of the two parts of the multiplication has to be
+                        // a number, at least until we implement unit math.
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
                 },
                 Ok(&Token::Delim('/')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
-                    let new_root = CalcNode::Div(Box::new(root), Box::new(rhs));
-                    root = new_root;
+                    // Dividing by units is not ok.
+                    //
+                    // TODO(emilio): Eventually it should be.
+                    let number = match rhs.to_number() {
+                        Ok(n) if n != 0. => n,
+                        _ => {
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
+                        },
+                    };
+                    node.mul_by(1. / number);
                 },
                 _ => {
                     input.reset(&start);
@@ -293,53 +770,22 @@ impl CalcNode {
             }
         }
 
-        Ok(root)
+        Ok(node)
     }
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
     fn to_length_or_percentage(
-        &self,
+        &mut self,
         clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthPercentage, ()> {
         let mut ret = CalcLengthPercentage {
-            clamping_mode: clamping_mode,
+            clamping_mode,
             ..Default::default()
         };
+        self.simplify_and_sort_children();
         self.add_length_or_percentage_to(&mut ret, 1.0)?;
         Ok(ret)
-    }
-
-    /// Tries to simplify this expression into a `<percentage>` value.
-    fn to_percentage(&self) -> Result<CSSFloat, ()> {
-        Ok(match *self {
-            CalcNode::Percentage(percentage) => percentage,
-            CalcNode::Sub(ref a, ref b) => a.to_percentage()? - b.to_percentage()?,
-            CalcNode::Sum(ref a, ref b) => a.to_percentage()? + b.to_percentage()?,
-            CalcNode::Mul(ref a, ref b) => match a.to_percentage() {
-                Ok(lhs) => {
-                    let rhs = b.to_number()?;
-                    lhs * rhs
-                },
-                Err(..) => {
-                    let lhs = a.to_number()?;
-                    let rhs = b.to_percentage()?;
-                    lhs * rhs
-                },
-            },
-            CalcNode::Div(ref a, ref b) => {
-                let lhs = a.to_percentage()?;
-                let rhs = b.to_number()?;
-                if rhs == 0. {
-                    return Err(());
-                }
-                lhs / rhs
-            },
-            CalcNode::Number(..) |
-            CalcNode::Length(..) |
-            CalcNode::Angle(..) |
-            CalcNode::Time(..) => return Err(()),
-        })
     }
 
     /// Puts this `<length>` or `<percentage>` into `ret`, or error.
@@ -394,29 +840,14 @@ impl CalcNode {
                 },
                 NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
             },
-            CalcNode::Sub(ref a, ref b) => {
-                a.add_length_or_percentage_to(ret, factor)?;
-                b.add_length_or_percentage_to(ret, factor * -1.0)?;
-            },
-            CalcNode::Sum(ref a, ref b) => {
-                a.add_length_or_percentage_to(ret, factor)?;
-                b.add_length_or_percentage_to(ret, factor)?;
-            },
-            CalcNode::Mul(ref a, ref b) => match b.to_number() {
-                Ok(rhs) => {
-                    a.add_length_or_percentage_to(ret, factor * rhs)?;
-                },
-                Err(..) => {
-                    let lhs = a.to_number()?;
-                    b.add_length_or_percentage_to(ret, factor * lhs)?;
-                },
-            },
-            CalcNode::Div(ref a, ref b) => {
-                let new_factor = b.to_number()?;
-                if new_factor == 0. {
-                    return Err(());
+            CalcNode::Sum(ref children) => {
+                for child in &**children {
+                    child.add_length_or_percentage_to(ret, factor)?;
                 }
-                a.add_length_or_percentage_to(ret, factor / new_factor)?;
+            },
+            CalcNode::MinMax(..) | CalcNode::Clamp { .. } => {
+                // FIXME(emilio): Implement min/max/clamp for length-percentage.
+                return Err(());
             },
             CalcNode::Angle(..) | CalcNode::Time(..) | CalcNode::Number(..) => return Err(()),
         }
@@ -426,103 +857,55 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<time>` value.
     fn to_time(&self) -> Result<Time, ()> {
-        Ok(match *self {
-            CalcNode::Time(ref time) => time.clone(),
-            CalcNode::Sub(ref a, ref b) => {
-                let lhs = a.to_time()?;
-                let rhs = b.to_time()?;
-                Time::from_calc(lhs.seconds() - rhs.seconds())
-            },
-            CalcNode::Sum(ref a, ref b) => {
-                let lhs = a.to_time()?;
-                let rhs = b.to_time()?;
-                Time::from_calc(lhs.seconds() + rhs.seconds())
-            },
-            CalcNode::Mul(ref a, ref b) => match b.to_number() {
-                Ok(rhs) => {
-                    let lhs = a.to_time()?;
-                    Time::from_calc(lhs.seconds() * rhs)
-                },
-                Err(()) => {
-                    let lhs = a.to_number()?;
-                    let rhs = b.to_time()?;
-                    Time::from_calc(lhs * rhs.seconds())
-                },
-            },
-            CalcNode::Div(ref a, ref b) => {
-                let lhs = a.to_time()?;
-                let rhs = b.to_number()?;
-                if rhs == 0. {
-                    return Err(());
-                }
-                Time::from_calc(lhs.seconds() / rhs)
-            },
-            CalcNode::Number(..) |
-            CalcNode::Length(..) |
-            CalcNode::Percentage(..) |
-            CalcNode::Angle(..) => return Err(()),
-        })
+        impl_generic_to_type!(self, Time, to_time, seconds, Time::from_calc)
     }
 
     /// Tries to simplify this expression into an `Angle` value.
     fn to_angle(&self) -> Result<Angle, ()> {
-        Ok(match *self {
-            CalcNode::Angle(ref angle) => angle.clone(),
-            CalcNode::Sub(ref a, ref b) => {
-                let lhs = a.to_angle()?;
-                let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.degrees() - rhs.degrees())
-            },
-            CalcNode::Sum(ref a, ref b) => {
-                let lhs = a.to_angle()?;
-                let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.degrees() + rhs.degrees())
-            },
-            CalcNode::Mul(ref a, ref b) => match a.to_angle() {
-                Ok(lhs) => {
-                    let rhs = b.to_number()?;
-                    Angle::from_calc(lhs.degrees() * rhs)
-                },
-                Err(..) => {
-                    let lhs = a.to_number()?;
-                    let rhs = b.to_angle()?;
-                    Angle::from_calc(lhs * rhs.degrees())
-                },
-            },
-            CalcNode::Div(ref a, ref b) => {
-                let lhs = a.to_angle()?;
-                let rhs = b.to_number()?;
-                if rhs == 0. {
-                    return Err(());
-                }
-                Angle::from_calc(lhs.degrees() / rhs)
-            },
-            CalcNode::Number(..) |
-            CalcNode::Length(..) |
-            CalcNode::Percentage(..) |
-            CalcNode::Time(..) => return Err(()),
-        })
+        impl_generic_to_type!(self, Angle, to_angle, degrees, Angle::from_calc)
     }
 
     /// Tries to simplify this expression into a `<number>` value.
     fn to_number(&self) -> Result<CSSFloat, ()> {
-        Ok(match *self {
-            CalcNode::Number(n) => n,
-            CalcNode::Sum(ref a, ref b) => a.to_number()? + b.to_number()?,
-            CalcNode::Sub(ref a, ref b) => a.to_number()? - b.to_number()?,
-            CalcNode::Mul(ref a, ref b) => a.to_number()? * b.to_number()?,
-            CalcNode::Div(ref a, ref b) => {
-                let lhs = a.to_number()?;
-                let rhs = b.to_number()?;
-                if rhs == 0. {
-                    return Err(());
-                }
-                lhs / rhs
-            },
-            CalcNode::Length(..) |
-            CalcNode::Percentage(..) |
-            CalcNode::Angle(..) |
-            CalcNode::Time(..) => return Err(()),
+        impl_generic_to_type!(self, Number, to_number, clone, From::from)
+    }
+
+    /// Tries to simplify this expression into a `<percentage>` value.
+    fn to_percentage(&self) -> Result<CSSFloat, ()> {
+        impl_generic_to_type!(self, Percentage, to_percentage, clone, From::from)
+    }
+
+    /// Given a function name, and the location from where the token came from,
+    /// return a mathematical function corresponding to that name or an error.
+    #[inline]
+    pub fn math_function<'i>(
+        name: &CowRcStr<'i>,
+        location: cssparser::SourceLocation,
+    ) -> Result<MathFunction, ParseError<'i>> {
+        // TODO(emilio): Unify below when the pref for math functions is gone.
+        if name.eq_ignore_ascii_case("calc") {
+            return Ok(MathFunction::Calc);
+        }
+
+        #[cfg(feature = "gecko")]
+        fn comparison_functions_enabled() -> bool {
+            static_prefs::pref!("layout.css.comparison-functions.enabled")
+        }
+
+        #[cfg(feature = "servo")]
+        fn comparison_functions_enabled() -> bool {
+            false
+        }
+
+        if !comparison_functions_enabled() {
+            return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
+        }
+
+        Ok(match_ignore_ascii_case! { &*name,
+            "min" => MathFunction::Min,
+            "max" => MathFunction::Max,
+            "clamp" => MathFunction::Clamp,
+            _ => return Err(location.new_unexpected_token_error(Token::Function(name.clone()))),
         })
     }
 
@@ -530,8 +913,9 @@ impl CalcNode {
     pub fn parse_integer<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse_number(context, input).map(|n| n.round() as CSSInteger)
+        Self::parse_number(context, input, function).map(|n| n.round() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`.
@@ -539,8 +923,9 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         clamping_mode: AllowedNumericType,
+        function: MathFunction,
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::LengthPercentage)?
+        Self::parse(context, input, function, CalcUnit::LengthPercentage)?
             .to_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -549,8 +934,9 @@ impl CalcNode {
     pub fn parse_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<CSSFloat, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Percentage)?
+        Self::parse(context, input, function, CalcUnit::Percentage)?
             .to_percentage()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -560,8 +946,9 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         clamping_mode: AllowedNumericType,
+        function: MathFunction,
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Length)?
+        Self::parse(context, input, function, CalcUnit::Length)?
             .to_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -570,8 +957,9 @@ impl CalcNode {
     pub fn parse_number<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<CSSFloat, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Number)?
+        Self::parse(context, input, function, CalcUnit::Number)?
             .to_number()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -580,8 +968,9 @@ impl CalcNode {
     pub fn parse_angle<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<Angle, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Angle)?
+        Self::parse(context, input, function, CalcUnit::Angle)?
             .to_angle()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -590,8 +979,9 @@ impl CalcNode {
     pub fn parse_time<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<Time, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Time)?
+        Self::parse(context, input, function, CalcUnit::Time)?
             .to_time()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
@@ -600,8 +990,9 @@ impl CalcNode {
     pub fn parse_number_or_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<NumberOrPercentage, ParseError<'i>> {
-        let node = Self::parse(context, input, CalcUnit::Percentage)?;
+        let node = Self::parse(context, input, function, CalcUnit::Percentage)?;
 
         if let Ok(value) = node.to_number() {
             return Ok(NumberOrPercentage::Number { value });
@@ -617,8 +1008,9 @@ impl CalcNode {
     pub fn parse_angle_or_number<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        function: MathFunction,
     ) -> Result<AngleOrNumber, ParseError<'i>> {
-        let node = Self::parse(context, input, CalcUnit::Angle)?;
+        let node = Self::parse(context, input, function, CalcUnit::Angle)?;
 
         if let Ok(angle) = node.to_angle() {
             let degrees = angle.degrees();

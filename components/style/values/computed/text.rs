@@ -27,8 +27,8 @@ pub use crate::values::specified::{TextDecorationSkipInk, TextTransform};
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
 
-/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
-pub type TextDecorationLength = GenericTextDecorationLength<Length>;
+/// Implements type for `text-decoration-thickness` property.
+pub type TextDecorationLength = GenericTextDecorationLength<LengthPercentage>;
 
 /// A computed value for the `letter-spacing` property.
 #[repr(transparent)]

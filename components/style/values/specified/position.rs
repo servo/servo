@@ -22,6 +22,7 @@ use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
+use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The specified value of a CSS `<position>`
@@ -297,7 +298,7 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 let p = Percentage(1. - length.percentage());
                 let l = -length.unclamped_length();
                 // We represent `<end-side> <length>` as `calc(100% - <length>)`.
-                ComputedLengthPercentage::with_clamping_mode(l, Some(p), length.clamping_mode)
+                ComputedLengthPercentage::new_calc(l, Some(p), AllowedNumericType::All)
             },
             PositionComponent::Side(_, Some(ref length)) |
             PositionComponent::Length(ref length) => length.to_computed_value(context),

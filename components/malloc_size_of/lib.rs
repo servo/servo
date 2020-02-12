@@ -46,6 +46,7 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
+#[cfg(feature = "servo")]
 extern crate accountable_refcell;
 extern crate app_units;
 #[cfg(feature = "servo")]

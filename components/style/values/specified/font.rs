@@ -574,11 +574,11 @@ impl KeywordInfo {
 
     /// Given a parent keyword info (self), apply an additional factor/offset to
     /// it.
-    pub fn compose(self, factor: f32, offset: CSSPixelLength) -> Self {
+    fn compose(self, factor: f32) -> Self {
         KeywordInfo {
             kw: self.kw,
             factor: self.factor * factor,
-            offset: self.offset * factor + offset,
+            offset: self.offset * factor,
         }
     }
 }
@@ -612,12 +612,6 @@ pub enum FontSize {
     /// Derived from a specified system font.
     #[css(skip)]
     System(SystemFont),
-}
-
-impl From<LengthPercentage> for FontSize {
-    fn from(other: LengthPercentage) -> Self {
-        FontSize::Length(other)
-    }
 }
 
 /// Specifies a prioritized list of font family names or generic family names.
@@ -901,7 +895,7 @@ impl FontSize {
                 .get_parent_font()
                 .clone_font_size()
                 .keyword_info
-                .map(|i| i.compose(factor, CSSPixelLength::new(0.)))
+                .map(|i| i.compose(factor))
         };
         let mut info = None;
         let size = match *self {
@@ -927,42 +921,8 @@ impl FontSize {
                 base_size.resolve(context) * pc.0
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
-                let parent = context.style().get_parent_font().clone_font_size();
-                // if we contain em/% units and the parent was keyword derived, this is too
-                // Extract the ratio/offset and compose it
-                if (calc.em.is_some() || calc.percentage.is_some()) && parent.keyword_info.is_some()
-                {
-                    let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
-                    // Compute it, but shave off the font-relative part (em, %).
-                    //
-                    // This will mean that other font-relative units like ex and
-                    // ch will be computed against the old parent font even when
-                    // the font changes.
-                    //
-                    // There's no particular "right answer" for what to do here,
-                    // Gecko recascades as if the font had changed, we instead
-                    // track the changes and reapply, which means that we carry
-                    // over old computed ex/ch values whilst Gecko recomputes
-                    // new ones.
-                    //
-                    // This is enough of an edge case to not really matter.
-                    let abs = calc
-                        .to_computed_value_zoomed(
-                            context,
-                            FontBaseSize::InheritedStyleButStripEmUnits,
-                        )
-                        .unclamped_length();
-
-                    info = parent.keyword_info.map(|i| i.compose(ratio, abs));
-                }
                 let calc = calc.to_computed_value_zoomed(context, base_size);
-                // FIXME(emilio): we _could_ use clamp_to_non_negative()
-                // everywhere, without affecting behavior in theory, since the
-                // others should reject negatives during parsing. But SMIL
-                // allows parsing negatives, and relies on us _not_ doing that
-                // clamping. That's so bonkers :(
-                calc.percentage_relative_to(base_size.resolve(context))
-                    .clamp_to_non_negative()
+                calc.resolve(base_size.resolve(context))
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived

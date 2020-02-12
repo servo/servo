@@ -7,6 +7,8 @@
 //! A replacement for `Box<[T]>` that cbindgen can understand.
 
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use serde::de::{Deserialize, Deserializer};
+use serde::ser::{Serialize, Serializer};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
@@ -169,5 +171,24 @@ impl<T> iter::FromIterator<T> for OwnedSlice<T> {
     #[inline]
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Vec::from_iter(iter).into()
+    }
+}
+
+impl<T: Serialize> Serialize for OwnedSlice<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.deref().serialize(serializer)
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for OwnedSlice<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let r = Box::<[T]>::deserialize(deserializer)?;
+        Ok(r.into())
     }
 }

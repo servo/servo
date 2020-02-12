@@ -309,7 +309,7 @@ impl Flow for TableFlow {
                         percentage: match *specified_inline_size {
                             Size::Auto => 0.0,
                             Size::LengthPercentage(ref lp) => {
-                                lp.0.as_percentage().map_or(0.0, |p| p.0)
+                                lp.0.to_percentage().map_or(0.0, |p| p.0)
                             },
                         },
                         preferred: Au(0),

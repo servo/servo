@@ -117,12 +117,12 @@ impl BoxContentSizes {
             .auto_is(Length::zero);
         let max_inline_size = match style.max_box_size().inline {
             MaxSize::None => None,
-            MaxSize::LengthPercentage(ref lp) => lp.as_length(),
+            MaxSize::LengthPercentage(ref lp) => lp.to_length(),
         };
         let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
 
         // Percentages for 'width' are treated as 'auto'
-        let inline_size = inline_size.map(|lp| lp.as_length());
+        let inline_size = inline_size.map(|lp| lp.to_length());
         // The (inner) min/max-content are only used for 'auto'
         let mut outer = match inline_size.non_auto().flatten() {
             None => {
@@ -148,8 +148,12 @@ impl BoxContentSizes {
         let margin = style.margin();
         pbm_lengths += border.inline_sum();
         let mut add = |x: LengthPercentage| {
-            pbm_lengths += x.length_component();
-            pbm_percentages += x.percentage_component();
+            if let Some(l) = x.to_length() {
+                pbm_lengths += l;
+            }
+            if let Some(p) = x.to_percentage() {
+                pbm_percentages += p;
+            }
         };
         add(padding.inline_start);
         add(padding.inline_end);

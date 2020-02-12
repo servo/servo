@@ -38,6 +38,34 @@ impl DerefMut for OwnedStr {
     }
 }
 
+impl OwnedStr {
+    /// Convert the OwnedStr into a boxed str.
+    #[inline]
+    pub fn into_box(self) -> Box<str> {
+        self.into_string().into_boxed_str()
+    }
+
+    /// Convert the OwnedStr into a `String`.
+    #[inline]
+    pub fn into_string(self) -> String {
+        unsafe { String::from_utf8_unchecked(self.0.into_vec()) }
+    }
+}
+
+impl From<OwnedStr> for String {
+    #[inline]
+    fn from(b: OwnedStr) -> Self {
+        b.into_string()
+    }
+}
+
+impl From<OwnedStr> for Box<str> {
+    #[inline]
+    fn from(b: OwnedStr) -> Self {
+        b.into_box()
+    }
+}
+
 impl From<Box<str>> for OwnedStr {
     #[inline]
     fn from(b: Box<str>) -> Self {

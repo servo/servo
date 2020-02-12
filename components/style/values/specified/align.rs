@@ -6,7 +6,6 @@
 //!
 //! https://drafts.csswg.org/css-align/
 
-use crate::gecko_bindings::structs;
 use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
 use std::fmt::{self, Write};
@@ -14,56 +13,55 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo,
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
-    ///
-    /// These constants match Gecko's `NS_STYLE_ALIGN_*` constants.
     #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[repr(C)]
     pub struct AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
-        /// 'auto'
-        const AUTO =            structs::NS_STYLE_ALIGN_AUTO as u8;
+        /// {align,justify}-{content,items,self}: 'auto'
+        const AUTO = 0;
         /// 'normal'
-        const NORMAL =          structs::NS_STYLE_ALIGN_NORMAL as u8;
+        const NORMAL = 1;
         /// 'start'
-        const START =           structs::NS_STYLE_ALIGN_START as u8;
+        const START = 2;
         /// 'end'
-        const END =             structs::NS_STYLE_ALIGN_END as u8;
+        const END = 3;
         /// 'flex-start'
-        const FLEX_START =      structs::NS_STYLE_ALIGN_FLEX_START as u8;
+        const FLEX_START = 4;
         /// 'flex-end'
-        const FLEX_END =        structs::NS_STYLE_ALIGN_FLEX_END as u8;
+        const FLEX_END = 5;
         /// 'center'
-        const CENTER =          structs::NS_STYLE_ALIGN_CENTER as u8;
+        const CENTER = 6;
         /// 'left'
-        const LEFT =            structs::NS_STYLE_ALIGN_LEFT as u8;
+        const LEFT = 7;
         /// 'right'
-        const RIGHT =           structs::NS_STYLE_ALIGN_RIGHT as u8;
+        const RIGHT = 8;
         /// 'baseline'
-        const BASELINE =        structs::NS_STYLE_ALIGN_BASELINE as u8;
+        const BASELINE = 9;
         /// 'last-baseline'
-        const LAST_BASELINE =   structs::NS_STYLE_ALIGN_LAST_BASELINE as u8;
+        const LAST_BASELINE = 10;
         /// 'stretch'
-        const STRETCH =         structs::NS_STYLE_ALIGN_STRETCH as u8;
+        const STRETCH = 11;
         /// 'self-start'
-        const SELF_START =      structs::NS_STYLE_ALIGN_SELF_START as u8;
+        const SELF_START = 12;
         /// 'self-end'
-        const SELF_END =        structs::NS_STYLE_ALIGN_SELF_END as u8;
+        const SELF_END = 13;
         /// 'space-between'
-        const SPACE_BETWEEN =   structs::NS_STYLE_ALIGN_SPACE_BETWEEN as u8;
+        const SPACE_BETWEEN = 14;
         /// 'space-around'
-        const SPACE_AROUND =    structs::NS_STYLE_ALIGN_SPACE_AROUND as u8;
+        const SPACE_AROUND = 15;
         /// 'space-evenly'
-        const SPACE_EVENLY =    structs::NS_STYLE_ALIGN_SPACE_EVENLY as u8;
+        const SPACE_EVENLY = 16;
 
         // Additional flags stored in the upper bits:
         /// 'legacy' (mutually exclusive w. SAFE & UNSAFE)
-        const LEGACY =          structs::NS_STYLE_ALIGN_LEGACY as u8;
+        const LEGACY = 1 << 5;
         /// 'safe'
-        const SAFE =            structs::NS_STYLE_ALIGN_SAFE as u8;
+        const SAFE = 1 << 6;
         /// 'unsafe' (mutually exclusive w. SAFE)
-        const UNSAFE =          structs::NS_STYLE_ALIGN_UNSAFE as u8;
+        const UNSAFE = 1 << 7;
 
         /// Mask for the additional flags above.
-        const FLAG_BITS =       structs::NS_STYLE_ALIGN_FLAG_BITS as u8;
+        const FLAG_BITS = 0b11100000;
     }
 }
 
@@ -146,6 +144,7 @@ pub enum AxisDirection {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct ContentDistribution {
     primary: AlignFlags,
@@ -270,6 +269,7 @@ impl ContentDistribution {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(transparent)]
 pub struct AlignContent(pub ContentDistribution);
 
 impl Parse for AlignContent {
@@ -292,20 +292,6 @@ impl SpecifiedValueInfo for AlignContent {
     }
 }
 
-#[cfg(feature = "gecko")]
-impl From<u16> for AlignContent {
-    fn from(bits: u16) -> Self {
-        AlignContent(ContentDistribution::from_bits(bits))
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<AlignContent> for u16 {
-    fn from(v: AlignContent) -> u16 {
-        v.0.as_bits()
-    }
-}
-
 /// Value for the `justify-content` property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-content>
@@ -321,6 +307,7 @@ impl From<AlignContent> for u16 {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(transparent)]
 pub struct JustifyContent(pub ContentDistribution);
 
 impl Parse for JustifyContent {
@@ -370,6 +357,7 @@ impl From<JustifyContent> for u16 {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(transparent)]
 pub struct SelfAlignment(pub AlignFlags);
 
 impl SelfAlignment {
@@ -441,6 +429,7 @@ impl SelfAlignment {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct AlignSelf(pub SelfAlignment);
 
 impl Parse for AlignSelf {
@@ -463,18 +452,6 @@ impl SpecifiedValueInfo for AlignSelf {
     }
 }
 
-impl From<u8> for AlignSelf {
-    fn from(bits: u8) -> Self {
-        AlignSelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
-    }
-}
-
-impl From<AlignSelf> for u8 {
-    fn from(align: AlignSelf) -> u8 {
-        (align.0).0.bits()
-    }
-}
-
 /// The specified value of the justify-self property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-self>
@@ -490,6 +467,7 @@ impl From<AlignSelf> for u8 {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct JustifySelf(pub SelfAlignment);
 
 impl Parse for JustifySelf {
@@ -512,18 +490,6 @@ impl SpecifiedValueInfo for JustifySelf {
     }
 }
 
-impl From<u8> for JustifySelf {
-    fn from(bits: u8) -> Self {
-        JustifySelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
-    }
-}
-
-impl From<JustifySelf> for u8 {
-    fn from(justify: JustifySelf) -> u8 {
-        (justify.0).0.bits()
-    }
-}
-
 /// Value of the `align-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-items>
@@ -539,6 +505,7 @@ impl From<JustifySelf> for u8 {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
@@ -590,6 +557,7 @@ impl SpecifiedValueInfo for AlignItems {
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(C)]
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {

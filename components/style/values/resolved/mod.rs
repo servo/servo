@@ -10,6 +10,7 @@ use cssparser;
 use smallvec::SmallVec;
 
 mod color;
+mod counters;
 
 use crate::values::computed;
 
@@ -68,6 +69,7 @@ trivial_to_resolved_value!(u32);
 trivial_to_resolved_value!(usize);
 trivial_to_resolved_value!(String);
 trivial_to_resolved_value!(Box<str>);
+trivial_to_resolved_value!(crate::OwnedStr);
 trivial_to_resolved_value!(cssparser::RGBA);
 trivial_to_resolved_value!(crate::Atom);
 trivial_to_resolved_value!(app_units::Au);
@@ -76,6 +78,7 @@ trivial_to_resolved_value!(computed::url::ComputedUrl);
 trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
 trivial_to_resolved_value!(html5ever::Prefix);
+trivial_to_resolved_value!(computed::LengthPercentage);
 
 impl<A, B> ToResolvedValue for (A, B)
 where

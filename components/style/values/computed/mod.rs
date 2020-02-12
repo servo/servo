@@ -108,6 +108,7 @@ pub mod flex;
 pub mod font;
 pub mod image;
 pub mod length;
+pub mod length_percentage;
 pub mod list;
 pub mod motion;
 pub mod outline;
@@ -125,9 +126,6 @@ pub mod url;
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
 pub struct Context<'a> {
-    /// Whether the current element is the root element.
-    pub is_root_element: bool,
-
     /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
@@ -186,7 +184,6 @@ impl<'a> Context<'a> {
         let provider = get_metrics_provider_for_product();
 
         let context = Context {
-            is_root_element: false,
             builder: StyleBuilder::for_inheritance(device, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
@@ -198,11 +195,6 @@ impl<'a> Context<'a> {
         };
 
         f(&context)
-    }
-
-    /// Whether the current element is the root element.
-    pub fn is_root_element(&self) -> bool {
-        self.is_root_element
     }
 
     /// The current device.
@@ -471,6 +463,53 @@ trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
+trivial_to_computed_value!(crate::OwnedStr);
+
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedZero,
+    ToCss,
+    ToResolvedValue,
+)]
+#[repr(C, u8)]
+pub enum AngleOrPercentage {
+    Percentage(Percentage),
+    Angle(Angle),
+}
+
+impl ToComputedValue for specified::AngleOrPercentage {
+    type ComputedValue = AngleOrPercentage;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> AngleOrPercentage {
+        match *self {
+            specified::AngleOrPercentage::Percentage(percentage) => {
+                AngleOrPercentage::Percentage(percentage.to_computed_value(context))
+            },
+            specified::AngleOrPercentage::Angle(angle) => {
+                AngleOrPercentage::Angle(angle.to_computed_value(context))
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &AngleOrPercentage) -> Self {
+        match *computed {
+            AngleOrPercentage::Percentage(percentage) => specified::AngleOrPercentage::Percentage(
+                ToComputedValue::from_computed_value(&percentage),
+            ),
+            AngleOrPercentage::Angle(angle) => {
+                specified::AngleOrPercentage::Angle(ToComputedValue::from_computed_value(&angle))
+            },
+        }
+    }
+}
 
 /// A `<number>` value.
 pub type Number = CSSFloat;

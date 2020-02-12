@@ -17,7 +17,7 @@ use std::ops::Add;
 /// on each fields of the values.
 ///
 /// If a variant is annotated with `#[animation(error)]`, the corresponding
-/// `match` arm is not generated.
+/// `match` arm returns an error.
 ///
 /// If the two values are not similar, an error is returned unless a fallback
 /// function has been specified through `#[distance(fallback)]`.

@@ -47,6 +47,7 @@ ${helpers.single_keyword(
     values="static absolute relative fixed ${'sticky' if engine in ['gecko', 'servo-2013'] else ''}"
     engines="gecko servo-2013 servo-2020"
     animation_value_type="discrete"
+    gecko_enum_prefix="StylePositionProperty"
     flags="CREATES_STACKING_CONTEXT ABSPOS_CB"
     spec="https://drafts.csswg.org/css-position/#position-property"
     servo_restyle_damage="rebuild_and_reflow"
@@ -452,6 +453,7 @@ ${helpers.single_keyword(
     engines="gecko",
     spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
     animation_value_type="discrete",
+    gecko_enum_prefix="StyleScrollBehavior",
 )}
 
 ${helpers.predefined_type(
@@ -472,13 +474,15 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-% for axis in ["x", "y"]:
+% for (axis, logical) in ALL_AXES:
     ${helpers.predefined_type(
         "overscroll-behavior-" + axis,
         "OverscrollBehavior",
         "computed::OverscrollBehavior::Auto",
         engines="gecko",
         needs_context=False,
+        logical_group="overscroll-behavior",
+        logical=logical,
         gecko_pref="layout.css.overscroll-behavior.enabled",
         spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
         animation_value_type="discrete",
@@ -589,7 +593,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "transform-style",
     "TransformStyle",
-    "computed::TransformStyle::" + ("Flat" if engine == "gecko" else "Auto"),
+    "computed::TransformStyle::Flat",
     engines="gecko servo-2013 servo-2020",
     servo_2020_pref="layout.2020.unimplemented",
     spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",

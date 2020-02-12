@@ -25,7 +25,7 @@ use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use crate::style_adjuster::StyleAdjuster;
-use crate::values::computed;
+use crate::values::{computed, specified};
 
 /// We split the cascade in two phases: 'early' properties, and 'late'
 /// properties.
@@ -250,7 +250,7 @@ where
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(
             inherited_style.custom_properties(),
-            device.environment(),
+            device,
         );
 
         for (declaration, origin) in iter_declarations() {
@@ -263,8 +263,11 @@ where
         builder.build()
     };
 
+
+    let is_root_element =
+        pseudo.is_none() && element.map_or(false, |e| e.is_root());
+
     let mut context = computed::Context {
-        is_root_element: pseudo.is_none() && element.map_or(false, |e| e.is_root()),
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
@@ -275,6 +278,7 @@ where
             pseudo,
             Some(rules.clone()),
             custom_properties,
+            is_root_element,
         ),
         cached_system_font: None,
         in_media_query: false,
@@ -333,27 +337,37 @@ where
     context.builder.build()
 }
 
-fn should_ignore_declaration_when_ignoring_document_colors(
-    device: &Device,
+/// How should a declaration behave when ignoring document colors?
+enum DeclarationApplication {
+    /// We should apply the declaration.
+    Apply,
+    /// We should ignore the declaration.
+    Ignore,
+    /// We should apply the following declaration, only if any other declaration
+    /// hasn't set it before.
+    ApplyUnlessOverriden(PropertyDeclaration),
+}
+
+fn application_when_ignoring_colors(
+    builder: &StyleBuilder,
     longhand_id: LonghandId,
     origin: Origin,
-    pseudo: Option<&PseudoElement>,
-    declaration: &mut Cow<PropertyDeclaration>,
-) -> bool {
+    declaration: &PropertyDeclaration,
+) -> DeclarationApplication {
     if !longhand_id.ignored_when_document_colors_disabled() {
-        return false;
+        return DeclarationApplication::Apply;
     }
 
     let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
-        return false;
+        return DeclarationApplication::Apply;
     }
 
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)
-    if pseudo.map_or(false, |p| p.is_color_swatch()) && longhand_id == LonghandId::BackgroundColor {
-        return false;
+    if builder.pseudo.map_or(false, |p| p.is_color_swatch()) && longhand_id == LonghandId::BackgroundColor {
+        return DeclarationApplication::Apply;
     }
 
     // Treat background-color a bit differently.  If the specified color is
@@ -365,26 +379,41 @@ fn should_ignore_declaration_when_ignoring_document_colors(
     // a background image, if we're ignoring document colors).
     // Here we check backplate status to decide if ignoring background-image
     // is the right decision.
-    {
-        let background_color = match **declaration {
-            PropertyDeclaration::BackgroundColor(ref color) => color,
-            // In the future, if/when we remove the backplate pref, we can remove this
-            // special case along with the 'ignored_when_colors_disabled=True' mako line
-            // for the "background-image" property.
-            #[cfg(feature = "gecko")]
-            PropertyDeclaration::BackgroundImage(..) => return !static_prefs::pref!("browser.display.permit_backplate"),
-            _ => return true,
-        };
-
-        if background_color.is_transparent() {
-            return false;
+    match *declaration {
+        PropertyDeclaration::BackgroundColor(ref color) => {
+            if color.is_transparent() {
+                return DeclarationApplication::Apply;
+            }
+            let color = builder.device.default_background_color();
+            DeclarationApplication::ApplyUnlessOverriden(
+                PropertyDeclaration::BackgroundColor(color.into())
+            )
         }
+        PropertyDeclaration::Color(ref color) => {
+            if color.0.is_transparent() {
+                return DeclarationApplication::Apply;
+            }
+            if builder.get_parent_inherited_text().clone_color().alpha != 0 {
+                return DeclarationApplication::Ignore;
+            }
+            let color = builder.device.default_color();
+            DeclarationApplication::ApplyUnlessOverriden(
+                PropertyDeclaration::Color(specified::ColorPropertyValue(color.into()))
+            )
+        },
+        // In the future, if/when we remove the backplate pref, we can remove this
+        // special case along with the 'ignored_when_colors_disabled=True' mako line
+        // for the "background-image" property.
+        #[cfg(feature = "gecko")]
+        PropertyDeclaration::BackgroundImage(..) => {
+            if static_prefs::pref!("browser.display.permit_backplate") {
+                DeclarationApplication::Apply
+            } else {
+                DeclarationApplication::Ignore
+            }
+        },
+        _ => DeclarationApplication::Ignore,
     }
-
-    let color = device.default_background_color();
-    *declaration.to_mut() = PropertyDeclaration::BackgroundColor(color.into());
-
-    false
 }
 
 struct Cascade<'a, 'b: 'a> {
@@ -424,7 +453,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             declaration.id,
             self.context.builder.custom_properties.as_ref(),
             self.context.quirks_mode,
-            self.context.device().environment(),
+            self.context.device(),
         ))
     }
 
@@ -461,6 +490,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         );
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
+        let mut declarations_to_apply_unless_overriden =
+            SmallVec::<[PropertyDeclaration; 2]>::new();
 
         for (declaration, origin) in declarations {
             let declaration_id = declaration.id();
@@ -502,21 +533,25 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 continue;
             }
 
-            let mut declaration = self.substitute_variables_if_needed(declaration);
+            let declaration = self.substitute_variables_if_needed(declaration);
 
-            // When document colors are disabled, skip properties that are
-            // marked as ignored in that mode, unless they come from a UA or
-            // user style sheet.
+            // When document colors are disabled, do special handling of
+            // properties that are marked as ignored in that mode.
             if ignore_colors {
-                let should_ignore = should_ignore_declaration_when_ignoring_document_colors(
-                    self.context.builder.device,
+                let application = application_when_ignoring_colors(
+                    &self.context.builder,
                     longhand_id,
                     origin,
-                    self.context.builder.pseudo,
-                    &mut declaration,
+                    &declaration,
                 );
-                if should_ignore {
-                    continue;
+
+                match application {
+                    DeclarationApplication::Ignore => continue,
+                    DeclarationApplication::Apply => {},
+                    DeclarationApplication::ApplyUnlessOverriden(decl) => {
+                        declarations_to_apply_unless_overriden.push(decl);
+                        continue;
+                    }
                 }
             }
 
@@ -552,6 +587,20 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // longhands and just use the physical ones, then rename
             // physical_longhand_id to just longhand_id.
             self.apply_declaration(longhand_id, &*declaration);
+        }
+
+        if ignore_colors {
+            for declaration in declarations_to_apply_unless_overriden.iter() {
+                let longhand_id = match declaration.id() {
+                    PropertyDeclarationId::Longhand(id) => id,
+                    PropertyDeclarationId::Custom(..) => unreachable!(),
+                };
+                debug_assert!(!longhand_id.is_logical());
+                if self.seen.contains(longhand_id) {
+                    continue;
+                }
+                self.apply_declaration(longhand_id, declaration);
+            }
         }
 
         if Phase::is_early() {

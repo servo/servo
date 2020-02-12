@@ -16,7 +16,7 @@ pub type CounterIncrement = GenericCounterIncrement<i32>;
 pub type CounterSetOrReset = GenericCounterSetOrReset<i32>;
 
 /// A computed value for the `content` property.
-pub type Content = generics::Content<ComputedImageUrl>;
+pub type Content = generics::GenericContent<ComputedImageUrl>;
 
 /// A computed content item.
-pub type ContentItem = generics::ContentItem<ComputedImageUrl>;
+pub type ContentItem = generics::GenericContentItem<ComputedImageUrl>;

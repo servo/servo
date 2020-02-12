@@ -43,7 +43,7 @@ ${helpers.single_keyword(
     servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
-    needs_conversion=True,
+    gecko_enum_prefix="StyleDirection",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
@@ -78,6 +78,7 @@ ${helpers.single_keyword(
     extra_servo_2013_values="pixelated",
     extra_servo_2020_values="pixelated",
     gecko_aliases="-moz-crisp-edges=crisp-edges",
+    gecko_enum_prefix="StyleImageRendering",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
 )}

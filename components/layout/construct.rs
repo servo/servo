@@ -840,7 +840,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         match text_content {
             TextContent::Text(string) => {
-                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
+                let info = Box::new(UnscannedTextFragmentInfo::new(
+                    string.into(),
+                    node.selection(),
+                ));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments
                     .fragments
@@ -857,7 +860,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 for content_item in content_items.into_iter() {
                     let specific_fragment_info = match content_item {
                         ContentItem::String(string) => {
-                            let info = Box::new(UnscannedTextFragmentInfo::new(string, None));
+                            let info =
+                                Box::new(UnscannedTextFragmentInfo::new(string.into(), None));
                             SpecificFragmentInfo::UnscannedText(info)
                         },
                         content_item => {

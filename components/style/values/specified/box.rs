@@ -61,11 +61,8 @@ pub enum DisplayInside {
     None = 0,
     #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
     Contents,
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-    Block,
+    Flow,
     FlowRoot,
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-    Inline,
     #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Flex,
     #[cfg(feature = "gecko")]
@@ -101,8 +98,6 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozBox,
     #[cfg(feature = "gecko")]
-    MozInlineBox,
-    #[cfg(feature = "gecko")]
     MozGrid,
     #[cfg(feature = "gecko")]
     MozGridGroup,
@@ -111,10 +106,7 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozDeck,
     #[cfg(feature = "gecko")]
-    MozGroupbox,
-    #[cfg(feature = "gecko")]
     MozPopup,
-    Flow, // only used for parsing, not computed value
 }
 
 #[allow(missing_docs)]
@@ -147,14 +139,8 @@ impl Display {
     pub const None: Self = Self::new(DisplayOutside::None, DisplayInside::None);
     #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
     pub const Contents: Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-    pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Inline);
-    #[cfg(any(feature = "servo-layout-2020"))]
     pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flow);
     pub const InlineBlock: Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-    pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Block);
-    #[cfg(any(feature = "servo-layout-2020"))]
     pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Flow);
     #[cfg(feature = "gecko")]
     pub const FlowRoot: Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
@@ -171,7 +157,7 @@ impl Display {
     #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const InlineTable: Self = Self::new(DisplayOutside::Inline, DisplayInside::Table);
     #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-    pub const TableCaption: Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Block);
+    pub const TableCaption: Self = Self::new(DisplayOutside::TableCaption, DisplayInside::Flow);
     #[cfg(feature = "gecko")]
     pub const Ruby: Self = Self::new(DisplayOutside::Inline, DisplayInside::Ruby);
     #[cfg(feature = "gecko")]
@@ -231,9 +217,9 @@ impl Display {
 
     /// XUL boxes.
     #[cfg(feature = "gecko")]
-    pub const MozBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozBox);
+    pub const MozBox: Self = Self::new(DisplayOutside::Block, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
-    pub const MozInlineBox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozInlineBox);
+    pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
     pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
     #[cfg(feature = "gecko")]
@@ -242,8 +228,6 @@ impl Display {
     pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
-    #[cfg(feature = "gecko")]
-    pub const MozGroupbox: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGroupbox);
     #[cfg(feature = "gecko")]
     pub const MozPopup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozPopup);
 
@@ -256,18 +240,8 @@ impl Display {
     }
 
     /// Make a display enum value from <display-outside> and <display-inside> values.
-    /// We store `flow` as a synthetic `block` or `inline` inside-value to simplify
-    /// our layout code.
     #[inline]
     fn from3(outside: DisplayOutside, inside: DisplayInside, list_item: bool) -> Self {
-        let inside = match inside {
-            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-            DisplayInside::Flow => match outside {
-                DisplayOutside::Inline => DisplayInside::Inline,
-                _ => DisplayInside::Block,
-            },
-            _ => inside,
-        };
         let v = Self::new(outside, inside);
         if !list_item {
             return v;
@@ -288,6 +262,12 @@ impl Display {
             (self.0 >> Self::DISPLAY_INSIDE_BITS) & ((1 << Self::DISPLAY_OUTSIDE_BITS) - 1),
         )
         .unwrap()
+    }
+
+    /// Whether this is `display: inline` (or `inline list-item`).
+    #[inline]
+    pub fn is_inline_flow(&self) -> bool {
+        self.outside() == DisplayOutside::Inline && self.inside() == DisplayInside::Flow
     }
 
     /// Returns whether this `display` value is some kind of list-item.
@@ -381,18 +361,12 @@ impl Display {
         match self.outside() {
             DisplayOutside::Inline => {
                 let inside = match self.inside() {
-                    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-                    DisplayInside::Inline | DisplayInside::FlowRoot => DisplayInside::Block,
-                    #[cfg(feature = "servo-layout-2020")]
+                    // `inline-block` blockifies to `block` rather than
+                    // `flow-root`, for legacy reasons.
                     DisplayInside::FlowRoot => DisplayInside::Flow,
                     inside => inside,
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
-            },
-            #[cfg(feature = "gecko")]
-            DisplayOutside::XUL => match self.inside() {
-                DisplayInside::MozInlineBox | DisplayInside::MozBox => Display::MozBox,
-                _ => Display::Block,
             },
             DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
@@ -407,15 +381,12 @@ impl Display {
         match self.outside() {
             DisplayOutside::Block => {
                 let inside = match self.inside() {
-                    DisplayInside::Block => DisplayInside::FlowRoot,
+                    // `display: block` inlinifies to `display: inline-block`,
+                    // rather than `inline`, for legacy reasons.
+                    DisplayInside::Flow => DisplayInside::FlowRoot,
                     inside => inside,
                 };
                 Display::from3(DisplayOutside::Inline, inside, self.is_list_item())
-            },
-            #[cfg(feature = "gecko")]
-            DisplayOutside::XUL => match self.inside() {
-                DisplayInside::MozBox => Display::MozInlineBox,
-                _ => *self,
             },
             _ => *self,
         }
@@ -443,18 +414,8 @@ impl ToCss for Display {
     where
         W: fmt::Write,
     {
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        debug_assert_ne!(
-            self.inside(),
-            DisplayInside::Flow,
-            "`flow` fears in `display` computed value"
-        );
         let outside = self.outside();
-        let inside = match self.inside() {
-            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-            DisplayInside::Block | DisplayInside::Inline => DisplayInside::Flow,
-            inside => inside,
-        };
+        let inside = self.inside();
         match *self {
             Display::Block | Display::Inline => outside.to_css(dest),
             Display::InlineBlock => dest.write_str("inline-block"),
@@ -656,8 +617,6 @@ impl Parse for Display {
             "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
-            #[cfg(feature = "gecko")]
-            "-moz-groupbox" if moz_display_values_enabled(context) => Display::MozGroupbox,
             #[cfg(feature = "gecko")]
             "-moz-popup" if moz_display_values_enabled(context) => Display::MozPopup,
         })

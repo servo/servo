@@ -15,7 +15,6 @@ use crate::gecko_bindings::structs::{self, Matrix4x4Components};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
-use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Gradient, Image, TextAlign};
 use crate::values::generics::image::GenericImage;
 use crate::values::generics::rect::Rect;
@@ -63,7 +62,7 @@ impl nsStyleImage {
         match self.mType {
             nsStyleImageType::eStyleImageType_Null => None,
             nsStyleImageType::eStyleImageType_Image => {
-                let url = self.get_image_url();
+                let url = self.__bindgen_anon_1.mImage.as_ref().clone();
                 if self.mCropRect.mPtr.is_null() {
                     Some(GenericImage::Url(url))
                 } else {
@@ -87,13 +86,6 @@ impl nsStyleImage {
                 Some(GenericImage::Element(Atom::from_raw(atom)))
             },
         }
-    }
-
-    unsafe fn get_image_url(&self) -> ComputedImageUrl {
-        let image_request = bindings::Gecko_GetImageRequest(self)
-            .as_ref()
-            .expect("Null image request?");
-        ComputedImageUrl::from_image_request(image_request)
     }
 }
 

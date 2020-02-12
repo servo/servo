@@ -13,7 +13,6 @@ use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
-use ordered_float::NotNan;
 use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
@@ -38,6 +37,7 @@ macro_rules! ot_tag {
 pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
 pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
 pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
+pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -197,7 +197,7 @@ pub struct ShapingOptions {
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: (Au, NotNan<f32>),
+    pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// Various flags.
@@ -278,8 +278,7 @@ impl Font {
             let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
             if character == ' ' {
                 // https://drafts.csswg.org/css-text-3/#word-spacing-property
-                let (length, percent) = options.word_spacing;
-                advance = (advance + length) + Au((advance.0 as f32 * percent.into_inner()) as i32);
+                advance += options.word_spacing;
             }
             if let Some(letter_spacing) = options.letter_spacing {
                 advance += letter_spacing;
@@ -343,7 +342,7 @@ impl Font {
             .or_insert_with(|| {
                 match self.handle.glyph_h_advance(glyph) {
                     Some(adv) => adv,
-                    None => 10f64 as FractionalPixel, // FIXME: Need fallback strategy
+                    None => LAST_RESORT_GLYPH_ADVANCE as FractionalPixel, // FIXME: Need fallback strategy
                 }
             })
     }
@@ -516,8 +515,8 @@ impl RunMetrics {
         RunMetrics {
             advance_width: advance,
             bounding_box: bounds,
-            ascent: ascent,
-            descent: descent,
+            ascent,
+            descent,
         }
     }
 }

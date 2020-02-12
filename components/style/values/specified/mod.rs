@@ -31,7 +31,7 @@ use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKin
 pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
-pub use self::angle::Angle;
+pub use self::angle::{AllowUnitlessZeroAngle, Angle};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
@@ -130,6 +130,47 @@ pub mod transform;
 pub mod ui;
 pub mod url;
 
+/// <angle> | <percentage>
+/// https://drafts.csswg.org/css-values/#typedef-angle-percentage
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub enum AngleOrPercentage {
+    Percentage(Percentage),
+    Angle(Angle),
+}
+
+impl AngleOrPercentage {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_unitless_zero: AllowUnitlessZeroAngle,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(per) = input.try(|i| Percentage::parse(context, i)) {
+            return Ok(AngleOrPercentage::Percentage(per));
+        }
+
+        Angle::parse_internal(context, input, allow_unitless_zero).map(AngleOrPercentage::Angle)
+    }
+
+    /// Allow unitless angles, used for conic-gradients as specified by the spec.
+    /// https://drafts.csswg.org/css-images-4/#valdef-conic-gradient-angle
+    pub fn parse_with_unitless<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        AngleOrPercentage::parse_internal(context, input, AllowUnitlessZeroAngle::Yes)
+    }
+}
+
+impl Parse for AngleOrPercentage {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        AngleOrPercentage::parse_internal(context, input, AllowUnitlessZeroAngle::No)
+    }
+}
+
 /// Parse a `<number>` value, with a given clamping mode.
 fn parse_number_with_clamping_mode<'i, 't>(
     context: &ParserContext,
@@ -144,8 +185,9 @@ fn parse_number_with_clamping_mode<'i, 't>(
                 calc_clamping_mode: None,
             })
         },
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = input.parse_nested_block(|i| CalcNode::parse_number(context, i))?;
+        Token::Function(ref name) => {
+            let function = CalcNode::math_function(name, location)?;
+            let result = CalcNode::parse_number(context, input, function)?;
             Ok(Number {
                 value: result.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: Some(clamping_mode),
@@ -543,8 +585,9 @@ impl Parse for Integer {
             Token::Number {
                 int_value: Some(v), ..
             } => Ok(Integer::new(v)),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let result = input.parse_nested_block(|i| CalcNode::parse_integer(context, i))?;
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let result = CalcNode::parse_integer(context, input, function)?;
                 Ok(Integer::from_calc(result))
             },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
@@ -559,16 +602,16 @@ impl Integer {
         input: &mut Parser<'i, 't>,
         min: i32,
     ) -> Result<Integer, ParseError<'i>> {
-        match Integer::parse(context, input) {
-            // FIXME(emilio): The spec asks us to avoid rejecting it at parse
-            // time except until computed value time.
-            //
-            // It's not totally clear it's worth it though, and no other browser
-            // does this.
-            Ok(value) if value.value() >= min => Ok(value),
-            Ok(_value) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            Err(e) => Err(e),
+        let value = Integer::parse(context, input)?;
+        // FIXME(emilio): The spec asks us to avoid rejecting it at parse
+        // time except until computed value time.
+        //
+        // It's not totally clear it's worth it though, and no other browser
+        // does this.
+        if value.value() < min {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
+        Ok(value)
     }
 
     /// Parse a non-negative integer.
@@ -767,9 +810,12 @@ impl AllowQuirks {
     ToShmem,
 )]
 #[css(function)]
+#[repr(C)]
 pub struct Attr {
-    /// Optional namespace prefix and URL.
-    pub namespace: Option<(Prefix, Namespace)>,
+    /// Optional namespace prefix.
+    pub namespace_prefix: Prefix,
+    /// Optional namespace URL.
+    pub namespace_url: Namespace,
     /// Attribute name
     pub attribute: Atom,
 }
@@ -814,7 +860,7 @@ impl Attr {
                         ref t => return Err(location.new_unexpected_token_error(t.clone())),
                     };
 
-                    let prefix_and_ns = if let Some(ns) = first {
+                    let (namespace_prefix, namespace_url) = if let Some(ns) = first {
                         let prefix = Prefix::from(ns.as_ref());
                         let ns = match get_namespace_for_prefix(&prefix, context) {
                             Some(ns) => ns,
@@ -823,17 +869,18 @@ impl Attr {
                                     .new_custom_error(StyleParseErrorKind::UnspecifiedError));
                             },
                         };
-                        Some((prefix, ns))
+                        (prefix, ns)
                     } else {
-                        None
+                        (Prefix::default(), Namespace::default())
                     };
                     return Ok(Attr {
-                        namespace: prefix_and_ns,
+                        namespace_prefix,
+                        namespace_url,
                         attribute: Atom::from(second_token.as_ref()),
                     });
                 },
                 // In the case of attr(foobar    ) we don't want to error out
-                // because of the trailing whitespace
+                // because of the trailing whitespace.
                 Token::WhiteSpace(..) => {},
                 ref t => return Err(input.new_unexpected_token_error(t.clone())),
             }
@@ -841,7 +888,8 @@ impl Attr {
 
         if let Some(first) = first {
             Ok(Attr {
-                namespace: None,
+                namespace_prefix: Prefix::default(),
+                namespace_url: Namespace::default(),
                 attribute: Atom::from(first.as_ref()),
             })
         } else {
@@ -856,8 +904,8 @@ impl ToCss for Attr {
         W: Write,
     {
         dest.write_str("attr(")?;
-        if let Some((ref prefix, ref _url)) = self.namespace {
-            serialize_atom_identifier(prefix, dest)?;
+        if !self.namespace_prefix.is_empty() {
+            serialize_atom_identifier(&self.namespace_prefix, dest)?;
             dest.write_str("|")?;
         }
         serialize_atom_identifier(&self.attribute, dest)?;

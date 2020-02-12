@@ -733,7 +733,6 @@ impl MaybeNew for ViewportConstraints {
 
         let mut conditions = RuleCacheConditions::default();
         let context = Context {
-            is_root_element: false,
             // Note: DEVICE-ADAPT § 5. states that relative length values are
             // resolved against initial values
             builder: StyleBuilder::for_inheritance(device, None, None),

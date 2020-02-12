@@ -7,13 +7,13 @@
 //! Different kind of helpers to interact with Gecko values.
 
 use crate::counter_style::{Symbol, Symbols};
+use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::CounterStylePtr;
 use crate::values::generics::CounterStyle;
 use crate::values::Either;
 use crate::Atom;
 use app_units::Au;
 use cssparser::RGBA;
-use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
 
 /// Convert a given RGBA value to `nscolor`.
@@ -51,43 +51,13 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
 
 impl CounterStyle {
     /// Convert this counter style to a Gecko CounterStylePtr.
-    pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr) {
-        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
-        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
-        match self {
-            CounterStyle::Name(name) => unsafe {
-                debug_assert_ne!(name.0, atom!("none"));
-                set_name(gecko_value, name.0.into_addrefed());
-            },
-            CounterStyle::Symbols(symbols_type, symbols) => {
-                let symbols: Vec<_> = symbols
-                    .0
-                    .iter()
-                    .map(|symbol| match *symbol {
-                        Symbol::String(ref s) => nsCStr::from(&**s),
-                        Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
-                    })
-                    .collect();
-                let symbols: Vec<_> = symbols
-                    .iter()
-                    .map(|symbol| symbol as &nsACString as *const _)
-                    .collect();
-                unsafe {
-                    set_symbols(
-                        gecko_value,
-                        symbols_type.to_gecko_keyword(),
-                        symbols.as_ptr(),
-                        symbols.len() as u32,
-                    )
-                };
-            },
-        }
+    #[inline]
+    pub fn to_gecko_value(&self, gecko_value: &mut CounterStylePtr) {
+        unsafe { bindings::Gecko_CounterStyle_ToPtr(self, gecko_value) }
     }
 
     /// Convert Gecko CounterStylePtr to CounterStyle or String.
     pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
-        use crate::gecko_bindings::bindings;
-        use crate::values::generics::SymbolsType;
         use crate::values::CustomIdent;
 
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
@@ -103,7 +73,7 @@ impl CounterStyle {
                 debug_assert_eq!(symbols.len(), 1);
                 Either::Second(symbols[0].to_string())
             } else {
-                let symbol_type = SymbolsType::from_gecko_keyword(anonymous.mSystem as u32);
+                let symbol_type = anonymous.mSymbolsType;
                 let symbols = symbols
                     .iter()
                     .map(|gecko_symbol| Symbol::String(gecko_symbol.to_string().into()))

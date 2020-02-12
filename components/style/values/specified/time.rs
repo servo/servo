@@ -69,7 +69,7 @@ impl Time {
     /// Returns a `Time` value from a CSS `calc()` expression.
     pub fn from_calc(seconds: CSSFloat) -> Self {
         Time {
-            seconds: seconds,
+            seconds,
             unit: TimeUnit::Second,
             was_calc: true,
         }
@@ -95,11 +95,20 @@ impl Time {
                 Time::parse_dimension(value, unit, /* from_calc = */ false)
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
-                    Ok(time) if clamping_mode.is_ok(ParsingMode::DEFAULT, time.seconds) => Ok(time),
-                    _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let time = CalcNode::parse_time(context, input, function)?;
+
+                // FIXME(emilio): Rejecting calc() at parse time is wrong,
+                // was_calc should probably be replaced by calc_clamping_mode or
+                // something like we do for numbers, or we should do the
+                // clamping here instead (simpler, but technically incorrect,
+                // though still more correct than this!).
+                if !clamping_mode.is_ok(ParsingMode::DEFAULT, time.seconds) {
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
+
+                Ok(time)
             },
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }

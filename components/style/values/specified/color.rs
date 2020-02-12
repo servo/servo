@@ -298,8 +298,9 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
                 Ok(AngleOrNumber::Angle { degrees })
             },
             Token::Number { value, .. } => Ok(AngleOrNumber::Number { value }),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_angle_or_number(self.0, i))
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                CalcNode::parse_angle_or_number(self.0, input, function)
             },
             t => return Err(location.new_unexpected_token_error(t)),
         }
@@ -323,15 +324,16 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     ) -> Result<NumberOrPercentage, ParseError<'i>> {
         let location = input.current_source_location();
 
-        match input.next()?.clone() {
+        match *input.next()? {
             Token::Number { value, .. } => Ok(NumberOrPercentage::Number { value }),
             Token::Percentage { unit_value, .. } => {
                 Ok(NumberOrPercentage::Percentage { unit_value })
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_number_or_percentage(self.0, i))
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                CalcNode::parse_number_or_percentage(self.0, input, function)
             },
-            t => return Err(location.new_unexpected_token_error(t)),
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 }

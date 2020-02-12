@@ -59,7 +59,7 @@ impl ComputedValuesExt for ComputedValues {
         } else {
             &position.height
         };
-        matches!(size, Size::LengthPercentage(lp) if lp.0.as_length().is_some())
+        matches!(size, Size::LengthPercentage(lp) if lp.0.to_length().is_some())
     }
 
     fn inline_box_offsets_are_both_non_auto(&self) -> bool {

@@ -163,7 +163,8 @@ impl Angle {
 ///   https://github.com/w3c/fxtf-drafts/issues/228
 ///
 /// See also: https://github.com/w3c/csswg-drafts/issues/1162.
-enum AllowUnitlessZeroAngle {
+#[allow(missing_docs)]
+pub enum AllowUnitlessZeroAngle {
     Yes,
     No,
 }
@@ -203,12 +204,14 @@ impl Angle {
         Self::parse_internal(context, input, AllowUnitlessZeroAngle::Yes)
     }
 
-    fn parse_internal<'i, 't>(
+    pub(super) fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_unitless_zero: AllowUnitlessZeroAngle,
     ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
         let t = input.next()?;
+        let allow_unitless_zero = matches!(allow_unitless_zero, AllowUnitlessZeroAngle::Yes);
         match *t {
             Token::Dimension {
                 value, ref unit, ..
@@ -221,16 +224,11 @@ impl Angle {
                     },
                 }
             },
-            Token::Number { value, .. } if value == 0. => match allow_unitless_zero {
-                AllowUnitlessZeroAngle::Yes => Ok(Angle::zero()),
-                AllowUnitlessZeroAngle::No => {
-                    let t = t.clone();
-                    Err(input.new_unexpected_token_error(t))
-                },
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                CalcNode::parse_angle(context, input, function)
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i));
-            },
+            Token::Number { value, .. } if value == 0. && allow_unitless_zero => Ok(Angle::zero()),
             ref t => {
                 let t = t.clone();
                 Err(input.new_unexpected_token_error(t))

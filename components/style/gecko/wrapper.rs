@@ -956,9 +956,8 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
 
         let (wm, font) = match base_size {
             FontBaseSize::CurrentStyle => (style.writing_mode, style.get_font()),
-            // These are only used for font-size computation, and the first is
-            // really dubious...
-            FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
+            // This is only used for font-size computation.
+            FontBaseSize::InheritedStyle => {
                 (*style.inherited_writing_mode(), style.get_parent_font())
             },
         };
@@ -1869,22 +1868,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.is_pseudo_element());
-        let parent = self.closest_anon_subtree_root_parent()?;
-
-        // FIXME(emilio): Special-case for <input type="number">s
-        // pseudo-elements, which are nested NAC. Probably nsNumberControlFrame
-        // should instead inherit from nsTextControlFrame, and then this could
-        // go away.
-        if let Some(PseudoElement::MozNumberText) = parent.implemented_pseudo_element() {
-            debug_assert_eq!(
-                self.implemented_pseudo_element().unwrap(),
-                PseudoElement::Placeholder,
-                "You added a new pseudo, do you really want this?"
-            );
-            return parent.closest_anon_subtree_root_parent();
-        }
-
-        Some(parent)
+        self.closest_anon_subtree_root_parent()
     }
 
     #[inline]

@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput};
-use euclid::Scale;
-use euclid::Size2D;
+use euclid::{Scale, Size2D};
 use servo_arc::Arc;
 use servo_config::set_pref;
 use servo_url::ServoUrl;

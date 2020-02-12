@@ -123,8 +123,8 @@ impl<N, L> LineHeight<N, L> {
     }
 }
 
-/// Implements type for text-underline-offset and text-decoration-thickness
-/// which take the grammar of auto | from-font | <length>
+/// Implements type for text-decoration-thickness
+/// which takes the grammar of auto | from-font | <length> | <percentage>
 ///
 /// https://drafts.csswg.org/css-text-decor-4/
 #[repr(C, u8)]
@@ -148,7 +148,7 @@ impl<N, L> LineHeight<N, L> {
 )]
 #[allow(missing_docs)]
 pub enum GenericTextDecorationLength<L> {
-    Length(L),
+    LengthPercentage(L),
     Auto,
     FromFont,
 }

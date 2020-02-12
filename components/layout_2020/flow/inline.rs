@@ -159,8 +159,12 @@ impl InlineFormattingContext {
             }
 
             fn add_lengthpercentage(&mut self, lp: LengthPercentage) {
-                self.add_length(lp.length_component());
-                self.current_line_percentages += lp.percentage_component();
+                if let Some(l) = lp.to_length() {
+                    self.add_length(l);
+                }
+                if let Some(p) = lp.to_percentage() {
+                    self.current_line_percentages += p;
+                }
             }
 
             fn add_length(&mut self, l: Length) {
@@ -601,13 +605,6 @@ impl TextRun {
             flags.insert(ShapingFlags::KEEP_ALL_FLAG);
         }
 
-        let shaping_options = gfx::font::ShapingOptions {
-            letter_spacing,
-            word_spacing: inherited_text_style.word_spacing.to_hash_key(),
-            script: unicode_script::Script::Common,
-            flags,
-        };
-
         crate::context::with_thread_local_font_context(layout_context, |font_context| {
             let font_group = font_context.font_group(font_style);
             let font = font_group
@@ -615,6 +612,25 @@ impl TextRun {
                 .first(font_context)
                 .expect("could not find font");
             let mut font = font.borrow_mut();
+
+            let word_spacing = &inherited_text_style.word_spacing;
+            let word_spacing = word_spacing
+                .to_length()
+                .map(|l| l.into())
+                .unwrap_or_else(|| {
+                    let space_width = font
+                        .glyph_index(' ')
+                        .map(|glyph_id| font.glyph_h_advance(glyph_id))
+                        .unwrap_or(gfx::font::LAST_RESORT_GLYPH_ADVANCE);
+                    word_spacing.to_used_value(Au::from_f64_px(space_width))
+                });
+
+            let shaping_options = gfx::font::ShapingOptions {
+                letter_spacing,
+                word_spacing,
+                script: unicode_script::Script::Common,
+                flags,
+            };
 
             let (runs, break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
                 &mut font,

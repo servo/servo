@@ -97,7 +97,7 @@ impl ToComputedValue for LineHeight {
                         let computed_calc =
                             calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let base = context.style().get_font().clone_font_size().size();
-                        computed_calc.percentage_relative_to(base)
+                        computed_calc.resolve(base)
                     },
                 };
                 GenericLineHeight::Length(result.into())
@@ -596,7 +596,7 @@ impl ToComputedValue for TextAlign {
                 // In that case, the default behavior here will set it to left,
                 // but we want to set it to right -- instead set it to the default (`start`),
                 // which will do the right thing in this case (but not the general case)
-                if _context.is_root_element {
+                if _context.builder.is_root_element {
                     return TextAlignKeyword::Start;
                 }
                 let parent = _context
@@ -1029,8 +1029,8 @@ pub enum TextDecorationSkipInk {
     None,
 }
 
-/// Implements type for `text-underline-offset` and `text-decoration-thickness` properties
-pub type TextDecorationLength = GenericTextDecorationLength<Length>;
+/// Implements type for `text-decoration-thickness` property
+pub type TextDecorationLength = GenericTextDecorationLength<LengthPercentage>;
 
 impl TextDecorationLength {
     /// `Auto` value.
@@ -1048,21 +1048,23 @@ impl TextDecorationLength {
 
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "auto,under,left,right")]
+    #[value_info(other_values = "auto,from-font,under,left,right")]
     #[repr(C)]
     /// Specified keyword values for the text-underline-position property.
-    /// (Non-exclusive, but not all combinations are allowed: only `under` may occur
-    /// together with either `left` or `right`.)
-    /// https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property
+    /// (Non-exclusive, but not all combinations are allowed: the spec grammar gives
+    /// `auto | [ from-font | under ] || [ left | right ]`.)
+    /// https://drafts.csswg.org/css-text-decor-4/#text-underline-position-property
     pub struct TextUnderlinePosition: u8 {
         /// Use automatic positioning below the alphabetic baseline.
         const AUTO = 0;
+        /// Use underline position from the first available font.
+        const FROM_FONT = 1 << 0;
         /// Below the glyph box.
-        const UNDER = 1 << 0;
+        const UNDER = 1 << 1;
         /// In vertical mode, place to the left of the text.
-        const LEFT = 1 << 1;
+        const LEFT = 1 << 2;
         /// In vertical mode, place to the right of the text.
-        const RIGHT = 1 << 2;
+        const RIGHT = 1 << 3;
     }
 }
 
@@ -1085,7 +1087,12 @@ impl Parse for TextUnderlinePosition {
                 "auto" if result.is_empty() => {
                     return Ok(result);
                 },
-                "under" if !result.intersects(TextUnderlinePosition::UNDER) => {
+                "from-font" if !result.intersects(TextUnderlinePosition::FROM_FONT |
+                                                  TextUnderlinePosition::UNDER) => {
+                    result.insert(TextUnderlinePosition::FROM_FONT);
+                },
+                "under" if !result.intersects(TextUnderlinePosition::FROM_FONT |
+                                              TextUnderlinePosition::UNDER) => {
                     result.insert(TextUnderlinePosition::UNDER);
                 },
                 "left" if !result.intersects(TextUnderlinePosition::LEFT |
@@ -1131,6 +1138,7 @@ impl ToCss for TextUnderlinePosition {
             };
         }
 
+        maybe_write!(FROM_FONT => "from-font");
         maybe_write!(UNDER => "under");
         maybe_write!(LEFT => "left");
         maybe_write!(RIGHT => "right");

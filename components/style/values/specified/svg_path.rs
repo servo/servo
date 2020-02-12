@@ -21,8 +21,10 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[derive(
     Clone,
     Debug,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
+    Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
@@ -40,7 +42,6 @@ impl SVGPathData {
     /// Get the array of PathCommand.
     #[inline]
     pub fn commands(&self) -> &[PathCommand] {
-        debug_assert!(!self.0.is_empty());
         &self.0
     }
 
@@ -90,10 +91,6 @@ impl Parse for SVGPathData {
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let path_string = input.expect_string()?.as_ref();
-        if path_string.is_empty() {
-            // Treat an empty string as invalid, so we will not set it.
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         // Parse the svg path string as multiple sub-paths.
         let mut path_parser = PathParser::new(path_string);
@@ -156,8 +153,10 @@ impl ComputeSquaredDistance for SVGPathData {
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
+    Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToShmem,
@@ -483,8 +482,10 @@ impl ToCss for PathCommand {
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
+    Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToShmem,
@@ -511,8 +512,10 @@ impl IsAbsolute {
     ComputeSquaredDistance,
     Copy,
     Debug,
+    Deserialize,
     MallocSizeOf,
     PartialEq,
+    Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToCss,
@@ -530,7 +533,9 @@ impl CoordPair {
 }
 
 /// The EllipticalArc flag type.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, SpecifiedValueInfo, ToShmem,
+)]
 #[repr(C)]
 pub struct ArcFlag(bool);
 

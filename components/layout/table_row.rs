@@ -437,7 +437,7 @@ impl Flow for TableRowFlow {
                     .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
                         Size::Auto => 0.0,
-                        Size::LengthPercentage(ref lp) => lp.0.as_percentage().map_or(0.0, |p| p.0),
+                        Size::LengthPercentage(ref lp) => lp.0.to_percentage().map_or(0.0, |p| p.0),
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                     constrained: match child_specified_inline_size {

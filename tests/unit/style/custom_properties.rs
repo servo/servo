@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput};
+use euclid::{Scale, Size2D};
 use servo_arc::Arc;
 use style::custom_properties::{
-    CssEnvironment, CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
+    CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
 };
+use style::media_queries::{Device, MediaType};
 use style::properties::{CustomDeclaration, CustomDeclarationValue};
 use style::stylesheets::Origin;
 use test::{self, Bencher};
@@ -26,8 +28,12 @@ fn cascade(
         })
         .collect::<Vec<_>>();
 
-    let env = CssEnvironment;
-    let mut builder = CustomPropertiesBuilder::new(inherited, &env);
+    let device = Device::new(
+        MediaType::screen(),
+        Size2D::new(800., 600.),
+        Scale::new(1.0),
+    );
+    let mut builder = CustomPropertiesBuilder::new(inherited, &device);
 
     for declaration in &declarations {
         builder.cascade(declaration, Origin::Author);

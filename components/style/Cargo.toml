@@ -55,7 +55,6 @@ num_cpus = {version = "1.1.0"}
 num-integer = "0.1"
 num-traits = "0.2"
 num-derive = "0.2"
-ordered-float = "1.0"
 owning_ref = "0.4"
 parking_lot = "0.9"
 precomputed-hash = "0.1.1"

@@ -23,7 +23,7 @@ fn parse_pixel_or_percent<'i, 't>(
             value, ref unit, ..
         } => {
             match_ignore_ascii_case! { unit,
-                "px" => Ok(LengthPercentage::new(Length::new(value), None)),
+                "px" => Ok(LengthPercentage::new_length(Length::new(value))),
                 _ => Err(()),
             }
         },

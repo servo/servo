@@ -563,6 +563,7 @@
                 Copy,
                 Debug,
                 Eq,
+                FromPrimitive,
                 Hash,
                 MallocSizeOf,
                 Parse,
@@ -762,7 +763,7 @@
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
             % if not extra_specified:
             #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
             % endif

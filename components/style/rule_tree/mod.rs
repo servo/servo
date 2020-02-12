@@ -136,6 +136,29 @@ impl StyleSource {
         let _ = write!(writer, "  -> {:?}", self.read(guard).declarations());
     }
 
+    // This is totally unsafe, should be removed when we figure out the cause of
+    // bug 1607553.
+    #[cfg(feature = "gecko")]
+    unsafe fn dump_unchecked<W: Write>(&self, writer: &mut W) {
+        if let Some(ref rule) = self.0.as_first() {
+            let rule = rule.read_unchecked();
+            let _ = write!(writer, "{:?}", rule.selectors);
+        }
+        let _ = write!(writer, "  -> {:?}", self.read_unchecked().declarations());
+    }
+
+    // This is totally unsafe, should be removed when we figure out the cause of
+    // bug 1607553.
+    #[inline]
+    #[cfg(feature = "gecko")]
+    unsafe fn read_unchecked(&self) -> &PropertyDeclarationBlock {
+        let block: &Locked<PropertyDeclarationBlock> = match self.0.borrow() {
+            ArcUnionBorrow::First(ref rule) => &rule.get().read_unchecked().block,
+            ArcUnionBorrow::Second(ref block) => block.get(),
+        };
+        block.read_unchecked()
+    }
+
     /// Read the style source guard, and obtain thus read access to the
     /// underlying property declaration block.
     #[inline]
@@ -1437,7 +1460,6 @@ impl StrongRuleNode {
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_PADDING;
         use crate::properties::{CSSWideKeyword, LonghandId};
         use crate::properties::{PropertyDeclaration, PropertyDeclarationId};
-        use crate::values::specified::Color;
         use std::borrow::Cow;
 
         // Reset properties:
@@ -1560,11 +1582,11 @@ impl StrongRuleNode {
 
                     if is_author {
                         if !author_colors_allowed {
-                            // FIXME(emilio): this looks wrong, this should
-                            // do: if color is not transparent, then return
-                            // true, or something.
                             if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
-                                return *color == Color::transparent();
+                                if color.is_transparent() {
+                                    return true;
+                                }
+                                continue;
                             }
                         }
                         return true;
@@ -1696,6 +1718,7 @@ impl Clone for StrongRuleNode {
 }
 
 impl Drop for StrongRuleNode {
+    #[cfg_attr(feature = "servo", allow(unused_mut))]
     fn drop(&mut self) {
         let node = unsafe { &*self.ptr() };
 
@@ -1719,7 +1742,47 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        debug_assert!(node.children.read().is_empty());
+        #[cfg(feature = "gecko")]
+        #[inline(always)]
+        fn assert_on_release() -> bool {
+            crate::gecko_bindings::structs::GECKO_IS_NIGHTLY
+        }
+
+        #[cfg(feature = "servo")]
+        fn assert_on_release() -> bool {
+            false
+        }
+
+        if cfg!(debug_assertions) || assert_on_release() {
+            let children = node.children.read();
+            if !children.is_empty() {
+                let mut crash_str = vec![];
+
+                #[cfg(feature = "gecko")]
+                unsafe {
+                    // Try to unsafely collect some information of this before
+                    // crashing the process.
+                    if let Some(ref s) = node.source {
+                        s.dump_unchecked(&mut crash_str);
+                        crash_str.push(b'\n');
+                    }
+                    children.each(|child| {
+                        (*child.ptr())
+                            .source
+                            .as_ref()
+                            .unwrap()
+                            .dump_unchecked(&mut crash_str);
+                        crash_str.push(b'\n');
+                    });
+                }
+
+                panic!(
+                    "Children left in the rule tree on drop: {}",
+                    String::from_utf8_lossy(&crash_str).trim()
+                );
+            }
+        }
+
         if node.parent.is_none() {
             debug!("Dropping root node!");
             // The free list should be null by this point
