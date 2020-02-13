@@ -32,5 +32,5 @@ RUN \
         curl \
     && \
     # Running mach
-    pip install virtualenv
+    pip install setuptools virtualenv
 
