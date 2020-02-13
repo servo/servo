@@ -62,7 +62,7 @@
                             </div>
                         </div>
                         <div class="col-sm-12">
-                            <div id="flow-diffs"></div>
+                            <div id="fragment-diffs"></div>
                         </div>
                     </div>
                 </div>
@@ -94,9 +94,9 @@
                 var fragment = Object.values(trace_node)[0];
                 var node = {
                     text: Object.keys(trace_node)[0],
-                    id: fragment.id,
+                    id: fragment.debug_id,
                     icon: "dummy",
-                    href: "#diff-" + fragment.id
+                    href: "#diff-" + fragment.debug_id
                 };
 
                 if (fragment.children) {
@@ -113,27 +113,32 @@
                 return node;
             }
 
-            function create_flow_hash(trace_node, flow_hash) {
-                var base = get_base(trace_node);
-                flow_hash[base.id] = trace_node;
+            function get_fragments_info(node, fragments_info) {
+                const fragmentType = Object.keys(node)[0];
+                const trace_node = Object.assign({}, Object.values(node)[0]);
+                let data = Object.assign({}, trace_node);
+                delete data.children;
+                delete data.debug_id;
+                fragments_info[trace_node.debug_id] = {
+                  class: fragmentType,
+                  data,
+                };
 
-                for (var i=0 ; i < trace_node.children.length ; ++i) {
-                    create_flow_hash(base.children[i], flow_hash);
+                if (trace_node.children) {
+                  for (var i=0 ; i < trace_node.children.length ; ++i) {
+                      get_fragments_info(trace_node.children[i], fragments_info);
+                  }
                 }
-
-                delete trace_node.children;
             }
 
             function flatten_trace(trace_node) {
-                var fragment_tree = create_fragment_tree(Object.values(trace_node)[0]);
-
-                //var flow_hash = {};
-                //create_flow_hash(trace_node[0], flow_hash);
-
+                const node = Object.values(trace_node)[0];
+                var fragments_info = {};
+                get_fragments_info(node, fragments_info);
                 return {
-                    tree: fragment_tree,
-                    //flows: flow_hash,
-                }
+                    tree: create_fragment_tree(node),
+                    fragments_info: fragments_info,
+                };
             }
 
             function create_trace_tree_node(trace_node) {
@@ -144,8 +149,8 @@
                     text: trace_node.name,
                     icon: "dummy",
                     fragment_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
-                    //pre: pre_trace.flows,
-                    //post: post_trace.flows,
+                    pre: pre_trace.fragments_info,
+                    post: post_trace.fragments_info,
                 };
 
                 var trace_node = Object.values(trace_node)[0];
@@ -179,40 +184,38 @@
                 var tree = [ create_trace_tree_node(data) ];
                 $('#trace-tree').treeview({data: tree, levels: 3});
                 $('#trace-tree').on('nodeSelected', function(event, node) {
-                    $("#flow-diffs").empty();
+                    $("#fragment-diffs").empty();
                     $('#trace-tree').treeview(true).revealNode(node);
 
                     for (var key in node.pre) {
-                        var flow_left = node.pre[key];
-                        var flow_right = node.post[key];
+                        var fragment_info_left = node.pre[key];
+                        var fragment_info_right = node.post[key];
 
                         var delta = jsondiffpatch.create({
                             objectHash: function(obj) {
-                                if (obj.data !== undefined && obj.data.base !== undefined) {
-                                    return obj.data.base.id;
-                                }
-                                if (obj.id !== undefined) {
-                                    return obj.id;
-                                }
-                                if (obj.index !== undefined) {
-                                    // FlexItem and FlexLine
-                                    return obj.index;
-                                }
                                 return JSON.stringify(obj);
                             }
-                        }).diff(flow_left, flow_right);
+                        }).diff(fragment_info_left, fragment_info_right);
+
+                        if (!delta) {
+                          delta = jsondiffpatch.create({
+                              objectHash: function(obj) {
+                                  return JSON.stringify(obj);
+                              }
+                          }).diff({}, fragment_info_right);
+                        }
 
                         if (delta !== undefined) {
                             var diff_id = "diff-" + key;
-                            $("#flow-diffs").append(
+                            $("#fragment-diffs").append(
                               "<div class='panel panel-default' id='" +
                               diff_id +
                               "'><div class='panel-heading'>" +
-                              flow_left.class + " (" + key + ")" +
+                              fragment_info_left.class + " (" + key + ")" +
                               "</div><div class='panel-body'></div></div>");
 
                             document.getElementById(diff_id).getElementsByClassName('panel-body')[0].innerHTML =
-                                jsondiffpatch.formatters.html.format(delta, flow_left);
+                                jsondiffpatch.formatters.html.format(delta, fragment_info_left);
                             node_color_hash[key] = "rgba(255, 0, 0, 0.7)";
                         } else {
                             node_color_hash[key] = "rgb(212, 248, 212)";
