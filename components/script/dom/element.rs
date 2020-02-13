@@ -1420,11 +1420,28 @@ impl Element {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     pub fn get_attribute_by_name(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
-        self.attrs
+        let maybe_attribute = self
+            .attrs
             .borrow()
             .iter()
             .find(|a| a.name() == name)
-            .map(|js| DomRoot::from_ref(&**js))
+            .map(|js| DomRoot::from_ref(&**js));
+
+        fn id_and_name_must_be_atoms(name: &LocalName, maybe_attr: &Option<DomRoot<Attr>>) -> bool {
+            if *name == local_name!("id") || *name == local_name!("name") {
+                match maybe_attr {
+                    None => true,
+                    Some(ref attr) => match *attr.value() {
+                        AttrValue::Atom(_) => true,
+                        _ => false,
+                    },
+                }
+            } else {
+                true
+            }
+        }
+        debug_assert!(id_and_name_must_be_atoms(name, &maybe_attribute));
+        maybe_attribute
     }
 
     pub fn set_attribute_from_parser(
@@ -1819,6 +1836,14 @@ impl Element {
         let other = other.upcast::<Element>();
         self.root_element() == other.root_element()
     }
+
+    pub fn get_id(&self) -> Option<Atom> {
+        self.id_attribute.borrow().clone()
+    }
+
+    pub fn get_name(&self) -> Option<Atom> {
+        self.rare_data().as_ref()?.name_attribute.clone()
+    }
 }
 
 impl ElementMethods for Element {
@@ -1855,6 +1880,8 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
+    // This always returns a string; if you'd rather see None
+    // on a null id, call get_id
     fn Id(&self) -> DOMString {
         self.get_string_attribute(&local_name!("id"))
     }
@@ -2802,6 +2829,20 @@ impl VirtualMethods for Element {
                     }
                 }
             },
+            &local_name!("name") => {
+                // Keep the name in rare data for fast access
+                self.ensure_rare_data().name_attribute =
+                    mutation.new_value(attr).and_then(|value| {
+                        let value = value.as_atom();
+                        if value != &atom!("") {
+                            Some(value.clone())
+                        } else {
+                            None
+                        }
+                    });
+                // TODO: notify the document about the name change
+                // once it has a name_map (#25548)
+            },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.
@@ -2820,6 +2861,7 @@ impl VirtualMethods for Element {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("id") => AttrValue::from_atomic(value.into()),
+            &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("class") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self
                 .super_type()

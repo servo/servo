@@ -1466,10 +1466,13 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
     fn radio_group_name(&self) -> Option<Atom> {
-        self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("name"))
-            .map(|name| name.value().as_atom().clone())
-            .filter(|name| name != &atom!(""))
+        self.upcast::<Element>().get_name().and_then(|name| {
+            if name == atom!("") {
+                None
+            } else {
+                Some(name)
+            }
+        })
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
@@ -2158,7 +2161,6 @@ impl VirtualMethods for HTMLInputElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
-            &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
             &local_name!("type") => AttrValue::from_atomic(value.into()),
             &local_name!("maxlength") => {

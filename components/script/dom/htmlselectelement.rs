@@ -234,7 +234,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-select-size
     make_uint_getter!(Size, "size", DEFAULT_SELECT_SIZE);

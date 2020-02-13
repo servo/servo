@@ -10,8 +10,8 @@ interface HTMLFieldSetElement : HTMLElement {
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
-  // [CEReactions]
-  //         attribute DOMString name;
+  [CEReactions]
+           attribute DOMString name;
 
   //readonly attribute DOMString type;
 

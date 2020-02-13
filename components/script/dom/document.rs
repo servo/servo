@@ -823,6 +823,7 @@ impl Document {
     }
 
     fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
+        // TODO faster name lookups (see #25548)
         let check_anchor = |node: &HTMLAnchorElement| {
             let elem = node.upcast::<Element>();
             elem.get_attribute(&ns!(), &local_name!("name"))
@@ -4091,9 +4092,7 @@ impl DocumentMethods for Document {
             if element.namespace() != &ns!(html) {
                 return false;
             }
-            element
-                .get_attribute(&ns!(), &local_name!("name"))
-                .map_or(false, |attr| &**attr.value() == &*name)
+            element.get_name().map_or(false, |atom| *atom == *name)
         })
     }
 
@@ -4303,6 +4302,7 @@ impl DocumentMethods for Document {
         }
         // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
         fn filter_by_name(name: &Atom, node: &Node) -> bool {
+            // TODO faster name lookups (see #25548)
             let html_elem_type = match node.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
                 _ => return false,

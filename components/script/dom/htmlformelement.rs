@@ -62,10 +62,10 @@ use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use servo_atoms::Atom;
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
@@ -86,7 +86,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMap<DOMString, (Dom<Element>, Tm)>>,
+    past_names_map: DomRefCell<HashMap<Atom, (Dom<Element>, Tm)>>,
 }
 
 impl HTMLFormElement {
@@ -119,7 +119,7 @@ impl HTMLFormElement {
         )
     }
 
-    fn filter_for_radio_list(mode: RadioListMode, child: &Element, name: &DOMString) -> bool {
+    fn filter_for_radio_list(mode: RadioListMode, child: &Element, name: &Atom) -> bool {
         if let Some(child) = child.downcast::<Element>() {
             match mode {
                 RadioListMode::ControlsExceptImageInputs => {
@@ -127,10 +127,8 @@ impl HTMLFormElement {
                         .downcast::<HTMLElement>()
                         .map_or(false, |c| c.is_listed_element())
                     {
-                        if (child.has_attribute(&local_name!("id")) &&
-                            child.get_string_attribute(&local_name!("id")) == *name) ||
-                            (child.has_attribute(&local_name!("name")) &&
-                                child.get_string_attribute(&local_name!("name")) == *name)
+                        if child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name)
                         {
                             if let Some(inp) = child.downcast::<HTMLInputElement>() {
                                 // input, only return it if it's not image-button state
@@ -144,16 +142,9 @@ impl HTMLFormElement {
                     return false;
                 },
                 RadioListMode::Images => {
-                    if child.is::<HTMLImageElement>() {
-                        if (child.has_attribute(&local_name!("id")) &&
-                            child.get_string_attribute(&local_name!("id")) == *name) ||
-                            (child.has_attribute(&local_name!("name")) &&
-                                child.get_string_attribute(&local_name!("name")) == *name)
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
+                    return child.is::<HTMLImageElement>() &&
+                        (child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name));
                 },
             }
         }
@@ -164,7 +155,7 @@ impl HTMLFormElement {
         &self,
         index: u32,
         mode: RadioListMode,
-        name: &DOMString,
+        name: &Atom,
     ) -> Option<DomRoot<Node>> {
         self.controls
             .borrow()
@@ -174,7 +165,7 @@ impl HTMLFormElement {
             .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
     }
 
-    pub fn count_for_radio_list(&self, mode: RadioListMode, name: &DOMString) -> u32 {
+    pub fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {
         self.controls
             .borrow()
             .iter()
@@ -333,14 +324,15 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
         let window = window_from_node(self);
 
+        let name = Atom::from(name);
+
         // Step 1
-        let mut candidates =
-            RadioNodeList::new_controls_except_image_inputs(&window, self, name.clone());
+        let mut candidates = RadioNodeList::new_controls_except_image_inputs(&window, self, &name);
         let mut candidates_length = candidates.Length();
 
         // Step 2
         if candidates_length == 0 {
-            candidates = RadioNodeList::new_images(&window, self, name.clone());
+            candidates = RadioNodeList::new_images(&window, self, &name);
             candidates_length = candidates.Length();
         }
 
@@ -399,12 +391,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
         }
 
         struct SourcedName {
-            name: DOMString,
+            name: Atom,
             element: DomRoot<Element>,
             source: SourcedNameSource,
         }
 
-        let mut sourcedNamesVec: Vec<SourcedName> = Vec::new();
+        let mut sourced_names_vec: Vec<SourcedName> = Vec::new();
 
         let controls = self.controls.borrow();
 
@@ -414,21 +406,21 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 .downcast::<HTMLElement>()
                 .map_or(false, |c| c.is_listed_element())
             {
-                if child.has_attribute(&local_name!("id")) {
+                if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
-                        name: child.get_string_attribute(&local_name!("id")),
+                        name: id_atom,
                         element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Id,
                     };
-                    sourcedNamesVec.push(entry);
+                    sourced_names_vec.push(entry);
                 }
-                if child.has_attribute(&local_name!("name")) {
+                if let Some(name_atom) = child.get_name() {
                     let entry = SourcedName {
-                        name: child.get_string_attribute(&local_name!("name")),
+                        name: name_atom,
                         element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Name,
                     };
-                    sourcedNamesVec.push(entry);
+                    sourced_names_vec.push(entry);
                 }
             }
         }
@@ -436,21 +428,21 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 3
         for child in controls.iter() {
             if child.is::<HTMLImageElement>() {
-                if child.has_attribute(&local_name!("id")) {
+                if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
-                        name: child.get_string_attribute(&local_name!("id")),
+                        name: id_atom,
                         element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Id,
                     };
-                    sourcedNamesVec.push(entry);
+                    sourced_names_vec.push(entry);
                 }
-                if child.has_attribute(&local_name!("name")) {
+                if let Some(name_atom) = child.get_name() {
                     let entry = SourcedName {
-                        name: child.get_string_attribute(&local_name!("name")),
+                        name: name_atom,
                         element: DomRoot::from_ref(&*child),
                         source: SourcedNameSource::Name,
                     };
-                    sourcedNamesVec.push(entry);
+                    sourced_names_vec.push(entry);
                 }
             }
         }
@@ -463,7 +455,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 element: DomRoot::from_ref(&*val.0),
                 source: SourcedNameSource::Past(now() - val.1), // calculate difference now()-val.1 to find age
             };
-            sourcedNamesVec.push(entry);
+            sourced_names_vec.push(entry);
         }
 
         // Step 5
@@ -477,7 +469,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // (this can be checked by bitwise operations) then b would follow a in tree order and
         // Ordering::Less should be returned in the closure else Ordering::Greater
 
-        sourcedNamesVec.sort_by(|a, b| {
+        sourced_names_vec.sort_by(|a, b| {
             if a.element
                 .upcast::<Node>()
                 .CompareDocumentPosition(b.element.upcast::<Node>()) ==
@@ -503,21 +495,21 @@ impl HTMLFormElementMethods for HTMLFormElement {
         });
 
         // Step 6
-        sourcedNamesVec.retain(|sn| !sn.name.to_string().is_empty());
+        sourced_names_vec.retain(|sn| !sn.name.to_string().is_empty());
 
         // Step 7-8
-        let mut namesVec: Vec<DOMString> = Vec::new();
-        for elem in sourcedNamesVec.iter() {
-            if namesVec
+        let mut names_vec: Vec<DOMString> = Vec::new();
+        for elem in sourced_names_vec.iter() {
+            if names_vec
                 .iter()
-                .find(|name| name.to_string() == elem.name.to_string())
+                .find(|name| &**name == &*elem.name)
                 .is_none()
             {
-                namesVec.push(elem.name.clone());
+                names_vec.push(DOMString::from(&*elem.name));
             }
         }
 
-        return namesVec;
+        return names_vec;
     }
 }
 
@@ -1517,16 +1509,6 @@ pub trait FormControl: DomObject {
 impl VirtualMethods for HTMLFormElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
-    }
-
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("name") => AttrValue::from_atomic(value.into()),
-            _ => self
-                .super_type()
-                .unwrap()
-                .parse_plain_attribute(name, value),
-        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {

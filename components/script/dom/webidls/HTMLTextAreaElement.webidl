@@ -24,6 +24,7 @@ interface HTMLTextAreaElement : HTMLElement {
            attribute long maxLength;
   [CEReactions, SetterThrows]
            attribute long minLength;
+  [CEReactions]
            attribute DOMString name;
   [CEReactions]
            attribute DOMString placeholder;

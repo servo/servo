@@ -142,7 +142,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_getter!(Value, "value");

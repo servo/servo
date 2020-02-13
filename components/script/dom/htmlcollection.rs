@@ -366,11 +366,12 @@ impl HTMLCollectionMethods for HTMLCollection {
             return None;
         }
 
+        let key = Atom::from(key);
+
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_string_attribute(&local_name!("id")) == key ||
-                (elem.namespace() == &ns!(html) &&
-                    elem.get_string_attribute(&local_name!("name")) == key)
+            elem.get_id().map_or(false, |id| id == key) ||
+                (elem.namespace() == &ns!(html) && elem.get_name().map_or(false, |id| id == key))
         })
     }
 
@@ -392,17 +393,20 @@ impl HTMLCollectionMethods for HTMLCollection {
         // Step 2
         for elem in self.elements_iter() {
             // Step 2.1
-            let id_attr = elem.get_string_attribute(&local_name!("id"));
-            if !id_attr.is_empty() && !result.contains(&id_attr) {
-                result.push(id_attr)
+            if let Some(id_atom) = elem.get_id() {
+                let id_str = DOMString::from(&*id_atom);
+                if !result.contains(&id_str) {
+                    result.push(id_str);
+                }
             }
             // Step 2.2
-            let name_attr = elem.get_string_attribute(&local_name!("name"));
-            if !name_attr.is_empty() &&
-                !result.contains(&name_attr) &&
-                *elem.namespace() == ns!(html)
-            {
-                result.push(name_attr)
+            if *elem.namespace() == ns!(html) {
+                if let Some(name_atom) = elem.get_name() {
+                    let name_str = DOMString::from(&*name_atom);
+                    if !result.contains(&name_str) {
+                        result.push(name_str)
+                    }
+                }
             }
         }
 
