@@ -1373,18 +1373,10 @@ impl Window {
             return None;
         }
 
-        debug!("In named_getter_impl for name {}", name);
-
         // This is different enough from the document named getter
         // to need a separate codepath from that, but it iterates though
         // elements by id and by name in a similar way.
-        let result = document.window_named_getter(name);
-        if result.is_some() {
-            debug!("Got a result");
-        } else {
-            debug!("Got no result");
-        }
-        result
+        document.window_named_getter(name)
     }
 
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object

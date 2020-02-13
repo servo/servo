@@ -111,8 +111,6 @@ impl HTMLIFrameElement {
         nav_type: NavigationType,
         replace: HistoryEntryReplacement,
     ) {
-        debug!("In navigate_or_reload_child_browsing_context");
-
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {

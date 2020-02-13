@@ -2552,7 +2552,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
-    // (This takes the filter as a method so the window named getter can use it too)
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object:supported_property_names
     pub fn supported_property_names_impl(
         &self,
         nameditem_filter: fn(&Node, &Atom) -> bool,
@@ -2619,14 +2619,15 @@ impl Document {
             .map(|(k, _v)| DOMString::from(&***k))
             .collect()
     }
-    
+
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     pub fn window_named_getter(&self, name: DOMString) -> Option<NonNull<JSObject>> {
         // It's easier to do this from inside the document, rather than the
         // window, so name_map and id_map are available. There are various
         // subtle differences between this and the document named getter,
-        // but the overall structure is the same.
+        // but the overall structure overlaps enough to have them side-by-side
+        // with similar signatures.
 
         // If there's an iframe with the name as its name attribute,
         // and its browsing context also has the name as its name,
@@ -2636,10 +2637,7 @@ impl Document {
         // browsing contexts if and when they exist)
         let name = Atom::from(name);
 
-        let name_map = self.name_map.borrow();
-        let name_vec = name_map.get(&name);
-        let name = Atom::from(name);
-        if let Some(name_vec) = name_vec {
+        if let Some(name_vec) = self.name_map.borrow().get(&name) {
             if let Some(nested_proxy) = name_vec
                 .iter()
                 .filter_map(|e| e.downcast::<HTMLIFrameElement>())
@@ -2661,9 +2659,9 @@ impl Document {
         // by their name attribute, and everything including those by
         // their id attribute. We already know we won't be hitting
         // a browsing context we care about and can leave that flag false.
-        match self.look_up_named_elements(&name, |name, node| {
-            window_nameditem_filter(name, node, false)
-        }) {
+        match self
+            .look_up_named_elements(&name, |node, name| node.is_window_named_item(&name, false))
+        {
             ElementLookupResult::None => {
                 return None;
             },
@@ -2685,7 +2683,8 @@ impl Document {
                 // only returns elements, and an iframe isn't automatically
                 // a collection member just because it contains a browsing
                 // context that would count as a named item.
-                window_nameditem_filter(&self.name, elem.upcast(), false)
+                elem.upcast::<Node>()
+                    .is_window_named_item(&self.name, false)
             }
         }
 
@@ -3652,76 +3651,7 @@ impl Document {
         // We care here about anything that the window named getter can return,
         // whether it's an element or the browsing context contained by
         // that element.
-        self.supported_property_names_impl(|name, node| window_nameditem_filter(name, node, true))
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object:supported_property_names
-    fn supported_property_names_impl(
-        &self,
-        nameditem_filter: fn(name: &Atom, node: &Node) -> bool,
-    ) -> Vec<DOMString> {
-        // The tricky part here is making sure we return the names in
-        // tree order, without just resorting to a full tree walkthrough.
-
-        let mut first_elements_with_name: HashMap<&Atom, &Dom<Element>> = HashMap::new();
-        let name_map = self.name_map.borrow();
-        let id_map = self.id_map.borrow();
-
-        // Get the first-in-tree-order element for each name in the name_map
-        name_map.iter().for_each(|(name, value)| {
-            if let Some(first) = value
-                .iter()
-                .find(|n| nameditem_filter((***n).upcast::<Node>(), &name))
-            {
-                first_elements_with_name.insert(name, first);
-            }
-        });
-
-        // Get the first-in-tree-order element for each name in the id_map;
-        // if we already had one from the name_map, figure out which of
-        // the two is first.
-        id_map.iter().for_each(|(name, value)| {
-            if let Some(first) = value
-                .iter()
-                .find(|n| nameditem_filter(&name, (***n).upcast::<Node>()))
-            {
-                match first_elements_with_name.get(&name) {
-                    None => {
-                        first_elements_with_name.insert(name, first);
-                    },
-                    Some(el) => {
-                        if *el != first && first.upcast::<Node>().is_before(el.upcast::<Node>()) {
-                            first_elements_with_name.insert(name, first);
-                        }
-                    },
-                }
-            }
-        });
-
-        // first_elements_with_name now has our supported property names
-        // as keys, and the elements to order on as values.
-        let mut sortable_vec: Vec<(&Atom, &Dom<Element>)> = first_elements_with_name
-            .iter()
-            .map(|(k, v)| (*k, *v))
-            .collect();
-        sortable_vec.sort_unstable_by(|a, b| {
-            if a.1 == b.1 {
-                // This can happen if an img has an id different from its name,
-                // spec does not say which string to put first.
-                a.0.cmp(&b.0)
-            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        });
-
-        // And now that they're sorted, we can return the keys
-        sortable_vec
-            .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
-            .collect()
+        self.supported_property_names_impl(|node, name| node.is_window_named_item(name, true))
     }
 }
 
@@ -4985,60 +4915,6 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
         _ => None,
     }
 }
-
-
-// TODO PSHAUGHN MOVE THIS TO NODE METHODS
-// https://html.spec.whatwg.org/multipage/#dom-window-nameditem-filter
-// An iframe with a name and no id is not itself a named item of a window,
-// even though the browsing context contained by that iframe may be one.
-// We want to count such a browsing context when we are enumerating supported
-// property names, but we want to skip it when we are the indexed getter of an
-// HTMLCollection, and so this filter takes a flag.
-fn window_nameditem_filter(name: &Atom, node: &Node, include_browsing_contexts: bool) -> bool {
-    let html_elem_type = match node.type_id() {
-        NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
-        _ => return false,
-    };
-    let elem = match node.downcast::<Element>() {
-        Some(elem) => elem,
-        None => return false,
-    };
-
-    // any element type can match by ID
-    if elem.Id() == **name {
-        return true;
-    }
-
-    // embed, form, frameset, img, and object can match by name
-    // (so can a browsing context, but that's not itself part of the
-    // document tree and is handled in window_named_getter as a separate case)
-    match html_elem_type {
-        HTMLElementTypeId::HTMLEmbedElement |
-        HTMLElementTypeId::HTMLFormElement |
-        // web-platform-tests/wpt#21249
-        // HTMLElementTypeId::HTMLFrameSetElement |
-        HTMLElementTypeId::HTMLImageElement |
-        HTMLElementTypeId::HTMLObjectElement => {
-            match elem.get_attribute(&ns!(), &local_name!("name")) {
-                Some(ref attr) => attr.value().as_atom() == name,
-                None => false,
-            }
-        },
-        HTMLElementTypeId::HTMLIFrameElement => {
-            include_browsing_contexts &&
-                match elem.get_attribute(&ns!(), &local_name!("name")) {
-                Some(ref attr) => attr.value().as_atom() == name,
-                None => false,
-            } &&
-            match elem.downcast::<HTMLIFrameElement>().unwrap().GetContentWindow() {
-                None => false,
-                Some(proxy) => proxy.get_name() == **name
-            }
-        },
-        _ => false,
-    }
-}
-
 
 /// Specifies the type of focus event that is sent to a pipeline
 #[derive(Clone, Copy, PartialEq)]

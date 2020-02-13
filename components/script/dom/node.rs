@@ -1199,6 +1199,60 @@ impl Node {
             _ => false,
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-nameditem-filter
+    // An iframe with a name and no id is not itself a named item of a window,
+    // even though the browsing context contained by that iframe may be one.
+    // We want to count such a browsing context when we are enumerating supported
+    // property names, but we want to skip it when we are the indexed getter of an
+    // HTMLCollection, and so this filter takes a flag for use in different
+    // situations.
+    pub fn is_window_named_item(&self, name: &Atom, include_browsing_contexts: bool) -> bool {
+        let html_elem_type = match self.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+            _ => return false,
+        };
+        let elem = match self.downcast::<Element>() {
+            Some(elem) => elem,
+            None => return false,
+        };
+
+        // any element type can match by ID
+        if elem.Id() == **name {
+            return true;
+        }
+
+        // embed, form, frameset, img, and object can match by name
+        // (so can a browsing context, but that's not itself part of the
+        // document tree and is handled in window_named_getter as a separate case)
+        match html_elem_type {
+            HTMLElementTypeId::HTMLEmbedElement |
+            HTMLElementTypeId::HTMLFormElement |
+            HTMLElementTypeId::HTMLImageElement |
+            HTMLElementTypeId::HTMLObjectElement => {
+                match elem.get_attribute(&ns!(), &local_name!("name")) {
+                    Some(ref attr) => attr.value().as_atom() == name,
+                    None => false,
+                }
+            },
+            HTMLElementTypeId::HTMLIFrameElement => {
+                include_browsing_contexts &&
+                    match elem.get_attribute(&ns!(), &local_name!("name")) {
+                        Some(ref attr) => attr.value().as_atom() == name,
+                        None => false,
+                    } &&
+                    match elem
+                        .downcast::<HTMLIFrameElement>()
+                        .unwrap()
+                        .GetContentWindow()
+                    {
+                        None => false,
+                        Some(proxy) => proxy.get_name() == **name,
+                    }
+            },
+            _ => false,
+        }
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
