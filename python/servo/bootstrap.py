@@ -113,26 +113,24 @@ def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-                'build-essential', 'cmake', 'python-pip', "libssl-dev",
-                'libbz2-dev', 'liblzma-dev',
-                'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
-                'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
-                'ccache', 'clang', 'autoconf2.13', 'libunwind-dev', 'llvm-dev']
-    pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel', 'libunwind-devel',
-                'mesa-libGL-devel', 'mesa-libEGL-devel', 'glib2-devel', 'libX11-devel',
-                'libXrandr-devel', 'gperf', 'fontconfig-devel', 'cabextract', 'ttmkfdir',
-                'python2', 'python2-virtualenv', 'python2-pip', 'expat-devel', 'rpm-build',
-                'openssl-devel', 'cmake', 'bzip2-devel', 'libXcursor-devel', 'libXmu-devel',
-                'mesa-libOSMesa-devel', 'dbus-devel', 'ncurses-devel', 'harfbuzz-devel',
-                'ccache', 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
-                'gstreamer1-plugins-base-devel', 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
-    if context.distro == "Ubuntu":
-        if context.distro_version == "14.04":
-            pkgs_apt += ["python-virtualenv"]
-        else:
-            pkgs_apt += ["virtualenv"]
-            pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
-                         'libgstreamer-plugins-bad1.0-dev']
+                'build-essential', 'cmake', "libssl-dev", 'libbz2-dev',
+                'liblzma-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev',
+                'libglu1-mesa-dev', 'libgles2-mesa-dev', 'libegl1-mesa-dev',
+                'libdbus-1-dev', 'libharfbuzz-dev', 'ccache', 'clang',
+                'autoconf2.13', 'libunwind-dev', 'llvm-dev']
+    pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
+                'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
+                'glib2-devel', 'libX11-devel', 'libXrandr-devel', 'gperf',
+                'fontconfig-devel', 'cabextract', 'ttmkfdir', 'expat-devel',
+                'rpm-build', 'openssl-devel', 'cmake', 'bzip2-devel',
+                'libXcursor-devel', 'libXmu-devel', 'mesa-libOSMesa-devel',
+                'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
+                'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
+                'gstreamer1-plugins-base-devel',
+                'gstreamer1-plugins-bad-free-devel', 'autoconf213']
+    if context.distro == "Ubuntu" and context.distro_version != "14.04":
+        pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
+                     'libgstreamer-plugins-bad1.0-dev']
 
     installed_something = install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
