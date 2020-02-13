@@ -60,7 +60,6 @@ ${helpers.predefined_type(
     "ZIndex",
     "computed::ZIndex::auto()",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
     flags="CREATES_STACKING_CONTEXT",
     animation_value_type="ComputedValue",

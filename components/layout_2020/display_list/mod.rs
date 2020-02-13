@@ -21,7 +21,7 @@ use webrender_api::{self as wr, units};
 
 mod background;
 mod gradient;
-mod stacking_context;
+pub mod stacking_context;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
