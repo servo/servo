@@ -542,13 +542,6 @@ impl Activatable for HTMLAnchorElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    fn pre_click_activation(&self) {}
-
-    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
-    fn canceled_activation(&self) {}
-
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
     fn activation_behavior(&self, event: &Event, target: &EventTarget) {
         let element = self.as_element();

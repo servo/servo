@@ -11,7 +11,6 @@ use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -39,7 +38,6 @@ use crate::dom::document::{determine_policy_for_token, Document, LayoutDocumentH
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
@@ -3281,52 +3279,6 @@ impl Element {
                 None
             },
         }
-    }
-
-    /// Please call this method *only* for real click events
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps>
-    ///
-    /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
-    /// If the spec says otherwise, check with Manishearth first
-    pub fn authentic_click_activation(&self, event: &Event) {
-        // Not explicitly part of the spec, however this helps enforce the invariants
-        // required to save state between pre-activation and post-activation
-        // since we cannot nest authentic clicks (unlike synthetic click activation, where
-        // the script can generate more click events from the handler)
-        assert!(!self.click_in_progress());
-
-        let target = self.upcast();
-        // Step 2 (requires canvas support)
-        // Step 3
-        self.set_click_in_progress(true);
-        // Step 4
-        let e = self.nearest_activable_element();
-        match e {
-            Some(ref el) => match el.as_maybe_activatable() {
-                Some(elem) => {
-                    // Step 5-6
-                    elem.pre_click_activation();
-                    event.fire(target);
-                    if !event.DefaultPrevented() {
-                        // post click activation
-                        elem.activation_behavior(event, target);
-                    } else {
-                        elem.canceled_activation();
-                    }
-                },
-                // Step 6
-                None => {
-                    event.fire(target);
-                },
-            },
-            // Step 6
-            None => {
-                event.fire(target);
-            },
-        }
-        // Step 7
-        self.set_click_in_progress(false);
     }
 
     // https://html.spec.whatwg.org/multipage/#language

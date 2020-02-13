@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
@@ -389,16 +388,18 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        if !self.upcast::<Element>().disabled_state() {
-            synthetic_click_activation(
-                self.upcast::<Element>(),
-                false,
-                false,
-                false,
-                false,
-                ActivationSource::FromClick,
-            )
+        let element = self.upcast::<Element>();
+        if element.disabled_state() {
+            return;
         }
+        if element.click_in_progress() {
+            return;
+        }
+        element.set_click_in_progress(true);
+
+        self.upcast::<Node>()
+            .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"));
+        element.set_click_in_progress(false);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus

@@ -33,7 +33,7 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -527,6 +527,14 @@ impl Window {
 
     pub fn get_event_loop_waker(&self) -> Option<Box<dyn EventLoopWaker>> {
         self.event_loop_waker.as_ref().map(|w| (*w).clone_box())
+    }
+
+    // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
+    pub fn dispatch_event_with_target_override(&self, event: &Event) -> EventStatus {
+        if self.has_document() {
+            assert!(self.Document().can_invoke_script());
+        }
+        event.dispatch(self.upcast(), true)
     }
 }
 
