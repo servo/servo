@@ -523,6 +523,25 @@ impl Element {
             debug_assert!(false, "Trying to detach a non-attached shadow root");
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#translation-mode
+    pub fn is_translate_enabled(&self) -> bool {
+        // TODO change this to local_name! when html5ever updates
+        let name = &LocalName::from("translate");
+        if self.has_attribute(name) {
+            match &*self.get_string_attribute(name) {
+                "yes" | "" => return true,
+                "no" => return false,
+                _ => {},
+            }
+        }
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
+            if let Some(elem) = parent.downcast::<Element>() {
+                return elem.is_translate_enabled();
+            }
+        }
+        true // whatwg/html#5239
+    }
 }
 
 #[allow(unsafe_code)]
