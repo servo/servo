@@ -181,9 +181,16 @@ impl BoxTreeRoot {
 
 impl FragmentTreeRoot {
     pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
+        let mut stacking_context = Default::default();
         for fragment in &self.children {
-            fragment.build_display_list(builder, &self.initial_containing_block)
+            fragment.build_stacking_context_tree(
+                builder,
+                &self.initial_containing_block,
+                &mut stacking_context,
+            );
         }
+
+        stacking_context.build_display_list(builder);
     }
 
     pub fn print(&self) {
