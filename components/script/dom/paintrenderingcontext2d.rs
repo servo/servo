@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
+use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::euclidext::Size2DExt;
 use canvas_traits::canvas::CanvasImageData;
@@ -117,6 +118,11 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
     fn Transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
         self.context.Transform(a, b, c, d, e, f)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
+    fn GetTransform(&self) -> DomRoot<DOMMatrix> {
+        self.context.GetTransform()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform

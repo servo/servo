@@ -919,6 +919,10 @@ impl<'a> CanvasData<'a> {
         self.state.stroke_opts.set_miter_limit(limit);
     }
 
+    pub fn get_transform(&self) -> Transform2D<f32> {
+        self.drawtarget.get_transform()
+    }
+
     pub fn set_transform(&mut self, transform: &Transform2D<f32>) {
         // If there is an in-progress path, store the existing transformation required
         // to move between device and user space.

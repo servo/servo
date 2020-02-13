@@ -48,6 +48,7 @@ pub enum Canvas2dMsg {
     FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle),
     FillRect(Rect<f32>, FillOrStrokeStyle),
     GetImageData(Rect<u64>, Size2D<u64>, IpcBytesSender),
+    GetTransform(IpcSender<Transform2D<f32>>),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),

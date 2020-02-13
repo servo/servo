@@ -10,7 +10,7 @@
  */
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker,PaintWorklet)]
 interface DOMPoint : DOMPointReadOnly {
     [Throws] constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
                 optional unrestricted double z = 0, optional unrestricted double w = 1);

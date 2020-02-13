@@ -59,7 +59,7 @@ interface mixin CanvasTransform {
                  unrestricted double e,
                  unrestricted double f);
 
-  // [NewObject] DOMMatrix getTransform();
+  [NewObject] DOMMatrix getTransform();
   void setTransform(unrestricted double a,
                     unrestricted double b,
                     unrestricted double c,

@@ -210,6 +210,10 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineCap(cap) => self.canvas(canvas_id).set_line_cap(cap),
             Canvas2dMsg::SetLineJoin(join) => self.canvas(canvas_id).set_line_join(join),
             Canvas2dMsg::SetMiterLimit(limit) => self.canvas(canvas_id).set_miter_limit(limit),
+            Canvas2dMsg::GetTransform(sender) => {
+                let transform = self.canvas(canvas_id).get_transform();
+                sender.send(transform).unwrap();
+            },
             Canvas2dMsg::SetTransform(ref matrix) => self.canvas(canvas_id).set_transform(matrix),
             Canvas2dMsg::SetGlobalAlpha(alpha) => self.canvas(canvas_id).set_global_alpha(alpha),
             Canvas2dMsg::SetGlobalComposition(op) => {
