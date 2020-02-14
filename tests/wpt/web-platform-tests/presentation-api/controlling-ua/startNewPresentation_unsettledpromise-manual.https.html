@@ -35,7 +35,7 @@
             var request1 = new PresentationRequest(presentationUrls),
                 request2 = new PresentationRequest(presentationUrls);
             request1.start().then(terminate, function(){});
-            return promise_rejects(t, 'OperationError', request2.start().then(terminate));
+            return promise_rejects_dom(t, 'OperationError', request2.start().then(terminate));
         });
     };
     // -----------------------------------------

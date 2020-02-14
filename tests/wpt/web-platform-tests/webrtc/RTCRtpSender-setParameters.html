@@ -23,7 +23,7 @@
     const param = sender.getParameters();
     transceiver.stop();
 
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       sender.setParameters(param));
   }, `setParameters() when transceiver is stopped should reject with InvalidStateError`);
 

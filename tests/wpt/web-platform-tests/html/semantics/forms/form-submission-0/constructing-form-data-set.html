@@ -113,4 +113,18 @@ t1.step(() => {
   });
   form.submit();
 });
+
+test(() => {
+  let form = populateForm('<input name=n1 value=v1><button type=submit name=n2 value=v2></button>');
+  let formDataInEvent = null;
+  let submitter = form.querySelector('button[type=submit]');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    formDataInEvent = new FormData(e.target);
+  });
+
+  submitter.click();
+  assert_equals(formDataInEvent.get('n1'), 'v1');
+  assert_false(formDataInEvent.has('n2'));
+}, 'The constructed FormData object should not contain an entry for the submit button that was used to submit the form.');
 </script>

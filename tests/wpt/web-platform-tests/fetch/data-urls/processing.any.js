@@ -6,7 +6,7 @@ function runDataURLTests(tests) {
           expectedBody = expectedMimeType !== null ? tests[i][2] : null;
     promise_test(t => {
       if(expectedMimeType === null) {
-        return promise_rejects(t, new TypeError(), fetch(input));
+        return promise_rejects_js(t, TypeError, fetch(input));
       } else {
         return fetch(input).then(res => {
           return res.arrayBuffer().then(body => {

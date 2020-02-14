@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS reference file: mapping of font-style:oblique to opentype 'slnt' axis</title>
+<style>
+@font-face {
+  font-family: test;
+  font-style: oblique 10deg;
+  src: url(resources/Inter.var.subset.ttf);
+}
+.test {
+  font: 32px/1.5 test;
+  font-variation-settings: 'slnt' -10;
+}
+</style>
+<body>
+<p>Test passes if all the following lines are displayed with a 10-degree rightward slant.</p>
+<div class="test">slant</div>
+<div class="test">slant</div>
+<div class="test">slant</div>
+<div class="test">slant</div>

@@ -24,7 +24,6 @@ module.exports = {
     assert_array_equals: true,
     assert_in_array: true,
     assert_unreached: true,
-    assert_throws: true,
     assert_idl_attribute: true,
     assert_own_property: true,
     assert_greater_than: true,

@@ -166,7 +166,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       "badDetails must cause acceptPromise to reject with expectedError"
     );
     // The request [[state]] is now "closed", so let's check for InvalidStateError
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       request.show(),

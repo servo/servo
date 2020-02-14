@@ -28,17 +28,17 @@ promise_test(async (test) => {
 
 promise_test((test) => {
     const remoteURL = notSameSiteBaseURL + "resources/hello.py?corp=same-origin";
-    return promise_rejects(test, new TypeError, fetch(remoteURL, { mode : "no-cors" }));
+    return promise_rejects_js(test, TypeError, fetch(remoteURL, { mode : "no-cors" }));
 }, "Cross-origin no-cors fetch with a 'Cross-Origin-Resource-Policy: same-origin' response header.");
 
 promise_test((test) => {
     const remoteURL = notSameSiteBaseURL + "resources/hello.py?corp=same-site";
-    return promise_rejects(test, new TypeError, fetch(remoteURL, { mode: "no-cors" }));
+    return promise_rejects_js(test, TypeError, fetch(remoteURL, { mode: "no-cors" }));
 }, "Cross-origin no-cors fetch with a 'Cross-Origin-Resource-Policy: same-site' response header.");
 
 promise_test((test) => {
     const finalURL = notSameSiteBaseURL + "resources/hello.py?corp=same-origin";
-    return promise_rejects(test, new TypeError, fetch("resources/redirect.py?redirectTo=" + encodeURIComponent(finalURL), { mode: "no-cors" }));
+    return promise_rejects_js(test, TypeError, fetch("resources/redirect.py?redirectTo=" + encodeURIComponent(finalURL), { mode: "no-cors" }));
 }, "Cross-origin no-cors fetch with a 'Cross-Origin-Resource-Policy: same-origin' response header after a redirection.");
 
 promise_test((test) => {
@@ -51,5 +51,5 @@ promise_test(async (test) => {
 
     await fetch(finalURL, { mode: "no-cors" });
 
-    return promise_rejects(test, new TypeError, fetch(notSameSiteBaseURL + "resources/redirect.py?corp=same-origin&redirectTo=" + encodeURIComponent(finalURL), { mode: "no-cors" }));
+    return promise_rejects_js(test, TypeError, fetch(notSameSiteBaseURL + "resources/redirect.py?corp=same-origin&redirectTo=" + encodeURIComponent(finalURL), { mode: "no-cors" }));
 }, "Cross-origin no-cors fetch with a 'Cross-Origin-Resource-Policy: same-origin' redirect response header.");

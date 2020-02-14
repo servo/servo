@@ -54,7 +54,7 @@
 
             // Test Quota + 1 Byte
             subsetTestByKey("fast", promise_test, function(test) {
-                return promise_rejects(test, TypeError(), fetchKeepAliveRequest(noDelay, expectedQuota + 1));
+                return promise_rejects_js(test, TypeError, fetchKeepAliveRequest(noDelay, expectedQuota + 1));
             }, 'A Keep-Alive fetch() with a body over the Quota Limit should reject.');
 
             // Test the Quota becomes available upon promise completion.
@@ -74,7 +74,7 @@
                 // Now create a single Byte request that will complete quicker.
                 const second = fetchKeepAliveRequest(standardDelay, 1 /* bodySize */).then(() => {
                     // We shouldn't be able to create a 2 Byte request right now as only 1 Byte should have freed up.
-                    return promise_rejects(test, TypeError(), fetchKeepAliveRequest(noDelay, 2 /* bodySize */));
+                    return promise_rejects_js(test, TypeError, fetchKeepAliveRequest(noDelay, 2 /* bodySize */));
                 }).then(() => {
                     // Now validate that we can send another Keep-Alive fetch for just 1 Byte.
                     return fetchKeepAliveRequest(noDelay, 1 /* bodySize */);
@@ -88,7 +88,7 @@
                 // Fill our Quota then try to send a second fetch.
                 const p = fetchKeepAliveRequest(standardDelay, expectedQuota);
 
-                const q = promise_rejects(test, TypeError(), fetchKeepAliveRequest(noDelay, 1 /* bodySize */));
+                const q = promise_rejects_js(test, TypeError, fetchKeepAliveRequest(noDelay, 1 /* bodySize */));
                 return Promise.all([p, q]);
             }, 'A Keep-Alive fetch() should not be allowed if the Quota is used up.');
 

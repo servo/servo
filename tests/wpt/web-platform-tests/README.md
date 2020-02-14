@@ -33,6 +33,9 @@ The most important sources of information and activity are:
   discussion is archived here](https://w3.logbot.info/testing)
 - [Mailing list](https://lists.w3.org/Archives/Public/public-test-infra/): a
   public and low-traffic discussion list
+- [RFCs](https://github.com/web-platform-tests/rfcs): a repo for requesting
+  comments on substantial changes that would impact other stakeholders or
+  users; people who work on WPT infra are encouraged to watch the repo.
 
 **If you'd like clarification about anything**, don't hesitate to ask in the
 chat room or on the mailing list.

@@ -5,7 +5,7 @@ import mock
 import hypothesis as h
 import hypothesis.strategies as hs
 
-import pytest
+from six import iteritems
 
 from .. import manifest, sourcefile, item, utils
 
@@ -18,7 +18,10 @@ if MYPY:
 
 def SourceFileWithTest(path, hash, cls, **kwargs):
     # type: (str, str, Type[item.ManifestItem], **Any) -> sourcefile.SourceFile
-    s = mock.Mock(rel_path=path, hash=hash)
+    rel_path_parts = tuple(path.split(os.path.sep))
+    s = mock.Mock(rel_path=path,
+                  rel_path_parts=rel_path_parts,
+                  hash=hash)
     if cls == item.SupportFile:
         test = cls("/foobar", path)
     else:
@@ -29,22 +32,13 @@ def SourceFileWithTest(path, hash, cls, **kwargs):
 
 def SourceFileWithTests(path, hash, cls, variants):
     # type: (str, str, Type[item.URLManifestItem], **Any) -> sourcefile.SourceFile
-    s = mock.Mock(rel_path=path, hash=hash)
+    rel_path_parts = tuple(path.split(os.path.sep))
+    s = mock.Mock(rel_path=path,
+                  rel_path_parts=rel_path_parts,
+                  hash=hash)
     tests = [cls("/foobar", path, "/", item[0], **item[1]) for item in variants]
     s.manifest_items = mock.Mock(return_value=(cls.item_type, tests))
     return s  # type: ignore
-
-
-@hs.composite
-def rel_dir_file_path(draw):
-    length = draw(hs.integers(min_value=1, max_value=20))
-    if length == 1:
-        return "a"
-    else:
-        remaining = length - 2
-        alphabet = "a" + os.path.sep
-        mid = draw(hs.text(alphabet=alphabet, min_size=remaining, max_size=remaining))
-        return os.path.normcase("a" + mid + "a")
 
 
 @hs.composite
@@ -54,26 +48,64 @@ def sourcefile_strategy(draw):
                     item.ConformanceCheckerTest, item.SupportFile]
     cls = draw(hs.sampled_from(item_classes))
 
-    path = draw(rel_dir_file_path())
-    hash = draw(hs.text(alphabet="0123456789abcdef", min_size=40, max_size=40))
-    s = mock.Mock(rel_path=path, hash=hash)
+    path = u"a"
+    rel_path_parts = tuple(path.split(os.path.sep))
+    hash = draw(hs.text(alphabet=u"0123456789abcdef", min_size=40, max_size=40))
+    s = mock.Mock(rel_path=path,
+                  rel_path_parts=rel_path_parts,
+                  hash=hash)
 
     if cls is item.RefTest:
-        ref_path = draw(rel_dir_file_path())
-        h.assume(path != ref_path)
+        ref_path = u"b"
         ref_eq = draw(hs.sampled_from(["==", "!="]))
         test = cls("/foobar", path, "/", utils.from_os_path(path), references=[(utils.from_os_path(ref_path), ref_eq)])
     elif cls is item.SupportFile:
         test = cls("/foobar", path)
     else:
-        test = cls("/foobar", path, "/", utils.from_os_path(path))
+        test = cls("/foobar", path, "/", "foobar")
 
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
 
 
-@h.given(hs.lists(sourcefile_strategy(),
-                  min_size=1, max_size=1000, unique_by=lambda x: x.rel_path))
+@hs.composite
+def manifest_tree(draw):
+    names = hs.text(alphabet=hs.characters(blacklist_characters=u"\0/\\:*\"?<>|"), min_size=1)
+    tree = hs.recursive(sourcefile_strategy(),
+                        lambda children: hs.dictionaries(names, children, min_size=1),
+                        max_leaves=10)
+
+    generated_root = draw(tree)
+    h.assume(isinstance(generated_root, dict))
+
+    reftest_urls = []
+    output = []
+    stack = [((k,), v) for k, v in iteritems(generated_root)]
+    while stack:
+        path, node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend((path + (k,), v) for k, v in iteritems(node))
+        else:
+            rel_path = os.path.sep.join(path)
+            node.rel_path = rel_path
+            node.rel_path_parts = tuple(path)
+            for test_item in node.manifest_items.return_value[1]:
+                test_item.path = rel_path
+                if isinstance(test_item, item.RefTest):
+                    if reftest_urls:
+                        possible_urls = hs.sampled_from(reftest_urls) | names
+                    else:
+                        possible_urls = names
+                    reference = hs.tuples(hs.sampled_from([u"==", u"!="]),
+                                          possible_urls)
+                    references = hs.lists(reference, min_size=1, unique=True)
+                    test_item.references = draw(references)
+                    reftest_urls.append(test_item.url)
+            output.append(node)
+
+    return output
+
+@h.given(manifest_tree())
 @h.example([SourceFileWithTest("a", "0"*40, item.ConformanceCheckerTest)])
 def test_manifest_to_json(s):
     m = manifest.Manifest()
@@ -87,9 +119,7 @@ def test_manifest_to_json(s):
 
     assert loaded.to_json() == json_str
 
-
-@h.given(hs.lists(sourcefile_strategy(),
-                  min_size=1, unique_by=lambda x: x.rel_path))
+@h.given(manifest_tree())
 @h.example([SourceFileWithTest("a", "0"*40, item.TestharnessTest)])
 @h.example([SourceFileWithTest("a", "0"*40, item.RefTest, references=[("/aa", "==")])])
 def test_manifest_idempotent(s):
@@ -107,62 +137,21 @@ def test_manifest_idempotent(s):
 def test_manifest_to_json_forwardslash():
     m = manifest.Manifest()
 
-    s = SourceFileWithTest("a/b", "0"*40, item.TestharnessTest)
+    s = SourceFileWithTest("a" + os.path.sep + "b", "0"*40, item.TestharnessTest)
 
     assert m.update([(s, True)]) is True
 
     assert m.to_json() == {
-        'paths': {
-            'a/b': ('0000000000000000000000000000000000000000', 'testharness')
-        },
-        'version': 7,
+        'version': 8,
         'url_base': '/',
         'items': {
-            'testharness': {
-                'a/b': [('a/b', {})]
-            }
+            'testharness': {'a': {'b': [
+                '0000000000000000000000000000000000000000',
+                (None, {})
+            ]}},
         }
     }
 
-
-@pytest.mark.skipif(os.sep != "\\", reason="backslash path")
-def test_manifest_to_json_backslash():
-    m = manifest.Manifest()
-
-    s = SourceFileWithTest("a\\b", "0"*40, item.TestharnessTest)
-
-    assert m.update([(s, True)]) is True
-
-    assert m.to_json() == {
-        'paths': {
-            'a/b': ('0000000000000000000000000000000000000000', 'testharness')
-        },
-        'version': 7,
-        'url_base': '/',
-        'items': {
-            'testharness': {
-                'a/b': [('a/b', {})]
-            }
-        }
-    }
-
-
-def test_manifest_from_json_backslash():
-    json_obj = {
-        'paths': {
-            'a\\b': ('0000000000000000000000000000000000000000', 'testharness')
-        },
-        'version': 7,
-        'url_base': '/',
-        'items': {
-            'testharness': {
-                'a\\b': [['a/b', {}]]
-            }
-        }
-    }
-
-    with pytest.raises(ValueError):
-        manifest.Manifest.from_json("/", json_obj)
 
 
 def test_reftest_computation_chain():
@@ -228,9 +217,7 @@ def test_no_update_delete():
 
     test1 = s1.manifest_items()[1][0]
 
-    s1_1 = SourceFileWithTest("test1", "1"*40, item.ManualTest)
-
-    m.update([(s1_1.rel_path, False)])
+    m.update([(s1.rel_path, False)])
 
     assert list(m) == [("testharness", test1.path, {test1})]
 
@@ -268,9 +255,10 @@ def test_update_from_json_modified():
     m.update([(s2, True)])
     json_str = m.to_json()
     assert json_str == {
-        'items': {'testharness': {'test1': [('test1', {"timeout": "long"})]}},
-        'paths': {'test1': ('1111111111111111111111111111111111111111',
-                            'testharness')},
+        'items': {'testharness': {'test1': [
+            "1"*40,
+            (None, {'timeout': 'long'})
+        ]}},
         'url_base': '/',
-        'version': 7
+        'version': 8
     }

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - fill/stroke inheritance.
+  Tests that fill and stroke colors are properly inherited from parent elements.
+</title>
+<style>
+  body {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  The triangle below should be red when forced colors mode is enabled and disabled.
+  <svg height="600" width="600">
+    <path fill="red" stroke="blue" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</body>

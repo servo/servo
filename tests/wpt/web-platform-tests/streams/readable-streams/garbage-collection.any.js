@@ -52,7 +52,7 @@ promise_test(t => {
   garbageCollect();
 
   return delay(50).then(() => controller.error(theError))
-                  .then(() => promise_rejects(t, theError, closedPromise));
+                  .then(() => promise_rejects_exactly(t, theError, closedPromise));
 
 }, 'ReadableStream closed promise should reject even if stream and reader JS references are lost');
 

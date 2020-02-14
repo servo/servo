@@ -67,7 +67,7 @@ function ng_test(url, mode, credentials) {
       return login_and_register
         .then(function(frame) {
             var fetchRequest = frame_fetch(frame, url, mode, credentials);
-            return promise_rejects(t, new TypeError(), fetchRequest);
+            return promise_rejects_js(t, frame.contentWindow.TypeError, fetchRequest);
           });
     }, 'url:\"' + url + '\" mode:\"' + mode +
        '\" credentials:\"' + credentials + '\" should fail.');

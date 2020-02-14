@@ -9507,6 +9507,11 @@
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert offscreenCanvas2.getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert offscreenCanvas2.getContext('2d', 123) !== null;
+    @assert offscreenCanvas2.getContext('2d', "test") !== null;
+    @assert offscreenCanvas2.getContext('2d', undefined) !== null;
+    @assert offscreenCanvas2.getContext('2d', null) !== null;
+    @assert offscreenCanvas2.getContext('2d', Symbol.hasInstance) !== null;
     t.done();
 
 - name: 2d.getcontext.unique

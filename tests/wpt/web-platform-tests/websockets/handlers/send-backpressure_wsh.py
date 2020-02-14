@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import six
 import time
 
 # The amount of internal buffering a WebSocket connection has is not
@@ -22,4 +23,4 @@ def web_socket_transfer_data(request):
     # 3 is complete. time.time() can go backwards.
     start_time = time.time()
     request.ws_stream.send_message(b' ' * MESSAGE_SIZE, binary=True)
-    request.ws_stream.send_message(str(time.time() - start_time), binary=False)
+    request.ws_stream.send_message(six.text_type(time.time() - start_time), binary=False)

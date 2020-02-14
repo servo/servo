@@ -11,7 +11,7 @@
 test(function(t) {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
-  assert_throws(new RangeError(), () => pc.addTransceiver('video', {
+  assert_throws_js(RangeError, () => pc.addTransceiver('video', {
     sendEncodings: [{
       maxFramerate: -10
     }]

@@ -30,7 +30,7 @@
         const member = i.members[0];
         assert_true(member.isUnscopable);
         mock_interface_A({});
-        // assert_throws can't be used because it rethrows AssertionErrors.
+        // assert_throws_* can't be used because they rethrow AssertionErrors.
         try {
             i.do_member_unscopable_asserts(member);
         } catch(e) {

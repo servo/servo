@@ -58,9 +58,9 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  const p1 = promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error');
+  const p1 = promise_rejects_exactly(t, error1, writer.write('a'), 'write should reject with the thrown error');
 
-  const p2 = promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
+  const p2 = promise_rejects_exactly(t, error1, writer.closed, 'closed should reject with the thrown error');
 
   return Promise.all([p1, p2]);
 }, 'Writable stream: throwing strategy.size method');

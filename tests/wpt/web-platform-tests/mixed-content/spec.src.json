@@ -29,6 +29,24 @@
           "expectation": "blocked"
         },
         {
+          "name": "opt-in-blocks-redirects",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "opt-in",
+          "redirection": "swap-scheme",
+          "subresource": {
+            "blockable": [],
+            "optionally-blockable": "*"
+          },
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "expectation": "blocked"
+        },
+        {
           "name": "no-opt-in-allows",
           "expansion": "default",
           "source_scheme": "https",
@@ -69,6 +87,24 @@
           "origin": [
             "cross-http",
             "same-http"
+          ],
+          "expectation": "blocked"
+        },
+        {
+          "name": "opt-in-blocks-redirects",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "opt-in",
+          "redirection": "swap-scheme",
+          "subresource": {
+            "blockable": "*",
+            "optionally-blockable": []
+          },
+          "origin": [
+            "same-https",
+            "cross-https"
           ],
           "expectation": "blocked"
         },
@@ -257,7 +293,15 @@
         "http-rp"
       ],
       "worker-classic-data": [],
-      "worker-module-data": []
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        "http-rp"
+      ],
+      "sharedworker-module": [
+        "http-rp"
+      ],
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
     },
     "supported_subresource": {
       "top": "*",
@@ -283,6 +327,26 @@
         "xhr",
         "fetch",
         "websocket"
+      ],
+      "sharedworker-classic": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-module": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-classic-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-module-data": [
+        "xhr",
+        "fetch",
+        "websocket"
       ]
     }
   },
@@ -294,6 +358,9 @@
       "worker-classic": [],
       "worker-module": [],
       "worker-import-data": [],
+      "sharedworker-classic": [],
+      "sharedworker-module": [],
+      "sharedworker-import-data": [],
       "worklet-animation": [],
       "worklet-audio": [],
       "worklet-layout": [],
@@ -356,6 +423,36 @@
         }
       ],
       "subresourcePolicyDeliveries": []
+    },
+    "sharedworker-classic-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-classic-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "sharedworker-module-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-module-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
     }
   },
   "test_expansion_schema": {
@@ -378,7 +475,9 @@
     "source_context_list": [
       "top",
       "worker-classic-data",
-      "worker-module-data"
+      "worker-module-data",
+      "sharedworker-classic-data",
+      "sharedworker-module-data"
     ],
     "redirection": [
       "no-redirect",
@@ -403,6 +502,9 @@
         "worker-classic",
         "worker-module",
         "worker-import-data",
+        "sharedworker-classic",
+        "sharedworker-module",
+        "sharedworker-import-data",
         "worklet-animation",
         "worklet-audio",
         "worklet-layout",

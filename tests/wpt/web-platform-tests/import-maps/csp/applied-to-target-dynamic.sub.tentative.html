@@ -14,7 +14,7 @@
 </script>
 <script>
 promise_test(t => {
-    return promise_rejects(t, TypeError(),
+    return promise_rejects_js(t, TypeError,
                            import('../resources/log.js?pipe=sub&name=A'),
                            'Dynamic import should fail');
   }, 'The URL after mapping violates CSP (but not the URL before mapping)');

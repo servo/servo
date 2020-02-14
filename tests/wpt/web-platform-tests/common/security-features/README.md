@@ -1,5 +1,3 @@
-
-
 This directory contains the common infrastructure for the following tests (also referred below as projects).
 
 - referrer-policy/
@@ -25,7 +23,7 @@ Subdirectories:
 
 # Test generator
 
-The test generator (`common/security-features/tools`) generates test HTML files from templates and a seed (`spec.src.json`) that defines all the test scenarios.
+The test generator ([common/security-features/tools/generate.py](tools/generate.py)) generates test HTML files from templates and a seed (`spec.src.json`) that defines all the test scenarios.
 
 The project (i.e. a WPT subdirectory, for example `referrer-policy/`) that uses the generator should define per-project data and invoke the common generator logic in `common/security-features/tools`.
 
@@ -157,12 +155,15 @@ For updating the test suites you will most likely do **a subset** of the followi
 
 * Regenerate the tests and MANIFEST.json
 
+## How the generator works
 
-## The spec JSON format
+This section describes how `spec.src.json` is turned into scenario data in test HTML files which are then processed by JavaScript test helpers and server-side scripts, and describes the objects/types used in the process.
 
-For examples of spec JSON files, see [referrer-policy/spec.src.json](../../referrer-policy/spec.src.json) or  [mixed-content/spec.src.json](../../mixed-content/spec.src.json).
+### The spec JSON
 
-### Main sections
+`spec.src.json` is the input for the generator that defines what to generate. For examples of spec JSON files, see [referrer-policy/spec.src.json](../../referrer-policy/spec.src.json) or  [mixed-content/spec.src.json](../../mixed-content/spec.src.json).
+
+#### Main sections
 
 * **`specification`**
 
@@ -188,10 +189,11 @@ For examples of spec JSON files, see [referrer-policy/spec.src.json](../../refer
 
 * **`source_context_list_schema`**
 
-  Provides possible nested combinations of source contexts. See [Source Contexts](#source-contexts) section below for details.
+  Provides possible nested combinations of source contexts. See [SourceContexts Resolution](#sourcecontexts-resolution) section below for details.
 
-### Test Expansion Patterns
+### Test Expansion Pattern Object
 
+Test expansion patterns (`test_expansion`s in `specification` section) define the combinations of test configurations (*selections*) to be generated.
 Each field in a test expansion can be in one of the following formats:
 
 * Single match: ```"value"```
@@ -200,138 +202,246 @@ Each field in a test expansion can be in one of the following formats:
 
 * Match all: ```"*"```
 
+The following fields have special meaning:
 
-**NOTE:** An expansion is always constructive (inclusive), there isn't a negation operator for explicit exclusion. Be aware that using an empty list ```[]``` matches (expands into) exactly nothing. Tests which are to be excluded should be defined in the ```excluded_tests``` section instead.
+- **`name`**: just ignored. (Previously this was used as a part of filenames but now this is merely a label for human and is never used by generator. This field might be removed in the future (https://github.com/web-platform-tests/wpt/issues/21708))
+- **`expansion`**: if there is more than one pattern expanding into a same selection, the pattern appearing later in the spec JSON will overwrite a previously generated selection. To make clear this is intentional, set the value of the ```expansion``` field to ```default``` for an expansion appearing earlier and ```override``` for the one appearing later.
 
-A single test expansion pattern, be it a requirement or a suppressed pattern, gets expanded into a list of **selections** as follows:
+For example a test expansion pattern (taken from [referrer-policy/spec.src.json](../../referrer-policy/spec.src.json), sorted/formatted for explanation):
+
+```json
+{
+  "name": "insecure-protocol",
+  "expansion": "default",
+
+  "delivery_type": "*",
+  "delivery_value": "no-referrer-when-downgrade",
+  "source_context_list": "*",
+
+  "expectation": "stripped-referrer",
+  "origin": ["same-http", "cross-http"],
+  "redirection": "*",
+  "source_scheme": "http",
+  "subresource": "*"
+}
+```
+
+means: "All combinations with all possible `delivery_type`,  `delivery_value`=`no-referrer-when-downgrade`, all possible `source_context_list`, `expectation`=`stripped-referrer`, `origin`=`same-http` or `cross-http`,  all possible `redirection`, `source_scheme`=`http`, and all possible `subresource`.
+
+### Selection Object
+
+A selection is an object that defines a single test, with keys/values from `test_expansion_schema`.
+
+A single test expansion pattern gets expanded into a list of selections as follows:
 
 * Expand each field's pattern (single, any of, or all) to list of allowed values (defined by the ```test_expansion_schema```)
 
-* Permute - Recursively enumerate all **selections** across all fields
+* Permute - Recursively enumerate all selections across all fields
 
-Be aware that if there is more than one pattern expanding into a same selection, the pattern appearing later in the spec JSON will overwrite a previously generated selection. To make sure this is not undetected when generating, set the value of the ```expansion``` field to ```default``` for an expansion appearing earlier and ```override``` for the one appearing later.
+The following field has special meaning:
 
-A **selection** is a single **test instance** (scenario) with explicit values that defines a single test. The scenario is then evaluated by the ```TestCase``` in JS. For the rest of the arranging part, examine ```/common/security-features/tools/generate.py``` to see how the values for the templates are produced.
+- **`delivery_key`**: This doesn't exist in test expansion patterns, and instead is taken from `delivery_key` field of the spec JSON and added into selections. (TODO(https://github.com/web-platform-tests/wpt/issues/21708): probably this should be added to test expansion patterns to remove this special handling)
 
+For example, the test expansion in the example above generates selections like the following selection (which eventually generates [this test file](../../referrer-policy/gen/worker-classic.http-rp/no-referrer-when-downgrade/fetch/same-http.no-redirect.http.html )):
+
+```json
+{
+  "delivery_type": "http-rp",
+  "delivery_key": "referrerPolicy",
+  "delivery_value": "no-referrer-when-downgrade",
+  "source_context_list": "worker-classic",
+
+  "expectation": "stripped-referrer",
+  "origin": "same-http",
+  "redirection": "no-redirect",
+  "source_scheme": "http",
+  "subresource": "fetch"
+}
+```
+
+### Excluding Test Expansion Patterns
+
+The ```excluded_tests``` section have objects with the same format as [Test Expansion Patterns](#test-expansion-patterns) that define selections to be excluded.
 
 Taking the spec JSON, the generator follows this algorithm:
 
-* Expand all ```excluded_tests``` to create a blocklist of selections
+* Expand all ```excluded_tests``` to create a blacklist of selections
 
-* For each specification requirement: Expand the ```test_expansion``` pattern into selections and check each against the blocklist, if not marked as suppresed, generate the test resources for the selection
+* For each `specification` entries: Expand the ```test_expansion``` pattern into selections and check each against the blacklist, if not marked as suppresed, generate the test resources for the selection
 
+###  SourceContext Resolution
 
-### Source Contexts
+The `source_context_list_schema` section of `spec.src.json` defines templates of policy deliveries and source contexts.
+The `source_context_list` value in a selection specifies the key of the template to be used in `source_context_list_schema`, and the following fields in the selection are filled into the template (these three values define the **target policy delivery** to be tested):
 
-In **`source_context_list_schema`**, we can specify
+- `delivery_type`
+- `delivery_key`
+- `delivery_value`
 
-- source contexts from where subresource requests are sent, and
-- how policies are delivered, by source contexts and/or subresource requests.
+#### Source Context List Schema
 
-- `sourceContextList`: an array of `SourceContext` objects, and
-- `subresourcePolicyDeliveries`: an array of `PolicyDelivery` objects.
+Each entry of **`source_context_list_schema`**, defines a single template of how/what policies to be delivered in what source contexts (See also [PolicyDelivery](types.md#policydelivery) and [SourceContext](types.md#sourcecontext)).
 
-They have the same object format as described in
-`common/security-features/resources/common.js` comments, and are directly
-serialized to generated HTML files and passed to JavaScript test code,
-except that:
+- The key: the name of the template which matches with the `source_context_list` value in a selection.
+- `sourceContextList`: an array of `SourceContext` objects that represents a (possibly nested) context.
+    - `sourceContextType` of the first entry of `sourceContextList` should be always `"top"`, which represents the top-level generated test HTML. This entry is omitted in the scenario JSON object passed to JavaScript runtime, but the policy deliveries specified here are handled by the generator, e.g. written as `<meta>` elements in the generated test HTML.
+- `subresourcePolicyDeliveries`: an array of `PolicyDelivery` objects that represents policies specified at subresource requests (e.g. `referrerPolicy` attribute of `<img>` elements).
 
-- The first entry of `sourceContextList`'s `sourceContextType` should be
-  always `top`, which represents the top-level generated test HTML.
-  (This entry is omitted in the JSON passed to JavaScript, but
-  the policy deliveries specified here are written as e.g.
-  `<meta>` elements in the generated test HTML or HTTP headers)
-- Instead of `PolicyDelivery` object (in `sourceContextList` or
-  `subresourcePolicyDeliveries`), following placeholder strings can be used.
+#### PolicyDelivery placeholders
 
-The keys of `source_context_list_schema` can be used as the values of
-`source_context_list` fields, to indicate which source context configuration
-to be used.
-
-### PolicyDelivery placeholders
-
-Each test contains
-
-- `delivery_key` (derived from the top-level `delivery_key`) and
-- `delivery_value`, `delivery_type` (derived from `test_expansion`),
-
-which represents the **target policy delivery**, the policy delivery to be
-tested.
-
-The following placeholder strings in `source_context_list_schema` can be used:
+Instead to ordinal `PolicyDelivery` objects, the following placeholder strings can be used in `sourceContextList` or `subresourcePolicyDeliveries`.
 
 - `"policy"`:
     - Replaced with the target policy delivery.
-    - Can be used to specify where the target policy delivery should be
-      delivered.
 - `"policyIfNonNull"`:
-    - Replaced with the target policy delivery, only if it has non-null value.
-      If the value is null, then the test file is not generated.
+    - Replaced with the target policy delivery, only if `delivery_value` is not `null`.
+      If `delivery_value` is `null`, then the test is not generated.
 - `"anotherPolicy"`:
     - Replaced with a `PolicyDelivery` object that has a different value from
       the target policy delivery.
     - Can be used to specify e.g. a policy that should be overridden by
       the target policy delivery.
 
-For example, when the target policy delivery is
-`{deliveryType: "http-rp", key: "referrerPolicy", value: "no-referrer"}`,
-
-```json
-"sourceContextList": [
-  {
-    "sourceContextType": "top",
-    "policyDeliveries": [
-      "anotherPolicy"
-    ]
-  },
-  {
-    "sourceContextType": "classic-worker",
-    "policyDeliveries": [
-      "policy"
-    ]
-  }
-]
-```
-
-is replaced with
-
-```json
-"sourceContextList": [
-  {
-    "sourceContextType": "top",
-    "policyDeliveries": [
-      {
-        "deliveryType": "meta",
-        "key": "referrerPolicy",
-        "value": "unsafe-url"
-      }
-    ]
-  },
-  {
-    "sourceContextType": "classic-worker",
-    "policyDeliveries": [
-      {
-        "deliveryType": "http-rp",
-        "key": "referrerPolicy",
-        "value": "no-referrer"
-      }
-    ]
-  }
-]
-```
-
-which indicates
-
-- The top-level Document has `<meta name="referrer" content="unsafe-url">`.
-- The classic worker is created with
-  `Referrer-Policy: no-referrer` HTTP response headers.
-
-### `source_context_schema` and `subresource_schema`
+#### `source_context_schema` and `subresource_schema`
 
 These represent supported delivery types and subresources
 for each source context or subresource type. These are used
 
 - To filter out test files for unsupported combinations of delivery types,
-  source contexts and subresources.
-- To determine what delivery types should be used for `anotherPolicy`
+  source contexts and subresources during SourceContext resolution.
+- To determine what delivery types can be used for `anotherPolicy`
   placeholder.
+
+#### Example
+
+For example, the following entry in `source_context_list_schema`:
+
+```json
+"worker-classic": {
+  "sourceContextList": [
+    {
+      "sourceContextType": "top",
+      "policyDeliveries": [
+        "anotherPolicy"
+      ]
+    },
+    {
+      "sourceContextType": "worker-classic",
+      "policyDeliveries": [
+        "policy"
+      ]
+    }
+  ],
+  "subresourcePolicyDeliveries": []
+}
+```
+
+Defines a template to be instantiated with `delivery_key`, `delivery_type` and `delivery_value` values defined outside `source_context_list_schema`, which reads:
+
+- A classic `WorkerGlobalScope` is created under the top-level Document, and has a policy defined by `delivery_key`, `delivery_type` and `delivery_value`.
+- The top-level Document has a policy different from the policy given to the classic worker (to confirm that the policy of the classic worker, not of the top-level Document, is used).
+- The subresource request is sent from the classic `WorkerGlobalScope`, with no additional policies specified at the subresource request.
+
+And when filled with the following values from a selection:
+
+- `delivery_type`: `"http-rp"`
+- `delivery_key`: `"referrerPolicy"`
+- `delivery_value`: `"no-referrer-when-downgrade"`
+
+This becomes:
+
+```json
+"worker-classic": {
+  "sourceContextList": [
+    {
+      "sourceContextType": "top",
+      "policyDeliveries": [
+        {
+          "deliveryType": "meta",
+          "key": "referrerPolicy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "sourceContextType": "worker-classic",
+      "policyDeliveries": [
+        {
+          "deliveryType": "http-rp",
+          "key": "referrerPolicy",
+          "value": "no-referrer-when-downgrade"
+        }
+      ]
+    }
+  ],
+  "subresourcePolicyDeliveries": []
+}
+```
+
+which means
+
+- The top-level Document has `<meta name="referrer" content="no-referrer">`.
+- The classic worker is created with
+  `Referrer-Policy: no-referrer-when-downgrade` HTTP response headers.
+
+### Scenario Object
+
+The **scenario** object is the JSON object written to the generated HTML files, and passed to JavaScript test runtime (as an argument of `TestCase`).
+A scenario object is an selection object, minus the keys used in [SourceContext Resolution](#sourceContext-resolution):
+
+- `source_context_list`
+- `delivery_type`
+- `delivery_key`
+- `delivery_value`
+
+plus the keys instantiated by [SourceContext Resolution](#sourceContext-resolution):
+
+- `source_context_list`, except for the first `"top"` entry.
+- `subresource_policy_deliveries`
+
+For example:
+
+```json
+{
+  "source_context_list": [
+    {
+      "sourceContextType": "worker-classic",
+      "policyDeliveries": [
+        {
+          "deliveryType": "http-rp",
+          "key": "referrerPolicy",
+          "value": "no-referrer-when-downgrade"
+        }
+      ]
+    }
+  ],
+  "subresource_policy_deliveries": [],
+
+  "expectation": "stripped-referrer",
+  "origin": "same-http",
+  "redirection": "no-redirect",
+  "source_scheme": "http",
+  "subresource": "fetch"
+}
+```
+
+### TopLevelPolicyDelivery Object
+
+The ***TopLevelPolicyDelivery** object is the first `"top"` entry of `SourceContextList` instantiated by [SourceContext Resolution](#sourceContext-resolution), which represents the policy delivery of the top-level HTML Document.
+
+The generator generates `<meta>` elements and `.headers` files of the top-level HTML files from the TopLevelPolicyDelivery object.
+
+This is handled separately by the generator from other parts of selection objects and scenario objects, because the `<meta>` and `.headers` are hard-coded directly to the files in the WPT repository, while policies of subcontexts are generated via server-side `common/security-features/scope` scripts.
+
+TODO(https://github.com/web-platform-tests/wpt/issues/21710): Currently the name `TopLevelPolicyDelivery` doesn't appear in the code.
+
+## How the test runtime works
+
+All the information needed at runtime is contained in an scenario object. See the code/comments of the following files.
+
+- `project-directory/generic/test-case.js` defines `TestCase`, the entry point that receives a scenario object. `resources/common.sub.js` does the most of common JavaScript work.
+    - Subresource URLs (which point to `subresource/` scripts) are calculated from `origin` and `redirection` values.
+    - Initiating fetch requests based on `subresource` and `subresource_policy_deliveries`.
+- `scope/` server-side scripts serve non-toplevel contexts, while the top-level Document is generated by the generator.
+   TODO(https://github.com/web-platform-tests/wpt/issues/21709): Merge the logics of `scope/` and the generator.
+- `subresource/` server-side scripts serve subresource responses.

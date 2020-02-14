@@ -8,6 +8,6 @@ test_bad_imports((name, error, build, ...args) => {
     build(builder);
     const buffer = builder.toBuffer();
     const response = new Response(buffer, { "headers": { "Content-Type": "application/wasm" } });
-    return promise_rejects(t, error, WebAssembly.instantiateStreaming(response, ...args));
+    return promise_rejects_js(t, error, WebAssembly.instantiateStreaming(response, ...args));
   }, name);
 });

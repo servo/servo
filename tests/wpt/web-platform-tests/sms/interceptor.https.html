@@ -119,7 +119,7 @@ promise_test(async t => {
   const signal = controller.signal;
 
   controller.abort();
-  await promise_rejects(t, 'AbortError', navigator.sms.receive({signal}));
+  await promise_rejects_dom(t, 'AbortError', navigator.sms.receive({signal}));
 }, 'Should abort request');
 
 promise_test(async t => {
@@ -128,7 +128,7 @@ promise_test(async t => {
 
   let error = navigator.sms.receive({signal});
   controller.abort();
-  await promise_rejects(t, 'AbortError', error);
+  await promise_rejects_dom(t, 'AbortError', error);
 }, 'Should abort request even while request is in progress.');
 
 </script>

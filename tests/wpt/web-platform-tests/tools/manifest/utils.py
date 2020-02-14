@@ -103,4 +103,5 @@ class cached_property(Generic[T]):
         # we can unconditionally assign as next time this won't be called
         assert self.name not in obj.__dict__
         rv = obj.__dict__[self.name] = self.func(obj)
+        obj.__dict__.setdefault("__cached_properties__", set()).add(self.name)
         return rv

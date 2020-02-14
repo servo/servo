@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<head>
+  <title>Below-viewport loading=lazy not-rendered images should never load,
+         even when scrolled into view</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <!-- These images must not attempt to load when scrolled into the
+       viewport -->
+  <img id="display_none" style="display:none;" src="resources/image.png?2" loading="lazy"
+       onload="display_none_img.resolve();" onerror="display_none_img.reject();">
+  <img id="attribute_hidden" hidden src="resources/image.png?3" loading="lazy"
+       onload="attribute_hidden_img.resolve();" onerror="attribute_hidden_img.reject();">
+  <img id="js_display_none" src="resources/image.png?4" loading="lazy"
+       onload="js_display_none_img.resolve();" onerror="js_display_none_img.reject();">
+  <script>
+    document.getElementById("js_display_none").style = 'display:none;';
+  </script>
+
+  <!-- Later in the test we'll scroll to this div, instead of the above images,
+       since due to them not being rendered, they cannot be scrolled to -->
+  <div id="rendered_div"></div>
+</body>
+
+<script>
+  const display_none_img = new ElementLoadPromise("display_none");
+  const attribute_hidden_img = new ElementLoadPromise("attribute_hidden");
+  const js_display_none_img = new ElementLoadPromise("js_display_none");
+  const rendered_div_element = document.querySelector('#rendered_div');
+
+  async_test(t => {
+    window.addEventListener("load", t.step_func(() => {
+      rendered_div.scrollIntoView();
+    }));
+
+    const unreached_not_rendered_img_func =
+      t.unreached_func("The not-rendered below-viewport loading=lazy images " +
+                       "should not attempt to load.");
+
+    display_none_img.promise
+      .then(unreached_not_rendered_img_func)
+      .catch(unreached_not_rendered_img_func);
+
+    attribute_hidden_img.promise
+      .then(unreached_not_rendered_img_func)
+      .catch(unreached_not_rendered_img_func);
+
+    js_display_none_img.promise
+      .then(unreached_not_rendered_img_func)
+      .catch(unreached_not_rendered_img_func);
+
+    // If none of the above images load after being scrolled to within the below
+    // timeout, the test passes.
+    t.step_timeout(t.done, 2000);
+  }, "Below-viewport loading=lazy not-rendered images should never load, " +
+     "even when scrolled into view");
+</script>
+

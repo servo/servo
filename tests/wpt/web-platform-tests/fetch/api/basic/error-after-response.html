@@ -14,7 +14,7 @@ function checkReader(test, reader, promiseToTest)
 {
     return reader.read().then((value) => {
         validateBufferFromString(value.value, "TEST_CHUNK", "Should receive first chunk");
-        return promise_rejects(test, new TypeError(), promiseToTest(reader));
+        return promise_rejects_js(test, TypeError, promiseToTest(reader));
     });
 }
 

@@ -1,5 +1,5 @@
 directory_test(async (t, dir) => {
-  await promise_rejects(t, 'NotFoundError', dir.getFile('non-existing-file'));
+  await promise_rejects_dom(t, 'NotFoundError', dir.getFile('non-existing-file'));
 }, 'getFile(create=false) rejects for non-existing files');
 
 directory_test(async (t, dir) => {
@@ -41,34 +41,34 @@ directory_test(async (t, dir) => {
   const dir_handle = await dir.getDirectory('dir-name', {create: true});
   t.add_cleanup(() => dir.removeEntry('dir-name', {recursive: true}));
 
-  await promise_rejects(t, 'TypeMismatchError', dir.getFile('dir-name'));
+  await promise_rejects_dom(t, 'TypeMismatchError', dir.getFile('dir-name'));
 }, 'getFile(create=false) when a directory already exists with the same name');
 
 directory_test(async (t, dir) => {
   const dir_handle = await dir.getDirectory('dir-name', {create: true});
   t.add_cleanup(() => dir.removeEntry('dir-name', {recursive: true}));
 
-  await promise_rejects(
+  await promise_rejects_dom(
       t, 'TypeMismatchError', dir.getFile('dir-name', {create: true}));
 }, 'getFile(create=true) when a directory already exists with the same name');
 
 directory_test(async (t, dir) => {
-  await promise_rejects(t, new TypeError(), dir.getFile('', {create: true}));
-  await promise_rejects(t, new TypeError(), dir.getFile('', {create: false}));
+  await promise_rejects_js(t, TypeError, dir.getFile('', {create: true}));
+  await promise_rejects_js(t, TypeError, dir.getFile('', {create: false}));
 }, 'getFile() with empty name');
 
 directory_test(async (t, dir) => {
-  await promise_rejects(t, new TypeError(), dir.getFile(kCurrentDirectory));
-  await promise_rejects(
-      t, new TypeError(), dir.getFile(kCurrentDirectory, {create: true}));
+  await promise_rejects_js(t, TypeError, dir.getFile(kCurrentDirectory));
+  await promise_rejects_js(
+      t, TypeError, dir.getFile(kCurrentDirectory, {create: true}));
 }, `getFile() with "${kCurrentDirectory}" name`);
 
 directory_test(async (t, dir) => {
   const subdir = await createDirectory(t, 'subdir-name', /*parent=*/ dir);
 
-  await promise_rejects(t, new TypeError(), subdir.getFile(kParentDirectory));
-  await promise_rejects(
-      t, new TypeError(), subdir.getFile(kParentDirectory, {create: true}));
+  await promise_rejects_js(t, TypeError, subdir.getFile(kParentDirectory));
+  await promise_rejects_js(
+      t, TypeError, subdir.getFile(kParentDirectory, {create: true}));
 }, `getFile() with "${kParentDirectory}" name`);
 
 directory_test(async (t, dir) => {
@@ -81,8 +81,8 @@ directory_test(async (t, dir) => {
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator =
         `${subdir_name}${kPathSeparators[i]}${file_name}`;
-    await promise_rejects(
-        t, new TypeError(), dir.getFile(path_with_separator),
+    await promise_rejects_js(
+        t, TypeError, dir.getFile(path_with_separator),
         `getFile() must reject names containing "${kPathSeparators[i]}"`);
   }
 }, 'getFile(create=false) with a path separator when the file exists.');
@@ -93,8 +93,8 @@ directory_test(async (t, dir) => {
 
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;
-    await promise_rejects(
-        t, new TypeError(), dir.getFile(path_with_separator, {create: true}),
+    await promise_rejects_js(
+        t, TypeError, dir.getFile(path_with_separator, {create: true}),
         `getFile(true) must reject names containing "${kPathSeparators[i]}"`);
   }
 }, 'getFile(create=true) with a path separator');

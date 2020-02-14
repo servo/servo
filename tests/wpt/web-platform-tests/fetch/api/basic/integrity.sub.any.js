@@ -20,7 +20,7 @@ function integrity(desc, url, integrity, initRequestMode, shouldPass) {
     }, desc);
   } else {
     promise_test(function(test) {
-      return promise_rejects(test, new TypeError(), fetch(url, fetchRequestInit));
+      return promise_rejects_js(test, TypeError, fetch(url, fetchRequestInit));
     }, desc);
   }
 }

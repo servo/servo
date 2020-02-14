@@ -15,9 +15,13 @@ async_test(t => {
     speechSynthesis.speak(utter);
     // the spec doesn't say what exception to throw:
     // https://github.com/w3c/speech-api/issues/8
-    assert_throws(null, () => {
+    let threw = false;
+    try {
       iframe.contentWindow.speechSynthesis.speak(utter);
-    });
+    } catch (e) {
+      threw = true;
+    }
+    assert_true(threw);
   }));
 }, 'Using the same SpeechSynthesisUtterance with two SpeechSynthesis instances');
 </script>

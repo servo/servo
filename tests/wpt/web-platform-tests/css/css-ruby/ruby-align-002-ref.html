@@ -8,20 +8,21 @@
 <style>
   ruby { line-height: 0; }
   rt { font-size: 100%; }
+  rb { font-size: 0; }
   rt > div { width: 160px; box-sizing: border-box; }
 </style>
 <body style="font: 16px/3 Ahem">
 <ruby>
-  <rt><div>X X X</div></rt>
+  <rb></rb><rt><div>X X X</div></rt>
 </ruby><br>
 <ruby>
-  <rt><div style="text-align: center">X X X</div></rt>
+  <rb></rb><rt><div style="text-align: center">X X X</div></rt>
 </ruby><br>
 <ruby>
-  <rt><div style="text-align-last: justify">X X X</div></rt>
+  <rb></rb><rt><div style="text-align-last: justify">X X X</div></rt>
 </ruby><br>
 <!-- 8px = (width: 160px - 5 * font-size: 16px) /
             (1 + justification opportunities: 4) / 2 -->
 <ruby>
-  <rt><div style="text-align-last: justify; padding: 0 8px">X X X</div></rt>
+  <rb></rb><rt><div style="text-align-last: justify; padding: 0 8px">X X X</div></rt>
 </ruby>

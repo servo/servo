@@ -6,12 +6,12 @@
   <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/border-color/001.html" type="text/html"/>
   <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/border-color/001.xml" type="application/xhtml+xml"/>
   <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+  <link rel="help" href="https://drafts.csswg.org/css-color/#resolving-color-values" />
   <link rel="match" href="border-color-011-ref.xht" />
-
+  <meta name="assert" content="The initial value of border-color is 'currentColor', which (as of css-color-3) is inherited as a keyword." />
   <style type="text/css">
-   .test { display: block; color: green; border: none; }
-   .test .inner { border-color: inherit; border-style: solid; color: red; }
-   .test .inner .text { color: green; }
+   .test { display: block; color: red; border: none; }
+   .test .inner { border-color: inherit; border-style: solid; color: green; }
   </style>
  </head>
  <body>
@@ -19,8 +19,8 @@
    <div class="inner">
     <div class="text">
      This should have a green border, because the computed value of
-     'border-color' set to its initial value is the computed value
-     of 'color', which is then inherited as a color.
+     'border-color' set to its initial value is 'currentColor', which
+     refers to the color on the current element.
     </div>
    </div>
   </div>

@@ -195,7 +195,7 @@ promise_test(t => {
   controller.close();
 
   return Promise.all([
-    promise_rejects(t, new TypeError(), reader1.closed),
+    promise_rejects_js(t, TypeError, reader1.closed),
     reader2.closed
   ]);
 
@@ -270,7 +270,7 @@ promise_test(t => {
   });
 
   return Promise.all([
-    promise_rejects(t, new TypeError(), cancelPromise),
+    promise_rejects_js(t, TypeError, cancelPromise),
     readPromise
   ]);
 
@@ -291,8 +291,8 @@ promise_test(t => {
   const reader1 = rs.getReader();
 
   promiseAsserts.push(
-    promise_rejects(t, theError, reader1.closed),
-    promise_rejects(t, theError, reader1.read())
+    promise_rejects_exactly(t, theError, reader1.closed),
+    promise_rejects_exactly(t, theError, reader1.read())
   );
 
   assert_throws_js(TypeError, () => rs.getReader(), 'trying to get another reader before erroring should throw');
@@ -304,8 +304,8 @@ promise_test(t => {
   const reader2 = rs.getReader();
 
   promiseAsserts.push(
-    promise_rejects(t, theError, reader2.closed),
-    promise_rejects(t, theError, reader2.read())
+    promise_rejects_exactly(t, theError, reader2.closed),
+    promise_rejects_exactly(t, theError, reader2.read())
   );
 
   return Promise.all(promiseAsserts);
@@ -362,7 +362,7 @@ promise_test(t => {
     }
   });
 
-  const promise = promise_rejects(t, theError, rs.getReader().closed);
+  const promise = promise_rejects_exactly(t, theError, rs.getReader().closed);
 
   controller.error(theError);
   return promise;
@@ -384,7 +384,7 @@ promise_test(t => {
   // Let's call getReader twice for extra test coverage of this code path.
   rs.getReader().releaseLock();
 
-  return promise_rejects(t, theError, rs.getReader().closed);
+  return promise_rejects_exactly(t, theError, rs.getReader().closed);
 
 }, 'Erroring a ReadableStream before checking closed should reject ReadableStreamDefaultReader closed promise');
 
@@ -452,9 +452,9 @@ promise_test(t => {
   const reader = rs.getReader();
 
   return Promise.all([
-    promise_rejects(t, myError, reader.read()),
-    promise_rejects(t, myError, reader.read()),
-    promise_rejects(t, myError, reader.closed)
+    promise_rejects_exactly(t, myError, reader.read()),
+    promise_rejects_exactly(t, myError, reader.read()),
+    promise_rejects_exactly(t, myError, reader.closed)
   ]);
 
 }, 'Reading twice on an errored stream');
@@ -472,9 +472,9 @@ promise_test(t => {
   const reader = rs.getReader();
 
   const promise = Promise.all([
-    promise_rejects(t, myError, reader.read()),
-    promise_rejects(t, myError, reader.read()),
-    promise_rejects(t, myError, reader.closed)
+    promise_rejects_exactly(t, myError, reader.read()),
+    promise_rejects_exactly(t, myError, reader.read()),
+    promise_rejects_exactly(t, myError, reader.closed)
   ]);
 
   controller.error(myError);

@@ -14,7 +14,7 @@ promise_test(async t => {
   const video2 = await loadVideo();
   await test_driver.bless('request Picture-in-Picture');
   const promise = video1.requestPictureInPicture();
-  await promise_rejects(t, 'NotAllowedError', video2.requestPictureInPicture());
+  await promise_rejects_dom(t, 'NotAllowedError', video2.requestPictureInPicture());
   return promise;
 }, 'request Picture-in-Picture consumes user gesture');
 

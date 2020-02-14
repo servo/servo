@@ -11,7 +11,7 @@
   <script>
   promise_test(t => {
     let evil = false;
-    assert_throws(new EvalError(), _ => {
+    assert_throws_js(EvalError, _ => {
       eval("evil = '1234567890123456789012345678901234567890';");
     });
     assert_false(evil);
@@ -21,7 +21,7 @@
   }, "Unsafe eval violation sample is clipped to 40 characters.");
 
   promise_test(t => {
-    assert_throws(new EvalError(), _ => {
+    assert_throws_js(EvalError, _ => {
       new Function("a", "b", "return '1234567890123456789012345678901234567890';");
     });
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
@@ -32,7 +32,7 @@
 
   promise_test(t => {
     const a = document.createElement("a");
-    assert_throws(new TypeError(), _ => {
+    assert_throws_js(TypeError, _ => {
       a.innerHTML = "1234567890123456789012345678901234567890xxxx";
     });
     assert_equals(a.innerHTML, "");

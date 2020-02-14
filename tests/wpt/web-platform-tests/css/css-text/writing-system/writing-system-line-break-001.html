@@ -7,16 +7,20 @@
 <link rel=help href="https://drafts.csswg.org/css-text-3/#script-tagging">
 <link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-line-break">
 <link rel=match href="reference/writing-system-line-break-001-ref.html">
-<meta name=assert content="breaks before hyphens when line-break is loose are allowed if the content language is Japanese,
-but not when the writing system is Latin.">
+<meta name=assert content="breaks before U+301C when line-break is loose are allowed if the content language is Japanese,
+but not when the writing system is not Japanese/Chinese (e.g. Korean).">
 <style>
 div {
   font-family: monospace;
-  width: 7ch;
+  width: 2em;
   line-break: loose;
 }
+[lang=ja] { border: solid blue; }
+[lang=ja-Hang] { border: solid orange; }
 </style>
 
-<p>The test passes if the first line below ends with a hyphen.
+<p>The test passes if the second line in the blue box below <em>starts with</em> a “〜”,
+and if the second line in the orange box below <em>ends with</em> a “〜”.
 
-<div lang=ja-Latn>Fushimi&#x2010;ku</div>
+<div lang=ja>東京〜大阪</div>
+<div lang=ja-Hang>도쿄〜오사카</div>

@@ -51,6 +51,8 @@
       "importMapBaseURL": "https://base.example/path1/path2/path3",
       "expectedParsedImportMap": {
         "imports": {
+          "unparseable2": null,
+          "unparseable3": null,
           "invalidButParseable1": "https://example.org/",
           "invalidButParseable2": "https://example.com///",
           "prettyNormal": "https://example.net/",

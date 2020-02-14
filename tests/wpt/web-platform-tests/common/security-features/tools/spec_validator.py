@@ -107,7 +107,9 @@ def validate(spec_json, details):
     # `/common/security-features/resources/common.sub.js`.
     valid_source_context_names = [
         "top", "iframe", "iframe-blank", "srcdoc", "worker-classic",
-        "worker-module", "worker-classic-data", "worker-module-data"
+        "worker-module", "worker-classic-data", "worker-module-data",
+        "sharedworker-classic", "sharedworker-module",
+        "sharedworker-classic-data", "sharedworker-module-data"
     ]
 
     valid_subresource_names = [

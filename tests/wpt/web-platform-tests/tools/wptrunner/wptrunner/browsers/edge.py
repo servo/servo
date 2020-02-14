@@ -108,7 +108,7 @@ class EdgeBrowser(Browser):
         # TODO(ato): This only indicates the server is alive,
         # and doesn't say anything about whether a browser session
         # is active.
-        return self.server.is_alive
+        return self.server.is_alive()
 
     def cleanup(self):
         self.stop()

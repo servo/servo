@@ -6,10 +6,30 @@
 #inline-flex { display: inline-flex }
 #flex { display: flex }
 #ref > div { display: flex }
+
+#flexstart {
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+  height: 3em;
+}
+
+#stretch {
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  height: 3em;
+}
 </style>
 <button id=inline-flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
 <button id=flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
 <button id=ref><div><div>1</div><div>2</div><div>3</div><div>4</div></div></button>
+
+<div><button id="flexstart"><span id="flexstart-item">abc</span></button></div>
+
+<div><button id="stretch"><span id="stretch-item">abc</span></button></div>
 <script>
 const ref = document.getElementById('ref');
 const expectedWidth = ref.clientWidth;
@@ -26,4 +46,16 @@ for (const elm of [document.getElementById('inline-flex'),
     assert_equals(height, expectedHeight, 'clientHeight');
   }, elm.id);
 }
+
+// crbug.com/700029
+test(() => {
+  assert_equals(document.getElementById('flexstart').offsetTop,
+    document.getElementById('flexstart-item').offsetTop);
+}, 'align-items:flex-start should work');
+
+// crbug.com/1004163
+test(() => {
+  assert_equals(document.getElementById('stretch').offsetHeight,
+    document.getElementById('stretch-item').offsetHeight);
+}, 'align-items:stretch should work');
 </script>

@@ -25,8 +25,8 @@ promise_test(async test => {
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   // The |id| parameter to the BackgroundFetchManager.get() method is required.
-  await promise_rejects(test, new TypeError(), backgroundFetch.get());
-  await promise_rejects(test, new TypeError(), backgroundFetch.get(''));
+  await promise_rejects_js(test, TypeError, backgroundFetch.get());
+  await promise_rejects_js(test, TypeError, backgroundFetch.get(''));
 
   const registration = await backgroundFetch.get('my-id');
   assert_equals(registration, undefined);

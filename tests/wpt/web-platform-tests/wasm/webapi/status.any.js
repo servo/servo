@@ -15,7 +15,7 @@ for (const method of ["compileStreaming", "instantiateStreaming"]) {
   for (const status of statuses) {
     promise_test(t => {
       const response = fetch(`status.py?status=${status}`);
-      return promise_rejects(t, new TypeError(), WebAssembly[method](response));
+      return promise_rejects_js(t, TypeError, WebAssembly[method](response));
     }, `Response with status ${status}: ${method}`);
   }
 }

@@ -5,7 +5,7 @@ function fetch_should_succeed(test, request) {
 }
 
 function fetch_should_fail(test, url, method = 'GET') {
-  return promise_rejects(test, new TypeError, fetch(url, {method: method}));
+  return promise_rejects_js(test, TypeError, fetch(url, {method: method}));
 }
 
 fetch_tests('fetch', fetch_should_succeed, fetch_should_fail);

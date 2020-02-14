@@ -71,9 +71,7 @@ promise_test(async t => {
     assert_equals(calls, 1);
 }, "doesn't look up handleEvent method on callable event listeners");
 
-const uncaught_error_test = async (t, getHandleEvent) => {
-    const mql = await createMQL(t);
-
+const uncaught_error_test = async (t, mql, getHandleEvent) => {
     let calls = 0;
     mql.addListener({
         get handleEvent() {
@@ -91,18 +89,25 @@ const uncaught_error_test = async (t, getHandleEvent) => {
     throw event.error;
 };
 
-promise_test(t => {
+promise_test(async t => {
     const error = { name: "test" };
+    const mql = await createMQL(t);
 
     return promise_rejects_exactly(t, error,
-        uncaught_error_test(t, () => { throw error; }));
+        uncaught_error_test(t, mql, () => { throw error; }));
 }, "rethrows errors when getting handleEvent");
 
-promise_test(t => {
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => false));
+promise_test(async t => {
+    const mql = await createMQL(t);
+    const global = getWindow(mql);
+    return promise_rejects_js(t, global.TypeError,
+                              uncaught_error_test(t, mql, () => false));
 }, "throws if handleEvent is falsy and not callable");
 
-promise_test(t => {
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => "str"));
+promise_test(async t => {
+    const mql = await createMQL(t);
+    const global = getWindow(mql);
+    return promise_rejects_js(t, global.TypeError,
+                              uncaught_error_test(t, mql, () => "str"));
 }, "throws if handleEvent is thruthy and not callable");
 </script>

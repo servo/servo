@@ -99,7 +99,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       pc.setLocalDescription({ type: 'rollback' }));
   }, `setLocalDescription(rollback) from stable state should reject with InvalidStateError`);
 
@@ -112,7 +112,7 @@
       .then(() => pc.createAnswer()))
     .then(answer => pc.setLocalDescription(answer))
     .then(() => {
-      return promise_rejects(t, 'InvalidStateError',
+      return promise_rejects_dom(t, 'InvalidStateError',
         pc.setLocalDescription({ type: 'rollback' }));
     });
   }, `setLocalDescription(rollback) after setting answer description should reject with InvalidStateError`);
@@ -127,4 +127,32 @@
       sdp: '!<Invalid SDP Content>;'
     }));
   }, `setLocalDescription(rollback) should ignore invalid sdp content and succeed`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    await pc.setLocalDescription(await pc.createOffer({offerToReceiveAudio: true}));
+    const sldPromise = pc.setLocalDescription({type: "rollback"});
+
+    assert_equals(pc.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sLD");
+
+    assert_not_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sLD");
+    assert_equals(pc.pendingLocalDescription.type, "offer");
+    assert_equals(pc.pendingLocalDescription.sdp, pc.localDescription.sdp);
+    assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD(offer)");
+
+    const stablePromise = new Promise(resolve => {
+      pc.onsignalingstatechange = () => {
+        resolve(pc.signalingState);
+      }
+    });
+    const raceValue = await Promise.race([stablePromise, sldPromise]);
+    assert_equals(raceValue, "stable", "signalingstatechange event should fire before sLD resolves");
+    assert_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+    assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD(offer)");
+
+    await sldPromise;
+  }, "setLocalDescription(rollback) should update internal state with a queued tassk, in the right order");
+
 </script>

@@ -17,9 +17,9 @@ function new_test_response() {
 }
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.delete(),
       'Cache.delete should reject with a TypeError when called with no ' +
       'arguments.');

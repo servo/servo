@@ -8,6 +8,7 @@ from six import iteritems, itervalues
 from wptserve import sslutils
 
 from . import environment as env
+from . import instruments
 from . import products
 from . import testloader
 from . import wptcommandline
@@ -139,7 +140,12 @@ def get_pause_after_test(test_loader, **kwargs):
 def run_tests(config, test_paths, product, **kwargs):
     """Set up the test environment, load the list of tests to be executed, and
     invoke the remainder of the code to execute tests"""
-    with capture.CaptureIO(logger, not kwargs["no_capture_stdio"]):
+    if kwargs["instrument_to_file"] is None:
+        recorder = instruments.NullInstrument()
+    else:
+        recorder = instruments.Instrument(kwargs["instrument_to_file"])
+    with recorder as recording, capture.CaptureIO(logger, not kwargs["no_capture_stdio"]):
+        recording.set(["startup"])
         env.do_delayed_imports(logger, test_paths)
 
         product = products.load_product(config, product, load_cls=True)
@@ -155,6 +161,7 @@ def run_tests(config, test_paths, product, **kwargs):
                 ahem=os.path.join(test_paths["/"]["tests_path"], "fonts/Ahem.ttf")
             ))
 
+        recording.set(["startup", "load_tests"])
         run_info, test_loader = get_loader(test_paths,
                                            product.name,
                                            run_info_extras=product.run_info_extras(**kwargs),
@@ -190,6 +197,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
         testharness_timeout_multipler = product.get_timeout_multiplier("testharness", run_info, **kwargs)
 
+        recording.set(["startup", "start_environment"])
         with env.TestEnvironment(test_paths,
                                  testharness_timeout_multipler,
                                  kwargs["pause_after_test"],
@@ -197,11 +205,14 @@ def run_tests(config, test_paths, product, **kwargs):
                                  product.env_options,
                                  ssl_config,
                                  env_extras) as test_environment:
+            recording.set(["startup", "ensure_environment"])
             try:
                 test_environment.ensure_started()
             except env.TestEnvironmentError as e:
                 logger.critical("Error starting test environment: %s" % e.message)
                 raise
+
+            recording.set(["startup"])
 
             repeat = kwargs["repeat"]
             repeat_count = 0
@@ -268,6 +279,7 @@ def run_tests(config, test_paths, product, **kwargs):
                     else:
                         run_tests = test_loader.tests
 
+                    recording.pause()
                     with ManagerGroup("web-platform-tests",
                                       kwargs["processes"],
                                       test_source_cls,
@@ -281,7 +293,8 @@ def run_tests(config, test_paths, product, **kwargs):
                                       kwargs["pause_on_unexpected"],
                                       kwargs["restart_on_unexpected"],
                                       kwargs["debug_info"],
-                                      not kwargs["no_capture_stdio"]) as manager_group:
+                                      not kwargs["no_capture_stdio"],
+                                      recording=recording) as manager_group:
                         try:
                             manager_group.run(test_type, run_tests)
                         except KeyboardInterrupt:
@@ -290,7 +303,7 @@ def run_tests(config, test_paths, product, **kwargs):
                             raise
                         test_count += manager_group.test_count()
                         unexpected_count += manager_group.unexpected_count()
-
+                recording.set(["after-end"])
                 test_total += test_count
                 unexpected_total += unexpected_count
                 logger.info("Got %i unexpected results" % unexpected_count)

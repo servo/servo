@@ -592,7 +592,6 @@ class MarionetteProtocol(Protocol):
             del self.marionette
         super(MarionetteProtocol, self).teardown()
 
-    @property
     def is_alive(self):
         try:
             self.marionette.current_window_handle
@@ -698,7 +697,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.protocol.testharness.load_runner(self.last_environment["protocol"])
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -818,7 +817,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.implementation.reset(**self.implementation_kwargs)
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -972,7 +971,7 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
             do_delayed_imports()
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)

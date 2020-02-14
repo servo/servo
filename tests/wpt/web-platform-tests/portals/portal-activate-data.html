@@ -70,7 +70,7 @@ promise_test(async () => {
 }, "A message port can be passed through activate data.");
 
 promise_test(async t => {
-await promise_rejects(
+await promise_rejects_dom(
     t, 'DataCloneError',
     openPortalAndActivate('', {data: new SharedArrayBuffer}));
 }, "A SharedArrayBuffer cannot be passed through activate data.");
@@ -82,8 +82,8 @@ promise_test(async t => {
 }, "Uncloneable data has its exception propagated.");
 
 promise_test(async t => {
-  await promise_rejects(
-      t, new TypeError,
+  await promise_rejects_js(
+      t, TypeError,
       openPortalAndActivate('', {data: null, transfer: [null]}));
 }, "Errors during transfer list processing are propagated.");
 </script>

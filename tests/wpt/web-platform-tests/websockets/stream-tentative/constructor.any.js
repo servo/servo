@@ -45,9 +45,9 @@ promise_test(async () => {
 promise_test(t => {
   const wss = new WebSocketStream(`${BASEURL}/404`);
   return Promise.all([
-    promise_rejects(t, 'NetworkError', wss.connection,
+    promise_rejects_dom(t, 'NetworkError', wss.connection,
                     'connection should reject'),
-    promise_rejects(t, 'NetworkError', wss.closed, 'closed should reject')
+    promise_rejects_dom(t, 'NetworkError', wss.closed, 'closed should reject')
   ]);
 }, 'connection failure should reject the promises');
 

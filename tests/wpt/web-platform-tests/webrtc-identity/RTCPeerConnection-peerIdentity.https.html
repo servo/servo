@@ -103,9 +103,9 @@
 
     const offer = await pc1.createOffer();
 
-    await promise_rejects(t, 'OperationError',
+    await promise_rejects_dom(t, 'OperationError',
       pc2.setRemoteDescription(offer));
-    await promise_rejects(t, 'OperationError',
+    await promise_rejects_dom(t, 'OperationError',
       pc2.peerIdentity);
   }, 'setRemoteDescription() on offer with a=identity that resolve to value different from target peer identity should reject with OperationError');
 
@@ -146,9 +146,9 @@
 
     return pc1.createOffer()
     .then(offer => Promise.all([
-      promise_rejects(t, 'IdpError',
+      promise_rejects_dom(t, 'IdpError',
         pc2.setRemoteDescription(offer)),
-      promise_rejects(t, 'OperationError',
+      promise_rejects_dom(t, 'OperationError',
         peerIdentityPromise)
     ]));
   }, 'setRemoteDescription() with peerIdentity set and with IdP proxy that return validationAssertion with mismatch contents should reject with OperationError');
@@ -195,9 +195,9 @@
       return pc1.createOffer();
     })
     .then(offer => Promise.all([
-      promise_rejects(t, 'OperationError',
+      promise_rejects_dom(t, 'OperationError',
         pc2.setRemoteDescription(offer)),
-      promise_rejects(t, 'OperationError',
+      promise_rejects_dom(t, 'OperationError',
         pc2.peerIdentity)
     ]));
   }, 'setRemoteDescription() and peerIdentity should reject with OperationError if IdP return validated identity that is different from its own domain');
