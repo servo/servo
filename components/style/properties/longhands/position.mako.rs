@@ -375,7 +375,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "grid-auto-flow",
     "GridAutoFlow",
-    "computed::GridAutoFlow::row()",
+    "computed::GridAutoFlow::ROW",
     engines="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow",
