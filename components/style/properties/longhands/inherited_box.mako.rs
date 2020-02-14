@@ -85,7 +85,7 @@ ${helpers.single_keyword(
 
 ${helpers.single_keyword(
     "image-orientation",
-    "none from-image",
+    "from-image none",
     engines="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",
