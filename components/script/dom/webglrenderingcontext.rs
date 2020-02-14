@@ -163,7 +163,10 @@ pub struct WebGLRenderingContext {
     texture_unpacking_settings: Cell<TextureUnpacking>,
     // TODO(nox): Should be Cell<u8>.
     texture_unpacking_alignment: Cell<u32>,
-    bound_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    bound_draw_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    // TODO(mmatyas): This was introduced in WebGL2, but listed here because it's used by
+    // Textures and Renderbuffers, but such WebGLObjects have access only to the GL1 context.
+    bound_read_framebuffer: MutNullableDom<WebGLFramebuffer>,
     bound_renderbuffer: MutNullableDom<WebGLRenderbuffer>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     current_program: MutNullableDom<WebGLProgram>,
@@ -223,7 +226,8 @@ impl WebGLRenderingContext {
                 texture_packing_alignment: Cell::new(4),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
-                bound_framebuffer: MutNullableDom::new(None),
+                bound_draw_framebuffer: MutNullableDom::new(None),
+                bound_read_framebuffer: MutNullableDom::new(None),
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
@@ -328,7 +332,7 @@ impl WebGLRenderingContext {
         // Bound framebuffer must not change when the canvas is resized.
         // Right now surfman generates a new FBO on resize.
         // Send a command to re-bind the framebuffer, if any.
-        if let Some(fbo) = self.bound_framebuffer.get() {
+        if let Some(fbo) = self.bound_draw_framebuffer.get() {
             let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
             self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
         }
@@ -402,7 +406,7 @@ impl WebGLRenderingContext {
     // The WebGL spec mentions a couple more operations that trigger
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
     pub fn validate_framebuffer(&self) -> WebGLResult<()> {
-        match self.bound_framebuffer.get() {
+        match self.bound_draw_framebuffer.get() {
             Some(fb) => match fb.check_status_for_rendering() {
                 CompleteForRendering::Complete => Ok(()),
                 CompleteForRendering::Incomplete => Err(InvalidFramebufferOperation),
@@ -478,7 +482,7 @@ impl WebGLRenderingContext {
 
     fn mark_as_dirty(&self) {
         // If we have a bound framebuffer, then don't mark the canvas as dirty.
-        if self.bound_framebuffer.get().is_some() {
+        if self.bound_draw_framebuffer.get().is_some() {
             return;
         }
 
@@ -503,7 +507,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
-        match self.bound_framebuffer.get() {
+        match self.bound_draw_framebuffer.get() {
             Some(fb) => return fb.size(),
 
             // The window system framebuffer is bound
@@ -757,7 +761,7 @@ impl WebGLRenderingContext {
             data: pixels.data.into(),
         });
 
-        if let Some(fb) = self.bound_framebuffer.get() {
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
             fb.invalidate_texture(&*texture);
         }
     }
@@ -1124,10 +1128,6 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn bound_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        self.bound_framebuffer.get()
-    }
-
     pub fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
     }
@@ -1341,6 +1341,50 @@ impl WebGLRenderingContext {
         }
         self.uniform_vec_section::<f32>(vec, offset, length, uniform_size, uniform_location)
     }
+
+    pub fn get_draw_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
+        &self.bound_draw_framebuffer
+    }
+
+    pub fn get_read_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
+        &self.bound_read_framebuffer
+    }
+
+    pub fn validate_new_framebuffer_binding(
+        &self,
+        framebuffer: Option<&WebGLFramebuffer>,
+    ) -> WebGLResult<()> {
+        if let Some(fb) = framebuffer {
+            self.validate_ownership(fb)?;
+            if fb.is_deleted() {
+                // From the WebGL spec:
+                //
+                //     "An attempt to bind a deleted framebuffer will
+                //      generate an INVALID_OPERATION error, and the
+                //      current binding will remain untouched."
+                return Err(InvalidOperation);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn bind_framebuffer_to(
+        &self,
+        target: u32,
+        framebuffer: Option<&WebGLFramebuffer>,
+        slot: &MutNullableDom<WebGLFramebuffer>,
+    ) {
+        match framebuffer {
+            Some(framebuffer) => framebuffer.bind(target),
+            None => {
+                // Bind the default framebuffer
+                let cmd =
+                    WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
+                self.send_command(cmd);
+            },
+        }
+        slot.set(framebuffer);
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -1442,7 +1486,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return optional_root_object_to_js_or_null!(*cx, buffer);
             },
             constants::FRAMEBUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(*cx, &self.bound_framebuffer.get());
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.bound_draw_framebuffer.get()
+                );
             },
             constants::RENDERBUFFER_BINDING => unsafe {
                 return optional_root_object_to_js_or_null!(*cx, &self.bound_renderbuffer.get());
@@ -1845,33 +1892,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
-        if let Some(fb) = framebuffer {
-            handle_potential_webgl_error!(self, self.validate_ownership(fb), return);
-        }
+        handle_potential_webgl_error!(
+            self,
+            self.validate_new_framebuffer_binding(framebuffer),
+            return
+        );
 
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
         }
 
-        if let Some(framebuffer) = framebuffer {
-            if framebuffer.is_deleted() {
-                // From the WebGL spec:
-                //
-                //     "An attempt to bind a deleted framebuffer will
-                //      generate an INVALID_OPERATION error, and the
-                //      current binding will remain untouched."
-                return self.webgl_error(InvalidOperation);
-            } else {
-                framebuffer.bind(target);
-                self.bound_framebuffer.set(Some(framebuffer));
-            }
-        } else {
-            // Bind the default framebuffer
-            let cmd =
-                WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
-            self.send_command(cmd);
-            self.bound_framebuffer.set(framebuffer);
-        }
+        self.bind_framebuffer_to(target, framebuffer, &self.bound_draw_framebuffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
@@ -2009,7 +2040,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             data: pixels.data.into(),
         });
 
-        if let Some(fb) = self.bound_framebuffer.get() {
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
             fb.invalidate_texture(&*texture);
         }
     }
@@ -2100,7 +2131,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return,
         };
 
-        let framebuffer_format = match self.bound_framebuffer.get() {
+        let framebuffer_format = match self.bound_draw_framebuffer.get() {
             Some(fb) => match fb.attachment(constants::COLOR_ATTACHMENT0) {
                 Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => {
                     TexFormat::from_gl_constant(rb.internal_format())
@@ -2419,10 +2450,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
             handle_object_deletion!(
                 self,
-                self.bound_framebuffer,
+                self.bound_draw_framebuffer,
                 framebuffer,
                 Some(WebGLCommand::BindFramebuffer(
-                    constants::FRAMEBUFFER,
+                    framebuffer.target().unwrap(),
                     WebGLFramebufferBindingRequest::Default
                 ))
             );
@@ -2575,7 +2606,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pname: u32,
     ) -> JSVal {
         // Check if currently bound framebuffer is non-zero as per spec.
-        if let Some(fb) = self.bound_framebuffer.get() {
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
             // Opaque framebuffers cannot have their attachments inspected
             // https://immersive-web.github.io/webxr/#opaque-framebuffer
             handle_potential_webgl_error!(self, fb.validate_transparent(), return NullValue());
@@ -2617,27 +2648,31 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => false,
         };
 
-        let bound_attachment_matches =
-            match self.bound_framebuffer.get().unwrap().attachment(attachment) {
-                Some(attachment_root) => match attachment_root {
-                    WebGLFramebufferAttachmentRoot::Renderbuffer(_) => match pname {
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME => true,
-                        _ => false,
-                    },
-                    WebGLFramebufferAttachmentRoot::Texture(_) => match pname {
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
-                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
-                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE => true,
-                        _ => false,
-                    },
-                },
-                _ => match pname {
-                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE => true,
+        let bound_attachment_matches = match self
+            .bound_draw_framebuffer
+            .get()
+            .unwrap()
+            .attachment(attachment)
+        {
+            Some(attachment_root) => match attachment_root {
+                WebGLFramebufferAttachmentRoot::Renderbuffer(_) => match pname {
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME => true,
                     _ => false,
                 },
-            };
+                WebGLFramebufferAttachmentRoot::Texture(_) => match pname {
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+                    constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
+                    constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE => true,
+                    _ => false,
+                },
+            },
+            _ => match pname {
+                constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE => true,
+                _ => false,
+            },
+        };
 
         if !target_matches || !attachment_matches || !pname_matches || !bound_attachment_matches {
             self.webgl_error(InvalidEnum);
@@ -2653,7 +2688,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
             // if fb is None, an INVALID_OPERATION is returned
             // at the beggining of the function, so `.unwrap()` will never panic
-            let fb = self.bound_framebuffer.get().unwrap();
+            let fb = self.bound_draw_framebuffer.get().unwrap();
             if let Some(webgl_attachment) = fb.attachment(attachment) {
                 match webgl_attachment {
                     WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => unsafe {
@@ -4158,7 +4193,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return 0;
         }
 
-        match self.bound_framebuffer.get() {
+        match self.bound_draw_framebuffer.get() {
             Some(fb) => return fb.check_status(),
             None => return constants::FRAMEBUFFER_COMPLETE,
         }
@@ -4185,7 +4220,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self,
             rb.storage(self.api_type, internal_format, width, height)
         );
-        if let Some(fb) = self.bound_framebuffer.get() {
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
             fb.invalidate_renderbuffer(&*rb);
         }
 
@@ -4208,7 +4243,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        match self.bound_framebuffer.get() {
+        match self.bound_draw_framebuffer.get() {
             Some(fb) => handle_potential_webgl_error!(self, fb.renderbuffer(attachment, rb)),
             None => self.webgl_error(InvalidOperation),
         };
@@ -4231,7 +4266,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        match self.bound_framebuffer.get() {
+        match self.bound_draw_framebuffer.get() {
             Some(fb) => handle_potential_webgl_error!(
                 self,
                 fb.texture2d(attachment, textarget, texture, level)

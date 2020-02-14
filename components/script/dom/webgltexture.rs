@@ -197,15 +197,17 @@ impl WebGLTexture {
             }
 
             /*
-            If a texture object is deleted while its image is attached to the currently
-            bound framebuffer, then it is as if FramebufferTexture2D had been called, with
-            a texture of 0, for each attachment point to which this image was attached
-            in the currently bound framebuffer.
-            - GLES 2.0, 4.4.3, "Attaching Texture Images to a Framebuffer"
-             */
-            let currently_bound_framebuffer =
-                self.upcast::<WebGLObject>().context().bound_framebuffer();
-            if let Some(fb) = currently_bound_framebuffer {
+            If a texture object is deleted while its image is attached to one or more attachment
+            points in a currently bound framebuffer, then it is as if FramebufferTexture had been
+            called, with a texture of zero, for each attachment point to which this im-age was
+            attached in that framebuffer. In other words, this texture image is firstdetached from
+            all attachment points in a currently bound framebuffer.
+            - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
+            */
+            if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                let _ = fb.detach_texture(self);
+            }
+            if let Some(fb) = context.get_read_framebuffer_slot().get() {
                 let _ = fb.detach_texture(self);
             }
 

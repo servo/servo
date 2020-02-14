@@ -503,6 +503,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     self.current_transform_feedback.get()
                 );
             },
+            // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
+            constants::READ_FRAMEBUFFER_BINDING => unsafe {
+                return optional_root_object_to_js_or_null!(
+                    *cx,
+                    &self.base.get_read_framebuffer_slot().get()
+                );
+            },
             _ => {},
         }
 
@@ -650,7 +657,32 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
-        self.base.BindFramebuffer(target, framebuffer)
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.validate_new_framebuffer_binding(framebuffer),
+            return
+        );
+
+        let (bind_read, bind_draw) = match target {
+            constants::FRAMEBUFFER => (true, true),
+            constants::READ_FRAMEBUFFER => (true, false),
+            constants::DRAW_FRAMEBUFFER => (false, true),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        if bind_read {
+            self.base.bind_framebuffer_to(
+                target,
+                framebuffer,
+                &self.base.get_read_framebuffer_slot(),
+            );
+        }
+        if bind_draw {
+            self.base.bind_framebuffer_to(
+                target,
+                framebuffer,
+                &self.base.get_draw_framebuffer_slot(),
+            );
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
@@ -2221,7 +2253,20 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CheckFramebufferStatus(&self, target: u32) -> u32 {
-        self.base.CheckFramebufferStatus(target)
+        let fb_slot = match target {
+            constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
+                self.base.get_draw_framebuffer_slot()
+            },
+            constants::READ_FRAMEBUFFER => &self.base.get_read_framebuffer_slot(),
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                return 0;
+            },
+        };
+        match fb_slot.get() {
+            Some(fb) => fb.check_status(),
+            None => constants::FRAMEBUFFER_COMPLETE,
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
