@@ -18,6 +18,7 @@ RUN \
         python \
         python-pip \
         python-dev \
+        python-virtualenv \
         #
         # Running mach with Python 3
         python3 \
@@ -29,8 +30,5 @@ RUN \
         gcc \
         #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
-        curl \
-    && \
-    # Running mach
-    pip install virtualenv
+        curl
 
