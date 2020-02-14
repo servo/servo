@@ -603,6 +603,51 @@ impl WebGL2RenderingContext {
 
         self.base.send_command(msg(buffer, draw_buffer, array));
     }
+
+    fn valid_fb_attachment_values(&self, target: u32, attachments: &[u32]) -> bool {
+        let fb_slot = match target {
+            constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
+                self.base.get_draw_framebuffer_slot()
+            },
+            constants::READ_FRAMEBUFFER => self.base.get_read_framebuffer_slot(),
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                return false;
+            },
+        };
+
+        if let Some(fb) = fb_slot.get() {
+            if fb.check_status() != constants::FRAMEBUFFER_COMPLETE {
+                return false;
+            }
+
+            for &attachment in attachments {
+                match attachment {
+                    constants::DEPTH_ATTACHMENT |
+                    constants::STENCIL_ATTACHMENT |
+                    constants::DEPTH_STENCIL_ATTACHMENT => {},
+                    constants::COLOR_ATTACHMENT0..=constants::COLOR_ATTACHMENT15 => {
+                        let last_slot = constants::COLOR_ATTACHMENT0 +
+                            self.base.limits().max_color_attachments -
+                            1;
+                        if last_slot < attachment {
+                            return false;
+                        }
+                    },
+                    _ => return false,
+                }
+            }
+        } else {
+            for &attachment in attachments {
+                match attachment {
+                    constants::COLOR | constants::DEPTH | constants::STENCIL => {},
+                    _ => return false,
+                }
+            }
+        }
+
+        true
+    }
 }
 
 impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
@@ -3496,6 +3541,45 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             depth,
             stencil,
         ));
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    fn InvalidateFramebuffer(&self, target: u32, attachments: Vec<u32>) {
+        if !self.valid_fb_attachment_values(target, &attachments) {
+            return;
+        }
+
+        self.base
+            .send_command(WebGLCommand::InvalidateFramebuffer(target, attachments))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    fn InvalidateSubFramebuffer(
+        &self,
+        target: u32,
+        attachments: Vec<u32>,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    ) {
+        if !self.valid_fb_attachment_values(target, &attachments) {
+            return;
+        }
+
+        if width < 0 || height < 0 {
+            return;
+        }
+
+        self.base
+            .send_command(WebGLCommand::InvalidateSubFramebuffer(
+                target,
+                attachments,
+                x,
+                y,
+                width,
+                height,
+            ))
     }
 }
 

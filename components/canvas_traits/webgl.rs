@@ -533,6 +533,8 @@ pub enum WebGLCommand {
     ClearBufferiv(u32, i32, Vec<i32>),
     ClearBufferuiv(u32, i32, Vec<u32>),
     ClearBufferfi(u32, i32, f32, i32),
+    InvalidateFramebuffer(u32, Vec<u32>),
+    InvalidateSubFramebuffer(u32, Vec<u32>, i32, i32, i32, i32),
 }
 
 macro_rules! nonzero_type {
