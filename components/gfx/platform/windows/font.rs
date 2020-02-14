@@ -135,7 +135,7 @@ impl FontInfo {
                     let strings = table.strings().unwrap();
                     let family = strings[family_index].clone();
                     let face = strings[face_index].clone();
-                    ((family, face))
+                    (family, face)
                 } else {
                     return Err(());
                 }
@@ -145,7 +145,7 @@ impl FontInfo {
                     let strings = table.strings().unwrap();
                     let family = strings[family_index].clone();
                     let face = strings[face_index].clone();
-                    ((family, face))
+                    (family, face)
                 } else {
                     return Err(());
                 }

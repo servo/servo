@@ -61,7 +61,7 @@ macro_rules! system_font_methods {
                 None
             }
         }
-    }
+    };
 }
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
