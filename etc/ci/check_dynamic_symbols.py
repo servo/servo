@@ -32,6 +32,7 @@ allowed_symbols = frozenset([
     b'sigemptyset',
     b'AHardwareBuffer_allocate',
     b'AHardwareBuffer_release',
+    b'getentropy',
 ])
 actual_symbols = set()
 
