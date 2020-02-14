@@ -727,6 +727,61 @@ impl WebGLFramebuffer {
         Ok(())
     }
 
+    pub fn texture_layer(
+        &self,
+        attachment: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+        layer: i32,
+    ) -> WebGLResult<()> {
+        let binding = self
+            .attachment_binding(attachment)
+            .ok_or(WebGLError::InvalidEnum)?;
+
+        let context = self.upcast::<WebGLObject>().context();
+
+        let tex_id = match texture {
+            Some(texture) => {
+                let (max_level, max_layer) = match texture.target() {
+                    Some(constants::TEXTURE_3D) => (
+                        log2(context.limits().max_3d_texture_size),
+                        context.limits().max_3d_texture_size - 1,
+                    ),
+                    Some(constants::TEXTURE_2D) => (
+                        log2(context.limits().max_tex_size),
+                        context.limits().max_array_texture_layers - 1,
+                    ),
+                    _ => return Err(WebGLError::InvalidOperation),
+                };
+
+                if level < 0 || level as u32 >= max_level {
+                    return Err(WebGLError::InvalidValue);
+                }
+                if layer < 0 || layer as u32 >= max_layer {
+                    return Err(WebGLError::InvalidValue);
+                }
+
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
+                    texture: Dom::from_ref(texture),
+                    level: level,
+                });
+                texture.attach_to_framebuffer(self);
+
+                Some(texture.id())
+            },
+            _ => None,
+        };
+
+        context.send_command(WebGLCommand::FramebufferTextureLayer(
+            self.target.get().unwrap(),
+            attachment,
+            tex_id,
+            level,
+            layer,
+        ));
+        Ok(())
+    }
+
     fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
     where
         F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),

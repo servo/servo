@@ -1974,6 +1974,19 @@ impl WebGLImpl {
             WebGLCommand::InvalidateSubFramebuffer(target, ref attachments, x, y, w, h) => {
                 gl.invalidate_sub_framebuffer(target, attachments, x, y, w, h)
             },
+            WebGLCommand::FramebufferTextureLayer(target, attachment, tex_id, level, layer) => {
+                let tex_id = tex_id.map_or(0, WebGLTextureId::get);
+                let attach = |attachment| {
+                    gl.framebuffer_texture_layer(target, attachment, tex_id, level, layer)
+                };
+
+                if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
+                    attach(gl::DEPTH_ATTACHMENT);
+                    attach(gl::STENCIL_ATTACHMENT);
+                } else {
+                    attach(attachment)
+                }
+            },
         }
 
         // If debug asertions are enabled, then check the error state.
