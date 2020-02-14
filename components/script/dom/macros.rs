@@ -488,6 +488,8 @@ macro_rules! global_event_handlers(
         event_handler!(seeked, GetOnseeked, SetOnseeked);
         event_handler!(seeking, GetOnseeking, SetOnseeking);
         event_handler!(select, GetOnselect, SetOnselect);
+        event_handler!(selectionchange, GetOnselectionchange, SetOnselectionchange);
+        event_handler!(selectstart, GetOnselectstart, SetOnselectstart);
         event_handler!(show, GetOnshow, SetOnshow);
         event_handler!(stalled, GetOnstalled, SetOnstalled);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);

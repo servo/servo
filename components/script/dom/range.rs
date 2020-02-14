@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -24,6 +25,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
+use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -37,6 +39,16 @@ pub struct Range {
     reflector_: Reflector,
     start: BoundaryPoint,
     end: BoundaryPoint,
+    // A range that belongs to a Selection needs to know about it
+    // so selectionchange can fire when the range changes.
+    // A range shouldn't belong to more than one Selection at a time,
+    // but from the spec as of Feb 1 2020 I can't rule out a corner case like:
+    // * Select a range R in document A, from node X to Y
+    // * Insert everything from X to Y into document B
+    // * Set B's selection's range to R
+    // which leaves R technically, and observably, associated with A even though
+    // it will fail the same-root-node check on many of A's selection's methods.
+    associated_selections: DomRefCell<Vec<Dom<Selection>>>,
 }
 
 impl Range {
@@ -50,6 +62,7 @@ impl Range {
             reflector_: Reflector::new(),
             start: BoundaryPoint::new(start_container, start_offset),
             end: BoundaryPoint::new(end_container, end_offset),
+            associated_selections: DomRefCell::new(vec![]),
         }
     }
 
@@ -163,6 +176,9 @@ impl Range {
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
     fn set_start(&self, node: &Node, offset: u32) {
+        if &self.start.node != node || self.start.offset.get() != offset {
+            self.report_change();
+        }
         if &self.start.node != node {
             if self.start.node == self.end.node {
                 node.ranges().push(WeakRef::new(&self));
@@ -178,6 +194,9 @@ impl Range {
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
     fn set_end(&self, node: &Node, offset: u32) {
+        if &self.end.node != node || self.end.offset.get() != offset {
+            self.report_change();
+        }
         if &self.end.node != node {
             if self.end.node == self.start.node {
                 node.ranges().push(WeakRef::new(&self));
@@ -227,6 +246,26 @@ impl Range {
         }
         // Step 6.
         Ok(Ordering::Equal)
+    }
+
+    pub fn associate_selection(&self, selection: &Selection) {
+        let mut selections = self.associated_selections.borrow_mut();
+        if !selections.iter().any(|s| &**s == selection) {
+            selections.push(Dom::from_ref(selection));
+        }
+    }
+
+    pub fn disassociate_selection(&self, selection: &Selection) {
+        self.associated_selections
+            .borrow_mut()
+            .retain(|s| &**s != selection);
+    }
+
+    fn report_change(&self) {
+        self.associated_selections
+            .borrow()
+            .iter()
+            .for_each(|s| s.queue_selectionchange_task());
     }
 }
 
@@ -821,6 +860,9 @@ impl RangeMethods for Range {
         // Step 3.
         if start_node == end_node {
             if let Some(text) = start_node.downcast::<CharacterData>() {
+                if end_offset > start_offset {
+                    self.report_change();
+                }
                 return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
             }
         }
@@ -1142,9 +1184,11 @@ impl WeakRangeVec {
                     entry.remove();
                 }
                 if &range.start.node == child {
+                    range.report_change();
                     range.start.set(context.parent, offset);
                 }
                 if &range.end.node == child {
+                    range.report_change();
                     range.end.set(context.parent, offset);
                 }
             });
@@ -1169,9 +1213,11 @@ impl WeakRangeVec {
                     entry.remove();
                 }
                 if &range.start.node == node {
+                    range.report_change();
                     range.start.set(sibling, range.StartOffset() + length);
                 }
                 if &range.end.node == node {
+                    range.report_change();
                     range.end.set(sibling, range.EndOffset() + length);
                 }
             });
@@ -1212,9 +1258,11 @@ impl WeakRangeVec {
                 }
 
                 if move_start {
+                    range.report_change();
                     range.start.set(child, new_offset);
                 }
                 if move_end {
+                    range.report_change();
                     range.end.set(child, new_offset);
                 }
             });
@@ -1273,9 +1321,11 @@ impl WeakRangeVec {
                 }
 
                 if move_start {
+                    range.report_change();
                     range.start.set(sibling, start_offset - offset);
                 }
                 if move_end {
+                    range.report_change();
                     range.end.set(sibling, end_offset - offset);
                 }
             });
@@ -1289,9 +1339,11 @@ impl WeakRangeVec {
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
                 if &range.start.node == node && offset == range.StartOffset() {
+                    range.report_change();
                     range.start.set_offset(offset + 1);
                 }
                 if &range.end.node == node && offset == range.EndOffset() {
+                    range.report_change();
                     range.end.set_offset(offset + 1);
                 }
             });
@@ -1304,10 +1356,12 @@ impl WeakRangeVec {
                 let range = entry.root().unwrap();
                 let start_offset = range.StartOffset();
                 if &range.start.node == node && start_offset > offset {
+                    range.report_change();
                     range.start.set_offset(f(start_offset));
                 }
                 let end_offset = range.EndOffset();
                 if &range.end.node == node && end_offset > offset {
+                    range.report_change();
                     range.end.set_offset(f(end_offset));
                 }
             });

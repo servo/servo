@@ -175,6 +175,12 @@ partial interface Window {
    readonly attribute unsigned long runningAnimationCount;
 };
 
+// https://w3c.github.io/selection-api/#dom-document
+partial interface Window {
+   Selection? getSelection();
+};
+
+
 dictionary WindowPostMessageOptions : PostMessageOptions {
    USVString targetOrigin = "/";
 };

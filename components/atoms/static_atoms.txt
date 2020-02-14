@@ -109,6 +109,7 @@ seeked
 seeking
 select
 selectend
+selectionchange
 selectstart
 serif
 signalingstatechange

@@ -12328,6 +12328,24 @@
      {}
     ]
    ],
+   "mozilla/selectionchange/selectionchange_noop.html": [
+    [
+     "mozilla/selectionchange/selectionchange_noop.html",
+     {}
+    ]
+   ],
+   "mozilla/selectionchange/selectionchange_range.html": [
+    [
+     "mozilla/selectionchange/selectionchange_range.html",
+     {}
+    ]
+   ],
+   "mozilla/selectionchange/selectionchange_selection.html": [
+    [
+     "mozilla/selectionchange/selectionchange_selection.html",
+     {}
+    ]
+   ],
    "mozilla/sequence-hole.html": [
     [
      "mozilla/sequence-hole.html",
@@ -19072,7 +19090,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "fc82a7e82e936811024cbefadaa9cc396511942b",
+   "bb6adbde0b3452e6ea8f1db44941a08dbe236774",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -19433,6 +19451,18 @@
   ],
   "mozilla/secure.https.html": [
    "3b49f149b651d77b174647916d9c11c818d2993b",
+   "testharness"
+  ],
+  "mozilla/selectionchange/selectionchange_noop.html": [
+   "9154a9196a6fd76f48c8a91acf45ba1e26a83442",
+   "testharness"
+  ],
+  "mozilla/selectionchange/selectionchange_range.html": [
+   "6a8b06682eea12b03fb3fbe4c5ccb93db7512324",
+   "testharness"
+  ],
+  "mozilla/selectionchange/selectionchange_selection.html": [
+   "a8f4150bfcefafa7b351d329fd6bc788943fd1a0",
    "testharness"
   ],
   "mozilla/sequence-hole.html": [

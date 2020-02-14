@@ -79,6 +79,7 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
+use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
@@ -400,6 +401,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     csp_list: DomRefCell<Option<CspList>>,
+    /// https://w3c.github.io/slection-api/#dfn-selection
+    selection: MutNullableDom<Selection>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2909,6 +2912,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
             csp_list: DomRefCell::new(None),
+            selection: MutNullableDom::new(None),
         }
     }
 
@@ -4618,6 +4622,11 @@ impl DocumentMethods for Document {
         // TODO: https://github.com/servo/servo/issues/21936
         Node::replace_all(None, self.upcast::<Node>());
 
+        // Specs and tests are in a state of flux about whether
+        // we want to clear the selection when we remove the contents;
+        // WPT selection/Document-open.html wants us to not clear it
+        // as of Feb 1 2020
+
         // Step 12
         if self.is_fully_active() {
             let mut new_url = entry_responsible_document.url();
@@ -4788,6 +4797,15 @@ impl DocumentMethods for Document {
         match self.media_controls.borrow().get(&*id) {
             Some(m) => Ok(DomRoot::from_ref(&*m)),
             None => Err(Error::InvalidAccess),
+        }
+    }
+
+    // https://w3c.github.io/selection-api/#dom-document-getselection
+    fn GetSelection(&self) -> Option<DomRoot<Selection>> {
+        if self.has_browsing_context {
+            Some(self.selection.or_init(|| Selection::new(self)))
+        } else {
+            None
         }
     }
 }

@@ -47,6 +47,7 @@ use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, No
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
+use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
@@ -1321,6 +1322,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-origin
     fn Origin(&self) -> USVString {
         USVString(self.origin().immutable().ascii_serialization())
+    }
+
+    // https://w3c.github.io/selection-api/#dom-window-getselection
+    fn GetSelection(&self) -> Option<DomRoot<Selection>> {
+        self.document.get().and_then(|d| d.GetSelection())
     }
 }
 
