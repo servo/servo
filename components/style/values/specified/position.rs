@@ -7,7 +7,6 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use crate::gecko_bindings::structs;
 use crate::parser::{Parse, ParserContext};
 use crate::selector_map::PrecomputedHashMap;
 use crate::str::HTML_SPACE_CHARACTERS;
@@ -362,13 +361,14 @@ bitflags! {
         ToShmem
     )]
     #[value_info(other_values = "row,column,dense")]
+    #[repr(C)]
     pub struct GridAutoFlow: u8 {
         /// 'row' - mutually exclusive with 'column'
-        const ROW = structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8;
+        const ROW = 1 << 0;
         /// 'column' - mutually exclusive with 'row'
-        const COLUMN = structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8;
+        const COLUMN = 1 << 1;
         /// 'dense'
-        const DENSE = structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+        const DENSE = 1 << 2;
     }
 }
 
@@ -436,20 +436,6 @@ impl ToCss for GridAutoFlow {
 
         debug_assert!(false, "Unknown or invalid grid-autoflow value");
         Ok(())
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u8> for GridAutoFlow {
-    fn from(bits: u8) -> GridAutoFlow {
-        GridAutoFlow::from_bits(bits).unwrap()
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<GridAutoFlow> for u8 {
-    fn from(v: GridAutoFlow) -> u8 {
-        v.bits
     }
 }
 
