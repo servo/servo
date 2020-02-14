@@ -61,9 +61,6 @@ extern crate log;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-#[allow(unused_extern_crates)]
-#[macro_use]
-extern crate matches;
 #[cfg(feature = "gecko")]
 pub extern crate nsstring;
 #[cfg(feature = "gecko")]

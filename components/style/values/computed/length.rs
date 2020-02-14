@@ -80,7 +80,7 @@ macro_rules! computed_length_percentage_or_auto {
                 generics::GenericLengthPercentageOrAuto::Auto => None,
                 generics::GenericLengthPercentageOrAuto::LengthPercentage(ref lp) => {
                     Some(lp.to_used_value(percentage_basis))
-                }
+                },
             }
         }
 
@@ -93,7 +93,7 @@ macro_rules! computed_length_percentage_or_auto {
                 Auto => false,
             }
         }
-    }
+    };
 }
 
 /// A computed type for `<length-percentage> | auto`.

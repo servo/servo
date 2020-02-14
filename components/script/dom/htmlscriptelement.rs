@@ -309,7 +309,7 @@ impl ResourceTimingListener for ClassicContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        (document_from_node(&*self.elem.root()).global())
+        document_from_node(&*self.elem.root()).global()
     }
 }
 

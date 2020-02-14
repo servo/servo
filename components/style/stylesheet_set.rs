@@ -388,7 +388,8 @@ macro_rules! sheet_set_methods {
             guard: &SharedRwLockReadGuard,
         ) {
             if let Some(device) = device {
-                self.invalidations.collect_invalidations_for(device, sheet, guard);
+                self.invalidations
+                    .collect_invalidations_for(device, sheet, guard);
             }
         }
 
@@ -435,7 +436,7 @@ macro_rules! sheet_set_methods {
             let collection = self.collection_for(&sheet, guard);
             collection.remove(&sheet)
         }
-    }
+    };
 }
 
 impl<S> DocumentStylesheetSet<S>

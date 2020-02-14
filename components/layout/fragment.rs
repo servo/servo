@@ -944,8 +944,8 @@ impl Fragment {
             QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS,
         ) {
             let margin = style.logical_margin();
-            (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
-                MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero())
+            MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
+                MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero()
         } else {
             Au(0)
         };
@@ -957,7 +957,7 @@ impl Fragment {
             QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING,
         ) {
             let padding = style.logical_padding();
-            (padding.inline_start.to_used_value(Au(0)) + padding.inline_end.to_used_value(Au(0)))
+            padding.inline_start.to_used_value(Au(0)) + padding.inline_end.to_used_value(Au(0))
         } else {
             Au(0)
         };
