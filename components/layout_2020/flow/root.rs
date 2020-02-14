@@ -191,7 +191,7 @@ impl FragmentTreeRoot {
             );
         }
 
-        stacking_context.sort_stacking_contexts();
+        stacking_context.sort();
         stacking_context.build_display_list(builder);
     }
 
