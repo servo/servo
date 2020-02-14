@@ -16,6 +16,7 @@ use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
+use std::collections::HashSet;
 use webgpu::{wgpu::command::RawPass, WebGPU, WebGPUCommandEncoder, WebGPURequest};
 
 #[dom_struct]
@@ -25,6 +26,7 @@ pub struct GPUCommandEncoder {
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     encoder: WebGPUCommandEncoder,
+    buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
 }
 
 impl GPUCommandEncoder {
@@ -34,6 +36,7 @@ impl GPUCommandEncoder {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
             encoder,
+            buffers: DomRefCell::new(HashSet::new()),
         }
     }
 
@@ -82,6 +85,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination_offset: u64,
         size: u64,
     ) {
+        self.buffers.borrow_mut().insert(DomRoot::from_ref(source));
+        self.buffers
+            .borrow_mut()
+            .insert(DomRoot::from_ref(destination));
         self.channel
             .0
             .send(WebGPURequest::CopyBufferToBuffer(
@@ -106,9 +113,14 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 // TODO(zakorgy): We should use `_descriptor` here after it's not empty
                 // and the underlying wgpu-core struct is serializable
             ))
-            .expect("Failed to send CopyBufferToBuffer");
+            .expect("Failed to send Finish");
 
         let buffer = receiver.recv().unwrap();
-        GPUCommandBuffer::new(&self.global(), self.channel.clone(), buffer)
+        GPUCommandBuffer::new(
+            &self.global(),
+            self.channel.clone(),
+            buffer,
+            self.buffers.borrow_mut().drain().collect(),
+        )
     }
 }

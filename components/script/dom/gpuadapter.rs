@@ -107,7 +107,7 @@ impl GPUAdapterMethods for GPUAdapter {
 impl AsyncWGPUListener for GPUAdapter {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestDevice(device_id, _descriptor) => {
+            WebGPUResponse::RequestDevice(device_id, queue_id, _descriptor) => {
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
@@ -115,6 +115,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     Heap::default(),
                     Heap::default(),
                     device_id,
+                    queue_id,
                 );
                 promise.resolve_native(&device);
             },

@@ -31,6 +31,7 @@ use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
+use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
@@ -45,7 +46,7 @@ use webgpu::wgpu::binding_model::{
     ShaderStage,
 };
 use webgpu::wgpu::resource::{BufferDescriptor, BufferUsage};
-use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPUQueue, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -59,6 +60,7 @@ pub struct GPUDevice {
     limits: Heap<*mut JSObject>,
     label: DomRefCell<Option<DOMString>>,
     device: WebGPUDevice,
+    default_queue: Dom<GPUQueue>,
 }
 
 impl GPUDevice {
@@ -68,6 +70,7 @@ impl GPUDevice {
         extensions: Heap<*mut JSObject>,
         limits: Heap<*mut JSObject>,
         device: WebGPUDevice,
+        queue: &GPUQueue,
     ) -> GPUDevice {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -77,6 +80,7 @@ impl GPUDevice {
             limits,
             label: DomRefCell::new(None),
             device,
+            default_queue: Dom::from_ref(queue),
         }
     }
 
@@ -88,10 +92,12 @@ impl GPUDevice {
         extensions: Heap<*mut JSObject>,
         limits: Heap<*mut JSObject>,
         device: WebGPUDevice,
+        queue: WebGPUQueue,
     ) -> DomRoot<GPUDevice> {
+        let queue = GPUQueue::new(global, channel.clone(), queue);
         reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
-                channel, adapter, extensions, limits, device,
+                channel, adapter, extensions, limits, device, &queue,
             )),
             global,
             GPUDeviceBinding::Wrap,
@@ -174,6 +180,11 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
     fn Limits(&self, _cx: SafeJSContext) -> NonNull<JSObject> {
         NonNull::new(self.extensions.get()).unwrap()
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-defaultqueue
+    fn DefaultQueue(&self) -> DomRoot<GPUQueue> {
+        DomRoot::from_ref(&self.default_queue)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label

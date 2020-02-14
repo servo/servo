@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{
     self, GPUBufferMethods, GPUBufferSize,
 };
@@ -91,6 +91,10 @@ impl GPUBuffer {
     pub fn usage(&self) -> u32 {
         self.usage
     }
+
+    pub fn state(&self) -> Ref<GPUBufferState> {
+        self.state.borrow()
+    }
 }
 
 impl Drop for GPUBuffer {
@@ -106,6 +110,7 @@ impl GPUBufferMethods for GPUBuffer {
             .0
             .send(WebGPURequest::UnmapBuffer(self.buffer))
             .unwrap();
+        *self.state.borrow_mut() = GPUBufferState::Unmapped;
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
