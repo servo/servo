@@ -206,6 +206,7 @@ pub struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in std"]
     nodes: HashMap<ParseNodeId, Dom<Node>>,
     url: ServoUrl,
+    parsing_algorithm: ParsingAlgorithm,
 }
 
 impl Tokenizer {
@@ -219,12 +220,18 @@ impl Tokenizer {
         // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
         let (to_tokenizer_sender, tokenizer_receiver) = unbounded();
 
+        let algorithm = match fragment_context {
+            Some(_) => ParsingAlgorithm::Fragment,
+            None => ParsingAlgorithm::Normal,
+        };
+
         let mut tokenizer = Tokenizer {
             document: Dom::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
             nodes: HashMap::new(),
             url: url,
+            parsing_algorithm: algorithm,
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
@@ -352,7 +359,7 @@ impl Tokenizer {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        super::insert(parent, Some(sibling), node);
+        super::insert(parent, Some(sibling), node, self.parsing_algorithm);
     }
 
     fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
@@ -364,7 +371,7 @@ impl Tokenizer {
         };
 
         let parent = &**self.get_node(&parent);
-        super::insert(parent, None, node);
+        super::insert(parent, None, node, self.parsing_algorithm);
     }
 
     fn has_parent_node(&self, node: ParseNodeId) -> bool {

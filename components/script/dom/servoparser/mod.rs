@@ -950,12 +950,29 @@ pub struct FragmentContext<'a> {
 }
 
 #[allow(unrooted_must_root)]
-fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<Node>>) {
+fn insert(
+    parent: &Node,
+    reference_child: Option<&Node>,
+    child: NodeOrText<Dom<Node>>,
+    parsing_algorithm: ParsingAlgorithm,
+) {
     match child {
         NodeOrText::AppendNode(n) => {
+            // https://html.spec.whatwg.org/multipage/#insert-a-foreign-element
+            // applies if this is an element; if not, it may be
+            // https://html.spec.whatwg.org/multipage/#insert-a-comment
+            let element_in_non_fragment =
+                parsing_algorithm != ParsingAlgorithm::Fragment && n.is::<Element>();
+            if element_in_non_fragment {
+                ScriptThread::push_new_element_queue();
+            }
             parent.InsertBefore(&n, reference_child).unwrap();
+            if element_in_non_fragment {
+                ScriptThread::pop_current_element_queue();
+            }
         },
         NodeOrText::AppendText(t) => {
+            // https://html.spec.whatwg.org/multipage/#insert-a-character
             let text = reference_child
                 .and_then(Node::GetPreviousSibling)
                 .or_else(|| parent.GetLastChild())
@@ -1105,7 +1122,7 @@ impl TreeSink for Sink {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        insert(&parent, Some(&*sibling), new_node);
+        insert(&parent, Some(&*sibling), new_node, self.parsing_algorithm);
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
@@ -1122,7 +1139,7 @@ impl TreeSink for Sink {
     }
 
     fn append(&mut self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
-        insert(&parent, None, child);
+        insert(&parent, None, child, self.parsing_algorithm);
     }
 
     fn append_based_on_parent_node(
