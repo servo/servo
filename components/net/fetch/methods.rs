@@ -340,15 +340,16 @@ pub fn main_fetch(
                 .map(|v| v.iter().collect());
             match header_names {
                 // Subsubstep 2.
-                Some(ref list) if request.credentials_mode != CredentialsMode::Include => {
-                    if list.len() == 1 && list[0] == "*" {
-                        response.cors_exposed_header_name_list = response
-                            .headers
-                            .iter()
-                            .map(|(name, _)| name.as_str().to_owned())
-                            .collect();
-                    }
-                },
+                Some(ref list)
+                    if request.credentials_mode != CredentialsMode::Include &&
+                        list.iter().any(|header| header == "*") =>
+                {
+                    response.cors_exposed_header_name_list = response
+                        .headers
+                        .iter()
+                        .map(|(name, _)| name.as_str().to_owned())
+                        .collect();
+                }
                 // Subsubstep 3.
                 Some(list) => {
                     response.cors_exposed_header_name_list =
