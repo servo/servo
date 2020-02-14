@@ -145,7 +145,7 @@ impl ShadowRoot {
 
     /// Remove any existing association between the provided id and any elements
     /// in this shadow tree.
-    pub fn unregister_named_element(&self, to_unregister: &Element, id: Atom) {
+    pub fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
         self.document_or_shadow_root.unregister_named_element(
             self.document_fragment.id_map(),
             to_unregister,
@@ -154,7 +154,7 @@ impl ShadowRoot {
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub fn register_named_element(&self, element: &Element, id: Atom) {
+    pub fn register_element_id(&self, element: &Element, id: Atom) {
         let root = self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)

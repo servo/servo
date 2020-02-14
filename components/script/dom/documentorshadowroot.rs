@@ -266,7 +266,7 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    /// Remove any existing association between the provided id and any elements in this document.
+    /// Remove any existing association between the provided id/name and any elements in this document.
     pub fn unregister_named_element(
         &self,
         id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
@@ -294,7 +294,7 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    /// Associate an element present in this document with the provided id.
+    /// Associate an element present in this document with the provided id/name.
     pub fn register_named_element(
         &self,
         id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
