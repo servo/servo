@@ -788,7 +788,10 @@ impl HTMLElement {
         }
 
         if element_direction == "auto" {
-            if let Some(directionality) = self.downcast::<HTMLInputElement>().and_then(|input| input.auto_directionality()) {
+            if let Some(directionality) = self
+                .downcast::<HTMLInputElement>()
+                .and_then(|input| input.auto_directionality())
+            {
                 return directionality;
             }
 
