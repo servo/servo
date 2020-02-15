@@ -21,5 +21,6 @@ interface PerformanceObserver {
   void observe(optional PerformanceObserverInit options = {});
   void disconnect();
   PerformanceEntryList takeRecords();
-  // [SameObject] static readonly attribute FrozenArray<DOMString> supportedEntryTypes;
+  // codegen doesn't like SameObject+static and doesn't know FrozenArray
+  /*[SameObject]*/ static readonly attribute /*FrozenArray<DOMString>*/ any supportedEntryTypes;
 };

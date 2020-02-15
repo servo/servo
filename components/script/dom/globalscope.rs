@@ -16,6 +16,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::crypto::Crypto;
@@ -31,6 +32,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
+use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -63,7 +65,7 @@ use js::jsapi::JSObject;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSAutoRealm, JSContext};
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::EvaluateUtf8;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
@@ -222,6 +224,10 @@ pub struct GlobalScope {
 
     #[ignore_malloc_size_of = "defined in wgpu"]
     gpu_id_hub: RefCell<Identities>,
+
+    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_supported_performance_entry_types: DomRefCell<Option<Heap<JSVal>>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -513,6 +519,7 @@ impl GlobalScope {
             is_headless,
             user_agent,
             gpu_id_hub: RefCell::new(Identities::new()),
+            frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
         }
     }
 
@@ -2085,6 +2092,29 @@ impl GlobalScope {
             return worker.performance_timeline_task_source();
         }
         unreachable!();
+    }
+
+    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    pub fn supported_performance_entry_types(&self, cx: SafeJSContext) -> JSVal {
+        if let Some(types) = &*self.frozen_supported_performance_entry_types.borrow() {
+            return types.get();
+        }
+
+        let types: Vec<DOMString> = VALID_ENTRY_TYPES
+            .iter()
+            .map(|t| DOMString::from(t.to_string()))
+            .collect();
+        let frozen_types = to_frozen_array(types.as_slice(), cx);
+
+        // Safety: need to create the Heap value in its final memory location before setting it.
+        *self.frozen_supported_performance_entry_types.borrow_mut() = Some(Heap::default());
+        self.frozen_supported_performance_entry_types
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .set(frozen_types);
+
+        frozen_types
     }
 
     pub fn is_headless(&self) -> bool {

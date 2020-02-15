@@ -18,19 +18,21 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::jsval::JSVal;
 use std::cell::Cell;
 use std::rc::Rc;
 
-/// List of allowed performance entry types.
-const VALID_ENTRY_TYPES: &'static [&'static str] = &[
+/// List of allowed performance entry types, in alphabetical order.
+pub const VALID_ENTRY_TYPES: &'static [&'static str] = &[
+    // "frame", //TODO Frame Timing API
     "mark",       // User Timing API
     "measure",    // User Timing API
-    "resource",   // Resource Timing API
     "navigation", // Navigation Timing API
-    // "frame", //TODO Frame Timing API
-    // "server", XXX Server Timing API
-    "paint", // Paint Timing API
+    "paint",      // Paint Timing API
+    "resource",   // Resource Timing API
+                  // "server", XXX Server Timing API
 ];
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -109,6 +111,14 @@ impl PerformanceObserver {
 
     pub fn set_entries(&self, entries: DOMPerformanceEntryList) {
         *self.entries.borrow_mut() = entries;
+    }
+
+    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    #[allow(non_snake_case)]
+    pub fn SupportedEntryTypes(cx: JSContext, global: &GlobalScope) -> JSVal {
+        // While this is exposed through a method of PerformanceObserver,
+        // it is specified as associated with the global scope.
+        global.supported_performance_entry_types(cx)
     }
 }
 
