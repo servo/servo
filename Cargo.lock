@@ -486,6 +486,7 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "fnv",
+ "font-kit",
  "gleam 0.9.2",
  "half",
  "ipc-channel",
@@ -4406,8 +4407,8 @@ checksum = "dd5927936723a9e8b715d37d7e4b390455087c4bdf25b9f702309460577b14f9"
 
 [[package]]
 name = "raqote"
-version = "0.7.8-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#0cad3c338d9587bf0e9f6bc9e26112998767a1b5"
+version = "0.7.15-alpha.0"
+source = "git+https://github.com/jrmuizel/raqote#56fa45b39ec5dc6779bdc7c103394df5cf58d546"
 dependencies = [
  "euclid",
  "font-kit",
@@ -5799,9 +5800,9 @@ checksum = "c666f0fed8e1e20e057af770af9077d72f3d5a33157b8537c1475dd8ffd6d32b"
 
 [[package]]
 name = "sw-composite"
-version = "0.7.2"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50a36f1738c7e57fec506df8c94719b2210816ab9de4d3dadeb9efb6bc71f1d2"
+checksum = "489500b88acdc4007684adf921506e84057e232a7f8b76a0caa288169ab39b94"
 
 [[package]]
 name = "swapper"
