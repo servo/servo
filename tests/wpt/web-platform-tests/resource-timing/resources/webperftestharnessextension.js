@@ -30,13 +30,6 @@ function test_method_exists(method, method_name, properties)
     wp_test(function() { assert_true(typeof method === 'function', msg); }, msg, properties);
 }
 
-function test_method_throw_exception(func_str, exception, msg)
-{
-    var exception_name = typeof exception === "object" ? exception.name : exception;
-    var msg = 'Invocation of ' + func_str + ' should throw ' + exception_name  + ' Exception.';
-    wp_test(function() { assert_throws(exception, function() {eval(func_str)}, msg); }, msg);
-}
-
 function test_noless_than(value, greater_than, msg, properties)
 {
     wp_test(function () { assert_true(value >= greater_than, msg); }, msg, properties);

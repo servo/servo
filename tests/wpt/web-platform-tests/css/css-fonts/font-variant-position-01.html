@@ -23,18 +23,12 @@
   .low {
 	font-feature-settings: "subs" off, "sups" off;
   }
-.foo {
-  color: #100;
-}
-.bar {
-  color: #001;
-}
 </style>
 <body>
 <p>Test passes if the three lines below are identical, with two crosses (✗)</p>
 <!-- spans to force each character to be in a separate run -->
 <section class="test">
-	<p class="high"><span class="foo">H</span><span class="bar">I</span></p>
-  <p class="high"><span class="foo">H</span><span class="bar">I</span></p>
+	<p class="high"><span>H</span><span>I</span></p>
+	<p class="low"><span>H</span><span>I</span></p>
 	<p class="ref">BB</p>
 </section>

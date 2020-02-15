@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<div id="target" style="width:300px; height:300px; line-height:100px;">
+  &nbsp;
+  <div></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      var elm = document.elementFromPoint(200, 70);
+      assert_equals(elm.id, "target");
+  }, "Hit test beside line of text inside anonymous block");
+</script>

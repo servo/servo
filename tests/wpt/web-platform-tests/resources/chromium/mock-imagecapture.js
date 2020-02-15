@@ -5,8 +5,8 @@ var ImageCaptureTest = (() => {
   // https://cs.chromium.org/chromium/src/media/capture/mojom/image_capture.mojom
   class MockImageCapture {
     constructor() {
-      this.interceptor_ = new MojoInterfaceInterceptor(
-        media.mojom.ImageCapture.name, "context", true);
+      this.interceptor_ =
+          new MojoInterfaceInterceptor(media.mojom.ImageCapture.name);
       this.interceptor_.oninterfacerequest =
         e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();

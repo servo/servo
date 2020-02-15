@@ -36,7 +36,7 @@ directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'bad_offset', root);
   const writer = await handle.createWriter();
 
-  await promise_rejects(
+  await promise_rejects_dom(
       t, 'InvalidStateError', writer.write(4, new Blob(['abc'])));
   await writer.close();
 
@@ -142,7 +142,7 @@ directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, file_name, dir);
 
   await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects(t, 'NotFoundError', handle.createWriter());
+  await promise_rejects_dom(t, 'NotFoundError', handle.createWriter());
 }, 'createWriter() fails when parent directory is removed');
 
 directory_test(async (t, root) => {
@@ -152,7 +152,7 @@ directory_test(async (t, root) => {
   const writer = await handle.createWriter();
 
   await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects(t, 'NotFoundError', writer.write(0, new Blob(['foo'])));
+  await promise_rejects_dom(t, 'NotFoundError', writer.write(0, new Blob(['foo'])));
 }, 'write() fails when parent directory is removed');
 
 directory_test(async (t, root) => {
@@ -162,7 +162,7 @@ directory_test(async (t, root) => {
   const writer = await handle.createWriter();
 
   await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects(t, 'NotFoundError', writer.truncate(0));
+  await promise_rejects_dom(t, 'NotFoundError', writer.truncate(0));
 }, 'truncate() fails when parent directory is removed');
 
 directory_test(async (t, root) => {
@@ -173,7 +173,7 @@ directory_test(async (t, root) => {
   await writer.write(0, new Blob(['foo']));
 
   await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects(t, 'NotFoundError', writer.close());
+  await promise_rejects_dom(t, 'NotFoundError', writer.close());
 }, 'atomic writes: close() fails when parent directory is removed');
 
 directory_test(async (t, root) => {
@@ -204,7 +204,7 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(
+  await promise_rejects_dom(
       t, 'InvalidStateError', writer.write(0, new Blob(['abc'])));
 }, 'atomic writes: write() after close() fails');
 
@@ -218,7 +218,7 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(t, 'InvalidStateError', writer.truncate(0));
+  await promise_rejects_dom(t, 'InvalidStateError', writer.truncate(0));
 }, 'atomic writes: truncate() after close() fails');
 
 directory_test(async (t, root) => {
@@ -230,7 +230,7 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
 
-  await promise_rejects(t, 'InvalidStateError', writer.close());
+  await promise_rejects_dom(t, 'InvalidStateError', writer.close());
 }, 'atomic writes: close() after close() fails');
 
 directory_test(async (t, root) => {
@@ -279,7 +279,7 @@ directory_test(async (t, root) => {
   await writer.write(0, new Blob(['bar']));
 
   await dir.removeEntry(file_name);
-  await promise_rejects(t, 'NotFoundError', getFileContents(handle));
+  await promise_rejects_dom(t, 'NotFoundError', getFileContents(handle));
 
   await writer.close();
   assert_equals(await getFileContents(handle), 'bar');

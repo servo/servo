@@ -6,7 +6,7 @@ for (const method of ["compileStreaming", "instantiateStreaming"]) {
     const buffer = new WasmModuleBuilder().toBuffer();
     const argument = new Response(buffer, { headers: { "Content-Type": "application/wasm" } });
     argument.arrayBuffer();
-    return promise_rejects(t, new TypeError(), WebAssembly[method](argument));
+    return promise_rejects_js(t, TypeError, WebAssembly[method](argument));
   }, `${method} after consumption`);
 
   promise_test(t => {
@@ -14,6 +14,6 @@ for (const method of ["compileStreaming", "instantiateStreaming"]) {
     const argument = new Response(buffer, { headers: { "Content-Type": "application/wasm" } });
     const promise = WebAssembly[method](argument);
     argument.arrayBuffer();
-    return promise_rejects(t, new TypeError(), promise);
+    return promise_rejects_js(t, TypeError, promise);
   }, `${method} before consumption`);
 }

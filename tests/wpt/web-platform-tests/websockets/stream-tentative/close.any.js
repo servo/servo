@@ -66,9 +66,9 @@ promise_test(t => {
   const wss = new WebSocketStream(ECHOURL);
   wss.close();
   return Promise.all([
-    promise_rejects(t, 'NetworkError', wss.connection,
+    promise_rejects_dom(t, 'NetworkError', wss.connection,
                     'connection promise should reject'),
-    promise_rejects(t, 'NetworkError', wss.closed,
+    promise_rejects_dom(t, 'NetworkError', wss.closed,
                     'closed promise should reject')]);
 }, 'close during handshake should work');
 

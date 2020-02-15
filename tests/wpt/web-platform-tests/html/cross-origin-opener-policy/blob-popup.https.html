@@ -11,7 +11,7 @@ async_test(t => {
 
   const bc = new BroadcastChannel(token());
   bc.onmessage = t.step_func_done(({ data }) => {
-    assert_equals(data.name, "");
+    assert_equals(data.name.length, 0);
     assert_false(data.opener);
     assert_true(furtherPopup.closed);
     assert_equals(furtherPopup.document.URL, "about:blank");

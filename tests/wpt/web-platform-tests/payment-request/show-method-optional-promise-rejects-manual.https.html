@@ -168,7 +168,13 @@
       );
       const detailsPromise = Promise.resolve(badDetails);
       const acceptPromise = request.show(detailsPromise);
-      await promise_rejects(
+      let test_func;
+      if (typeof expectedError == "function") {
+        test_func = promise_rejects_js;
+      } else {
+        test_func = promise_rejects_dom;
+      }
+      await test_func(
         t,
         expectedError,
         acceptPromise,
@@ -203,20 +209,20 @@
 
   <li><button onclick="
     const invalidDetails = { total: `this will cause a TypeError!` };
-    testBadUpdate(this.textContent, invalidDetails, new TypeError());
+    testBadUpdate(this.textContent, invalidDetails, TypeError);
   ">
   Total in the update is a string, so converting to IDL must abort the update with a TypeError.
   </button></li>
 
   <li><button onclick="
     const invalidDetails = { total: recursiveData };
-    testBadUpdate(this.textContent, invalidDetails, new TypeError());
+    testBadUpdate(this.textContent, invalidDetails, TypeError);
   ">
   Total is recursive, so converting to IDL must abort the update with a TypeError.
   </button></li>
 
   <li><button onclick="
-    testBadUpdate(this.textContent, invalidDetailsNegativeTotal, new TypeError());
+    testBadUpdate(this.textContent, invalidDetailsNegativeTotal, TypeError);
   ">
   Updating with a negative total results in a TypeError.
   </button></li>
@@ -225,7 +231,7 @@
     const badDetails = Object.assign({}, validDetails, {
       displayItems: invalidPaymentItems
     });
-    testBadUpdate(this.textContent, badDetails, new RangeError());
+    testBadUpdate(this.textContent, badDetails, RangeError);
   ">
   Updating with a displayItem with an invalid currency results in RangeError.
   </button></li>
@@ -235,7 +241,7 @@
     const badDetails = Object.assign({}, validDetails, {
       shippingOptions: duplicateShippingOptions,
     });
-    testBadUpdate(this.textContent, badDetails, new TypeError());
+    testBadUpdate(this.textContent, badDetails, TypeError);
   ">
   Updating with duplicate shippingOptions (same IDs) results in a TypeError.
   </button></li>
@@ -243,7 +249,7 @@
     const badDetails = Object.assign({}, validDetails, {
       shippingOptions: invalidShippingOptions,
     });
-    testBadUpdate(this.textContent, badDetails, new RangeError());
+    testBadUpdate(this.textContent, badDetails, RangeError);
   ">
   Updating with a shippingOption with an invalid currency value results in a RangError.
   </button></li>
@@ -252,7 +258,7 @@
     // validModifier is there as to avoid false positives
     const badModifiers = { modifiers: [modifierWithInvalidTotal, validModifier] };
     const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, new RangeError());
+    testBadUpdate(this.textContent, badDetails, RangeError);
   ">
   Must throw a RangeError when a modifier's total item has an invalid currency.
   </button></li>
@@ -263,7 +269,7 @@
       modifiers: [modifierWithInvalidDisplayItems, validModifier],
     };
     const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, new RangeError());
+    testBadUpdate(this.textContent, badDetails, RangeError);
   ">
   Must throw a RangeError when a modifier display item has an invalid currency.
   </button></li>
@@ -274,7 +280,7 @@
       modifiers: [modifierWithRecursiveData, validModifier],
     };
     const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, new TypeError());
+    testBadUpdate(this.textContent, badDetails, TypeError);
   ">
   Must throw as Modifier has a recursive dictionary.
   </button></li>

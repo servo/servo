@@ -21,25 +21,25 @@ function createResponseWithCancelledReadableStream(callback) {
 
 promise_test(function(test) {
     return createResponseWithCancelledReadableStream(function(response) {
-        return promise_rejects(test, new TypeError(), response.blob());
+        return promise_rejects_js(test, TypeError, response.blob());
     });
 }, "Getting blob after cancelling the Response body");
 
 promise_test(function(test) {
     return createResponseWithCancelledReadableStream(function(response) {
-        return promise_rejects(test, new TypeError(), response.text());
+        return promise_rejects_js(test, TypeError, response.text());
     });
 }, "Getting text after cancelling the Response body");
 
 promise_test(function(test) {
     return createResponseWithCancelledReadableStream(function(response) {
-        return promise_rejects(test, new TypeError(), response.json());
+        return promise_rejects_js(test, TypeError, response.json());
     });
 }, "Getting json after cancelling the Response body");
 
 promise_test(function(test) {
     return createResponseWithCancelledReadableStream(function(response) {
-        return promise_rejects(test, new TypeError(), response.arrayBuffer());
+        return promise_rejects_js(test, TypeError, response.arrayBuffer());
     });
 }, "Getting arrayBuffer after cancelling the Response body");
 

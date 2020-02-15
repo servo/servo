@@ -37,7 +37,7 @@ promise_test(async t => {
 
   // Grab and hold the lock.
   const promise = navigator.locks.request(res, lock => never_settled);
-  const assertion = promise_rejects(
+  const assertion = promise_rejects_dom(
     t, 'AbortError', promise, `Initial request's promise should reject`);
 
   // Steal it.

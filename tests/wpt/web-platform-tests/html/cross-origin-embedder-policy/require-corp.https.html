@@ -16,7 +16,7 @@ async_test(t => {
     // reliable event.
     assert_equals(frame.contentDocument, null);
     t.done();
-  }, 500);
+  }, 2000);
   frame.src = "/common/blank.html";
   document.body.append(frame);
   assert_equals(frame.contentDocument.body.localName, "body");
@@ -129,12 +129,12 @@ promise_test(async t => {
 }, `"require-corp" top-level: fetch() to CORP: cross-origin response should succeed`);
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
+  return promise_rejects_js(t, TypeError, fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
 }, `"require-corp" top-level: fetch() to response without CORP should fail`);
 
 promise_test(t => {
   const w = window.open();
-  return promise_rejects(t, new TypeError(), w.fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
+  return promise_rejects_js(t, w.TypeError, w.fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/common/blank.html", {mode: "no-cors"}));
 }, `"require-corp" top-level: fetch() to response without CORP through a WindowProxy should fail`);
 
 async_test(t => {
@@ -148,7 +148,7 @@ async_test(t => {
     // and have a reliable event.
     assert_equals(frame.contentDocument, null);
     t.done();
-  }, 500);
+  }, 2000);
   frame.src = "/common/blank.html";
   document.body.append(frame);
   assert_equals(frame.contentDocument.body.localName, "body");

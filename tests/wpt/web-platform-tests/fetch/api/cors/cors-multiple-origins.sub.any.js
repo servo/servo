@@ -5,7 +5,7 @@ function corsMultipleOrigins(originList) {
   var url = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
   promise_test(function(test) {
-    return promise_rejects(test, new TypeError(), fetch(url + urlParameters));
+    return promise_rejects_js(test, TypeError, fetch(url + urlParameters));
   }, "Listing multiple origins is illegal: " + originList);
 }
 /* Actual origin */

@@ -28,6 +28,11 @@ assertions.push({
     expected: "BAR",
     message: "value for FOO in my opening window"
 });
+assertions.push({
+    actual: storage.getItem("BAZ"),
+    expected: null,
+    message: "value for BAZ set after window.open(), is not set in new window"
+});
 
 window.opener.postMessage(assertions, '*');
 

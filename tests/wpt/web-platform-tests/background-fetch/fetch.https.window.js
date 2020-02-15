@@ -23,8 +23,8 @@ promise_test(async test => {
     serviceWorkerRegistration.active, null,
     'There must not be an activated worker');
 
-  await promise_rejects(
-    test, new TypeError(),
+  await promise_rejects_js(
+    test, TypeError,
     serviceWorkerRegistration.backgroundFetch.fetch(
       uniqueId(), ['resources/feature-name.txt']),
       'fetch() must reject on pending and installing workers');
@@ -34,15 +34,15 @@ promise_test(async test => {
 backgroundFetchTest(async (test, backgroundFetch) => {
   // 6.3.1.6: If |requests| is empty, then return a promise rejected with a
   //          TypeError.
-  await promise_rejects(
-    test, new TypeError(), backgroundFetch.fetch(uniqueId(), []),
+  await promise_rejects_js(
+    test, TypeError, backgroundFetch.fetch(uniqueId(), []),
     'Empty sequences are treated as NULL');
 
   // 6.3.1.7.1: Let |internalRequest| be the request of the result of invoking
   //            the Request constructor with |request|. If this throws an
   //            exception, return a promise rejected with the exception.
-  await promise_rejects(
-    test, new TypeError(),
+  await promise_rejects_js(
+    test, TypeError,
     backgroundFetch.fetch(uniqueId(), 'https://user:pass@domain/secret.txt'),
     'Exceptions thrown in the Request constructor are rethrown');
 
@@ -52,8 +52,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
     const request =
       new Request('resources/feature-name.txt', {mode: 'no-cors'});
 
-    await promise_rejects(
-      test, new TypeError(), backgroundFetch.fetch(uniqueId(), request),
+    await promise_rejects_js(
+      test, TypeError, backgroundFetch.fetch(uniqueId(), request),
       'Requests must not be in no-cors mode');
   }
 
@@ -62,7 +62,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 backgroundFetchTest(async (test, backgroundFetch) => {
   // 6.3.1.9.2: If |bgFetchMap[id]| exists, reject |promise| with a TypeError
   //            and abort these steps.
-  return promise_rejects(test, new TypeError(), Promise.all([
+  return promise_rejects_js(test, TypeError, Promise.all([
     backgroundFetch.fetch('my-id', 'resources/feature-name.txt?1'),
     backgroundFetch.fetch('my-id', 'resources/feature-name.txt?2')
   ]));
@@ -170,7 +170,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
   // Very large download total that will definitely exceed the quota.
   const options = {downloadTotal: Number.MAX_SAFE_INTEGER};
-  await promise_rejects(
+  await promise_rejects_dom(
     test, 'QUOTA_EXCEEDED_ERR',
     backgroundFetch.fetch(registrationId, 'resources/feature-name.txt', options),
     'This fetch should have thrown a quota exceeded error');

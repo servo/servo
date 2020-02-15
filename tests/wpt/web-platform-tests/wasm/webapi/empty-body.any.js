@@ -9,12 +9,12 @@ for (const method of ["compileStreaming", "instantiateStreaming"]) {
   for (const [argumentFactory, name] of invalidArguments) {
     promise_test(t => {
       const argument = argumentFactory();
-      return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly[method](argument));
+      return promise_rejects_js(t, WebAssembly.CompileError, WebAssembly[method](argument));
     }, `${method}: ${name}`);
 
     promise_test(t => {
       const argument = Promise.resolve(argumentFactory());
-      return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly[method](argument));
+      return promise_rejects_js(t, WebAssembly.CompileError, WebAssembly[method](argument));
     }, `${method}: ${name} in a promise`);
   }
 }

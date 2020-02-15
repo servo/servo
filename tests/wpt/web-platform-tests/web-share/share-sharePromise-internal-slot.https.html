@@ -29,8 +29,8 @@
         test_driver.click(button);
         const [, promise2, promise3] = await p;
         await Promise.all([
-          promise_rejects(t, "InvalidStateError", promise2),
-          promise_rejects(t, "InvalidStateError", promise3)
+          promise_rejects_dom(t, "InvalidStateError", promise2),
+          promise_rejects_dom(t, "InvalidStateError", promise3)
         ]);
       }, "Only allow one share call at a time, which is controlled by the [[sharePromise]] internal slot.");
     </script>

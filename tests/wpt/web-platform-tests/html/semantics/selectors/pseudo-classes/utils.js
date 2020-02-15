@@ -9,12 +9,12 @@ function getElementsByIds(ids) {
 function testSelectorIdsMatch(selector, ids, testName) {
   test(function(){
     var elements = document.querySelectorAll(selector);
-    assert_array_equals(elements, getElementsByIds(ids));
+    assert_array_equals([...elements], getElementsByIds(ids));
   }, testName);
 }
 
 function testSelectorElementsMatch(selector, elements, testName) {
   test(function(){
-    assert_array_equals(document.querySelectorAll(selector), elements);
+    assert_array_equals([...document.querySelectorAll(selector)], elements);
   }, testName);
 }

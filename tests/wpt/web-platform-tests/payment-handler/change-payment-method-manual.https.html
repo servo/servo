@@ -50,7 +50,7 @@
         () => request.show()
       );
 
-      return promise_rejects(t, 'AbortError', response_promise);
+      return promise_rejects_dom(t, 'AbortError', response_promise);
     }, 'If updateWith(details) is rejected, abort the PaymentRequest.show().');
 
     promise_test(async (t) => {
@@ -71,7 +71,7 @@
         () => request.show()
       );
 
-      return promise_rejects(t, 'AbortError', response_promise);
+      return promise_rejects_dom(t, 'AbortError', response_promise);
     }, 'If updateWith(details) throws inside of the promise, abort the PaymentRequest.show().');
 
     promise_test(async (t) => {

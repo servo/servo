@@ -83,7 +83,7 @@ promise_test(async t => {
           t, 'empty.js', 'import-scripts-404.js');
   t.add_cleanup(() => registration.unregister());
 
-  await promise_rejects(t, new TypeError(), registration.update());
+  await promise_rejects_js(t, TypeError, registration.update());
   assert_active_only(registration, expected_url);
 }, 'update() should fail when a new worker imports an unavailable script.');
 
@@ -119,7 +119,7 @@ promise_test(async t => {
        `AdditionalKey=${token()}`);
   t.add_cleanup(() => registration.unregister());
 
-  await promise_rejects(t, new TypeError(), registration.update());
+  await promise_rejects_js(t, TypeError, registration.update());
   assert_active_only(registration, expected_url);
 }, 'update() should find an update in an imported script but update() should ' +
    'result in failure due to missing the other imported script.');

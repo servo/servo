@@ -13,7 +13,7 @@ promise_test(t => {
       controller.error(error1);
     }
   });
-  return promise_rejects(t, error1, ws.getWriter().closed, 'stream should be errored');
+  return promise_rejects_exactly(t, error1, ws.getWriter().closed, 'stream should be errored');
 }, 'controller.error() should error the stream');
 
 test(() => {
@@ -36,7 +36,7 @@ promise_test(t => {
   });
   controller.error(error1);
   controller.error(error2);
-  return promise_rejects(t, error1, ws.getWriter().closed, 'first controller.error() should win');
+  return promise_rejects_exactly(t, error1, ws.getWriter().closed, 'first controller.error() should win');
 }, 'surplus calls to controller.error() should be a no-op');
 
 promise_test(() => {

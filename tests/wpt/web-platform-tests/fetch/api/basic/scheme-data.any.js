@@ -35,7 +35,7 @@ function checkKoUrl(url, method, desc) {
   var cut = (url.length >= 40) ? "[...]" : "";
   desc = "Fetching [" + method + "] " + url.substring(0, 45) + cut + " is KO"
   promise_test(function(test) {
-    return promise_rejects(test, new TypeError(), fetch(url, {"method": method}));
+    return promise_rejects_js(test, TypeError, fetch(url, {"method": method}));
   }, desc);
 }
 

@@ -7,7 +7,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-property">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<meta name="assert" content="When the language is Japanese, and line-break:normal, a browser allows a break before a hyphen.">
+<meta name="assert" content="When the language is Japanese, and line-break:normal, a browser allows a break before a hyphen-like CJK characters.">
 <style type="text/css">
 @font-face {
     font-family: 'mplus-1p-regular';
@@ -21,9 +21,7 @@
 .test { line-break: normal; }
 </style>
 <script>
-var charlist = `2010 HYPHEN
-2013 EN DASH
-301C WAVE DASH
+var charlist = `301C WAVE DASH
 30A0 KATAKANA-HIRAGANA DOUBLE HYPHEN`
 </script>
 </head>

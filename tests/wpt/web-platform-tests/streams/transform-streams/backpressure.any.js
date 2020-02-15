@@ -130,14 +130,14 @@ promise_test(() => {
 promise_test(t => {
   const ts = new TransformStream();
   ts.readable.cancel(error1);
-  return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+  return promise_rejects_exactly(t, error1, ts.writable.getWriter().closed, 'closed should reject');
 }, 'writer.closed should resolve after readable is canceled during start');
 
 promise_test(t => {
   const ts = new TransformStream({}, undefined, { highWaterMark: 0 });
   return delay(0).then(() => {
     ts.readable.cancel(error1);
-    return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+    return promise_rejects_exactly(t, error1, ts.writable.getWriter().closed, 'closed should reject');
   });
 }, 'writer.closed should resolve after readable is canceled with backpressure');
 
@@ -145,7 +145,7 @@ promise_test(t => {
   const ts = new TransformStream({}, undefined, { highWaterMark: 1 });
   return delay(0).then(() => {
     ts.readable.cancel(error1);
-    return promise_rejects(t, error1, ts.writable.getWriter().closed, 'closed should reject');
+    return promise_rejects_exactly(t, error1, ts.writable.getWriter().closed, 'closed should reject');
   });
 }, 'writer.closed should resolve after readable is canceled with no backpressure');
 
@@ -164,7 +164,7 @@ promise_test(t => {
   const ts = new TransformStream();
   const pipePromise = rs.pipeTo(ts.writable);
   ts.readable.cancel(error1);
-  return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+  return promise_rejects_exactly(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
 }, 'cancelling the readable side of a TransformStream should abort an empty pipe');
 
 promise_test(t => {
@@ -173,7 +173,7 @@ promise_test(t => {
   const pipePromise = rs.pipeTo(ts.writable);
   return delay(0).then(() => {
     ts.readable.cancel(error1);
-    return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+    return promise_rejects_exactly(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
   });
 }, 'cancelling the readable side of a TransformStream should abort an empty pipe after startup');
 
@@ -190,6 +190,6 @@ promise_test(t => {
   // Allow data to flow into the pipe.
   return delay(0).then(() => {
     ts.readable.cancel(error1);
-    return promise_rejects(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
+    return promise_rejects_exactly(t, error1, pipePromise, 'promise returned from pipeTo() should be rejected');
   });
 }, 'cancelling the readable side of a TransformStream should abort a full pipe');

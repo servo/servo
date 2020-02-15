@@ -1,7 +1,7 @@
 parameters:
   directory: ''
   toxenv: 'ALL'
-
+  
 steps:
 - template: pip_install.yml
   parameters:

@@ -68,7 +68,7 @@
       encrypted: false
     }];
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, `setParameters() with modified headerExtensions should reject with InvalidModificationError`);
 

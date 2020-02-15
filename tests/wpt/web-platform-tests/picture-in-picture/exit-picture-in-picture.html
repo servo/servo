@@ -15,7 +15,7 @@ promise_test(async t => {
 }, 'Exit Picture-in-Picture resolves when there is a Picture-in-Picture video');
 
 promise_test(t => {
-  return promise_rejects(t, 'InvalidStateError',
+  return promise_rejects_dom(t, 'InvalidStateError',
       document.exitPictureInPicture());
 }, 'Exit Picture-in-Picture rejects when there is no Picture-in-Picture video');
 </script>

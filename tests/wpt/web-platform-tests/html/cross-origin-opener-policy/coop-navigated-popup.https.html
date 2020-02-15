@@ -12,16 +12,16 @@ async_test(t => {
   const noCOOP = "/common/blank.html";
   const popupName = token();
   const popup = window.open(noCOOP, popupName);
+  const channel = new BroadcastChannel(token());
   // Close the popup once the test is complete.
   // The browsing context is closed after the navigation hence use the broadcast channel
   // to trigger the closure.
   t.add_cleanup(() => {
-    bc.postMessage("close");
+    channel.postMessage("close");
   });
   popup.onload = t.step_func(() => {
     assert_equals(popup.name, popupName);
     assert_equals(new URL(popup.document.URL).pathname, noCOOP);
-    const channel = new BroadcastChannel(token());
     channel.onmessage = t.step_func_done(event => {
       const payload = event.data;
       // The name should be empty, but we're checking the length rather than a

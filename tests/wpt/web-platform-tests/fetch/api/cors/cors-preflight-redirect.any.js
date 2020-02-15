@@ -20,7 +20,7 @@ function corsPreflightRedirect(desc, redirectUrl, redirectLocation, redirectStat
   promise_test(function(test) {
     return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token).then(function(resp) {
       assert_equals(resp.status, 200, "Clean stash response's status is 200");
-      return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
+      return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit));
     });
   }, desc);
 }

@@ -1,12 +1,15 @@
+importScripts('/resources/testharness.js');
+
 function match_query(query_string) {
   return self.location.search.substr(1) == query_string;
 }
 
-function navigate_test(e) {
+async function navigate_test(t, e) {
   var port = e.data.port;
   var url = e.data.url;
+  var expected = e.data.expected;
 
-  return clients.matchAll({ includeUncontrolled : true })
+  var p = clients.matchAll({ includeUncontrolled : true })
     .then(function(client_list) {
         for (var i = 0; i < client_list.length; i++) {
           var client = client_list[i];
@@ -14,17 +17,25 @@ function navigate_test(e) {
             return client.navigate(url);
           }
         }
-        port.postMessage('Could not locate window client.');
+        throw 'Could not locate window client.';
       })
     .then(function(new_client) {
-        if (new_client === null)
-          port.postMessage(new_client);
-        else
-          port.postMessage(new_client.url);
-      })
-    .catch(function(error) {
-        port.postMessage(error.name);
+        // If we didn't reject, we better get resolved with the right thing.
+        if (new_client === null) {
+          assert_equals(new_client, expected);
+        } else {
+          assert_equals(new_client.url, expected);
+        }
       });
+
+  if (typeof self[expected] == "function") {
+    // It's a JS error type name.  We are expecting our promise to be rejected
+    // with that error.
+    p = promise_rejects_js(t, self[expected], p);
+  }
+
+  // Let our caller know we are done.
+  return p.finally(() => port.postMessage(null));
 }
 
 function getTestClient() {
@@ -62,5 +73,6 @@ if (match_query('installing')) {
 }
 
 self.addEventListener('message', function(e) {
-    e.waitUntil(navigate_test(e));
+    e.waitUntil(promise_test(t => navigate_test(t, e),
+                             e.data.description + " worker side"));
   });

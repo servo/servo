@@ -46,6 +46,7 @@ promise_test(t => {
         return navigate_in_frame(frame, 'resources/empty.html');
       })
       .then(timing => {
+        assert_greater_than(timing.workerStart, 0);
         verify(timing);
       })
       .catch(unreached_rejection(t))

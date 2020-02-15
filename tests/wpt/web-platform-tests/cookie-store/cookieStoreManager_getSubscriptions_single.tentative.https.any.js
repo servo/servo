@@ -34,7 +34,13 @@ promise_test(async testCase => {
       { name: 'cookie-name', matchType: 'equals', url: `${scope}/path` }
     ];
     await registration.cookies.subscribe(subscriptions);
-    testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
+    testCase.add_cleanup(() => {
+      // For non-ServiceWorker environments, registration.unregister() cleans up
+      // cookie subscriptions.
+      if (self.GLOBAL.isWorker()) {
+        return registration.cookies.unsubscribe(subscriptions);
+      }
+    });
   }
 
   const subscriptions = await registration.cookies.getSubscriptions();

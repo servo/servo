@@ -93,10 +93,10 @@ promise_test(t => {
 }, "rethrows errors when getting `handleEvent`");
 
 promise_test(t => {
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => null));
+    return promise_rejects_js(t, TypeError, uncaught_error_test(t, () => null));
 }, "throws if `handleEvent` is falsy and not callable");
 
 promise_test(t => {
-    return promise_rejects(t, new TypeError(), uncaught_error_test(t, () => 42));
+    return promise_rejects_js(t, TypeError, uncaught_error_test(t, () => 42));
 }, "throws if `handleEvent` is thruthy and not callable");
 </script>

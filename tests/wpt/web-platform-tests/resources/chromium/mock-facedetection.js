@@ -9,7 +9,7 @@ var FaceDetectionTest = (() => {
         shapeDetection.mojom.FaceDetectionProvider);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-          shapeDetection.mojom.FaceDetectionProvider.name, "context", true);
+          shapeDetection.mojom.FaceDetectionProvider.name);
       this.interceptor_.oninterfacerequest =
          e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();

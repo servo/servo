@@ -164,9 +164,9 @@ const neutralDetails = Object.freeze({
 function smokeTest() {
   promise_test(async t => {
     const request = new PaymentRequest(validMethods, failDetails);
-    await promise_rejects(
+    await promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       request.show({
         total: "This throws a TypeError",
       }),
@@ -190,7 +190,7 @@ function runUpdateDetailsAlgorithm(
     const detailsPromise = Promise.resolve(details);
     const acceptPromise = request.show(detailsPromise);
     assert_equals(request.id, "this cannot be changed", "id must never change.");
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "AbortError",
       acceptPromise,

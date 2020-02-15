@@ -49,7 +49,7 @@ function corsPreflight(desc, corsUrl, method, allowed, headers, safeHeaders) {
           }
         });
       } else {
-        return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit)).then(function(){
+        return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit)).then(function(){
           return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token);
         });
       }

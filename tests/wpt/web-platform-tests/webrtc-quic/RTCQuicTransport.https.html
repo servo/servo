@@ -249,7 +249,7 @@ promise_test(async t => {
 promise_test(async t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   const promise = quicTransport.getStats();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'getStats() promises immediately rejected with InvalidStateError ' +
     `if called before 'connecting'.`);
 
@@ -258,7 +258,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const promise = localQuicTransport.getStats();
   localQuicTransport.stop();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'getStats() promises rejected  with InvalidStateError if stop() ' +
    'is called before being fulfilled.');
 
@@ -267,7 +267,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const promise = localQuicTransport.getStats();
   localQuicTransport.transport.stop();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'getStats() promises rejected  with InvalidStateError if ' +
    'RTCIceTransport calls stop() before being fulfilled.');
 
@@ -276,7 +276,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   localQuicTransport.transport.stop();
   const promise = localQuicTransport.getStats();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'getStats() promises immediately rejected if called after ' +
    `'closed' state.`);
 
@@ -348,7 +348,7 @@ promise_test(async t => {
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   const promise = quicTransport.readyToSendDatagram();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'readyToSendDatagram() promise immediately rejected if called before ' +
     'connecting');
 
@@ -357,14 +357,14 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   localQuicTransport.stop();
   const promise = localQuicTransport.readyToSendDatagram();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'readyToSendDatagram() promise immediately rejected if called after ' +
     `'closed' state.`);
 
 test(t => {
   const quicTransport = makeStandaloneQuicTransport(t);
   const promise = quicTransport.receiveDatagrams();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'receiveDatagrams() promise immediately rejected if called before ' +
     'connecting.');
 
@@ -373,7 +373,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   localQuicTransport.stop();
   const promise = localQuicTransport.receiveDatagrams();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'receiveDatagrams() promise immediately rejected if called after ' +
     `'closed' state.`);
 
@@ -382,7 +382,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const promise = localQuicTransport.receiveDatagrams();
   localQuicTransport.stop();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'receiveDatagrams() promise rejected  with InvalidStateError if stop() ' +
     'is called before being fulfilled.');
 
@@ -391,7 +391,7 @@ promise_test(async t => {
       await makeTwoConnectedQuicTransports(t);
   const promise = localQuicTransport.receiveDatagrams();
   localQuicTransport.transport.stop();
-  promise_rejects(t, 'InvalidStateError', promise);
+  promise_rejects_dom(t, 'InvalidStateError', promise);
 }, 'receiveDatagrams() promises rejected  with InvalidStateError if ' +
    'RTCIceTransport calls stop() before being fulfilled.');
 

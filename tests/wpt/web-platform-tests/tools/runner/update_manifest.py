@@ -7,21 +7,30 @@ localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os
 
 root = localpaths.repo_root
 
-from manifest import manifest, update
+from manifest import manifest
 
 def main(request, response):
     path = os.path.join(root, "MANIFEST.json")
 
-    manifest_file = None
-    try:
-        manifest_file = manifest.load(root, path)
-    except manifest.ManifestVersionMismatch:
-        pass
-    if manifest_file is None:
-        manifest_file = manifest.Manifest("/")
+    # TODO make this download rather than rebuilding from scratch when possible
+    manifest_file = manifest.load_and_update(root, path, "/", parallel=False)
 
-    update.update(root, manifest_file)
+    supported_types = ["testharness", "reftest", "manual"]
+    data = {"items": {},
+            "url_base": "/"}
+    for item_type in supported_types:
+        data["items"][item_type] = {}
+    for item_type, path, tests in manifest_file.itertypes(*supported_types):
+        tests_data = []
+        for item in tests:
+            test_data = [item.url[1:]]
+            if item_type == "reftest":
+                test_data.append(item.references)
+            test_data.append({})
+            if item_type != "manual":
+                test_data[-1]["timeout"] = item.timeout
+            tests_data.append(test_data)
+        assert path not in data["items"][item_type]
+        data["items"][item_type][path] = tests_data
 
-    manifest.write(manifest_file, path)
-
-    return [("Content-Type", "application/json")], json.dumps({"url": "/MANIFEST.json"})
+    return [("Content-Type", "application/json")], json.dumps(data)

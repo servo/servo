@@ -25,7 +25,7 @@ for (const invalidSignal of [null, 'AbortSignal', true, -1, Object.create(AbortS
   promise_test(t => {
     const rs = recordingReadableStream(errorOnPull, hwm0);
     const ws = recordingWritableStream();
-    return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { signal: invalidSignal }), 'pipeTo should reject')
+    return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { signal: invalidSignal }), 'pipeTo should reject')
         .then(() => {
           assert_equals(rs.events.length, 0, 'no ReadableStream methods should have been called');
           assert_equals(ws.events.length, 0, 'no WritableStream methods should have been called');
@@ -39,10 +39,10 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject')
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject')
       .then(() => Promise.all([
         rs.getReader().closed,
-        promise_rejects(t, 'AbortError', ws.getWriter().closed, 'writer.closed should reject')
+        promise_rejects_dom(t, 'AbortError', ws.getWriter().closed, 'writer.closed should reject')
       ]))
       .then(() => {
         assert_equals(rs.events.length, 2, 'cancel should have been called');
@@ -83,7 +83,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal, preventCancel: true }), 'pipeTo should reject')
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal, preventCancel: true }), 'pipeTo should reject')
       .then(() => assert_equals(rs.events.length, 0, 'cancel should not be called'));
 }, 'preventCancel should prevent canceling the readable');
 
@@ -93,7 +93,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal, preventAbort: true }), 'pipeTo should reject')
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal, preventAbort: true }), 'pipeTo should reject')
       .then(() => {
         assert_equals(ws.events.length, 0, 'writable should not have been aborted');
         return ws.getWriter().ready;
@@ -106,7 +106,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal, preventCancel: true, preventAbort: true }),
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal, preventCancel: true, preventAbort: true }),
                          'pipeTo should reject')
     .then(() => {
       assert_equals(rs.events.length, 0, 'cancel should not be called');
@@ -130,7 +130,7 @@ promise_test(t => {
       abortController.abort();
     }
   });
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject')
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject')
       .then(() => {
         assert_equals(ws.events.length, 4, 'only chunk "a" should have been written');
         assert_array_equals(ws.events.slice(0, 3), ['write', 'a', 'abort'], 'events should match');
@@ -163,7 +163,7 @@ promise_test(t => {
     abortController.abort();
     readController.close(); // Make sure the test terminates when signal is not implemented.
     resolveWrite();
-    return promise_rejects(t, 'AbortError', pipeToPromise, 'pipeTo should reject');
+    return promise_rejects_dom(t, 'AbortError', pipeToPromise, 'pipeTo should reject');
   }).then(() => {
     assert_equals(ws.events.length, 6, 'chunks "a" and "b" should have been written');
     assert_array_equals(ws.events.slice(0, 5), ['write', 'a', 'write', 'b', 'abort'], 'events should match');
@@ -184,7 +184,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, error1, rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { signal }), 'pipeTo should reject');
 }, 'a rejection from underlyingSource.cancel() should be returned by pipeTo()');
 
 promise_test(t => {
@@ -197,7 +197,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, error1, rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { signal }), 'pipeTo should reject');
 }, 'a rejection from underlyingSink.abort() should be returned by pipeTo()');
 
 promise_test(t => {
@@ -220,7 +220,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, error2, rs.pipeTo(ws, { signal }), 'pipeTo should reject')
+  return promise_rejects_exactly(t, error2, rs.pipeTo(ws, { signal }), 'pipeTo should reject')
       .then(() => assert_array_equals(events, ['abort', 'cancel'], 'abort() should be called before cancel()'));
 }, 'a rejection from underlyingSink.abort() should be preferred to one from underlyingSource.cancel()');
 
@@ -234,7 +234,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
 }, 'abort signal takes priority over closed readable');
 
 promise_test(t => {
@@ -247,7 +247,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
 }, 'abort signal takes priority over errored readable');
 
 promise_test(t => {
@@ -263,7 +263,7 @@ promise_test(t => {
   const writer = ws.getWriter();
   return writer.close().then(() => {
     writer.releaseLock();
-    return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+    return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
   });
 }, 'abort signal takes priority over closed writable');
 
@@ -281,7 +281,7 @@ promise_test(t => {
   const abortController = new AbortController();
   const signal = abortController.signal;
   abortController.abort();
-  return promise_rejects(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
+  return promise_rejects_dom(t, 'AbortError', rs.pipeTo(ws, { signal }), 'pipeTo should reject');
 }, 'abort signal takes priority over errored writable');
 
 promise_test(() => {
@@ -316,7 +316,7 @@ promise_test(t => {
   readController.error(error1);
   return Promise.resolve().then(() => {
     abortController.abort();
-    return promise_rejects(t, error1, pipeToPromise, 'pipeTo should reject');
+    return promise_rejects_exactly(t, error1, pipeToPromise, 'pipeTo should reject');
   }).then(() => ws.getWriter().write('this should succeed'));
 }, 'abort should do nothing after the readable is errored');
 
@@ -344,7 +344,7 @@ promise_test(t => {
   return delay(0).then(() => {
     abortController.abort();
     resolveWrite();
-    return promise_rejects(t, error1, pipeToPromise, 'pipeTo should reject');
+    return promise_rejects_exactly(t, error1, pipeToPromise, 'pipeTo should reject');
   }).then(() => ws.getWriter().write('this should succeed'));
 }, 'abort should do nothing after the readable is errored, even with pending writes');
 
@@ -368,7 +368,7 @@ promise_test(t => {
     return Promise.resolve();
   }).then(() => {
     abortController.abort();
-    return promise_rejects(t, error1, pipeToPromise, 'pipeTo should reject');
+    return promise_rejects_exactly(t, error1, pipeToPromise, 'pipeTo should reject');
   }).then(() => {
     assert_array_equals(rs.events, ['pull'], 'cancel should not have been called');
   });

@@ -71,7 +71,7 @@ function testImmediateUpdate({ textContent: testName }) {
       );
     });
     const acceptPromise = request.show();
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       eventPromise,
@@ -103,7 +103,7 @@ function testSubsequentUpdateWithCalls({ textContent: testName }) {
       });
     });
     const responsePromise = request.show();
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       eventPromise,

@@ -11,7 +11,7 @@
           href="mailto:tavmjong@free.fr"/>
     <html:link rel="help"
           href="https://svgwg.org/svg2-draft/text.html#TextPathAttributes"/>
-    <html:link rel="match"  href="textpath-side-001-ref.svg" />
+    <html:link rel="match"  href="textpath-shape-001-ref.svg" />
   </g>
 
   <style id="test-font" type="text/css">

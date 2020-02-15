@@ -31,9 +31,6 @@
  * TODO once web-platform-tests supports it:
  *   - test http://localhost
  *   - test file:
- *
- * TODO once https://github.com/w3c/webappsec-secure-contexts/issues/26 is resolved
- *   - test data:
  */
 
 
@@ -101,6 +98,12 @@ const loadTypes = [
                "about:blank", // we don't wait for this to load, so whatever
                eSecureIfCreatorSecure,
                eResultFromExaminationSync),
+  new LoadType("a data: URL",
+               // can't load in a top-level browsing context
+               eLoadInUnsandboxedIframe | eLoadInSandboxedIframe,
+               "data:text/html,<script>parent.postMessage(isSecureContext, '*')</script>",
+               eSecureIfCreatorSecure,
+               eResultFromPostMessage),
 ];
 
 const loadTargets = [

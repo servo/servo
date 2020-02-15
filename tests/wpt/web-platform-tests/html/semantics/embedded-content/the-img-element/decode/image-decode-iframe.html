@@ -37,7 +37,7 @@ promise_test(function(t) {
   img.src = "/images/green.png";
   frame.parentNode.removeChild(frame);
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Decode from removed iframe fails (img not loaded)");
 
 promise_test(function(t) {
@@ -47,7 +47,7 @@ promise_test(function(t) {
   // First request a promise, then remove the iframe.
   var promise = img.decode();
   frame.parentNode.removeChild(frame);
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Decode from iframe, later removed, fails (img not loaded)");
 
 </script>

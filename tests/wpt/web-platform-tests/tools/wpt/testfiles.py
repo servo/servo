@@ -247,7 +247,7 @@ def affected_testfiles(files_changed,  # type: Iterable[Text]
     nontests_changed = set(files_changed)
     wpt_manifest = load_manifest(manifest_path, manifest_update)
 
-    test_types = ["testharness", "reftest", "wdspec"]
+    test_types = ["crashtest", "testharness", "reftest", "wdspec"]
     support_files = {os.path.join(wpt_root, path)
                      for _, path, _ in wpt_manifest.itertypes("support")}
     wdspec_test_files = {os.path.join(wpt_root, path)
@@ -396,7 +396,7 @@ def run_changed_files(**kwargs):
     separator = "\0" if kwargs["null"] else "\n"
 
     for item in sorted(changed):
-        sys.stdout.write(os.path.relpath(item.encode("utf8"), wpt_root) + separator)
+        sys.stdout.write(os.path.relpath(six.ensure_str(item), wpt_root) + separator)
 
 
 def run_tests_affected(**kwargs):

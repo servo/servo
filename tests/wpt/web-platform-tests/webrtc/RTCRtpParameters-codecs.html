@@ -99,7 +99,7 @@
       codec.payloadType += 1;
     }
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with codec.payloadType modified should reject with InvalidModificationError');
 
@@ -119,7 +119,7 @@
       codec.mimeType = `${codec.mimeType}-modified`;
     }
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with codec.mimeType modified should reject with InvalidModificationError');
 
@@ -139,7 +139,7 @@
       codec.clockRate += 1;
     }
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with codec.clockRate modified should reject with InvalidModificationError');
 
@@ -159,7 +159,7 @@
       codec.channels += 1;
     }
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with codec.channels modified should reject with InvalidModificationError');
 
@@ -179,7 +179,7 @@
       codec.sdpFmtpLine = `${codec.sdpFmtpLine};foo=1`;
     }
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with codec.sdpFmtpLine modified should reject with InvalidModificationError');
 
@@ -200,7 +200,7 @@
       channels: 2
     });
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, 'setParameters() with new codecs inserted should reject with InvalidModificationError');
 

@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Badging API (https://wicg.github.io/badging/)
+
+// Methods only exposed on documents.
+[SecureContext]
+partial interface Navigator {
+  Promise<void> setClientBadge(optional [EnforceRange] unsigned long long contents);
+  Promise<void> clearClientBadge();
+};
+
+// Methods exposed on both documents and service workers.
+[SecureContext]
+interface mixin NavigatorBadge {
+  Promise<void> setAppBadge(optional [EnforceRange] unsigned long long contents);
+  Promise<void> clearAppBadge();
+};
+
+Navigator includes NavigatorBadge;
+WorkerNavigator includes NavigatorBadge;

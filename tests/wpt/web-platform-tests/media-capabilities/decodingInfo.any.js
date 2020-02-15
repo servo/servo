@@ -136,7 +136,7 @@ promise_test(t => {
 }, "Test that decodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',

@@ -67,10 +67,17 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
         while True:
             try:
                 self.webdriver.execute_async_script("")
-            except (client.TimeoutException, client.ScriptTimeoutException):
+            except (client.TimeoutException,
+                    client.ScriptTimeoutException,
+                    client.JavascriptErrorException):
+                # A JavascriptErrorException will happen when we navigate;
+                # by ignoring it it's possible to reload the test whilst the
+                # harness remains paused
                 pass
-            except (socket.timeout, client.NoSuchWindowException,
-                    client.UnknownErrorException, IOError):
+            except (socket.timeout,
+                    client.NoSuchWindowException,
+                    client.UnknownErrorException,
+                    IOError):
                 break
             except Exception as e:
                 self.logger.error(traceback.format_exc(e))
