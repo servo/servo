@@ -29,7 +29,7 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
 pub use super::image::{EndingShape as GradientEndingShape, Gradient};
-pub use super::image::{GradientKind, Image};
+pub use super::image::Image;
 pub use crate::values::specified::calc::CalcLengthPercentage;
 
 /// Number of app units per pixel
