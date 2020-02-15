@@ -27,6 +27,7 @@ use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
+use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, Node, NodeFlags, ShadowIncluding};
 use crate::dom::text::Text;
@@ -170,9 +171,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
-    // https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
     make_getter!(Dir, "dir");
-    // https://html.spec.whatwg.org/multipage/dom.html#the-dir-attribute
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
     make_setter!(SetDir, "dir");
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -771,6 +772,39 @@ impl HTMLElement {
                 _ => false,
             })
             .count() as u32
+    }
+
+    pub fn directionality(&self) -> String {
+        println!("HTMLElement#directionality");
+        let element_direction: &str = &self.Dir();
+        println!("HTMLElement#element_direction={}", element_direction);
+
+        if element_direction == "ltr" {
+            return "ltr".to_owned();
+        }
+
+        if element_direction == "rtl" {
+            return "rtl".to_owned();
+        }
+
+        if element_direction == "auto" {
+            if let Some(directionality) = self.downcast::<HTMLInputElement>().and_then(|input| input.auto_directionality()) {
+                return directionality;
+            }
+
+            if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+                return area.auto_directionality();
+            }
+        }
+
+        // TODO(NeverHappened): Implement condition
+        // If the element's dir attribute is in the auto state OR
+        // If the element is a bdi element and the dir attribute is not in a defined state
+        // (i.e. it is not present or has an invalid value)
+        // Requires bdi element implementation (https://html.spec.whatwg.org/multipage/#the-bdi-element)
+
+        let node = self.upcast::<Node>();
+        node.parent_directionality()
     }
 }
 

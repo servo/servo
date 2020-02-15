@@ -951,6 +951,18 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
                         data_set.append(&mut input.form_datums(submitter, encoding));
+
+                        let input_html_element = child.downcast::<HTMLElement>().unwrap();
+                        let dirname: DOMString = input.DirName();
+                        if !dirname.is_empty() {
+                            let directionality =
+                                DOMString::from(input_html_element.directionality());
+                            data_set.push(FormDatum {
+                                ty: input.Type().clone(),
+                                name: dirname.clone(),
+                                value: FormDatumValue::String(directionality),
+                            });
+                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -974,6 +986,18 @@ impl HTMLFormElement {
                                 ty: textarea.Type(),
                                 name: name,
                                 value: FormDatumValue::String(textarea.Value()),
+                            });
+                        }
+
+                        let area_html_element = child.downcast::<HTMLElement>().unwrap();
+                        let dirname: DOMString = textarea.DirName();
+                        if !dirname.is_empty() {
+                            let directionality =
+                                DOMString::from(area_html_element.directionality());
+                            data_set.push(FormDatum {
+                                ty: textarea.Type().clone(),
+                                name: dirname.clone(),
+                                value: FormDatumValue::String(directionality),
                             });
                         }
                     },

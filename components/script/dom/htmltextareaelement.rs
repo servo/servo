@@ -174,12 +174,9 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub fn directionality(&self, element_direction: &str) -> String {
-        if element_direction == "auto" {
-            let value: String = self.Value().to_string();
-            return HTMLInputElement::auto_directionality(&value);
-        }
-        return "ltr".to_owned();
+    pub fn auto_directionality(&self) -> String {
+        let value: String = self.Value().to_string();
+        return HTMLInputElement::directionality_from_value(&value);
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -213,6 +210,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
+    make_getter!(DirName, "dirname");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
+    make_setter!(SetDirName, "dirname");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");

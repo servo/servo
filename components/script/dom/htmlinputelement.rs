@@ -328,22 +328,18 @@ impl HTMLInputElement {
         )
     }
 
-    pub fn directionality(&self, element_direction: &str) -> String {
+    pub fn auto_directionality(&self) -> Option<String> {
         match self.input_type() {
-            InputType::Tel => return "ltr".to_owned(),
+            InputType::Tel => return Some("ltr".to_owned()),
             InputType::Text | InputType::Search | InputType::Url | InputType::Email => {
-                if element_direction == "auto" {
-                    let value: String = self.Value().to_string();
-                    return HTMLInputElement::auto_directionality(&value);
-                }
+                let value: String = self.Value().to_string();
+                Some(HTMLInputElement::directionality_from_value(&value))
             },
-            _ => {},
+            _ => None,
         }
-
-        return "ltr".to_owned();
     }
 
-    pub fn auto_directionality(value: &str) -> String {
+    pub fn directionality_from_value(value: &str) -> String {
         if HTMLInputElement::first_strong_character_is_rtl(value) {
             "rtl".to_owned()
         } else {
@@ -1473,25 +1469,11 @@ impl HTMLInputElement {
         }
 
         // Step 5.12
-        let mut result = vec![FormDatum {
+        vec![FormDatum {
             ty: ty.clone(),
             name: name,
             value: FormDatumValue::String(self.Value()),
-        }];
-
-        // 4.10.18.2
-        // https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#submitting-element-directionality:-the-dirname-attribute
-        let dirname: DOMString = self.DirName();
-        let directionality = DOMString::from(self.directionality("auto"));
-        if !dirname.is_empty() {
-            result.push(FormDatum {
-                ty: ty.clone(),
-                name: dirname.clone(),
-                value: FormDatumValue::String(directionality),
-            });
-        }
-
-        result
+        }]
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group

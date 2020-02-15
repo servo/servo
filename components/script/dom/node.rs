@@ -432,6 +432,25 @@ impl Node {
             .upcast::<Event>()
             .dispatch(self.upcast::<EventTarget>(), false);
     }
+
+    pub fn parent_directionality(&self) -> String {
+        println!("Node#parent_directionality");
+        match self.GetParentNode() {
+            Some(parent) => {
+                if parent.is::<Document>() {
+                    return "ltr".to_owned();
+                }
+
+                println!("Node#parent_directionality Some(Parent)");
+                return if let Some(parent_html) = parent.downcast::<Element>() {
+                    parent_html.directionality()
+                } else {
+                    parent.parent_directionality()
+                };
+            },
+            None => "ltr".to_owned(),
+        }
+    }
 }
 
 pub struct QuerySelectorIterator {
