@@ -18,7 +18,7 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as Cons
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use style::context::QuirksMode;
@@ -216,6 +216,8 @@ pub struct ScriptReflow {
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
+    /// The current window origin
+    pub origin: ImmutableOrigin,
 }
 
 pub struct LayoutThreadInit {

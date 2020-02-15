@@ -93,7 +93,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
 use servo_geometry::MaxRect;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -644,13 +644,18 @@ impl LayoutThread {
         guards: StylesheetGuards<'a>,
         script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
+        origin: Option<ImmutableOrigin>,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         LayoutContext {
             id: self.id,
-            origin: self.url.origin(),
+            origin: if let Some(origin) = origin {
+                origin
+            } else {
+                self.url.origin()
+            },
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -1341,6 +1346,8 @@ impl LayoutThread {
             Au::from_f32_px(initial_viewport.height),
         );
 
+        let origin = data.origin.clone();
+
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let document_shared_lock = document.style_shared_lock();
@@ -1482,7 +1489,8 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
+        let mut layout_context =
+            self.build_layout_context(guards.clone(), true, &map, Some(origin));
 
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
@@ -1738,7 +1746,7 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
             let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots);
+            let mut layout_context = self.build_layout_context(guards, false, &snapshots, None);
 
             let invalid_nodes = {
                 // Perform an abbreviated style recalc that operates without access to the DOM.

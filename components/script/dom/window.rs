@@ -1622,6 +1622,7 @@ impl Window {
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
             window_size: self.window_size.get(),
+            origin: self.origin().immutable().clone(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: self.Document().dom_count(),

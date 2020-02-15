@@ -23,7 +23,7 @@ use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
@@ -138,6 +138,7 @@ pub struct PendingImage {
     pub state: PendingImageState,
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
+    pub origin: ImmutableOrigin,
 }
 
 pub struct HTMLMediaData {
