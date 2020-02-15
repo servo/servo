@@ -6,7 +6,7 @@
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use crate::{ResourceFetchTiming, ResourceTimingType};
-use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
+use headers::{ContentType, HeaderMapExt};
 use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
 use servo_arc::Arc;
@@ -241,6 +241,7 @@ impl Response {
         }
 
         let old_headers = old_response.headers.clone();
+        let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
@@ -266,10 +267,7 @@ impl Response {
                         "expires" | "last-modified" | "pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
                         header => {
-                            let access = old_headers.typed_get::<AccessControlExposeHeaders>();
-                            let result = access
-                                .and_then(|v| v.iter().find(|h| *header == h.as_str().to_ascii_lowercase()));
-                            result.is_some()
+                            exposed_headers.iter().any(|h| *header == h.as_str().to_ascii_lowercase())
                         }
                     }
                 }).map(|(n, v)| (n.clone(), v.clone())).collect();
