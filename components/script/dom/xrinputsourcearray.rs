@@ -38,30 +38,22 @@ impl XRInputSourceArray {
         )
     }
 
-    pub fn set_initial_inputs(&self, session: &XRSession) {
+    pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource]) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
-        session.with_session(|sess| {
-            for info in sess.initial_inputs() {
-                // XXXManishearth we should be able to listen for updates
-                // to the input sources
-                let input = XRInputSource::new(&global, &session, info.clone());
-                input_sources.push(Dom::from_ref(&input));
-            }
-        });
-    }
 
-    pub fn add_input_source(&self, session: &XRSession, info: InputSource) {
-        let mut input_sources = self.input_sources.borrow_mut();
-        let global = self.global();
-        debug_assert!(
-            input_sources.iter().find(|i| i.id() == info.id).is_none(),
-            "Should never add a duplicate input id!"
-        );
-        let input = XRInputSource::new(&global, &session, info);
-        input_sources.push(Dom::from_ref(&input));
-
-        let added = [input];
+        let mut added = vec![];
+        for info in inputs {
+            // This is quadratic, but won't be a problem for the only case
+            // where we add multiple input sources (the initial input sources case)
+            debug_assert!(
+                input_sources.iter().find(|i| i.id() == info.id).is_none(),
+                "Should never add a duplicate input id!"
+            );
+            let input = XRInputSource::new(&global, &session, info.clone());
+            input_sources.push(Dom::from_ref(&input));
+            added.push(input);
+        }
 
         let event = XRInputSourcesChangeEvent::new(
             &global,
