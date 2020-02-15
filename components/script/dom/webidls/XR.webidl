@@ -6,7 +6,7 @@
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XR: EventTarget {
   // Methods
-  Promise<void> supportsSession(XRSessionMode mode);
+  Promise<boolean> isSessionSupported(XRSessionMode mode);
   Promise<XRSession> requestSession(XRSessionMode mode, optional  XRSessionInit parameters = {});
 
   // Events

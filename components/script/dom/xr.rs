@@ -113,8 +113,8 @@ impl Into<SessionMode> for XRSessionMode {
 }
 
 impl XRMethods for XR {
-    /// https://immersive-web.github.io/webxr/#dom-xr-supportssessionmode
-    fn SupportsSession(&self, mode: XRSessionMode) -> Rc<Promise> {
+    /// https://immersive-web.github.io/webxr/#dom-xr-issessionsupported
+    fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
         let promise = Promise::new(&self.global());
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
@@ -141,10 +141,11 @@ impl XRMethods for XR {
                     return;
                 };
                 if let Ok(()) = message {
-                    let _ = task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                    let _ =
+                        task_source.queue_with_canceller(trusted.resolve_task(true), &canceller);
                 } else {
-                    let _ = task_source
-                        .queue_with_canceller(trusted.reject_task(Error::NotSupported), &canceller);
+                    let _ =
+                        task_source.queue_with_canceller(trusted.resolve_task(false), &canceller);
                 };
             }),
         );
