@@ -4,7 +4,7 @@
 
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
-use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SIZE};
+use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -701,7 +701,7 @@ fn scheme_fetch(
                     *done_chan = Some((done_sender.clone(), done_receiver));
                     *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
-                    fetch_file_in_chunks(
+                    context.filemanager.fetch_file_in_chunks(
                         done_sender,
                         reader,
                         response.body.clone(),
