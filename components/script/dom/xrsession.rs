@@ -136,7 +136,6 @@ impl XRSession {
             global,
             XRSessionBinding::Wrap,
         );
-        input_sources.set_initial_inputs(&ret);
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);
         ret
@@ -206,6 +205,36 @@ impl XRSession {
 
         // request animation frame
         self.session.borrow_mut().set_event_dest(sender);
+    }
+
+    // Must be called after the promise for session creation is resolved
+    // https://github.com/immersive-web/webxr/issues/961
+    //
+    // This enables content that assumes all input sources are accompanied
+    // by an inputsourceschange event to work properly. Without
+    pub fn setup_initial_inputs(&self) {
+        let initial_inputs = self.session.borrow().initial_inputs().to_owned();
+
+        if initial_inputs.is_empty() {
+            // do not fire an empty event
+            return;
+        }
+
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let this = Trusted::new(self);
+        // Queue a task so that it runs after resolve()'s microtasks complete
+        // so that content has a chance to attach a listener for inputsourceschange
+        let _ = task_source.queue_with_canceller(
+            task!(session_initial_inputs: move || {
+                let this = this.root();
+                this.input_sources.add_input_sources(&this, &initial_inputs);
+            }),
+            &canceller,
+        );
     }
 
     fn event_callback(&self, event: XREvent) {
@@ -290,7 +319,7 @@ impl XRSession {
                 event.upcast::<Event>().fire(self.upcast());
             },
             XREvent::AddInput(info) => {
-                self.input_sources.add_input_source(self, info);
+                self.input_sources.add_input_sources(self, &[info]);
             },
             XREvent::RemoveInput(id) => {
                 self.input_sources.remove_input_source(self, id);
