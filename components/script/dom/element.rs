@@ -543,15 +543,12 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#the-directionality
     pub fn directionality(&self) -> String {
-        if let Some(directionality) = self
-            .downcast::<HTMLElement>()
+        self.downcast::<HTMLElement>()
             .and_then(|html_element| html_element.directionality())
-        {
-            directionality
-        } else {
-            let node = self.upcast::<Node>();
-            node.parent_directionality()
-        }
+            .unwrap_or_else(|| {
+                let node = self.upcast::<Node>();
+                node.parent_directionality()
+            })
     }
 }
 

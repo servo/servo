@@ -438,21 +438,19 @@ impl Node {
 
         loop {
             match current {
-                Some(parent) => {
-                    if let Some(directionality) = parent
+                Some(node) => {
+                    if let Some(directionality) = node
                         .downcast::<HTMLElement>()
                         .and_then(|html_element| html_element.directionality())
                     {
                         return directionality;
                     } else {
-                        current = parent.GetParentNode();
+                        current = node.GetParentNode();
                     }
                 },
-                None => break,
+                None => return "ltr".to_owned(),
             }
         }
-
-        "ltr".to_owned()
     }
 }
 
