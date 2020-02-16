@@ -31,21 +31,21 @@ backgroundFetchTest((t, bgFetch) => {
 }, 'localhost http: fetch should register ok');
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          bgFetch.fetch(uniqueId(), 'wss:127.0.0.1'));
 }, 'wss: fetch should reject');
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          bgFetch.fetch(uniqueId(), 'file:///'));
 }, 'file: fetch should reject');
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          bgFetch.fetch(uniqueId(), 'data:text/plain,foo'));
 }, 'data: fetch should reject');
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          bgFetch.fetch(uniqueId(), 'foobar:bazqux'));
 }, 'unknown scheme fetch should reject');

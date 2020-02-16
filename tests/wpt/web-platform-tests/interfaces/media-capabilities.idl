@@ -77,6 +77,7 @@ dictionary MediaCapabilitiesKeySystemConfiguration {
 
 dictionary KeySystemTrackConfiguration {
     DOMString robustness = "";
+    DOMString? encryptionScheme = null;
   };
 
 dictionary MediaCapabilitiesInfo {

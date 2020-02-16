@@ -42,8 +42,8 @@ for (let i = 0; i < checkOrder.length; ++i) {
 
   promise_test(t => {
     const options = new ThrowingOptions(whatShouldThrow);
-    return promise_rejects(
-               t, new Error(),
+    return promise_rejects_js(
+               t, Error,
                new ReadableStream().pipeTo(new WritableStream(), options),
                'pipeTo should reject')
         .then(() => assert_array_equals(

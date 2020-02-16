@@ -195,7 +195,19 @@ test(t => {
   animation.finish();
   animation.playbackRate = 0;
   animation.currentTime = 200 * MS_PER_SEC;
+  assert_array_equals(div.getAnimations(), []);
 }, 'Does not return animations with zero playback rate in after phase');
+
+test(t => {
+  const div = createDiv(t);
+  const effect = new KeyframeEffect(div, {}, 225);
+  const animation = new Animation(effect, new DocumentTimeline());
+  animation.reverse();
+  animation.pause();
+  animation.playbackRate = -1;;
+  animation.updatePlaybackRate(1);
+  assert_array_equals(div.getAnimations(), []);
+}, 'Does not return an animation that has recently been made not current by setting the playback rate');
 
 test(t => {
   const div = createDiv(t);

@@ -31,7 +31,7 @@
       }
     });
 
-    await promise_rejects(t, 'NotFoundError', request1.reconnect(wrongPresentationId),
+    await promise_rejects_dom(t, 'NotFoundError', request1.reconnect(wrongPresentationId),
       'Reconnecting with an unknown presentation ID fails with a NotFoundError exception.');
 
     setup({explicit_timeout: true});
@@ -50,7 +50,7 @@
     connection1.close();
     await eventWatcher1.wait_for('close');
 
-    await promise_rejects(t, 'NotFoundError', request2.reconnect(connection1.id),
+    await promise_rejects_dom(t, 'NotFoundError', request2.reconnect(connection1.id),
       'Reconnecting with a presentation ID on a presentation request with a different URL fails with a NotFoundError exception.');
 
     await request1.reconnect(connection1.id);

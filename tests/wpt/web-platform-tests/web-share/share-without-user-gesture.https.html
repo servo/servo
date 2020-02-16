@@ -9,7 +9,7 @@
   <body>
     <script>
         promise_test(t => {
-          return promise_rejects(
+          return promise_rejects_dom(
               t, 'NotAllowedError',
               navigator.share({title: 'the title', text: 'the message',
                                url: 'https://example.com'}));

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<head>
+  <title>Below-viewport loading=lazy images do not block the window load event
+         when scrolled into viewport</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <!-- When this image loads, we will scroll the below-viewport loading=lazy
+       images into the viewport. This happens before the window load event is
+       fired -->
+  <img id="scroll_trigger"
+       src="resources/image.png?scroll-trigger&pipe=trickle(d1)"
+       onload="scroll_trigger_img.resolve();" onerror="scroll_trigger_img.reject();">
+  <!-- This image blocks the window load event for 2 seconds -->
+  <img src="resources/image.png?window-load-blocking&pipe=trickle(d2)">
+
+  <div style="height:1000vh"></div>
+  <!-- These images must load because they intersect the viewport, but they must
+       not block the window load event, because they are loading=lazy -->
+  <img id="visible"
+       src="resources/image.png?visible&pipe=trickle(d3)" loading="lazy"
+       onload="visible_img.resolve();" onerror="visible_img.reject();">
+  <img id="visibility_hidden" style="visibility:hidden;"
+       src="resources/image.png?visibility_hidden&pipe=trickle(d3)" loading="lazy"
+       onload="visibility_hidden_img.resolve();" onerror="visibility_hidden_img.reject();">
+</body>
+
+<script>
+  const scroll_trigger_img = new ElementLoadPromise("visible");
+  const visible_img = new ElementLoadPromise("visible");
+  const visibility_hidden_img = new ElementLoadPromise("visibility_hidden");
+
+  async_test(t => {
+    let has_window_loaded = false;
+
+    scroll_trigger_img.promise
+      .then(t.step_func(() => {
+        assert_false(has_window_loaded,
+                     "The scroll_trigger image should load before the window " +
+                     "load event fires");
+        visibility_hidden_img.element().scrollIntoView();
+    }))
+    .catch(t.unreached_func("The scroll_trigger image should load"));
+
+    window.addEventListener("load", t.step_func(() => {
+      has_window_loaded = true;
+    }));
+
+    Promise.all([visible_img.promise, visibility_hidden_img.promise])
+      .then(t.step_func_done(() => {
+        assert_true(has_window_loaded,
+                    "The window load event should fire before the " +
+                    "below-viewport loading=lazy images load");
+        assert_true(visible_img.element().complete,
+                    "The below-viewport loading=lazy visible image is complete");
+        assert_true(visibility_hidden_img.element().complete,
+                    "The below-viewport loading=lazy visibility:hidden image is complete");
+      }))
+      .catch(t.unreached_func("The images should load successfully"));
+
+  }, "Below-viewport loading=lazy images do not block the window load event when " +
+     "scrolled into viewport");
+</script>
+

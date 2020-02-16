@@ -122,7 +122,7 @@ promise_test(t => {
     highWaterMark: 1
   });
   const writer = ts.writable.getWriter();
-  return promise_rejects(t, new RangeError(), writer.write(), 'write should reject');
+  return promise_rejects_js(t, RangeError, writer.write(), 'write should reject');
 }, 'a bad readableStrategy size function should cause writer.write() to reject on an identity transform');
 
 promise_test(t => {
@@ -141,9 +141,9 @@ promise_test(t => {
   const writer = ts.writable.getWriter();
   return writer.write().then(() => {
     return Promise.all([
-      promise_rejects(t, new RangeError(), writer.ready, 'ready should reject'),
-      promise_rejects(t, new RangeError(), writer.closed, 'closed should reject'),
-      promise_rejects(t, new RangeError(), ts.readable.getReader().closed, 'readable closed should reject')
+      promise_rejects_js(t, RangeError, writer.ready, 'ready should reject'),
+      promise_rejects_js(t, RangeError, writer.closed, 'closed should reject'),
+      promise_rejects_js(t, RangeError, ts.readable.getReader().closed, 'readable closed should reject')
     ]);
   });
 }, 'a bad readableStrategy size function should error the stream on enqueue even when transformer.transform() ' +

@@ -87,7 +87,7 @@ class MockVRService {
     this.runtimes_ = [];
 
     this.interceptor_ =
-        new MojoInterfaceInterceptor(device.mojom.VRService.name, "context", true);
+        new MojoInterfaceInterceptor(device.mojom.VRService.name);
     this.interceptor_.oninterfacerequest = e =>
         this.bindingSet_.addBinding(this, e.handle);
     this.interceptor_.start();
@@ -203,12 +203,13 @@ class MockRuntime {
   // Mapping from string feature names to the corresponding mojo types.
   // This is exposed as a member for extensibility.
   static featureToMojoMap = {
-    "viewer": device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
-    "local": device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
-    "local-floor": device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
-    "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
-    "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
-    "hit-test": device.mojom.XRSessionFeature.HIT_TEST,
+    'viewer': device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
+    'local': device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
+    'local-floor': device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
+    'bounded-floor': device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
+    'unbounded': device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
+    'hit-test': device.mojom.XRSessionFeature.HIT_TEST,
+    'dom-overlay': device.mojom.XRSessionFeature.DOM_OVERLAY,
   };
 
   static sessionModeToMojoMap = {
@@ -638,7 +639,7 @@ class MockRuntime {
     if (!this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
       // Reject outside of AR.
       return Promise.resolve({
-        result : device.mojom.SubscribeToHitTestResult.FAILED,
+        result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
         subscriptionId : 0
       });
     }
@@ -647,7 +648,7 @@ class MockRuntime {
       if (!this.input_sources_.has(nativeOriginInformation.inputSourceId)) {
         // Reject - unknown input source ID.
         return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILED,
+          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
           subscriptionId : 0
         });
       }
@@ -656,14 +657,14 @@ class MockRuntime {
       if (nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.UNBOUNDED
        || nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.BOUNDED_FLOOR) {
         return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILED,
+          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
           subscriptionId : 0
         });
       }
     } else {
       // Planes and anchors are not yet supported by the mock interface.
       return Promise.resolve({
-        result : device.mojom.SubscribeToHitTestResult.FAILED,
+        result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
         subscriptionId : 0
       });
     }
@@ -1222,7 +1223,16 @@ class MockXRInputSource {
       this.desc_dirty_ = false;
     }
 
+    // Pointer data for DOM Overlay, set by setOverlayPointerPosition()
+    if (this.overlay_pointer_position_) {
+      input_state.overlayPointerPosition = this.overlay_pointer_position_;
+    }
+
     return input_state;
+  }
+
+  setOverlayPointerPosition(x, y) {
+    this.overlay_pointer_position_ = {x: x, y: y};
   }
 
   getEmptyGamepad() {

@@ -12,7 +12,7 @@ from mozlog import structuredlog, handlers, formatters
 
 here = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(here, os.pardir, os.pardir, os.pardir))
-from manifest import manifest, item as manifest_item
+from manifest import manifest, item as manifest_item, utils
 
 
 def rel_path_to_test_url(rel_path):
@@ -21,7 +21,9 @@ def rel_path_to_test_url(rel_path):
 
 
 def SourceFileWithTest(path, hash, cls, *args):
-    s = mock.Mock(rel_path=path, hash=hash)
+    path_parts = tuple(path.split("/"))
+    path = utils.to_os_path(path)
+    s = mock.Mock(rel_path=path, rel_path_parts=path_parts, hash=hash)
     test = cls("/foobar", path, "/", rel_path_to_test_url(path), *args)
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
@@ -71,6 +73,7 @@ def update(tests, *logs, **kwargs):
     expected_data = {}
     metadata.load_expected = lambda _, __, test_path, *args: expected_data.get(test_path)
     for test_path, test_ids, test_type, manifest_str in tests:
+        test_path = utils.to_os_path(test_path)
         expected_data[test_path] = manifestupdate.compile(BytesIO(manifest_str),
                                                           test_path,
                                                           "/",

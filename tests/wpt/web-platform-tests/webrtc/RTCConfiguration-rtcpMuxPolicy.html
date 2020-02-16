@@ -166,7 +166,7 @@
     const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
     t.add_cleanup(() => pc.close());
 
-    return promise_rejects(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'offer', sdp}));
+    return promise_rejects_dom(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'offer', sdp}));
   }, 'setRemoteDescription throws InvalidAccessError when called with an offer without rtcp-mux and rtcpMuxPolicy is set to require');
 
   promise_test(async t => {
@@ -191,6 +191,6 @@
 
     const offer = await generateAudioReceiveOnlyOffer(pc);
     await pc.setLocalDescription(offer);
-    return promise_rejects(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'answer', sdp}));
+    return promise_rejects_dom(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'answer', sdp}));
   }, 'setRemoteDescription throws InvalidAccessError when called with an answer without rtcp-mux and rtcpMuxPolicy is set to require');
 </script>

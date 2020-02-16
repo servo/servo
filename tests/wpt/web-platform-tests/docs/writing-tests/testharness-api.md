@@ -195,14 +195,18 @@ test may begin to execute before the returned promise has settled. Use
 resetting global state that need to happen consistently before the next test
 starts.
 
-`promise_rejects` can be used to test Promises that need to reject:
+`promise_rejects_dom`, `promise_rejects_js`, and `promise_rejects_exactly` can
+be used to test Promises that need to reject:
 
 ```js
-promise_rejects(test_object, code, promise, description)
+promise_rejects_dom(test_object, code, promise, description)
+promise_rejects_js(test_object, constructor, promise, description)
+promise_rejects_exactly(test_object, value, promise, description)
 ```
 
-The `code` argument is equivalent to the same argument to the `assert_throws`
-function.
+The `code`, `constructor`, and `value` arguments are equivalent to the same
+argument to the `assert_throws_dom`, `assert_throws_js`, and
+`assert_throws_exactly` functions.
 
 Here's an example where the `bar()` function returns a Promise that rejects
 with a TypeError:
@@ -213,7 +217,7 @@ function bar() {
 }
 
 promise_test(function(t) {
-  return promise_rejects(t, new TypeError(), bar());
+  return promise_rejects_js(t, TypeError, bar());
 }, "Another example");
 ```
 
@@ -854,7 +858,7 @@ attribute attribute_name following the conditions specified by WebIDL
 ### `assert_readonly(object, property_name, description)`
 assert that property `property_name` on object is readonly
 
-### `assert_throws(code, func, description)`
+### `assert_throws_dom(code, func, description)`
 `code` - the expected exception. This can take several forms:
 
   * string - asserts that the thrown exception must be a DOMException
@@ -862,9 +866,20 @@ assert that property `property_name` on object is readonly
              compatibility with existing tests, the name of a
              DOMException constant can also be given, e.g.,
              "TIMEOUT_ERR")
-  * object - asserts that the thrown exception must be any other kind
-             of exception, with a property called "name" that matches
-             `code.name`.
+  * number - asserts that the thrown exception must be a DOMException
+             with the fiven code value (e.g. DOMException.TIMEOUT_ERR).
+
+`func` - a function that should throw
+
+### `assert_throws_js(constructor, func, description)`
+`constructor` - the expected exception. This is the constructor object
+that the exception should have as its .constructor.  For example,
+`TypeError` or `someOtherWindow.RangeError`.
+
+`func` - a function that should throw
+
+### `assert_throws_exactly(value, func, description)`
+`value` - the exact value that `func` is expected to throw if called.
 
 `func` - a function that should throw
 

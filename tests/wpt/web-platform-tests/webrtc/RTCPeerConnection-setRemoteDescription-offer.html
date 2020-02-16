@@ -183,9 +183,84 @@
     await new Promise(r => pc1.onsignalingstatechange = r);
     assert_equals(pc1.signalingState, 'have-remote-offer');
     assert_equals(pc1.pendingLocalDescription, null);
-    assert_equals(pc1.pendingRemoteDescription.type, 'answer');
+    assert_equals(pc1.pendingRemoteDescription.type, 'offer');
     await p;
   }, 'setRemoteDescription(offer) from have-local-offer fires signalingstatechange twice');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    assert_equals(pc2.signalingState, "stable", "signalingState should not be set synchronously after a call to sRD");
+
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sRD");
+    assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set synchronously after a call to sRD");
+
+    const statePromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    const raceValue = await Promise.race([statePromise, srdPromise]);
+    assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
+    assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription.type, "offer");
+    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set after a call to sRD(offer)");
+
+    await srdPromise;
+  }, "setRemoteDescription(offer) in stable should update internal state with a queued task, in the right order");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    await pc2.setLocalDescription(await pc2.createOffer({offerToReceiveAudio: true}));
+
+    // Implicit rollback!
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    assert_equals(pc2.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sRD");
+
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sRD");
+    assert_not_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sRD");
+    assert_equals(pc2.pendingLocalDescription.type, "offer");
+    assert_equals(pc2.pendingLocalDescription.sdp, pc2.localDescription.sdp);
+
+    // First, we should go through stable (the implicit rollback part)
+    const stablePromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    let raceValue = await Promise.race([stablePromise, srdPromise]);
+    assert_equals(raceValue, "stable", "signalingstatechange event should fire before sRD resolves");
+    assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+
+    const haveRemoteOfferPromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    raceValue = await Promise.race([haveRemoteOfferPromise, srdPromise]);
+    assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
+    assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription.type, "offer");
+    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+
+    await srdPromise;
+  }, "setRemoteDescription(offer) in have-local-offer should update internal state with a queued task, in the right order");
 
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
@@ -199,7 +274,7 @@
     assert_equals(pc1.signalingState, 'stable');
     const p2 = pc1.addIceCandidate();
     const p3 = pc1.setRemoteDescription(offer);
-    await promise_rejects(t, 'InvalidStateError', p2);
+    await promise_rejects_dom(t, 'InvalidStateError', p2);
     await p1;
     await p3;
     assert_equals(pc1.signalingState, 'have-remote-offer');
@@ -230,6 +305,6 @@
     assert_equals(pc1.signalingState, 'stable');
     assert_equals(pc1.pendingLocalDescription, null);
     assert_equals(pc1.pendingRemoteDescription, null);
-    await promise_rejects(t, 'RTCError', p);
+    await promise_rejects_dom(t, 'RTCError', p);
   }, 'setRemoteDescription(invalidOffer) from have-local-offer does not undo rollback');
 </script>

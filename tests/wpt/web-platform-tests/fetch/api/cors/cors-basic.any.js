@@ -17,7 +17,7 @@ function cors(desc, origin) {
   }, desc + " [no-cors mode]");
 
   promise_test(function(test) {
-    return promise_rejects(test, new TypeError(), fetch(url + RESOURCES_DIR + "top.txt", {"mode": "cors"}));
+    return promise_rejects_js(test, TypeError, fetch(url + RESOURCES_DIR + "top.txt", {"mode": "cors"}));
   }, desc + " [server forbid CORS]");
 
   promise_test(function(test) {

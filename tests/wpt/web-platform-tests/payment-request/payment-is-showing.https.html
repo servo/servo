@@ -78,7 +78,7 @@
           return [request1.show(), request2.show()];
         },
       );
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         showPromise2,
@@ -86,7 +86,7 @@
       );
 
       await request1.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         showPromise1,
@@ -97,7 +97,7 @@
       // it will again result in promise rejected with an InvalidStateError.
       // See: https://github.com/w3c/payment-request/pull/821
       const rejectedPromise = request2.show();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "InvalidStateError",
         rejectedPromise,
@@ -130,7 +130,7 @@
         },
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         showPromise,
@@ -160,7 +160,7 @@
         },
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         iframeShowPromise,
@@ -169,7 +169,7 @@
 
       // Cleanup
       await windowRequest.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         windowShowPromise,
@@ -206,7 +206,7 @@
         },
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         windowShowPromise,
@@ -214,7 +214,7 @@
       );
 
       await popupRequest.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         popupShowPromise,
@@ -260,14 +260,14 @@
         },
       );
       // popupRequest and iframeRequest will both reject
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         popupShowPromise,
         "Expected popupShowPromise to reject, request is already showing.",
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         iframeShowPromise,
@@ -275,7 +275,7 @@
       );
 
       await windowRequest.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         windowShowPromise,
@@ -316,14 +316,14 @@
       });
 
       // windowShowPromise and iframeRequest will both reject
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         windowShowPromise,
         "Expected windowShowPromise to reject, the popup is showing a payment request.",
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         iframeShowPromise,
@@ -331,7 +331,7 @@
       );
 
       await popupRequest.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         popupShowPromise,
@@ -377,14 +377,14 @@
       );
 
       // windowShowPromise and iframeRequest will both reject
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         windowShowPromise,
         "Expected windowShowPromise to reject, the popup is showing a payment request.",
       );
 
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         popupShowPromise,
@@ -392,7 +392,7 @@
       );
 
       await iframeRequest.abort();
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         iframeShowPromise,
@@ -415,7 +415,7 @@
       // and the request is showing boolean to become false.
       iframe.src = "blank.html?abc=123";
       await new Promise(resolve => (iframe.onload = resolve));
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "AbortError",
         iframeShowPromise,

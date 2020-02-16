@@ -139,6 +139,14 @@ class RunInfo(dict):
         mozinfo.find_and_update_from_json(*dirs)
 
 
+def server_protocol(manifest_item):
+    if hasattr(manifest_item, "h2") and manifest_item.h2:
+        return "h2"
+    if hasattr(manifest_item, "https") and manifest_item.https:
+        return "https"
+    return "http"
+
+
 class Test(object):
 
     result_cls = None
@@ -175,14 +183,13 @@ class Test(object):
     @classmethod
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
-        protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
         return cls(manifest_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
-                   protocol=protocol)
+                   protocol=server_protocol(manifest_item))
 
     @property
     def id(self):
@@ -381,7 +388,6 @@ class TestharnessTest(Test):
     @classmethod
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
-        protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
         jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
         script_metadata = manifest_item.script_metadata or []
@@ -392,7 +398,7 @@ class TestharnessTest(Test):
                    test_metadata,
                    timeout=timeout,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
-                   protocol=protocol,
+                   protocol=server_protocol(manifest_item),
                    testdriver=testdriver,
                    jsshell=jsshell,
                    scripts=scripts
@@ -460,7 +466,7 @@ class ReftestTest(Test):
                    path=manifest_test.path,
                    viewport_size=manifest_test.viewport_size,
                    dpi=manifest_test.dpi,
-                   protocol="https" if hasattr(manifest_test, "https") and manifest_test.https else "http",
+                   protocol=server_protocol(manifest_test),
                    fuzzy=manifest_test.fuzzy)
 
         refs_by_type = defaultdict(list)

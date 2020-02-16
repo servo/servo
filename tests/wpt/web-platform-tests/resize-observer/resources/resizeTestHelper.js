@@ -104,7 +104,9 @@ ResizeTestHelper.prototype = {
         this._currentStep.timeout();
       }
       else {
-        assert_unreached("Timed out waiting for notification. (" + ResizeTestHelper.TIMEOUT + "ms)");
+        this._harnessTest.step(() => {
+          assert_unreached("Timed out waiting for notification. (" + ResizeTestHelper.TIMEOUT + "ms)");
+        });
       }
       this._nextStep();
     });

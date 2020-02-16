@@ -1,0 +1,31 @@
+name: pr-preview-sync
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+jobs:
+  update-pr-preview:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Install dependency
+      run: pip install requests
+    - name: Synchronize state
+      # Use a conditional step instead of a conditional job to work around #20700.
+      if: github.repository == 'web-platform-tests/wpt'
+      run:
+        ./tools/ci/pr_preview.py
+          --host https://api.github.com
+          --github-project web-platform-tests/wpt
+          synchronize
+          --window 480
+      env:
+        # This Workflow must trigger further workflows. The GitHub-provided
+        # `GITHUB_TOKEN` secret is incapable of doing this [1], so a
+        # user-generated token must be specified instead. This token requires
+        # the "repo" scope, and is should be stored as a Secret named
+        # "DEPLOY_TOKEN" in this GitHub project.
+        #
+        # [1] https://help.github.com/en/github/automating-your-workflow-with-github-actions/events-that-trigger-workflows
+        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

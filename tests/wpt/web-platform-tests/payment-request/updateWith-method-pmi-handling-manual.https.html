@@ -76,7 +76,7 @@ function manualTest(button, { invalidMethod }) {
     // We test against a valid and an invalid modifier
     request.addEventListener("shippingaddresschange", listener, { once: true });
     const showPromise = request.show();
-    await promise_rejects(t, new RangeError(), showPromise);
+    await promise_rejects_js(t, RangeError, showPromise);
   }, button.textContent.trim());
 }
 </script>

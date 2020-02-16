@@ -11,7 +11,7 @@ function safelist(headers, expectPreflight = false) {
           checkURL = "resources/preflight.py?check&token=" + uuid,
           request = () => fetch(url, { method: "POST", headers, body: "data" });
     if (expectPreflight) {
-      await promise_rejects(t, TypeError(), request());
+      await promise_rejects_js(t, TypeError, request());
     } else {
       const response = await request();
       assert_equals(response.headers.get("content-type"), "text/plain");

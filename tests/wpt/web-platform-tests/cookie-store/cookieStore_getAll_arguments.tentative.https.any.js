@@ -115,7 +115,7 @@ promise_test(async testCase => {
     await cookieStore.delete('cookie-name-2');
   });
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
+  await promise_rejects_js(testCase, TypeError, cookieStore.getAll(
       { name: 'cookie-name', matchType: 'invalid' }));
 }, 'cookieStore.getAll with invalid matchType');
 
@@ -185,7 +185,7 @@ promise_test(async testCase => {
 
   const invalid_url =
       `${self.location.protocol}//${self.location.host}/different/path`;
-  await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
+  await promise_rejects_js(testCase, TypeError, cookieStore.getAll(
       { url: invalid_url }));
 }, 'cookieStore.getAll with invalid url path in options');
 
@@ -197,6 +197,6 @@ promise_test(async testCase => {
 
   const invalid_url =
       `${self.location.protocol}//www.example.com${self.location.pathname}`;
-  await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
+  await promise_rejects_js(testCase, TypeError, cookieStore.getAll(
       { url: invalid_url }));
 }, 'cookieStore.getAll with invalid url host in options');

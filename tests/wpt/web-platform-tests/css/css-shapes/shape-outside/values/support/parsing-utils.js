@@ -803,19 +803,16 @@ var validPolygons = [
 ]
 
 // [test value, expected property value, expected computed style]
+// See https://github.com/w3c/csswg-drafts/issues/4399#issuecomment-556160413
+// for the latest resolution to this respect.
 var calcTestValues = [
-    ["calc(10in)", "calc(10in)", "960px"],
+    ["calc(10in)", "calc(960px)", "960px"],
     ["calc(10in + 20px)", "calc(980px)", "980px"],
     ["calc(30%)", "calc(30%)", "30%"],
     ["calc(100%/4)", "calc(25%)", "25%"],
     ["calc(25%*3)", "calc(75%)", "75%"],
-    // These following two test cases represent an either/or situation in the spec
-    // computed value is always supposed to be, at most, a tuple of a length and a percentage.
-    // the computed value of a ‘calc()’ expression can be represented as either a number or a tuple
-    // of a dimension and a percentage.
-    // http://www.w3.org/TR/css3-values/#calc-notation
-    ["calc(25%*3 - 10in)", "calc(75% - 10in)", ["calc(75% - 960px)", "calc(-960px + 75%)"]],
-    ["calc((12.5%*6 + 10in) / 4)", "calc((75% + 10in) / 4)", ["calc((75% + 960px) / 4)", "calc(18.75% + 240px)"]]
+    ["calc(25%*3 - 10in)", "calc(75% - 960px)", "calc(75% - 960px)"],
+    ["calc((12.5%*6 + 10in) / 4)", "calc(18.75% + 240px)", "calc(18.75% + 240px)"]
 ]
 
 return {

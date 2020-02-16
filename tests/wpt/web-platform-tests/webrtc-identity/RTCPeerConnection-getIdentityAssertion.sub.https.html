@@ -202,7 +202,7 @@
       usernameHint: `alice@${idpDomain}`,
     });
 
-    return promise_rejects(t, 'OperationError',
+    return promise_rejects_dom(t, 'OperationError',
       pc.getIdentityAssertion());
   }, `getIdentityAssertion() should reject with OperationError if mock-idp.js return invalid result`);
 
@@ -371,7 +371,7 @@
       usernameHint: `alice@${idpDomain}`
     });
 
-    return promise_rejects(t, 'OperationError',
+    return promise_rejects_dom(t, 'OperationError',
       pc.createOffer());
   }, 'createOffer() should reject with OperationError if identity assertion request fails');
 
@@ -389,7 +389,7 @@
     .createOffer()
     .then(offer => pc.setRemoteDescription(offer))
     .then(() =>
-      promise_rejects(t, 'OperationError',
+      promise_rejects_dom(t, 'OperationError',
         pc.createAnswer()));
 
   }, 'createAnswer() should reject with OperationError if identity assertion request fails');

@@ -10,7 +10,7 @@ function redirectLocation(desc, redirectUrl, redirectLocation, redirectStatus, r
 
   promise_test(function(test) {
     if (redirectMode === "error" || !shouldPass)
-      return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
+      return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit));
     if (redirectMode === "manual")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
         assert_equals(resp.status, 0, "Response's status is 0");

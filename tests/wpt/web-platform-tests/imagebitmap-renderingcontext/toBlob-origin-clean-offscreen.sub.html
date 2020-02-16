@@ -18,10 +18,7 @@ async_test(t => {
       var canvasBitmap = new OffscreenCanvas(img.width,img.height);
       var contextBitmap = canvasBitmap.getContext("bitmaprenderer");
       contextBitmap.transferFromImageBitmap(bitmap);
-      promise_rejects(t,
-        new DOMException(
-                'convertToBlob on a tainted OffscreenCanvas has to throw',
-                'SecurityError'),
+      promise_rejects_dom(t, 'SecurityError',
         canvasBitmap.convertToBlob(),
         "convertToBlob on a tainted OffscreenCanvas has to throw").then(t.step_func_done());
     }));

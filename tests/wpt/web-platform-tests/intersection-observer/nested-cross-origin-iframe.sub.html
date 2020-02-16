@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/css/cssom-view/support/scroll-behavior.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+<style>
+.spacer {
+  height: calc(100vh + 100px);
+}
+</style>
+<div class="spacer"></div>
+<iframe id="iframe"></iframe>
+<script>
+
+promise_test(async t => {
+  iframe.src =      // non secure port.
+    get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/intersection-observer/resources/nested-cross-origin-child-iframe.sub.html";
+
+  await new Promise(resolve => {
+    window.addEventListener("message", event => {
+      if (event.data == "ready") {
+        resolve();
+      }
+    }, { once: true });
+  });
+
+  let isIntersecting = false;
+  window.addEventListener("message", function listener(event) {
+    if (event.origin == get_host_info().HTTPS_NOTSAMESITE_ORIGIN) {
+      isIntersecting = event.data;
+      window.removeEventListener("message", listener);
+    }
+  });
+
+  await new Promise(resolve => waitForNotification(t, resolve));
+  await new Promise(resolve => waitForNotification(t, resolve));
+
+  assert_false(isIntersecting,
+               "The target element is not intersecting in all ancestor viewports");
+
+  // Scroll the iframe in this document into view, but still the target element
+  // in the grand child document is out of the child iframe's viewport.
+  iframe.scrollIntoView({ behavior: "instant" });
+
+  await waitForScrollEnd(document.scrollingElement);
+
+  assert_false(isIntersecting,
+               "The target element is not intersecting in all ancestor viewports");
+
+  // Now make the target element visible in the child iframe's viewport.
+  frames[0].postMessage("scroll", "*");
+
+  await new Promise(resolve => {
+    window.addEventListener("message", function listener(event) {
+      // It's possible that the message from the IntersectionObserver in the
+      // grand child document (HTTPS_NORSAMESITE_ORIGIN) is delivered ealier
+      // than scrollEnd message from the child document
+      // (HTTP_NOTSAMESITE_ORIGIN), so we need to differentiate them.
+      if (event.origin == get_host_info().HTTP_NOTSAMESITE_ORIGIN &&
+          event.data == "scrollEnd" ) {
+        window.removeEventListener("message", listener);
+        resolve();
+      }
+    });
+  });
+
+  await new Promise(resolve => waitForNotification(t, resolve));
+
+  assert_true(isIntersecting,
+              "The target element is now intersecting in all ancestor viewports");
+}, "IntersectionObserver with `implicit root` in a nested cross-origin iframe works");
+</script>

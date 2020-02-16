@@ -47,9 +47,10 @@ function redirect_fetch_test(t, test) {
   const request = new Request(url, test.request_init);
 
   if (test.should_reject) {
-    return assert_promise_rejects(
+    return promise_rejects_js(
+      t,
+      frame.contentWindow.TypeError,
       frame.contentWindow.fetch(request),
-      new TypeError(),
       'Must fail to fetch: url=' + url);
   }
   return frame.contentWindow.fetch(request).then((response) => {

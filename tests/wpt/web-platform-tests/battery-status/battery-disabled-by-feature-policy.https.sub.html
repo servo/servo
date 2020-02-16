@@ -12,7 +12,7 @@ const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
 const header = 'Feature-Policy header {"battery" : []}';
 
 promise_test(async t => {
-  await promise_rejects(t, 'NotAllowedError', navigator.getBattery());
+  await promise_rejects_dom(t, 'NotAllowedError', navigator.getBattery());
 }, `${header} disallows the top-level document.`);
 
 async_test(t => {

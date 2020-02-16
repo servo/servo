@@ -56,7 +56,7 @@ test_valid_value("shape-outside", "circle(7% at 8% 9%) border-box");
 // <shape-box> <basic-shape>
 test_valid_value("shape-outside", "padding-box inset(10em)", "inset(10em) padding-box");
 test_valid_value("shape-outside", "border-box circle(7% at 8% 9%)", "circle(7% at 8% 9%) border-box");
-test_valid_value("shape-outside", "margin-box ellipse(at 1em 2em)", "ellipse(at 1em 2em) margin-box");
+test_valid_value("shape-outside", "margin-box ellipse(at 1em 2em)", ["ellipse(at 1em 2em) margin-box", "ellipse(at 1em 2em)"]);
 test_valid_value("shape-outside", "content-box polygon(1% 2%)", "polygon(1% 2%) content-box");
 
 // <image>

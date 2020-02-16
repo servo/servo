@@ -42,7 +42,7 @@ promise_test(async t => {
 promise_test(async t => {
     const url = new URL('cors-denied.txt', remote_base_url);
     const response = frame.contentWindow.fetch(url);
-    await promise_rejects(t, new TypeError(), response);
+    await promise_rejects_js(t, frame.contentWindow.TypeError, response);
 }, 'cross-origin request, cors denied');
 
 promise_test(async t => {

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred iframes and images with loading='lazy' use the original base URL specified at the parse time</title>
+  <link rel="author" title="Raj T" href="mailto:rajendrant@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<script>
+  const below_viewport_iframe = new ElementLoadPromise("below_viewport_iframe");
+  const below_viewport_img = new ElementLoadPromise("below_viewport_img");
+
+  // Change the base URL and scroll down to load the deferred elements.
+  window.addEventListener("load", () => {
+    window.history.pushState(1, document.title, '/invalid-url-where-no-subresources-exist/')
+    below_viewport_iframe.element().scrollIntoView();
+  });
+
+  async_test(function(t) {
+    below_viewport_iframe.promise.then(
+      t.step_func_done(function() {
+        assert_true(below_viewport_iframe.element().contentDocument.body.innerHTML.includes("<p>Subframe</p>"));
+      }));
+  }, "Test that when deferred iframe is loaded, it uses the base URL computed at parse time.");
+
+  async_test(function(t) {
+    below_viewport_img.promise.then(
+      t.step_func_done(function() {
+        assert_true(below_viewport_img.element().complete);
+        assert_greater_than(below_viewport_img.element().naturalWidth, 0);
+      })
+    ).catch(t.unreached_func("The image load should not fail, trying to load with invalid base URL."));
+  }, "Test that when deferred img is loaded, it uses the base URL computed at parse time.");
+</script>
+
+<body>
+  <div style="height:10000px;"></div>
+  <script>
+    // Change the base URL so that the iframe makes use of that in its relative
+    // URL to absolute URL computation at parse time.
+    window.history.pushState(1, document.title, 'resources/')
+  </script>
+  <iframe id="below_viewport_iframe" src="subframe.html" loading="lazy" width="200px" height="100px" onload="below_viewport_iframe.resolve();">
+  </iframe>
+  <img id="below_viewport_img" src="image.png" loading="lazy" onload="below_viewport_img.resolve();"
+       onerror="below_viewport_img.reject();">
+</body>

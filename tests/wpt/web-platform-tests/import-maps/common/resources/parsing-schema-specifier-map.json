@@ -18,6 +18,12 @@
       },
       "expectedParsedImportMap": {
         "imports": {
+          "null": null,
+          "boolean": null,
+          "number": null,
+          "object": null,
+          "array": null,
+          "array2": null,
           "string": "https://example.com/"
         },
         "scopes": {}

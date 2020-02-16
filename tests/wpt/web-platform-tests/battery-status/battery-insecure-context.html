@@ -21,7 +21,7 @@
 <script>
 
 promise_test(t => {
-  return promise_rejects(t, 'SecurityError', navigator.getBattery());
+  return promise_rejects_dom(t, 'SecurityError', navigator.getBattery());
 }, "navigator.getBattery() shall throw a 'SecurityError' in an insecure context");
 
 </script>

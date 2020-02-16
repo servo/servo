@@ -169,33 +169,66 @@
     {
         var a = document.createElement("a")
         var b = document.createElement("b")
-        assert_throws("NOT_FOUND_ERR", function () {a.removeChild(b)});
+        assert_throws_dom("NOT_FOUND_ERR", function () {a.removeChild(b)});
     }, "Test throw DOM exception")
+
+    test(function()
+    {
+        var a = document.createElement("a")
+        var b = document.createElement("b")
+        assert_throws_js(DOMException, function () {a.removeChild(b)});
+    }, "Test throw DOMException as JS exception expected to fail")
+
+    test(function()
+    {
+        assert_throws_js(SyntaxError, function () {document.querySelector("")});
+    }, "Test throw SyntaxError DOMException where JS SyntaxError expected; expected to fail")
+
+    test(function()
+    {
+        assert_throws_js(SyntaxError, function () {JSON.parse("{")});
+    }, "Test throw JS SyntaxError")
+
+    test(function()
+    {
+        assert_throws_dom("SyntaxError", function () {document.querySelector("")});
+    }, "Test throw DOM SyntaxError")
+
+    test(function()
+    {
+        assert_throws_dom("SyntaxError", function () {JSON.parse("{")});
+    }, "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail")
 
     test(function()
     {
         var a = document.createTextNode("a")
         var b = document.createElement("b")
-        assert_throws("NOT_FOUND_ERR", function () {a.appendChild(b)});
+        assert_throws_dom("NOT_FOUND_ERR", function () {a.appendChild(b)});
     }, "Test throw DOM exception expected to fail")
 
     test(function()
     {
-        var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
-        assert_throws(0, function() {throw e});
-    }, "Test assert_throws with ambiguous DOM-exception expected to Fail");
+        var e = new DOMException("I am not known", "TEST_ERROR_NO_SUCH_THING");
+        assert_throws_dom(0, function() {throw e});
+    }, "Test assert_throws_dom with ambiguous DOM-exception expected to Fail");
 
     test(function()
     {
         var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
-        assert_throws("TEST_ERR", function() {throw e});
-    }, "Test assert_throws with non-DOM-exception expected to Fail");
+        assert_throws_dom("TEST_ERR", function() {throw e});
+    }, "Test assert_throws_dom with non-DOM-exception expected to Fail");
 
     test(function()
     {
         var e = {code: DOMException.SYNTAX_ERR, name:"SyntaxError"}
-        assert_throws(DOMException.SYNTAX_ERR, function() {throw e});
-    }, "Test assert_throws with number code value expected to Pass");
+        assert_throws_dom(DOMException.SYNTAX_ERR, function() {throw e});
+    }, "Test assert_throws_dom with number code value expected to Pass");
+
+    test(function()
+    {
+        var e = new DOMException("Some message", "SyntaxError");
+        assert_throws_dom(DOMException.SYNTAX_ERR, function() {throw e});
+    }, "Test assert_throws_dom with number code value and real DOMException expected to Pass");
 
     var t = async_test("Test step_func")
     setTimeout(
@@ -243,19 +276,25 @@
     },
     {
       "status_string": "FAIL",
-      "name": "Test assert_throws with ambiguous DOM-exception expected to Fail",
-      "message": "Test bug: ambiguous DOMException code 0 passed to assert_throws()",
+      "name": "Test assert_throws_dom with ambiguous DOM-exception expected to Fail",
+      "message": "Test bug: ambiguous DOMException code 0 passed to assert_throws_dom()",
       "properties": {}
     },
     {
       "status_string": "FAIL",
-      "name": "Test assert_throws with non-DOM-exception expected to Fail",
-      "message": "Test bug: unrecognized DOMException code \"TEST_ERR\" passed to assert_throws()",
+      "name": "Test assert_throws_dom with non-DOM-exception expected to Fail",
+      "message": "Test bug: unrecognized DOMException code name or name \"TEST_ERR\" passed to assert_throws_dom()",
       "properties": {}
     },
     {
       "status_string": "PASS",
-      "name": "Test assert_throws with number code value expected to Pass",
+      "name": "Test assert_throws_dom with number code value expected to Pass",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test assert_throws_dom with number code value and real DOMException expected to Pass",
       "message": null,
       "properties": {}
     },
@@ -297,8 +336,38 @@
     },
     {
       "status_string": "FAIL",
+      "name": "Test throw DOMException as JS exception expected to fail",
+      "message": "assert_throws_js: function \"function DOMException() {\n    [native code]\n}\" is not an Error subtype",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw SyntaxError DOMException where JS SyntaxError expected; expected to fail",
+      "message": "assert_throws_js: function \"function () {document.querySelector(\"\")}\" threw object \"SyntaxError: Document.querySelector: '' is not a valid selector\" (\"SyntaxError\") expected instance of function \"function SyntaxError() {\n    [native code]\n}\" (\"SyntaxError\")",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw JS SyntaxError",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw DOM SyntaxError",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail",
+      "message": "assert_throws_dom: function \"function () {JSON.parse(\"{\")}\" threw object \"SyntaxError: JSON.parse: end of data while reading object contents at line 1 column 2 of the JSON data\" that is not a DOMException SyntaxError: property \"code\" is equal to undefined, expected 12",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
       "name": "Test throw DOM exception expected to fail",
-      "message": "assert_throws: function \"function () {a.appendChild(b)}\" threw object \"HierarchyRequestError: Node cannot be inserted at the specified point in the hierarchy\" that is not a DOMException NOT_FOUND_ERR: property \"code\" is equal to 3, expected 8",
+      "message": "assert_throws_dom: function \"function () {a.appendChild(b)}\" threw object \"HierarchyRequestError: Node cannot be inserted at the specified point in the hierarchy\" that is not a DOMException NOT_FOUND_ERR: property \"code\" is equal to 3, expected 8",
       "properties": {}
     },
     {

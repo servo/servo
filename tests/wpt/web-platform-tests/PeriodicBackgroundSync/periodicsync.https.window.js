@@ -14,8 +14,8 @@ promise_test(async test => {
       serviceWorkerRegistration.active, null,
       'There must not be an activated worker');
 
-  await promise_rejects(
-      test, new DOMException('', 'InvalidStateError'),
+  await promise_rejects_dom(
+      test, 'InvalidStateError',
       serviceWorkerRegistration.periodicSync.register(
           'test_tag'),
       'register() must reject on pending and installing workers');

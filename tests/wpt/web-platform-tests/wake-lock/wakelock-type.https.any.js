@@ -1,7 +1,7 @@
 //META: title=navigator.wakeLock.request() with invalid type
 
 promise_test(async t => {
-  return promise_rejects(t, new TypeError(), navigator.wakeLock.request());
+  return promise_rejects_js(t, TypeError, navigator.wakeLock.request());
 }, "'TypeError' is thrown when set an empty wake lock type");
 
 promise_test(t => {
@@ -14,6 +14,6 @@ promise_test(t => {
     true
   ];
   return Promise.all(invalidTypes.map(invalidType => {
-    return promise_rejects(t, new TypeError(), navigator.wakeLock.request(invalidType));
+    return promise_rejects_js(t, TypeError, navigator.wakeLock.request(invalidType));
   }));
 }, "'TypeError' is thrown when set an invalid wake lock type");

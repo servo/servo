@@ -13,7 +13,7 @@ const audio = new Audio();
 
 promise_test(t => audio.setSinkId(""), "setSinkId on default audio output should always work");
 
-promise_test(t => promise_rejects(t, "NotFoundError", audio.setSinkId("nonexistent_device_id")),
+promise_test(t => promise_rejects_dom(t, "NotFoundError", audio.setSinkId("nonexistent_device_id")),
   "setSinkId fails with NotFoundError on made up deviceid");
 
 promise_test(async t => {

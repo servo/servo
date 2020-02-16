@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: hyphens and line-break:strict</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-line-break">
+<link rel=match href="reference/line-break-loose-hyphens-003-ref.html">
+<meta name=assert content="breaks before U+2010 or U+2013 when line-break is strict are not allowed if the preceding character is not of line-breaking class ID.">
+<style>
+div {
+  font-family: monospace;
+  width: 2ch;
+  line-break: strict;
+}
+</style>
+
+<p>The test passes if there are two lines of text below
+and they both end with a hyphen.
+(Note: the hyphens do no need to be the same size.)
+
+<div>aa‐</div>
+<div>aa–</div>

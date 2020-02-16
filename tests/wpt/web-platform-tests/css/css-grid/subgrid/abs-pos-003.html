@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: abs.pos. subgrid edge cases</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="match" href="abs-pos-003-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/3em monospace;
+}
+
+.grid {
+  display: inline-grid;
+  position: relative;
+  border: 1px solid;
+  margin-right: 20px;
+}
+.a { grid-template-areas: '.' }
+.c { grid-template-columns: auto }
+.r { grid-template-rows: auto }
+
+.subgrid {
+  position: absolute;
+  display: grid;
+  padding: 10px;
+}
+.t1 { grid: subgrid / subgrid; }
+.t2 { grid: none / subgrid; }
+.t3 { grid: subgrid / none; }
+
+x {
+  width: 1em;
+  height: 1em;
+  background: grey;
+}
+
+a {
+  position: absolute;
+  inset: 0;
+  background: purple;
+}
+
+</style>
+</head>
+<body>
+
+<div class="grid"><div class="subgrid t1"></div></div>
+<div class="grid"><div class="subgrid t1"><x></x></div></div>
+<div class="grid"><div class="subgrid t1"><x></x><x></x></div></div>
+<div class="grid a"><div class="subgrid t1"></div></div>
+<div class="grid a"><div class="subgrid t1"><x></x></div></div>
+<div class="grid a"><div class="subgrid t1"><x></x><x></x></div></div>
+<div class="grid c"><div class="subgrid t1"></div></div>
+<div class="grid c"><div class="subgrid t1"><x></x></div></div>
+<div class="grid c"><div class="subgrid t1"><x></x><x></x></div></div>
+<div class="grid r"><div class="subgrid t1"></div></div>
+<div class="grid r"><div class="subgrid t1"><x></x></div></div>
+<div class="grid r"><div class="subgrid t1"><x></x><x></x></div></div>
+
+<div class="grid"><div class="subgrid t2"></div></div>
+<div class="grid"><div class="subgrid t2"><x></x></div></div>
+<div class="grid"><div class="subgrid t2"><x></x><x></x></div></div>
+<div class="grid a"><div class="subgrid t2"></div></div>
+<div class="grid a"><div class="subgrid t2"><x></x></div></div>
+<div class="grid a"><div class="subgrid t2"><x></x><x></x></div></div>
+<div class="grid c"><div class="subgrid t2"></div></div>
+<div class="grid c"><div class="subgrid t2"><x></x></div></div>
+<div class="grid c"><div class="subgrid t2"><x></x><x></x></div></div>
+<div class="grid r"><div class="subgrid t2"></div></div>
+<div class="grid r"><div class="subgrid t2"><x></x></div></div>
+<div class="grid r"><div class="subgrid t2"><x></x><x></x></div></div>
+
+<div class="grid"><div class="subgrid t3"></div></div>
+<div class="grid"><div class="subgrid t3"><x></x></div></div>
+<div class="grid"><div class="subgrid t3"><x></x><x></x></div></div>
+<div class="grid a"><div class="subgrid t3"></div></div>
+<div class="grid a"><div class="subgrid t3"><x></x></div></div>
+<div class="grid a"><div class="subgrid t3"><x></x><x></x></div></div>
+<div class="grid c"><div class="subgrid t3"></div></div>
+<div class="grid c"><div class="subgrid t3"><x></x></div></div>
+<div class="grid c"><div class="subgrid t3"><x></x><x></x></div></div>
+<div class="grid r"><div class="subgrid t3"></div></div>
+<div class="grid r"><div class="subgrid t3"><x></x></div></div>
+<div class="grid r"><div class="subgrid t3"><x></x><x></x></div></div>
+
+<br>
+
+<div class="grid"><div class="subgrid t1"><a></a></div></div>
+<div class="grid"><div class="subgrid t1"><a></a><a></a></div></div>
+<div class="grid a"><div class="subgrid t1"><a></a></div></div>
+<div class="grid a"><div class="subgrid t1"><a></a><a></a></div></div>
+<div class="grid c"><div class="subgrid t1"><a></a></div></div>
+<div class="grid c"><div class="subgrid t1"><a></a><a></a></div></div>
+<div class="grid r"><div class="subgrid t1"><a></a></div></div>
+<div class="grid r"><div class="subgrid t1"><a></a><a></a></div></div>
+
+<div class="grid"><div class="subgrid t2"><a></a></div></div>
+<div class="grid"><div class="subgrid t2"><a></a><a></a></div></div>
+<div class="grid a"><div class="subgrid t2"><a></a></div></div>
+<div class="grid a"><div class="subgrid t2"><a></a><a></a></div></div>
+<div class="grid c"><div class="subgrid t2"><a></a></div></div>
+<div class="grid c"><div class="subgrid t2"><a></a><a></a></div></div>
+<div class="grid r"><div class="subgrid t2"><a></a></div></div>
+<div class="grid r"><div class="subgrid t2"><a></a><a></a></div></div>
+
+<div class="grid"><div class="subgrid t3"><a></a></div></div>
+<div class="grid"><div class="subgrid t3"><a></a><a></a></div></div>
+<div class="grid a"><div class="subgrid t3"><a></a></div></div>
+<div class="grid a"><div class="subgrid t3"><a></a><a></a></div></div>
+<div class="grid c"><div class="subgrid t3"><a></a></div></div>
+<div class="grid c"><div class="subgrid t3"><a></a><a></a></div></div>
+<div class="grid r"><div class="subgrid t3"><a></a></div></div>
+<div class="grid r"><div class="subgrid t3"><a></a><a></a></div></div>
+
+</body>
+</html>

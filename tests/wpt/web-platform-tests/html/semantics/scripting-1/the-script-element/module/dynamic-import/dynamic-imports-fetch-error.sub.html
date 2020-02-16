@@ -18,7 +18,7 @@ const cases = [
 
 for (const [label, specifier] of cases) {
   promise_test(t => {
-    return promise_rejects(t, new TypeError, import(specifier));
+    return promise_rejects_js(t, TypeError, import(specifier));
   }, "import() must reject when there is a " + label);
 
   promise_test(async t => {
@@ -28,8 +28,8 @@ for (const [label, specifier] of cases) {
     const promise1 = import(specifier + suffix);
     const promise2 = import(specifier + suffix);
 
-    await promise_rejects(t, new TypeError, promise1, "It must reject the first time");
-    await promise_rejects(t, new TypeError, promise2, "It must reject the second time");
+    await promise_rejects_js(t, TypeError, promise1, "It must reject the first time");
+    await promise_rejects_js(t, TypeError, promise2, "It must reject the second time");
 
     const error1 = await promise1.catch(e => e);
     const error2 = await promise2.catch(e => e);

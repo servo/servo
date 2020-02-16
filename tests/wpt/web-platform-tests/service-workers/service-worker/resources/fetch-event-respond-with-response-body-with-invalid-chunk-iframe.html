@@ -5,10 +5,11 @@
 <script>
 'use strict';
 
-fetch('body-stream-with-invalid-chunk').then(resp => {
+parent.set_fetch_promise(fetch('body-stream-with-invalid-chunk').then(resp => {
     const reader = resp.body.getReader();
-    return reader.read().then(
-      () => parent.done('FAIL: read() should be rejected'),
-      () => parent.done('PASS'));
-  }).catch(e => parent.done('FAIL: ' + e));
+    const reader_promise = reader.read();
+    parent.set_reader_promise(reader_promise);
+    // Suppress our expected error.
+    return reader_promise.catch(() => {});
+  }));
 </script>

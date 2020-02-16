@@ -68,32 +68,32 @@ promise_test(t => {
     .then(state => {
         expect_navigation_preload_state(state, false, 'null',
                                         'after setHeaderValue to null');
-        return promise_rejects(t,
-            new TypeError,
+        return promise_rejects_js(t,
+            TypeError,
             np.setHeaderValue('what\uDC00\uD800this'),
             'setHeaderValue() should throw if passed surrogates');
       })
     .then(() => {
-        return promise_rejects(t,
-            new TypeError,
+        return promise_rejects_js(t,
+            TypeError,
             np.setHeaderValue('zer\0o'),
             'setHeaderValue() should throw if passed \\0');
       })
     .then(() => {
-        return promise_rejects(t,
-            new TypeError,
+        return promise_rejects_js(t,
+            TypeError,
             np.setHeaderValue('\rcarriage'),
             'setHeaderValue() should throw if passed \\r');
       })
     .then(() => {
-        return promise_rejects(t,
-            new TypeError,
+        return promise_rejects_js(t,
+            TypeError,
             np.setHeaderValue('newline\n'),
             'setHeaderValue() should throw if passed \\n');
       })
     .then(() => {
-        return promise_rejects(t,
-            new TypeError,
+        return promise_rejects_js(t,
+            TypeError,
             np.setHeaderValue(),
             'setHeaderValue() should throw if passed undefined');
       })
@@ -195,13 +195,13 @@ promise_test(t => {
         np = registration.navigationPreload;
         add_completion_callback(() => registration.unregister());
         return Promise.all([
-            promise_rejects(
+            promise_rejects_dom(
                 t, 'InvalidStateError', np.enable(),
                 'enable should reject if there is no active worker'),
-            promise_rejects(
+            promise_rejects_dom(
                 t, 'InvalidStateError', np.disable(),
                 'disable should reject if there is no active worker'),
-            promise_rejects(
+            promise_rejects_dom(
                 t, 'InvalidStateError', np.setHeaderValue('umm'),
                 'setHeaderValue should reject if there is no active worker')]);
       })

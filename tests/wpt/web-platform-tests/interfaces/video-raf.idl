@@ -1,0 +1,25 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: HTMLVideoElement.requestAnimationFrame() (https://wicg.github.io/video-raf/)
+
+dictionary VideoFrameMetadata {
+  required DOMHighResTimeStamp presentationTime;
+  required DOMHighResTimeStamp expectedPresentationTime;
+
+  required unsigned long width;
+  required unsigned long height;
+
+  double presentationTimestamp;
+  double elapsedProcessingTime;
+  unsigned long presentedFrames;
+  DOMHighResTimeStamp captureTime;
+  unsigned long rtpTimestamp;
+};
+
+callback VideoFrameRequestCallback = void(DOMHighResTimeStamp time, VideoFrameMetadata metadata);
+
+partial interface HTMLVideoElement {
+    unsigned long requestAnimationFrame(VideoFrameRequestCallback callback);
+    void cancelAnimationFrame(unsigned long handle);
+};

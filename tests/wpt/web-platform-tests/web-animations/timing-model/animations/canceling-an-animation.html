@@ -49,7 +49,7 @@ promise_test(async t => {
   const originalPromise = animation.ready;
   animation.cancel();
 
-  await promise_rejects(t, 'AbortError', originalPromise,
+  await promise_rejects_dom(t, 'AbortError', originalPromise,
                         'Cancel should abort ready promise');
 }, 'A pause-pending ready promise should be rejected when the animation is'
    + ' canceled');
@@ -66,7 +66,7 @@ test(t => {
   const promise = animation.ready;
   animation.cancel();
   assert_not_equals(animation.ready, promise);
-  promise_rejects(t, 'AbortError', promise, 'Cancel should abort ready promise');
+  promise_rejects_dom(t, 'AbortError', promise, 'Cancel should abort ready promise');
 }, 'The ready promise should be replaced when the animation is canceled');
 
 promise_test(t => {

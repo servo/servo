@@ -64,7 +64,7 @@ function intercept() {
   let result = new FakeIdleMonitor();
 
   let binding = new mojo.Binding(blink.mojom.IdleManager, result);
-  let interceptor = new MojoInterfaceInterceptor(blink.mojom.IdleManager.name, "context", true);
+  let interceptor = new MojoInterfaceInterceptor(blink.mojom.IdleManager.name);
   interceptor.oninterfacerequest = (e) => {
     binding.bind(e.handle);
   }

@@ -123,7 +123,7 @@ promise_test(async t => {
     paymentRequestCanMakePaymentResult,
     'canMakePayment() must return false.',
   );
-  await promise_rejects(t, 'NotSupportedError', request.show());
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
 }, 'If a payment handler is not installed, then the payment method is not supported.');
 
 promise_test(async t => {
@@ -145,7 +145,7 @@ promise_test(async t => {
     paymentRequestCanMakePaymentResult,
     'canMakePayment() must return false.',
   );
-  await promise_rejects(t, 'NotSupportedError', request.show());
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
 }, 'If CanMakePaymentEvent.respondWith(false) is called, then the payment method is not supported.');
 
 promise_test(async t => {
@@ -167,7 +167,7 @@ promise_test(async t => {
     paymentRequestCanMakePaymentResult,
     'canMakePayment() must return false.',
   );
-  await promise_rejects(t, 'NotSupportedError', request.show());
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
 }, 'If CanMakePaymentEvent.respondWith(Promise.resolve(false)) is called, then the payment method is not supported.');
 
 promise_test(async t => {
@@ -191,7 +191,7 @@ promise_test(async t => {
   );
   const acceptPromise = request.show();
   await request.abort();
-  await promise_rejects(t, 'AbortError', acceptPromise);
+  await promise_rejects_dom(t, 'AbortError', acceptPromise);
 }, 'If CanMakePaymentEvent.respondWith(true) is called, then the payment method is supported.');
 
 promise_test(async t => {
@@ -215,7 +215,7 @@ promise_test(async t => {
   );
   const acceptPromise = request.show();
   await request.abort();
-  await promise_rejects(t, 'AbortError', acceptPromise);
+  await promise_rejects_dom(t, 'AbortError', acceptPromise);
 }, 'If CanMakePaymentEvent.respondWith(Promise.resolve(true)) is called, then the payment method is supported.');
 
 promise_test(async t => {
@@ -237,7 +237,7 @@ promise_test(async t => {
     paymentRequestCanMakePaymentResult,
     'canMakePayment() must return false.',
   );
-  await promise_rejects(t, 'NotSupportedError', request.show());
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
 }, 'If CanMakePaymentEvent.respondWith(Promise.reject(error)) is called, then the payment method is not supported.');
 
 promise_test(async t => {

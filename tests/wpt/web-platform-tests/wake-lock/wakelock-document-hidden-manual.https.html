@@ -16,7 +16,7 @@ promise_test(async t => {
   await eventWatcher.wait_for("visibilitychange");
   assert_true(document.hidden, "document is hidden after the visibilitychange event");
   await screenWakeLockReleased;
-  await promise_rejects(t, "NotAllowedError", navigator.wakeLock.request('screen'),
+  await promise_rejects_dom(t, "NotAllowedError", navigator.wakeLock.request('screen'),
       "new screen locks are not allowed when the page is not visible");
 
   await eventWatcher.wait_for("visibilitychange");

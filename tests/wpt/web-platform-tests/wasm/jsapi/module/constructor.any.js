@@ -45,12 +45,12 @@ test(() => {
 
 test(() => {
   const buffer = new Uint8Array();
-  assert_throws(new WebAssembly.CompileError(), () => new WebAssembly.Module(buffer));
+  assert_throws_js(WebAssembly.CompileError, () => new WebAssembly.Module(buffer));
 }, "Empty buffer");
 
 test(() => {
   const buffer = new Uint8Array(Array.from(emptyModuleBinary).concat([0, 0]));
-  assert_throws(new WebAssembly.CompileError(), () => new WebAssembly.Module(buffer));
+  assert_throws_js(WebAssembly.CompileError, () => new WebAssembly.Module(buffer));
 }, "Invalid code");
 
 test(() => {
