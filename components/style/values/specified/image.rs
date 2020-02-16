@@ -47,6 +47,8 @@ pub type Gradient = generic::Gradient<
     Color,
 >;
 
+type LengthPercentageItemList = crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>;
+
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
 
@@ -189,7 +191,7 @@ impl Parse for Gradient {
         }
 
         let func = input.expect_function()?;
-        let (shape, repeating, mut compat_mode) = match_ignore_ascii_case! { &func,
+        let (shape, repeating, compat_mode) = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 (Shape::Linear, false, GradientCompatMode::Modern)
             },
@@ -243,7 +245,7 @@ impl Parse for Gradient {
 
         Ok(input.parse_nested_block(|i| {
             Ok(match shape {
-                Shape::Linear => Self::parse_linear(context, i, repeating, &mut compat_mode)?,
+                Shape::Linear => Self::parse_linear(context, i, repeating, compat_mode)?,
                 Shape::Radial => Self::parse_radial(context, i, repeating, compat_mode)?,
             })
         })?)
@@ -421,7 +423,7 @@ impl Gradient {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         reverse_stops: bool,
-    ) -> Result<crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>, ParseError<'i>> {
+    ) -> Result<LengthPercentageItemList, ParseError<'i>> {
         let mut items = input
             .try(|i| {
                 i.expect_comma()?;
@@ -507,13 +509,11 @@ impl Gradient {
     fn parse_stops<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>, ParseError<'i>> {
+    ) -> Result<LengthPercentageItemList, ParseError<'i>> {
         let items = generic::GradientItem::parse_comma_separated(context, input)?;
-
         if items.len() < 2 {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-
         Ok(items)
     }
 
@@ -523,27 +523,27 @@ impl Gradient {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         repeating: bool,
-        compat_mode: &mut GradientCompatMode,
+        mut compat_mode: GradientCompatMode,
     ) -> Result<Self, ParseError<'i>> {
-        let direction = if let Ok(d) = input.try(|i| LineDirection::parse(context, i, compat_mode))
-        {
-            input.expect_comma()?;
-            d
-        } else {
-            match compat_mode {
-                GradientCompatMode::Modern => {
-                    LineDirection::Vertical(VerticalPositionKeyword::Bottom)
-                },
-                _ => LineDirection::Vertical(VerticalPositionKeyword::Top),
-            }
-        };
+        let direction =
+            if let Ok(d) = input.try(|i| LineDirection::parse(context, i, &mut compat_mode)) {
+                input.expect_comma()?;
+                d
+            } else {
+                match compat_mode {
+                    GradientCompatMode::Modern => {
+                        LineDirection::Vertical(VerticalPositionKeyword::Bottom)
+                    },
+                    _ => LineDirection::Vertical(VerticalPositionKeyword::Top),
+                }
+            };
         let items = Gradient::parse_stops(context, input)?;
 
         Ok(Gradient::Linear {
             direction,
             items,
             repeating,
-            compat_mode: *compat_mode,
+            compat_mode,
         })
     }
 
