@@ -774,17 +774,17 @@ impl HTMLElement {
             .count() as u32
     }
 
-    pub fn directionality(&self) -> String {
-        println!("HTMLElement#directionality");
+    // returns Some if can infer direction by itself or from child nodes
+    // returns None if requires to go up to parent
+    pub fn directionality(&self) -> Option<String> {
         let element_direction: &str = &self.Dir();
-        println!("HTMLElement#element_direction={}", element_direction);
 
         if element_direction == "ltr" {
-            return "ltr".to_owned();
+            return Some("ltr".to_owned());
         }
 
         if element_direction == "rtl" {
-            return "rtl".to_owned();
+            return Some("rtl".to_owned());
         }
 
         if element_direction == "auto" {
@@ -792,11 +792,11 @@ impl HTMLElement {
                 .downcast::<HTMLInputElement>()
                 .and_then(|input| input.auto_directionality())
             {
-                return directionality;
+                return Some(directionality);
             }
 
             if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-                return area.auto_directionality();
+                return Some(area.auto_directionality());
             }
         }
 
@@ -806,8 +806,7 @@ impl HTMLElement {
         // (i.e. it is not present or has an invalid value)
         // Requires bdi element implementation (https://html.spec.whatwg.org/multipage/#the-bdi-element)
 
-        let node = self.upcast::<Node>();
-        node.parent_directionality()
+        None
     }
 }
 

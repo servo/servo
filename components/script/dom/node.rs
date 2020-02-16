@@ -434,16 +434,25 @@ impl Node {
     }
 
     pub fn parent_directionality(&self) -> String {
-        match self.GetParentNode() {
-            Some(parent) => {
-                if let Some(parent_html) = parent.downcast::<Element>() {
-                    parent_html.directionality()
-                } else {
-                    parent.parent_directionality()
-                }
-            },
-            None => "ltr".to_owned(),
+        let mut current = self.GetParentNode();
+
+        loop {
+            match current {
+                Some(parent) => {
+                    if let Some(directionality) = parent
+                        .downcast::<HTMLElement>()
+                        .and_then(|html_element| html_element.directionality())
+                    {
+                        return directionality;
+                    } else {
+                        current = parent.GetParentNode();
+                    }
+                },
+                None => break,
+            }
         }
+
+        "ltr".to_owned()
     }
 }
 
