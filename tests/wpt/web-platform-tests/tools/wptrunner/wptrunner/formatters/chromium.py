@@ -37,7 +37,7 @@ class ChromiumFormatter(base.BaseFormatter):
         :param str test: the name of the test
         :param str subtest: the name of the subtest with the message
         :param str status: the subtest status
-        :param str expected: the expected subtest status
+        :param str expected: the expected subtest statuses
         :param str message: the string to append to the message for this test
 
         Here's an example of a message:
@@ -47,7 +47,7 @@ class ChromiumFormatter(base.BaseFormatter):
             return
         # Add the prefix, with the test status and subtest name (if available)
         prefix = "[%s" % status
-        if expected and expected != status:
+        if expected and status not in expected:
             prefix += " expected %s] " % expected
         else:
             prefix += "] "
@@ -55,13 +55,14 @@ class ChromiumFormatter(base.BaseFormatter):
             prefix += "%s: " % subtest
         self.messages[test] += prefix + message + "\n"
 
-    def _store_test_result(self, name, actual, expected, message):
+    def _store_test_result(self, name, actual, expected, message, subtest_failure=False):
         """
         Stores the result of a single test in |self.tests|
         :param str name: name of the test.
         :param str actual: actual status of the test.
-        :param str expected: expected status of the test.
+        :param str expected: expected statuses of the test.
         :param str message: test output, such as status, subtest, errors etc.
+        :param bool subtest_failure: whether this test failed because of subtests
         """
         # The test name can contain a leading / which will produce an empty
         # string in the first position of the list returned by split. We use
@@ -72,13 +73,17 @@ class ChromiumFormatter(base.BaseFormatter):
             cur_dict = cur_dict.setdefault(name_part, {})
         cur_dict["actual"] = actual
         cur_dict["expected"] = expected
-        if message != "":
-            cur_dict["artifacts"] = {"log": message}
+        if subtest_failure or message:
+            cur_dict["artifacts"] = {"log": ""}
+            if subtest_failure:
+                cur_dict["artifacts"]["log"] += "subtest_failure\n"
+            if message != "":
+                cur_dict["artifacts"]["log"] += message
 
         # Figure out if there was a regression or unexpected status. This only
         # happens for tests that were run
         if actual != "SKIP":
-            if actual != expected:
+            if actual not in expected:
                 cur_dict["is_unexpected"] = True
                 if actual != "PASS":
                     cur_dict["is_regression"] = True
@@ -116,7 +121,7 @@ class ChromiumFormatter(base.BaseFormatter):
 
     def _get_expected_status_from_data(self, actual_status, data):
         """
-        Gets the expected status from a |data| dictionary.
+        Gets the expected statuses from a |data| dictionary.
 
         If there is no expected status in data, the actual status is returned.
         This is because mozlog will delete "expected" from |data| if it is the
@@ -125,12 +130,19 @@ class ChromiumFormatter(base.BaseFormatter):
         is expected. So we use the "expected" status if it's there or fall back
         to the actual status if it's not.
 
+        If the test has multiple statuses, it will have other statuses listed as
+        "known_intermittent" in |data|. If these exist, they will be appended to
+        the returned status with spaced in between.
+
         :param str actual_status: the actual status of the test
         :param data: a data dictionary to extract expected status from
-        :return str: the expected status
+        :return str: the expected statuses as a string
         """
-        return (self._map_status_name(data["expected"])
-                if "expected" in data else actual_status)
+        expected_statuses = self._map_status_name(data["expected"]) if "expected" in data else actual_status
+        if "known_intermittent" in data:
+            expected_statuses += " " + " ".join(
+                [self._map_status_name(other_status) for other_status in data["known_intermittent"]])
+        return expected_statuses
 
     def suite_start(self, data):
         self.start_timestamp_seconds = (data["time"] if "time" in data
@@ -138,34 +150,31 @@ class ChromiumFormatter(base.BaseFormatter):
 
     def test_status(self, data):
         test_name = data["test"]
-        is_unexpected = None
         actual_status = self._map_status_name(data["status"])
-        expected_status = self._get_expected_status_from_data(actual_status, data)
+        expected_statuses = self._get_expected_status_from_data(actual_status, data)
 
-        is_unexpected = actual_status != expected_status
+        is_unexpected = actual_status not in expected_statuses
         if is_unexpected and test_name not in self.tests_with_subtest_fails:
             self.tests_with_subtest_fails.add(test_name)
         if "message" in data:
-            self._append_test_message(test_name, data["subtest"],
-                                      actual_status, expected_status,
-                                      data["message"])
+            self._append_test_message(test_name, data["subtest"], actual_status, expected_statuses, data["message"])
 
     def test_end(self, data):
         test_name = data["test"]
         actual_status = self._map_status_name(data["status"])
+        expected_statuses = self._get_expected_status_from_data(actual_status, data)
+        subtest_failure = False
         if actual_status == "PASS" and test_name in self.tests_with_subtest_fails:
             # This test passed but it has failing subtests, so we flip the status
             # to FAIL.
             actual_status = "FAIL"
+            subtest_failure = True
             # Clean up the test list to avoid accumulating too many.
             self.tests_with_subtest_fails.remove(test_name)
 
-        expected_status = self._get_expected_status_from_data(actual_status, data)
         if "message" in data:
-            self._append_test_message(test_name, None, actual_status,
-                                      expected_status, data["message"])
-        self._store_test_result(test_name, actual_status, expected_status,
-                                self.messages[test_name])
+            self._append_test_message(test_name, None, actual_status, expected_statuses, data["message"])
+        self._store_test_result(test_name, actual_status, expected_statuses, self.messages[test_name], subtest_failure)
 
         # Remove the test from messages dict to avoid accumulating too many.
         self.messages.pop(test_name)

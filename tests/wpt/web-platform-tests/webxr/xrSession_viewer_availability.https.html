@@ -20,7 +20,7 @@
     }
 
     function session_rejects(expected, sessionMode, sessionInit) {
-      return promise_rejects(t, expected, navigator.xr.requestSession(sessionMode, sessionInit)
+      return promise_rejects_dom(t, expected, navigator.xr.requestSession(sessionMode, sessionInit)
         .then(session => session.end()));
     }
 

@@ -23,7 +23,7 @@ function corsPreflightStatus(desc, corsUrl, preflightStatus) {
           assert_equals(resp.headers.get("x-did-preflight"), "1", "Preflight request has been made");
         });
       } else {
-        return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
+        return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit));
       }
     });
   }, desc);

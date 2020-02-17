@@ -10,7 +10,7 @@ function redirectDataURL(desc, redirectUrl, mode) {
     var requestInit = {"mode": mode};
 
     promise_test(function(test) {
-        return promise_rejects(test, new TypeError(), fetch(url, requestInit));
+        return promise_rejects_js(test, TypeError, fetch(url, requestInit));
     }, desc);
 }
 

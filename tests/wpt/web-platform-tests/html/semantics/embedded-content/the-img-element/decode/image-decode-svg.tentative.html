@@ -71,34 +71,34 @@ promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
   img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/non/existent/path.png");
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Non-existent xlink:href fails decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
   img.setAttribute('href', "/non/existent/path.png");
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Non-existent href fails decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
   img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "data:image/png;base64,iVBO00PDR0BADBEEF00KGg");
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Corrupt image in xlink:href fails decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
   img.setAttribute('href', "data:image/png;base64,iVBO00PDR0BADBEEF00KGg");
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Corrupt image in href fails decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Image without xlink:href or href fails decode.");
 
 promise_test(function() {

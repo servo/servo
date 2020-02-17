@@ -66,7 +66,7 @@ promise_test(async t => {
   const invalidPngBlob = new Blob(['this text is not a valid png image'],
       {type: "image/png"});
   const clipboardItemInput = new ClipboardItem({'image/png' : invalidPngBlob});
-  await promise_rejects(t, "DataError",
+  await promise_rejects_dom(t, "DataError",
       navigator.clipboard.write([clipboardItemInput]));
 }, 'Verify write error on malformed data [image/png ClipboardItem]');
 </script>

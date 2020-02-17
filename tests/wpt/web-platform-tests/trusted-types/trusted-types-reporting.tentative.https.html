@@ -48,7 +48,7 @@
     });
   }
 
-  // Like assert_throws, but we don't care about the exact error. We just want
+  // Like assert_throws_*, but we don't care about the exact error. We just want
   // to run the code and continue.
   function expect_throws(fn) {
     try { fn(); assert_unreached(); } catch (err) { /* ignore */ }

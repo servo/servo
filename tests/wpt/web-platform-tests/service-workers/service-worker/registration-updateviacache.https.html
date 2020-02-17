@@ -197,7 +197,7 @@
     const fail = navigator.serviceWorker.register(
         'resources/malformed-worker.py?parse-error',
         {scope: SCOPE, updateViaCache: 'none'});
-    await promise_rejects(t, new TypeError(), fail);
+    await promise_rejects_js(t, TypeError, fail);
     assert_equals(registration.updateViaCache, 'imports',
                   'after update attempt');
   }, 'updateViaCache is not updated if register() rejects');

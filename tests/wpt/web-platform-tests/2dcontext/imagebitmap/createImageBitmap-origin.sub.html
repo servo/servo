@@ -3,6 +3,7 @@
 <title>createImageBitmap: origin-clean flag</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="/common/media.js"></script>
 <script src="/2dcontext/resources/canvas-tests.js"></script>
 <div id=log></div>
@@ -30,8 +31,8 @@ function assert_origin_unclean_transferFromImageBitmap(bitmap) {
   assert_throws_dom('SecurityError', () => canvas.toDataURL());
 }
 
-forEachCanvasSource("http://{{domains[www1]}}:{{ports[http][0]}}",
-                    "http://{{domains[]}}:{{ports[http][0]}}",
+forEachCanvasSource(get_host_info().HTTP_REMOTE_ORIGIN,
+                    get_host_info().HTTP_ORIGIN,
                     (name, factory) => {
   promise_test(function() {
     return factory().then(createImageBitmap).then(assert_origin_unclean_getImageData);

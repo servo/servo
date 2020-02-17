@@ -52,11 +52,12 @@ function executeCommandInServiceWorker(command) {
 
 // Try loading an image from a |response|. Return a Promise resolving or
 // rejecting depending on the image loading result.
+const loadFailure = {name: "Image.onerror"};
 function readImageFromResponse(response) {
   return new Promise((resolve, reject) => {
     const img = document.createElement("img");
     img.onload = resolve.bind(this, "");
-    img.onerror = reject.bind(this, {name: "Image.onerror"});
+    img.onerror = reject.bind(this, loadFailure);
     response.blob().then(blob => {
       img.src = URL.createObjectURL(blob);
       document.body.appendChild(img);
@@ -109,7 +110,7 @@ function test(
     const cache = await caches.open('v1');
 
     if (response_type === 'error') {
-      await promise_rejects(t, 'InvalidAccessError', cache.match(url));
+      await promise_rejects_dom(t, 'InvalidAccessError', cache.match(url));
       return;
     }
 
@@ -124,7 +125,7 @@ function test(
 
     // Opaque response can't be read from the document.
     if (response_type === "opaque") {
-      await promise_rejects(t, {name: "Image.onerror"}, readImageFromResponse(response));
+      await promise_rejects_exactly(t, loadFailure, readImageFromResponse(response));
       return;
     }
 

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#content-size-suggestion">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Chrome had a bug https://crbug.com/1042329 where min-height:auto was not updated after an image load when the image has a specified height and width.">
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex; flex-direction: column; height: 5px">
+  <img style="width: 100px; height: 100px;" src="support/200x200-green.png">
+  <script>
+    document.body.offsetTop;
+    // This test relies on the harness screenshotting after the image has loaded.
+  </script>
+</div>

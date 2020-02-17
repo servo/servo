@@ -1,7 +1,7 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/upgrade-insecure-requests/support/testharness-helper.sub.js"></script>
+<script src="/common/security-features/resources/common.sub.js"></script>
 <body></body>
 <script>
     function waitForViolation(el, effective_directive) {
@@ -14,7 +14,9 @@
     }
 
     async_test(t => {
-      var url = generateURL(Host.SAME_ORIGIN, Protocol.INSECURE, ResourceType.IMAGE).url;
+      var url = getRequestURLs("img-tag",
+                               "same-http-downgrade",
+                               "no-redirect").testUrl;
       var i = document.createElement('img');
       var loaded = false;
       var reported = false;
@@ -35,7 +37,9 @@
     }, "Upgraded image is reported");
 
     async_test(t => {
-      var url = generateURL(Host.SAME_ORIGIN, Protocol.INSECURE, ResourceType.FRAME).url;
+      var url = getRequestURLs("iframe-tag",
+                               "same-http-downgrade",
+                               "no-redirect").testUrl;
       var i = document.createElement('iframe');
       var loaded = false;
       var reported = false;
@@ -59,8 +63,12 @@
 
     async_test(t => {
       // Load an HTTPS iframe, then navigate it to an HTTP URL and check that the HTTP URL is both upgraded and reported.
-      var url = generateURL(Host.SAME_ORIGIN, Protocol.SECURE, ResourceType.FRAME).url;
-      var navigate_to = generateURL(Host.CROSS_ORIGIN, Protocol.INSECURE, ResourceType.FRAME).url;
+      var url = getRequestURLs("iframe-tag",
+                               "same-https",
+                               "no-redirect").testUrl;
+      var navigate_to = getRequestURLs("iframe-tag",
+                                       "cross-http-downgrade",
+                                       "no-redirect").testUrl;
       var upgraded = new URL(navigate_to);
       upgraded.protocol = "https";
 

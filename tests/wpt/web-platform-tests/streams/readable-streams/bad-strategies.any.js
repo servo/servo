@@ -39,7 +39,7 @@ promise_test(t => {
 
   assert_throws_exactly(thrownError, () => controller.enqueue('a'), 'enqueue should re-throw the error');
 
-  return promise_rejects(t, controllerError, rs.getReader().closed);
+  return promise_rejects_exactly(t, controllerError, rs.getReader().closed);
 
 }, 'Readable stream: strategy.size errors the stream and then throws');
 
@@ -65,7 +65,7 @@ promise_test(t => {
 
   assert_throws_js(RangeError, () => controller.enqueue('a'), 'enqueue should throw a RangeError');
 
-  return promise_rejects(t, theError, rs.getReader().closed, 'closed should reject with the error');
+  return promise_rejects_exactly(t, theError, rs.getReader().closed, 'closed should reject with the error');
 
 }, 'Readable stream: strategy.size errors the stream and then returns Infinity');
 

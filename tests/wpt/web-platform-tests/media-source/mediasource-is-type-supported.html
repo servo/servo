@@ -31,6 +31,7 @@
               'video/webm;codecs="',
               'video/webm;codecs=""',
               'video/webm;codecs=","',
+              'audio/webm;aaacodecsbbb=opus',
               'unsupported_mediatype',
               '',
               null
@@ -66,6 +67,7 @@
               'video/webm;codecs="vorbis, vp8"',
               'audio/webm;codecs="vorbis"',
               'AUDIO/WEBM;CODECS="vorbis"',
+              'audio/webm;codecs=vorbis;test="6"',
               'audio/webm;codecs="opus"',
               'video/webm;codecs="opus"'
           ], true, 'Test valid WebM type');
@@ -83,6 +85,7 @@
               'audio/mp4;codecs="opus"',
               'video/mp4;codecs="opus"'
           ], true, 'Test valid MP4 type');
+
         </script>
     </body>
 </html>

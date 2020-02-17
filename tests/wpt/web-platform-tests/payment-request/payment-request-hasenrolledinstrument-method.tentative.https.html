@@ -47,10 +47,10 @@ promise_test(async t => {
         const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
         return [acceptPromise, hasEnrolledInstrumentPromise];
       });
-  await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
+  await promise_rejects_dom(t, "InvalidStateError", hasEnrolledInstrumentPromise);
 
   await request.abort();
-  await promise_rejects(t, "AbortError", acceptPromise);
+  await promise_rejects_dom(t, "AbortError", acceptPromise);
 }, `If request.[[state]] is "interactive", then return a promise rejected with an "InvalidStateError" DOMException.`);
 
 promise_test(async t => {
@@ -62,10 +62,10 @@ promise_test(async t => {
     return [abortPromise, acceptPromise];
   });
   await abortPromise;
-  await promise_rejects(t, "AbortError", acceptPromise);
+  await promise_rejects_dom(t, "AbortError", acceptPromise);
 
   const hasEnrolledInstrumentPromise = request.hasEnrolledInstrument();
-  await promise_rejects(t, "InvalidStateError", hasEnrolledInstrumentPromise);
+  await promise_rejects_dom(t, "InvalidStateError", hasEnrolledInstrumentPromise);
 }, `If request.[[state]] is "closed", then return a promise rejected with an "InvalidStateError" DOMException.`);
 </script>
 

@@ -32,9 +32,17 @@ function test_method_exists(method, method_name, properties)
 
 function test_method_throw_exception(func_str, exception, msg)
 {
-    var exception_name = typeof exception === "object" ? exception.name : exception;
+    let exception_name;
+    let test_func;
+    if (typeof exception == "function") {
+        exception_name = exception.name;
+        test_func = assert_throws_js;
+    } else {
+        exception_name = exception;
+        test_func = assert_throws_dom;
+    }
     var msg = 'Invocation of ' + func_str + ' should throw ' + exception_name  + ' Exception.';
-    wp_test(function() { assert_throws(exception, function() {eval(func_str)}, msg); }, msg);
+    wp_test(function() { test_func(exception, function() {eval(func_str)}, msg); }, msg);
 }
 
 function test_noless_than(value, greater_than, msg, properties)

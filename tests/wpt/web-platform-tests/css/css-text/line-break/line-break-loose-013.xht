@@ -9,7 +9,7 @@
 		<link rel="help" title="5.3. Line Breaking Rules: the 'line-break' property" href="https://drafts.csswg.org/css-text-3/#line-break-property" />
 		<link rel="match" href="reference/line-break-loose-013-ref.xht" />
 		<meta http-equiv="content-language" content="en, ja" />
-		<meta name="assert" content="This test verifies that 'line-break: loose' allows line breaking before hyphens such as HYPHEN (U+2010) and ENDASH (U+2013)." />
+		<meta name="assert" content="This test verifies that 'line-break: loose' allows line breaking before U+301C and U+30A0." />
 		<style type="text/css">
 			@font-face
 			{
@@ -45,22 +45,6 @@
 			Test passes if the highlighted characters in each pair of rectangles are at the exact same horizontal position.
 		</p>
 		<!-- hyphens -->
-		<div class="wrapper">
-			<p class="test" lang="ja">
-				<span>サンプル文サンプル文<span class="target">&#x2010;</span>サンプル文</span>
-			</p>
-			<p class="control" lang="ja">
-				<span>サンプル文サンプル文<br /><span class="target">&#x2010;</span>サンプル文</span>
-			</p>
-		</div>
-		<div class="wrapper">
-			<p class="test" lang="ja">
-				<span>サンプル文サンプル文<span class="target">&#x2013;</span>サンプル文</span>
-			</p>
-			<p class="control" lang="ja">
-				<span>サンプル文サンプル文<br /><span class="target">&#x2013;</span>サンプル文</span>
-			</p>
-		</div>
 		<div class="wrapper">
 			<p class="test" lang="ja">
 				<span>サンプル文サンプル文<span class="target">&#x301c;</span>サンプル文</span>

@@ -190,7 +190,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, 'Cannot register instruments with invalid icon media type image/jif');
 
   promise_test(async t => {
@@ -209,7 +209,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, "Don't crash when registering instruments with very long icon media type image/pngggggg...");
 
   promise_test(async t => {
@@ -243,7 +243,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, 'Cannot register instruments with invalid icon size "256 256" (missing "x")');
 
   promise_test(async t => {
@@ -262,7 +262,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, 'Cannot register instruments with invalid icon URL (has a null character)');
 
   promise_test(async t => {
@@ -281,7 +281,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, 'Cannot register instruments with non-existing non-https icon URL');
 
   promise_test(async t => {
@@ -301,7 +301,7 @@ function runTests(registration) {
         method: 'basic-card',
       },
     );
-    return promise_rejects(t, new TypeError(), setPromise);
+    return promise_rejects_js(t, TypeError, setPromise);
   }, 'Cannot register instruments with an existing non-https icon URL');
 
   async function testUnusualStrings(existingKey, nonExistingKey) {

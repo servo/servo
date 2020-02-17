@@ -1,5 +1,5 @@
 /* global btoa fetch token promise_test step_timeout */
-/* global assert_equals assert_true assert_own_property assert_throws assert_less_than */
+/* global assert_equals assert_true assert_own_property assert_throws_js assert_less_than */
 
 const templates = {
   'fresh': {

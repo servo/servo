@@ -108,6 +108,18 @@
           assert_approx_equals(spaceAfter("mpadded2"), 2 * emToPx, epsilon);
       }, "non-space-like mpadded");
 
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_operator_spacing());
+          assert_approx_equals(spaceBefore("merror1"), emToPx, epsilon);
+          assert_approx_equals(spaceAfter("merror1"), emToPx, epsilon);
+      }, "space-like merror");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_operator_spacing());
+          assert_approx_equals(spaceBefore("merror2"), 0, epsilon);
+          assert_approx_equals(spaceAfter("merror2"), 2 * emToPx, epsilon);
+      }, "non-space-like merror");
+
       done();
   }
 </script>
@@ -248,6 +260,35 @@
           <mn>X</mn>
           <mspace width="25px" height="10px"></mspace>
         </mpadded>
+        <mo lspace="1em" rspace="0em">X</mo>
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow>
+        <!-- merror is space-like when it contains only space-like elements. -->
+        <merror id="merror1" class="testedElement">
+          <mtext>X</mtext>
+          <mspace width="25px" height="10px"></mspace>
+        </merror>
+        <mo lspace="1em" rspace="0em">X</mo>
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow>
+        <!-- merror is not space-like when it contains a non space-like element
+             such as "mn". -->
+        <merror id="merror2" class="testedElement">
+          <mn>X</mn>
+          <mspace width="25px" height="10px"></mspace>
+        </merror>
         <mo lspace="1em" rspace="0em">X</mo>
       </mrow>
       <mn>X</mn>

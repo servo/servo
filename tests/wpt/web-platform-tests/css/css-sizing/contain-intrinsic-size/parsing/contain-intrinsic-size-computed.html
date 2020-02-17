@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Intrinsic Size Test: intrinsic-size with computed values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="contain-intrinsic-size supports the full grammar '[auto | legacy | <length>]{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id=target></div>
+<div id=scratch></div>
+<script>
+
+function length_ref(length) {
+  document.getElementById("scratch").style.width = length;
+  return getComputedStyle(document.getElementById("scratch")).getPropertyValue("width");
+}
+
+test_computed_value("contain-intrinsic-size", "auto");
+test_computed_value("contain-intrinsic-size", "1px");
+test_computed_value("contain-intrinsic-size", "2vw 3px", length_ref("2vw") + " 3px");
+test_computed_value("contain-intrinsic-size", "2px 3vh", "2px " + length_ref("3vh"));
+test_computed_value("contain-intrinsic-size", "5px 5px", "5px");
+</script>
+</body>
+</html>
+

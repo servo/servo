@@ -26,7 +26,7 @@ exports.expectScopes = (inputArray, baseURL, outputArray, warnings = []) => {
 
 exports.expectBad = (input, baseURL, warnings = []) => {
   const checkWarnings = testWarningHandler(warnings);
-  expect(() => parseFromString(input, baseURL)).toThrow(TypeError);
+  expect(parseFromString(input, baseURL)).toThrow('TypeError');
   checkWarnings();
 };
 

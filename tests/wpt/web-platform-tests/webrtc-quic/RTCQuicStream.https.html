@@ -403,8 +403,8 @@ promise_test(async t => {
   const promise2 = localStream.waitForWriteBufferedAmountBelow(0);
   localStream.write({ finish: true });
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForWriteBufferedAmountBelow() promises rejected after ' +
     'write() with finish.');
 
@@ -419,8 +419,8 @@ promise_test(async t => {
   const promise1 = localStream.waitForWriteBufferedAmountBelow(0);
   const promise2 = localStream.waitForWriteBufferedAmountBelow(0);
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'waitForWriteBufferedAmountBelow() promises immediately rejected after ' +
     'wrote finish.');
 
@@ -435,8 +435,8 @@ promise_test(async t => {
   const promise2 = localStream.waitForWriteBufferedAmountBelow(0);
   localStream.reset();
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForWriteBufferedAmountBelow() promises rejected after ' +
     'reset().');
 
@@ -451,13 +451,13 @@ promise_test(async t => {
   const promise2 = localStream.waitForWriteBufferedAmountBelow(0);
   localQuicTransport.stop();
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForWriteBufferedAmountBelow() promises rejected after ' +
     'RTCQuicTransport stop().');
 
 closed_stream_test(async (t, stream) => {
-  await promise_rejects(t, 'InvalidStateError',
+  await promise_rejects_dom(t, 'InvalidStateError',
       stream.waitForWriteBufferedAmountBelow(0));
 }, 'waitForWriteBufferedBelow() rejects with InvalidStateError.');
 
@@ -557,7 +557,7 @@ promise_test(async t => {
   const [ localQuicTransport, remoteQuicTransport ] =
       await makeTwoConnectedQuicTransports(t);
   const localStream = localQuicTransport.createStream();
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
       localStream.waitForReadable(localStream.maxReadBufferedAmount + 1));
 }, 'waitForReadable() rejects with TypeError if amount is more than ' +
     'maxReadBufferedAmount.');
@@ -577,8 +577,8 @@ promise_test(async t => {
   const promise1 = remoteStream.waitForReadable(10);
   const promise2 = remoteStream.waitForReadable(10);
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'waitForReadable() promises immediately rejected with InvalidStateError ' +
     'after finish is read out.');
 
@@ -590,8 +590,8 @@ promise_test(async t => {
   const promise2 = localStream.waitForReadable(10);
   localStream.reset();
   await Promise.all([
-promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForReadable() promises rejected after reset().');
 
 promise_test(async t => {
@@ -605,8 +605,8 @@ promise_test(async t => {
   const promise2 = remoteStream.waitForReadable(10);
   localStream.reset();
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForReadable() promises rejected after remote reset().');
 
 promise_test(async t => {
@@ -617,8 +617,8 @@ promise_test(async t => {
   const promise2 = localStream.waitForReadable(10);
   localQuicTransport.stop();
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForReadable() promises rejected after RTCQuicTransport ' +
    'stop().');
 
@@ -633,13 +633,13 @@ promise_test(async t => {
   const promise2 = remoteStream.waitForReadable(10);
   localQuicTransport.stop();
   await Promise.all([
-      promise_rejects(t, 'InvalidStateError', promise1),
-      promise_rejects(t, 'InvalidStateError', promise2)]);
+      promise_rejects_dom(t, 'InvalidStateError', promise1),
+      promise_rejects_dom(t, 'InvalidStateError', promise2)]);
 }, 'Pending waitForReadable() promises rejected after remote RTCQuicTransport ' +
     'stop().');
 
 closed_stream_test(async (t, stream) => {
-  await promise_rejects(t, 'InvalidStateError',
+  await promise_rejects_dom(t, 'InvalidStateError',
       stream.waitForReadable(1));
 }, 'waitForReadable() rejects with InvalidStateError.');
 

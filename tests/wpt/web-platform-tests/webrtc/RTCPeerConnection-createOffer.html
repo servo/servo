@@ -65,7 +65,7 @@
     t.add_cleanup(() => pc.close());
     pc.close();
 
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       pc.createOffer());
   }, 'createOffer() after connection is closed should reject with InvalidStateError');
 
@@ -108,7 +108,7 @@
        pc.setRemoteDescription(offer)
        .then(() => {
           assert_equals(pc.signalingState, 'have-remote-offer');
-          return promise_rejects(t, 'InvalidStateError',
+          return promise_rejects_dom(t, 'InvalidStateError',
              pc.createOffer());
        })
      )

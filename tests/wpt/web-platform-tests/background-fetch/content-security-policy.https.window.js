@@ -14,7 +14,7 @@ meta.setAttribute('content', "connect-src 'none'");
 document.head.appendChild(meta);
 
 backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(
-      t, new TypeError(),
+  return promise_rejects_js(
+      t, TypeError,
       bgFetch.fetch(uniqueId(), 'https://example.com'));
 }, 'fetch blocked by CSP should reject');

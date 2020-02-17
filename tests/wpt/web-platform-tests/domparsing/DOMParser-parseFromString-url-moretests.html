@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DOMParser: Document's url</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var iframe = document.createElement("iframe");
+  iframe.onload = this.step_func(function() {
+    var child = iframe.contentWindow;
+    var supportedTypes = [
+      "text/html",
+      "text/xml",
+      "application/xml",
+      "application/xhtml+xml",
+      "image/svg+xml",
+    ];
+
+    supportedTypes.forEach(function(type) {
+      test(function() {
+        var dp = new DOMParser();
+        var doc = dp.parseFromString("<html></html>", type);
+        assert_equals(doc.URL, document.URL);
+      }, "Parent window (" + type + ")");
+
+      test(function() {
+        var dp = new child.DOMParser();
+        var doc = dp.parseFromString("<html></html>", type);
+        assert_equals(doc.URL, child.document.URL);
+      }, "Child window (" + type + ")");
+
+      test(function() {
+        var dp = new DOMParser();
+        var doc = child.DOMParser.prototype.parseFromString.call(dp, "<html></html>", type);
+        assert_equals(doc.URL, document.URL);
+      }, "Parent window with child method (" + type + ")");
+
+      test(function() {
+        var dp = new child.DOMParser();
+        var doc = DOMParser.prototype.parseFromString.call(dp, "<html></html>", type);
+        assert_equals(doc.URL, child.document.URL);
+      }, "Child window with parent method (" + type + ")");
+    });
+
+    var dpBeforeNavigation = new child.DOMParser(), urlBeforeNavigation = child.document.URL;
+    iframe.onload = this.step_func_done(function() {
+      supportedTypes.forEach(function(type) {
+        test(function() {
+          var doc = dpBeforeNavigation.parseFromString("<html></html>", type);
+          assert_equals(doc.URL, urlBeforeNavigation);
+        }, "Child window crossing navigation (" + type + ")");
+
+        test(function() {
+          var dp = new child.DOMParser();
+          var doc = dp.parseFromString("<html></html>", type);
+          assert_equals(doc.URL, child.document.URL);
+        }, "Child window after navigation (" + type + ")");
+      });
+    });
+    iframe.src = "/common/blank.html?2";
+  });
+  iframe.src = "/common/blank.html?1";
+  document.body.appendChild(iframe);
+});
+</script>

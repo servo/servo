@@ -47,7 +47,7 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
     assert_equals(recordedError.name, 'TypeError', 'the cancel reason must be a TypeError');
 
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', recordedError]);
@@ -102,7 +102,7 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
     writer.close();
     writer.releaseLock();
 
-    return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: truthy })).then(() => {
+    return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { preventCancel: truthy })).then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['close']);
 
@@ -121,7 +121,7 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: true, preventAbort: true }))
+  return promise_rejects_js(t, TypeError, rs.pipeTo(ws, { preventCancel: true, preventAbort: true }))
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['close']);
@@ -140,7 +140,7 @@ promise_test(t => {
   writer.close();
   writer.releaseLock();
 
-  return promise_rejects(t, new TypeError(),
+  return promise_rejects_js(t, TypeError,
                          rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }))
   .then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);

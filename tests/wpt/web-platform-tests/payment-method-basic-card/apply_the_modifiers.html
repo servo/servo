@@ -68,7 +68,7 @@
         modifiers: [visaModifier],
       });
       const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
-      await promise_rejects(t, "AbortError", showPromise);
+      await promise_rejects_dom(t, "AbortError", showPromise);
     }, testableAssertion.trim());
   }
 
@@ -78,7 +78,7 @@
         modifiers: [modifier],
       });
       const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
-      await promise_rejects(t, "AbortError", showPromise);
+      await promise_rejects_dom(t, "AbortError", showPromise);
     }, testableAssertion.trim());
   }
 
@@ -87,7 +87,7 @@
       const modifiers = [Object.assign({}, modifier, { data: {} })];
       const details = Object.assign({}, defaultDetails, { modifiers });
       const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
-      await promise_rejects(t, "AbortError", showPromise);
+      await promise_rejects_dom(t, "AbortError", showPromise);
     }, testableAssertion.trim());
   }
 
@@ -98,7 +98,7 @@
       ];
       const details = Object.assign({}, defaultDetails, { modifiers });
       const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
-      await promise_rejects(t, "AbortError", showPromise);
+      await promise_rejects_dom(t, "AbortError", showPromise);
     }, testableAssertion.trim());
   }
 
@@ -107,7 +107,7 @@
       const modifiers = [failModifier, modifier, notBasicCardModifier];
       const details = Object.assign({}, defaultDetails, { modifiers });
       const showPromise = new PaymentRequest(basicCard, defaultDetails).show();
-      await promise_rejects(t, "AbortError", showPromise);
+      await promise_rejects_dom(t, "AbortError", showPromise);
     }, testableAssertion.trim());
   }
 </script>

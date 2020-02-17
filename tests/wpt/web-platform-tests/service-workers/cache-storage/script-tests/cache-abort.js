@@ -23,7 +23,7 @@ for (const method in methodsToTest) {
     const signal = controller.signal;
     controller.abort();
     const request = new Request('../resources/simple.txt', { signal });
-    return promise_rejects(test, 'AbortError', perform(cache, request),
+    return promise_rejects_dom(test, 'AbortError', perform(cache, request),
                           `${method} should reject`);
   }, `${method}() on an already-aborted request should reject with AbortError`);
 
@@ -33,7 +33,7 @@ for (const method in methodsToTest) {
     const request = new Request('../resources/simple.txt', { signal });
     const promise = perform(cache, request);
     controller.abort();
-    return promise_rejects(test, 'AbortError', promise,
+    return promise_rejects_dom(test, 'AbortError', promise,
                           `${method} should reject`);
   }, `${method}() synchronously followed by abort should reject with ` +
      `AbortError`);
@@ -69,7 +69,7 @@ for (const method in methodsToTest) {
 
     controller.abort();
 
-    await promise_rejects(test, 'AbortError', promise,
+    await promise_rejects_dom(test, 'AbortError', promise,
                           `${method} should reject`);
 
     // infinite-slow-response.py doesn't know when to stop.

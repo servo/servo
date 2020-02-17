@@ -18,7 +18,10 @@
   <polygon points="0,200 100,200 50,250" style="fill:orange;stroke:black;stroke-width:1" />
   <polyline points="0,300 100,300 50,350" style="fill:orange;stroke:black;stroke-width:1"/>
   <rect x="0" y="380" width="10" height="10" style="fill:orange; stroke:black; stroke-width:1" />
-  <text x="0" y="400" font-size="20">svg text tag</text>
+  <text x="0" y="400" font-size="20" font-family="Ahem">svg text tag</text>
+  <g fill="white" stroke="green" stroke-width="5">
+    <rect x="0" y="380" width="50" height="20" id="g_rect" />
+  </g>
 </svg>
 <script>
 'use strict';
@@ -363,6 +366,136 @@ function test11() {
   return helper.start(() => svg.remove());
 }
 
+function test12() {
+  let target = document.querySelector('rect');
+  let helper = new ResizeTestHelper(
+    "test12: observe svg:rect content box",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', 45);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 45);
+        assert_equals(entries[0].contentRect.height, 10);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 45);
+        assert_equals(entries[0].contentBoxSize.blockSize, 10);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test13() {
+  let target = document.querySelector('rect');
+  let helper = new ResizeTestHelper(
+    "test13: observe svg:circle border box",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', 20);
+        target.setAttribute('height', 20);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 20);
+        assert_equals(entries[0].contentRect.height, 20);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 20);
+        assert_equals(entries[0].contentBoxSize.blockSize, 20);
+        assert_equals(entries[0].borderBoxSize.inlineSize, 20);
+        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test14() {
+  let target = document.querySelector('#g_rect');
+  let helper = new ResizeTestHelper(
+    "test14: observe g:rect content and border box",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 50);
+        assert_equals(entries[0].contentRect.height, 20);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 50);
+        assert_equals(entries[0].contentBoxSize.blockSize, 20);
+        assert_equals(entries[0].borderBoxSize.inlineSize, 50);
+        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', 15);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 15);
+        assert_equals(entries[0].contentRect.height, 20);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 15);
+        assert_equals(entries[0].contentBoxSize.blockSize, 20);
+        assert_equals(entries[0].borderBoxSize.inlineSize, 15);
+        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test15() {
+  let target = document.querySelector('text');
+  let helper = new ResizeTestHelper(
+    "test15: observe svg:text content and border box",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('font-size', "30");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 360);
+        assert_equals(entries[0].contentRect.height, 30);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 360);
+        assert_equals(entries[0].contentBoxSize.blockSize, 30);
+        assert_equals(entries[0].borderBoxSize.inlineSize, 360);
+        assert_equals(entries[0].borderBoxSize.blockSize, 30);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -381,6 +514,10 @@ test0()
   .then(() => { return test9(); })
   .then(() => { return test10(); })
   .then(() => { return test11(); })
+  .then(() => { return test12(); })
+  .then(() => { return test13(); })
+  .then(() => { return test14(); })
+  .then(() => { return test15(); })
   .then(() => { guard.done(); });
 
 </script>

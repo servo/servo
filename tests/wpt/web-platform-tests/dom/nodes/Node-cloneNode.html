@@ -222,6 +222,52 @@ test(function() {
 }, "createProcessingInstruction");
 
 test(function() {
+    var attr = document.createAttribute("class");
+    var copy = attr.cloneNode();
+    check_copy(attr, copy, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_equals(attr.value, copy.value);
+
+    attr.value = "abc";
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_not_equals(attr.value, copy.value);
+
+    var copy2 = attr.cloneNode();
+    check_copy(attr, copy2, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy2.localName);
+    assert_equals(attr.value, copy2.value);
+}, "createAttribute");
+
+test(function() {
+    var attr = document.createAttributeNS("http://www.w3.org/1999/xhtml", "foo:class");
+    var copy = attr.cloneNode();
+    check_copy(attr, copy, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_equals(attr.value, copy.value);
+
+    attr.value = "abc";
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_not_equals(attr.value, copy.value);
+
+    var copy2 = attr.cloneNode();
+    check_copy(attr, copy2, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy2.localName);
+    assert_equals(attr.value, copy2.value);
+}, "createAttributeNS");
+
+test(function() {
     var doctype = document.implementation.createDocumentType("html", "public", "system");
     var copy = doctype.cloneNode();
     check_copy(doctype, copy, DocumentType);

@@ -77,7 +77,7 @@ promise_test(t => {
   $('[name=name-usv]').value = USV_INPUT;
   $('[name=name-file]').value = new File(['file content'], FILE_NAME);
   return submitPromise(t).then(query => {
-    assert_equals(query, `?name-pd1=value-pd1&name-ce1=&name-usv=${encodeURIComponent(USV_OUTPUT)}&name-file=${FILE_NAME}`);
+    assert_equals(query, `?name-pd1=value-pd1&name-usv=${encodeURIComponent(USV_OUTPUT)}&name-file=${FILE_NAME}`);
   });
 }, 'Single value - Non-empty name exists');
 
@@ -90,7 +90,7 @@ promise_test(t => {
       '<iframe name="if1"></iframe>';
   $('my-control').value = null;
   return submitPromise(t).then(query => {
-    assert_equals(query, '?name-pd1=value-pd1&name-ce2=');
+    assert_equals(query, '?name-pd1=value-pd1');
   });
 }, 'Null value should submit nothing');
 

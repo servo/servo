@@ -75,12 +75,12 @@ promise_test(t => {
   const resolved = [];
   const writer = ws.getWriter();
   const readyPromise1 = writer.ready.then(() => resolved.push('ready1'));
-  const writePromise = promise_rejects(t, error1, writer.write(),
-                                       'write() should reject with the error')
-                                           .then(() => resolved.push('write'));
-  const readyPromise2 = promise_rejects(t, error1, writer.ready, 'ready should reject with error1')
+  const writePromise = promise_rejects_exactly(t, error1, writer.write(),
+                                               'write() should reject with the error')
+                                                   .then(() => resolved.push('write'));
+  const readyPromise2 = promise_rejects_exactly(t, error1, writer.ready, 'ready should reject with error1')
       .then(() => resolved.push('ready2'));
-  const closedPromise = promise_rejects(t, error1, writer.closed, 'closed should reject with error1')
+  const closedPromise = promise_rejects_exactly(t, error1, writer.closed, 'closed should reject with error1')
       .then(() => resolved.push('closed'));
   return Promise.all([readyPromise1, writePromise, readyPromise2, closedPromise])
       .then(() => {
@@ -101,7 +101,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream({}, strategy);
   writer = ws.getWriter();
-  return promise_rejects(t, new TypeError(), writer.write('a'), 'write() promise should reject')
+  return promise_rejects_js(t, TypeError, writer.write('a'), 'write() promise should reject')
       .then(() => {
         assert_array_equals(ws.events, ['close'], 'sink.write() should not be called');
       });
@@ -118,7 +118,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream({}, strategy);
   writer = ws.getWriter();
-  return promise_rejects(t, error1, writer.write('a'), 'write() promise should reject')
+  return promise_rejects_exactly(t, error1, writer.write('a'), 'write() promise should reject')
       .then(() => {
         assert_array_equals(ws.events, ['abort', error1], 'sink.write() should not be called');
       });
@@ -135,9 +135,9 @@ promise_test(t => {
 
   const ws = recordingWritableStream({}, strategy);
   writer = ws.getWriter();
-  const writePromise = promise_rejects(t, new TypeError(), writer.write('a'), 'write() promise should reject');
-  const readyPromise = promise_rejects(t, new TypeError(), writer.ready, 'ready promise should reject');
-  const closedPromise = promise_rejects(t, new TypeError(), writer.closed, 'closed promise should reject');
+  const writePromise = promise_rejects_js(t, TypeError, writer.write('a'), 'write() promise should reject');
+  const readyPromise = promise_rejects_js(t, TypeError, writer.ready, 'ready promise should reject');
+  const closedPromise = promise_rejects_js(t, TypeError, writer.closed, 'closed promise should reject');
   return Promise.all([writePromise, readyPromise, closedPromise])
       .then(() => {
         assert_array_equals(ws.events, [], 'sink.write() should not be called');
@@ -164,9 +164,9 @@ promise_test(t => {
   };
   ws = recordingWritableStream({}, strategy);
   writer1 = ws.getWriter();
-  const writePromise1 = promise_rejects(t, new TypeError(), writer1.write(1), 'write() promise should reject');
-  const readyPromise = promise_rejects(t, new TypeError(), writer1.ready, 'ready promise should reject');
-  const closedPromise1 = promise_rejects(t, new TypeError(), writer1.closed, 'closed promise should reject');
+  const writePromise1 = promise_rejects_js(t, TypeError, writer1.write(1), 'write() promise should reject');
+  const readyPromise = promise_rejects_js(t, TypeError, writer1.ready, 'ready promise should reject');
+  const closedPromise1 = promise_rejects_js(t, TypeError, writer1.closed, 'closed promise should reject');
   return Promise.all([writePromise1, readyPromise, closedPromise1, writePromise2, closePromise, closedPromise2])
       .then(() => {
         assert_array_equals(ws.events, ['write', 0, 'close'], 'sink.write() should only be called once');

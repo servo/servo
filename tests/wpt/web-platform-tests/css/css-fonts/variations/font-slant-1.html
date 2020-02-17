@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS test: mapping of font-style:oblique to opentype 'slnt' axis</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#valdef-font-style-oblique-angle"/>
+<link rel="match" href="font-slant-1-ref.html"/>
+<style>
+@font-face {
+  font-family: test;
+  font-style: oblique 0deg 10deg;
+  src: url(resources/Inter.var.subset.ttf);
+}
+.test {
+  font: 32px/1.5 test;
+}
+</style>
+<body>
+<p>Test passes if all the following lines are displayed with a 10-degree rightward slant.</p>
+<div class="test" style="font-variation-settings: 'slnt' -10">slant</div>
+<div class="test" style="font-style: oblique">slant</div>
+<div class="test" style="font-style: oblique 10deg">slant</div>
+<div class="test" style="font-style: italic">slant</div>

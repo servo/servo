@@ -1,8 +1,0 @@
-// GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
-// Source: WebRTC DSCP Control API (https://w3c.github.io/webrtc-dscp-exp/)
-
-partial dictionary RTCRtpEncodingParameters {
-    RTCPriorityType networkPriority;  // Note: No default
-};

@@ -53,8 +53,8 @@ for (const method of ["keys", "values", "entries"]) {
     const iterResultPromise1 = iter.next();
     const iterResultPromise2 = iter.next();
 
-    await promise_rejects(t, "VersionError", iterResultPromise1, "first next()");
-    await promise_rejects(t, "VersionError", iterResultPromise2, "second next()");
+    await promise_rejects_dom(t, "VersionError", iterResultPromise1, "first next()");
+    await promise_rejects_dom(t, "VersionError", iterResultPromise2, "second next()");
 
     const iterResultPromise3 = iter.next();
 
@@ -65,7 +65,7 @@ for (const method of ["keys", "values", "entries"]) {
     assert_not_equals(iterResultPromise2, iterResultPromise3,
       "Two promises, one retrieved after waiting for the other, must be different (2 vs 3)");
 
-    await promise_rejects(t, "VersionError", iterResultPromise2, "third next()");
+    await promise_rejects_dom(t, "VersionError", iterResultPromise2, "third next()");
 
     const reason1 = await iterResultPromise1.catch(r => r);
     const reason2 = await iterResultPromise2.catch(r => r);

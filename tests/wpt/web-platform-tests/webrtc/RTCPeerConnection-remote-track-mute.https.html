@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection-transceivers.https.html</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -72,12 +73,16 @@ promise_test(async t => {
   exchangeIceCandidates(pc1, pc2);
 
   const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  const muteWatcher = new EventWatcher(t, e.track, ['mute', 'unmute']);
   await exchangeAnswer(pc1, pc2);
+  await muteWatcher.wait_for('unmute');
+
+  const mutePromise = muteWatcher.wait_for('mute');
   localTransceiver.direction = 'inactive';
   await exchangeOfferAnswer(pc1, pc2);
+  await mutePromise;
 
-  const unmuteWatcher = new EventWatcher(t, e.track, ['unmute']);
-  const unmutePromise = unmuteWatcher.wait_for('unmute');
+  const unmutePromise = muteWatcher.wait_for('unmute');
   localTransceiver.direction = 'sendrecv';
   await exchangeOfferAnswer(pc1, pc2);
 

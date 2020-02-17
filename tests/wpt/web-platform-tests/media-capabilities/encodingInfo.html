@@ -21,28 +21,28 @@ var minimalAudioConfiguration = {
 };
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo());
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo());
 }, "Test that encodingInfo rejects if it doesn't get a configuration");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({}));
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({}));
 }, "Test that encodingInfo rejects if the MediaConfiguration isn't valid");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     video: minimalVideoConfiguration,
     audio: minimalAudioConfiguration,
   }));
 }, "Test that encodingInfo rejects if the MediaConfiguration does not have a type");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
   }));
 }, "Test that encodingInfo rejects if the configuration doesn't have an audio or video field");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -55,7 +55,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration has a negative framerate");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -68,7 +68,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration has a framerate set to 0");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -81,7 +81,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration has a framerate set to Infinity");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'fgeoa',
@@ -94,7 +94,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration contentType doesn't parse");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'audio/fgeoa',
@@ -107,7 +107,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration contentType isn't of type video");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"; foo="bar"',
@@ -120,7 +120,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration contentType has more than one parameter");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; foo="bar"',
@@ -133,7 +133,7 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -146,7 +146,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of x/y");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -159,7 +159,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of x/0");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -172,7 +172,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of 0/y");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -185,7 +185,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of -x/y");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -198,7 +198,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of x/-y");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -211,7 +211,7 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate in the form of x/");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
@@ -224,28 +224,28 @@ promise_test(t => {
 }, "Test that encodingInfo() rejects framerate with trailing unallowed characters");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     audio: { contentType: 'fgeoa' },
   }));
 }, "Test that encodingInfo rejects if the audio configuration contenType doesn't parse");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     audio: { contentType: 'video/fgeoa' },
   }));
 }, "Test that encodingInfo rejects if the audio configuration contentType isn't of type audio");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     audio: { contentType: 'audio/webm; codecs="opus"; foo="bar"' },
   }));
 }, "Test that encodingInfo rejects if the audio configuration contentType has more than one parameters");
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.encodingInfo({
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     audio: { contentType: 'audio/webm; foo="bar"' },
   }));
