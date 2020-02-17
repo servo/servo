@@ -874,8 +874,8 @@ impl LayoutThread {
             self.dump_style_tree,
             self.dump_rule_tree,
             self.relayout_event,
-            true,              // nonincremental_layout
-            self.trace_layout, // trace_layout
+            true,                // nonincremental_layout
+            self.trace_layout,   // trace_layout
             self.dump_flow_tree, // dump_flow_tree
         );
     }
@@ -1235,10 +1235,8 @@ impl LayoutThread {
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
-                    rw_data.content_box_response = process_content_box_request(
-                        node,
-                        (&*self.fragment_tree_root.borrow()).as_ref(),
-                    );
+                    rw_data.content_box_response =
+                        process_content_box_request(node, self.fragment_tree_root.borrow().clone());
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
                     rw_data.content_boxes_response = process_content_boxes_request(node);
@@ -1253,7 +1251,7 @@ impl LayoutThread {
                 &QueryMsg::ClientRectQuery(node) => {
                     rw_data.client_rect_response = process_node_geometry_request(
                         node,
-                        (&*self.fragment_tree_root.borrow()).as_ref(),
+                        self.fragment_tree_root.borrow().clone(),
                     );
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {

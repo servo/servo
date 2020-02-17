@@ -34,7 +34,7 @@ pub(crate) struct ReplacedContent {
 ///
 /// * For SVG, see https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS
 ///   and again https://github.com/w3c/csswg-drafts/issues/4572.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct IntrinsicSizes {
     pub width: Option<Length>,
     pub height: Option<Length>,

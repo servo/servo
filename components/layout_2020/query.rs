@@ -166,7 +166,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
-    fragment_tree_root: Option<&FragmentTreeRoot>,
+    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
 ) -> Option<Rect<Au>> {
     let fragment_tree_root = match fragment_tree_root {
         Some(fragment_tree_root) => fragment_tree_root,
@@ -182,7 +182,7 @@ pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au
 
 pub fn process_node_geometry_request(
     requested_node: OpaqueNode,
-    fragment_tree_root: Option<&FragmentTreeRoot>,
+    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
 ) -> Rect<i32> {
     let fragment_tree_root = match fragment_tree_root {
         Some(fragment_tree_root) => fragment_tree_root,
