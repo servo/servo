@@ -9,12 +9,9 @@ use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
-use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
-use style::computed_values::overflow_x::T as ComputedOverflow;
-use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 
@@ -24,6 +21,7 @@ use webrender_api::{self as wr, units};
 
 mod background;
 mod gradient;
+pub mod stacking_context;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
@@ -83,15 +81,7 @@ impl Fragment {
     ) {
         match self {
             Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
-            Fragment::Anonymous(a) => {
-                let rect = a
-                    .rect
-                    .to_physical(a.mode, containing_block)
-                    .translate(containing_block.origin.to_vector());
-                for child in &a.children {
-                    child.build_display_list(builder, &rect)
-                }
-            },
+            Fragment::Anonymous(_) => {},
             Fragment::Text(t) => {
                 builder.is_contentful = true;
                 let rect = t
@@ -246,71 +236,9 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder) {
-        builder.clipping_and_scrolling_scope(|builder| {
-            self.adjust_spatial_id_for_positioning(builder);
-            self.build_hit_test(builder);
-            self.build_background(builder);
-            self.build_border(builder);
-
-            // We want to build the scroll frame after the background and border, because
-            // they shouldn't scroll with the rest of the box content.
-            self.build_scroll_frame_if_necessary(builder);
-
-            let content_rect = self
-                .fragment
-                .content_rect
-                .to_physical(self.fragment.style.writing_mode, self.containing_block)
-                .translate(self.containing_block.origin.to_vector());
-            for child in &self.fragment.children {
-                child.build_display_list(builder, &content_rect)
-            }
-        });
-    }
-
-    fn adjust_spatial_id_for_positioning(&self, builder: &mut DisplayListBuilder) {
-        if self.fragment.style.get_box().position != ComputedPosition::Fixed {
-            return;
-        }
-
-        // TODO(mrobinson): Eventually this should use the spatial id of the reference
-        // frame that is the parent of this one once we have full support for stacking
-        // contexts and transforms.
-        builder.current_space_and_clip.spatial_id =
-            wr::SpatialId::root_reference_frame(builder.wr.pipeline_id);
-    }
-
-    fn build_scroll_frame_if_necessary(&self, builder: &mut DisplayListBuilder) {
-        let overflow_x = self.fragment.style.get_box().overflow_x;
-        let overflow_y = self.fragment.style.get_box().overflow_y;
-        let original_scroll_and_clip_info = builder.current_space_and_clip;
-        if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
-            // TODO(mrobinson): We should use the correct fragment type, once we generate
-            // fragments from ::before and ::after generated content selectors.
-            let id = combine_id_with_fragment_type(
-                self.fragment.tag.id() as usize,
-                FragmentType::FragmentBody,
-            ) as u64;
-            let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
-
-            let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
-                ComputedOverflow::Hidden == overflow_y
-            {
-                wr::ScrollSensitivity::Script
-            } else {
-                wr::ScrollSensitivity::ScriptAndInputEvents
-            };
-
-            builder.current_space_and_clip = builder.wr.define_scroll_frame(
-                &original_scroll_and_clip_info,
-                Some(external_id),
-                self.fragment.scrollable_overflow().to_webrender(),
-                *self.padding_rect(),
-                vec![], // complex_clips
-                None,   // image_mask
-                sensitivity,
-                wr::units::LayoutVector2D::zero(),
-            );
-        }
+        self.build_hit_test(builder);
+        self.build_background(builder);
+        self.build_border(builder);
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {

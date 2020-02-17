@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::display_list::stacking_context::{StackingContext, StackingContextType};
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
@@ -181,9 +182,17 @@ impl BoxTreeRoot {
 
 impl FragmentTreeRoot {
     pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
+        let mut stacking_context = StackingContext::new(StackingContextType::Real, 0);
         for fragment in &self.children {
-            fragment.build_display_list(builder, &self.initial_containing_block)
+            fragment.build_stacking_context_tree(
+                builder,
+                &self.initial_containing_block,
+                &mut stacking_context,
+            );
         }
+
+        stacking_context.sort_stacking_contexts();
+        stacking_context.build_display_list(builder);
     }
 
     pub fn print(&self) {
