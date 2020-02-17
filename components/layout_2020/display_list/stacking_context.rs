@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
-use crate::geom::{PhysicalRect, ToWebRender};
+use crate::geom::PhysicalRect;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use std::cmp::Ordering;
 use std::mem;
@@ -15,8 +16,8 @@ use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Length;
 use style::values::specified::box_::DisplayOutside;
-use webrender_api::units::LayoutVector2D;
-use webrender_api::{ExternalScrollId, ScrollSensitivity, SpaceAndClipInfo, SpatialId};
+use webrender_api as wr;
+use webrender_api::units::{LayoutPoint, LayoutVector2D};
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum StackingContextSection {
@@ -26,7 +27,7 @@ pub(crate) enum StackingContextSection {
 }
 
 pub(crate) struct StackingContextFragment<'a> {
-    space_and_clip: SpaceAndClipInfo,
+    space_and_clip: wr::SpaceAndClipInfo,
     section: StackingContextSection,
     containing_block: PhysicalRect<Length>,
     fragment: &'a Fragment,
@@ -49,11 +50,11 @@ pub(crate) enum StackingContextType {
 }
 
 pub(crate) struct StackingContext<'a> {
+    /// The fragment that established this stacking context.
+    initializing_fragment: Option<&'a BoxFragment>,
+
     /// The type of this StackingContext. Used for collecting and sorting.
     context_type: StackingContextType,
-
-    /// The `z-index` for this stacking context.
-    pub z_index: i32,
 
     /// Fragments that make up the content of this stacking context.
     fragments: Vec<StackingContextFragment<'a>>,
@@ -67,13 +68,33 @@ pub(crate) struct StackingContext<'a> {
 }
 
 impl<'a> StackingContext<'a> {
-    pub(crate) fn new(context_type: StackingContextType, z_index: i32) -> Self {
+    pub(crate) fn new(
+        initializing_fragment: &'a BoxFragment,
+        context_type: StackingContextType,
+    ) -> Self {
         Self {
+            initializing_fragment: Some(initializing_fragment),
             context_type,
-            z_index,
             fragments: vec![],
             stacking_contexts: vec![],
             float_stacking_contexts: vec![],
+        }
+    }
+
+    pub(crate) fn create_root() -> Self {
+        Self {
+            initializing_fragment: None,
+            context_type: StackingContextType::Real,
+            fragments: vec![],
+            stacking_contexts: vec![],
+            float_stacking_contexts: vec![],
+        }
+    }
+
+    fn z_index(&self) -> i32 {
+        match self.initializing_fragment {
+            Some(fragment) => fragment.effective_z_index(),
+            None => 0,
         }
     }
 
@@ -81,8 +102,10 @@ impl<'a> StackingContext<'a> {
         self.fragments.sort_by(|a, b| a.section.cmp(&b.section));
 
         self.stacking_contexts.sort_by(|a, b| {
-            if a.z_index != 0 || b.z_index != 0 {
-                return a.z_index.cmp(&b.z_index);
+            let a_z_index = a.z_index();
+            let b_z_index = b.z_index();
+            if a_z_index != 0 || b_z_index != 0 {
+                return a_z_index.cmp(&b_z_index);
             }
 
             match (a.context_type, b.context_type) {
@@ -96,7 +119,60 @@ impl<'a> StackingContext<'a> {
         });
     }
 
+    fn push_webrender_stacking_context_if_necessary(
+        &self,
+        builder: &'a mut DisplayListBuilder,
+    ) -> bool {
+        let fragment = match self.initializing_fragment {
+            Some(fragment) => fragment,
+            None => return false,
+        };
+
+        // WebRender only uses the stacking context to apply certain effects. If we don't
+        // actually need to create a stacking context, just avoid creating one.
+        let effects = fragment.style.get_effects();
+        if effects.filter.0.is_empty() &&
+            effects.opacity == 1.0 &&
+            effects.mix_blend_mode == ComputedMixBlendMode::Normal
+        {
+            return false;
+        }
+
+        // Create the filter pipeline.
+        let mut filters: Vec<wr::FilterOp> = effects
+            .filter
+            .0
+            .iter()
+            .map(ToWebRender::to_webrender)
+            .collect();
+        if effects.opacity != 1.0 {
+            filters.push(wr::FilterOp::Opacity(
+                effects.opacity.into(),
+                effects.opacity,
+            ));
+        }
+
+        builder.wr.push_stacking_context(
+            LayoutPoint::zero(),                       // origin
+            builder.current_space_and_clip.spatial_id, // spatial_id
+            wr::PrimitiveFlags::default(),
+            None, // clip_id
+            wr::TransformStyle::Flat,
+            effects.mix_blend_mode.to_webrender(),
+            &filters,
+            &vec![], // filter_datas
+            &vec![], // filter_primitives
+            wr::RasterSpace::Screen,
+            false, // cache_tiles,
+            false, // false
+        );
+
+        true
+    }
+
     pub(crate) fn build_display_list(&'a self, builder: &'a mut DisplayListBuilder) {
+        let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
+
         // Properly order display items that make up a stacking context. "Steps" here
         // refer to the steps in CSS 2.1 Appendix E.
 
@@ -112,7 +188,7 @@ impl<'a> StackingContext<'a> {
         let mut child_stacking_contexts = self.stacking_contexts.iter().peekable();
         while child_stacking_contexts
             .peek()
-            .map_or(false, |child| child.z_index < 0)
+            .map_or(false, |child| child.z_index() < 0)
         {
             let child_context = child_stacking_contexts.next().unwrap();
             child_context.build_display_list(builder);
@@ -141,6 +217,10 @@ impl<'a> StackingContext<'a> {
         // descendants with nonnegative, numeric z-indices
         for child_context in child_stacking_contexts {
             child_context.build_display_list(builder);
+        }
+
+        if pushed_context {
+            builder.wr.pop_stacking_context();
         }
     }
 }
@@ -210,11 +290,12 @@ impl BoxFragment {
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self) -> bool {
-        if self.style.get_effects().opacity != 1.0 {
+        let effects = self.style.get_effects();
+        if effects.opacity != 1.0 {
             return true;
         }
 
-        if self.style.get_effects().mix_blend_mode != ComputedMixBlendMode::Normal {
+        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
             return true;
         }
 
@@ -289,8 +370,7 @@ impl BoxFragment {
                 },
             };
 
-            let mut child_stacking_context =
-                StackingContext::new(context_type, self.effective_z_index());
+            let mut child_stacking_context = StackingContext::new(self, context_type);
             self.build_stacking_context_tree_for_children(
                 fragment,
                 builder,
@@ -352,7 +432,7 @@ impl BoxFragment {
         // frame that is the parent of this one once we have full support for stacking
         // contexts and transforms.
         builder.current_space_and_clip.spatial_id =
-            SpatialId::root_reference_frame(builder.wr.pipeline_id);
+            wr::SpatialId::root_reference_frame(builder.wr.pipeline_id);
     }
 
     fn build_scroll_frame_if_necessary(
@@ -369,14 +449,14 @@ impl BoxFragment {
             let id =
                 combine_id_with_fragment_type(self.tag.id() as usize, FragmentType::FragmentBody)
                     as u64;
-            let external_id = ExternalScrollId(id, builder.wr.pipeline_id);
+            let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
 
             let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
                 ComputedOverflow::Hidden == overflow_y
             {
-                ScrollSensitivity::Script
+                wr::ScrollSensitivity::Script
             } else {
-                ScrollSensitivity::ScriptAndInputEvents
+                wr::ScrollSensitivity::ScriptAndInputEvents
             };
 
             let padding_rect = self

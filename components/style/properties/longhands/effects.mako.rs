@@ -12,7 +12,6 @@ ${helpers.predefined_type(
     "Opacity",
     "1.0",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="ComputedValue",
     flags="CREATES_STACKING_CONTEXT CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-color/#transparency",
@@ -51,7 +50,6 @@ ${helpers.predefined_type(
     "Filter",
     None,
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     vector=True,
     simple_vector_bindings=True,
     gecko_ffi_name="mFilters",
@@ -85,7 +83,6 @@ ${helpers.single_keyword(
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     gecko_constant_prefix="NS_STYLE_BLEND",
     animation_value_type="discrete",
     flags="CREATES_STACKING_CONTEXT",

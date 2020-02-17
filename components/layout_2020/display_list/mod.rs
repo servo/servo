@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
+use crate::display_list::conversions::ToWebRender;
 use crate::fragments::{BoxFragment, Fragment};
-use crate::geom::{PhysicalPoint, PhysicalRect, ToWebRender};
+use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
@@ -20,6 +21,7 @@ use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
 
 mod background;
+mod conversions;
 mod gradient;
 pub mod stacking_context;
 
