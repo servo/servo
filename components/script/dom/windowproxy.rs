@@ -166,7 +166,7 @@ impl WindowProxy {
 
             // Create a new browsing context.
             let current = Some(window.global().pipeline_id());
-            let mut window_proxy = Box::new(WindowProxy::new_inherited(
+            let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
                 top_level_browsing_context_id,
                 current,
@@ -212,7 +212,7 @@ impl WindowProxy {
             let cx = global_to_clone_from.get_cx();
 
             // Create a new browsing context.
-            let mut window_proxy = Box::new(WindowProxy::new_inherited(
+            let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
                 top_level_browsing_context_id,
                 None,

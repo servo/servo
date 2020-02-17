@@ -2632,35 +2632,6 @@ class CGConstructorEnabled(CGAbstractMethod):
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
-def CreateBindingJSObject(descriptor):
-    assert not descriptor.isGlobal()
-    create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
-    if descriptor.proxy:
-        create += """
-let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
-rooted!(in(*cx) let private = PrivateValue(raw as *const libc::c_void));
-let obj = NewProxyObject(*cx, handler,
-                         Handle::from_raw(UndefinedHandleValue),
-                         proto.get());
-assert!(!obj.is_null());
-SetProxyReservedSlot(obj, 0, &private.get());
-rooted!(in(*cx) let obj = obj);\
-""" % (descriptor.name)
-    else:
-        create += ("rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(\n"
-                   "    *cx, &Class.base as *const JSClass, proto.handle()));\n"
-                   "assert!(!obj.is_null());\n"
-                   "\n"
-                   "let val = PrivateValue(raw as *const libc::c_void);\n"
-                   "\n"
-                   "JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT, &val);")
-    if descriptor.weakReferenceable:
-        create += """
-let val = PrivateValue(ptr::null());
-JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);"""
-    return create
-
-
 def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     Define the unforgeable properties on the unforgeable holder for
@@ -2738,23 +2709,62 @@ class CGWrapMethod(CGAbstractMethod):
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
-        create = CreateBindingJSObject(self.descriptor)
+        if self.descriptor.proxy:
+            create = """
+let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%(concreteType)s as usize];
+rooted!(in(*cx) let obj = NewProxyObject(
+    *cx,
+    handler,
+    Handle::from_raw(UndefinedHandleValue),
+    proto.get(),
+));
+assert!(!obj.is_null());
+SetProxyReservedSlot(
+    obj.get(),
+    0,
+    &PrivateValue(&*raw as *const %(concreteType)s as *const libc::c_void),
+);
+"""
+        else:
+            create = """
+rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(
+    *cx,
+    &Class.base,
+    proto.handle(),
+));
+assert!(!obj.is_null());
+JS_SetReservedSlot(
+    obj.get(),
+    DOM_OBJECT_SLOT,
+    &PrivateValue(&*raw as *const %(concreteType)s as *const libc::c_void),
+);
+"""
+        create = create % {"concreteType": self.descriptor.concreteType}
+        if self.descriptor.weakReferenceable:
+            create += """
+let val = PrivateValue(ptr::null());
+JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);
+"""
+
         return CGGeneric("""\
+let raw = Root::new(MaybeUnreflectedDom::from_box(object));
+
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+let _ac = JSAutoRealm::new(*cx, scope.get());
 
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-let _ac = JSAutoRealm::new(*cx, scope.get());
 GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
 %(createObject)s
+raw.init_reflector(obj.get());
 
 %(copyUnforgeable)s
-(*raw).init_reflector(obj.get());
 
-DomRoot::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
+DomRoot::from_ref(&*raw)\
+""" % {'copyUnforgeable': unforgeable, 'createObject': create})
 
 
 class CGWrapGlobalMethod(CGAbstractMethod):
@@ -2773,6 +2783,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
     def definition_body(self):
         values = {
+            "concreteType": self.descriptor.concreteType,
             "unforgeable": CopyUnforgeablePropertiesToInstance(self.descriptor)
         }
 
@@ -2786,19 +2797,18 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         values["members"] = "\n".join(members)
 
         return CGGeneric("""\
-let raw = Box::into_raw(object);
-let _rt = RootedTraceable::new(&*raw);
+let raw = Root::new(MaybeUnreflectedDom::from_box(object));
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
     cx,
     &Class.base,
-    raw as *const libc::c_void,
+    &*raw as *const %(concreteType)s as *const libc::c_void,
     _trace,
     obj.handle_mut());
 assert!(!obj.is_null());
 
-(*raw).init_reflector(obj.get());
+raw.init_reflector(obj.get());
 
 let _ac = JSAutoRealm::new(*cx, obj.get());
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
@@ -6060,8 +6070,10 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::reflector::DomObject',
         'crate::dom::bindings::root::Dom',
         'crate::dom::bindings::root::DomRoot',
-        'crate::dom::bindings::root::OptionalHeapSetter',
         'crate::dom::bindings::root::DomSlice',
+        'crate::dom::bindings::root::MaybeUnreflectedDom',
+        'crate::dom::bindings::root::OptionalHeapSetter',
+        'crate::dom::bindings::root::Root',
         'crate::dom::bindings::utils::AsVoidPtr',
         'crate::dom::bindings::utils::DOMClass',
         'crate::dom::bindings::utils::DOMJSClass',
@@ -6086,7 +6098,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::utils::set_dictionary_property',
         'crate::dom::bindings::utils::trace_global',
         'crate::dom::bindings::trace::JSTraceable',
-        'crate::dom::bindings::trace::RootedTraceable',
         'crate::dom::bindings::trace::RootedTraceableBox',
         'crate::dom::bindings::callback::CallSetup',
         'crate::dom::bindings::callback::CallbackContainer',

@@ -62,7 +62,7 @@ where
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
     #[allow(unrooted_must_root)]
-    unsafe fn new(value: T) -> Self {
+    pub unsafe fn new(value: T) -> Self {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref root_list| {
             let root_list = &*root_list.get().unwrap();
@@ -96,6 +96,32 @@ where
             }
         }
         unsafe { &*(self.reflector() as *const Reflector as *const ReflectorStackRoot) }
+    }
+}
+
+unsafe impl<T> StableTraceObject for MaybeUnreflectedDom<T>
+where
+    T: DomObject,
+{
+    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+        // The JSTraceable impl for Reflector doesn't actually do anything,
+        // so we need this shenanigan to actually trace the reflector of the
+        // T pointer in Dom<T>.
+        #[allow(unrooted_must_root)]
+        struct MaybeUnreflectedStackRoot<T>(T);
+        unsafe impl<T> JSTraceable for MaybeUnreflectedStackRoot<T>
+        where
+            T: DomObject,
+        {
+            unsafe fn trace(&self, tracer: *mut JSTracer) {
+                if self.0.reflector().get_jsobject().is_null() {
+                    self.0.trace(tracer);
+                } else {
+                    trace_reflector(tracer, "on stack", &self.0.reflector());
+                }
+            }
+        }
+        unsafe { &*(self.ptr.as_ptr() as *const T as *const MaybeUnreflectedStackRoot<T>) }
     }
 }
 
@@ -338,6 +364,36 @@ unsafe impl<T: DomObject> JSTraceable for Dom<T> {
             "for DOM object on heap"
         };
         trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
+    }
+}
+
+/// A traced reference to a DOM object that may not be reflected yet.
+#[unrooted_must_root_lint::must_root]
+pub struct MaybeUnreflectedDom<T> {
+    ptr: ptr::NonNull<T>,
+}
+
+impl<T> MaybeUnreflectedDom<T>
+where
+    T: DomObject,
+{
+    #[allow(unrooted_must_root)]
+    pub unsafe fn from_box(value: Box<T>) -> Self {
+        Self {
+            ptr: Box::into_raw_non_null(value),
+        }
+    }
+}
+
+impl<T> Deref for MaybeUnreflectedDom<T>
+where
+    T: DomObject,
+{
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        debug_assert!(thread_state::get().is_script());
+        unsafe { &*self.ptr.as_ptr() }
     }
 }
 
