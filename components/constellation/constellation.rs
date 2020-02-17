@@ -3227,14 +3227,14 @@ where
                     },
                 }
             },
-            AnimationTickType::Layout => {
-                let msg = LayoutControlMsg::TickAnimations;
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.layout_chan.send(msg),
-                    None => {
-                        return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id);
-                    },
-                }
+            AnimationTickType::Layout => match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => {
+                    let msg = LayoutControlMsg::TickAnimations(pipeline.load_data.url.origin());
+                    pipeline.layout_chan.send(msg)
+                },
+                None => {
+                    return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id);
+                },
             },
         };
         if let Err(e) = result {

@@ -1548,7 +1548,11 @@ impl Window {
     /// forces a reflow if `tick` is true.
     pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
         self.layout_chan
-            .send(Msg::AdvanceClockMs(delta, tick))
+            .send(Msg::AdvanceClockMs(
+                delta,
+                tick,
+                self.origin().immutable().clone(),
+            ))
             .unwrap();
     }
 

@@ -47,13 +47,13 @@ pub enum Msg {
     GetRPC(Sender<Box<dyn LayoutRPC + Send>>),
 
     /// Requests that the layout thread render the next frame of all animations.
-    TickAnimations,
+    TickAnimations(ImmutableOrigin),
 
     /// Updates layout's timer for animation testing from script.
     ///
     /// The inner field is the number of *milliseconds* to advance, and the bool
     /// field is whether animations should be force-ticked.
-    AdvanceClockMs(i32, bool),
+    AdvanceClockMs(i32, bool, ImmutableOrigin),
 
     /// Destroys layout data associated with a DOM node.
     ///

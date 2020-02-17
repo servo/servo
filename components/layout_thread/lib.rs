@@ -644,18 +644,14 @@ impl LayoutThread {
         guards: StylesheetGuards<'a>,
         script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
-        origin: Option<ImmutableOrigin>,
+        origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         LayoutContext {
             id: self.id,
-            origin: if let Some(origin) = origin {
-                origin
-            } else {
-                self.url.origin()
-            },
+            origin,
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -693,7 +689,7 @@ impl LayoutThread {
             Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
             Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
-            Msg::TickAnimations => LayoutHangAnnotation::TickAnimations,
+            Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
             Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
             Msg::ReapStyleAndLayoutData(..) => LayoutHangAnnotation::ReapStyleAndLayoutData,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
@@ -739,8 +735,8 @@ impl LayoutThread {
                     Msg::SetScrollStates(new_scroll_states),
                     possibly_locked_rw_data,
                 ),
-            Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
-                self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
+            Request::FromPipeline(LayoutControlMsg::TickAnimations(origin)) => {
+                self.handle_request_helper(Msg::TickAnimations(origin), possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
@@ -813,7 +809,9 @@ impl LayoutThread {
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
             },
-            Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::TickAnimations(origin) => {
+                self.tick_all_animations(possibly_locked_rw_data, origin)
+            },
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -841,8 +839,8 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch.get()).unwrap();
             },
-            Msg::AdvanceClockMs(how_many, do_tick) => {
-                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick);
+            Msg::AdvanceClockMs(how_many, do_tick, origin) => {
+                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick, origin);
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -1022,10 +1020,11 @@ impl LayoutThread {
         how_many_ms: i32,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
         tick_animations: bool,
+        origin: ImmutableOrigin,
     ) {
         self.timer.increment(how_many_ms as f64 / 1000.0);
         if tick_animations {
-            self.tick_all_animations(possibly_locked_rw_data);
+            self.tick_all_animations(possibly_locked_rw_data, origin);
         }
     }
 
@@ -1489,8 +1488,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context =
-            self.build_layout_context(guards.clone(), true, &map, Some(origin));
+        let mut layout_context = self.build_layout_context(guards.clone(), true, &map, origin);
 
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
@@ -1718,12 +1716,16 @@ impl LayoutThread {
         rw_data.scroll_offsets = layout_scroll_states
     }
 
-    fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn tick_all_animations<'a, 'b>(
+        &mut self,
+        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+        origin: ImmutableOrigin,
+    ) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        self.tick_animations(&mut rw_data);
+        self.tick_animations(&mut rw_data, origin);
     }
 
-    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData, origin: ImmutableOrigin) {
         if self.relayout_event {
             println!(
                 "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
@@ -1746,7 +1748,7 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
             let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots, None);
+            let mut layout_context = self.build_layout_context(guards, false, &snapshots, origin);
 
             let invalid_nodes = {
                 // Perform an abbreviated style recalc that operates without access to the DOM.

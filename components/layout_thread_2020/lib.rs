@@ -74,7 +74,7 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
@@ -589,13 +589,14 @@ impl LayoutThread {
         guards: StylesheetGuards<'a>,
         script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
+        origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         LayoutContext {
             id: self.id,
-            origin: self.url.origin(),
+            origin,
             style_context: SharedStyleContext {
                 stylist: &self.stylist,
                 options: GLOBAL_STYLE_DATA.options.clone(),
@@ -628,7 +629,7 @@ impl LayoutThread {
             Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
             Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
-            Msg::TickAnimations => LayoutHangAnnotation::TickAnimations,
+            Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
             Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
             Msg::ReapStyleAndLayoutData(..) => LayoutHangAnnotation::ReapStyleAndLayoutData,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
@@ -674,8 +675,8 @@ impl LayoutThread {
                     Msg::SetScrollStates(new_scroll_states),
                     possibly_locked_rw_data,
                 ),
-            Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
-                self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
+            Request::FromPipeline(LayoutControlMsg::TickAnimations(origin)) => {
+                self.handle_request_helper(Msg::TickAnimations(origin), possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
@@ -748,7 +749,7 @@ impl LayoutThread {
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
             },
-            Msg::TickAnimations => self.tick_all_animations(),
+            Msg::TickAnimations(origin) => self.tick_all_animations(origin),
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -776,8 +777,8 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch.get()).unwrap();
             },
-            Msg::AdvanceClockMs(how_many, do_tick) => {
-                self.handle_advance_clock_ms(how_many, do_tick);
+            Msg::AdvanceClockMs(how_many, do_tick, origin) => {
+                self.handle_advance_clock_ms(how_many, do_tick, origin);
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -914,10 +915,15 @@ impl LayoutThread {
     }
 
     /// Advances the animation clock of the document.
-    fn handle_advance_clock_ms<'a, 'b>(&mut self, how_many_ms: i32, tick_animations: bool) {
+    fn handle_advance_clock_ms<'a, 'b>(
+        &mut self,
+        how_many_ms: i32,
+        tick_animations: bool,
+        origin: ImmutableOrigin,
+    ) {
         self.timer.increment(how_many_ms as f64 / 1000.0);
         if tick_animations {
-            self.tick_all_animations();
+            self.tick_all_animations(origin);
         }
     }
 
@@ -994,6 +1000,8 @@ impl LayoutThread {
             Au::from_f32_px(initial_viewport.width),
             Au::from_f32_px(initial_viewport.height),
         );
+
+        let origin = data.origin.clone();
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
@@ -1117,7 +1125,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
+        let mut layout_context = self.build_layout_context(guards.clone(), true, &map, origin);
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
@@ -1324,11 +1332,11 @@ impl LayoutThread {
         rw_data.scroll_offsets = layout_scroll_states
     }
 
-    fn tick_all_animations<'a, 'b>(&mut self) {
-        self.tick_animations();
+    fn tick_all_animations<'a, 'b>(&mut self, origin: ImmutableOrigin) {
+        self.tick_animations(origin);
     }
 
-    fn tick_animations(&mut self) {
+    fn tick_animations(&mut self, origin: ImmutableOrigin) {
         if self.relayout_event {
             println!(
                 "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
@@ -1347,7 +1355,7 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
             let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots);
+            let mut layout_context = self.build_layout_context(guards, false, &snapshots, origin);
 
             self.perform_post_style_recalc_layout_passes(
                 root,

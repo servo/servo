@@ -124,7 +124,7 @@ pub enum LayoutControlMsg {
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
     /// Asks layout to run another step in its animation.
-    TickAnimations,
+    TickAnimations(ImmutableOrigin),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
