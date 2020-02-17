@@ -48,7 +48,7 @@ impl ContentSizesRequest {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub(crate) struct ContentSizes {
     pub min_content: Length,
     pub max_content: Length,
@@ -83,7 +83,7 @@ impl ContentSizes {
 }
 
 /// Optional min/max-content for storage in the box tree
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum BoxContentSizes {
     NoneWereRequested, // … during box construction
     Inline(ContentSizes),

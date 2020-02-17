@@ -17,7 +17,7 @@ use style::values::computed::{Length, LengthOrAuto};
 use style::values::CSSFloat;
 use style::Zero;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
     pub kind: ReplacedContentKind,
     intrinsic: IntrinsicSizes,
@@ -41,7 +41,7 @@ pub(crate) struct IntrinsicSizes {
     pub ratio: Option<CSSFloat>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
 }

@@ -28,6 +28,7 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style_traits::CSSPixel;
 
+#[derive(Serialize)]
 pub struct BoxTreeRoot(BlockFormattingContext);
 
 #[derive(Serialize)]

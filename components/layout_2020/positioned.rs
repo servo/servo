@@ -18,7 +18,7 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
     pub contents: IndependentFormattingContext,
 }

@@ -5,7 +5,7 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use crate::flow::FragmentTreeRoot;
+use crate::flow::{BoxTreeRoot, FragmentTreeRoot};
 use serde_json::{to_string, to_value, Value};
 use std::cell::RefCell;
 use std::fs::File;
@@ -33,37 +33,51 @@ macro_rules! layout_debug_scope(
 );
 
 #[derive(Serialize)]
+struct TreeValues {
+    pub box_tree: Value,
+    pub fragment_tree: Value,
+}
+
+#[derive(Serialize)]
 struct ScopeData {
     name: String,
-    pre: Value,
-    post: Value,
+    pre: TreeValues,
+    post: TreeValues,
     children: Vec<Box<ScopeData>>,
 }
 
 impl ScopeData {
-    fn new(name: String, pre: Value) -> ScopeData {
+    fn new(name: String, box_tree: Value, fragment_tree: Value) -> ScopeData {
         ScopeData {
-            name: name,
-            pre: pre,
-            post: Value::Null,
+            name,
+            pre: TreeValues {
+                box_tree,
+                fragment_tree,
+            },
+            post: TreeValues {
+                box_tree: Value::Null,
+                fragment_tree: Value::Null,
+            },
             children: vec![],
         }
     }
 }
 
 struct State {
-    fragment: Arc<FragmentTreeRoot>,
+    fragment_tree: Arc<FragmentTreeRoot>,
+    box_tree: Arc<BoxTreeRoot>,
     scope_stack: Vec<Box<ScopeData>>,
 }
 
-/// A layout debugging scope. The entire state of the fragment tree
+/// A layout debugging scope. The entire state of the box and fragment trees
 /// will be output at the beginning and end of this scope.
 impl Scope {
     pub fn new(name: String) -> Scope {
         STATE_KEY.with(|ref r| {
             if let Some(ref mut state) = *r.borrow_mut() {
-                let fragment_tree = to_value(&state.fragment).unwrap();
-                let data = Box::new(ScopeData::new(name.clone(), fragment_tree));
+                let box_tree = to_value(&state.box_tree).unwrap();
+                let fragment_tree = to_value(&state.fragment_tree).unwrap();
+                let data = Box::new(ScopeData::new(name.clone(), box_tree, fragment_tree));
                 state.scope_stack.push(data);
             }
         });
@@ -77,7 +91,10 @@ impl Drop for Scope {
         STATE_KEY.with(|ref r| {
             if let Some(ref mut state) = *r.borrow_mut() {
                 let mut current_scope = state.scope_stack.pop().unwrap();
-                current_scope.post = to_value(&state.fragment).unwrap();
+                current_scope.post = TreeValues {
+                    box_tree: to_value(&state.box_tree).unwrap(),
+                    fragment_tree: to_value(&state.fragment_tree).unwrap(),
+                };
                 let previous_scope = state.scope_stack.last_mut().unwrap();
                 previous_scope.children.push(current_scope);
             }
@@ -93,14 +110,20 @@ pub fn generate_unique_debug_id() -> u16 {
 
 /// Begin a layout debug trace. If this has not been called,
 /// creating debug scopes has no effect.
-pub fn begin_trace(root: Arc<FragmentTreeRoot>) {
+pub fn begin_trace(box_tree: Arc<BoxTreeRoot>, fragment_tree: Arc<FragmentTreeRoot>) {
     assert!(STATE_KEY.with(|ref r| r.borrow().is_none()));
 
     STATE_KEY.with(|ref r| {
-        let root_trace = to_value(&root).unwrap();
+        let box_tree_value = to_value(&box_tree).unwrap();
+        let fragment_tree_value = to_value(&fragment_tree).unwrap();
         let state = State {
-            scope_stack: vec![Box::new(ScopeData::new("root".to_owned(), root_trace))],
-            fragment: root.clone(),
+            scope_stack: vec![Box::new(ScopeData::new(
+                "root".to_owned(),
+                box_tree_value,
+                fragment_tree_value,
+            ))],
+            box_tree,
+            fragment_tree,
         };
         *r.borrow_mut() = Some(state);
     });
@@ -113,8 +136,10 @@ pub fn end_trace(generation: u32) {
     let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
     assert_eq!(thread_state.scope_stack.len(), 1);
     let mut root_scope = thread_state.scope_stack.pop().unwrap();
-    root_scope.post = to_value(&thread_state.fragment).unwrap();
-
+    root_scope.post = TreeValues {
+        box_tree: to_value(&thread_state.box_tree).unwrap_or(Value::Null),
+        fragment_tree: to_value(&thread_state.fragment_tree).unwrap_or(Value::Null),
+    };
     let result = to_string(&root_scope).unwrap();
     let mut file = File::create(format!("layout_trace-{}.json", generation)).unwrap();
     file.write_all(result.as_bytes()).unwrap();

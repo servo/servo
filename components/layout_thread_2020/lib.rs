@@ -173,7 +173,7 @@ pub struct LayoutThread {
     outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// The root of the box tree.
-    box_tree_root: RefCell<Option<BoxTreeRoot>>,
+    box_tree_root: RefCell<Option<Arc<BoxTreeRoot>>>,
 
     /// The root of the fragment tree.
     fragment_tree_root: RefCell<Option<Arc<FragmentTreeRoot>>>,
@@ -1154,7 +1154,8 @@ impl LayoutThread {
             } else {
                 build_box_tree()
             };
-            Some(box_tree)
+
+            Some(Arc::new(box_tree))
         } else {
             None
         };
@@ -1167,13 +1168,13 @@ impl LayoutThread {
                 self.viewport_size.height.to_f32_px(),
             );
             let run_layout = || box_tree.layout(&layout_context, viewport_size);
-            let fragment_tree = if let Some(pool) = rayon_pool {
+            let fragment_tree = Arc::new(if let Some(pool) = rayon_pool {
                 pool.install(run_layout)
             } else {
                 run_layout()
-            };
+            });
             *self.box_tree_root.borrow_mut() = Some(box_tree);
-            *self.fragment_tree_root.borrow_mut() = Some(Arc::new(fragment_tree));
+            *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }
 
         for element in elements_with_snapshot {
@@ -1382,6 +1383,12 @@ impl LayoutThread {
         document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
     ) {
+        if self.trace_layout {
+            if let Some(box_tree) = &*self.box_tree_root.borrow() {
+                layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
+            }
+        }
+
         if !reflow_goal.needs_display() {
             // Defer the paint step until the next ForDisplay.
             //
@@ -1391,10 +1398,6 @@ impl LayoutThread {
                 .expect("No document in a non-display reflow?")
                 .needs_paint_from_layout();
             return;
-        }
-
-        if self.trace_layout {
-            layout_debug::begin_trace(fragment_tree.clone());
         }
 
         if let Some(document) = document {

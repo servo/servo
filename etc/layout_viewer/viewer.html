@@ -57,6 +57,14 @@
                     <div class="row">
                         <div class="col-sm-12">
                             <div class='panel panel-default'>
+                                <div class='panel-heading'>Box Tree</div>
+                                <div class='panel-body' id="box-tree"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class='panel panel-default'>
                                 <div class='panel-heading'>Fragment Tree</div>
                                 <div class='panel-body' id="fragment-tree"></div>
                             </div>
@@ -90,10 +98,69 @@
         <script src="js/formatters.min.js"></script>
 
         <script>
-            function create_fragment_tree(trace_node) {
-                var fragment = Object.values(trace_node)[0];
+            function get_inner_boxes(box) {
+              const box_type = Object.keys(box)[0];
+              switch (box_type) {
+                case "BlockLevelBoxes":
+                  return box.BlockLevelBoxes;
+                case "InlineFormattingContext":
+                  return box.InlineFormattingContext.inline_level_boxes;
+                case "InlineBox":
+                  return box.InlineBox.children;
+                case "SameFormattingContextBlock":
+                case "Independent":
+                case "Flow":
+                case "OutOfFlowAbsolutelyPositionedBox":
+                case "OutOfFlowFloatBox":
+                case "Atomic":
+                  return box[box_type].contents;
+              }
+              return null;
+            }
+
+            function box_tree_from_container(container) {
+              const box_type = Object.keys(container)[0];
+              let inner_boxes = get_inner_boxes(container);
+              let nodes = [];
+              let text = box_type;
+              if (Array.isArray(inner_boxes)) {
+                if (!inner_boxes.length) {
+                  nodes = null;
+                } else {
+                  for (let box in inner_boxes) {
+                    nodes.push(box_tree_from_container(inner_boxes[box]));
+                  }
+                }
+              } else if (inner_boxes != null) {
+                nodes.push(box_tree_from_container(inner_boxes));
+              } else {
+                if (box_type == "TextRun") {
+                  text += ` (${container.TextRun.text})`;
+                }
+                nodes = null;
+              }
+              return {
+                text,
+                nodes,
+              }
+            }
+
+            function box_tree_from_bfc(bfc) {
+              const { contains_floats, contents } = bfc; 
+              var block_container = Object.values(contents)[0];
+              return {
+                text: "BlockFormattingContext",
+                info: {
+                  contains_floats,
+                },
+                nodes: [box_tree_from_container(contents)]
+              };
+            }
+
+            function create_fragment_tree(root) {
+                var fragment = Object.values(root)[0];
                 var node = {
-                    text: Object.keys(trace_node)[0],
+                    text: Object.keys(root)[0],
                     id: fragment.debug_id,
                     icon: "dummy",
                     href: "#diff-" + fragment.debug_id
@@ -132,12 +199,13 @@
             }
 
             function flatten_trace(trace_node) {
-                const node = Object.values(trace_node)[0];
+                const fragment_tree_root = Object.values(trace_node.fragment_tree)[0];
                 var fragments_info = {};
-                get_fragments_info(node, fragments_info);
+                get_fragments_info(fragment_tree_root, fragments_info);
                 return {
-                    tree: create_fragment_tree(node),
-                    fragments_info: fragments_info,
+                    fragment_tree: create_fragment_tree(fragment_tree_root),
+                    box_tree: box_tree_from_bfc(trace_node.box_tree),
+                    fragments_info,
                 };
             }
 
@@ -148,9 +216,12 @@
                 var tree_node = {
                     text: trace_node.name,
                     icon: "dummy",
-                    fragment_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
-                    pre: pre_trace.fragments_info,
-                    post: post_trace.fragments_info,
+                    box_tree: pre_trace.box_tree,
+                    fragment_tree: pre_trace.fragment_tree,
+                    pre_boxes_info: pre_trace.boxes_info,
+                    post_boxes_info: post_trace.boxes_info,
+                    pre_fragments_info: pre_trace.fragments_info,
+                    post_fragments_info: post_trace.fragments_info,
                 };
 
                 var trace_node = Object.values(trace_node)[0];
@@ -169,7 +240,7 @@
             }
 
             function update_fragment_tree_bgcolor(fragment_tree_node, node_color_hash) {
-                fragment_tree_node.backColor = node_color_hash[fragment_tree_node.id];
+                fragment_tree_node.backColor = node_color_hash[fragment_tree_node.debug_id];
                 if (fragment_tree_node.nodes !== undefined) {
                     for (var i=0 ; i < fragment_tree_node.nodes.length ; ++i) {
                         update_fragment_tree_bgcolor(fragment_tree_node.nodes[i], node_color_hash)
@@ -187,9 +258,9 @@
                     $("#fragment-diffs").empty();
                     $('#trace-tree').treeview(true).revealNode(node);
 
-                    for (var key in node.pre) {
-                        var fragment_info_left = node.pre[key];
-                        var fragment_info_right = node.post[key];
+                    for (var key in node.pre_fragments_info) {
+                        var fragment_info_left = node.pre_fragments_info[key];
+                        var fragment_info_right = node.post_fragments_info[key];
 
                         var delta = jsondiffpatch.create({
                             objectHash: function(obj) {
@@ -224,6 +295,7 @@
 
                     update_fragment_tree_bgcolor(node.fragment_tree, node_color_hash);
                     $('#fragment-tree').treeview({data: [node.fragment_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
+                    $('#box-tree').treeview({data: [node.box_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
                 });
 
                 $('#trace-tree').treeview(true).selectNode(0);

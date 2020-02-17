@@ -10,7 +10,7 @@ use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct FloatBox {
     pub contents: IndependentFormattingContext,
 }

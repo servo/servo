@@ -31,22 +31,23 @@ mod root;
 
 pub use root::{BoxTreeRoot, FragmentTreeRoot};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
         tag: OpaqueNode,
+        #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
     },
