@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Service Worker: WindowClient.navigate() tests</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -154,12 +155,15 @@ function navigate_test(override_parameters) {
               channel.port1.onmessage = test.step_func(resolve);
               service_worker.postMessage({
                   port: channel.port2,
-                  url: parameters.dest_url
+                  url: parameters.dest_url,
+                  expected: parameters.expected,
+                  description: parameters.description,
                 }, [channel.port2]);
             });
         })
       .then(function(response) {
-          assert_equals(response.data, parameters.expected);
+          assert_equals(response.data, null);
+          return fetch_tests_from_worker(service_worker);
         });
   }, parameters.description);
 }

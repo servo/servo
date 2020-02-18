@@ -178,7 +178,7 @@
             return Promise.all([ eventWatcher.wait_for('terminate'), waitForMessage().then(parseResult) ]);
         }).then(() => {
             // Try to reconnect to the presentation, while all presentation connection have already been terminated
-            return promise_rejects(t, 'NotFoundError', request.reconnect(presentationId),
+            return promise_rejects_dom(t, 'NotFoundError', request.reconnect(presentationId),
                 'Reconnecting to a terminated presentation rejects a promise with a "NotFoundError" exception.');
         });
     });

@@ -14,7 +14,7 @@
         setupManualShareTestRequiringCancellation();
 
         promise_test(t => {
-          return callWhenButtonClicked(() => promise_rejects(
+          return callWhenButtonClicked(() => promise_rejects_dom(
               t, 'AbortError',
               navigator.share({title: 'the title', text: 'the message',
                                url: 'https://example.com'})));

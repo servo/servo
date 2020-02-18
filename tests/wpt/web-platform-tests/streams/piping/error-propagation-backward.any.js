@@ -19,7 +19,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error')
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
       assert_array_equals(ws.events, []);
@@ -39,12 +39,12 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-    .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+  return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
     .then(() => {
       writer.releaseLock();
 
-      return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the write error')
+      return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the write error')
         .then(() => {
           assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
           assert_array_equals(ws.events, ['write', 'Hello']);
@@ -70,12 +70,12 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-    .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+  return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
     .then(() => {
       writer.releaseLock();
 
-      return promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error')
+      return promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error')
         .then(() => {
           assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
           assert_array_equals(ws.events, ['write', 'Hello']);
@@ -100,12 +100,12 @@ for (const falsy of [undefined, null, false, +0, -0, NaN, '']) {
 
     const writer = ws.getWriter();
 
-    return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-      .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+    return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+      .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
       .then(() => {
         writer.releaseLock();
 
-        return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: falsy }),
+        return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: falsy }),
                                'pipeTo must reject with the write error')
           .then(() => {
             assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
@@ -130,12 +130,12 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
 
     const writer = ws.getWriter();
 
-    return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-      .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+    return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+      .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
       .then(() => {
         writer.releaseLock();
 
-        return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: truthy }),
+        return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: truthy }),
                                'pipeTo must reject with the write error')
           .then(() => {
             assert_array_equals(rs.eventsWithoutPulls, []);
@@ -159,12 +159,12 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-    .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+  return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
     .then(() => {
       writer.releaseLock();
 
-      return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true }),
+      return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true }),
                              'pipeTo must reject with the write error')
         .then(() => {
           assert_array_equals(rs.eventsWithoutPulls, []);
@@ -187,12 +187,12 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
-    .then(() => promise_rejects(t, error1, writer.closed, 'writer.closed must reject with the write error'))
+  return promise_rejects_exactly(t, error1, writer.write('Hello'), 'writer.write() must reject with the write error')
+    .then(() => promise_rejects_exactly(t, error1, writer.closed, 'writer.closed must reject with the write error'))
     .then(() => {
       writer.releaseLock();
 
-      return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }),
+      return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true, preventAbort: true, preventClose: true }),
                              'pipeTo must reject with the write error')
         .then(() => {
           assert_array_equals(rs.eventsWithoutPulls, []);
@@ -217,7 +217,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
     assert_array_equals(ws.events, ['write', 'Hello']);
   });
@@ -242,7 +242,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error').then(() => {
+  return promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error').then(() => {
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
     assert_array_equals(ws.events, ['write', 'Hello']);
   });
@@ -264,7 +264,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
   .then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, ['write', 'Hello']);
@@ -293,7 +293,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b']);
   });
@@ -325,7 +325,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error').then(() => {
+  return promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error').then(() => {
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b']);
   });
@@ -354,7 +354,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
   .then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b']);
@@ -368,7 +368,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -389,7 +389,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -406,8 +406,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -438,7 +438,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b', 'write', 'c']);
   });
@@ -466,7 +466,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true }), 'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.eventsWithoutPulls, []);
       assert_array_equals(ws.events, ['write', 'a', 'write', 'b', 'write', 'c']);
@@ -481,7 +481,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -503,7 +503,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -521,8 +521,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => ws.controller.error(error1), 10);
 
@@ -567,7 +567,7 @@ promise_test(t => {
 
   ws.abort(error1);
 
-  return promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error')
+  return promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the cancel error')
     .then(() => {
       return ws.getWriter().closed.then(
         () => assert_unreached('the promise must not fulfill'),
@@ -591,7 +591,7 @@ promise_test(t => {
 
   ws.abort(error1);
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true })).then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventCancel: true })).then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, ['abort', error1]);
   });
@@ -621,7 +621,7 @@ promise_test(t => {
   return writeCalledPromise.then(() => {
     ws.controller.error(error1);
 
-    return promise_rejects(t, error1, pipePromise);
+    return promise_rejects_exactly(t, error1, pipePromise);
   }).then(() => {
     assert_array_equals(rs.eventsWithoutPulls, ['cancel', error1]);
     assert_array_equals(ws.events, ['write', 'a']);

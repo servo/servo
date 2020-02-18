@@ -13,7 +13,7 @@ setup(() => {
 });
 
 promise_test(t => {
-  return promise_rejects(t, new TypeError(), WebAssembly.compile());
+  return promise_rejects_js(t, TypeError, WebAssembly.compile());
 }, "Missing argument");
 
 promise_test(t => {
@@ -30,7 +30,7 @@ promise_test(t => {
     Array.from(emptyModuleBinary),
   ];
   return Promise.all(invalidArguments.map(argument => {
-    return promise_rejects(t, new TypeError(), WebAssembly.compile(argument),
+    return promise_rejects_js(t, TypeError, WebAssembly.compile(argument),
                            `compile(${format_value(argument)})`);
   }));
 }, "Invalid arguments");
@@ -60,12 +60,12 @@ test(() => {
 
 promise_test(t => {
   const buffer = new Uint8Array();
-  return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
+  return promise_rejects_js(t, WebAssembly.CompileError, WebAssembly.compile(buffer));
 }, "Empty buffer");
 
 promise_test(t => {
   const buffer = new Uint8Array(Array.from(emptyModuleBinary).concat([0, 0]));
-  return promise_rejects(t, new WebAssembly.CompileError(), WebAssembly.compile(buffer));
+  return promise_rejects_js(t, WebAssembly.CompileError, WebAssembly.compile(buffer));
 }, "Invalid code");
 
 promise_test(() => {

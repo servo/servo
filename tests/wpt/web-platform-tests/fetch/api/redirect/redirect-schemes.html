@@ -17,7 +17,7 @@
   ];
   tests.forEach(function(url) {
     promise_test(function(test) {
-      return promise_rejects(test, new TypeError(), fetch(url))
+      return promise_rejects_js(test, TypeError, fetch(url))
     })
   })
 </script>

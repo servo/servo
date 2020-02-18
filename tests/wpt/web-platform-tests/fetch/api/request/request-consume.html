@@ -150,7 +150,7 @@
     badJSONValues.forEach(function(value) {
       promise_test(function(test) {
         var request = new Request("", {"method": "POST", "body": value});
-        return promise_rejects(test, new SyntaxError(), request.json());
+        return promise_rejects_js(test, SyntaxError, request.json());
       }, "Trying to consume bad JSON text as JSON: '" + value + "'");
     });
     </script>

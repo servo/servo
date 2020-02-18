@@ -34,6 +34,6 @@ promise_test(async t => {
   const signal = controller.signal;
   controller.abort();
 
-  await promise_rejects(t, 'AbortError', GeolocationSensor.read({ signal }));
+  await promise_rejects_dom(t, 'AbortError', GeolocationSensor.read({ signal }));
 }, "Test that read() method rejects 'AbortError' if signal's aborted flag is set");
 </script>

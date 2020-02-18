@@ -79,6 +79,23 @@
 
   test(() => {
     const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('video');
+    const capabilities = RTCRtpSender.getCapabilities('video');
+    const { codecs } = capabilities;
+    // This test verifies that the mandatory VP8 codec is present
+    // and can be set.
+    let tried = false;
+    codecs.forEach(codec => {
+      if (codec.mimeType.toLowerCase() === 'video/vp8') {
+        transceiver.setCodecPreferences([codecs[0]]);
+        tried = true;
+      }
+    });
+    assert_true(tried, 'VP8 video codec was found and tried');
+  }, `setCodecPreferences() with only one video codec should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
     const capabilities = RTCRtpSender.getCapabilities('video');
     assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(capabilities.codecs));

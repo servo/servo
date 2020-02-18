@@ -159,14 +159,20 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
     };
     // First we check the bad update.
     const acceptPromise = request.show();
-    await promise_rejects(
+    let test_func;
+    if (typeof expectedError == "function") {
+      test_func = promise_rejects_js;
+    } else {
+      test_func = promise_rejects_dom;
+    }
+    await test_func(
       t,
       expectedError,
       acceptPromise,
       "badDetails must cause acceptPromise to reject with expectedError"
     );
     // The request [[state]] is now "closed", so let's check for InvalidStateError
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       request.show(),
@@ -195,7 +201,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
   <li>
     <button onclick="
       const invalidDetails = { total: `this will cause a TypeError!` };
-      testBadUpdate(this, invalidDetails, new TypeError());
+      testBadUpdate(this, invalidDetails, TypeError);
     ">
       Total in the update is a string, so converting to IDL must abort the update with a TypeError.
     </button>
@@ -203,14 +209,14 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
   <li>
     <button onclick="
       const invalidDetails = { total: recursiveData };
-      testBadUpdate(this, invalidDetails, new TypeError());
+      testBadUpdate(this, invalidDetails, TypeError);
     ">
       Total is recursive, so converting to IDL must abort the update with a TypeError.
     </button>
   </li>
   <li>
     <button onclick="
-      testBadUpdate(this, invalidDetailsNegativeTotal, new TypeError());
+      testBadUpdate(this, invalidDetailsNegativeTotal, TypeError);
     ">
       Updating with a negative total results in a TypeError.
     </button>
@@ -218,7 +224,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
   <li>
     <button onclick="
       const badDetails = Object.assign({}, validDetails, { displayItems: invalidPaymentItems });
-      testBadUpdate(this, badDetails, new RangeError());
+      testBadUpdate(this, badDetails, RangeError);
     ">
       Updating with a displayItem with an invalid currency results in RangeError.
     </button>
@@ -227,7 +233,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
     <button onclick="
       const duplicateShippingOptions = [validShippingOption, validShippingOption];
       const badDetails = Object.assign({}, validDetails, { shippingOptions: duplicateShippingOptions });
-      testBadUpdate(this, badDetails, new TypeError());
+      testBadUpdate(this, badDetails, TypeError);
     ">
       Updating with duplicate shippingOptions (same IDs) results in a TypeError.
     </button>
@@ -235,7 +241,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
   <li>
     <button onclick="
       const badDetails = Object.assign({}, validDetails, { shippingOptions: invalidShippingOptions });
-      testBadUpdate(this, badDetails, new RangeError());
+      testBadUpdate(this, badDetails, RangeError);
     ">
       Updating with a shippingOption with an invalid currency value results in a RangError.
     </button>
@@ -245,7 +251,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       // validModifier is there as to avoid false positives - it should just get ignored
       const badModifiers = { modifiers: [ modifierWithInvalidTotal, validModifier ] };
       const badDetails = Object.assign({}, validDetails, badModifiers);
-      testBadUpdate(this, badDetails, new RangeError());
+      testBadUpdate(this, badDetails, RangeError);
     ">
       Must throw a RangeError when a modifier's total item has an invalid currency.
     </button>
@@ -255,7 +261,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       // validModifier is there as to avoid false positives - it should just get ignored
       const badModifiers = { modifiers: [ modifierWithInvalidDisplayItems, validModifier ] };
       const badDetails = Object.assign({}, validDetails, badModifiers);
-      testBadUpdate(this, badDetails, new RangeError());
+      testBadUpdate(this, badDetails, RangeError);
     ">
       Must throw a RangeError when a modifier display item has an invalid currency.
    </button>
@@ -265,7 +271,7 @@ function testBadUpdate(button, badDetails, expectedError, errorCode) {
       // validModifier is there as to avoid false positives - it should just get ignored
       const badModifiers = { modifiers: [ modifierWithRecursiveData, validModifier ] };
       const badDetails = Object.assign({}, validDetails, badModifiers);
-      testBadUpdate(this, badDetails, new TypeError());
+      testBadUpdate(this, badDetails, TypeError);
     ">
       Must throw as Modifier has a recursive dictionary.
     </button>

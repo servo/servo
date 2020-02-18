@@ -5,7 +5,7 @@ const { expectBad, expectWarnings, expectSpecifierMap } = require('./helpers/par
 const nonObjectStrings = ['null', 'true', '1', '"foo"', '[]'];
 
 test('Invalid JSON', () => {
-  expect(() => parseFromString('{ imports: {} }', 'https://base.example/')).toThrow(SyntaxError);
+  expect(parseFromString('{ imports: {} }', 'https://base.example/')).toThrow('SyntaxError');
 });
 
 describe('Mismatching the top-level schema', () => {

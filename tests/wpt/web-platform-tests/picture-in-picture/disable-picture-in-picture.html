@@ -28,7 +28,7 @@ test(t => {
 promise_test(async t => {
   const video = await loadVideo();
   video.disablePictureInPicture = true;
-  return promise_rejects(t, 'InvalidStateError',
+  return promise_rejects_dom(t, 'InvalidStateError',
       requestPictureInPictureWithTrustedClick(video));
 }, 'Request Picture-in-Picture rejects if disablePictureInPicture is true');
 
@@ -37,7 +37,7 @@ promise_test(async t => {
   await test_driver.bless('request Picture-in-Picture');
   const promise = video.requestPictureInPicture();
   video.disablePictureInPicture = true;
-  await promise_rejects(t, 'InvalidStateError', promise);
+  await promise_rejects_dom(t, 'InvalidStateError', promise);
   assert_equals(document.pictureInPictureElement, null);
 }, 'Request Picture-in-Picture rejects if disablePictureInPicture becomes ' +
    'true before promise resolves.');

@@ -14,7 +14,7 @@ promise_test((test) => {
   promise_test(t => {
     return fetch("resources/bad-gzip-body.py").then(res => {
       assert_equals(res.status, 200);
-      return promise_rejects(t, new TypeError(), res[method]());
+      return promise_rejects_js(t, TypeError, res[method]());
     });
   }, "Consuming the body of a resource with bad gzip content with " + method + "() should reject");
 });

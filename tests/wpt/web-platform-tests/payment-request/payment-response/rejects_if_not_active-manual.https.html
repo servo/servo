@@ -72,7 +72,7 @@ function methodNotFullyActive(button, method, ...args) {
     // Now, response's relevant global object's document is no longer active.
     // So, promise needs to reject appropriately.
     const promise = response[methodName](...args);
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "AbortError",
       promise,
@@ -107,7 +107,7 @@ function methodBecomesNotFullyActive(button, methodName, ...args) {
 
     // Now, response's relevant global object's document is no longer active.
     // So, promise needs to reject appropriately.
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "AbortError",
       promise,

@@ -53,15 +53,15 @@ function runImportTests(worklet_type) {
 
     promise_test(t => {
         const kScriptURL = 'non-existent-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'AbortError'),
-                               worklet.addModule(kScriptURL));
+        return promise_rejects_dom(t, 'AbortError',
+                                   worklet.addModule(kScriptURL));
     }, 'Importing a non-existent script rejects the given promise with an ' +
        'AbortError.');
 
     promise_test(t => {
         const kInvalidScriptURL = 'http://invalid:123$'
-        return promise_rejects(t, new DOMException('', 'SyntaxError'),
-                               worklet.addModule(kInvalidScriptURL));
+        return promise_rejects_dom(t, 'SyntaxError',
+                                   worklet.addModule(kInvalidScriptURL));
     }, 'Importing an invalid URL should reject the given promise with a ' +
        'SyntaxError.');
 
@@ -75,8 +75,8 @@ function runImportTests(worklet_type) {
 
     promise_test(t => {
         const kFileURL = 'file:///empty-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'AbortError'),
-                               worklet.addModule(kFileURL));
+        return promise_rejects_dom(t, 'AbortError',
+                                   worklet.addModule(kFileURL));
     }, 'Importing a file:// URL should reject the given promise.');
 
     promise_test(() => {
@@ -88,8 +88,8 @@ function runImportTests(worklet_type) {
 
     promise_test(t => {
         const kScriptURL = 'about:blank';
-        return promise_rejects(t, new DOMException('', 'AbortError'),
-                               worklet.addModule(kScriptURL));
+        return promise_rejects_dom(t, 'AbortError',
+                                   worklet.addModule(kScriptURL));
     }, 'Importing about:blank should reject the given promise.');
 
     promise_test(() => {
@@ -109,8 +109,8 @@ function runImportTests(worklet_type) {
         // should be rejected because of disallowed cross origin access.
         const kScriptURL = get_host_info().HTTPS_REMOTE_ORIGIN +
                            '/worklets/resources/empty-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'AbortError'),
-                               worklet.addModule(kScriptURL));
+        return promise_rejects_dom(t, 'AbortError',
+                                   worklet.addModule(kScriptURL));
     }, 'Importing a cross origin resource without the ' +
        'Access-Control-Allow-Origin header should reject the given promise');
 
@@ -130,24 +130,24 @@ function runImportTests(worklet_type) {
     promise_test(t => {
         const kScriptURL = get_host_info().HTTPS_REMOTE_ORIGIN +
                            '/worklets/resources/empty-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'AbortError'),
-                               worklet.addModule(
-                                   '/common/redirect.py?location=' +
-                                   encodeURIComponent(kScriptURL)));
+        return promise_rejects_dom(t, 'AbortError',
+                                   worklet.addModule(
+                                       '/common/redirect.py?location=' +
+                                       encodeURIComponent(kScriptURL)));
     }, 'Importing a cross-origin-redirected resource without the ' +
        'Access-Control-Allow-Origin header should reject the given promise');
 
     promise_test(t => {
         const kScriptURL = 'resources/syntax-error-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'SyntaxError'),
-                               worklet.addModule(kScriptURL));
+        return promise_rejects_js(t, SyntaxError,
+                                  worklet.addModule(kScriptURL));
     }, 'Importing a script that has a syntax error should reject the given ' +
        'promise.');
 
     promise_test(t => {
         const kScriptURL = 'resources/import-syntax-error-worklet-script.js';
-        return promise_rejects(t, new DOMException('', 'SyntaxError'),
-                               worklet.addModule(kScriptURL));
+        return promise_rejects_js(t, SyntaxError,
+                                  worklet.addModule(kScriptURL));
     }, 'Importing a nested script that has a syntax error should reject the ' +
        'given promise.');
 
@@ -155,8 +155,8 @@ function runImportTests(worklet_type) {
         const kBlob = new Blob(["import 'invalid-specifier.js';"],
                                {type: 'text/javascript'});
         const kBlobURL = URL.createObjectURL(kBlob);
-        return promise_rejects(t, new DOMException('', 'TypeError'),
-                               worklet.addModule(kBlobURL));
+        return promise_rejects_js(t, TypeError,
+                                  worklet.addModule(kBlobURL));
     }, 'Importing a script that imports an invalid identifier should reject ' +
        'the given promise.');
 }

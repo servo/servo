@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Legend painting order</title>
+<link rel=match href=legend-painting-order-ref.html>
+
+<p>There should be a green square below, and no red.</p>
+<div style="float:left; width:0px; height:0px;">
+  <div style="width:100px; height:100px; background:red;"></div>
+</div>
+<fieldset style="margin:0; border:none; padding:0;">
+  <legend style="padding:0;">
+    <div style="float:left; width:100px; height:100px; background:green;"></div>
+  </legend>
+</fieldset>

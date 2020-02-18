@@ -23,7 +23,7 @@ function makeAsyncTest(modifyTrack, message) {
 
       modifyTrack(videoTrack);
 
-      promise_rejects(test,
+      promise_rejects_dom(test,
                       'InvalidStateError',
                       capturer.grabFrame(),
                       'Should throw InvalidStateError.')

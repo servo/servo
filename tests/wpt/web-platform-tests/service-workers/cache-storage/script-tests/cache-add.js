@@ -4,9 +4,9 @@ if (self.importScripts) {
 }
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add(),
       'Cache.add should throw a TypeError when no arguments are given.');
   }, 'Cache.add called with no arguments');
@@ -30,9 +30,9 @@ cache_test(function(cache) {
   }, 'Cache.add called with relative URL specified as a string');
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add('javascript://this-is-not-http-mmkay'),
       'Cache.add should throw a TypeError for non-HTTP/HTTPS URLs.');
   }, 'Cache.add called with non-HTTP/HTTPS URL');
@@ -49,9 +49,9 @@ cache_test(function(cache) {
 cache_test(function(cache, test) {
     var request = new Request('../resources/simple.txt',
                               {method: 'POST', body: 'This is a body.'});
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add(request),
       'Cache.add should throw a TypeError for non-GET requests.');
   }, 'Cache.add called with POST request');
@@ -84,9 +84,9 @@ cache_test(function(cache) {
   }, 'Cache.add with request with null body (not consumed)');
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add('../resources/fetch-status.py?status=206'),
       'Cache.add should reject on partial response');
   }, 'Cache.add with 206 response');
@@ -97,34 +97,34 @@ cache_test(function(cache, test) {
     var requests = urls.map(function(url) {
         return new Request(url);
       });
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.addAll(requests),
       'Cache.addAll should reject with TypeError if any request fails');
   }, 'Cache.addAll with 206 response');
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add('this-does-not-exist-please-dont-create-it'),
       'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 404');
 
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.add('../resources/fetch-status.py?status=500'),
       'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 500');
 
 cache_test(function(cache, test) {
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.addAll(),
       'Cache.addAll with no arguments should throw TypeError.');
   }, 'Cache.addAll with no arguments');
@@ -132,9 +132,9 @@ cache_test(function(cache, test) {
 cache_test(function(cache, test) {
     // Assumes the existence of ../resources/simple.txt and ../resources/blank.html
     var urls = ['../resources/simple.txt', undefined, '../resources/blank.html'];
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.addAll(),
       'Cache.addAll should throw TypeError for an undefined argument.');
   }, 'Cache.addAll with a mix of valid and undefined arguments');
@@ -239,9 +239,9 @@ cache_test(function(cache, test) {
     var requests = urls.map(function(url) {
         return new Request(url);
       });
-    return promise_rejects(
+    return promise_rejects_js(
       test,
-      new TypeError(),
+      TypeError,
       cache.addAll(requests),
       'Cache.addAll should reject with TypeError if any request fails')
       .then(function() {
@@ -259,7 +259,7 @@ cache_test(function(cache, test) {
 
 cache_test(function(cache, test) {
     var request = new Request('../resources/simple.txt');
-    return promise_rejects(
+    return promise_rejects_dom(
       test,
       'InvalidStateError',
       cache.addAll([request, request]),
@@ -283,7 +283,7 @@ cache_test(async function(cache, test) {
       new Request(url, { headers: { 'x-shape': 'circle' }}),
       new Request(url, { headers: { 'x-shape': 'circle' }}),
     ];
-    await promise_rejects(
+    await promise_rejects_dom(
       test,
       'InvalidStateError',
       cache.addAll(requests),
@@ -329,7 +329,7 @@ cache_test(async function(cache, test) {
                                     'x-size': 'big' },
                          credentials: 'omit' }),
     ];
-    await promise_rejects(
+    await promise_rejects_dom(
       test,
       'InvalidStateError',
       cache.addAll(requests),
@@ -337,7 +337,7 @@ cache_test(async function(cache, test) {
       'matching an earlier entry.');
 
     // Test the reverse order now.
-    await promise_rejects(
+    await promise_rejects_dom(
       test,
       'InvalidStateError',
       cache.addAll(requests.reverse()),

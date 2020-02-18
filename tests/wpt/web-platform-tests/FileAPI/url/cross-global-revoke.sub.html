@@ -20,7 +20,7 @@ async_test(t => {
   self.addEventListener('message', t.step_func(e => {
     if (e.source !== frame.contentWindow) return;
     assert_equals(e.data, 'revoked');
-    promise_rejects(t, new TypeError, fetch(url)).then(t.step_func_done());
+    promise_rejects_js(t, TypeError, fetch(url)).then(t.step_func_done());
   }));
 }, 'It is possible to revoke same-origin blob URLs from different frames.');
 
@@ -31,7 +31,7 @@ async_test(t => {
   const worker = new Worker('resources/revoke-helper.js');
   worker.onmessage = t.step_func(e => {
     assert_equals(e.data, 'revoked');
-    promise_rejects(t, new TypeError, fetch(url)).then(t.step_func_done());
+    promise_rejects_js(t, TypeError, fetch(url)).then(t.step_func_done());
   });
   worker.postMessage({url: url});
 }, 'It is possible to revoke same-origin blob URLs from a different worker global.');

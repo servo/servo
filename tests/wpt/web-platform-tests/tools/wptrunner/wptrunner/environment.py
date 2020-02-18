@@ -127,6 +127,7 @@ class TestEnvironment(object):
             "https": [8443],
             "ws": [8888],
             "wss": [8889],
+            "h2": [9000],
         }
 
         if os.path.exists(override_path):

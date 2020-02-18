@@ -68,12 +68,12 @@
    *        will not use to generate a certificate for RTCPeerConnection.
    */
   promise_test(t =>
-    promise_rejects(t, 'NotSupportedError',
+    promise_rejects_dom(t, 'NotSupportedError',
       RTCPeerConnection.generateCertificate('invalid-algo')),
     'generateCertificate() with invalid string algorithm should reject with NotSupportedError');
 
   promise_test(t =>
-    promise_rejects(t, 'NotSupportedError',
+    promise_rejects_dom(t, 'NotSupportedError',
       RTCPeerConnection.generateCertificate({
         name: 'invalid-algo'
       })),
@@ -118,7 +118,7 @@
   }, 'generateCertificate() with 0 expires parameter should generate expired cert');
 
   promise_test(t => {
-    return promise_rejects(t, new TypeError(),
+    return promise_rejects_js(t, TypeError,
       RTCPeerConnection.generateCertificate({
         name: 'ECDSA',
         namedCurve: 'P-256',
@@ -127,7 +127,7 @@
   }, 'generateCertificate() with invalid range for expires should reject with TypeError');
 
   promise_test(t => {
-    return promise_rejects(t, new TypeError(),
+    return promise_rejects_js(t, TypeError,
       RTCPeerConnection.generateCertificate({
         name: 'ECDSA',
         namedCurve: 'P-256',

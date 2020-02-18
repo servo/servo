@@ -274,7 +274,7 @@ addPromiseTest(async function(win, test_obj) {
       if ("value" in desc) {
         if (typeof desc.value === "function" && String(desc.value).includes("[native code]")) {
           if (allowedlists.promiseMethods.includes(prop)) {
-            await promise_rejects(test_obj, "SecurityError", desc.value.call(otherObj),
+            await promise_rejects_dom(test_obj, "SecurityError", desc.value.call(otherObj),
                                   `Should throw when calling ${objName}.${prop} with cross-origin this object`);
           } else if (!allowedlists.methods.includes(prop)) {
             for (let args of methodArgs.get(prop) || [[]]) {

@@ -93,9 +93,9 @@ promise_frame_test(function(t, frame, worker) {
   }, 'The SW must intercept the request of same origin XHR.');
 
 promise_frame_test(function(t, frame, worker) {
-    return promise_rejects(
+    return promise_rejects_js(
         t,
-        new Error(),
+        frame.contentWindow.Error,
         frame.contentWindow.xhr(OTHER_BASE_URL),
         'SW fallbacked CORS-unsupported other origin XHR should fail.')
       .then(function() {
@@ -128,9 +128,9 @@ promise_frame_test(function(t, frame, worker) {
   }, 'The SW must intercept only the first request of redirected XHR.');
 
 promise_frame_test(function(t, frame, worker) {
-    return promise_rejects(
+    return promise_rejects_js(
         t,
-        new Error(),
+        frame.contentWindow.Error,
         frame.contentWindow.xhr(
           REDIRECT_URL + encodeURIComponent(OTHER_BASE_URL)),
         'SW fallbacked XHR which is redirected to CORS-unsupported ' +
@@ -181,9 +181,9 @@ promise_frame_test(function(t, frame, worker) {
   }, 'The SW must intercept the request for other origin image.');
 
 promise_frame_test(function(t, frame, worker) {
-  return promise_rejects(
+  return promise_rejects_js(
         t,
-        new Error(),
+        frame.contentWindow.Error,
         frame.contentWindow.load_image(OTHER_BASE_PNG_URL, 'anonymous'),
         'SW fallbacked CORS-unsupported other origin image request ' +
           'should fail.')
@@ -244,9 +244,9 @@ promise_frame_test(function(t, frame, worker) {
      'resource which is redirected to other origin.');
 
 promise_frame_test(function(t, frame, worker) {
-  return promise_rejects(
+  return promise_rejects_js(
         t,
-        new Error(),
+        frame.contentWindow.Error,
         frame.contentWindow.load_image(
             REDIRECT_URL + encodeURIComponent(OTHER_BASE_PNG_URL),
             'anonymous'),

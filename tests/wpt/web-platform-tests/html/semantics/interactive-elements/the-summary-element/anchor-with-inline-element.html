@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>summary element: clicking on anchor containing inline element</title>
+<link rel="author" title="Yu Han" href="mailto:yuzhehan@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-summary-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-a-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<details id="details_i">
+  <summary>Anchor text is wrapped with &lt;i&gt; tag <a href="#with_i_tag"><i id="with_i">permalink</i></a></summary>
+  <p>asdf</p>
+</details>
+
+<details id="details_span">
+  <summary>This one uses &lt;span&gt;. <a href="#with_span_tag"><span id="with_span">permalink</span></a></summary>
+  <p>asdf</p>
+</details>
+
+<details id="details_svg">
+  <summary>
+    <svg style="width: 100px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <a href="#inside_svg_w_circle">
+        <circle id="svg_circle" cx="50" cy="40" r="35"/>
+      </a>
+      <a href="#inside_svg_w_text">
+        <text id="svg_text" x="50" y="90" text-anchor="middle">
+          &lt;circle&gt;
+        </text>
+      </a>
+    </svg>
+  </summary>
+  <p>asdf</p>
+</details>
+
+<script>
+function testClickingOnInlineElement(detailsId, targetId, expected, testName) {
+  const details = document.getElementById(detailsId);
+  const target = document.getElementById(targetId);
+  const test = async_test(testName);
+
+  const promise = new Promise((resolve, reject) => {
+    window.onhashchange = test.step_func_done(() => {
+      assert_false(details.open);
+      assert_true(location.hash === expected);
+      resolve();
+    });
+  });
+
+  if (target.click) {
+    target.click();
+  }
+  else {
+    // svg element don't have click method
+    target.dispatchEvent(new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    }));
+  }
+  return promise;
+};
+
+async function testAll() {
+  try {
+    await testClickingOnInlineElement("details_i", "with_i", "#with_i_tag", "Expected <a> containing <i> to navigate");
+    await testClickingOnInlineElement("details_span", "with_span", "#with_span_tag", "Expected <a> containing <span> to navigate");
+    await testClickingOnInlineElement("details_svg", "svg_circle", "#inside_svg_w_circle", "Expected <a>, inside svg, containing <circle> to navigate");
+    await testClickingOnInlineElement("details_svg", "svg_text", "#inside_svg_w_text", "Expected <a>, inside svg, containing <text> to navigate");
+  } catch (exception) {
+    assert_unreached("should NOT-THROW exception");
+  }
+};
+
+var allTests = async_test("Clicking on anchor with embedded inline element should navigate instead of opening details");
+testAll().then(()=>{ allTests.done(); });
+</script>

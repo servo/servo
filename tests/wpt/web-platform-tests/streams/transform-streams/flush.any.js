@@ -127,5 +127,5 @@ promise_test(t => {
       controller.error(error1);
     }
   });
-  return promise_rejects(t, error1, ts.writable.getWriter().close(), 'close() should reject');
+  return promise_rejects_exactly(t, error1, ts.writable.getWriter().close(), 'close() should reject');
 }, 'error() during flush should cause writer.close() to reject');

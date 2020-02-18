@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Image set rendering</title>
+        <link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+        <link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+        <meta name="assert" content="image-set rendering">
+        <style>
+            .test {
+                display: inline-block;
+                width: 100px;
+                height: 100px;
+            }
+
+            main {
+                width: 500px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>All images below should be lime or a lime-green gradient when devicePixelRatio is 1 - no red!.</p>
+        <main>
+            <div class="test" style="background-image: url(/images/green.png)"></div>
+            <div class="test" style="background-image: linear-gradient(green, lightgreen)"></div>
+            <div class="test" style="background-image: url('/images/green.png')" ></div>
+            <div class="test" style="background-image: radial-gradient(green, lightgreen)" ></div>
+            <div class="test" style="background-image: linear-gradient(green, lightgreen)" ></div>
+            <div class="test" style="background-image: url('/images/green.png')" ></div>
+            <div class="test" style="background-image: url('/images/green.png')" ></div>
+            <div class="test" style="background-image: url('/images/green.png')" ></div>
+            <div class="test" style="background-image: url('/images/green.png')"></div>
+            <div class="test" style="background-color: lime"></div>
+            <div class="test" style="background-color: lime"></div>
+            <div class="test" style="background-color: lime"></div>
+            <div class="test" style="content: url('/images/green.png')" ></div>
+        </main>
+    </body>
+</html>

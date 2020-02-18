@@ -1,3 +1,4 @@
+import os.path
 from inspect import isabstract
 from six import iteritems, with_metaclass
 from six.moves.urllib.parse import urljoin, urlparse
@@ -60,6 +61,11 @@ class ManifestItem(with_metaclass(ManifestItemMeta)):
         """The item's type"""
         pass
 
+    @property
+    def path_parts(self):
+        # type: () -> Tuple[Text, ...]
+        return tuple(self.path.split(os.path.sep))
+
     def key(self):
         # type: () -> Hashable
         """A unique identifier for the test"""
@@ -103,14 +109,14 @@ class URLManifestItem(ManifestItem):
                  tests_root,  # type: Text
                  path,  # type: Text
                  url_base,  # type: Text
-                 url,  # type: Text
+                 url,  # type: Optional[Text]
                  **extras  # type: Any
                  ):
         # type: (...) -> None
         super(URLManifestItem, self).__init__(tests_root, path)
         assert url_base[0] == "/"
         self.url_base = url_base
-        assert url[0] != "/"
+        assert url is None or url[0] != "/"
         self._url = url
         self._extras = extras
 
@@ -122,20 +128,28 @@ class URLManifestItem(ManifestItem):
     @property
     def url(self):
         # type: () -> Text
+        rel_url = self._url or self.path.replace(os.path.sep, u"/")
         # we can outperform urljoin, because we know we just have path relative URLs
         if self.url_base == "/":
-            return "/" + self._url
-        return urljoin(self.url_base, self._url)
+            return "/" + rel_url
+        return urljoin(self.url_base, rel_url)
 
     @property
     def https(self):
         # type: () -> bool
         flags = set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
-        return ("https" in flags or "serviceworker" in flags)
+        return "https" in flags or "serviceworker" in flags
+
+    @property
+    def h2(self):
+        # type: () -> bool
+        flags = set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
+        return "h2" in flags
 
     def to_json(self):
-        # type: () -> Tuple[Text, Dict[Any, Any]]
-        rv = (self._url, {})  # type: Tuple[Text, Dict[Any, Any]]
+        # type: () -> Tuple[Optional[Text], Dict[Any, Any]]
+        rel_url = None if self._url == self.path.replace(os.path.sep, u"/") else self._url
+        rv = (rel_url, {})  # type: Tuple[Optional[Text], Dict[Any, Any]]
         return rv
 
     @classmethod
@@ -182,7 +196,7 @@ class TestharnessTest(URLManifestItem):
         return self._extras.get("script_metadata")
 
     def to_json(self):
-        # type: () -> Tuple[Text, Dict[Text, Any]]
+        # type: () -> Tuple[Optional[Text], Dict[Text, Any]]
         rv = super(TestharnessTest, self).to_json()
         if self.timeout is not None:
             rv[-1]["timeout"] = self.timeout
@@ -204,7 +218,7 @@ class RefTest(URLManifestItem):
                  tests_root,  # type: Text
                  path,  # type: Text
                  url_base,  # type: Text
-                 url,  # type: Text
+                 url,  # type: Optional[Text]
                  references=None,  # type: Optional[List[Tuple[Text, Text]]]
                  **extras  # type: Any
                  ):
@@ -248,8 +262,9 @@ class RefTest(URLManifestItem):
         return rv
 
     def to_json(self):  # type: ignore
-        # type: () -> Tuple[Text, List[Tuple[Text, Text]], Dict[Text, Any]]
-        rv = (self._url, self.references, {})  # type: Tuple[Text, List[Tuple[Text, Text]], Dict[Text, Any]]
+        # type: () -> Tuple[Optional[Text], List[Tuple[Text, Text]], Dict[Text, Any]]
+        rel_url = None if self._url == self.path else self._url
+        rv = (rel_url, self.references, {})  # type: Tuple[Optional[Text], List[Tuple[Text, Text]], Dict[Text, Any]]
         extras = rv[-1]
         if self.timeout is not None:
             extras["timeout"] = self.timeout
@@ -320,7 +335,7 @@ class WebDriverSpecTest(URLManifestItem):
         return self._extras.get("timeout")
 
     def to_json(self):
-        # type: () -> Tuple[Text, Dict[Text, Any]]
+        # type: () -> Tuple[Optional[Text], Dict[Text, Any]]
         rv = super(WebDriverSpecTest, self).to_json()
         if self.timeout is not None:
             rv[-1]["timeout"] = self.timeout

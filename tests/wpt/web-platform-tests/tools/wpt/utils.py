@@ -46,7 +46,7 @@ def call(*args):
     """
     logger.debug(" ".join(args))
     try:
-        return subprocess.check_output(args)
+        return subprocess.check_output(args).decode('utf8')
     except subprocess.CalledProcessError as e:
         logger.critical("%s exited with return code %i" %
                         (e.cmd, e.returncode))

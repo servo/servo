@@ -8,33 +8,31 @@
   </head>
   <body>
     <script>
-      function CustomTestError() {
-        const error = Error();
-        error.name = 'custom-test-error';
-        return error;
-      }
-
       function newStreamWithStartError() {
-        return new ReadableStream({
-          start(controller) {
-            controller.error(CustomTestError());
-          }
-        })
+        var err = new Error("Start error");
+        return [new ReadableStream({
+                  start(controller) {
+                      controller.error(err);
+                  }
+                }),
+                err]
       }
 
       function newStreamWithPullError() {
-        return new ReadableStream({
-          pull(controller) {
-            controller.error(CustomTestError());
-          }
-        })
+        var err = new Error("Pull error");
+        return [new ReadableStream({
+                  pull(controller) {
+                      controller.error(err);
+                  }
+                }),
+                err]
       }
 
-      function runRequestPromiseTest(stream, responseReaderMethod, testDescription) {
+      function runRequestPromiseTest([stream, err], responseReaderMethod, testDescription) {
         promise_test(test => {
-          return promise_rejects(
+          return promise_rejects_exactly(
             test,
-            CustomTestError(),
+            err,
             new Response(stream)[responseReaderMethod](),
             'CustomTestError should propagate'
           )
@@ -43,11 +41,13 @@
 
 
       promise_test(test => {
-        return promise_rejects(test, CustomTestError(), newStreamWithStartError().getReader().read(), 'CustomTestError should propagate')
+        var [stream, err] = newStreamWithStartError();
+        return promise_rejects_exactly(test, err, stream.getReader().read(), 'CustomTestError should propagate')
       }, "ReadableStreamDefaultReader Promise receives ReadableStream start() Error")
 
       promise_test(test => {
-        return promise_rejects(test, CustomTestError(), newStreamWithPullError().getReader().read(), 'CustomTestError should propagate')
+        var [stream, err] = newStreamWithPullError();
+        return promise_rejects_exactly(test, err, stream.getReader().read(), 'CustomTestError should propagate')
       }, "ReadableStreamDefaultReader Promise receives ReadableStream pull() Error")
 
 

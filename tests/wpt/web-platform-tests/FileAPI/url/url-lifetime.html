@@ -20,7 +20,7 @@ promise_test(t => {
   }).then(response => response.text()).then(text => {
     assert_equals(text, blob_contents);
     return new Promise(resolve => t.step_timeout(resolve, 100));
-  }).then(() => promise_rejects(t, new TypeError, fetch(url)));
+  }).then(() => promise_rejects_js(t, TypeError, fetch(url)));
 }, 'Terminating worker revokes its URLs');
 
 promise_test(t => {
@@ -51,6 +51,6 @@ promise_test(t => {
   }).then(response => response.text()).then(text => {
     assert_equals(text, blob_contents);
     return new Promise(resolve => t.step_timeout(resolve, 100));
-  }).then(() => promise_rejects(t, new TypeError, fetch(url)));
+  }).then(() => promise_rejects_js(t, TypeError, fetch(url)));
 }, 'Removing an iframe revokes its URLs');
 </script>

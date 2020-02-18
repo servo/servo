@@ -14,8 +14,9 @@ enum EndOfStreamError {
     "decode"
 };
 
-[Constructor]
+[Exposed=Window]
 interface MediaSource : EventTarget {
+    constructor();
     readonly        attribute SourceBufferList    sourceBuffers;
     readonly        attribute SourceBufferList    activeSourceBuffers;
     readonly        attribute ReadyState          readyState;
@@ -36,6 +37,7 @@ enum AppendMode {
     "sequence"
 };
 
+[Exposed=Window]
 interface SourceBuffer : EventTarget {
                     attribute AppendMode          mode;
     readonly        attribute boolean             updating;
@@ -56,6 +58,7 @@ interface SourceBuffer : EventTarget {
     void remove (double start, unrestricted double end);
 };
 
+[Exposed=Window]
 interface SourceBufferList : EventTarget {
     readonly        attribute unsigned long length;
                     attribute EventHandler  onaddsourcebuffer;

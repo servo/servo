@@ -29,7 +29,11 @@
       },
       "importMapBaseURL": "data:text/html,test",
       "expectedParsedImportMap": {
-        "imports": {},
+        "imports": {
+          "dotSlash": null,
+          "dotDotSlash": null,
+          "slash": null
+        },
         "scopes": {}
       }
     },
@@ -65,7 +69,15 @@
       },
       "importMapBaseURL": "https://base.example/path1/path2/path3",
       "expectedParsedImportMap": {
-        "imports": {},
+        "imports": {
+          "dotSlash1": null,
+          "dotDotSlash1": null,
+          "dotSlash2": null,
+          "dotDotSlash2": null,
+          "slash2": null,
+          "dotSlash3": null,
+          "dotDotSlash3": null
+        },
         "scopes": {}
       }
     }

@@ -30,7 +30,7 @@ function testImmediateUpdate({ textContent: testName }) {
     const retryPromise = response.retry({
       payer: { name: "Change me!" },
     });
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       eventPromise,

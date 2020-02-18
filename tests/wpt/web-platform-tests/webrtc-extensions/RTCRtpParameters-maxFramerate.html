@@ -11,7 +11,7 @@
 test(function(t) {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
-  assert_throws(new RangeError(), () => pc.addTransceiver('video', {
+  assert_throws_js(RangeError, () => pc.addTransceiver('video', {
     sendEncodings: [{
       maxFramerate: -10
     }]
@@ -29,7 +29,7 @@ promise_test(async t => {
   const encoding = getFirstEncoding(param);
 
   encoding.maxFramerate = -10;
-  return promise_rejects(t, new RangeError(),
+  return promise_rejects_js(t, RangeError,
     sender.setParameters(param));
 }, `setParameters() with encoding.maxFramerate field set to less than 0 should reject with RangeError`);
 

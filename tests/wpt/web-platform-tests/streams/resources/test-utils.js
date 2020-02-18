@@ -3,7 +3,7 @@
 self.getterRejects = (t, obj, getterName, target) => {
   const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
-  return promise_rejects(t, new TypeError(), getter.call(target), getterName + ' should reject with a TypeError');
+  return promise_rejects_js(t, TypeError, getter.call(target), getterName + ' should reject with a TypeError');
 };
 
 self.getterRejectsForAll = (t, obj, getterName, targets) => {
@@ -13,7 +13,7 @@ self.getterRejectsForAll = (t, obj, getterName, targets) => {
 self.methodRejects = (t, obj, methodName, target, args) => {
   const method = obj[methodName];
 
-  return promise_rejects(t, new TypeError(), method.apply(target, args),
+  return promise_rejects_js(t, TypeError, method.apply(target, args),
                          methodName + ' should reject with a TypeError');
 };
 

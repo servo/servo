@@ -16,6 +16,7 @@ async_test(function(t) {
 
     storage.setItem("FOO", "BAR");
     var win = window.open("resources/storage_session_window_open_second.html");
+    storage.setItem("BAZ", "QUX");
     window.addEventListener('message', t.step_func(function(e) {
         e.data.forEach(t.step_func(function(assertion) {
             assert_equals(assertion.actual, assertion.expected, assertion.message);

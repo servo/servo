@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS contain-intrinsic-size: inline flex</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="contain-intrinsic-size-015-ref.html">
+<meta name="assert" content="contain-intrinsic-size sizes an inline-flex element">
+<style>
+div {
+  display: inline-flex;
+  border: 5px solid green;
+  contain-intrinsic-size: 111px 222px;
+  contain: size;
+  color: transparent;
+}
+</style>
+
+<div>test</div>

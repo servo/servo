@@ -14,7 +14,7 @@ const toStringThrows = { toString: function() { throw new Error; } };
 const toNumberThrows = Symbol();
 
 // Test the first argument of the constructor. The key is the argument itself,
-// and the value is the first argument for assert_throws, or false if no
+// and the value is the first argument for assert_throws_js, or false if no
 // exception should be thrown.
 const testArgs = {
   // No argument or equivalent.

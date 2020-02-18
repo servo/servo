@@ -21,7 +21,7 @@ promise_test(async function(t) {
 
   await watcher.wait_for('pause');
 
-  await promise_rejects(t, 'AbortError', p, 'We expect promise being rejected');
+  await promise_rejects_dom(t, 'AbortError', p, 'We expect promise being rejected');
   assert_true(v.paused, 'paused after removing and stable state');
 });
 </script>

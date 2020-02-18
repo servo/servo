@@ -46,7 +46,7 @@
 
     const fetchPromise = w.fetch('data.json', { signal });
 
-    await promise_rejects(t, "AbortError", fetchPromise);
+    await promise_rejects_dom(t, "AbortError", fetchPromise);
 
     await w.fetch('data.json?no-abort');
 
@@ -76,7 +76,7 @@
         Promise.resolve().then(() => log.push('next-microtask'))
       ]);
 
-      await promise_rejects(t, "AbortError", bodyPromise);
+      await promise_rejects_dom(t, "AbortError", bodyPromise);
 
       assert_array_equals(log, [`${bodyMethod}-reject`, 'next-microtask']);
     }, `response.${bodyMethod}() rejects if already aborted`);
@@ -97,8 +97,8 @@
 
     controller.abort();
 
-    await promise_rejects(t, "AbortError", reader.read());
-    await promise_rejects(t, "AbortError", reader.closed);
+    await promise_rejects_dom(t, "AbortError", reader.read());
+    await promise_rejects_dom(t, "AbortError", reader.closed);
   }, "Stream errors once aborted.");
 </script>
 </body>

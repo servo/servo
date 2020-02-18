@@ -65,7 +65,7 @@
 
     return pc.createOffer()
     .then(offer =>
-      promise_rejects(t, 'InvalidStateError',
+      promise_rejects_dom(t, 'InvalidStateError',
         pc.setLocalDescription({ type: 'pranswer', sdp: offer.sdp })));
   }, 'setLocalDescription(pranswer) from stable state should reject with InvalidStateError');
 

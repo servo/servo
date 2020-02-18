@@ -229,7 +229,7 @@ promise_test(async t => {
   const s = new ReadableStream();
   const it = s[Symbol.asyncIterator]();
   await it.return();
-  return promise_rejects(t, new TypeError(), it.return(), 'return should reject');
+  return promise_rejects_js(t, TypeError, it.return(), 'return should reject');
 }, 'Calling return() twice rejects');
 
 promise_test(async () => {
@@ -250,7 +250,7 @@ promise_test(async t => {
   const it = s[Symbol.asyncIterator]();
   it.next();
 
-  await promise_rejects(t, new TypeError(), it.return(), 'return() should reject');
+  await promise_rejects_js(t, TypeError, it.return(), 'return() should reject');
   assert_array_equals(s.events, ['pull']);
 }, 'calling return() while there are pending reads rejects');
 
@@ -340,7 +340,7 @@ promise_test(async t => {
   const rs = new ReadableStream();
   const it = rs.getIterator();
   await it.return();
-  return promise_rejects(t, new TypeError(), it.next(), 'next() should reject');
+  return promise_rejects_js(t, TypeError, it.next(), 'next() should reject');
 }, 'calling next() after return() should reject');
 
 for (const preventCancel of [false, true]) {

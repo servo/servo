@@ -134,16 +134,16 @@ promise_test(t => {
     assert_equals(writer.desiredSize, -1, 'desiredSize should still be -1');
 
     return Promise.all([
-      promise_rejects(t, error1, closedPromise,
-                      'closedPromise should reject with the error returned from the sink\'s write method')
+      promise_rejects_exactly(t, error1, closedPromise,
+                              'closedPromise should reject with the error returned from the sink\'s write method')
           .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
                                     'sinkWritePromise should reject before closedPromise')),
-      promise_rejects(t, error1, writePromise,
-                      'writePromise should reject with the error returned from the sink\'s write method')
+      promise_rejects_exactly(t, error1, writePromise,
+                              'writePromise should reject with the error returned from the sink\'s write method')
           .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
                                     'sinkWritePromise should reject before writePromise')),
-      promise_rejects(t, error1, writePromise2,
-                      'writePromise2 should reject with the error returned from the sink\'s write method')
+      promise_rejects_exactly(t, error1, writePromise2,
+                              'writePromise2 should reject with the error returned from the sink\'s write method')
           .then(() => assert_equals(sinkWritePromiseRejectors.length, 0,
                                     'sinkWritePromise should reject before writePromise2')),
       flushAsyncEvents().then(() => {
@@ -163,9 +163,9 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error1, writer.write('a'),
-                         'write() should reject with the error returned from the sink\'s write method')
-      .then(() => promise_rejects(t, new TypeError(), writer.close(), 'close() should be rejected'));
+  return promise_rejects_exactly(t, error1, writer.write('a'),
+                                 'write() should reject with the error returned from the sink\'s write method')
+      .then(() => promise_rejects_js(t, TypeError, writer.close(), 'close() should be rejected'));
 }, 'when sink\'s write throws an error, the stream should become errored and the promise should reject');
 
 promise_test(t => {
@@ -178,14 +178,14 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  return promise_rejects(t, error2, writer.write('a'),
-                         'write() should reject with the error returned from the sink\'s write method ')
+  return promise_rejects_exactly(t, error2, writer.write('a'),
+                                 'write() should reject with the error returned from the sink\'s write method ')
   .then(() => {
     return Promise.all([
-      promise_rejects(t, error1, writer.ready,
-                      'writer.ready must reject with the error passed to the controller'),
-      promise_rejects(t, error1, writer.closed,
-                      'writer.closed must reject with the error passed to the controller')
+      promise_rejects_exactly(t, error1, writer.ready,
+                              'writer.ready must reject with the error passed to the controller'),
+      promise_rejects_exactly(t, error1, writer.closed,
+                              'writer.closed must reject with the error passed to the controller')
     ]);
   });
 }, 'writer.write(), ready and closed reject with the error passed to controller.error() made before sink.write' +
@@ -271,8 +271,8 @@ promise_test(t => {
   }, { highWaterMark: 0 });
   const writer = ws.getWriter();
   return Promise.all([
-    promise_rejects(t, error1, writer.ready, 'ready should be rejected'),
-    promise_rejects(t, error1, writer.write(), 'write() should be rejected')
+    promise_rejects_exactly(t, error1, writer.ready, 'ready should be rejected'),
+    promise_rejects_exactly(t, error1, writer.write(), 'write() should be rejected')
   ]);
 }, 'write() on a stream with HWM 0 should not cause the ready Promise to resolve');
 
@@ -280,5 +280,5 @@ promise_test(t => {
   const ws = new WritableStream();
   const writer = ws.getWriter();
   writer.releaseLock();
-  return promise_rejects(t, new TypeError(), writer.write(), 'write should reject');
+  return promise_rejects_js(t, TypeError, writer.write(), 'write should reject');
 }, 'writing to a released writer should reject the returned promise');

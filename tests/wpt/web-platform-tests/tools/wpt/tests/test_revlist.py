@@ -1,7 +1,4 @@
-import sys
-
 import mock
-import pytest
 from tools.wpt import revlist
 
 
@@ -13,14 +10,15 @@ def test_calculate_cutoff_date():
     assert revlist.calculate_cutoff_date(3600, 3600, -1) == 3599
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="broken on Py3")
 def test_parse_epoch():
-    assert revlist.parse_epoch(b"10h") == 36000
-    assert revlist.parse_epoch(b"10d") == 864000
-    assert revlist.parse_epoch(b"10w") == 6048000
+    assert revlist.parse_epoch("10h") == 36000
+    assert revlist.parse_epoch("10d") == 864000
+    assert revlist.parse_epoch("10w") == 6048000
 
+def check_revisions(tagged_revisions, expected_revisions):
+    for tagged, expected in zip(tagged_revisions, expected_revisions):
+        assert tagged == expected
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="broken on Py3")
 @mock.patch('subprocess.check_output')
 def test_get_epoch_revisions(mocked_check_output):
     # check:
@@ -55,16 +53,9 @@ merge_pr_C C 475200 _tue_
 merge_pr_B B 453600 _tue_
 merge_pr_A A 388800 _mon_
 '''
-    tagged_revisons = revlist.get_epoch_revisions(epoch, until, 8)
-    assert tagged_revisons.next() == 'N'
-    assert tagged_revisons.next() == 'M'
-    assert tagged_revisons.next() == 'K'
-    assert tagged_revisons.next() == 'J'
-    assert tagged_revisons.next() == 'G'
-    assert tagged_revisons.next() == 'F'
-    assert tagged_revisons.next() == 'C'
-    assert tagged_revisons.next() == 'A'
-    assert len(list(tagged_revisons)) == 0  # generator exhausted
+    tagged_revisions = revlist.get_epoch_revisions(epoch, until, 8)
+    check_revisions(tagged_revisions, ['N', 'M', 'K', 'J', 'G', 'F', 'C', 'A'])
+    assert len(list(tagged_revisions)) == 0  # generator exhausted
 
 
     # check: max_count with enough candidate items in the revision list
@@ -87,13 +78,9 @@ merge_pr_D D 648000 _thu_
 merge_pr_C C 561600 _wed_
 merge_pr_B B 475200 _thu_
 '''
-    tagged_revisons = revlist.get_epoch_revisions(epoch, until, 5)
-    assert tagged_revisons.next() == 'G'
-    assert tagged_revisons.next() == 'F'
-    assert tagged_revisons.next() == 'E'
-    assert tagged_revisons.next() == 'D'
-    assert tagged_revisons.next() == 'C'
-    assert len(list(tagged_revisons)) == 0  # generator exhausted
+    tagged_revisions = revlist.get_epoch_revisions(epoch, until, 5)
+    check_revisions(tagged_revisions, ['G', 'F', 'E', 'D', 'C'])
+    assert len(list(tagged_revisions)) == 0  # generator exhausted
 
 
     # check: max_count with less returned candidates items than the needed
@@ -112,10 +99,9 @@ merge_pr_H H 993600 _mon_
 merge_pr_G G 907200 _sun_
 merge_pr_F F 820800 _sat_
 '''
-    tagged_revisons = revlist.get_epoch_revisions(epoch, until, 5)
-    assert tagged_revisons.next() == 'G'
-    assert tagged_revisons.next() == 'F'
-    assert len(list(tagged_revisons)) == 0  # generator exhausted
+    tagged_revisions = revlist.get_epoch_revisions(epoch, until, 5)
+    check_revisions(tagged_revisions, ['G', 'F'])
+    assert len(list(tagged_revisions)) == 0  # generator exhausted
 
 
     # check: initial until value is on an epoch boundary
@@ -139,10 +125,9 @@ merge_pr_H H 1296000 _wed_
 merge_pr_G G 950400 _mon_
 merge_pr_F F 921600 _sud_
 '''
-    tagged_revisons = revlist.get_epoch_revisions(epoch, until, 3)
-    assert tagged_revisons.next() == 'G'
-    assert tagged_revisons.next() == 'F'
-    assert len(list(tagged_revisons)) == 0  # generator exhausted
+    tagged_revisions = revlist.get_epoch_revisions(epoch, until, 3)
+    check_revisions(tagged_revisions, ['G', 'F'])
+    assert len(list(tagged_revisions)) == 0  # generator exhausted
 
 
     # check: until aligned with Monday, 5 January 1970 0:00:00 (345600)
@@ -163,6 +148,6 @@ merge_pr_H H 1180800 _wed_
 merge_pr_G G 950400 _mon_
 merge_pr_F F 921600 _sud_
 '''
-    tagged_revisons = revlist.get_epoch_revisions(epoch, until, 1)
-    assert tagged_revisons.next() == 'F'
-    assert len(list(tagged_revisons)) == 0  # generator exhausted
+    tagged_revisions = revlist.get_epoch_revisions(epoch, until, 1)
+    check_revisions(tagged_revisions, ['F'])
+    assert len(list(tagged_revisions)) == 0  # generator exhausted

@@ -22,7 +22,7 @@ promise_test(async t => {
     new ReportingObserver((reports, observer) => resolve([reports, observer]),
                           {types: ['feature-policy-violation']}).observe();
   });
-  await promise_rejects(t, "SecurityError",
+  await promise_rejects_dom(t, "SecurityError",
     navigator.requestMediaKeySystemAccess("org.w3.clearkey",
       [{
         initDataTypes: ["webm"],

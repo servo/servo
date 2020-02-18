@@ -25,7 +25,7 @@ promise_test(t => {
   return flushAsyncEvents().then(() => {
     ws.controller.error(error1);
   })
-  .then(() => promise_rejects(t, error1, pipePromise, 'pipeTo must reject with the same error'))
+  .then(() => promise_rejects_exactly(t, error1, pipePromise, 'pipeTo must reject with the same error'))
   .then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, []);

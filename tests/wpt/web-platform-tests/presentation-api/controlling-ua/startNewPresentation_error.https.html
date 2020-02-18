@@ -11,7 +11,7 @@
     // -----------------------------------
     promise_test(function (t) {
       var request = new PresentationRequest('presentation.html');
-      return promise_rejects(t, 'InvalidAccessError', request.start());
+      return promise_rejects_dom(t, 'InvalidAccessError', request.start());
     }, "The presentation could not start, because a user gesture is required.");
     // ----------------------------------
     // Launch New Presentation Test - end

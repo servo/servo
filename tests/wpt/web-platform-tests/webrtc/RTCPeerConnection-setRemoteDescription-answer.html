@@ -102,7 +102,7 @@
 
     return pc.createOffer()
     .then(offer =>
-      promise_rejects(t, 'InvalidStateError',
+      promise_rejects_dom(t, 'InvalidStateError',
         pc.setRemoteDescription({ type: 'answer', sdp: offer.sdp })));
   }, 'Calling setRemoteDescription(answer) from stable state should reject with InvalidStateError');
 
@@ -116,7 +116,7 @@
       pc.setRemoteDescription(offer)
       .then(() => generateAnswer(offer)))
     .then(answer =>
-      promise_rejects(t, 'InvalidStateError',
+      promise_rejects_dom(t, 'InvalidStateError',
         pc.setRemoteDescription(answer)));
   }, 'Calling setRemoteDescription(answer) from have-remote-offer state should reject with InvalidStateError');
 
