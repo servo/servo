@@ -787,6 +787,12 @@ impl HTMLElement {
             return Some("rtl".to_owned());
         }
 
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            if input.input_type() == InputType::Tel {
+                return Some("ltr".to_owned());
+            }
+        }
+
         if element_direction == "auto" {
             if let Some(directionality) = self
                 .downcast::<HTMLInputElement>()

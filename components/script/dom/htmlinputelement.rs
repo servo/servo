@@ -330,7 +330,6 @@ impl HTMLInputElement {
 
     pub fn auto_directionality(&self) -> Option<String> {
         match self.input_type() {
-            InputType::Tel => return Some("ltr".to_owned()),
             InputType::Text | InputType::Search | InputType::Url | InputType::Email => {
                 let value: String = self.Value().to_string();
                 Some(HTMLInputElement::directionality_from_value(&value))
