@@ -481,14 +481,14 @@ interface mixin WebGL2RenderingContextBase
   /* Multiple Render Targets */
   // void drawBuffers(sequence<GLenum> buffers);
 
-  // void clearBufferfv(GLenum buffer, GLint drawbuffer, Float32List values,
-  //                    optional GLuint srcOffset = 0);
-  // void clearBufferiv(GLenum buffer, GLint drawbuffer, Int32List values,
-  //                    optional GLuint srcOffset = 0);
-  // void clearBufferuiv(GLenum buffer, GLint drawbuffer, Uint32List values,
-  //                     optional GLuint srcOffset = 0);
+  void clearBufferfv(GLenum buffer, GLint drawbuffer, Float32List values,
+                     optional GLuint srcOffset = 0);
+  void clearBufferiv(GLenum buffer, GLint drawbuffer, Int32List values,
+                     optional GLuint srcOffset = 0);
+  void clearBufferuiv(GLenum buffer, GLint drawbuffer, Uint32List values,
+                      optional GLuint srcOffset = 0);
 
-  // void clearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
+  void clearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 
   /* Query Objects */
   WebGLQuery? createQuery();

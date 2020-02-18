@@ -557,6 +557,52 @@ impl WebGL2RenderingContext {
         let retval = receiver.recv().unwrap();
         Ok(Int32Value(retval))
     }
+
+    fn clearbuffer_array_size(&self, buffer: u32, draw_buffer: i32) -> WebGLResult<usize> {
+        match buffer {
+            constants::COLOR => {
+                if draw_buffer < 0 || draw_buffer as u32 >= self.base.limits().max_draw_buffers {
+                    return Err(InvalidValue);
+                }
+                Ok(4)
+            },
+            constants::DEPTH | constants::STENCIL | constants::DEPTH_STENCIL => {
+                if draw_buffer != 0 {
+                    return Err(InvalidValue);
+                }
+                Ok(1)
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    fn clear_buffer<T: Clone>(
+        &self,
+        buffer: u32,
+        draw_buffer: i32,
+        valid_buffers: &[u32],
+        src_offset: u32,
+        array: Vec<T>,
+        msg: fn(u32, i32, Vec<T>) -> WebGLCommand,
+    ) {
+        if !valid_buffers.contains(&buffer) {
+            return self.base.webgl_error(InvalidEnum);
+        }
+
+        let array_size = handle_potential_webgl_error!(
+            self.base,
+            self.clearbuffer_array_size(buffer, draw_buffer),
+            return
+        );
+        let src_offset = src_offset as usize;
+
+        if array.len() < src_offset + array_size {
+            return self.base.webgl_error(InvalidValue);
+        }
+        let array = array[src_offset..src_offset + array_size].to_vec();
+
+        self.base.send_command(msg(buffer, draw_buffer, array));
+    }
 }
 
 impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
@@ -3364,6 +3410,92 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             program.bind_uniform_block(block_index, block_binding),
             return
         )
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    fn ClearBufferfv(
+        &self,
+        buffer: u32,
+        draw_buffer: i32,
+        values: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+    ) {
+        let array = match values {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        self.clear_buffer::<f32>(
+            buffer,
+            draw_buffer,
+            &[constants::COLOR, constants::DEPTH],
+            src_offset,
+            array,
+            WebGLCommand::ClearBufferfv,
+        )
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    fn ClearBufferiv(
+        &self,
+        buffer: u32,
+        draw_buffer: i32,
+        values: Int32ArrayOrLongSequence,
+        src_offset: u32,
+    ) {
+        let array = match values {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
+        self.clear_buffer::<i32>(
+            buffer,
+            draw_buffer,
+            &[constants::COLOR, constants::STENCIL],
+            src_offset,
+            array,
+            WebGLCommand::ClearBufferiv,
+        )
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    fn ClearBufferuiv(
+        &self,
+        buffer: u32,
+        draw_buffer: i32,
+        values: Uint32ArrayOrUnsignedLongSequence,
+        src_offset: u32,
+    ) {
+        let array = match values {
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
+            Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
+        };
+        self.clear_buffer::<u32>(
+            buffer,
+            draw_buffer,
+            &[constants::COLOR],
+            src_offset,
+            array,
+            WebGLCommand::ClearBufferuiv,
+        )
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    fn ClearBufferfi(&self, buffer: u32, draw_buffer: i32, depth: f32, stencil: i32) {
+        if buffer != constants::DEPTH_STENCIL {
+            return self.base.webgl_error(InvalidEnum);
+        }
+
+        handle_potential_webgl_error!(
+            self.base,
+            self.clearbuffer_array_size(buffer, draw_buffer),
+            return
+        );
+
+        self.base.send_command(WebGLCommand::ClearBufferfi(
+            buffer,
+            draw_buffer,
+            depth,
+            stencil,
+        ));
     }
 }
 
