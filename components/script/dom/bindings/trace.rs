@@ -83,8 +83,8 @@ use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{
-    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId,
-    TopLevelBrowsingContextId,
+    BlobId, BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
+    MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
 };
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -174,6 +174,8 @@ unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);
 unsafe_no_jsmanaged_fields!(RefCell<Option<MessagePortId>>);
 unsafe_no_jsmanaged_fields!(MessagePortRouterId);
+
+unsafe_no_jsmanaged_fields!(BroadcastChannelRouterId);
 
 unsafe_no_jsmanaged_fields!(BlobId);
 unsafe_no_jsmanaged_fields!(BlobImpl);

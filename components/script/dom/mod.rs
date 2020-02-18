@@ -239,6 +239,7 @@ pub mod bluetoothremotegattdescriptor;
 pub mod bluetoothremotegattserver;
 pub mod bluetoothremotegattservice;
 pub mod bluetoothuuid;
+pub mod broadcastchannel;
 pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;

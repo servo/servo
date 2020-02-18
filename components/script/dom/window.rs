@@ -1407,8 +1407,8 @@ impl Window {
             .upcast::<Node>()
             .teardown(self.layout_chan());
 
-        // Tell the constellation to drop the sender to our message-port router, if there is any.
-        self.upcast::<GlobalScope>().remove_message_ports_router();
+        // Remove the infra for managing messageports and broadcast channels.
+        self.upcast::<GlobalScope>().remove_web_messaging_infra();
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318

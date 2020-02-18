@@ -126,12 +126,12 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
 use msg::constellation_msg::{
-    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
-    TopLevelBrowsingContextId,
+    BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineNamespace,
+    PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
 };
 use msg::constellation_msg::{
-    MessagePortId, MessagePortRouterId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TraversalDirection,
+    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestBuilder;
@@ -142,7 +142,8 @@ use profile_traits::time;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
 use script_traits::{
-    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, CompositorEvent,
+    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg,
+    CompositorEvent,
 };
 use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData, LoadOrigin};
@@ -398,6 +399,12 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A map of router-id to ipc-sender, to route messages to ports.
     message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
+
+    /// A map of broadcast routers to their IPC sender.
+    broadcast_routers: HashMap<BroadcastChannelRouterId, IpcSender<BroadcastMsg>>,
+
+    /// A map of origin to a map of channel-name to a list of relevant routers.
+    broadcast_channels: HashMap<ImmutableOrigin, HashMap<String, Vec<BroadcastChannelRouterId>>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -961,6 +968,8 @@ where
                     browsing_context_group_next_id: Default::default(),
                     message_ports: HashMap::new(),
                     message_port_routers: HashMap::new(),
+                    broadcast_routers: HashMap::new(),
+                    broadcast_channels: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1760,6 +1769,36 @@ where
             FromScriptMsg::EntanglePorts(port1, port2) => {
                 self.handle_entangle_messageports(port1, port2);
             },
+            FromScriptMsg::NewBroadcastChannelRouter(router_id, ipc_sender, origin) => {
+                self.handle_new_broadcast_channel_router(
+                    source_pipeline_id,
+                    router_id,
+                    ipc_sender,
+                    origin,
+                );
+            },
+            FromScriptMsg::NewBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+                self.handle_new_broadcast_channel_name_in_router(
+                    source_pipeline_id,
+                    router_id,
+                    channel_name,
+                    origin,
+                );
+            },
+            FromScriptMsg::RemoveBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+                self.handle_remove_broadcast_channel_name_in_router(
+                    source_pipeline_id,
+                    router_id,
+                    channel_name,
+                    origin,
+                );
+            },
+            FromScriptMsg::RemoveBroadcastChannelRouter(router_id, origin) => {
+                self.handle_remove_broadcast_channel_router(source_pipeline_id, router_id, origin);
+            },
+            FromScriptMsg::ScheduleBroadcast(router_id, message) => {
+                self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
@@ -1973,6 +2012,170 @@ where
                     BrowsingContextId::from(source_top_ctx_id),
                     FromScriptMsg::RequestAdapter(sender, options, ids),
                 ),
+        }
+    }
+
+    /// Check the origin of a message against that of the pipeline it came from.
+    /// Note: this is still limited as a security check,
+    /// see https://github.com/servo/servo/issues/11722
+    fn check_origin_against_pipeline(
+        &self,
+        pipeline_id: &PipelineId,
+        origin: &ImmutableOrigin,
+    ) -> Result<(), ()> {
+        let pipeline_origin = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.load_data.url.origin(),
+            None => {
+                warn!("Received message from closed or unknown pipeline.");
+                return Err(());
+            },
+        };
+        if &pipeline_origin == origin {
+            return Ok(());
+        }
+        Err(())
+    }
+
+    /// Broadcast a message via routers in various event-loops.
+    fn handle_schedule_broadcast(
+        &self,
+        pipeline_id: PipelineId,
+        router_id: BroadcastChannelRouterId,
+        message: BroadcastMsg,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &message.origin)
+            .is_err()
+        {
+            return warn!(
+                "Attempt to schedule broadcast from an origin not matching the origin of the msg."
+            );
+        }
+        if let Some(channels) = self.broadcast_channels.get(&message.origin) {
+            let routers = match channels.get(&message.channel_name) {
+                Some(routers) => routers,
+                None => return warn!("Broadcast to channel name without active routers."),
+            };
+            for router in routers {
+                // Exclude the sender of the broadcast.
+                // Broadcasting locally is done at the point of sending.
+                if router == &router_id {
+                    continue;
+                }
+
+                if let Some(sender) = self.broadcast_routers.get(&router) {
+                    if sender.send(message.clone()).is_err() {
+                        warn!("Failed to broadcast message to router: {:?}", router);
+                    }
+                } else {
+                    warn!("No sender for broadcast router: {:?}", router);
+                }
+            }
+        } else {
+            warn!(
+                "Attempt to schedule a broadcast for an origin without routers {:?}",
+                message.origin
+            );
+        }
+    }
+
+    /// Remove a channel-name for a given broadcast router.
+    fn handle_remove_broadcast_channel_name_in_router(
+        &mut self,
+        pipeline_id: PipelineId,
+        router_id: BroadcastChannelRouterId,
+        channel_name: String,
+        origin: ImmutableOrigin,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!("Attempt to remove channel name from an unexpected origin.");
+        }
+        if let Some(channels) = self.broadcast_channels.get_mut(&origin) {
+            let is_empty = if let Some(routers) = channels.get_mut(&channel_name) {
+                routers.retain(|router| router != &router_id);
+                routers.is_empty()
+            } else {
+                return warn!(
+                    "Multiple attemps to remove name for broadcast-channel {:?} at {:?}",
+                    channel_name, origin
+                );
+            };
+            if is_empty {
+                channels.remove(&channel_name);
+            }
+        } else {
+            warn!(
+                "Attempt to remove a channel-name for an origin without channels {:?}",
+                origin
+            );
+        }
+    }
+
+    /// Note a new channel-name relevant to a given broadcast router.
+    fn handle_new_broadcast_channel_name_in_router(
+        &mut self,
+        pipeline_id: PipelineId,
+        router_id: BroadcastChannelRouterId,
+        channel_name: String,
+        origin: ImmutableOrigin,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!("Attempt to add channel name from an unexpected origin.");
+        }
+        let channels = self
+            .broadcast_channels
+            .entry(origin)
+            .or_insert_with(HashMap::new);
+
+        let routers = channels.entry(channel_name).or_insert_with(Vec::new);
+
+        routers.push(router_id);
+    }
+
+    /// Remove a broadcast router.
+    fn handle_remove_broadcast_channel_router(
+        &mut self,
+        pipeline_id: PipelineId,
+        router_id: BroadcastChannelRouterId,
+        origin: ImmutableOrigin,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!("Attempt to remove broadcast router from an unexpected origin.");
+        }
+        if self.broadcast_routers.remove(&router_id).is_none() {
+            warn!("Attempt to remove unknown broadcast-channel router.");
+        }
+    }
+
+    /// Add a new broadcast router.
+    fn handle_new_broadcast_channel_router(
+        &mut self,
+        pipeline_id: PipelineId,
+        router_id: BroadcastChannelRouterId,
+        ipc_sender: IpcSender<BroadcastMsg>,
+        origin: ImmutableOrigin,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!("Attempt to add broadcast router from an unexpected origin.");
+        }
+        if self
+            .broadcast_routers
+            .insert(router_id, ipc_sender)
+            .is_some()
+        {
+            warn!("Multple attempt to add broadcast-channel router.");
         }
     }
 
