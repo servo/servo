@@ -24,6 +24,7 @@ import shutil
 import subprocess
 from xml.etree.ElementTree import XML
 from six import iteritems
+import io
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -560,15 +561,15 @@ class MachCommands(CommandBase):
 
         def format(outputs, description, file=sys.stdout):
             formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
-            file.write(formatted.encode("utf-8"))
+            file.write(formatted)
 
         if log_intermittents:
-            with open(log_intermittents, "wb") as file:
+            with io.open(log_intermittents, "w", encoding="utf-8") as file:
                 format(intermittents, "known-intermittent unexpected results", file)
 
         description = "unexpected results that are NOT known-intermittents"
         if log_filteredsummary:
-            with open(log_filteredsummary, "wb") as file:
+            with io.open(log_filteredsummary, "w", encoding="utf-8") as file:
                 format(actual_failures, description, file)
 
         if actual_failures:
