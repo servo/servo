@@ -45,6 +45,12 @@ impl GPUBindGroup {
     }
 }
 
+impl GPUBindGroup {
+    pub fn id(&self) -> &WebGPUBindGroup {
+        &self.bind_group
+    }
+}
+
 impl GPUBindGroupMethods for GPUBindGroup {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

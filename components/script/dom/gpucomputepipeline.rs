@@ -42,6 +42,12 @@ impl GPUComputePipeline {
     }
 }
 
+impl GPUComputePipeline {
+    pub fn id(&self) -> &WebGPUComputePipeline {
+        &self.compute_pipeline
+    }
+}
+
 impl GPUComputePipelineMethods for GPUComputePipeline {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

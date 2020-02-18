@@ -5,11 +5,13 @@
 // https://gpuweb.github.io/gpuweb/#gpucomputepassencoder
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUComputePassEncoder {
-    // void setPipeline(GPUComputePipeline pipeline);
-    // void dispatch(unsigned long x, optional unsigned long y = 1, optional unsigned long z = 1);
+    void setPipeline(GPUComputePipeline pipeline);
+    void dispatch(GPUSize32 x, optional GPUSize32 y = 1, optional GPUSize32 z = 1);
     // void dispatchIndirect(GPUBuffer indirectBuffer, GPUBufferSize indirectOffset);
 
-    // void endPass();
+    void endPass();
 };
 GPUComputePassEncoder includes GPUObjectBase;
 GPUComputePassEncoder includes GPUProgrammablePassEncoder;
+
+typedef [EnforceRange] unsigned long GPUSize32;
