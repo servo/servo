@@ -535,6 +535,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::UNIFORM_BUFFER_OFFSET_ALIGNMENT => {
                 Some(self.base.limits().uniform_buffer_offset_alignment)
             },
+            constants::MAX_COLOR_ATTACHMENTS => Some(self.base.limits().max_color_attachments),
+            constants::MAX_DRAW_BUFFERS => Some(self.base.limits().max_draw_buffers),
             _ => None,
         };
         if let Some(limit) = limit {
