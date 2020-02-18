@@ -22,7 +22,7 @@ async_test(function(t) {
     // We can still access the adopted node, since it is still same-origin-domain,
     // but accessing the unadopted node throws a security exception.
     assert_equals(nodeToAdopt.ownerDocument, document);
-    assert_throws(null, function() { nodeToLeaveUnadopted.ownerDocument; });
+    assert_throws_exactly(null, function() { nodeToLeaveUnadopted.ownerDocument; });
     t.done();
   });
   document.body.appendChild(iframe);

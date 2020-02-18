@@ -8,20 +8,20 @@ test(function() {
   var t = new TestBinding;
   t.passSequence([1,, 3]);
   t.passStringSequence(["camembert",, "comté"]);
-  assert_throws(new TypeError, function () { t.passInterfaceSequence([new Blob,, new Blob]) });
+  assert_throws_js(TypeError, function () { t.passInterfaceSequence([new Blob,, new Blob]) });
 }, "Sequences with holes are correctly handled");
 
 test(function() {
   var test_error = { name: "test" };
   Object.defineProperty(Array.prototype, 1, { get: function() { throw test_error; } });
   var t = new TestBinding;
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     t.passSequence([1,, 3]);
   });
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     t.passStringSequence(["camembert",, "comté"]);
   });
-  assert_throws(test_error, function() {
+  assert_throws_exactly(test_error, function() {
     t.passInterfaceSequence([new Blob,, new Blob]);
   });
 }, "Sequences with holes and a getter on the prototype are correctly handled");

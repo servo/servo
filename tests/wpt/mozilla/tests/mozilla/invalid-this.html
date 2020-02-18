@@ -5,9 +5,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-  assert_throws(new TypeError(), function() { window.atob.call("", localStorage); })
-  assert_throws(new TypeError(), function() { window.removeEventListener.call("", ""); })
-  assert_throws(new TypeError(), function() { window.alert.call(""); })
-  assert_throws(new TypeError(), function() { window.moveTo.call(128); })
+  assert_throws_js(TypeError, function() { window.atob.call("", localStorage); })
+  assert_throws_js(TypeError, function() { window.removeEventListener.call("", ""); })
+  assert_throws_js(TypeError, function() { window.alert.call(""); })
+  assert_throws_js(TypeError, function() { window.moveTo.call(128); })
 })
 </script>
