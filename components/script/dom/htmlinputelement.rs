@@ -339,14 +339,14 @@ impl HTMLInputElement {
     }
 
     pub fn directionality_from_value(value: &str) -> String {
-        if HTMLInputElement::first_strong_character_is_rtl(value) {
+        if HTMLInputElement::is_first_strong_character_rtl(value) {
             "rtl".to_owned()
         } else {
             "ltr".to_owned()
         }
     }
 
-    fn first_strong_character_is_rtl(value: &str) -> bool {
+    fn is_first_strong_character_rtl(value: &str) -> bool {
         for ch in value.chars() {
             return match bidi_class(ch) {
                 BidiClass::L => false,

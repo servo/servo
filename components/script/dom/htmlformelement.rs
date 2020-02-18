@@ -951,17 +951,6 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
                         data_set.append(&mut input.form_datums(submitter, encoding));
-
-                        let input_element = child.downcast::<Element>().unwrap();
-                        let dirname: DOMString = input.DirName();
-                        if !dirname.is_empty() {
-                            let directionality = DOMString::from(input_element.directionality());
-                            data_set.push(FormDatum {
-                                ty: input.Type().clone(),
-                                name: dirname.clone(),
-                                value: FormDatumValue::String(directionality),
-                            });
-                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -987,20 +976,30 @@ impl HTMLFormElement {
                                 value: FormDatumValue::String(textarea.Value()),
                             });
                         }
-
-                        let area_element = child.downcast::<Element>().unwrap();
-                        let dirname: DOMString = textarea.DirName();
-                        if !dirname.is_empty() {
-                            let directionality = DOMString::from(area_element.directionality());
-                            data_set.push(FormDatum {
-                                ty: textarea.Type().clone(),
-                                name: dirname.clone(),
-                                value: FormDatumValue::String(directionality),
-                            });
-                        }
                     },
                     _ => (),
                 }
+            }
+
+            // Step: 5.13. Add an entry if element has dirname attribute
+            // An element can only have a dirname attribute if it is a textarea element
+            // or an input element whose type attribute is in either the Text state or the Search state
+            let child_element = child.downcast::<Element>().unwrap();
+            let input_matches = child_element
+                .downcast::<HTMLInputElement>()
+                .map(|input| {
+                    input.input_type() == InputType::Text || input.input_type() == InputType::Search
+                })
+                .unwrap_or(false);
+            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
+            let dirname = child_element.get_string_attribute(&local_name!("dirname"));
+            if (input_matches || textarea_matches) && !dirname.is_empty() {
+                let dir = DOMString::from(child_element.directionality());
+                data_set.push(FormDatum {
+                    ty: DOMString::from("string"),
+                    name: dirname.clone(),
+                    value: FormDatumValue::String(dir),
+                });
             }
         }
         data_set
