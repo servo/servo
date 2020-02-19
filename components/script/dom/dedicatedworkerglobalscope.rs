@@ -26,7 +26,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
-use crate::realms::enter_realm;
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{
     new_child_runtime, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
@@ -555,8 +555,10 @@ impl DedicatedWorkerGlobalScope {
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
-    let worker = DomRoot::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
-        .expect("global is not a worker scope");
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    let worker =
+        DomRoot::downcast::<WorkerGlobalScope>(global).expect("global is not a worker scope");
     assert!(worker.is::<DedicatedWorkerGlobalScope>());
 
     // A false response causes the script to terminate

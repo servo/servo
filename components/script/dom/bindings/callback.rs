@@ -13,9 +13,9 @@ use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript}
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
 use js::jsapi::Heap;
-use js::jsapi::JSAutoRealm;
 use js::jsapi::{AddRawValueRoot, IsCallable, JSObject};
 use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -270,11 +270,8 @@ impl Drop for CallSetup {
         unsafe {
             LeaveRealm(*self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoRealm::new(
-                    *self.cx,
-                    self.exception_global.reflector().get_jsobject().get(),
-                );
-                report_pending_exception(*self.cx, true);
+                let ar = enter_realm(&*self.exception_global);
+                report_pending_exception(*self.cx, true, InRealm::Entered(&ar));
             }
             drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());

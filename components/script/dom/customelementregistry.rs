@@ -31,7 +31,7 @@ use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncludi
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
@@ -652,8 +652,9 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let global = GlobalScope::current().expect("No current global");
         let cx = global.get_cx();
         unsafe {
+            let ar = enter_realm(&*global);
             throw_dom_exception(cx, &global, error);
-            report_pending_exception(*cx, true);
+            report_pending_exception(*cx, true, InRealm::Entered(&ar));
         }
 
         return;

@@ -34,10 +34,10 @@ use crate::dom::node::document_from_node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::enter_realm;
+use crate::realms::{enter_realm, InRealm};
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSAutoRealm, JSFunction, JS_GetFunctionObject, SourceText};
+use js::jsapi::{JSFunction, JS_GetFunctionObject, SourceText};
 use js::rust::wrappers::CompileFunction;
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::c_char;
@@ -552,9 +552,9 @@ impl EventTarget {
         if !rv || handler.get().is_null() {
             // Step 3.7
             unsafe {
-                let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
+                let ar = enter_realm(&*self);
                 // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false);
+                report_pending_exception(*cx, false, InRealm::Entered(&ar));
             }
             return None;
         }

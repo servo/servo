@@ -30,6 +30,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
@@ -232,7 +233,8 @@ unsafe extern "C" fn promise_rejection_tracker(
 
     // Step 3.
     let cx = JSContext::from_ptr(cx);
-    let global = GlobalScope::from_context(*cx);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
     wrap_panic(
         AssertUnwindSafe(|| {
@@ -908,7 +910,8 @@ unsafe extern "C" fn consume_stream(
     _consumer: *mut JSStreamConsumer,
 ) -> bool {
     let cx = JSContext::from_ptr(_cx);
-    let global = GlobalScope::from_context(*cx);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
     //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
     if let Ok(unwrapped_source) =
