@@ -136,7 +136,7 @@ function assert_service_worker_is_blocked(url, description) {
           assert_equals(e.violatedDirective, "worker-src");
           assert_equals(e.effectiveDirective, "worker-src");
         })),
-      promise_rejects(t, "SecurityError", navigator.serviceWorker.register(url, { scope: url }))
+      promise_rejects_dom(t, "SecurityError", navigator.serviceWorker.register(url, { scope: url }))
     ]);
   }, description);
 }

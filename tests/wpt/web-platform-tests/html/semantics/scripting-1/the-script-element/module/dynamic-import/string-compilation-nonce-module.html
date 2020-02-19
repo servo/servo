@@ -80,7 +80,7 @@ promise_test(t => {
   );
   dummyDiv.onclick();
 
-  return promise_rejects(t, new TypeError(), promise);
+  return promise_rejects_js(t, TypeError, promise);
 }, "reflected inline event handlers must not inherit the nonce from the triggering script, thus fail");
 
 promise_test(t => {
@@ -98,6 +98,6 @@ promise_test(t => {
   assert_equals(typeof dummyDiv.onclick, 'function', "the browser must be able to parse a string containing the import() syntax into a function");
   dummyDiv.click(); // different from **on**click()
 
-  return promise_rejects(t, new TypeError(), promise);
+  return promise_rejects_js(t, TypeError, promise);
 }, "inline event handlers triggered via UA code must not inherit the nonce from the triggering script, thus fail");
 </script>

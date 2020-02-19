@@ -15,7 +15,7 @@ test(function() {
   assert_true(doctype1.isSameNode(doctype1), "self-comparison");
   assert_false(doctype1.isSameNode(doctype2), "same properties");
   assert_false(doctype1.isSameNode(null), "with null other node");
-}, "doctypes should be comapred on reference");
+}, "doctypes should be compared on reference");
 
 test(function() {
 
@@ -95,6 +95,17 @@ test(function() {
   assert_false(document1.isSameNode(document2), "another empty XML document");
   assert_false(document1.isSameNode(null), "with null other node");
 
-}, "documents should not be compared on reference");
+}, "documents should be compared on reference");
+
+test(function() {
+
+  var attr1 = document.createAttribute('href');
+  var attr2 = document.createAttribute('href');
+
+  assert_true(attr1.isSameNode(attr1), "self-comparison");
+  assert_false(attr1.isSameNode(attr2), "same name");
+  assert_false(attr1.isSameNode(null), "with null other node");
+
+}, "attributes should be compared on reference");
 
 </script>

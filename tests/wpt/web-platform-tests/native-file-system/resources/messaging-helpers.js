@@ -175,3 +175,13 @@ async function do_post_message_test(
 
   await assert_equals_cloned_handles(response.cloned_handles, handles);
 }
+
+// Runs the same test as do_post_message_test(), but uses a MessagePort.
+// This test starts by establishing a message channel between the test runner
+// and |target|. Afterwards, the test sends FileSystemHandles through the
+// message port channel.
+async function do_message_port_test(test, root_dir, target, target_origin) {
+  const message_port = create_message_channel(target, target_origin);
+  await do_post_message_test(
+      test, root_dir, /*receiver=*/ message_port, /*target=*/ message_port);
+}

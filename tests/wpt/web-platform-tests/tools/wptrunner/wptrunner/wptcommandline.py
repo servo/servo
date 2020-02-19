@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
-from six import iterkeys, itervalues, iteritems
+from six import iterkeys, itervalues, iteritems, string_types
 
 from . import config
 from . import wpttest
@@ -210,13 +210,17 @@ scheme host and port.""")
                               help="Path to config file")
     config_group.add_argument("--install-fonts", action="store_true",
                               default=None,
-                              help="Allow the wptrunner to install fonts on your system")
+                              help="Install additional system fonts on your system")
+    config_group.add_argument("--no-install-fonts", dest="install_fonts", action="store_false",
+                              help="Do not install additional system fonts on your system")
     config_group.add_argument("--font-dir", action="store", type=abs_path, dest="font_dir",
                               help="Path to local font installation directory", default=None)
     config_group.add_argument("--headless", action="store_true",
                               help="Run browser in headless mode", default=None)
     config_group.add_argument("--no-headless", action="store_false", dest="headless",
                               help="Don't run browser in headless mode")
+    config_group.add_argument("--instrument-to-file", action="store",
+                              help="Path to write instrumentation logs to")
 
     build_type = parser.add_mutually_exclusive_group()
     build_type.add_argument("--debug-build", dest="debug", action="store_true",
@@ -535,7 +539,7 @@ def check_args(kwargs):
 
     if kwargs['extra_prefs']:
         # If a single pref is passed in as a string, make it a list
-        if type(kwargs['extra_prefs']) in (str, unicode):
+        if isinstance(kwargs['extra_prefs'], string_types):
             kwargs['extra_prefs'] = [kwargs['extra_prefs']]
         missing = any('=' not in prefarg for prefarg in kwargs['extra_prefs'])
         if missing:

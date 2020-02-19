@@ -6,9 +6,14 @@
 <style>
 div {
   font-family: monospace;
+  width: 2em;
 }
+[lang=ja] { border: solid blue; }
+[lang=ja-Hang] { border: solid orange; }
 </style>
 
-<p>The test passes if the first line below ends with a hyphen.
+<p>The test passes if the second line in the blue box below <em>starts with</em> a “〜”,
+and if the second line in the orange box below <em>ends with</em> a “〜”.
 
-<div lang=ja-Latn>Fushimi&#x2010;<br>ku</div>
+<div lang=ja>東京<br>〜大<br>阪</div>
+<div lang=ja-Hang>도<br>쿄〜<br>오사<br>카</div>

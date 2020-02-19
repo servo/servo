@@ -35,7 +35,7 @@ promise_test(t => {
 
   return Promise.all([
     writer.write('a'),
-    promise_rejects(t, error1, writer.closed, 'controller.error() in write() should error the stream')
+    promise_rejects_exactly(t, error1, writer.closed, 'controller.error() in write() should error the stream')
   ]);
 }, 'controller argument should be passed to write method');
 

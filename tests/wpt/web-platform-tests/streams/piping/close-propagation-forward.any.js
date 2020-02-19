@@ -45,13 +45,13 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error').then(() => {
     assert_array_equals(rs.events, []);
     assert_array_equals(ws.events, ['close']);
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error1, ws.getWriter().closed)
+      promise_rejects_exactly(t, error1, ws.getWriter().closed)
     ]);
   });
 
@@ -190,7 +190,7 @@ promise_test(t => {
     }
   });
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.close());
 
@@ -200,7 +200,7 @@ promise_test(t => {
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error1, ws.getWriter().closed)
+      promise_rejects_exactly(t, error1, ws.getWriter().closed)
     ]);
   });
 
@@ -264,7 +264,7 @@ promise_test(t => {
     }
   }, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.close());
 
@@ -274,7 +274,7 @@ promise_test(t => {
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error1, ws.getWriter().closed)
+      promise_rejects_exactly(t, error1, ws.getWriter().closed)
     ]);
   });
 
@@ -342,7 +342,7 @@ promise_test(t => {
     }
   });
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -355,7 +355,7 @@ promise_test(t => {
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error1, ws.getWriter().closed)
+      promise_rejects_exactly(t, error1, ws.getWriter().closed)
     ]);
   });
 
@@ -576,14 +576,14 @@ promise_test(t => {
   const pipeToPromise = rs.pipeTo(ws);
   return delay(0).then(() => {
     rejectWritePromise(error1);
-    return promise_rejects(t, error1, pipeToPromise, 'pipeTo should reject');
+    return promise_rejects_exactly(t, error1, pipeToPromise, 'pipeTo should reject');
   }).then(() => {
     assert_array_equals(rs.events, []);
     assert_array_equals(ws.events, ['write', 'a']);
 
     return Promise.all([
       rs.getReader().closed,
-      promise_rejects(t, error1, ws.getWriter().closed, 'ws should be errored')
+      promise_rejects_exactly(t, error1, ws.getWriter().closed, 'ws should be errored')
     ]);
   });
 }, 'Closing must be propagated forward: erroring the writable while flushing pending writes should error pipeTo');

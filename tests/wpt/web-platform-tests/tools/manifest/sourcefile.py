@@ -156,6 +156,8 @@ def global_variant_url(url, suffix):
     # the form .https.any.js
     if ".https." in url and suffix.startswith(".https."):
         url = url.replace(".https.", ".")
+    elif ".h2." in url and suffix.startswith(".h2."):
+        url = url.replace(".h2.", ".")
     return replace_end(url, ".js", suffix)
 
 
@@ -280,6 +282,11 @@ class SourceFile(object):
         return file_obj
 
     @cached_property
+    def rel_path_parts(self):
+        # type: () -> Tuple[Text, ...]
+        return tuple(self.rel_path.split(os.path.sep))
+
+    @cached_property
     def path(self):
         # type: () -> Union[bytes, Text]
         return os.path.join(self.tests_root, self.rel_path)
@@ -316,18 +323,17 @@ class SourceFile(object):
         if self.dir_path == "":
             return True
 
-        parts = self.dir_path.split(os.path.sep)
+        parts = self.rel_path_parts
 
         if (parts[0] in self.root_dir_non_test or
             any(item in self.dir_non_test for item in parts) or
-            any(parts[:len(path)] == list(path) for path in self.dir_path_non_test)):
+            any(parts[:len(path)] == path for path in self.dir_path_non_test)):
             return True
         return False
 
     def in_conformance_checker_dir(self):
         # type: () -> bool
-        return (self.dir_path == "conformance-checkers" or
-                self.dir_path.startswith("conformance-checkers" + os.path.sep))
+        return self.rel_path_parts[0] == "conformance-checkers"
 
     @property
     def name_is_non_test(self):
@@ -395,10 +401,10 @@ class SourceFile(object):
         be a webdriver spec test file"""
         # wdspec tests are in subdirectories of /webdriver excluding __init__.py
         # files.
-        rel_dir_tree = self.rel_path.split(os.path.sep)
-        return (((rel_dir_tree[0] == "webdriver" and len(rel_dir_tree) > 1) or
-                 (rel_dir_tree[:2] == ["infrastructure", "webdriver"] and
-                  len(rel_dir_tree) > 2)) and
+        rel_path_parts = self.rel_path_parts
+        return (((rel_path_parts[0] == "webdriver" and len(rel_path_parts) > 1) or
+                 (rel_path_parts[:2] == ("infrastructure", "webdriver") and
+                  len(rel_path_parts) > 2)) and
                 self.filename not in ("__init__.py", "conftest.py") and
                 fnmatch(self.filename, wd_pattern))
 
@@ -785,6 +791,8 @@ class SourceFile(object):
         if self.items_cache:
             return self.items_cache
 
+        drop_cached = "root" not in self.__dict__
+
         if self.name_is_non_test:
             rv = "support", [
                 SupportFile(
@@ -956,5 +964,12 @@ class SourceFile(object):
         assert len(rv[1]) == len(set(rv[1]))
 
         self.items_cache = rv
+
+        if drop_cached and "__cached_properties__" in self.__dict__:
+            cached_properties = self.__dict__["__cached_properties__"]
+            for key in cached_properties:
+                if key in self.__dict__:
+                    del self.__dict__[key]
+            del self.__dict__["__cached_properties__"]
 
         return rv

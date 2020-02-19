@@ -18,7 +18,6 @@ dictionary ScrollTimelineOptions {
   DOMString startScrollOffset = "auto";
   DOMString endScrollOffset = "auto";
   (double or ScrollTimelineAutoKeyword) timeRange = "auto";
-  FillMode fill = "none";
 };
 
 [Exposed=Window,
@@ -29,5 +28,4 @@ interface ScrollTimeline : AnimationTimeline {
   readonly attribute DOMString startScrollOffset;
   readonly attribute DOMString endScrollOffset;
   readonly attribute (double or ScrollTimelineAutoKeyword) timeRange;
-  readonly attribute FillMode fill;
 };

@@ -190,7 +190,7 @@ async function runTests(j) {
         const expected = j.expectedResults[specifier];
         promise_test(async t => {
             if (expected === null) {
-              return promise_rejects(t, new TypeError(),
+              return promise_rejects_js(t, TypeError,
                   resolve(specifier, j.parsedImportMap, j.baseURL));
             } else {
               // Should be resolved to `expected`.

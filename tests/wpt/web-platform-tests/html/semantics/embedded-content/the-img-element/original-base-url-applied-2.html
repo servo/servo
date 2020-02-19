@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred images with loading='lazy' use the original
+         base URL specified at the parse time</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+  <base href='/html/semantics/embedded-content/the-img-element/resources/'>
+</head>
+
+<script>
+  const below_viewport_img_promise = new ElementLoadPromise("below_viewport_img");
+
+  let has_window_loaded = false;
+
+  async_test(function(t) {
+
+    // Change the base URL and scroll down to load the deferred elements.
+    window.addEventListener("load", t.step_func(function() {
+      const base = document.getElementsByTagName('base')[0];
+      base.href = '/invalid-url-where-no-subresources-exist/';
+      has_window_loaded = true;
+      below_viewport_img_promise.element().scrollIntoView();
+    }));
+
+    below_viewport_img_promise.promise.then(
+      t.step_func_done(function() {
+        assert_true(has_window_loaded,
+                    "Below-viewport loading=lazy images do not block the " +
+                    "window load event");
+        assert_true(below_viewport_img_promise.element().complete,
+                    "The loading=lazy image should be considered complete " +
+                    "upon load.");
+        assert_greater_than(below_viewport_img_promise.element().naturalWidth,
+                            0,
+                            "The loading=lazy should have non-zero width " +
+                            "upon loading");
+      })
+    ).catch(t.unreached_func("The image request should not load relative to " +
+                             "the current (incorrect) base URL."));
+  }, "Deferred images with loading='lazy' use the original base URL " +
+     "specified at the parse time");
+</script>
+
+<body>
+  <div style="height:1000vh"></div>
+  <img id="below_viewport_img" src="image.png" loading="lazy"
+       onload="below_viewport_img_promise.resolve();"
+       onerror="below_viewport_img_promise.reject();">
+</body>

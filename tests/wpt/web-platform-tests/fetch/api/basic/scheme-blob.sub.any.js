@@ -22,7 +22,7 @@ checkFetchResponse(URL.createObjectURL(blob), "Blob's data", "text/plain",  blob
 function checkKoUrl(url, method, desc) {
   promise_test(function(test) {
     var promise = fetch(url, {"method": method});
-    return promise_rejects(test, new TypeError(), promise);
+    return promise_rejects_js(test, TypeError, promise);
   }, desc);
 }
 

@@ -5,6 +5,7 @@ import time
 import traceback
 import uuid
 
+from six import iteritems
 from six.moves.urllib.parse import urljoin
 
 errors = None
@@ -592,7 +593,6 @@ class MarionetteProtocol(Protocol):
             del self.marionette
         super(MarionetteProtocol, self).teardown()
 
-    @property
     def is_alive(self):
         try:
             self.marionette.current_window_handle
@@ -609,7 +609,7 @@ class MarionetteProtocol(Protocol):
             else:
                 self.prefs.set(name, value)
 
-        for name, value in new_environment.get("prefs", {}).iteritems():
+        for name, value in iteritems(new_environment.get("prefs", {})):
             self.executor.original_pref_values[name] = self.prefs.get(name)
             self.prefs.set(name, value)
 
@@ -698,7 +698,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.protocol.testharness.load_runner(self.last_environment["protocol"])
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -818,7 +818,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.implementation.reset(**self.implementation_kwargs)
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -894,7 +894,8 @@ class InternalRefTestImplementation(RefTestImplementation):
         data = {"screenshot": screenshot}
         if self.executor.group_metadata is not None:
             data["urlCount"] = {urljoin(self.executor.server_url(key[0]), key[1]):value
-                                for key, value in self.executor.group_metadata.get("url_count", {}).iteritems()
+                                for key, value in iteritems(
+                                    self.executor.group_metadata.get("url_count", {}))
                                 if value > 1}
         self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CHROME)
         self.executor.protocol.marionette._send_message("reftest:setup", data)
@@ -972,7 +973,7 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
             do_delayed_imports()
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)

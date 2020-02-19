@@ -574,7 +574,7 @@
     t.add_cleanup(() => pc.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(1);
     t.add_cleanup(() => tracks.forEach(track => track.stop()));
-    await promise_rejects(t, 'InvalidAccessError', pc.getStats(tracks[0]));
+    await promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(tracks[0]));
   }, 'RTCPeerConnection.getStats(track) throws InvalidAccessError when there ' +
      'are zero senders or receivers for the track');
 
@@ -586,7 +586,7 @@
     let sender1 = pc.addTrack(tracks[0], streams[0]);
     let sender2 = pc.addTrack(tracks[1], streams[1]);
     await sender2.replaceTrack(sender1.track);
-    await promise_rejects(t, 'InvalidAccessError', pc.getStats(sender1.track));
+    await promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(sender1.track));
   }, 'RTCPeerConnection.getStats(track) throws InvalidAccessError when there ' +
      'are multiple senders for the track');
 
@@ -648,15 +648,4 @@
       }
     }
   }
-
-  async function async_assert_throws(exceptionName, promise, description) {
-    try {
-      await promise;
-    } catch (e) {
-      assert_equals(e.name, exceptionName);
-      return;
-    }
-    assert_unreached('No exception was thrown.');
-  }
-
 </script>

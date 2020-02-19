@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - fill/stroke inheritance.
+  Tests that fill and stroke colors are properly inherited from parent elements.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-26.tentative-ref.html">
+<style>
+  div {
+    fill: red;
+    stroke: blue;
+  }
+</style>
+<body>
+  <div>
+    The triangle below should be red when forced colors mode is enabled and disabled.
+    <!-- Discussions on SVG styles in forced colors mode are ongoing:
+       https://github.com/w3c/csswg-drafts/issues/3855 -->
+    <svg height="600" width="600">
+      <path d="M150 0 L75 200 L225 200 Z" />
+    </svg>
+  </div>
+</body>

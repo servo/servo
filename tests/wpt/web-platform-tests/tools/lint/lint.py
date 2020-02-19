@@ -390,7 +390,9 @@ regexps = [item() for item in  # type: ignore
             rules.PrintRegexp,
             rules.LayoutTestsRegexp,
             rules.MissingDepsRegexp,
-            rules.SpecialPowersRegexp]]
+            rules.SpecialPowersRegexp,
+            rules.AssertThrowsRegexp,
+            rules.PromiseRejectsRegexp]]
 
 
 def check_regexp_line(repo_root, path, f):

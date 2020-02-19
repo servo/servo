@@ -21,7 +21,7 @@ async function runManualTest({ completeWith: result }, button) {
       assert_true(completePromise instanceof Promise, "returns a promise");
       // Immediately calling complete() again yields a rejected promise.
       invalidComplete = response.complete(result);
-      await promise_rejects(t, "InvalidStateError", invalidComplete);
+      await promise_rejects_dom(t, "InvalidStateError", invalidComplete);
       // but the original promise is unaffected
       const returnedValue = await completePromise;
       assert_equals(
@@ -32,7 +32,7 @@ async function runManualTest({ completeWith: result }, button) {
       // We now call .complete() again, to force an exception
       // because [[complete]] is true.
       afterComplete = response.complete(result);
-      await promise_rejects(t, "InvalidStateError", afterComplete);
+      await promise_rejects_dom(t, "InvalidStateError", afterComplete);
       button.innerHTML = `✅  ${button.textContent}`;
     } catch (err) {
       button.innerHTML = `❌  ${button.textContent}`;

@@ -22,7 +22,7 @@ interface mixin AriaAttributes {
   attribute DOMString? ariaCurrent;
   attribute FrozenArray<Element>? ariaDescribedByElements;
   attribute DOMString? ariaDescription;
-  attribute Element? ariaDetailsElement;
+  attribute FrozenArray<Element>? ariaDetailsElements;
   attribute DOMString? ariaDisabled;
   attribute Element? ariaErrorMessageElement;
   attribute DOMString? ariaExpanded;

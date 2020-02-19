@@ -144,33 +144,33 @@ promise_test(async t => {
   assert_equals(animation.startTime, null,
                 'Start time should be unresolved');
 
+  const playTime = animation.timeline.currentTime;
   animation.play();
   assert_true(animation.pending, 'Animation should be play-pending');
 
   await animation.ready;
 
   assert_false(animation.pending, 'animation should no longer be pending');
-  assert_times_equal(animation.startTime, animation.timeline.currentTime,
-                     'The start time of the playing animation should be set');
+  assert_greater_than(animation.startTime, playTime,
+                      'The start time of the playing animation should be set');
 }, 'Playing a canceled animation sets the start time');
 
 promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = -1;
-  // animation.currentTime = 100 * MS_PER_SEC;
   animation.cancel();
   assert_equals(animation.startTime, null,
                 'Start time should be unresolved');
 
+  const playTime = animation.timeline.currentTime;
   animation.play();
   assert_true(animation.pending, 'Animation should be play-pending');
 
   await animation.ready;
 
   assert_false(animation.pending, 'Animation should no longer be pending');
-  assert_times_equal(animation.startTime,
-                     animation.timeline.currentTime + 100 * MS_PER_SEC,
-                     'The start time of a playing animation should be set');
+  assert_greater_than(animation.startTime, playTime + 100 * MS_PER_SEC,
+                      'The start time of the playing animation should be set');
 }, 'Playing a canceled animation backwards sets the start time');
 
 </script>

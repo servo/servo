@@ -42,8 +42,6 @@ def venv():
 
 @pytest.fixture(scope="module")
 def logger():
-    if sys.version_info >= (3,):
-        pytest.xfail(reason="broken on Py3")
     run.setup_logging({})
 
 

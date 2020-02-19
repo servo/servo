@@ -7,7 +7,9 @@
   },
   "importMapBaseURL": "https://base.example/path1/path2/path3",
   "expectedParsedImportMap": {
-    "imports": {},
+    "imports": {
+      "trailer/": null
+    },
     "scopes": {}
   }
 }

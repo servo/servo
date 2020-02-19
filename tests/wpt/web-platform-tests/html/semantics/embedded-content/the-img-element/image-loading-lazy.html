@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <title>Images with loading='lazy' load only when in the viewport</title>
+  <link rel="author" title="Scott Little" href="mailto:sclittle@chromium.org">
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="help" href="https://github.com/scott-little/lazyload">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  const t = async_test("Images with loading='lazy' load only when in the viewport");
+
+  let has_in_viewport_loaded = false;
+  let has_window_load_fired = false;
+
+  const in_viewport_img_onload = t.step_func(() => {
+    assert_false(has_in_viewport_loaded,
+                 "The in_viewport element should load only once.");
+    has_in_viewport_loaded = true;
+    assert_true(document.getElementById("in_viewport").complete);
+    document.getElementById("below_viewport").scrollIntoView();
+  });
+
+  window.addEventListener("load", t.step_func(() => {
+    has_window_load_fired = true;
+  }));
+
+  const below_viewport_img_onload = t.step_func_done(() => {
+    assert_true(has_in_viewport_loaded,
+                "The below-viewport image should not load until it has been " +
+                "scrolled into viewport, after the in-viewport image loads");
+    assert_true(has_window_load_fired,
+                "Below-viewport loading=lazy images should not block the " +
+                "window load event from firing");
+  });
+</script>
+
+<body>
+  <!-- |in_viewport| takes 2 seconds to load, so that in browsers that don't
+       support lazy loading, |below_viewport| finishes before |in_viewport|, and
+       the test will dependably fail without relying on a timeout. -->
+  <img id="in_viewport" loading="lazy" src="resources/image.png?first&pipe=trickle(d2)"
+       onload="in_viewport_img_onload();">
+  <div style="height:1000vh;"></div>
+  <img id="below_viewport" loading="lazy" src="resources/image.png?second"
+       onload="below_viewport_img_onload();">
+</body>

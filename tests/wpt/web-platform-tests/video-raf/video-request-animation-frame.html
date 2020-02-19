@@ -58,12 +58,12 @@ test(function(t) {
     let video = document.createElement('video');
 
     // requestAnimationFrame() expects 1 function as a parameter.
-    assert_throws(new TypeError(), _ => { video.requestAnimationFrame() } );
-    assert_throws(new TypeError(), _ => { video.requestAnimationFrame(0) });
-    assert_throws(new TypeError(), _ => { video.requestAnimationFrame("foo") });
+    assert_throws_js(TypeError, _ => { video.requestAnimationFrame() } );
+    assert_throws_js(TypeError, _ => { video.requestAnimationFrame(0) });
+    assert_throws_js(TypeError, _ => { video.requestAnimationFrame("foo") });
 
     // cancelAnimationFrame() expects 1 number as a parameter
-    assert_throws(new TypeError(), _ => { video.cancelAnimationFrame() } );
+    assert_throws_js(TypeError, _ => { video.cancelAnimationFrame() } );
 
     // Invalid calls are just noops
     video.cancelAnimationFrame(_ => {});

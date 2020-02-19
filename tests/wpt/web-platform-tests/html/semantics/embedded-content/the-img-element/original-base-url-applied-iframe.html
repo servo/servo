@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred iframes with loading='lazy' use the original
+         base URL specified at the parse time</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+  <base href='/html/semantics/embedded-content/the-img-element/resources/'>
+</head>
+
+<script>
+  const below_viewport_iframe_promise = new ElementLoadPromise("below_viewport_iframe");
+
+  let has_window_loaded = false;
+
+  async_test(function(t) {
+
+    // Change the base URL and scroll down to load the deferred elements.
+    window.addEventListener("load", t.step_func(function() {
+      const base = document.getElementsByTagName('base')[0];
+      base.href = '/invalid-url-where-no-subresources-exist/';
+      has_window_loaded = true;
+      below_viewport_iframe_promise.element().scrollIntoView();
+    }));
+
+    below_viewport_iframe_promise.promise.then(
+      t.step_func_done(function() {
+        assert_true(has_window_loaded,
+                    "Below-viewport loading=lazy iframes do not block the " +
+                    "window load event");
+        assert_true(below_viewport_iframe_promise.element().contentDocument.body.
+                    innerHTML.includes("<p>Subframe</p>"),
+                    "The loading=lazy iframe's content is accessible upon loading");
+      })
+    ).catch(t.unreached_func("The iframe request should not load relative to " +
+                             "the current (incorrect) base URL."));
+  }, "Deferred iframes with loading='lazy' use the original base URL " +
+      "specified at the parse time");
+</script>
+
+<body>
+  <div style="height:1000vh"></div>
+  <iframe id="below_viewport_iframe" src="subframe.html" loading="lazy"
+    width="200px" height="100px" onload="below_viewport_iframe_promise.resolve();"
+    onerror="below_viewport_iframe_promise.reject();">
+  </iframe>
+</body>

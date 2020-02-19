@@ -11,7 +11,7 @@ promise_test(async (t) => {
   portal.src = "resources/simple-portal.html";
   hostWindow.document.body.appendChild(portal);
 
-  await promise_rejects(t, "InvalidStateError", portal.activate());
+  await promise_rejects_dom(t, "InvalidStateError", portal.activate());
 }, "about:blank cannot host a portal");
 
 </script>

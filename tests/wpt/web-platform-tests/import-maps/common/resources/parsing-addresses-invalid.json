@@ -13,7 +13,13 @@
       },
       "importMapBaseURL": "https://base.example/path1/path2/path3",
       "expectedParsedImportMap": {
-        "imports": {},
+        "imports": {
+          "foo1": null,
+          "foo2": null,
+          "foo3": null,
+          "foo4": null,
+          "foo5": null
+        },
         "scopes": {}
       }
     }

@@ -87,7 +87,7 @@ class MockVRService {
     this.runtimes_ = [];
 
     this.interceptor_ =
-        new MojoInterfaceInterceptor(device.mojom.VRService.name, "context", true);
+        new MojoInterfaceInterceptor(device.mojom.VRService.name);
     this.interceptor_.oninterfacerequest = e =>
         this.bindingSet_.addBinding(this, e.handle);
     this.interceptor_.start();
@@ -203,12 +203,13 @@ class MockRuntime {
   // Mapping from string feature names to the corresponding mojo types.
   // This is exposed as a member for extensibility.
   static featureToMojoMap = {
-    "viewer": device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
-    "local": device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
-    "local-floor": device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
-    "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
-    "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
-    "hit-test": device.mojom.XRSessionFeature.HIT_TEST,
+    'viewer': device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
+    'local': device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
+    'local-floor': device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
+    'bounded-floor': device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
+    'unbounded': device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
+    'hit-test': device.mojom.XRSessionFeature.HIT_TEST,
+    'dom-overlay': device.mojom.XRSessionFeature.DOM_OVERLAY,
   };
 
   static sessionModeToMojoMap = {
@@ -225,6 +226,8 @@ class MockRuntime {
     this.next_frame_id_ = 0;
     this.bounds_ = null;
     this.send_mojo_space_reset_ = false;
+    this.stageParameters_ = null;
+    this.stageParametersUpdated_ = false;
 
     this.service_ = service;
 
@@ -386,37 +389,38 @@ class MockRuntime {
     // don't know the transform from local space to bounds space.
     // We'll cache the bounds so that they can be set in the future if the
     // floorLevel transform is set, but we won't update them just yet.
-    if (this.displayInfo_.stageParameters) {
-      this.displayInfo_.stageParameters.bounds = this.bounds_;
-
-      if (this.sessionClient_.ptr.isBound()) {
-        this.sessionClient_.onChanged(this.displayInfo_);
-      }
+    if (this.stageParameters_) {
+      this.stageParameters_.bounds = this.bounds_;
+      this.onStageParametersUpdated();
     }
   }
 
   setFloorOrigin(floorOrigin) {
-    if (!this.displayInfo_.stageParameters) {
-      this.displayInfo_.stageParameters = default_stage_parameters;
-      this.displayInfo_.stageParameters.bounds = this.bounds_;
+    if (!this.stageParameters_) {
+      this.stageParameters_ = default_stage_parameters;
+      this.stageParameters_.bounds = this.bounds_;
     }
 
-    this.displayInfo_.stageParameters.standingTransform = new gfx.mojom.Transform();
-    this.displayInfo_.stageParameters.standingTransform.matrix =
+    this.stageParameters_.standingTransform = new gfx.mojom.Transform();
+    this.stageParameters_.standingTransform.matrix =
       getMatrixFromTransform(floorOrigin);
 
-    if (this.sessionClient_.ptr.isBound()) {
-      this.sessionClient_.onChanged(this.displayInfo_);
-    }
+    this.onStageParametersUpdated();
   }
 
   clearFloorOrigin() {
-    if (this.displayInfo_.stageParameters) {
-      this.displayInfo_.stageParameters = null;
+    if (this.stageParameters_) {
+      this.stageParameters_ = null;
+      this.onStageParametersUpdated();
+    }
+  }
 
-      if (this.sessionClient_.ptr.isBound()) {
-        this.sessionClient_.onChanged(this.displayInfo_);
-      }
+  onStageParametersUpdated() {
+    // Indicate for the frame loop that the stage parameters have been updated.
+    this.stageParametersUpdated_ = true;
+    this.displayInfo_.stageParameters = this.stageParameters_;
+    if (this.sessionClient_.ptr.isBound()) {
+      this.sessionClient_.onChanged(this.displayInfo_);
     }
   }
 
@@ -568,6 +572,9 @@ class MockRuntime {
   getFrameData(options) {
     const mojo_space_reset = this.send_mojo_space_reset_;
     this.send_mojo_space_reset_ = false;
+
+    const stage_parameters_updated = this.stageParametersUpdated_;
+    this.stageParametersUpdated_ = false;
     if (this.pose_) {
       this.pose_.poseIndex++;
     }
@@ -600,6 +607,8 @@ class MockRuntime {
       frameId: this.next_frame_id_++,
       bufferHolder: null,
       bufferSize: {},
+      stageParameters: this.stageParameters_,
+      stageParametersUpdated: stage_parameters_updated,
     };
 
     this._calculateHitTestResults(frameData);
@@ -638,7 +647,7 @@ class MockRuntime {
     if (!this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
       // Reject outside of AR.
       return Promise.resolve({
-        result : device.mojom.SubscribeToHitTestResult.FAILED,
+        result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
         subscriptionId : 0
       });
     }
@@ -647,7 +656,7 @@ class MockRuntime {
       if (!this.input_sources_.has(nativeOriginInformation.inputSourceId)) {
         // Reject - unknown input source ID.
         return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILED,
+          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
           subscriptionId : 0
         });
       }
@@ -656,14 +665,14 @@ class MockRuntime {
       if (nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.UNBOUNDED
        || nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.BOUNDED_FLOOR) {
         return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILED,
+          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
           subscriptionId : 0
         });
       }
     } else {
       // Planes and anchors are not yet supported by the mock interface.
       return Promise.resolve({
-        result : device.mojom.SubscribeToHitTestResult.FAILED,
+        result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
         subscriptionId : 0
       });
     }
@@ -945,13 +954,12 @@ class MockRuntime {
         case device.mojom.XRReferenceSpaceCategory.LOCAL:
           return identity();
         case device.mojom.XRReferenceSpaceCategory.LOCAL_FLOOR:
-          if (this.displayInfo_ == null || this.displayInfo_.stageParameters == null
-           || this.displayInfo_.stageParameters.standingTransform == null) {
+          if (this.stageParameters_ == null || this.stageParameters_.standingTransform == null) {
             console.warn("Standing transform not available.");
             return null;
           }
-          // this.displayInfo_.stageParameters.standingTransform = floor_from_mojo aka native_origin_from_mojo
-          return XRMathHelper.inverse(this.displayInfo_.stageParameters.standingTransform.matrix);
+          // this.stageParameters_.standingTransform = floor_from_mojo aka native_origin_from_mojo
+          return XRMathHelper.inverse(this.stageParameters_.standingTransform.matrix);
         case device.mojom.XRReferenceSpaceCategory.VIEWER:
           const transform = {
             position: [
@@ -1222,20 +1230,30 @@ class MockXRInputSource {
       this.desc_dirty_ = false;
     }
 
+    // Pointer data for DOM Overlay, set by setOverlayPointerPosition()
+    if (this.overlay_pointer_position_) {
+      input_state.overlayPointerPosition = this.overlay_pointer_position_;
+    }
+
     return input_state;
+  }
+
+  setOverlayPointerPosition(x, y) {
+    this.overlay_pointer_position_ = {x: x, y: y};
   }
 
   getEmptyGamepad() {
     // Mojo complains if some of the properties on Gamepad are null, so set
     // everything to reasonable defaults that tests can override.
-    const gamepad = new device.mojom.Gamepad();
-    gamepad.connected = true;
-    gamepad.id = "";
-    gamepad.timestamp = 0;
-    gamepad.axes = [];
-    gamepad.buttons = [];
-    gamepad.mapping = "xr-standard";
-    gamepad.display_id = 0;
+    const gamepad = {
+      connected: true,
+      id: "",
+      timestamp: 0,
+      axes: [],
+      buttons: [],
+      mapping: "xr-standard",
+      display_id: 0,
+    };
 
     switch (this.handedness_) {
       case 'left':

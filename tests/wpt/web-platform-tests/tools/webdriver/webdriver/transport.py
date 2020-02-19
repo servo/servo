@@ -1,11 +1,11 @@
 import json
 import select
+
+from six import text_type, PY3
+from six.moves.http_client import HTTPConnection
 from six.moves.urllib import parse as urlparse
-from six.moves import http_client as httplib
 
 from . import error
-
-from six import text_type
 
 """Implements HTTP transport for the WebDriver wire protocol."""
 
@@ -104,9 +104,9 @@ class HTTPWireProtocol(object):
             conn_kwargs = {}
             if self._timeout is not None:
                 conn_kwargs["timeout"] = self._timeout
-
-            self._conn = httplib.HTTPConnection(
-                self.host, self.port, strict=True, **conn_kwargs)
+            if not PY3:
+                conn_kwargs["strict"] = True
+            self._conn = HTTPConnection(self.host, self.port, **conn_kwargs)
 
         return self._conn
 

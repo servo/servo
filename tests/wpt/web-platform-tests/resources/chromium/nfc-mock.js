@@ -13,10 +13,12 @@ function toMojoNDEFMessage(message) {
 
 function toMojoNDEFRecord(record) {
   let nfcRecord = new device.mojom.NDEFRecord();
-  if (record.recordType.search(':') != -1) {
-    // Simply checks the existence of ':' to decide whether it's an external
-    // type. As a mock, no need to really implement the validation algo at
-    // https://w3c.github.io/web-nfc/#dfn-validate-external-type.
+  // Simply checks the existence of ':' to decide whether it's an external
+  // type or a local type. As a mock, no need to really implement the validation
+  // algorithms for them.
+  if (record.recordType.startsWith(':')) {
+    nfcRecord.category = device.mojom.NDEFRecordTypeCategory.kLocal;
+  } else if (record.recordType.search(':') != -1) {
     nfcRecord.category = device.mojom.NDEFRecordTypeCategory.kExternal;
   } else {
     nfcRecord.category = device.mojom.NDEFRecordTypeCategory.kStandardized;
@@ -130,7 +132,7 @@ function matchesWatchOptions(message, options) {
 
 function createNDEFError(type) {
   return {
-    error: type ?
+    error: type != null ?
         new device.mojom.NDEFError({errorType: type, errorMessage: ''}) :
         null
   };
@@ -141,8 +143,7 @@ var WebNFCTest = (() => {
     constructor() {
       this.bindingSet_ = new mojo.BindingSet(device.mojom.NFC);
 
-      this.interceptor_ = new MojoInterfaceInterceptor(
-          device.mojom.NFC.name, "context", true);
+      this.interceptor_ = new MojoInterfaceInterceptor(device.mojom.NFC.name);
       this.interceptor_.oninterfacerequest =
           e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();

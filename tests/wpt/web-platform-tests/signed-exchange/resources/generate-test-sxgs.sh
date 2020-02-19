@@ -545,6 +545,7 @@ gen-signedexchange \
   -version $sxg_version \
   -uri $inner_url_origin/signed-exchange/resources/sxg-subresource-script.js \
   -status 200 \
+  -responseHeader "Content-Type: application/javascript" \
   -content sxg-subresource-script-inner.js \
   -certificate $certfile \
   -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
@@ -575,5 +576,23 @@ gen-signedexchange \
   -o sxg/sxg-subresource.sxg \
   -miRecordSize 100 \
   -responseHeader "link:<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=allowed-alt-sxg;header-integrity=\"$header_integrity\",<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=preload;as=script"
+
+
+# A Signed Exchange for testing prefetch.
+# The id query value "XXX..." of prefetch-test-cert.py will be replaced with
+# UUID for stash token by prefetch-test-sxg.py.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -content sxg-prefetch-test.html \
+  -certificate $certfile \
+  -certUrl $wpt_test_remote_origin/signed-exchange/resources/prefetch-test-cert.py?id=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2020-01-29T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-prefetch-test.sxg \
+  -miRecordSize 100
 
 rm -fr $tmpdir

@@ -56,15 +56,16 @@ explicitly-managed secret.
   - markdittmer@google.com
   - mike@bocoup.com
   - rick@bocoup.com
+- [Google Cloud Platform](https://cloud.google.com/): wpt-pr-bot
+  - smcgruer@google.com
+  - robertma@google.com
 - E-mail address: wpt.pr.bot@gmail.com
-  - boaz@bocoup.com
-  - mike@bocoup.com
-  - simon@bocoup.com
-- [Heroku](https://heroku.com/): wpt.pr.bot@gmail.com
+  - smcgruer@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
   - simon@bocoup.com
 - [GitHub](https://github.com/): @wpt-pr-bot account
+  - smcgruer@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
   - simon@bocoup.com

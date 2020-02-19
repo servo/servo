@@ -1352,10 +1352,11 @@
         }
       ]);
 
+    await negotiationNeeded(pc1);
+
     trickle(t, pc2, pc1);
     await pc2.setLocalDescription(answer);
 
-    await negotiationNeeded(pc1);
     await iceConnected(pc1);
     await iceConnected(pc2);
 

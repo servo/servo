@@ -23,7 +23,7 @@ promise_test(function(t) {
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
   var play_promise = a.play();
   a.pause();
-  return promise_rejects(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
+  return promise_rejects_dom(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
 }, "audio events - pause");
 
 promise_test(function(t) {
@@ -35,7 +35,7 @@ promise_test(function(t) {
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
   var play_promise = v.play()
   v.pause();
-  return promise_rejects(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
+  return promise_rejects_dom(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
 }, "video events - pause");
   </script>
  </body>

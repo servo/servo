@@ -414,7 +414,7 @@ promise_test(t => {
   controller.terminate();
   return Promise.all([
     cancelPromise,
-    promise_rejects(t, cancelReason, ts.writable.getWriter().closed, 'closed should reject with cancelReason')
+    promise_rejects_exactly(t, cancelReason, ts.writable.getWriter().closed, 'closed should reject with cancelReason')
   ]);
 }, 'terminate() should do nothing after readable.cancel()');
 

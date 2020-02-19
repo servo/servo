@@ -18,6 +18,13 @@ promise_test(async () => {
   assert_equals(msg_event.data, 'TypeError');
 }, 'importScripts() on module worker should throw an exception.');
 
+promise_test(() => {
+  const scriptURL = 'resources/non-existent-worker.js';
+  const worker = new SharedWorker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Worker construction for non-existent script should dispatch an ' +
+   'ErrorEvent.');
+
 test(() => {
   const scriptURL = 'http://invalid:123$';
   assert_throws_dom('SyntaxError',

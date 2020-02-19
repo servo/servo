@@ -43,7 +43,7 @@ promise_test(function(t) {
   var img = new Image();
   img.src = "/non/existent/path.png";
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Non-existent src fails decode.");
 
 promise_test(function(t) {
@@ -51,7 +51,7 @@ promise_test(function(t) {
   var img = inactive_doc.createElement("img");
   img.src = "/images/green.png";
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Inactive document fails decode.");
 
 promise_test(function(t) {
@@ -60,7 +60,7 @@ promise_test(function(t) {
   img.src = "/images/green.png";
   var promise = img.decode();
   inactive_doc.body.appendChild(img);
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Adopted active image into inactive document fails decode.");
 
 promise_test(function() {
@@ -77,13 +77,13 @@ promise_test(function(t) {
   var img = new Image();
   img.src = "data:image/png;base64,iVBO00PDR0BADBEEF00KGg";
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Corrupt image in src fails decode.");
 
 promise_test(function(t) {
   var img = new Image();
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Image without src/srcset fails decode.");
 
 promise_test(function() {
@@ -120,7 +120,7 @@ promise_test(function(t) {
   var img = new Image();
   img.srcset = "/non/existent/path.png 100w";
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Non-existent srcset fails decode.");
 
 promise_test(function() {

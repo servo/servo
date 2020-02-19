@@ -19,7 +19,7 @@ function redirectCount(desc, redirectUrl, redirectLocation, redirectStatus, maxC
       assert_equals(resp.status, 200, "Clean stash response's status is 200");
 
       if (!shouldPass)
-        return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
+        return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit));
 
       return fetch(url + urlParameters, requestInit).then(function(resp) {
         assert_equals(resp.status, 200, "Response's status is 200");

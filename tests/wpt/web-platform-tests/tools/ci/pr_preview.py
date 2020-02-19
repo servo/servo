@@ -124,6 +124,27 @@ class Project(object):
         return data['items']
 
     @guard('core')
+    def pull_request_is_from_fork(self, pull_request):
+        pr_number = pull_request['number']
+        url = '{}/repos/{}/pulls/{}'.format(
+            self._host, self._github_project, pr_number
+        )
+
+        logger.info('Checking if pull request %s is from a fork', pr_number)
+
+        data = gh_request('GET', url)
+
+        repo_name = data['head']['repo']['full_name']
+        is_fork = repo_name != self._github_project
+
+        logger.info(
+            'Pull request %s is from \'%s\'. Is a fork: %s',
+            pr_number, repo_name, is_fork
+        )
+
+        return is_fork
+
+    @guard('core')
     def create_ref(self, refspec, revision):
         url = '{}/repos/{}/git/refs'.format(self._host, self._github_project)
 
@@ -180,9 +201,8 @@ class Project(object):
     @guard('core')
     def update_deployment(self, target, deployment, state, description=''):
         if state in ('pending', 'success'):
-            environment_url = '{}/submissions/{}'.format(
-                target, deployment['environment']
-            )
+            pr_number = deployment['environment'][len(DEPLOYMENT_PREFIX):]
+            environment_url = '{}/{}'.format(target, pr_number)
         else:
             environment_url = None
         url = '{}/repos/{}/deployments/{}/statuses'.format(
@@ -246,13 +266,15 @@ def has_mirroring_label(pull_request):
 
     return False
 
-def should_be_mirrored(pull_request):
+def should_be_mirrored(project, pull_request):
     return (
         is_open(pull_request) and
         pull_request['user']['login'] not in AUTOMATION_GITHUB_USERS and (
             pull_request['author_association'] in TRUSTED_AUTHOR_ASSOCIATIONS or
             has_mirroring_label(pull_request)
-        )
+        ) and
+        # Query this last as it requires another API call to verify
+        not project.pull_request_is_from_fork(pull_request)
     )
 
 def is_deployed(host, deployment):
@@ -291,7 +313,7 @@ def synchronize(host, github_project, window):
         revision_trusted = remote.get_revision(refspec_trusted)
         revision_open = remote.get_revision(refspec_open)
 
-        if should_be_mirrored(pull_request):
+        if should_be_mirrored(project, pull_request):
             logger.info('Pull Request should be mirrored')
 
             if revision_trusted is None:

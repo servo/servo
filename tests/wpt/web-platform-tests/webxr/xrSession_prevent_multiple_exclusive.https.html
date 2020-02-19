@@ -20,7 +20,7 @@
                   // session is active should fail. Immersive sessions
                   // should take up the users entire view, and therefore it should
                   // be impossible for a user to be engaged with more than one.
-                  resolve(promise_rejects(
+                  resolve(promise_rejects_dom(
                     t,
                     "InvalidStateError",
                     navigator.xr.requestSession('immersive-vr')

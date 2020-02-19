@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+  <title>In-viewport loading=lazy images do not block the window load event</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <!-- This image blocks the window load event for 1 second -->
+  <img src="resources/image.png?window-load-blocking&pipe=trickle(d1)">
+
+  <!-- These images must load because they intersect the viewport, but they must
+       not block the window load event, because they are loading=lazy -->
+  <img id="visible"
+       src="resources/image.png?visible&pipe=trickle(d3)" loading="lazy"
+       onload="visible_img.resolve();" onerror="visible_img.reject();">
+  <img id="visibility_hidden" style="visibility:hidden;"
+       src="resources/image.png?visibility_hidden&pipe=trickle(d3)" loading="lazy"
+       onload="visibility_hidden_img.resolve();" onerror="visibility_hidden_img.reject();">
+</body>
+
+<script>
+  const visible_img = new ElementLoadPromise("visible");
+  const visibility_hidden_img = new ElementLoadPromise("visibility_hidden");
+
+  async_test(t => {
+
+    let has_window_loaded = false;
+    window.addEventListener("load", t.step_func(() => {
+      has_window_loaded = true;
+    }));
+
+    Promise.all([visible_img.promise, visibility_hidden_img.promise])
+      .then(t.step_func_done(() => {
+        assert_true(has_window_loaded,
+                    "The window load event should fire before the " +
+                    "in-viewport loading=lazy images load");
+        assert_true(visible_img.element().complete,
+                    "The in-viewport loading=lazy visible image is complete");
+        assert_true(visibility_hidden_img.element().complete,
+                    "The in-viewport loading=lazy visibility:hidden image is " +
+                    "complete");
+      }))
+      .catch(t.unreached_func("The images should load successfully"));
+
+  }, "In-viewport loading=lazy images do not block the window load event");
+</script>
+

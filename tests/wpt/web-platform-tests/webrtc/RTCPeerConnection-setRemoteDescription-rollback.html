@@ -99,7 +99,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       pc.setRemoteDescription({type: 'rollback'}));
   }, `setRemoteDescription(rollback) from stable state should reject with InvalidStateError`);
 

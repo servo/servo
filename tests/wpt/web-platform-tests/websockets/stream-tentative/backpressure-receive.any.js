@@ -19,6 +19,9 @@ promise_test(async t => {
   // Create backpressure for 2 seconds.
   await new Promise(resolve => t.step_timeout(resolve, 2000));
 
+  // Skip the empty message used to fill the readable queue.
+  await reader.read();
+
   // Skip the large message.
   await reader.read();
 

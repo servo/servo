@@ -43,7 +43,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   for (const name of ['-', '-foo']) {
-    await promise_rejects(
+    await promise_rejects_dom(
       t, 'NotSupportedError',
       navigator.locks.request(name, lock => {}),
       'Names starting with "-" should be rejected');

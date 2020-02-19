@@ -18,13 +18,33 @@
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
-          "subresource": {
-            "blockable": [],
-            "optionally-blockable": "*"
-          },
+          "subresource": [
+            "audio-tag",
+            "img-tag",
+            "video-tag"
+          ],
           "origin": [
             "cross-http",
             "same-http"
+          ],
+          "expectation": "blocked"
+        },
+        {
+          "name": "opt-in-blocks-redirects",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "opt-in",
+          "redirection": "swap-scheme",
+          "subresource": [
+            "audio-tag",
+            "img-tag",
+            "video-tag"
+          ],
+          "origin": [
+            "same-https",
+            "cross-https"
           ],
           "expectation": "blocked"
         },
@@ -36,10 +56,11 @@
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
-          "subresource": {
-            "blockable": [],
-            "optionally-blockable": "*"
-          },
+          "subresource": [
+            "audio-tag",
+            "img-tag",
+            "video-tag"
+          ],
           "origin": [
             "cross-http",
             "same-http"
@@ -62,13 +83,75 @@
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
-          "subresource": {
-            "blockable": "*",
-            "optionally-blockable": []
-          },
+          "subresource": [
+            "a-tag",
+            "beacon",
+            "fetch",
+            "link-css-tag",
+            "link-prefetch-tag",
+            "object-tag",
+            "picture-tag",
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import-data",
+            "sharedworker-module",
+            "websocket",
+            "worker-classic",
+            "worker-import-data",
+            "worker-module",
+            "worklet-animation",
+            "worklet-animation-import-data",
+            "worklet-audio",
+            "worklet-audio-import-data",
+            "worklet-layout",
+            "worklet-layout-import-data",
+            "worklet-paint",
+            "worklet-paint-import-data",
+            "xhr"
+          ],
           "origin": [
             "cross-http",
             "same-http"
+          ],
+          "expectation": "blocked"
+        },
+        {
+          "name": "opt-in-blocks-redirects",
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "opt-in",
+          "redirection": "swap-scheme",
+          "subresource": [
+            "a-tag",
+            "beacon",
+            "fetch",
+            "link-css-tag",
+            "link-prefetch-tag",
+            "object-tag",
+            "picture-tag",
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import-data",
+            "sharedworker-module",
+            "websocket",
+            "worker-classic",
+            "worker-import-data",
+            "worker-module",
+            "worklet-animation",
+            "worklet-animation-import-data",
+            "worklet-audio",
+            "worklet-audio-import-data",
+            "worklet-layout",
+            "worklet-layout-import-data",
+            "worklet-paint",
+            "worklet-paint-import-data",
+            "xhr"
+          ],
+          "origin": [
+            "same-https",
+            "cross-https"
           ],
           "expectation": "blocked"
         },
@@ -80,10 +163,32 @@
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
-          "subresource": {
-            "blockable": "*",
-            "optionally-blockable": []
-          },
+          "subresource": [
+            "a-tag",
+            "beacon",
+            "fetch",
+            "link-css-tag",
+            "link-prefetch-tag",
+            "object-tag",
+            "picture-tag",
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import-data",
+            "sharedworker-module",
+            "websocket",
+            "worker-classic",
+            "worker-import-data",
+            "worker-module",
+            "worklet-animation",
+            "worklet-animation-import-data",
+            "worklet-audio",
+            "worklet-audio-import-data",
+            "worklet-layout",
+            "worklet-layout-import-data",
+            "worklet-paint",
+            "worklet-paint-import-data",
+            "xhr"
+          ],
           "origin": [
             "cross-http",
             "same-http"
@@ -98,10 +203,7 @@
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": "*",
-          "subresource": {
-            "blockable": "websocket",
-            "optionally-blockable": []
-          },
+          "subresource": "websocket",
           "origin": [
             "cross-ws",
             "same-ws"
@@ -127,10 +229,7 @@
             "no-redirect",
             "keep-scheme"
           ],
-          "subresource": {
-            "blockable": "*",
-            "optionally-blockable": "*"
-          },
+          "subresource": "*",
           "origin": [
             "same-https"
           ],
@@ -147,10 +246,7 @@
             "no-redirect",
             "keep-scheme"
           ],
-          "subresource": {
-            "blockable": "websocket",
-            "optionally-blockable": []
-          },
+          "subresource": "websocket",
           "origin": [
             "same-wss"
           ],
@@ -169,10 +265,7 @@
       "delivery_type": "http-rp",
       "delivery_value": null,
       "redirection": "*",
-      "subresource": {
-        "blockable": "*",
-        "optionally-blockable": "*"
-      },
+      "subresource": "*",
       "origin": "*",
       "expectation": "*"
     },
@@ -184,12 +277,7 @@
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
-      "subresource": {
-        "blockable": [
-          "a-tag"
-        ],
-        "optionally-blockable": []
-      },
+      "subresource": "a-tag",
       "origin": "*",
       "expectation": "*"
     },
@@ -201,18 +289,28 @@
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
-      "subresource": {
-        "blockable": [
-          "websocket"
-        ],
-        "optionally-blockable": []
-      },
+      "subresource": "websocket",
       "origin": [
         "same-https",
         "same-http",
         "cross-https",
         "cross-http"
       ],
+      "expectation": "*"
+    },
+    {
+      "name": "Websockets are no-redirect only",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-scheme",
+        "swap-scheme"
+      ],
+      "subresource": "websocket",
+      "origin": "*",
       "expectation": "*"
     },
     {
@@ -226,10 +324,7 @@
         "keep-scheme",
         "swap-scheme"
       ],
-      "subresource": {
-        "blockable": "*",
-        "optionally-blockable": "*"
-      },
+      "subresource": "*",
       "origin": "*",
       "expectation": "*"
     }
@@ -257,7 +352,15 @@
         "http-rp"
       ],
       "worker-classic-data": [],
-      "worker-module-data": []
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        "http-rp"
+      ],
+      "sharedworker-module": [
+        "http-rp"
+      ],
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
     },
     "supported_subresource": {
       "top": "*",
@@ -283,6 +386,26 @@
         "xhr",
         "fetch",
         "websocket"
+      ],
+      "sharedworker-classic": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-module": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-classic-data": [
+        "xhr",
+        "fetch",
+        "websocket"
+      ],
+      "sharedworker-module-data": [
+        "xhr",
+        "fetch",
+        "websocket"
       ]
     }
   },
@@ -294,6 +417,9 @@
       "worker-classic": [],
       "worker-module": [],
       "worker-import-data": [],
+      "sharedworker-classic": [],
+      "sharedworker-module": [],
+      "sharedworker-import-data": [],
       "worklet-animation": [],
       "worklet-audio": [],
       "worklet-layout": [],
@@ -356,6 +482,36 @@
         }
       ],
       "subresourcePolicyDeliveries": []
+    },
+    "sharedworker-classic-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-classic-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "sharedworker-module-data": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-module-data",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
     }
   },
   "test_expansion_schema": {
@@ -378,7 +534,9 @@
     "source_context_list": [
       "top",
       "worker-classic-data",
-      "worker-module-data"
+      "worker-module-data",
+      "sharedworker-classic-data",
+      "sharedworker-module-data"
     ],
     "redirection": [
       "no-redirect",
@@ -395,36 +553,35 @@
       "cross-wss",
       "cross-ws"
     ],
-    "subresource": {
-      "blockable": [
-        "script-tag",
-        "link-css-tag",
-        "xhr",
-        "worker-classic",
-        "worker-module",
-        "worker-import-data",
-        "worklet-animation",
-        "worklet-audio",
-        "worklet-layout",
-        "worklet-paint",
-        "worklet-animation-import-data",
-        "worklet-audio-import-data",
-        "worklet-layout-import-data",
-        "worklet-paint-import-data",
-        "fetch",
-        "a-tag",
-        "object-tag",
-        "picture-tag",
-        "websocket",
-        "link-prefetch-tag",
-        "beacon"
-      ],
-      "optionally-blockable": [
-        "img-tag",
-        "audio-tag",
-        "video-tag"
-      ]
-    },
+    "subresource": [
+      "script-tag",
+      "link-css-tag",
+      "xhr",
+      "worker-classic",
+      "worker-module",
+      "worker-import-data",
+      "sharedworker-classic",
+      "sharedworker-module",
+      "sharedworker-import-data",
+      "worklet-animation",
+      "worklet-audio",
+      "worklet-layout",
+      "worklet-paint",
+      "worklet-animation-import-data",
+      "worklet-audio-import-data",
+      "worklet-layout-import-data",
+      "worklet-paint-import-data",
+      "fetch",
+      "a-tag",
+      "object-tag",
+      "picture-tag",
+      "websocket",
+      "link-prefetch-tag",
+      "beacon",
+      "img-tag",
+      "audio-tag",
+      "video-tag"
+    ],
     "expectation": [
       "allowed",
       "blocked"

@@ -418,6 +418,7 @@ interface HTMLImageElement : HTMLElement {
   readonly attribute USVString currentSrc;
   [CEReactions] attribute DOMString referrerPolicy;
   [CEReactions] attribute DOMString decoding;
+  [CEReactions] attribute DOMString loading;
 
   Promise<void> decode();
 

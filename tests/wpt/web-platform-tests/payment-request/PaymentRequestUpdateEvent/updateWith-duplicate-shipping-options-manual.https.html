@@ -73,9 +73,9 @@ function testFireEvents(button) {
       event.updateWith(newDetails);
     });
     const acceptPromise = request.show();
-    await promise_rejects(
+    await promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       acceptPromise,
       "Duplicate shippingOption ids must abort with TypeError"
     );

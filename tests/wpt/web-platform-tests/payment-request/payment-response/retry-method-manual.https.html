@@ -25,7 +25,7 @@ function checkCompletedCantRetry(button) {
     const { response } = await getPaymentRequestResponse();
     // sets response.[[complete]] to true.
     await response.complete("success");
-    return promise_rejects(
+    return promise_rejects_dom(
       t,
       "InvalidStateError",
       response.retry(),
@@ -39,7 +39,7 @@ function repeatedCallsToRetry(button) {
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
     const retryPromise = response.retry();
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       response.retry(),
@@ -62,13 +62,13 @@ function callCompleteWhileRetrying(button) {
       completePromise2,
       "complete() must return unique promises"
     );
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       completePromise1,
       "Calling complete() while retrying rejects with an InvalidStateError"
     );
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       completePromise2,
@@ -89,7 +89,7 @@ function callingRequestAbortMustNotAbort(button) {
   promise_test(async t => {
     const { response, request } = await getPaymentRequestResponse();
     const retryPromise = response.retry();
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       request.abort(),
@@ -115,7 +115,7 @@ function canRetryMultipleTimes(button) {
       "Expected undefined as the resolve value"
     );
     await response.complete("success");
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       response.retry(),
@@ -128,19 +128,19 @@ function userCanAbortARetry(button) {
   button.disabled = true;
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "AbortError",
       response.retry(),
       "The user aborting a retry rejects with a AbortError"
     );
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       response.retry(),
       "After the user aborts, response [[complete]] is true so retry() must reject with InvalidStateError"
     );
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       response.complete("success"),
@@ -176,13 +176,13 @@ function abortTheUpdate(button) {
     });
     const retryPromise = response.retry();
     await shipOptionChangePromise;
-    await promise_rejects(
+    await promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       retryPromise,
       "retry() aborts with a TypeError, because totals' value is invalid"
     );
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       response.complete("success"),

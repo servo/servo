@@ -19,7 +19,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  return promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error')
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.events, []);
       assert_array_equals(ws.events, ['abort', error1]);
@@ -41,7 +41,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error')
+  return promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error')
     .then(() => {
       assert_array_equals(rs.events, []);
       assert_array_equals(ws.events, ['abort', error1]);
@@ -62,7 +62,7 @@ for (const falsy of [undefined, null, false, +0, -0, NaN, '']) {
 
     const ws = recordingWritableStream();
 
-    return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: falsy }), 'pipeTo must reject with the same error')
+    return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: falsy }), 'pipeTo must reject with the same error')
       .then(() => {
         assert_array_equals(rs.events, []);
         assert_array_equals(ws.events, ['abort', error1]);
@@ -83,7 +83,7 @@ for (const truthy of [true, 'a', 1, Symbol(), { }]) {
 
     const ws = recordingWritableStream();
 
-    return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: truthy }),
+    return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: truthy }),
       'pipeTo must reject with the same error')
       .then(() => {
         assert_array_equals(rs.events, []);
@@ -104,7 +104,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true }),
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true }),
     'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.events, []);
@@ -123,7 +123,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  return promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true, preventClose: true }),
+  return promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true, preventCancel: true, preventClose: true }),
     'pipeTo must reject with the same error')
     .then(() => {
       assert_array_equals(rs.events, []);
@@ -138,7 +138,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -159,7 +159,7 @@ promise_test(t => {
     }
   });
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -176,8 +176,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -194,7 +194,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -216,7 +216,7 @@ promise_test(t => {
     }
   }, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -234,8 +234,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => rs.controller.error(error1), 10);
 
@@ -253,7 +253,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -277,7 +277,7 @@ promise_test(t => {
     }
   });
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -297,8 +297,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream();
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -318,7 +318,7 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws), 'pipeTo must reject with the same error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -343,7 +343,7 @@ promise_test(t => {
     }
   }, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
+  const pipePromise = promise_rejects_exactly(t, error2, rs.pipeTo(ws), 'pipeTo must reject with the abort error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -364,8 +364,8 @@ promise_test(t => {
 
   const ws = recordingWritableStream(undefined, new CountQueuingStrategy({ highWaterMark: 0 }));
 
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true }),
-                                      'pipeTo must reject with the same error');
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true }),
+                                              'pipeTo must reject with the same error');
 
   t.step_timeout(() => {
     rs.controller.enqueue('Hello');
@@ -401,7 +401,7 @@ promise_test(t => {
   });
 
   let pipeComplete = false;
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws)).then(() => {
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws)).then(() => {
     pipeComplete = true;
   });
 
@@ -446,7 +446,7 @@ promise_test(t => {
   });
 
   let pipeComplete = false;
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
     pipeComplete = true;
   });
 
@@ -490,7 +490,7 @@ promise_test(t => {
   }, new CountQueuingStrategy({ highWaterMark: 2 }));
 
   let pipeComplete = false;
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws)).then(() => {
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws)).then(() => {
     pipeComplete = true;
   });
 
@@ -540,7 +540,7 @@ promise_test(t => {
   }, new CountQueuingStrategy({ highWaterMark: 2 }));
 
   let pipeComplete = false;
-  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
+  const pipePromise = promise_rejects_exactly(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
     pipeComplete = true;
   });
 

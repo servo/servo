@@ -157,7 +157,8 @@ def test_subtest_messages(capfd):
     output_json = json.load(output)
 
     t1_log = output_json["tests"]["t1"]["artifacts"]["log"]
-    assert t1_log == "[FAIL expected PASS] t1_a: t1_a_message\n" \
+    assert t1_log == "subtest_failure\n" \
+                     "[FAIL expected PASS] t1_a: t1_a_message\n" \
                      "[PASS] t1_b: t1_b_message\n"
 
     t2_log = output_json["tests"]["t2"]["artifacts"]["log"]
@@ -203,12 +204,14 @@ def test_subtest_failure(capfd):
 
     test_obj = output_json["tests"]["t1"]
     t1_log = test_obj["artifacts"]["log"]
-    assert t1_log == "[FAIL expected PASS] t1_a: t1_a_message\n" \
+    assert t1_log == "subtest_failure\n" \
+                     "[FAIL expected PASS] t1_a: t1_a_message\n" \
                      "[PASS] t1_b: t1_b_message\n" \
                      "[TIMEOUT expected PASS] t1_c: t1_c_message\n"
     # The status of the test in the output is a failure because subtests failed,
     # despite the harness reporting that the test passed.
     assert test_obj["actual"] == "FAIL"
+    assert test_obj["expected"] == "PASS"
     # Also ensure that the formatter cleaned up its internal state
     assert "t1" not in formatter.tests_with_subtest_fails
 
@@ -259,6 +262,7 @@ def test_expected_subtest_failure(capfd):
     # The status of the test in the output is a pass because the subtest
     # failures were all expected.
     assert test_obj["actual"] == "PASS"
+    assert test_obj["expected"] == "PASS"
 
 
 def test_unexpected_subtest_pass(capfd):
@@ -297,9 +301,11 @@ def test_unexpected_subtest_pass(capfd):
 
     test_obj = output_json["tests"]["t1"]
     t1_log = test_obj["artifacts"]["log"]
-    assert t1_log == "[PASS expected FAIL] t1_a: t1_a_message\n"
+    assert t1_log == "subtest_failure\n" \
+                     "[PASS expected FAIL] t1_a: t1_a_message\n"
     # Since the subtest status is unexpected, we fail the test.
     assert test_obj["actual"] == "FAIL"
+    assert test_obj["expected"] == "PASS"
     # Also ensure that the formatter cleaned up its internal state
     assert "t1" not in formatter.tests_with_subtest_fails
 
@@ -367,6 +373,78 @@ def test_unexpected_test_fail(capfd):
     # OK->PASS
     assert test_obj["actual"] == "FAIL"
     assert test_obj["expected"] == "PASS"
-    # ..and this test should not be a regression nor unexpected
+    # ..and this test should be a regression and unexpected
+    assert test_obj["is_regression"] is True
+    assert test_obj["is_unexpected"] is True
+
+
+def test_flaky_test_expected(capfd):
+    # Check that a flaky test with multiple possible statuses is seen as
+    # expected if its actual status is one of the possible ones.
+
+    # set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    # Run a test that is known to be flaky
+    logger.suite_start(["t1"], run_info={}, time=123)
+    logger.test_start("t1")
+    logger.test_end("t1", status="ERROR", expected="OK", known_intermittent=["ERROR", "TIMEOUT"])
+    logger.suite_end()
+
+    # check nothing got output to stdout/stderr
+    # (note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # check the actual output of the formatter
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
+    assert test_obj["actual"] == "FAIL"
+    # All the possible statuses are concatenated together into expected.
+    assert test_obj["expected"] == "PASS FAIL TIMEOUT"
+    # ...this is not a regression or unexpected because the actual status is one
+    # of the expected ones
+    assert "is_regression" not in test_obj
+    assert "is_unexpected" not in test_obj
+
+
+def test_flaky_test_unexpected(capfd):
+    # Check that a flaky test with multiple possible statuses is seen as
+    # unexpected if its actual status is NOT one of the possible ones.
+
+    # set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    # Run a test that is known to be flaky
+    logger.suite_start(["t1"], run_info={}, time=123)
+    logger.test_start("t1")
+    logger.test_end("t1", status="ERROR", expected="OK", known_intermittent=["TIMEOUT"])
+    logger.suite_end()
+
+    # check nothing got output to stdout/stderr
+    # (note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # check the actual output of the formatter
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
+    assert test_obj["actual"] == "FAIL"
+    # All the possible statuses are concatenated together into expected.
+    assert test_obj["expected"] == "PASS TIMEOUT"
+    # ...this is a regression and unexpected because the actual status is not
+    # one of the expected ones
     assert test_obj["is_regression"] is True
     assert test_obj["is_unexpected"] is True

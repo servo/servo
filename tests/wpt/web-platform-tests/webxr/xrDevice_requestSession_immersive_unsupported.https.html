@@ -11,7 +11,7 @@
         return navigator.xr.test.simulateDeviceConnection(VALID_NON_IMMERSIVE_DEVICE)
           .then( (controller) => new Promise((resolve) => {
             navigator.xr.test.simulateUserActivation( () => {
-              resolve(promise_rejects(
+              resolve(promise_rejects_dom(
                 t,
                 "NotSupportedError",
                 navigator.xr.requestSession('immersive-vr')

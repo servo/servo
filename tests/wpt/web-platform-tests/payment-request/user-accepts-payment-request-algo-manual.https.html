@@ -97,7 +97,7 @@ function testAcceptRequestAlgorithm(
     await response.complete("success");
     // For good measure, test that subsequent complete()
     for (const state of [undefined, "success", "fail", "unknown"]) {
-      await promise_rejects(
+      await promise_rejects_dom(
         t,
         "InvalidStateError",
         response.complete(state),
@@ -143,7 +143,7 @@ function testAcceptRequestAlgorithm(
         `response.${attr} must be ${expectedValue}`
       );
     }
-    await promise_rejects(
+    await promise_rejects_dom(
       t,
       "InvalidStateError",
       request.show(),

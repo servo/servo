@@ -12,8 +12,8 @@
           // URL is invalid in that the URL Parser returns failure (port is too
           // large).
           const url = 'http://example.com:65536';
-          return promise_rejects(
-              t, new TypeError(), navigator.share({url}));
+          return promise_rejects_js(
+              t, TypeError, navigator.share({url}));
         }, 'share with an invalid URL');
     </script>
   </body>
