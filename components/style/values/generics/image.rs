@@ -9,6 +9,7 @@
 use crate::custom_properties;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
+use crate::Zero;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
@@ -57,6 +58,8 @@ pub enum GenericGradient<
     NonNegativeLength,
     NonNegativeLengthPercentage,
     Position,
+    Angle,
+    AngleOrPercentage,
     Color,
 > {
     /// A linear gradient.
@@ -82,6 +85,17 @@ pub enum GenericGradient<
         repeating: bool,
         /// Compatibility mode.
         compat_mode: GradientCompatMode,
+    },
+    /// A conic gradient.
+    Conic {
+        /// Start angle of gradient
+        angle: Angle,
+        /// Center of gradient
+        position: Position,
+        /// The color stops and interpolation hints.
+        items: crate::OwnedSlice<GenericGradientItem<Color, AngleOrPercentage>>,
+        /// True if this is a repeating gradient.
+        repeating: bool,
     },
 }
 
@@ -308,13 +322,15 @@ where
     }
 }
 
-impl<D, LP, NL, NLP, P, C> ToCss for Gradient<D, LP, NL, NLP, P, C>
+impl<D, LP, NL, NLP, P, A: Zero, AoP, C> ToCss for Gradient<D, LP, NL, NLP, P, A, AoP, C>
 where
     D: LineDirection,
     LP: ToCss,
     NL: ToCss,
     NLP: ToCss,
     P: ToCss,
+    A: ToCss,
+    AoP: ToCss,
     C: ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -324,6 +340,7 @@ where
         let (compat_mode, repeating) = match *self {
             Gradient::Linear { compat_mode, repeating, .. } => (compat_mode, repeating),
             Gradient::Radial { compat_mode, repeating, .. } => (compat_mode, repeating),
+            Gradient::Conic { repeating, .. } => (GradientCompatMode::Modern, repeating),
         };
 
         match compat_mode {
@@ -336,17 +353,24 @@ where
             dest.write_str("repeating-")?;
         }
 
-        let (items, mut skip_comma) = match *self {
-            Gradient::Linear { ref direction, compat_mode, ref items, .. } => {
+        match *self {
+            Gradient::Linear { ref direction, ref items, compat_mode, .. } => {
                 dest.write_str("linear-gradient(")?;
-                if !direction.points_downwards(compat_mode) {
+                let mut skip_comma = if !direction.points_downwards(compat_mode) {
                     direction.to_css(dest, compat_mode)?;
-                    (items, false)
+                    false
                 } else {
-                    (items, true)
+                    true
+                };
+                for item in &**items {
+                    if !skip_comma {
+                        dest.write_str(", ")?;
+                    }
+                    skip_comma = false;
+                    item.to_css(dest)?;
                 }
             },
-            Gradient::Radial { ref shape, ref position, compat_mode, ref items, .. } => {
+            Gradient::Radial { ref shape, ref position, ref items, compat_mode, .. } => {
                 dest.write_str("radial-gradient(")?;
                 let omit_shape = match *shape {
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::Cover)) |
@@ -367,15 +391,25 @@ where
                         shape.to_css(dest)?;
                     }
                 }
-                (items, false)
+                for item in &**items {
+                    dest.write_str(", ")?;
+                    item.to_css(dest)?;
+                }
             },
-        };
-        for item in &**items {
-            if !skip_comma {
-                dest.write_str(", ")?;
-            }
-            skip_comma = false;
-            item.to_css(dest)?;
+            Gradient::Conic { ref angle, ref position, ref items, .. } => {
+                dest.write_str("conic-gradient(")?;
+                if !angle.is_zero() {
+                    dest.write_str("from ")?;
+                    angle.to_css(dest)?;
+                    dest.write_str(" ")?;
+                }
+                dest.write_str("at ")?;
+                position.to_css(dest)?;
+                for item in &**items {
+                    dest.write_str(", ")?;
+                    item.to_css(dest)?;
+                }
+            },
         }
         dest.write_str(")")
     }
