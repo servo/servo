@@ -18,7 +18,7 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as Cons
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use style::context::QuirksMode;
@@ -47,13 +47,13 @@ pub enum Msg {
     GetRPC(Sender<Box<dyn LayoutRPC + Send>>),
 
     /// Requests that the layout thread render the next frame of all animations.
-    TickAnimations,
+    TickAnimations(ImmutableOrigin),
 
     /// Updates layout's timer for animation testing from script.
     ///
     /// The inner field is the number of *milliseconds* to advance, and the bool
     /// field is whether animations should be force-ticked.
-    AdvanceClockMs(i32, bool),
+    AdvanceClockMs(i32, bool, ImmutableOrigin),
 
     /// Destroys layout data associated with a DOM node.
     ///
@@ -216,6 +216,8 @@ pub struct ScriptReflow {
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
+    /// The current window origin
+    pub origin: ImmutableOrigin,
 }
 
 pub struct LayoutThreadInit {

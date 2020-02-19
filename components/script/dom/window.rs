@@ -1548,7 +1548,11 @@ impl Window {
     /// forces a reflow if `tick` is true.
     pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
         self.layout_chan
-            .send(Msg::AdvanceClockMs(delta, tick))
+            .send(Msg::AdvanceClockMs(
+                delta,
+                tick,
+                self.origin().immutable().clone(),
+            ))
             .unwrap();
     }
 
@@ -1622,6 +1626,7 @@ impl Window {
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
             window_size: self.window_size.get(),
+            origin: self.origin().immutable().clone(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: self.Document().dom_count(),

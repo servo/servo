@@ -88,6 +88,7 @@ impl<'a> LayoutContext<'a> {
                     state: PendingImageState::Unrequested(url),
                     node: node.into(),
                     id: id,
+                    origin: self.origin.clone(),
                 };
                 self.pending_images
                     .as_ref()
@@ -108,6 +109,7 @@ impl<'a> LayoutContext<'a> {
                         state: PendingImageState::PendingResponse,
                         node: node.into(),
                         id: id,
+                        origin: self.origin.clone(),
                     };
                     pending_images.lock().unwrap().push(image);
                 }
