@@ -90,7 +90,7 @@ webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr"}
 webxr = {git = "https://github.com/servo/webxr"}
 surfman = { version = "0.1", features = ["sm-osmesa"] }
-gstreamer = { version = "0.14.5", optional = true }
+gstreamer = { version = "0.15", optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
 gaol = "0.2.1"

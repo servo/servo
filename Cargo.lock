@@ -1988,19 +1988,6 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d70d737019da0473a7cd6d9240571cf58c6897dcb10edf32b90774f4ba237c1b"
-dependencies = [
- "bitflags",
- "glib-sys",
- "gobject-sys",
- "lazy_static",
- "libc",
-]
-
-[[package]]
-name = "glib"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40fb573a09841b6386ddf15fd4bc6655b4f5b106ca962f57ecaecde32a0061c0"
@@ -2138,25 +2125,6 @@ dependencies = [
 
 [[package]]
 name = "gstreamer"
-version = "0.14.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa91e470b0cd4b05611f7d0e89caf76e39752156440877f04c23ad34ffc9761c"
-dependencies = [
- "bitflags",
- "cfg-if",
- "glib 0.8.0",
- "glib-sys",
- "gobject-sys",
- "gstreamer-sys",
- "lazy_static",
- "libc",
- "muldiv",
- "num-rational",
- "paste",
-]
-
-[[package]]
-name = "gstreamer"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de425267c2d58db3ea9d513598bc5ff5458ca96041b86d8554366ff2e1e7667f"
@@ -2166,7 +2134,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
  "gstreamer-sys",
@@ -2186,12 +2154,12 @@ dependencies = [
  "bitflags",
  "futures-core",
  "futures-sink",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-app-sys",
- "gstreamer-base 0.15.3",
+ "gstreamer-base",
  "gstreamer-sys",
  "lazy_static",
  "libc",
@@ -2218,12 +2186,12 @@ checksum = "6176dbe5c1c28e8739ffe14f5667b6a8a086e5960ce83fe84fad99bee98f2879"
 dependencies = [
  "array-init",
  "bitflags",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-audio-sys",
- "gstreamer-base 0.15.3",
+ "gstreamer-base",
  "gstreamer-base-sys",
  "gstreamer-sys",
  "libc",
@@ -2245,31 +2213,15 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-base"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9e72a0456c51e9cf3a21c96539bed9be3f38c85ea49eee6d87a4d61db0cc2b0"
-dependencies = [
- "bitflags",
- "glib 0.8.0",
- "glib-sys",
- "gobject-sys",
- "gstreamer 0.14.5",
- "gstreamer-base-sys",
- "gstreamer-sys",
- "libc",
-]
-
-[[package]]
-name = "gstreamer-base"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cc044450693b54c09a4563257566e6161a0055ffa9f908aa5788282984581ca"
 dependencies = [
  "bitflags",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-base-sys",
  "gstreamer-sys",
  "libc",
@@ -2290,41 +2242,20 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-gl"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a7e54a021369cc93be69d2aaaab75e8916517bbc6de9d19f6584135df740580"
-dependencies = [
- "bitflags",
- "byteorder",
- "glib 0.8.0",
- "glib-sys",
- "gobject-sys",
- "gstreamer 0.14.5",
- "gstreamer-base 0.14.0",
- "gstreamer-gl-sys",
- "gstreamer-sys",
- "gstreamer-video 0.14.0",
- "gstreamer-video-sys",
- "lazy_static",
- "libc",
-]
-
-[[package]]
-name = "gstreamer-gl"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7af26f75082a835541e09a347df10bf433533302e454487e532011e3c96d1d52"
 dependencies = [
  "bitflags",
  "byteorder",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
- "gstreamer-base 0.15.3",
+ "gstreamer",
+ "gstreamer-base",
  "gstreamer-gl-sys",
  "gstreamer-sys",
- "gstreamer-video 0.15.3",
+ "gstreamer-video",
  "gstreamer-video-sys",
  "lazy_static",
  "libc",
@@ -2352,13 +2283,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11840a08baf63d5e2b4c94cc25c023cbfccb39f02e920c75b0550b975898be3b"
 dependencies = [
  "bitflags",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-player-sys",
  "gstreamer-sys",
- "gstreamer-video 0.15.3",
+ "gstreamer-video",
  "libc",
 ]
 
@@ -2382,10 +2313,10 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "674df58b85cb077a357c581c29796fbeb5aa36e8362269807a11f938e5c7b973"
 dependencies = [
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-sdp-sys",
  "gstreamer-sys",
 ]
@@ -2417,25 +2348,6 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-video"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b3f0b864eced7c270c0e083a433128ddf65cda2409a5f400e1c7af3cb59858f"
-dependencies = [
- "bitflags",
- "glib 0.8.0",
- "glib-sys",
- "gobject-sys",
- "gstreamer 0.14.5",
- "gstreamer-base 0.14.0",
- "gstreamer-base-sys",
- "gstreamer-sys",
- "gstreamer-video-sys",
- "lazy_static",
- "libc",
-]
-
-[[package]]
-name = "gstreamer-video"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bb63938bcd2e33285a6f195db8d719f3a13f568870d5bf168e2e3df18c1ea05"
@@ -2443,11 +2355,11 @@ dependencies = [
  "bitflags",
  "futures-channel",
  "futures-util",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
- "gstreamer-base 0.15.3",
+ "gstreamer",
+ "gstreamer-base",
  "gstreamer-base-sys",
  "gstreamer-sys",
  "gstreamer-video-sys",
@@ -2475,10 +2387,10 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e64235af90676896b01f3cbe50808fefaf498057ca288ce4a31a89de81464e04"
 dependencies = [
- "glib 0.9.3",
+ "glib",
  "glib-sys",
  "gobject-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-sdp",
  "gstreamer-sys",
  "gstreamer-webrtc-sys",
@@ -3245,7 +3157,7 @@ dependencies = [
  "gaol",
  "gfx",
  "gleam 0.6.18",
- "gstreamer 0.14.5",
+ "gstreamer",
  "ipc-channel",
  "keyboard-types",
  "layout_thread_2013",
@@ -5137,14 +5049,14 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "gleam 0.6.18",
- "glib 0.8.0",
+ "glib",
  "gst-plugin-version-helper",
- "gstreamer 0.14.5",
- "gstreamer-base 0.14.0",
- "gstreamer-gl 0.14.0",
+ "gstreamer",
+ "gstreamer-base",
+ "gstreamer-gl",
  "gstreamer-gl-sys",
  "gstreamer-sys",
- "gstreamer-video 0.14.0",
+ "gstreamer-video",
  "lazy_static",
  "libservo",
  "log",
@@ -5208,16 +5120,16 @@ source = "git+https://github.com/servo/media#03c7420794b7d1bb80e50e03eaf3ae6e55f
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
- "glib 0.9.3",
+ "glib",
  "glib-sys",
- "gstreamer 0.15.3",
+ "gstreamer",
  "gstreamer-app",
  "gstreamer-audio",
- "gstreamer-base 0.15.3",
+ "gstreamer-base",
  "gstreamer-player",
  "gstreamer-sdp",
  "gstreamer-sys",
- "gstreamer-video 0.15.3",
+ "gstreamer-video",
  "gstreamer-webrtc",
  "ipc-channel",
  "lazy_static",
@@ -5242,8 +5154,8 @@ name = "servo-media-gstreamer-render"
 version = "0.1.0"
 source = "git+https://github.com/servo/media#03c7420794b7d1bb80e50e03eaf3ae6e55f446ac"
 dependencies = [
- "gstreamer 0.15.3",
- "gstreamer-video 0.15.3",
+ "gstreamer",
+ "gstreamer-video",
  "servo-media-player",
 ]
 
@@ -5252,10 +5164,10 @@ name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
 source = "git+https://github.com/servo/media#03c7420794b7d1bb80e50e03eaf3ae6e55f446ac"
 dependencies = [
- "glib 0.9.3",
- "gstreamer 0.15.3",
- "gstreamer-gl 0.15.0",
- "gstreamer-video 0.15.3",
+ "glib",
+ "gstreamer",
+ "gstreamer-gl",
+ "gstreamer-video",
  "servo-media-gstreamer-render",
  "servo-media-player",
 ]
@@ -5265,10 +5177,10 @@ name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
 source = "git+https://github.com/servo/media#03c7420794b7d1bb80e50e03eaf3ae6e55f446ac"
 dependencies = [
- "glib 0.9.3",
- "gstreamer 0.15.3",
- "gstreamer-gl 0.15.0",
- "gstreamer-video 0.15.3",
+ "glib",
+ "gstreamer",
+ "gstreamer-gl",
+ "gstreamer-video",
  "servo-media-gstreamer-render",
  "servo-media-player",
 ]
@@ -5541,7 +5453,7 @@ dependencies = [
  "android_injected_glue",
  "android_logger",
  "cc",
- "gstreamer 0.14.5",
+ "gstreamer",
  "jni",
  "libc",
  "log",
