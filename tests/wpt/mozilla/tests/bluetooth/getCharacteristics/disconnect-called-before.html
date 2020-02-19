@@ -14,7 +14,7 @@ promise_test(t => {
         return gattServer.getPrimaryService(heart_rate.name)
         .then(service => {
             gattServer.disconnect();
-            return promise_rejects(t, 'NetworkError', service.getCharacteristics());
+            return promise_rejects_dom(t, 'NetworkError', service.getCharacteristics());
         });
     });
 }, 'disconnect() called before getCharacteristics. Reject with NetworkError.');

@@ -11,7 +11,7 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => {
-        let promise = promise_rejects(t, 'NetworkError', gattServer.getPrimaryServices());
+        let promise = promise_rejects_dom(t, 'NetworkError', gattServer.getPrimaryServices());
         gattServer.disconnect();
         return promise;
     });

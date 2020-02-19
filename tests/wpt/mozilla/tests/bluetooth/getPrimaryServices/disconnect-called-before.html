@@ -13,7 +13,7 @@ promise_test(t => {
     .then(device => device.gatt.connect())
     .then(gattServer => {
         gattServer.disconnect();
-        return promise_rejects(t, 'NetworkError', gattServer.getPrimaryServices());
+        return promise_rejects_dom(t, 'NetworkError', gattServer.getPrimaryServices());
     });
 }, 'disconnect() called before getPrimaryServices. Reject with NetworkError.');
 </script>

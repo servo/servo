@@ -17,7 +17,7 @@ promise_test(t => {
         .then(characteristic => characteristic.getDescriptor(number_of_digitals.name))
         .then(descriptor => {
             gattServer.disconnect();
-            return promise_rejects(t, 'NetworkError', descriptor.readValue());
+            return promise_rejects_dom(t, 'NetworkError', descriptor.readValue());
         });
     });
 }, 'disconnect() called before readValue. Reject with NetworkError.');

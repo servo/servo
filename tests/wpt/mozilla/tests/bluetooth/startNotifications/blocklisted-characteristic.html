@@ -12,6 +12,6 @@ promise_test(t => {
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(blocklist_test_service_uuid))
     .then(service => service.getCharacteristic(blocklist_exclude_reads_characteristic_uuid))
-    .then(characteristic => promise_rejects(t, 'SecurityError', characteristic.startNotifications()));
+    .then(characteristic => promise_rejects_dom(t, 'SecurityError', characteristic.startNotifications()));
 }, 'Characteristic with exclude-reads rejects startNotifications.');
 </script>

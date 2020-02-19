@@ -23,13 +23,13 @@ promise_test(t => {
     })
     .then(characteristic => {
         let promises = [];
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptor(number_of_digitals.name)));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name)));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors()));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.readValue()));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.writeValue(new Uint8Array(1))));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.startNotifications()));
-        promises.push(promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications()));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.getDescriptor(number_of_digitals.name)));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name)));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.getDescriptors()));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.readValue()));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.writeValue(new Uint8Array(1))));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.startNotifications()));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', characteristic.stopNotifications()));
         return Promise.all(promises);
     });
 }, 'Calls on a characteristic after we disconnect and connect again. Should reject with InvalidStateError.');

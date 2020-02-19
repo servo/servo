@@ -15,7 +15,7 @@ promise_test(t => {
     .then(service => service.getCharacteristic(peripherial_privacy_flag.name))
     .then(characteristic => {
         return characteristic.readValue()
-        .then(() => promise_rejects(t, 'SecurityError', characteristic.writeValue(new Uint8Array(1))));
+        .then(() => promise_rejects_dom(t, 'SecurityError', characteristic.writeValue(new Uint8Array(1))));
     });
 }, 'Characteristic with exclude-writes fullfills read and rejects write.');
 </script>

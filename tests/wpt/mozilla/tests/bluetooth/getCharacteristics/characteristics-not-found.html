@@ -11,6 +11,6 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
-    .then(service => promise_rejects(t, 'NotFoundError', service.getCharacteristics()));
+    .then(service => promise_rejects_dom(t, 'NotFoundError', service.getCharacteristics()));
 }, 'Request for absent characteristics. Reject with NotFoundError.');
 </script>

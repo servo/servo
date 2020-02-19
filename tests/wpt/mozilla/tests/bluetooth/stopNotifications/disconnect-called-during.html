@@ -16,7 +16,7 @@ promise_test(t => {
         .then(service => service.getCharacteristic(heart_rate_measurement.name))
         .then(characteristic => characteristic.startNotifications())
         .then(characteristic => {
-            let promise = promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications());
+            let promise = promise_rejects_dom(t, 'InvalidStateError', characteristic.stopNotifications());
             gattServer.disconnect();
             return promise;
         });

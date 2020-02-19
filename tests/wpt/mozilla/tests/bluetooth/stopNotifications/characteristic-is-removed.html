@@ -16,7 +16,7 @@ promise_test(t => {
     .then(characteristic => characteristic.startNotifications())
     .then(characteristic => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.missing_characteristic_heart_rate);
-        return promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications());
+        return promise_rejects_dom(t, 'InvalidStateError', characteristic.stopNotifications());
     });
 }, 'Characteristic gets removed. Reject with InvalidStateError.');
 </script>

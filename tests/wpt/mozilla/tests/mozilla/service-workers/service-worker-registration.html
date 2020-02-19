@@ -42,11 +42,11 @@ promise_test(function() {
 }, "Test: Service Worker Registration property scope when provided a scope");
 
 promise_test(function (p) {
-  return promise_rejects(p, new TypeError(), register_sw('./in%5Csome%5fdir/sw.js'));
+  return promise_rejects_js(p, TypeError, register_sw('./in%5Csome%5fdir/sw.js'));
 }, "Test: Throws Error when Invalid Url Path");
 
 promise_test(function (p) {
-  return promise_rejects(p, new TypeError(), register_sw('sw.js', './mal%5fformed/sco%5Cpe/'));
+  return promise_rejects_js(p, TypeError, register_sw('sw.js', './mal%5fformed/sco%5Cpe/'));
 }, "Test: Throws Error when Invalid Scope");
 
 </script>

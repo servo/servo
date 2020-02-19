@@ -6,7 +6,7 @@
 'use strict';
 promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
-    return promise_rejects(
+    return promise_rejects_dom(
         t, 'NotFoundError',
         window.navigator.bluetooth.requestDevice({
             filters: [{services: [heart_rate.name, battery_service.name]}]}));

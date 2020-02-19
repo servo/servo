@@ -18,18 +18,18 @@ promise_test(function() {
 promise_test(function(t) {
    var path = new URL("test_worklet.js", document.location).pathname;
    var url = new URL(path, host_info.HTTP_REMOTE_ORIGIN);
-   return promise_rejects(t, "AbortError", testWorklet.addModule(url));
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule(url));
 }, "Loading a cross-origin test worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", testWorklet.addModule("nonexistent_worklet.js"));
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("nonexistent_worklet.js"));
 }, "Loading a nonexistent test worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", testWorklet.addModule("syntax_error.js"));
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("syntax_error.js"));
 }, "Loading a syntactically incorrect test worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", testWorklet.addModule("throw_exception.js"));
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("throw_exception.js"));
 }, "Loading an exception-throwing test worklet.");
 </script>

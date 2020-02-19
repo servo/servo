@@ -14,7 +14,7 @@ promise_test(t => {
     .then(service => service.getCharacteristic(blocklist_exclude_reads_characteristic_uuid))
     .then(characteristic => {
         return characteristic.writeValue(new Uint8Array(1))
-        .then(() => promise_rejects(t, 'SecurityError', characteristic.readValue()));
+        .then(() => promise_rejects_dom(t, 'SecurityError', characteristic.readValue()));
     });
 }, 'Characteristic with exclude-reads fullfills write and rejects read.');
 </script>

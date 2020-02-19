@@ -11,6 +11,6 @@ promise_test(t => {
         optionalServices: [human_interface_device.name]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'SecurityError', gattServer.getPrimaryServices(human_interface_device.name)));
+    .then(gattServer => promise_rejects_dom(t, 'SecurityError', gattServer.getPrimaryServices(human_interface_device.name)));
 }, 'Request for services. Does not return blocklisted service.');
 </script>

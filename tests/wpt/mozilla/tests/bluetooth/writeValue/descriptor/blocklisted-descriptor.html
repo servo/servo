@@ -17,7 +17,7 @@ promise_test(t => {
                                 client_characteristic_configuration.name))
     .then(descriptor => {
         return descriptor.readValue()
-        .then(() => promise_rejects(t, 'SecurityError', descriptor.writeValue(new Uint8Array(1))));
+        .then(() => promise_rejects_dom(t, 'SecurityError', descriptor.writeValue(new Uint8Array(1))));
     });
 }, 'Descriptor with exclude-writes fullfills read and rejects write.');
 </script>

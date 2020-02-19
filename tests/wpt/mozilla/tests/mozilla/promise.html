@@ -25,7 +25,7 @@
       var t = new TestBinding;
       var p = new Promise(function() {});
       t.promiseRejectWithTypeError(p, "success");
-      return promise_rejects(test, new TypeError("success"), p, "TypeError should be instantiated");
+      return promise_rejects_js(test, TypeError, p, "TypeError should be instantiated");
   }, 'Native code rejects with exception');
 
   promise_test(function(test) {

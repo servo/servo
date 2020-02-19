@@ -46,7 +46,7 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
     let promises = [];
     blocklisted_keys.forEach(args => {
-        promises.push(promise_rejects(t, 'SecurityError', window.navigator.bluetooth.requestDevice(args)));
+        promises.push(promise_rejects_dom(t, 'SecurityError', window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
 }, 'Rejects with SecurityError, if a serviceData key is blocklisted.');

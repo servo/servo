@@ -13,7 +13,7 @@ promise_test(t => {
     .then(gattServer => {
         return gattServer.getPrimaryService(heart_rate.name)
         .then(service => {
-            let promise = promise_rejects(t, 'NetworkError', service.getCharacteristics(body_sensor_location.alias));
+            let promise = promise_rejects_dom(t, 'NetworkError', service.getCharacteristics(body_sensor_location.alias));
             gattServer.disconnect();
             return promise;
         });

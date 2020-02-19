@@ -10,6 +10,6 @@ promise_test(t => {
         filters: [{name: mock_device_name.heart_rate}]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryServices()));
+    .then(gattServer => promise_rejects_dom(t, 'NotFoundError', gattServer.getPrimaryServices()));
 }, 'Request for present service without permission. Reject with NotFoundError.');
 </script>

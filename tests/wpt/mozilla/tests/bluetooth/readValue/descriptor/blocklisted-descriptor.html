@@ -15,7 +15,7 @@ promise_test(t => {
     .then(characteristic => characteristic.getDescriptor(blocklist_exclude_reads_descriptor_uuid))
     .then(descriptor => {
         return descriptor.writeValue(new Uint8Array(1))
-        .then(() =>  promise_rejects(t, 'SecurityError', descriptor.readValue()));
+        .then(() =>  promise_rejects_dom(t, 'SecurityError', descriptor.readValue()));
     });
 }, 'Descriptor with exclude-reads fullfills write and rejects read.');
 </script>

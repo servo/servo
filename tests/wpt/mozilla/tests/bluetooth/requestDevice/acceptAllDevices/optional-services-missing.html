@@ -8,6 +8,6 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.two_heart_rate);
     return window.navigator.bluetooth.requestDevice({acceptAllDevices: true})
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryServices()));
+    .then(gattServer => promise_rejects_dom(t, 'NotFoundError', gattServer.getPrimaryServices()));
 }, 'requestDevice called with acceptAllDevices: true and with no optionalServices. Should not get access to any services.');
 </script>

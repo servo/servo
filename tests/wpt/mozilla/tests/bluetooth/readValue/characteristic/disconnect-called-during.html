@@ -16,7 +16,7 @@ promise_test(t => {
         .then(service => service.getCharacteristic(heart_rate_measurement.name))
         .then(characteristic => characteristic.startNotifications())
         .then(characteristic => {
-            let promise = promise_rejects(t, 'NetworkError', characteristic.readValue());
+            let promise = promise_rejects_dom(t, 'NetworkError', characteristic.readValue());
             gattServer.disconnect();
             return promise;
         });
