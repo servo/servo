@@ -166,10 +166,8 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
     if clean:
         # Manifest currently has some list vs tuple inconsistencies that break
         # a simple equality comparison.
-        new_paths = {(key, value[0], value[1])
-                     for (key, value) in iteritems(new_manifest.to_json()["paths"])}
-        old_paths = {(key, value[0], value[1])
-                     for (key, value) in iteritems(old_manifest.to_json()["paths"])}
+        old_paths = old_manifest.to_json()['items']
+        new_paths = new_manifest.to_json()['items']
         if old_paths != new_paths:
             logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)  # noqa
             clean = False
