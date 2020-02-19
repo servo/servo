@@ -735,6 +735,19 @@ where
                     );
                 }
             },
+
+            WindowEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
+                let msg = ConstellationMsg::ChangeBrowserVisibility(
+                    top_level_browsing_context_id,
+                    visible,
+                );
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending ChangeBrowserVisibility to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
         }
     }
 

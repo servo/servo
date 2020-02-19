@@ -105,6 +105,8 @@ pub enum WindowEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
+    /// Set browser visibility. A hidden browser will not tick the animations.
+    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
 }
 
 impl Debug for WindowEvent {
@@ -136,6 +138,7 @@ impl Debug for WindowEvent {
             WindowEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             WindowEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
+            WindowEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
         }
     }
 }

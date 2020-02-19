@@ -110,6 +110,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
+    /// Toggle browser visibility.
+    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -141,6 +143,7 @@ impl fmt::Debug for ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
+            ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

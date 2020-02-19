@@ -686,6 +686,14 @@ pub extern "C" fn media_session_action(action: CMediaSessionActionType) {
     });
 }
 
+#[no_mangle]
+pub extern "C" fn change_visibility(visible: bool) {
+    catch_any_panic(|| {
+        debug!("change_visibility");
+        call(|s| s.change_visibility(visible));
+    });
+}
+
 pub struct WakeupCallback(extern "C" fn());
 
 impl WakeupCallback {

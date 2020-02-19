@@ -247,6 +247,9 @@ void ServoControl::GoForward() {
 void ServoControl::Reload() {
   RunOnGLThread([=] { mServo->Reload(); });
 }
+void ServoControl::ChangeVisibility(bool visible) {
+  RunOnGLThread([=] { mServo->ChangeVisibility(visible); });
+}
 void ServoControl::Stop() {
   RunOnGLThread([=] { mServo->Stop(); });
 }

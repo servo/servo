@@ -487,6 +487,17 @@ impl ServoGlue {
         self.process_event(WindowEvent::MediaSessionAction(action))
     }
 
+    pub fn change_visibility(&mut self, visible: bool) -> Result<(), &'static str> {
+        info!("change_visibility");
+        if let Ok(id) = self.get_browser_id() {
+            let event = WindowEvent::ChangeBrowserVisibility(id, visible);
+            self.process_event(event)
+        } else {
+            // Ignore visibility change if no browser has been created yet.
+            Ok(())
+        }
+    }
+
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
         self.events.push(event);
         if !self.batch_mode {

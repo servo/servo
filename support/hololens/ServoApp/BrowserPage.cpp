@@ -71,6 +71,10 @@ void BrowserPage::BindServoEvents() {
                 ? Visibility::Collapsed
                 : Visibility::Visible);
       });
+  Window::Current().VisibilityChanged(
+      [=](const auto &, const VisibilityChangedEventArgs &args) {
+        servoControl().ChangeVisibility(args.Visible());
+      });
 }
 
 void BrowserPage::OnURLFocused(Windows::Foundation::IInspectable const &) {
