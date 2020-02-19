@@ -31,8 +31,6 @@ packages = [
   "cgl",
   "cocoa",
   "gleam",
-  "mach",
-  "nix",
   "peek-poke",
   "peek-poke-derive",
   "wayland-sys",

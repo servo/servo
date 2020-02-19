@@ -103,6 +103,7 @@ pub enum WebGPURequest {
         // wgpu::command::CommandBufferDescriptor,
     ),
     Submit(wgpu::id::QueueId, Vec<wgpu::id::CommandBufferId>),
+    RunComputePass(wgpu::id::CommandEncoderId, Vec<u8>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -416,6 +417,13 @@ impl WGPU {
                     let _ = gfx_select!(queue_id => global.queue_submit(
                         queue_id,
                         &command_buffer_ids
+                    ));
+                },
+                WebGPURequest::RunComputePass(command_encoder_id, raw_data) => {
+                    let global = &self.global;
+                    gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                        command_encoder_id,
+                        &raw_data
                     ));
                 },
                 WebGPURequest::Exit(sender) => {

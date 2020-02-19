@@ -212,9 +212,9 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "mach 0.3.2",
+ "mach",
  "msg",
- "nix 0.14.1",
+ "nix",
  "serde_json",
  "unwind-sys",
 ]
@@ -246,23 +246,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b25d992356d2eb0ed82172f5248873db5560c4721f564b13cb5193bda5e668e"
 dependencies = [
  "byteorder",
-]
-
-[[package]]
-name = "battery"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36a698e449024a5d18994a815998bf5e2e4bc1883e35a7d7ba95b6b69ee45907"
-dependencies = [
- "cfg-if",
- "core-foundation 0.6.4",
- "lazycell",
- "libc",
- "mach 0.2.3",
- "nix 0.15.0",
- "num-traits",
- "uom",
- "winapi",
 ]
 
 [[package]]
@@ -3268,15 +3251,6 @@ checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 
 [[package]]
 name = "mach"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86dd2487cdfea56def77b88438a2c915fb45113c5319bfe7e14306ca4cd0b0e1"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "mach"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
@@ -3741,19 +3715,6 @@ name = "nix"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c722bee1037d430d0f8e687bbdbf222f27cc6e4e68d5caf630857bb2b6dbdce"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if",
- "libc",
- "void",
-]
-
-[[package]]
-name = "nix"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b2e0b4f3320ed72aaedb9a5ac838690a8047c7b275da22711fddff4f8a14229"
 dependencies = [
  "bitflags",
  "cc",
@@ -5517,7 +5478,7 @@ dependencies = [
  "dlib",
  "lazy_static",
  "memmap",
- "nix 0.14.1",
+ "nix",
  "wayland-client",
  "wayland-commons",
  "wayland-protocols",
@@ -5753,7 +5714,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "mach 0.3.2",
+ "mach",
  "objc",
  "osmesa-sys",
  "wayland-sys 0.24.0",
@@ -5780,7 +5741,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "mach 0.3.2",
+ "mach",
  "objc",
  "parking_lot",
  "wayland-sys 0.24.0",
@@ -6359,16 +6320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "uom"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cec796ec5f7ac557631709079168286056205c51c60aac33f51764bdc7b8dc4"
-dependencies = [
- "num-traits",
- "typenum",
-]
-
-[[package]]
 name = "url"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6493,7 +6444,7 @@ dependencies = [
  "bitflags",
  "downcast-rs",
  "libc",
- "nix 0.14.1",
+ "nix",
  "wayland-commons",
  "wayland-scanner",
  "wayland-sys 0.21.13",
@@ -6505,7 +6456,7 @@ version = "0.21.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c08896768b667e1df195d88a62a53a2d1351a1ed96188be79c196b35bb32ec"
 dependencies = [
- "nix 0.14.1",
+ "nix",
  "wayland-sys 0.21.13",
 ]
 
@@ -6758,10 +6709,9 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/wgpu#d4a46cb60e71d6b108e9052cc581e52e44a16a44"
+source = "git+https://github.com/gfx-rs/wgpu#4f937c04e12572a56d96a160c30888ceecc930a9"
 dependencies = [
  "arrayvec 0.5.1",
- "battery",
  "bitflags",
  "copyless",
  "fxhash",
