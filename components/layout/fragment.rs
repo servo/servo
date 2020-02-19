@@ -61,7 +61,7 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{Size, VerticalAlign};
+use style::values::computed::{Length, Size, VerticalAlign};
 use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
 use webrender_api;
@@ -3169,9 +3169,19 @@ impl Fragment {
         stacking_relative_border_box: &Rect<Au>,
     ) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
+        let border_box_as_length = Rect::new(
+            Point2D::new(
+                Length::new(stacking_relative_border_box.origin.x.to_f32_px()),
+                Length::new(stacking_relative_border_box.origin.y.to_f32_px()),
+            ),
+            Size2D::new(
+                Length::new(stacking_relative_border_box.size.width.to_f32_px()),
+                Length::new(stacking_relative_border_box.size.height.to_f32_px()),
+            ),
+        );
         let transform = LayoutTransform::from_untyped(
             &list
-                .to_transform_3d_matrix(Some(stacking_relative_border_box))
+                .to_transform_3d_matrix(Some(&border_box_as_length))
                 .ok()?
                 .0,
         );

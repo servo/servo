@@ -6,6 +6,7 @@ use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::geom::PhysicalRect;
+use euclid::default::Rect;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use std::cmp::Ordering;
 use std::mem;
@@ -15,9 +16,11 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Length;
+use style::values::generics::box_::Perspective;
+use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
-use webrender_api::units::{LayoutPoint, LayoutVector2D};
+use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum StackingContextSection {
@@ -299,7 +302,11 @@ impl BoxFragment {
             return true;
         }
 
-        if self.has_filter_transform_or_perspective() {
+        if self.has_transform_or_perspective() {
+            return true;
+        }
+
+        if !self.style.get_effects().filter.0.is_empty() {
             return true;
         }
 
@@ -340,11 +347,10 @@ impl BoxFragment {
         0
     }
 
-    /// Returns true if this fragment has a filter, transform, or perspective property set.
-    fn has_filter_transform_or_perspective(&self) -> bool {
-        // TODO(mrobinson): We need to handle perspective here.
+    /// Returns true if this fragment has a transform, or perspective property set.
+    fn has_transform_or_perspective(&self) -> bool {
         !self.style.get_box().transform.0.is_empty() ||
-            !self.style.get_effects().filter.0.is_empty()
+            self.style.get_box().perspective != Perspective::None
     }
 
     fn build_stacking_context_tree<'a>(
@@ -363,7 +369,7 @@ impl BoxFragment {
                     self.build_stacking_context_tree_for_children(
                         fragment,
                         builder,
-                        containing_block,
+                        *containing_block,
                         stacking_context,
                     );
                     return;
@@ -374,7 +380,7 @@ impl BoxFragment {
             self.build_stacking_context_tree_for_children(
                 fragment,
                 builder,
-                containing_block,
+                *containing_block,
                 &mut child_stacking_context,
             );
 
@@ -400,23 +406,38 @@ impl BoxFragment {
         &'a self,
         fragment: &'a Fragment,
         builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        mut containing_block: PhysicalRect<Length>,
         stacking_context: &mut StackingContext<'a>,
     ) {
+        let relative_border_rect = self
+            .border_rect()
+            .to_physical(self.style.writing_mode, &containing_block);
+        let border_rect = relative_border_rect.translate(containing_block.origin.to_vector());
+        let established_reference_frame =
+            self.build_reference_frame_if_necessary(builder, &border_rect);
+
+        // WebRender reference frames establish a new coordinate system at their origin
+        // (the border box of the fragment). We need to ensure that any coordinates we
+        // give to WebRender in this reference frame are relative to the fragment border
+        // box. We do this by adjusting the containing block origin.
+        if established_reference_frame {
+            containing_block.origin = (-relative_border_rect.origin.to_vector()).to_point();
+        }
+
         stacking_context.fragments.push(StackingContextFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
-            containing_block: *containing_block,
+            containing_block: containing_block,
             fragment,
         });
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        self.build_scroll_frame_if_necessary(builder, containing_block);
+        self.build_scroll_frame_if_necessary(builder, &containing_block);
 
         let new_containing_block = self
             .content_rect
-            .to_physical(self.style.writing_mode, containing_block)
+            .to_physical(self.style.writing_mode, &containing_block)
             .translate(containing_block.origin.to_vector());
         for child in &self.children {
             child.build_stacking_context_tree(builder, &new_containing_block, stacking_context);
@@ -474,6 +495,128 @@ impl BoxFragment {
                 sensitivity,
                 LayoutVector2D::zero(),
             );
+        }
+    }
+
+    /// Build a reference frame for this fragment if it is necessary. Returns `true` if
+    /// a reference was built and `false` otherwise.
+    fn build_reference_frame_if_necessary(
+        &self,
+        builder: &mut DisplayListBuilder,
+        border_rect: &PhysicalRect<Length>,
+    ) -> bool {
+        if !self.has_transform_or_perspective() {
+            return false;
+        }
+        let untyped_border_rect = border_rect.to_untyped();
+        let transform = self.calculate_transform_matrix(&untyped_border_rect);
+        let perspective = self.calculate_perspective_matrix(&untyped_border_rect);
+        let (reference_frame_transform, reference_frame_kind) = match (transform, perspective) {
+            (None, Some(perspective)) => (
+                perspective,
+                wr::ReferenceFrameKind::Perspective {
+                    scrolling_relative_to: None,
+                },
+            ),
+            (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform),
+            (Some(transform), Some(perspective)) => (
+                transform.pre_transform(&perspective),
+                wr::ReferenceFrameKind::Perspective {
+                    scrolling_relative_to: None,
+                },
+            ),
+            (None, None) => unreachable!(),
+        };
+
+        builder.current_space_and_clip.spatial_id = builder.wr.push_reference_frame(
+            border_rect.origin.to_webrender(),
+            builder.current_space_and_clip.spatial_id,
+            self.style.get_box().transform_style.to_webrender(),
+            wr::PropertyBinding::Value(reference_frame_transform),
+            reference_frame_kind,
+        );
+        true
+    }
+
+    /// Returns the 4D matrix representing this fragment's transform.
+    pub fn calculate_transform_matrix(
+        &self,
+        border_rect: &Rect<Length>,
+    ) -> Option<LayoutTransform> {
+        let list = &self.style.get_box().transform;
+        let transform =
+            LayoutTransform::from_untyped(&list.to_transform_3d_matrix(Some(&border_rect)).ok()?.0);
+
+        let transform_origin = &self.style.get_box().transform_origin;
+        let transform_origin_x = transform_origin
+            .horizontal
+            .percentage_relative_to(border_rect.size.width)
+            .px();
+        let transform_origin_y = transform_origin
+            .vertical
+            .percentage_relative_to(border_rect.size.height)
+            .px();
+        let transform_origin_z = transform_origin.depth.px();
+
+        let pre_transform = LayoutTransform::create_translation(
+            transform_origin_x,
+            transform_origin_y,
+            transform_origin_z,
+        );
+        let post_transform = LayoutTransform::create_translation(
+            -transform_origin_x,
+            -transform_origin_y,
+            -transform_origin_z,
+        );
+
+        Some(
+            pre_transform
+                .pre_transform(&transform)
+                .pre_transform(&post_transform),
+        )
+    }
+
+    /// Returns the 4D matrix representing this fragment's perspective.
+    pub fn calculate_perspective_matrix(
+        &self,
+        border_rect: &Rect<Length>,
+    ) -> Option<LayoutTransform> {
+        match self.style.get_box().perspective {
+            Perspective::Length(length) => {
+                let perspective_origin = &self.style.get_box().perspective_origin;
+                let perspective_origin = LayoutPoint::new(
+                    perspective_origin
+                        .horizontal
+                        .percentage_relative_to(border_rect.size.width)
+                        .px(),
+                    perspective_origin
+                        .vertical
+                        .percentage_relative_to(border_rect.size.height)
+                        .px(),
+                );
+
+                let pre_transform = LayoutTransform::create_translation(
+                    perspective_origin.x,
+                    perspective_origin.y,
+                    0.0,
+                );
+                let post_transform = LayoutTransform::create_translation(
+                    -perspective_origin.x,
+                    -perspective_origin.y,
+                    0.0,
+                );
+
+                let perspective_matrix = LayoutTransform::from_untyped(
+                    &transform::create_perspective_matrix(length.px()),
+                );
+
+                Some(
+                    pre_transform
+                        .pre_transform(&perspective_matrix)
+                        .pre_transform(&post_transform),
+                )
+            },
+            Perspective::None => None,
         }
     }
 }
