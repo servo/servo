@@ -516,6 +516,7 @@ dependencies = [
  "half",
  "ipc-channel",
  "log",
+ "lyon_geom 0.14.0",
  "num-traits",
  "pixels",
  "raqote",

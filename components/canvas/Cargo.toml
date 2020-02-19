@@ -30,6 +30,7 @@ gleam = "0.6.7"
 half = "1"
 ipc-channel = "0.12"
 log = "0.4"
+lyon_geom = "0.14"
 num-traits = "0.2"
 raqote = {git = "https://github.com/jrmuizel/raqote", optional = true}
 pixels = {path = "../pixels"}
