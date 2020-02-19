@@ -28,6 +28,7 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "arrayvec",
+  "base64",
   "cgl",
   "cocoa",
   "gleam",
@@ -61,7 +62,6 @@ packages = [
   "core-text",
   "dirs",
   "lyon_geom",
-  "rand_core",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
