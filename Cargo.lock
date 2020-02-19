@@ -984,15 +984,6 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-queue"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c979cd6cfe72335896575c6b5688da489e420d36a27a0b9eb0c73db574b4a4b"
-dependencies = [
- "crossbeam-utils 0.6.5",
-]
-
-[[package]]
-name = "crossbeam-queue"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c695eeca1e7173472a32221542ae469b3e9aac3a4fc81f7696bcad82029493db"
@@ -4607,7 +4598,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08a89b46efaf957e52b18062fb2f4660f8b8a4dde1807ca002690868ef2c85a9"
 dependencies = [
  "crossbeam-deque",
- "crossbeam-queue 0.2.1",
+ "crossbeam-queue",
  "crossbeam-utils 0.7.0",
  "lazy_static",
  "num_cpus",
@@ -6331,13 +6322,13 @@ dependencies = [
 
 [[package]]
 name = "tokio-threadpool"
-version = "0.1.16"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd2c6a3885302581f4401c82af70d792bb9df1700e7437b0aeb4ada94d5388c"
+checksum = "df720b6581784c118f0eb4310796b12b1d242a7eb95f716a8367855325c25f89"
 dependencies = [
  "crossbeam-deque",
- "crossbeam-queue 0.1.2",
- "crossbeam-utils 0.6.5",
+ "crossbeam-queue",
+ "crossbeam-utils 0.7.0",
  "futures",
  "lazy_static",
  "log",
