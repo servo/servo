@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 lazy_static = "1"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
 parking_lot = "0.9"

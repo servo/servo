@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 path = "lib.rs"
 
 [dependencies]
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 euclid = "0.20"
 gleam = "0.6"
 glib = { version = "0.8", features = ["subclassing"] }

@@ -48,7 +48,7 @@ canvas = {path = "../canvas", default-features = false}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing", features = ["gl"]}
 constellation = {path = "../constellation"}
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
@@ -57,7 +57,7 @@ env_logger = "0.6"
 euclid = "0.20"
 gfx = {path = "../gfx"}
 gleam = "0.6"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 keyboard-types = "0.4"
 layout_thread_2013 = {path = "../layout_thread", optional = true}
 layout_thread_2020 = {path = "../layout_thread_2020", optional = true}

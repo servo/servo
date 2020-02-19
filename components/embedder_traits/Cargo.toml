@@ -11,8 +11,8 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [dependencies]
-crossbeam-channel = "0.3"
-ipc-channel = "0.12"
+crossbeam-channel = "0.4"
+ipc-channel = "0.14"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 log = "0.4"

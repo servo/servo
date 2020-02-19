@@ -14,10 +14,10 @@ path = "lib.rs"
 webgl_backtrace = []
 
 [dependencies]
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 cssparser = "0.27"
 euclid = "0.20"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"

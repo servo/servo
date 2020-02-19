@@ -2563,7 +2563,7 @@ where
 
         for receiver in receivers {
             if let Err(e) = receiver.recv() {
-                warn!("Failed to receive exit response from WebGPU ({})", e);
+                warn!("Failed to receive exit response from WebGPU ({:?})", e);
             }
         }
 
@@ -2586,10 +2586,10 @@ where
 
         // Receive exit signals from threads.
         if let Err(e) = core_receiver.recv() {
-            warn!("Exit resource thread failed ({})", e);
+            warn!("Exit resource thread failed ({:?})", e);
         }
         if let Err(e) = storage_receiver.recv() {
-            warn!("Exit storage thread failed ({})", e);
+            warn!("Exit storage thread failed ({:?})", e);
         }
 
         debug!("Asking compositor to complete shutdown.");
@@ -4838,7 +4838,7 @@ where
                         warn!("Failed to send GetCurrentEpoch ({}).", e);
                     }
                     match epoch_receiver.recv() {
-                        Err(e) => warn!("Failed to receive current epoch ({}).", e),
+                        Err(e) => warn!("Failed to receive current epoch ({:?}).", e),
                         Ok(layout_thread_epoch) => {
                             if layout_thread_epoch != *compositor_epoch {
                                 return ReadyToSave::EpochMismatch;

@@ -21,7 +21,7 @@ euclid = "0.20"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 libc = "0.2"
 msg = {path = "../msg"}
 mitochondria = "1.1.2"

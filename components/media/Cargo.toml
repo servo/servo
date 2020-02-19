@@ -13,7 +13,7 @@ path = "lib.rs"
 [dependencies]
 euclid = "0.20"
 fnv = "1.0"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 lazy_static = "1"
 log = "0.4"
 serde = "1.0"

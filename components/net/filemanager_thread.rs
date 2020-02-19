@@ -481,7 +481,7 @@ impl FileManagerStore {
         match ipc_receiver.recv() {
             Ok(result) => result,
             Err(e) => {
-                warn!("Failed to receive files from embedder ({}).", e);
+                warn!("Failed to receive files from embedder ({:?}).", e);
                 None
             },
         }

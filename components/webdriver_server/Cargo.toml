@@ -14,11 +14,11 @@ path = "lib.rs"
 base64 = "0.10"
 compositing = {path = "../compositing"}
 cookie = "0.11"
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 euclid = "0.20"
 hyper = "0.12"
 image = "0.22"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 keyboard-types = "0.4.3"
 log = "0.4"
 msg = {path = "../msg"}
