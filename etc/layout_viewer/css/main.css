@@ -27,3 +27,7 @@
   font-weight: bold;
   text-align: right;
 }
+
+.tree-collapse {
+  float: right;
+}

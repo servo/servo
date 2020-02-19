@@ -62,15 +62,32 @@
           <div class="row">
             <div class="col-sm-12">
               <div class="panel panel-default">
-                <div class="panel-heading">Box Tree</div>
+                <div class="panel-heading">
+                  Box Tree
+                  <a
+                    id="box-tree-collapse"
+                    class="tree-collapse"
+                    data-collapsed="0"
+                  ></a>
+                </div>
                 <div class="panel-body" id="box-tree"></div>
               </div>
+            </div>
+            <div class="col-sm-12">
+              <div id="box-diffs"></div>
             </div>
           </div>
           <div class="row">
             <div class="col-sm-12">
               <div class="panel panel-default">
-                <div class="panel-heading">Fragment Tree</div>
+                <div class="panel-heading">
+                  Fragment Tree
+                  <a
+                    id="fragment-tree-collapse"
+                    class="tree-collapse"
+                    data-collapsed="0"
+                  ></a>
+                </div>
                 <div class="panel-body" id="fragment-tree"></div>
               </div>
             </div>
@@ -79,16 +96,6 @@
             </div>
           </div>
         </div>
-      </div>
-      <div id="toolbar">
-        <a href="#" id="prev_trace">< Prev step</a>
-        |
-        <a href="#" id="next_trace">Next step ></a>
-        <br />
-        <input type="checkbox" name="show_unchanged" id="show_unchanged" />
-        <label for="show_unchanged">Show unchanged code</label>
-        <br />
-        <a href="#top">Back to top</a>
       </div>
     </div>
 
@@ -144,15 +151,28 @@
           }
           nodes = null;
         }
+
+        let info;
+        if (
+          box_type != "BlockLevelBoxes" &&
+          box_type != "InlineFormattingContext"
+        ) {
+          info = Object.assign({}, Object.values(container)[0]);
+          delete info.children;
+          delete info.contents;
+          delete info.tag;
+        }
+
         return {
           text,
-          nodes
+          nodes,
+          info
         };
       }
 
       function box_tree_from_bfc(bfc) {
         const { contains_floats, contents } = bfc;
-        var block_container = Object.values(contents)[0];
+        let block_container = Object.values(contents)[0];
         return {
           text: "BlockFormattingContext",
           info: {
@@ -163,17 +183,16 @@
       }
 
       function create_fragment_tree(root) {
-        var fragment = Object.values(root)[0];
-        var node = {
+        let fragment = Object.values(root)[0];
+        let node = {
           text: Object.keys(root)[0],
           id: fragment.debug_id,
-          icon: "dummy",
           href: "#diff-" + fragment.debug_id
         };
 
         if (fragment.children) {
-          var children = [];
-          for (var i = 0; i < fragment.children.length; ++i) {
+          let children = [];
+          for (let i = 0; i < fragment.children.length; ++i) {
             children.push(create_fragment_tree(fragment.children[i]));
           }
 
@@ -182,58 +201,38 @@
           }
         }
 
+        node.info = Object.assign({}, fragment);
+        delete node.info.children;
+        delete node.info.debug_id;
+
         return node;
       }
 
-      function get_fragments_info(node, fragments_info) {
-        const fragmentType = Object.keys(node)[0];
-        const trace_node = Object.assign({}, Object.values(node)[0]);
-        let data = Object.assign({}, trace_node);
-        delete data.children;
-        delete data.debug_id;
-        fragments_info[trace_node.debug_id] = {
-          class: fragmentType,
-          data
-        };
-
-        if (trace_node.children) {
-          for (var i = 0; i < trace_node.children.length; ++i) {
-            get_fragments_info(trace_node.children[i], fragments_info);
-          }
-        }
-      }
-
       function flatten_trace(trace_node) {
-        const fragment_tree_root = Object.values(trace_node.fragment_tree.children)[0];
-        var fragments_info = {};
-        get_fragments_info(fragment_tree_root, fragments_info);
+        const fragment_tree_root = Object.values(
+          trace_node.fragment_tree.children
+        )[0];
         return {
           fragment_tree: create_fragment_tree(fragment_tree_root),
-          box_tree: box_tree_from_bfc(trace_node.box_tree),
-          fragments_info
+          box_tree: box_tree_from_bfc(trace_node.box_tree)
         };
       }
 
       function create_trace_tree_node(trace_node) {
-        var pre_trace = flatten_trace(trace_node.pre);
-        var post_trace = flatten_trace(trace_node.post);
+        const trace = flatten_trace(trace_node.pre);
 
-        var tree_node = {
+        let tree_node = {
           text: trace_node.name,
           icon: "dummy",
-          box_tree: pre_trace.box_tree,
-          fragment_tree: pre_trace.fragment_tree,
-          pre_boxes_info: pre_trace.boxes_info,
-          post_boxes_info: post_trace.boxes_info,
-          pre_fragments_info: pre_trace.fragments_info,
-          post_fragments_info: post_trace.fragments_info
+          box_tree: trace.box_tree,
+          fragment_tree: trace.fragment_tree
         };
 
-        var trace_node = Object.values(trace_node)[0];
-        if (trace_node.children) {
-          var children = [];
-          for (var i = 0; i < trace_node.children.length; ++i) {
-            children.push(create_trace_tree_node(trace_node.children[i]));
+        let node = Object.values(trace_node)[0];
+        if (node.children) {
+          let children = [];
+          for (let i = 0; i < node.children.length; ++i) {
+            children.push(create_trace_tree_node(node.children[i]));
           }
 
           if (children.length > 0) {
@@ -244,27 +243,11 @@
         return tree_node;
       }
 
-      function update_fragment_tree_bgcolor(
-        fragment_tree_node,
-        node_color_hash
-      ) {
-        fragment_tree_node.backColor =
-          node_color_hash[fragment_tree_node.debug_id];
-        if (fragment_tree_node.nodes !== undefined) {
-          for (var i = 0; i < fragment_tree_node.nodes.length; ++i) {
-            update_fragment_tree_bgcolor(
-              fragment_tree_node.nodes[i],
-              node_color_hash
-            );
-          }
-        }
-      }
-
       function new_data_loaded(data) {
         jsondiffpatch.formatters.html.hideUnchanged();
 
-        var node_color_hash = {};
-        var tree = [create_trace_tree_node(data)];
+        let node_color_hash = {};
+        let tree = [create_trace_tree_node(data)];
         $("#trace-tree").treeview({ data: tree, levels: 3 });
         $("#trace-tree").on("nodeSelected", function(event, node) {
           $("#fragment-diffs").empty();
@@ -272,67 +255,62 @@
             .treeview(true)
             .revealNode(node);
 
-          for (var key in node.pre_fragments_info) {
-            var fragment_info_left = node.pre_fragments_info[key];
-            var fragment_info_right = node.post_fragments_info[key];
-
-            var delta = jsondiffpatch
+          const on_tree_node_selected = tree => (event, data) => {
+            $(`#${tree}-diffs`).empty();
+            if (!data.info) return;
+            // XXX(ferjm) no diff for now.
+            const delta = jsondiffpatch
               .create({
                 objectHash: function(obj) {
                   return JSON.stringify(obj);
                 }
               })
-              .diff(fragment_info_left, fragment_info_right);
+              .diff({}, data.info);
 
-            if (!delta) {
-              delta = jsondiffpatch
-                .create({
-                  objectHash: function(obj) {
-                    return JSON.stringify(obj);
-                  }
-                })
-                .diff({}, fragment_info_right);
-            }
+            const json = jsondiffpatch.formatters.html.format(delta, data.info);
 
-            if (delta !== undefined) {
-              var diff_id = "diff-" + key;
-              $("#fragment-diffs").append(
-                "<div class='panel panel-default' id='" +
-                  diff_id +
-                  "'><div class='panel-heading'>" +
-                  fragment_info_left.class +
-                  " (" +
-                  key +
-                  ")" +
-                  "</div><div class='panel-body'></div></div>"
-              );
+            $(`#${tree}-diffs`).append(
+              "<div class='panel panel-default'><div class='panel-heading'>" +
+                data.text +
+                "</div><div class='panel-body'>" +
+                json +
+                "</div></div>"
+            );
+          };
 
-              document
-                .getElementById(diff_id)
-                .getElementsByClassName(
-                  "panel-body"
-                )[0].innerHTML = jsondiffpatch.formatters.html.format(
-                delta,
-                fragment_info_left
-              );
-              node_color_hash[key] = "rgba(255, 0, 0, 0.7)";
-            } else {
-              node_color_hash[key] = "rgb(212, 248, 212)";
-            }
-          }
+          const on_fragment_tree_node_selected = on_tree_node_selected(
+            "fragment"
+          );
+          const on_box_tree_node_selected = on_tree_node_selected("box");
 
-          update_fragment_tree_bgcolor(node.fragment_tree, node_color_hash);
           $("#fragment-tree").treeview({
             data: [node.fragment_tree],
             levels: 100,
-            enableLinks: true,
-            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"
+            enableLinks: false,
+            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon",
+            onNodeSelected: on_fragment_tree_node_selected
           });
+
           $("#box-tree").treeview({
             data: [node.box_tree],
             levels: 100,
-            enableLinks: true,
-            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"
+            enableLinks: false,
+            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon",
+            onNodeSelected: on_box_tree_node_selected
+          });
+
+          ["fragment", "box"].forEach(key => {
+            const collapsable = $(`#${key}-tree-collapse`);
+            collapsable.html("Collapse all").on("click", () => {
+              const collapsed = collapsable.data("collapsed");
+              if (collapsed == 0) {
+                $(`#${key}-tree`).treeview("collapseAll");
+              } else {
+                $(`#${key}-tree`).treeview("expandAll");
+              }
+              collapsable.html(collapsed == 0 ? "Expand all" : "Collapse all");
+              collapsable.data("collapsed", collapsed == 0 ? 1 : 0);
+            });
           });
         });
 
@@ -341,46 +319,12 @@
           .selectNode(0);
       }
 
-      function register_toggle_unchanaged_code_handler() {
-        var show_unchange_box = document.getElementById("show_unchanged");
-        show_unchange_box.addEventListener("change", function(evt) {
-          jsondiffpatch.formatters.html.showUnchanged(
-            show_unchange_box.checked,
-            null,
-            800
-          );
-        });
-      }
-
-      function register_prev_next_trace_node() {
-        var prev_btn = document.getElementById("prev_trace");
-        var next_btn = document.getElementById("next_trace");
-        prev_btn.addEventListener("click", function(evt) {
-          var node_id = $("#trace-tree")
-            .treeview(true)
-            .getSelected()[0].nodeId;
-          // We deliberatly choose to ignore the node_id out of bound case,
-          // since it won't break the UI usability
-          $("#trace-tree")
-            .treeview(true)
-            .selectNode(node_id - 1);
-        });
-        next_btn.addEventListener("click", function(evt) {
-          var node_id = $("#trace-tree")
-            .treeview(true)
-            .getSelected()[0].nodeId;
-          $("#trace-tree")
-            .treeview(true)
-            .selectNode(node_id + 1);
-        });
-      }
-
       $(document).ready(function() {
-        var upload = document.getElementsByTagName("input")[0];
+        let upload = document.getElementsByTagName("input")[0];
         upload.onchange = function(e) {
           e.preventDefault();
 
-          var file = upload.files[0],
+          let file = upload.files[0],
             reader = new FileReader();
           reader.onload = function(event) {
             new_data_loaded(JSON.parse(event.target.result));
@@ -389,8 +333,6 @@
           reader.readAsText(file);
           return false;
         };
-        register_toggle_unchanaged_code_handler();
-        register_prev_next_trace_node();
       });
     </script>
   </body>
