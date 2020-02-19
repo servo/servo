@@ -72,6 +72,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
 use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementState};
@@ -168,6 +169,14 @@ where
 
             // Step 8.4
             element.set_custom_element_definition(definition.clone());
+
+            // The spec has no positive sense of enabledness, but Servo
+            // has effectively an enabled/disabled/not-a-form-element
+            // tri-state; a form element needs its enabled bit set as soon
+            // as it knows it's a form element.
+            if definition.form_associated {
+                element.upcast::<Element>().set_enabled_state(true);
+            }
 
             // Step 8.5
             DomRoot::downcast(element).ok_or(Error::InvalidState)

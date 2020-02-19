@@ -1,14 +1,5 @@
 {
  "items": {
-  "conformancechecker": {
-   "css/position_fixed_scroll.html": []
-  },
-  "crashtest": {
-   "css/position_fixed_scroll.html": []
-  },
-  "manual": {
-   "css/position_fixed_scroll.html": []
-  },
   "reftest": {
    "css/abs-overflow-stackingcontext.html": [
     [
@@ -8998,7 +8989,6 @@
    "css/position_fixed_overflow_b.html": [
     []
    ],
-   "css/position_fixed_scroll.html": [],
    "css/position_fixed_scroll_ref.html": [
     []
    ],
@@ -11278,7 +11268,6 @@
      {}
     ]
    ],
-   "css/position_fixed_scroll.html": [],
    "css/stylesheet_media_queries.html": [
     [
      "css/stylesheet_media_queries.html",
@@ -11356,6 +11345,12 @@
    "mozilla/DOMParser.html": [
     [
      "mozilla/DOMParser.html",
+     {}
+    ]
+   ],
+   "mozilla/ElementInternals-setFormValue.html": [
+    [
+     "mozilla/ElementInternals-setFormValue.html",
      {}
     ]
    ],
@@ -12640,12 +12635,6 @@
      {}
     ]
    ]
-  },
-  "visual": {
-   "css/position_fixed_scroll.html": []
-  },
-  "wdspec": {
-   "css/position_fixed_scroll.html": []
   }
  },
  "paths": {
@@ -18533,6 +18522,10 @@
    "f386a3e0191af2c70dcb05790ce7db15dd5ccbf1",
    "testharness"
   ],
+  "mozilla/ElementInternals-setFormValue.html": [
+   "d553dd1a90262700323a714359df60906ac057cf",
+   "testharness"
+  ],
   "mozilla/Event.html": [
    "3947b286122ee47f2f874232763ceeff3c2b661e",
    "testharness"
@@ -19090,7 +19083,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "bb6adbde0b3452e6ea8f1db44941a08dbe236774",
+   "2e0d7cbfd1250d5f4b702a0efcaa0995efc0747e",
    "testharness"
   ],
   "mozilla/interfaces.js": [

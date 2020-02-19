@@ -38,6 +38,7 @@ use crate::dom::document::{determine_policy_for_token, Document, LayoutDocumentH
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
@@ -1354,6 +1355,12 @@ impl Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOptionElement,
             )) => self.disabled_state(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                self.downcast::<HTMLElement>()
+                    .unwrap()
+                    .is_form_associated_custom_element() &&
+                    self.disabled_state()
+            },
             // TODO:
             // an optgroup element that has a disabled attribute
             // a menuitem element that has a disabled attribute
@@ -1795,10 +1802,17 @@ impl Element {
     // https://w3c.github.io/DOM-Parsing/#parsing
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
-        let context_document = document_from_node(self);
         // TODO(#11995): XML case.
         let new_children = ServoParser::parse_html_fragment(self, markup);
         // Step 3.
+        // w3c/DOM-Parsing#61
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content().upcast::<Node>().owner_doc()
+            } else {
+                document_from_node(self)
+            }
+        };
         let fragment = DocumentFragment::new(&context_document);
         // Step 4.
         for child in new_children {
@@ -1844,6 +1858,27 @@ impl Element {
 
     pub fn get_name(&self) -> Option<Atom> {
         self.rare_data().as_ref()?.name_attribute.clone()
+    }
+
+    pub fn get_element_internals(&self) -> Option<DomRoot<ElementInternals>> {
+        self.rare_data().as_ref().and_then(|r| {
+            r.element_internals
+                .as_ref()
+                .map(|a_i| DomRoot::from_ref(&**a_i))
+        })
+    }
+
+    pub fn ensure_element_internals(&self) -> DomRoot<ElementInternals> {
+        let mut rare_data = self.ensure_rare_data();
+        if let Some(internals) = &rare_data.element_internals {
+            return DomRoot::from_ref(&*internals);
+        }
+        let elem = self
+            .downcast::<HTMLElement>()
+            .expect("ensure_element_internals should only be called for an HTMLElement");
+        let internals = ElementInternals::new(elem);
+        rare_data.element_internals = Some(Dom::from_ref(&*internals));
+        internals
     }
 }
 
@@ -3278,6 +3313,10 @@ impl Element {
                 HTMLElementTypeId::HTMLTextAreaElement,
             )) => {
                 let element = self.downcast::<HTMLTextAreaElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                let element = self.downcast::<HTMLElement>().unwrap();
                 Some(element as &dyn Validatable)
             },
             _ => None,

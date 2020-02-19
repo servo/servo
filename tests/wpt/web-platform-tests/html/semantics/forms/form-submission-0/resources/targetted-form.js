@@ -14,7 +14,11 @@ function populateForm(optionalContentHtml) {
 
 function submitPromise(form, iframe) {
   return new Promise((resolve, reject) => {
-    iframe.onload = () => resolve(iframe.contentWindow.location.search);
+    iframe.onload = () => {
+      if(iframe.contentWindow.location.href != "about:blank") { // whatwg/html#490
+        resolve(iframe.contentWindow.location.search);
+      }
+    }
     iframe.onerror = () => reject(new Error('iframe onerror fired'));
     form.submit();
   });

@@ -712,7 +712,7 @@ impl Node {
         parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
-    fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
+    pub fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
         node.inclusive_ancestors(ShadowIncluding::Yes)
             .any(|ancestor| &*ancestor == self)
     }
@@ -2010,19 +2010,17 @@ impl Node {
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
-                // Step 7.7.2.
-                if descendant.is_connected() {
-                    if descendant.get_custom_element_definition().is_some() {
-                        // Step 7.7.2.1.
+                // Step 7.7.2, whatwg/dom#833
+                if descendant.get_custom_element_definition().is_some() {
+                    if descendant.is_connected() {
                         ScriptThread::enqueue_callback_reaction(
                             &*descendant,
                             CallbackReaction::Connected,
                             None,
                         );
-                    } else {
-                        // Step 7.7.2.2.
-                        try_upgrade_element(&*descendant);
                     }
+                } else {
+                    try_upgrade_element(&*descendant);
                 }
             }
         }
