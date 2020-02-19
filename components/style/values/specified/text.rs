@@ -1010,7 +1010,7 @@ pub enum OverflowWrap {
     Anywhere,
 }
 
-/// Implements text-decoration-skip-ink which takes the keywords auto | none
+/// Implements text-decoration-skip-ink which takes the keywords auto | none | all
 ///
 /// https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property
 #[repr(u8)]
@@ -1033,6 +1033,7 @@ pub enum OverflowWrap {
 pub enum TextDecorationSkipInk {
     Auto,
     None,
+    All,
 }
 
 /// Implements type for `text-decoration-thickness` property
