@@ -83,14 +83,14 @@ async_test(function(t) {
           Object.getOwnPropertyDescriptor(C, prop); // Shouldn't throw.
           assert_true(Object.prototype.hasOwnProperty.call(C, prop), "hasOwnProperty for " + String(prop));
         } else {
-          assert_throws("SecurityError", function() { C[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
-          assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
+          assert_throws_dom("SecurityError", function() { C[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
+          assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
                         "Should throw when accessing property descriptor for " + prop + " on Window");
-          assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
+          assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
                         "Should throw when invoking hasOwnProperty for " + prop + " on Window");
         }
         if (prop != 'location')
-          assert_throws("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
+          assert_throws_dom("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
       }
       for (var prop in location) {
         if (prop == 'replace') {
@@ -99,14 +99,14 @@ async_test(function(t) {
           assert_true(Object.prototype.hasOwnProperty.call(C.location, prop), "hasOwnProperty for " + prop);
         }
         else {
-          assert_throws("SecurityError", function() { C[prop]; }, "Should throw when accessing " + prop + " on Location");
-          assert_throws("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
+          assert_throws_dom("SecurityError", function() { C[prop]; }, "Should throw when accessing " + prop + " on Location");
+          assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
                         "Should throw when accessing property descriptor for " + prop + " on Location");
-          assert_throws("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
+          assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
                         "Should throw when invoking hasOwnProperty for " + prop + " on Location");
         }
         if (prop != 'href')
-          assert_throws("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+          assert_throws_dom("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
       }
       t.done();
     }

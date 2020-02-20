@@ -16,7 +16,7 @@ promise_test(t => {
         .then(service => service.getCharacteristic(device_name.name))
         .then(characteristic => {
             gattServer.disconnect();
-            return promise_rejects(t, 'NetworkError', characteristic.getDescriptors());
+            return promise_rejects_dom(t, 'NetworkError', characteristic.getDescriptors());
         });
     });
 }, 'disconnect() called before getDescriptors. Reject with NetworkError.');

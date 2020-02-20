@@ -37,7 +37,7 @@
           // Attempting to request required features that aren't supported by
           // the device should reject.
 
-          return promise_rejects(t, "NotSupportedError",
+          return promise_rejects_dom(t, "NotSupportedError",
             navigator.xr.requestSession("immersive-vr", {
               requiredFeatures: ['bounded-floor']
             }))

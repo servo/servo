@@ -176,7 +176,7 @@
     container.appendChild(new_script);
     assert_equals(inserted_script.textContent, "3*4");
 
-    // We expect 3 SPV events: two for the two assert_throws cases, and one
+    // We expect 3 SPV events: two for the two assert_throws_js cases, and one
     // for script element, which will be rejected at the time of execution.
     return checkSecurityPolicyViolationEvent(3);
   }, "Spot tests around script + innerHTML interaction.");

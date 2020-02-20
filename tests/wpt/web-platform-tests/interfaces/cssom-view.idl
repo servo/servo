@@ -20,7 +20,7 @@ partial interface Window {
     // browsing context
     void moveTo(long x, long y);
     void moveBy(long x, long y);
-    void resizeTo(long x, long y);
+    void resizeTo(long width, long height);
     void resizeBy(long x, long y);
 
     // viewport

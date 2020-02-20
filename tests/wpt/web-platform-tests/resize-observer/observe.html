@@ -644,6 +644,77 @@ function test14() {
   return helper.start(() => t.remove());
 }
 
+function test15() {
+  let t = createAndAppendElement("div");
+  t.style.height = "100px";
+  t.style.width = "50px";
+
+  let helper = new ResizeTestHelper(
+    "test15: an observation is fired with box dimensions 0 when element's " +
+    "display property is set to inline",
+  [
+    {
+      setup: observer => {
+        observer.observe(t);
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 50, "target width");
+        assert_equals(entries[0].contentRect.height, 100, "target height");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 50,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 100,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 50,
+                      "target content-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 100,
+                      "target content-box block size");
+      }
+    },
+    {
+      setup: observer => {
+        t.style.display = "inline";
+      },
+      notify: entries => {
+        assert_equals(entries[0].contentRect.width, 0, "target width");
+        assert_equals(entries[0].contentRect.height, 0, "target height");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 0,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 0,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 0,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 0,
+                      "target border-box block size");
+      }
+    }
+  ]);
+
+  return helper.start(() => t.remove());
+}
+
+function test16() {
+  let t = createAndAppendElement("span");
+
+  let helper = new ResizeTestHelper(
+    // See: https://drafts.csswg.org/resize-observer/#intro.
+    "test16: observations do not fire for non-replaced inline elements",
+  [
+    {
+      setup: observer => {
+        observer.observe(t);
+      },
+      notify: entries => {
+        assert_unreached("No observation should fire for non box element")
+      },
+      timeout: () => {}
+    }
+  ]);
+
+  return helper.start(() => t.remove());
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -665,6 +736,8 @@ test0()
   .then(() => test12())
   .then(() => test13())
   .then(() => test14())
+  .then(() => test15())
+  .then(() => test16())
   .then(() => guard.done());
 
 </script>

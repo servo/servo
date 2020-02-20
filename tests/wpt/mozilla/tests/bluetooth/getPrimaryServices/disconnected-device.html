@@ -9,6 +9,6 @@ promise_test(t => {
     return window.navigator.bluetooth.requestDevice({
         filters: [{services: [heart_rate.name]}]
     })
-    .then(device => promise_rejects(t, 'NetworkError', device.gatt.getPrimaryServices()));
+    .then(device => promise_rejects_dom(t, 'NetworkError', device.gatt.getPrimaryServices()));
 }, 'getPrimaryServices called before connecting. Reject with NetworkError.');
 </script>

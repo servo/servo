@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: gap - RTL rows and columns</title>
+<link rel="author" title="Adam Argyle" href="mailto:argyle@google.com">
+<style>
+  body {
+    direction: rtl;
+  }
+  section {
+    background-color: green;
+    block-size: 100px;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  section > div{
+    background-color: grey;
+  }
+  section > div {
+    width: calc(50% - 10px);
+  }
+  section > div:nth-child(1),
+  section > div:nth-child(3) {
+    margin-inline-end: 20px;
+  }
+  section > div:nth-child(3),
+  section > div:nth-child(4) {
+    margin-block-start: 20px;
+  }
+</style>
+<body>
+  <p>Test passes if there are <strong> green lines between boxes</strong>.</p>
+  <section>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </section>
+</body>

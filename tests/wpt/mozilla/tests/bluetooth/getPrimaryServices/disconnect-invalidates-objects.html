@@ -24,9 +24,9 @@ promise_test(t => {
     .then(services => {
         let promises = [];
         for (let service of services) {
-            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristic(body_sensor_location.name)));
-            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristics(body_sensor_location.name)));
-            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristics()));
+            promises.push(promise_rejects_dom(t, 'InvalidStateError', service.getCharacteristic(body_sensor_location.name)));
+            promises.push(promise_rejects_dom(t, 'InvalidStateError', service.getCharacteristics(body_sensor_location.name)));
+            promises.push(promise_rejects_dom(t, 'InvalidStateError', service.getCharacteristics()));
         }
         return Promise.all(promises);
     });

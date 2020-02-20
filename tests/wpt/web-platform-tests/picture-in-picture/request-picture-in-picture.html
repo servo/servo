@@ -10,12 +10,12 @@
 <script>
 promise_test(async t => {
   const video = await loadVideo();
-  return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
+  return promise_rejects_dom(t, 'NotAllowedError', video.requestPictureInPicture());
 }, 'request Picture-in-Picture requires a user gesture');
 
 promise_test(t => {
   const video = document.createElement('video');
-  return promise_rejects(t, 'InvalidStateError',
+  return promise_rejects_dom(t, 'InvalidStateError',
       requestPictureInPictureWithTrustedClick(video));
 }, 'request Picture-in-Picture requires loaded metadata for the video element');
 
@@ -25,7 +25,7 @@ promise_test(async t => {
     video.src = getAudioURI('/media/sound_5');
     video.onloadeddata = resolve;
   }).then(() => {
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       requestPictureInPictureWithTrustedClick(video));
   })
 }, 'request Picture-in-Picture requires video track for the video element');

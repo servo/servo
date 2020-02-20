@@ -24,7 +24,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       pc.createAnswer());
   }, 'createAnswer() with null remoteDescription should reject with InvalidStateError');
 
@@ -59,7 +59,7 @@
     .then(offer => pc.setRemoteDescription(offer))
     .then(() => {
       pc.close();
-      return promise_rejects(t, 'InvalidStateError',
+      return promise_rejects_dom(t, 'InvalidStateError',
         pc.createAnswer());
     });
   }, 'createAnswer() when connection is closed reject with InvalidStateError');

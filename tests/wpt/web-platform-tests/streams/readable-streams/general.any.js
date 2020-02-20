@@ -660,7 +660,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, controllerError, rs.getReader().closed);
+  return promise_rejects_exactly(t, controllerError, rs.getReader().closed);
 
 }, 'ReadableStream pull should be able to error a stream.');
 
@@ -676,7 +676,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, controllerError, rs.getReader().closed);
+  return promise_rejects_exactly(t, controllerError, rs.getReader().closed);
 
 }, 'ReadableStream pull should be able to error a stream and throw.');
 

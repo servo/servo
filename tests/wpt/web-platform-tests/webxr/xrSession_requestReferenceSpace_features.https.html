@@ -20,7 +20,7 @@
 
     let makeInvalidSpaceTest = (space_type) => {
       return (session, fakeDeviceController, t) => {
-          return  promise_rejects(t, "NotSupportedError",
+          return  promise_rejects_dom(t, "NotSupportedError",
                                   session.requestReferenceSpace(space_type),
                                   "requestReferenceSpace('" + space_type + "')");
       };

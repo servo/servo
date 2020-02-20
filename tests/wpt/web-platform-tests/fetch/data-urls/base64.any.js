@@ -6,7 +6,7 @@ function runBase64Tests(tests) {
           dataURL = "data:;base64," + input;
     promise_test(t => {
       if(output === null) {
-        return promise_rejects(t, new TypeError(), fetch(dataURL));
+        return promise_rejects_js(t, TypeError, fetch(dataURL));
       }
       return fetch(dataURL).then(res => res.arrayBuffer()).then(body => {
         assert_array_equals(new Uint8Array(body), output);

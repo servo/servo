@@ -6,7 +6,7 @@
 'use strict';
 promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
-    return promise_rejects(
+    return promise_rejects_dom(
         t, 'SecurityError', window.navigator.bluetooth.requestDevice({filters: [{services: [human_interface_device.name]}]}),
         'Requesting blocklisted service rejects.');
 }, 'Reject with SecurityError if requesting a blocklisted service.');

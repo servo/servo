@@ -7,6 +7,7 @@ dictionary BluetoothDataFilterInit {
   BufferSource dataPrefix;
   BufferSource mask;
 };
+
 dictionary BluetoothLEScanFilterInit {
   sequence<BluetoothServiceUUID> services;
   DOMString name;
@@ -31,6 +32,7 @@ interface Bluetooth : EventTarget {
   readonly attribute BluetoothDevice? referringDevice;
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
+
 Bluetooth includes BluetoothDeviceEventHandlers;
 Bluetooth includes CharacteristicEventHandlers;
 Bluetooth includes ServiceEventHandlers;
@@ -213,6 +215,7 @@ interface mixin ServiceEventHandlers {
 };
 
 typedef DOMString UUID;
+
 [Exposed=Window]
 interface BluetoothUUID {
   static UUID getService((DOMString or unsigned long) name);

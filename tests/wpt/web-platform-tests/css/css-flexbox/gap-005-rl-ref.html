@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: gap - vertical rl intrinsic vertical</title>
+<link rel="author" title="Adam Argyle" href="mailto:argyle@google.com">
+<style>
+  body {
+    writing-mode: vertical-rl;
+  }
+
+  section {
+    background-color: green;
+    display: inline-flex;
+    flex-direction: column;
+  }
+  section > div{
+    background-color: grey;
+    color: white;
+  }
+  section > div:not(:last-of-type) {
+    margin-block-end: 20px;
+  }
+</style>
+<body>
+  <p>Test passes if there are <strong> green lines between boxes</strong>.</p>
+  <section>
+    <div>Black Panther</div>
+    <div>Wonder Woman</div>
+    <div>Storm</div>
+    <div>Flash</div>
+  </section>
+</body>

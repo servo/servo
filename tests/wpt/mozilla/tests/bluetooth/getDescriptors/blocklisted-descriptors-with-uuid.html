@@ -12,7 +12,7 @@ promise_test(t => {
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(blocklist_test_service_uuid))
     .then(service => service.getCharacteristic(blocklist_exclude_reads_characteristic_uuid))
-    .then(characteristic => promise_rejects(t, 'SecurityError',
+    .then(characteristic => promise_rejects_dom(t, 'SecurityError',
                                             characteristic.getDescriptors(blocklist_descriptor_uuid)));
 }, 'The descriptor is blocklisted. Should reject with SecurityError.');
 </script>

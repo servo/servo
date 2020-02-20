@@ -82,7 +82,7 @@ promise_test(function(t) {
   source.srcset = "/non/existent/path.png";
 
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Non-existent source fails decode.");
 
 promise_test(function(t) {
@@ -96,7 +96,7 @@ promise_test(function(t) {
   source.srcset = "data:image/png;base64,iVBO00PDR0BADBEEF00KGg";
 
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Corrupt image in src fails decode.");
 
 promise_test(function(t) {
@@ -108,7 +108,7 @@ promise_test(function(t) {
   picture.appendChild(img);
 
   var promise = img.decode();
-  return promise_rejects(t, "EncodingError", promise);
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Image without srcset fails decode.");
 
 promise_test(function() {

@@ -53,7 +53,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, theError, rs.getReader().closed);
+  return promise_rejects_exactly(t, theError, rs.getReader().closed);
 
 }, 'Underlying source: throwing pull method (initial pull)');
 
@@ -109,7 +109,7 @@ promise_test(t => {
     reader.read().then(r => {
       assert_object_equals(r, { value: 'a', done: false }, 'the chunk read should be correct');
     }),
-    promise_rejects(t, theError, reader.closed)
+    promise_rejects_exactly(t, theError, reader.closed)
   ]);
 
 }, 'Underlying source pull: throwing method (second pull)');
@@ -134,7 +134,7 @@ promise_test(t => {
     }
   });
 
-  return promise_rejects(t, theError, rs.cancel());
+  return promise_rejects_exactly(t, theError, rs.cancel());
 
 }, 'Underlying source cancel: throwing method');
 
@@ -193,7 +193,7 @@ promise_test(t => {
     }
   }).getReader().closed;
 
-  return promise_rejects(t, theError, closed);
+  return promise_rejects_exactly(t, theError, closed);
 
 }, 'Underlying source: calling enqueue on an errored stream should throw');
 
@@ -393,7 +393,7 @@ promise_test(t => {
     pullShouldThrow = true;
     return Promise.all([
       reader.read(),
-      promise_rejects(t, error1, reader.closed, '.closed promise should reject')
+      promise_rejects_exactly(t, error1, reader.closed, '.closed promise should reject')
     ]);
   });
 

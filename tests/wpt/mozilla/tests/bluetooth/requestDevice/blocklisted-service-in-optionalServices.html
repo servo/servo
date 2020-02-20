@@ -13,7 +13,7 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => Promise.all([
-          promise_rejects(t, expected, gattServer.getPrimaryService(human_interface_device.name)),
-          promise_rejects(t, expected, gattServer.getPrimaryServices(human_interface_device.name))]));
+          promise_rejects_dom(t, expected, gattServer.getPrimaryService(human_interface_device.name)),
+          promise_rejects_dom(t, expected, gattServer.getPrimaryServices(human_interface_device.name))]));
 }, 'Blocklisted UUID in optionalServices is removed and access not granted.');
 </script>

@@ -174,7 +174,9 @@
           var area = document.getElementById('rectG');
           var image = document.getElementById('dinos');
           area.scrollIntoView();
-          var areaRect = area.getBoundingClientRect();
+          var areaRect = image.getBoundingClientRect();
+          areaRect.width = Math.min(areaRect.width, 90);
+          areaRect.height = Math.min(areaRect.height, 100);
           assert_equals(document.elementFromPoint(areaRect.left + Math.round(areaRect.width/2),
                                                   areaRect.top + Math.round(areaRect.height/2)),
                         area,

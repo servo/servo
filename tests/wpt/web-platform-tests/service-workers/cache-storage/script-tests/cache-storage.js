@@ -64,9 +64,9 @@ promise_test(function(t) {
   }, 'CacheStorage.open with an empty name');
 
 promise_test(function(t) {
-    return promise_rejects(
+    return promise_rejects_js(
       t,
-      new TypeError(),
+      TypeError,
       self.caches.open(),
       'CacheStorage.open should throw TypeError if called with no arguments.');
   }, 'CacheStorage.open with no arguments');

@@ -63,7 +63,7 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
     let promises = [];
     length_error_cases.forEach(args => {
-        promises.push(promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice(args)));
+        promises.push(promise_rejects_js(t, TypeError, window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
 }, 'Rejects with TypeError, if mask present, and does not have the same length as dataPrefix.');

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Outline with padding</title>
+<link rel="match" href="reference/outline-with-padding-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-props">
+<link rel="help" href="https://crbug.com/1048070">
+<link rel="author" href="mailto:kojii@chromium.org">
+<meta name="assert" content="Tests the rendering of outline applied to a box with padding">
+<style>
+inline-block {
+  display: inline-block;
+  width: 65px;
+  color: transparent;
+  background: orange;
+}
+</style>
+<body>
+<div style="display: flex">
+  <span style="padding-left: 99px; outline: auto">
+    <span>
+      <inline-block>Previous</inline-block>
+    </span>
+  </span>
+</div>
+
+<div style="width: 50px; padding-left: 99px; outline: auto">
+  <span>
+    <inline-block>Previous</inline-block>
+  </span>
+</div>
+</body>

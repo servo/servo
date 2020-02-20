@@ -99,7 +99,7 @@ promise_test(t => {
       };
     }
   });
-  return promise_rejects(t, error1, ws.getWriter().closed, 'closed promise should be rejected');
+  return promise_rejects_exactly(t, error1, ws.getWriter().closed, 'closed promise should be rejected');
 }, 'returning a thenable from start() should work');
 
 promise_test(t => {
@@ -108,7 +108,7 @@ promise_test(t => {
       controller.error(error1);
     }
   });
-  return promise_rejects(t, error1, ws.getWriter().write('a'), 'write() should reject with the error')
+  return promise_rejects_exactly(t, error1, ws.getWriter().write('a'), 'write() should reject with the error')
       .then(() => {
         assert_array_equals(ws.events, [], 'sink write() should not have been called');
       });
@@ -131,8 +131,8 @@ promise_test(t => {
   controller.error(error1);
   resolveStart();
   return Promise.all([
-    promise_rejects(t, error1, writePromise, 'write() should fail'),
-    promise_rejects(t, error1, closePromise, 'close() should fail')
+    promise_rejects_exactly(t, error1, writePromise, 'write() should fail'),
+    promise_rejects_exactly(t, error1, closePromise, 'close() should fail')
   ]).then(() => {
     assert_array_equals(ws.events, [], 'sink write() and close() should not have been called');
   });

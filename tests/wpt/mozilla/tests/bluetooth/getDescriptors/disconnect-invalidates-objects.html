@@ -25,9 +25,9 @@ promise_test(t => {
     .then(descriptors => {
         let promises = [];
         for (let descriptor of descriptors) {
-            promises.push(promise_rejects(t, 'InvalidStateError', descriptor.readValue()));
+            promises.push(promise_rejects_dom(t, 'InvalidStateError', descriptor.readValue()));
             if (descriptor.uuid != client_characteristic_configuration.uuid)
-                promises.push(promise_rejects(t, 'InvalidStateError', descriptor.writeValue(new Uint8Array(1))));
+                promises.push(promise_rejects_dom(t, 'InvalidStateError', descriptor.writeValue(new Uint8Array(1))));
         }
         return Promise.all(promises);
     });

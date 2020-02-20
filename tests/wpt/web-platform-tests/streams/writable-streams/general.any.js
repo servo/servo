@@ -194,8 +194,8 @@ promise_test(t => {
   writer3.abort(abortError);
 
   return writer1.closed
-      .then(() => promise_rejects(t, abortError, writer2.closed, 'writer2.closed should be rejected'))
-      .then(() => promise_rejects(t, abortError, writer3.closed, 'writer3.closed should be rejected'));
+      .then(() => promise_rejects_exactly(t, abortError, writer2.closed, 'writer2.closed should be rejected'))
+      .then(() => promise_rejects_exactly(t, abortError, writer3.closed, 'writer3.closed should be rejected'));
 }, 'methods should not not have .apply() or .call() called');
 
 promise_test(() => {

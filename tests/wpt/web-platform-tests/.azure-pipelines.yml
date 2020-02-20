@@ -34,6 +34,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/affected_tests.yml
     parameters:
       artifactName: 'safari-preview-affected-tests'
@@ -48,6 +51,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/affected_tests.yml
     parameters:
       checkoutCommit: 'HEAD^1'
@@ -82,6 +88,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/pip_install.yml
     parameters:
@@ -111,7 +120,12 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
     vmImage: 'macOS-10.14'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/tox_pytest.yml
     parameters:
@@ -156,7 +170,12 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
     vmImage: 'macOS-10.14'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/tox_pytest.yml
     parameters:
@@ -201,8 +220,13 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
     vmImage: 'macOS-10.14'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
   # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/install_chrome.yml
   - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
@@ -223,6 +247,7 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.6.x'
+  # Python 2.7 still needed to update manifest.
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '2.7.x'
@@ -246,6 +271,7 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.8.x'
+  # Python 2.7 still needed to update manifest.
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '2.7.x'
@@ -264,6 +290,8 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
     vmImage: 'windows-2019'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -280,6 +308,8 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
     vmImage: 'windows-2019'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -314,6 +344,8 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
     vmImage: 'windows-2019'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -364,6 +396,8 @@ jobs:
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
     vmImage: 'windows-2019'
+  variables:
+    HYPOTHESIS_PROFILE: ci
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -392,6 +426,7 @@ jobs:
     inputs:
       versionSpec: '3.6.x'
       addToPath: false
+  # Python 2.7 still needed to update manifest.
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '2.7.x'
@@ -419,6 +454,7 @@ jobs:
     inputs:
       versionSpec: '3.8.x'
       addToPath: false
+  # Python 2.7 still needed to update manifest.
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '2.7.x'
@@ -580,6 +616,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/pip_install.yml
     parameters:
@@ -614,6 +653,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '2.7.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/pip_install.yml
     parameters:

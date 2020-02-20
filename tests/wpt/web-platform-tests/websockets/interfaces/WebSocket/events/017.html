@@ -14,7 +14,9 @@ async_test(function(t) {
     t.step(function() {
       // first a text frame, then a frame with reserved opcode 3
       // which should fail the connection
-      ws.send('\\x81\\x04test\\x83\\x03LOL');
+
+      // send '\\x81\\x04test\\x83\\x03LOL' in bytes
+      ws.send(new Uint8Array([129, 4, 116, 101, 115, 116, 131, 3, 76, 79, 76]));
       assert_equals(this_val, ws);
       assert_equals(e.target, ws);
       assert_equals(e.currentTarget, ws);

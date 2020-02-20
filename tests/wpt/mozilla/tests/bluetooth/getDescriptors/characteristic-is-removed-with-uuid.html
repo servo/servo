@@ -15,7 +15,7 @@ promise_test(t => {
     .then(service => service.getCharacteristic(device_name.name))
     .then(characteristic => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.missing_characteristic_heart_rate);
-        return promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name));
+        return promise_rejects_dom(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name));
     });
 }, 'Characteristic is removed. Reject with InvalidStateError.');
 </script>

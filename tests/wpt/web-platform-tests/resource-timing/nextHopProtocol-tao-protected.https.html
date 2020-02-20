@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name=timeout content=long>
+<title>Resource Timing - Check that nextHopProtocol is TAO protected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+
+const addFrame = url => {
+  const iframe = document.createElement("iframe");
+  iframe.src = url;
+  document.body.appendChild(iframe);
+};
+
+const host_info = get_host_info();
+
+// Add iframe to remote origin - page without TAO
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+    const observer = new PerformanceObserver(list => {
+      const entries = list.getEntries();
+      for (entry of entries) {
+        if (entry.name.includes("blank_page_green.htm")) {
+          observer.disconnect();
+          // Observe its performance entry to make sure nextHopProtocol is empty
+          if (entry.nextHopProtocol != "") {
+            reject("nextHopProtocol should be the empty string");
+          }
+          resolve();
+        }
+      }
+    });
+    observer.observe({entryTypes: ["resource"]});
+    addFrame(host_info.HTTPS_REMOTE_ORIGIN + "/resource-timing/resources/blank_page_green.htm");
+  });
+}, "Add TAO-less iframe to remote origin. Make sure nextHopProtocol is the empty string");
+
+// Add iframe to remote origin - page with TAO
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+    const observer = new PerformanceObserver(list => {
+      const entries = list.getEntries();
+      for (entry of entries) {
+        if (entry.name.includes("blank-with-tao.html")) {
+          observer.disconnect();
+          // Observe its performance entry to make sure nextHopProtocol is empty
+          if (entry.nextHopProtocol == "") {
+            reject("nextHopProtocol should not be the empty string");
+          }
+          resolve();
+        }
+      }
+    });
+    observer.observe({entryTypes: ["resource"]});
+    addFrame(host_info.HTTPS_REMOTE_ORIGIN + "/resource-timing/resources/blank-with-tao.html");
+  });
+}, "Add TAO iframe to remote origin. Make sure nextHopProtocol is not the empty string");
+</script>
+</body>
+</html>

@@ -14,7 +14,7 @@ promise_test(t => {
     .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
     .then(service => service.getCharacteristic(body_sensor_location.name))
     .then(characteristic => {
-        return promise_rejects(t, 'NotSupportedError', characteristic.startNotifications());
+        return promise_rejects_dom(t, 'NotSupportedError', characteristic.startNotifications());
     });
 }, 'Characteristic doesn\'t support Notifications. Reject with NotSupportedError.');
 </script>

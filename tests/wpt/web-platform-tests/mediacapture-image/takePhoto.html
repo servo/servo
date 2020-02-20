@@ -54,7 +54,7 @@ promise_test(t => {
   let capturer = new ImageCapture(videoTrack);
   assert_equals(videoTrack.readyState, 'ended');
 
-  return promise_rejects(t, 'InvalidStateError', capturer.takePhoto())
+  return promise_rejects_dom(t, 'InvalidStateError', capturer.takePhoto())
 
 }, 'takePhoto() of an ended Track should throw "InvalidStateError"');
 

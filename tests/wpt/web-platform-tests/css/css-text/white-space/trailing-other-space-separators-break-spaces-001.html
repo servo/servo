@@ -31,18 +31,15 @@ section {
 <p>Test passes if the orange and blue parts of this page are identical.
 
 <!--
- * no line breaking opportunity is after an "x"
-   unless the next character provides one,
-   and none of the other space separators do.
- * no line breaking opportunity is before an "x"
-   unless the previous character provides one (A).
- * a line breaking opportunity is expected after "あ",
-   unless suppressed by the next character (XB).
- * a line breaking opportunity is expected before "あ",
-   unless suppressed by the previous character (XA).
+ * There is no line breaking opportunity between two "x"
+ * There is a line breaking opportunity between two "あ"
+ * There is a line breaking opportunity after "x" or "あ"
+   unless suppressed by the next character (BA, GL).
+ * There is a line breaking opportunity before "x" or "あ"
+   unless suppressed by the previous character (BB, GL).
 -->
 <section class=ref>
-  <div>xx&#x1680;<br>ああ<br>&#x1680;あ<br>あ&#x1680;<br>xx</div><!-- A, tailorable -->
+  <div>xx&#x1680;<br>あ<br>あ&#x1680;<br>あ<br>あ&#x1680;<br>xx</div><!-- BA, tailorable -->
 </section>
 <section>
   <div>xx&#x1680;ああ&#x1680;ああ&#x1680;xx</div>

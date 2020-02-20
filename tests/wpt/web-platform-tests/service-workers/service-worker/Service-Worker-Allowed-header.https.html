@@ -39,7 +39,7 @@ function register_fail_test(script, scope, description) {
     });
 
     await service_worker_unregister(t, scope);
-    await promise_rejects(t,
+    await promise_rejects_dom(t,
                           'SecurityError',
                           navigator.serviceWorker.register(script, {scope}));
   }, description);

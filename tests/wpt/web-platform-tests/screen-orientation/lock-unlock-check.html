@@ -24,7 +24,7 @@
         r(screen.orientation.lock("any"));
       };
     });
-    await promise_rejects(t, "AbortError", pMustReject);
+    await promise_rejects_dom(t, "AbortError", pMustReject);
     await pMustResolve;
   }, "Re-locking orientation during event dispatch must reject existing orientationPendingPromise");
 </script>

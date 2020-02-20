@@ -11,6 +11,6 @@ promise_test(t => {
         optionalServices: [glucose.name]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryService(glucose.name)));
+    .then(gattServer => promise_rejects_dom(t, 'NotFoundError', gattServer.getPrimaryService(glucose.name)));
 }, 'Request for absent service. Reject with NotFoundError.');
 </script>

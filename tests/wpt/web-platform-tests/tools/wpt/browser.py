@@ -379,14 +379,14 @@ class Firefox(Browser):
         tags = call("git", "ls-remote", "--tags", "--refs",
                     "https://github.com/mozilla/geckodriver.git")
         release_re = re.compile(r".*refs/tags/v(\d+)\.(\d+)\.(\d+)")
-        latest_release = 0
+        latest_release = (0,0,0)
         for item in tags.split("\n"):
             m = release_re.match(item)
             if m:
-                version = [int(item) for item in m.groups()]
+                version = tuple(int(item) for item in m.groups())
                 if version > latest_release:
                     latest_release = version
-        assert latest_release != 0
+        assert latest_release != (0,0,0)
         return "v%s.%s.%s" % tuple(str(item) for item in latest_release)
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
@@ -1087,11 +1087,11 @@ class Safari(Browser):
         except subprocess.CalledProcessError:
             self.logger.warning("Failed to call %s --version" % webdriver_binary)
             return None
-        m = re.match(br"Included with Safari (.*)", version_string)
+        m = re.match(r"Included with Safari (.*)", version_string)
         if not m:
             self.logger.warning("Failed to extract version from: %s" % version_string)
             return None
-        return m.group(1).decode()
+        return m.group(1)
 
 
 class Servo(Browser):
@@ -1234,7 +1234,7 @@ class WebKitGTKMiniBrowser(WebKit):
         gcc = find_executable("gcc")
         if gcc:
             try:
-                triplet = call(gcc, "-dumpmachine").decode().strip()
+                triplet = call(gcc, "-dumpmachine").strip()
             except subprocess.CalledProcessError:
                 pass
         # Add Debian/Ubuntu path
@@ -1253,7 +1253,7 @@ class WebKitGTKMiniBrowser(WebKit):
         if binary is None:
             return None
         try:  # WebKitGTK MiniBrowser before 2.26.0 doesn't support --version
-            output = call(binary, "--version").decode().strip()
+            output = call(binary, "--version").strip()
         except subprocess.CalledProcessError:
             return None
         # Example output: "WebKitGTK 2.26.1"

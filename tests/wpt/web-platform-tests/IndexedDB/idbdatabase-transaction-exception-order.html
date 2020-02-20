@@ -37,6 +37,20 @@ indexeddb_test(
   'IDBDatabase.transaction exception order: InvalidStateError vs. InvalidAccessError'
 );
 
+// Verify that the invalid mode check actually throws an exception
+indexeddb_test(
+  (t, db) => {
+    db.createObjectStore('s');
+  },
+  (t, db) => {
+    assert_throws_js(TypeError, () => {
+      db.transaction('s', 'versionchange');
+    }, '"invalid mode" check should throw TypeError');
+    t.done();
+  },
+  'IDBDatabase.transaction throws exception on invalid mode'
+);
+
 indexeddb_test(
   (t, db) => {
     db.createObjectStore('s');

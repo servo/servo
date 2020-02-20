@@ -20,21 +20,21 @@ promise_test(async () => {
 }, 'navigator.clipboard.write([text/plain ClipboardItem]) succeeds');
 
 promise_test(async t => {
-  await promise_rejects(t, new TypeError(), navigator.clipboard.write());
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write());
 }, 'navigator.clipboard.write() fails (expect [ClipboardItem])');
 
 promise_test(async t => {
-  await promise_rejects(t, new TypeError(), navigator.clipboard.write(null));
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write(null));
 }, 'navigator.clipboard.write(null) fails (expect [ClipboardItem])');
 
 promise_test(async t => {
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
                          navigator.clipboard.write('Bad string'));
 }, 'navigator.clipboard.write(DOMString) fails (expect [ClipboardItem])');
 
 promise_test(async t => {
   const blob = new Blob(['hello'], {type: 'text/plain'});
-  await promise_rejects(t, new TypeError(), navigator.clipboard.write(blob));
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write(blob));
 }, 'navigator.clipboard.write(Blob) fails (expect [ClipboardItem])');
 
 promise_test(async () => {
@@ -42,7 +42,7 @@ promise_test(async () => {
 }, 'navigator.clipboard.writeText(DOMString) succeeds');
 
 promise_test(async t => {
-  await promise_rejects(t, new TypeError(),
+  await promise_rejects_js(t, TypeError,
                          navigator.clipboard.writeText());
 }, 'navigator.clipboard.writeText() fails (expect DOMString)');
 

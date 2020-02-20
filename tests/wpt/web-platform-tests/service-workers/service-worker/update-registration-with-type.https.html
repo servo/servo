@@ -173,7 +173,7 @@ promise_test(async t => {
   await wait_for_state(t, firstRegistration.installing, 'activated');
 
   // Re-register with module script type and expect TypeError.
-  return promise_rejects(t, new TypeError, navigator.serviceWorker.register(script, {
+  return promise_rejects_js(t, TypeError, navigator.serviceWorker.register(script, {
     scope: scope,
     type: 'module'
   }), 'Registering with invalid evaluation should be failed.');
@@ -198,7 +198,7 @@ promise_test(async t => {
   await wait_for_state(t, firstRegistration.installing, 'activated');
 
   // Re-register with classic script type and expect TypeError.
-  return promise_rejects(t, new TypeError, navigator.serviceWorker.register(script, {
+  return promise_rejects_js(t, TypeError, navigator.serviceWorker.register(script, {
     scope: scope,
     type: 'classic'
   }), 'Registering with invalid evaluation should be failed.');

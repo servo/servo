@@ -138,7 +138,7 @@
     }
 
     function checkBodyFormDataError(test, response, expectedBody) {
-      return promise_rejects(test, new TypeError(), response.formData()).then(function() {
+      return promise_rejects_js(test, TypeError, response.formData()).then(function() {
         assert_true(response.bodyUsed, "body as formData: bodyUsed turned true");
       });
     }

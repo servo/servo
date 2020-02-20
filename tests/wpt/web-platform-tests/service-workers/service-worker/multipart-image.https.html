@@ -62,6 +62,6 @@ promise_test(t => {
 
 promise_test(t => {
     const promise = frame.contentWindow.load_multipart_image('cross-origin-multipart-image-with-cors-rejected');
-    return promise_rejects(t, new DOMException('load failed', 'NetworkError'), promise);
+    return promise_rejects_dom(t, 'NetworkError', promise);
   }, 'cross-origin multipart image via SW with rejected CORS should fail to load');
 </script>

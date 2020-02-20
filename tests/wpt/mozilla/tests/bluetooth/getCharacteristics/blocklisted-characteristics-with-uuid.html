@@ -11,6 +11,6 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(device_information.name))
-    .then(service => promise_rejects(t, 'SecurityError', service.getCharacteristics(serial_number_string.name)));
+    .then(service => promise_rejects_dom(t, 'SecurityError', service.getCharacteristics(serial_number_string.name)));
 }, 'Serial Number String characteristic is blocklisted. Should reject with SecurityError.');
 </script>

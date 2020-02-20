@@ -13,7 +13,7 @@ promise_test(t => {
     .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
     .then(service => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.missing_service_heart_rate);
-        return promise_rejects(t, 'InvalidStateError', service.getCharacteristic(heart_rate_measurement.name));
+        return promise_rejects_dom(t, 'InvalidStateError', service.getCharacteristic(heart_rate_measurement.name));
     });
 }, 'Service is removed. Reject with InvalidStateError.');
 </script>

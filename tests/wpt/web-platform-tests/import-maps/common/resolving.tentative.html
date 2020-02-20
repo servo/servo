@@ -15,6 +15,7 @@ for (const json of [
   'resources/data-base-url.json',
   'resources/scopes-exact-vs-prefix.json',
   'resources/overlapping-entries.json',
+  'resources/resolving-null.json',
 ]) {
   promise_test(() =>
     runTestsFromJSON(json),

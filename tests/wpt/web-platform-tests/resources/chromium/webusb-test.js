@@ -476,7 +476,7 @@ class USBTest {
 
     internal.webUsbService = new FakeWebUsbService();
     internal.webUsbServiceInterceptor =
-        new MojoInterfaceInterceptor(blink.mojom.WebUsbService.name, "context", true);
+        new MojoInterfaceInterceptor(blink.mojom.WebUsbService.name);
     internal.webUsbServiceInterceptor.oninterfacerequest =
         e => internal.webUsbService.addBinding(e.handle);
     internal.webUsbServiceInterceptor.start();

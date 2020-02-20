@@ -56,7 +56,6 @@ promise_test(t => {
     assert_false(r.headers.has("rtt-received"), "rtt-received");
     assert_false(r.headers.has("downlink-received"), "downlink-received");
     assert_false(r.headers.has("ect-received"), "ect-received");
-    assert_false(r.headers.has("mobile-received"), "mobile-received");
   });
 }, "Cross-Origin Accept-CH header test");
 

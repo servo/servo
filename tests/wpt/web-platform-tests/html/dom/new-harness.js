@@ -8,4 +8,4 @@ ReflectionHarness.test = function(fun, description) {
 
 ReflectionHarness.assertEquals = assert_equals;
 
-ReflectionHarness.assertThrows = assert_throws;
+ReflectionHarness.assertThrows = assert_throws_dom;

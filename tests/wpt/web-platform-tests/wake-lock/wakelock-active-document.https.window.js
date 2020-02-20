@@ -27,7 +27,7 @@ promise_test(async t => {
   );
   // Now, wakeLock1's relevant global object's document is no longer active.
   // So, call .request(), and make sure it rejects appropriately.
-  await promise_rejects(
+  await promise_rejects_dom(
     t,
     "NotAllowedError",
     wakeLock1.request('screen'),
@@ -70,7 +70,7 @@ promise_test(async t => {
   // (it is the active document of the inner iframe), but is not fully active
   // (since the parent of the inner iframe is itself no longer active).
   // So, call request.show() and make sure it rejects appropriately.
-  await promise_rejects(
+  await promise_rejects_dom(
     t,
     "NotAllowedError",
     wakeLock.request('screen'),

@@ -9,7 +9,7 @@ var BarcodeDetectionTest = (() => {
           shapeDetection.mojom.BarcodeDetectionProvider);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-          shapeDetection.mojom.BarcodeDetectionProvider.name, "context", true);
+          shapeDetection.mojom.BarcodeDetectionProvider.name);
       this.interceptor_.oninterfacerequest =
          e => this.bindingSet_.addBinding(this, e.handle);
       this.interceptor_.start();

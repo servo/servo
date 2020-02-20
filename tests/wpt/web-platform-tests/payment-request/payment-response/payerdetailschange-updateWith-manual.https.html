@@ -24,7 +24,7 @@ function runTest(button) {
     await response.retry({
       payer: { name: "Change me!" },
     });
-    await promise_rejects(t, "InvalidStateError", eventPromise);
+    await promise_rejects_dom(t, "InvalidStateError", eventPromise);
     await response.complete("success");
   }, button.textContent.trim());
 }

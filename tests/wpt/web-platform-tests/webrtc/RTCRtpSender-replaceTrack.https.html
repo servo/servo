@@ -39,7 +39,7 @@
     const { sender } = transceiver;
     pc.close();
 
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       sender.replaceTrack(track));
   }, 'Calling replaceTrack on closed connection should reject with InvalidStateError');
 
@@ -59,7 +59,7 @@
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
 
-    return promise_rejects(t, new TypeError(),
+    return promise_rejects_js(t, TypeError,
       sender.replaceTrack(track));
   }, 'Calling replaceTrack with track of different kind should reject with TypeError');
 
@@ -79,7 +79,7 @@
     const { sender } = transceiver;
     transceiver.stop();
 
-    return promise_rejects(t, 'InvalidStateError',
+    return promise_rejects_dom(t, 'InvalidStateError',
       sender.replaceTrack(track));
   }, 'Calling replaceTrack on stopped sender should reject with InvalidStateError');
 

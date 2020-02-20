@@ -11,6 +11,6 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(device_information.name))
-    .then(service => promise_rejects(t, 'NotFoundError', service.getCharacteristics()));
+    .then(service => promise_rejects_dom(t, 'NotFoundError', service.getCharacteristics()));
 }, 'The Device Information service is composed of blocklisted characteristics so we shouldn\'t find any.');
 </script>

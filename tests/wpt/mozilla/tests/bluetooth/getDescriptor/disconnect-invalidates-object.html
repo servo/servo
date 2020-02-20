@@ -24,8 +24,8 @@ promise_test(t => {
     })
     .then(descriptor => {
         let promises = [];
-        promises.push(promise_rejects(t, 'InvalidStateError', descriptor.readValue()));
-        promises.push(promise_rejects(t, 'InvalidStateError', descriptor.writeValue(new Uint8Array(1))));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', descriptor.readValue()));
+        promises.push(promise_rejects_dom(t, 'InvalidStateError', descriptor.writeValue(new Uint8Array(1))));
         return Promise.all(promises);
     });
 }, 'Calls on a descriptor after we disconnect and connect again. Should reject with InvalidStateError.');

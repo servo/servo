@@ -14,7 +14,7 @@ promise_test(t => {
     .then(gattServer => {
         return gattServer.getPrimaryService(generic_access.name)
         .then(service => {
-            let promise = promise_rejects(t, 'NetworkError', service.getCharacteristic(device_name.uuid));
+            let promise = promise_rejects_dom(t, 'NetworkError', service.getCharacteristic(device_name.uuid));
             gattServer.disconnect();
             return promise;
         });

@@ -16,7 +16,7 @@ promise_test(t => {
         .then(service => service.getCharacteristic(heart_rate_measurement.name))
         .then(characteristic => {
             gattServer.disconnect();
-            return promise_rejects(t, 'NetworkError', characteristic.startNotifications());
+            return promise_rejects_dom(t, 'NetworkError', characteristic.startNotifications());
         });
     });
 }, 'disconnect() called before startNotifications. Reject with NetworkError.');

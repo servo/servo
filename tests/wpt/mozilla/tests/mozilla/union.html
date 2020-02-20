@@ -14,13 +14,13 @@ test(function() {
   var opt = document.createElement('option');
   sel.add(opt);
   sel.add(optgroup);
-  assert_throws("NotFoundError", function() { sel.add(opt, div); });
-  assert_throws("NotFoundError", function() { sel.add(optgroup, div); });
+  assert_throws_dom("NotFoundError", function() { sel.add(opt, div); });
+  assert_throws_dom("NotFoundError", function() { sel.add(optgroup, div); });
   sel.add(opt, div2);
   sel.add(optgroup, div2);
   sel.add(opt, 5);
   sel.add(optgroup, 5);
-  assert_throws(new TypeError(), function() { sel.add(div) });
+  assert_throws_js(TypeError, function() { sel.add(div) });
   sel.add(optgroup, function() {})
 });
 </script>

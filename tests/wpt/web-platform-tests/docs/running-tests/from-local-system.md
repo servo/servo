@@ -116,7 +116,7 @@ http://web-platform.test:8000/tools/runner/index.html<br>
 https://web-platform.test:8443/tools/runner/index.html *
 
 This server has all the capabilities of the publicly-deployed version--see
-[Running the Tests from the Web](from-web).
+[Running the Tests from the Web](from-web.md).
 
 \**See [Trusting Root CA](../tools/certs/README.md)*
 
@@ -142,7 +142,7 @@ customising the test run:
     ./wpt run --help
 
 [A complete listing of the command-line arguments is available
-here](command-line-arguments).
+here](command-line-arguments.md).
 
 ```eval_rst
 .. toctree::

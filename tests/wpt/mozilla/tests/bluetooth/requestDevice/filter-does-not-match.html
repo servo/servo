@@ -99,7 +99,7 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
     let promises = [];
     test_specs.forEach(args => {
-        promises.push(promise_rejects(t, 'NotFoundError', window.navigator.bluetooth.requestDevice(args)));
+        promises.push(promise_rejects_dom(t, 'NotFoundError', window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
 }, 'If at least one filter member doesn\'t match the promise must reject.');

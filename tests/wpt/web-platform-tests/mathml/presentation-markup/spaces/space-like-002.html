@@ -56,9 +56,9 @@
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_operator_spacing());
-          assert_approx_equals(spaceBefore("maction2"), 0, epsilon);
-          assert_approx_equals(spaceAfter("maction2"), 2 * emToPx, epsilon);
-      }, "non-space like maction (no first child)");
+          assert_approx_equals(spaceBefore("maction2"), emToPx, epsilon);
+          assert_approx_equals(spaceAfter("maction2"), emToPx, epsilon);
+      }, "space-like maction (no first child)");
 
       test(function() {
           assert_approx_equals(spaceBefore("maction3"), 0, epsilon);
@@ -74,9 +74,9 @@
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_operator_spacing());
-          assert_approx_equals(spaceBefore("semantics2"), 0, epsilon);
-          assert_approx_equals(spaceAfter("semantics2"), 2 * emToPx, epsilon);
-      }, "non-space like semantics (no first child)");
+          assert_approx_equals(spaceBefore("semantics2"), emToPx, epsilon);
+          assert_approx_equals(spaceAfter("semantics2"), emToPx, epsilon);
+      }, "space-like semantics (no first child)");
 
       test(function() {
           assert_true(MathMLFeatureDetection.has_operator_spacing());

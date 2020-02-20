@@ -92,7 +92,7 @@
 
       promise_test(function(test) {
         assert_true(bodyConsumed.bodyUsed , "bodyUsed is true when request is disturbed");
-        return promise_rejects(test, new TypeError(), bodyConsumed.blob());
+        return promise_rejects_js(test, TypeError, bodyConsumed.blob());
       }, "Check consuming a disturbed request");
 
       test(function() {

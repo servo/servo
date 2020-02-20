@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Grandchild that posts a message to the window.top</title>
+<script>
+  var top_location = '';
+  var result = '';
+  try {
+      top_location = window.top.location.href;
+      result = 'allowed';
+  } catch (err) {
+      result = 'noaccess';
+  }
+  window.top.postMessage(result, '*');
+</script>
