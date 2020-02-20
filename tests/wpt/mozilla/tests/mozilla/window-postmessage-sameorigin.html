@@ -56,7 +56,7 @@ var base_tests = [
   function() { return expect_message('basic', '/', 'same origin, cloneable string message') },
   function() { return expect_message('basic', HTTP_ORIGIN, 'explicit same origin, cloneable string message') },
   function() { return expect_no_message('basic', HTTPS_ORIGIN, 'explicit cross origin, cloneable string message') },
-  function() { return expect_error_js(SyntaxError, 'basic', 'not-a-url', 'explicit invalid url, cloneable string message') },
+  function() { return expect_error_dom('SyntaxError', 'basic', 'not-a-url', 'explicit invalid url, cloneable string message') },
   function() { return expect_error_dom('DATA_CLONE_ERR', window, '*', 'any origin, non-cloneable message') },
 ];
 
