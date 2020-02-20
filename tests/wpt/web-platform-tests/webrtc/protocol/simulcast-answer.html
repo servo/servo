@@ -58,5 +58,5 @@ a=simulcast:recv foo;bar;baz
   let result = answer_lines.find(
       line => line.startsWith(`a=simulcast:send ${expected_rids.join(';')}`));
   assert_not_equals(result, undefined, "Could not find simulcast attribute.");
-}, 'createOffer() with multiple send encodings should create simulcast offer');
+}, 'createAnswer() with multiple send encodings should create simulcast answer');
 </script>

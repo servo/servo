@@ -212,7 +212,8 @@
         pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
       });
     }
-    const stats = await pc2.getStats(track);
+    const receivedTrack = pc2.getReceivers()[0].track;
+    const stats = await pc2.getStats(receivedTrack);
     validateStatsReport(stats);
     assert_stats_report_has_stats(stats, ['inbound-rtp']);
   }, `getStats() on track associated with RtpReceiver should return stats report containing inbound-rtp stats`);

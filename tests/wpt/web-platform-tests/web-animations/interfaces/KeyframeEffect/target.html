@@ -255,7 +255,18 @@ for (const hasContent of [true, false]){
   }
 }
 
-
+for (const pseudo of [
+  '',
+  'before',
+  '::abc',
+  '::placeholder',
+]) {
+  test(t => {
+    const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+    assert_throws_js(TypeError, () => effect.pseudoElement = pseudo );
+  }, `Changing pseudoElement to invalid pseudo-selector '${pseudo}' throws a ` +
+     `TypeError`);
+}
 
 </script>
 </body>

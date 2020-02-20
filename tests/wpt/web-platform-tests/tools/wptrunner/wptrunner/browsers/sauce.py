@@ -179,7 +179,7 @@ class SauceConnect():
 
         tot_wait = 0
         while not os.path.exists('./sauce_is_ready') and self.sc_process.poll() is None:
-            if tot_wait >= self.sauce_init_timeout:
+            if not self.sauce_init_timeout or (tot_wait >= self.sauce_init_timeout):
                 self.quit()
 
                 raise SauceException("Sauce Connect Proxy was not ready after %d seconds" % tot_wait)

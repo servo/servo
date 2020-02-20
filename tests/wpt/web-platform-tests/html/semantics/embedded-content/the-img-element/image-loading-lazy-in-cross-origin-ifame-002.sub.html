@@ -14,7 +14,8 @@
 promise_test(async t => {
   iframe.src =
     get_host_info().HTTP_NOTSAMESITE_ORIGIN +
-    "/loading/lazyload/resources/image-loading-lazy-in-viewport-iframe.html";
+    new URL("resources/", self.location).pathname +
+    "image-loading-lazy-in-viewport-iframe.html";
 
   let image_loaded = false;
 

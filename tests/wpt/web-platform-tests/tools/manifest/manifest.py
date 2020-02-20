@@ -141,7 +141,7 @@ class Manifest(object):
         tpath_len = len(tpath)
 
         for type_tests in self._data.values():
-            for path, tests in type_tests.iteritems():
+            for path, tests in iteritems(type_tests):
                 if path[:tpath_len] == tpath:
                     for test in tests:
                         yield test

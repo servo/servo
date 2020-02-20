@@ -545,6 +545,7 @@ gen-signedexchange \
   -version $sxg_version \
   -uri $inner_url_origin/signed-exchange/resources/sxg-subresource-script.js \
   -status 200 \
+  -responseHeader "Content-Type: application/javascript" \
   -content sxg-subresource-script-inner.js \
   -certificate $certfile \
   -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \

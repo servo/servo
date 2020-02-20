@@ -641,7 +641,7 @@ policies and contribution forms [3].
     function promise_rejects_js(test, constructor, promise, description) {
         return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
             assert_throws_js_impl(constructor, function() { throw e },
-                                  description, "promise_reject_js");
+                                  description, "promise_rejects_js");
         });
     }
 
