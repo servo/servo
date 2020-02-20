@@ -784,13 +784,25 @@ class MachCommands(CommandBase):
 
 def angle_root(target, nuget_env):
     arch = {
-
         "aarch64": "arm64",
         "x86_64": "x64",
     }
     angle_arch = arch[target.split('-')[0]]
+
+    package_name = "ANGLE.WindowsStore.Servo"
+
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(os.path.join('support', 'hololens', 'ServoApp', 'packages.config'))
+    root = tree.getroot()
+    for package in root.iter('package'):
+        if package.get('id') == package_name:
+            package_version = package.get('version')
+            break
+    else:
+        raise Exception("Couldn't locate ANGLE package")
+
     angle_default_path = path.join(os.getcwd(), "support", "hololens", "packages",
-                                   "ANGLE.WindowsStore.Servo.2.1.16", "bin", "UAP", angle_arch)
+                                   package_name + "." + package_version, "bin", "UAP", angle_arch)
 
     # Nuget executable command
     nuget_app = path.join(os.getcwd(), "support", "hololens", "ServoApp.sln")
