@@ -75,6 +75,11 @@ use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
+#[cfg(feature = "xr-profile")]
+fn to_ms(ns: u64) -> f64 {
+    ns as f64 / 1_000_000.
+}
+
 struct GLContextData {
     ctx: Context,
     gl: Rc<Gl>,
@@ -329,8 +334,8 @@ impl WebGLThread {
             WebGLMsg::CreateWebXRSwapChain(ctx_id, size, sender) => {
                 let _ = sender.send(self.create_webxr_swap_chain(ctx_id, size));
             },
-            WebGLMsg::SwapBuffers(swap_ids, sender) => {
-                self.handle_swap_buffers(swap_ids, sender);
+            WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
+                self.handle_swap_buffers(swap_ids, sender, sent_time);
             },
             WebGLMsg::DOMToTextureCommand(command) => {
                 self.handle_dom_to_texture(command);
@@ -667,8 +672,16 @@ impl WebGLThread {
     fn handle_swap_buffers(
         &mut self,
         swap_ids: Vec<SwapChainId>,
-        completed_sender: WebGLSender<()>,
+        completed_sender: WebGLSender<u64>,
+        _sent_time: u64,
     ) {
+        #[cfg(feature = "xr-profile")]
+        let start_swap = time::precise_time_ns();
+        #[cfg(feature = "xr-profile")]
+        println!(
+            "WEBXR PROFILING [swap request]:\t{}ms",
+            to_ms(start_swap - _sent_time)
+        );
         debug!("handle_swap_buffers()");
         for swap_id in swap_ids {
             let context_id = swap_id.context_id();
@@ -733,7 +746,17 @@ impl WebGLThread {
             );
         }
 
-        completed_sender.send(()).unwrap();
+        #[allow(unused)]
+        let mut end_swap = 0;
+        #[cfg(feature = "xr-profile")]
+        {
+            end_swap = time::precise_time_ns();
+            println!(
+                "WEBXR PROFILING [swap buffer]:\t{}ms",
+                to_ms(end_swap - start_swap)
+            );
+        }
+        completed_sender.send(end_swap).unwrap();
     }
 
     /// Creates a new WebXR swap chain

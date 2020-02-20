@@ -510,6 +510,7 @@ dependencies = [
  "surfman 0.1.3",
  "surfman-chains 0.2.1",
  "surfman-chains-api",
+ "time",
  "webrender",
  "webrender_api",
  "webrender_traits",
@@ -532,6 +533,7 @@ dependencies = [
  "serde_bytes",
  "servo_config",
  "sparkle",
+ "time",
  "webrender_api",
  "webvr_traits",
  "webxr-api",
@@ -6740,6 +6742,7 @@ dependencies = [
  "log",
  "serde",
  "surfman-chains-api",
+ "time",
  "winit",
 ]
 

@@ -164,10 +164,21 @@ impl XRSession {
         ROUTER.add_route(
             frame_receiver.to_opaque(),
             Box::new(move |message| {
+                #[allow(unused)]
+                let mut frame: Frame = message.to().unwrap();
+                #[cfg(feature = "xr-profile")]
+                {
+                    let received = time::precise_time_ns();
+                    println!(
+                        "WEBXR PROFILING [raf receive]:\t{}ms",
+                        (received - frame.sent_time) as f64 / 1_000_000.
+                    );
+                    frame.sent_time = received;
+                }
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(xr_raf_callback: move || {
-                        this.root().raf_callback(message.to().unwrap());
+                        this.root().raf_callback(frame);
                     }),
                     &canceller,
                 );
@@ -333,6 +344,13 @@ impl XRSession {
     /// https://immersive-web.github.io/webxr/#xr-animation-frame
     fn raf_callback(&self, mut frame: Frame) {
         debug!("WebXR RAF callback");
+        #[cfg(feature = "xr-profile")]
+        let raf_start = time::precise_time_ns();
+        #[cfg(feature = "xr-profile")]
+        println!(
+            "WEBXR PROFILING [raf queued]:\t{}ms",
+            (raf_start - frame.sent_time) as f64 / 1_000_000.
+        );
 
         // Step 1
         if let Some(pending) = self.pending_render_state.take() {
@@ -388,6 +406,12 @@ impl XRSession {
         } else {
             self.session.borrow_mut().start_render_loop();
         }
+
+        #[cfg(feature = "xr-profile")]
+        println!(
+            "WEBXR PROFILING [raf execute]:\t{}ms",
+            (time::precise_time_ns() - raf_start) as f64 / 1_000_000.
+        );
 
         // If the canvas element is attached to the DOM, it is now dirty,
         // and we need to trigger a reflow.

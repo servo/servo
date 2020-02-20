@@ -82,7 +82,11 @@ pub enum WebGLMsg {
         WebGLSender<Option<WebXRSwapChainId>>,
     ),
     /// Performs a buffer swap.
-    SwapBuffers(Vec<SwapChainId>, WebGLSender<()>),
+    ///
+    /// The third field contains the time (in ns) when the request
+    /// was initiated. The u64 in the second field will be the time the
+    /// request is fulfilled
+    SwapBuffers(Vec<SwapChainId>, WebGLSender<u64>, u64),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -195,9 +199,23 @@ impl WebGLMsgSender {
             .map(|id| SwapChainId::Framebuffer(self.ctx_id, id))
             .unwrap_or_else(|| SwapChainId::Context(self.ctx_id));
         let (sender, receiver) = webgl_channel()?;
+        #[allow(unused)]
+        let mut time = 0;
+        #[cfg(feature = "xr-profile")]
+        {
+            time = time::precise_time_ns();
+        }
+
         self.sender
-            .send(WebGLMsg::SwapBuffers(vec![swap_id], sender))?;
-        receiver.recv()?;
+            .send(WebGLMsg::SwapBuffers(vec![swap_id], sender, time))?;
+
+        #[allow(unused)]
+        let sent_time = receiver.recv()?;
+        #[cfg(feature = "xr-profile")]
+        println!(
+            "WEBXR PROFILING [swap complete]:\t{}ms",
+            (time::precise_time_ns() - sent_time) as f64 / 1_000_000.
+        );
         Ok(())
     }
 
