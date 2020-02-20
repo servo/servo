@@ -2283,8 +2283,38 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         renderbuffertarget: u32,
         rb: Option<&WebGLRenderbuffer>,
     ) {
-        self.base
-            .FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb)
+        if let Some(rb) = rb {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(rb), return);
+        }
+
+        let fb_slot = match target {
+            constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
+                self.base.get_draw_framebuffer_slot()
+            },
+            constants::READ_FRAMEBUFFER => &self.base.get_read_framebuffer_slot(),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+
+        if renderbuffertarget != constants::RENDERBUFFER {
+            return self.base.webgl_error(InvalidEnum);
+        }
+
+        match fb_slot.get() {
+            Some(fb) => match attachment {
+                constants::DEPTH_STENCIL_ATTACHMENT => {
+                    handle_potential_webgl_error!(
+                        self.base,
+                        fb.renderbuffer(constants::DEPTH_ATTACHMENT, rb)
+                    );
+                    handle_potential_webgl_error!(
+                        self.base,
+                        fb.renderbuffer(constants::STENCIL_ATTACHMENT, rb)
+                    );
+                },
+                _ => handle_potential_webgl_error!(self.base, fb.renderbuffer(attachment, rb)),
+            },
+            None => self.base.webgl_error(InvalidOperation),
+        };
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -2296,8 +2326,24 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         texture: Option<&WebGLTexture>,
         level: i32,
     ) {
-        self.base
-            .FramebufferTexture2D(target, attachment, textarget, texture, level)
+        if let Some(texture) = texture {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(texture), return);
+        }
+
+        let fb_slot = match target {
+            constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
+                self.base.get_draw_framebuffer_slot()
+            },
+            constants::READ_FRAMEBUFFER => self.base.get_read_framebuffer_slot(),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        match fb_slot.get() {
+            Some(fb) => handle_potential_webgl_error!(
+                self.base,
+                fb.texture2d(attachment, textarget, texture, level)
+            ),
+            None => self.base.webgl_error(InvalidOperation),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
