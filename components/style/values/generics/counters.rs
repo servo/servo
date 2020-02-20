@@ -8,7 +8,7 @@
 use crate::computed_values::list_style_type::T as ListStyleType;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyle;
-#[cfg(feature = "gecko")]
+#[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
 use crate::values::specified::Attr;
 use crate::values::CustomIdent;
 use std::ops::Deref;
@@ -212,7 +212,7 @@ pub enum GenericContentItem<ImageUrl> {
     #[cfg(feature = "gecko")]
     MozAltContent,
     /// `attr([namespace? `|`]? ident)`
-    #[cfg(feature = "gecko")]
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
     Attr(Attr),
     /// `url(url)`
     Url(ImageUrl),

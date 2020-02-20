@@ -9,8 +9,11 @@ use crate::replaced::ReplacedContent;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::wrapper::GetRawData;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use html5ever::LocalName;
 use net_traits::image::base::Image as NetImage;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use servo_arc::Arc as ServoArc;
 use std::marker::PhantomData as marker;
 use std::sync::Arc;
@@ -253,24 +256,23 @@ fn pseudo_element_style<'dom, Node>(
 where
     Node: NodeExt<'dom>,
 {
-    if let Some(pseudo_element) = match which {
+    match which {
         WhichPseudoElement::Before => element.to_threadsafe().get_before_pseudo(),
         WhichPseudoElement::After => element.to_threadsafe().get_after_pseudo(),
-    } {
+    }
+    .and_then(|pseudo_element| {
         let style = pseudo_element.style(context.shared_context());
         if style.ineffective_content_property() {
             None
         } else {
             Some(style)
         }
-    } else {
-        None
-    }
+    })
 }
 
 fn generate_pseudo_element_content<'dom, Node>(
     pseudo_element_style: &ComputedValues,
-    _element: Node,
+    element: Node,
     _context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem>
 where
@@ -282,14 +284,25 @@ where
             for item in items.iter() {
                 match item {
                     ContentItem::String(s) => {
-                        vec.push(PseudoElementContentItem::Text(s.to_string()))
+                        vec.push(PseudoElementContentItem::Text(s.to_string()));
                     },
-                    _ => unimplemented!(),
+                    ContentItem::Attr(attr) => {
+                        let element = element
+                            .to_threadsafe()
+                            .as_element()
+                            .expect("Expected an element");
+                        let attr_val = element
+                            .get_attr(&attr.namespace_url, &LocalName::from(&*attr.attribute));
+                        vec.push(PseudoElementContentItem::Text(
+                            attr_val.map_or("".to_string(), |s| s.to_string()),
+                        ));
+                    },
+                    _ => (),
                 }
             }
             vec
         },
-        _ => vec![],
+        Content::Normal | Content::None => unreachable!(),
     }
 }
 

@@ -21,6 +21,7 @@ euclid = "0.20"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
+html5ever = "0.25"
 ipc-channel = "0.14"
 libc = "0.2"
 msg = {path = "../msg"}
