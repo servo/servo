@@ -13,7 +13,7 @@ path = "lib.rs"
 [dependencies]
 app_units = "0.7"
 atomic_refcell = "0.1"
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.20"
 fnv = "1.0"
@@ -21,7 +21,7 @@ fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.25"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 layout = {path = "../layout_2020", package = "layout_2020"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "1"

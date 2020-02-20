@@ -16,7 +16,7 @@ backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.20"
@@ -24,7 +24,7 @@ embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 http = "0.1"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 layout_traits = {path = "../layout_traits"}
 keyboard-types = "0.4.3"
 log = "0.4"

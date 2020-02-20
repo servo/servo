@@ -15,16 +15,16 @@ crate-type = ["cdylib"]
 path = "lib.rs"
 
 [dependencies]
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 euclid = "0.20"
 gleam = "0.6"
-glib = { version = "0.8", features = ["subclassing"] }
-gstreamer = { version = "0.14", features = ["subclassing"] }
-gstreamer-base = { version = "0.14", features = ["subclassing"] }
-gstreamer-gl = { version = "0.14" }
+glib = "0.9"
+gstreamer = "0.15"
+gstreamer-base = "0.15"
+gstreamer-gl = "0.15"
 gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
-gstreamer-sys = { version = "0.8" }
-gstreamer-video = { version = "0.14", features = ["subclassing"] }
+gstreamer-sys = "0.8"
+gstreamer-video = "0.15"
 log = "0.4"
 lazy_static = "1.4"
 libservo = {path = "../../components/servo"}

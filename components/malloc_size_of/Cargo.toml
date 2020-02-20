@@ -30,7 +30,7 @@ servo = [
 accountable-refcell = { version = "0.2.0", optional = true }
 app_units = "0.7"
 content-security-policy = {version = "0.3.0", features = ["serde"], optional = true}
-crossbeam-channel = { version = "0.3", optional = true }
+crossbeam-channel = { version = "0.4", optional = true }
 cssparser = "0.27"
 euclid = "0.20"
 hashglobe = { path = "../hashglobe" }

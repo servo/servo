@@ -21,7 +21,7 @@ impl<T> IpcReceiver<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    pub fn recv(&self) -> Result<T, bincode::Error> {
+    pub fn recv(&self) -> Result<T, ipc::IpcError> {
         time::profile(
             ProfilerCategory::IpcReceiver,
             None,
@@ -30,7 +30,7 @@ where
         )
     }
 
-    pub fn try_recv(&self) -> Result<T, bincode::Error> {
+    pub fn try_recv(&self) -> Result<T, ipc::TryRecvError> {
         self.ipc_receiver.try_recv()
     }
 
@@ -59,7 +59,7 @@ pub struct IpcBytesReceiver {
 }
 
 impl IpcBytesReceiver {
-    pub fn recv(&self) -> Result<Vec<u8>, bincode::Error> {
+    pub fn recv(&self) -> Result<Vec<u8>, ipc::IpcError> {
         time::profile(
             ProfilerCategory::IpcBytesReceiver,
             None,

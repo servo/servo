@@ -400,7 +400,7 @@ impl Pipeline {
             self.compositor_proxy
                 .send(CompositorMsg::PipelineExited(self.id, sender));
             if let Err(e) = receiver.recv() {
-                warn!("Sending exit message failed ({}).", e);
+                warn!("Sending exit message failed ({:?}).", e);
             }
         }
 

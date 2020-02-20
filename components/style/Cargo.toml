@@ -34,7 +34,7 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.27"
-crossbeam-channel = { version = "0.3", optional = true }
+crossbeam-channel = { version = "0.4", optional = true }
 derive_more = "0.99"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}

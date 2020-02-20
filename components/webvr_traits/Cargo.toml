@@ -11,7 +11,7 @@ name = "webvr_traits"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 msg = {path = "../msg"}
-rust-webvr-api = {version = "0.16", features = ["ipc"]}
+rust-webvr-api = {version = "0.17", features = ["ipc"]}
 serde = "1.0"

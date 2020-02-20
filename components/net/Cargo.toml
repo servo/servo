@@ -20,7 +20,7 @@ brotli = "3"
 bytes = "0.4"
 content-security-policy = {version = "0.3.0", features = ["serde"]}
 cookie_rs = {package = "cookie", version = "0.11"}
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 data-url = "0.1.0"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
@@ -32,7 +32,7 @@ hyper = "0.12"
 hyper_serde = "0.11"
 hyper-openssl = "0.7"
 immeta = "0.4"
-ipc-channel = "0.12"
+ipc-channel = "0.14"
 lazy_static = "1"
 libflate = "0.1"
 log = "0.4"
