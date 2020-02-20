@@ -82,7 +82,7 @@ def test_config_json_length():
     # we serialize the config as JSON for pytestrunner and put it in an env
     # variable, which on Windows must have a length <= 0x7FFF (int16)
     with ConfigBuilder() as c:
-        data = json.dumps(c.as_dict())
+        data = json.dumps(c.as_dict_for_wd_env_variable())
     assert len(data) <= 0x7FFF
 
 def test_alternate_host_unspecified():

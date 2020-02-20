@@ -21,6 +21,8 @@ test_invalid_value("grid-row-end", "span");
 test_invalid_value("grid-column-end", "sPaN");
 test_invalid_value("grid-column-end", '"1st"');
 test_invalid_value("grid-column-end", "1st");
+test_invalid_value("grid-column-start", "auto 1");
+test_invalid_value("grid-row-start", "1 auto");
 
 test_invalid_value("grid-area", "auto / initial");
 test_invalid_value("grid-row", "auto / inherit");

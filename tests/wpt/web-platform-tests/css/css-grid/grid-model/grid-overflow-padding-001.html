@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid padding 'overflowing' the grid container size</title>
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
+<link rel="author" title="Elika J Etemad" href="http://inkedblade.org/contact">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-model">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#propdef-overflow">
+<link rel="match" href="reference/100x100-grey-box-with-scrollbars.html">
+<meta name="assert" content="This test verifies that scrollbars are shown when end-edge padding overflows the grid container.">
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+    .grid {
+       grid: 100px / 100px;
+       width: 100px;
+       height: 100px;
+       padding: 0 50px 50px 0;
+    }
+</style>
+<p>The test passes if you see a grey square below and both scrollbars are visible.</p>
+<div class="grid"></div>

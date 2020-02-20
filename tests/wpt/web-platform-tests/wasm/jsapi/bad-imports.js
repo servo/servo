@@ -79,6 +79,7 @@ function test_bad_imports(t) {
     [WebAssembly.Global, "WebAssembly.Global"],
     [WebAssembly.Global.prototype, "WebAssembly.Global.prototype"],
     [Object.create(WebAssembly.Global.prototype), "Object.create(WebAssembly.Global.prototype)"],
+    [new WebAssembly.Global({value: "f32"}), "WebAssembly.Global object (wrong value type)"],
   ];
 
   for (const [value, name = format_value(value)] of nonGlobals) {
@@ -107,6 +108,7 @@ function test_bad_imports(t) {
     [WebAssembly.Memory, "WebAssembly.Memory"],
     [WebAssembly.Memory.prototype, "WebAssembly.Memory.prototype"],
     [Object.create(WebAssembly.Memory.prototype), "Object.create(WebAssembly.Memory.prototype)"],
+    [new WebAssembly.Memory({"initial": 256}), "WebAssembly.Memory object (too large)"],
   ];
 
   for (const [value, name = format_value(value)] of nonMemories) {
@@ -135,6 +137,7 @@ function test_bad_imports(t) {
     [WebAssembly.Table, "WebAssembly.Table"],
     [WebAssembly.Table.prototype, "WebAssembly.Table.prototype"],
     [Object.create(WebAssembly.Table.prototype), "Object.create(WebAssembly.Table.prototype)"],
+    [new WebAssembly.Table({"element": "anyfunc", "initial": 256}), "WebAssembly.Table object (too large)"],
   ];
 
   for (const [value, name = format_value(value)] of nonTables) {

@@ -313,6 +313,6 @@ promise_test(async t => {
   // "send" method step 4:
   // If the byte size of "data" exceeds the value of maxMessageSize, throw
   // a TypeError.
-  assert_throws_dom('TypeError', () => channel1.send(message));
+  assert_throws_js(TypeError, () => channel1.send(message));
 }, 'Calling send() up to max size should succeed, above max size should fail');
 </script>

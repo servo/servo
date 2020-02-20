@@ -7,9 +7,30 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
+
+const TEST_CASES = [
+  {value: "", expected: "", test: "Empty value"},
+  {value: "a=b", expected: "a=b", test: "A simple cookie"},
+  {value: "b=A\0Z", expected: "b=A", test: "A null char"},
+];
+
 test(function(){
   assert_equals(document.cookie, "");
 }, "document has no cookie");
+
+for (const i in TEST_CASES) {
+  const t = TEST_CASES[i];
+  test(() => {
+    document.cookie = t.value;
+    assert_equals(document.cookie, t.expected);
+
+    // Cleanup
+    if (document.cookie.includes("=")) {
+      document.cookie = document.cookie.split("=")[0] + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      assert_equals(document.cookie, "");
+    }
+  }, t.name);
+}
 
 test(function(){
   var doc = document.implementation.createHTMLDocument("doc");

@@ -144,7 +144,7 @@ function assert_equals_serialized_handle(left, right) {
     assert_equals_serialized_file_system_file_handle(left, right);
   } else {
     throw 'Object is not a FileSystemFileHandle or ' +
-    `FileSystemDirectoryHandle ${handle}`;
+    `FileSystemDirectoryHandle ${left}`;
   }
 }
 

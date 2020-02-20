@@ -19,8 +19,15 @@ def web_socket_do_extra_handshake(request):
 
 
 def web_socket_transfer_data(request):
+    # Send empty message to fill the ReadableStream queue
+    request.ws_stream.send_message(b'', binary=True)
+
     # TODO(ricea@chromium.org): Use time.perf_counter() when migration to python
     # 3 is complete. time.time() can go backwards.
     start_time = time.time()
+
+    # The large message that will be blocked by backpressure.
     request.ws_stream.send_message(b' ' * MESSAGE_SIZE, binary=True)
+
+    # Report the time taken to send the large message.
     request.ws_stream.send_message(six.text_type(time.time() - start_time), binary=False)

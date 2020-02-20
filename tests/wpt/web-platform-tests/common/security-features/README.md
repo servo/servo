@@ -47,6 +47,9 @@ project-directory/ (e.g. referrer-policy/)
 Note: When the repository already contains generated tests, [remove all generated tests](#removing-all-generated-tests) first.
 
 ```bash
+# Install json5 module if needed.
+pip install --user json5
+
 # Generate the test files under gen/ (HTMLs and .headers files).
 path/to/common/security-features/tools/generate.py --spec path/to/project-directory/
 
@@ -54,7 +57,9 @@ path/to/common/security-features/tools/generate.py --spec path/to/project-direct
 git add path/to/project-directory/gen/ && git commit -m "Add generated tests"
 ```
 
-This will parse the spec JSON (`project-directory/spec.src.json`) and determine which tests to generate (or skip) while using templates.
+This will parse the spec JSON5 (`project-directory/spec.src.json`) and determine which tests to generate (or skip) while using templates.
+
+Note: `spec.src.json` is transitioning to JSON5 [#21710](https://github.com/web-platform-tests/wpt/issues/21710).
 
 During the generation, the spec is validated by ```common/security-features/tools/spec_validator.py```. This is specially important when you're making changes to  `spec.src.json`. Make sure it's a valid JSON (no comments or trailing commas). The validator reports specific errors (missing keys etc.), if any.
 

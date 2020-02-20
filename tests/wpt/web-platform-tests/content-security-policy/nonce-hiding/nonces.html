@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+[["meh", ""],
+ ["div", ""],
+ ["script", ""],
+ ["meh", "http://www.w3.org/2000/svg"],
+ ["svg", "http://www.w3.org/2000/svg"], ,
+ ["script", "http://www.w3.org/2000/svg"]].forEach(([localName, namespace]) => {
+  test(t => {
+    const element = namespace === "" ? document.createElement(localName) : document.createElementNS(namespace, localName);
+    t.add_cleanup(() => element.remove());
+    assert_equals(element.nonce, "", "Initial IDL attribute value");
+    element.setAttribute("nonce", "x");
+    assert_equals(element.nonce, "x", "IDL attribute is modified after content attribute set");
+    assert_equals(element.getAttribute("nonce"), "x", "Content attribute is modified after content attribute set");
+    document.body.appendChild(element);
+    assert_equals(element.nonce, "x", "IDL attribute is unchanged after element insertion");
+    assert_equals(element.getAttribute("nonce"), "", "Content attribute is changed after element insertion");
+  }, `Basic nonce tests for ${localName} in ${namespace === "" ? "HTML" : "SVG"} namespace`);
+
+  test(t => {
+    const element = namespace === "" ? document.createElement(localName) : document.createElementNS(namespace, localName);
+    element.setAttribute("nonce", "x");
+    assert_equals(element.nonce, "x", "IDL attribute is modified after content attribute set");
+    element.removeAttribute("nonce");
+    assert_equals(element.nonce, "", "IDL attribute is empty after content attribute removal");
+  }, `Ensure that removal of content attribute does not affect IDL attribute for ${localName} in ${namespace === "" ? "HTML" : "SVG"} namespace`);
+});
+</script>

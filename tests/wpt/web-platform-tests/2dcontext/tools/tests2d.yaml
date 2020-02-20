@@ -2903,7 +2903,7 @@
     - broken.png
   code: |
     var img = document.getElementById('broken.png');
-    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+    @assert ctx.createPattern(img, 'repeat') === null;
 
 - name: 2d.pattern.repeat.empty
   testing:

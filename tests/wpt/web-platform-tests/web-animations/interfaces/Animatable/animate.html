@@ -265,7 +265,7 @@ test(t => {
   getComputedStyle(div,"::marker").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::marker'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::marker');
-}, 'animate() with pseudoElement parameter  creates an Animation object for ::marker');
+}, 'animate() with pseudoElement parameter creates an Animation object for ::marker');
 
 test(t => {
   const div = createDiv(t);
@@ -273,7 +273,7 @@ test(t => {
   div.textContent = 'foo';
   const anim = div.animate(null, {pseudoElement: '::first-line'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::first-line');
-}, 'animate() with pseudoElement parameter  creates an Animation object for ::first-line');
+}, 'animate() with pseudoElement parameter creates an Animation object for ::first-line');
 
 test(t => {
   const div = createDiv(t);
@@ -317,6 +317,20 @@ test(t => {
                 'The returned Animation targets the correct selector');
 }, 'animate() with pseudoElement an Animation object targeting ' +
    'the correct pseudo-element for ::first-line');
+
+for (const pseudo of [
+  '',
+  'before',
+  '::abc',
+  '::placeholder',
+]) {
+  test(t => {
+    const div = createDiv(t);
+    assert_throws_js(TypeError, () => {
+      div.animate(null, {pseudoElement: pseudo});
+    });
+  }, `animate() with the invalid pseudoElement '${pseudo}' throws a TypeError`);
+}
 
 </script>
 </body>
