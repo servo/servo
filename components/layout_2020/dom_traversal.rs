@@ -17,8 +17,10 @@ use std::sync::Arc;
 use style::dom::{OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style::values::generics::counters::Content;
+use style::values::generics::counters::ContentItem;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum WhichPseudoElement {
     Before,
     After,
@@ -244,29 +246,51 @@ impl NonReplacedContents {
 }
 
 fn pseudo_element_style<'dom, Node>(
-    _which: WhichPseudoElement,
-    _element: Node,
-    _context: &LayoutContext,
+    which: WhichPseudoElement,
+    element: Node,
+    context: &LayoutContext,
 ) -> Option<ServoArc<ComputedValues>>
 where
     Node: NodeExt<'dom>,
 {
-    // FIXME: run the cascade, then return None for `content: normal` or `content: none`
-    // https://drafts.csswg.org/css2/generate.html#content
-    None
+    if let Some(pseudo_element) = match which {
+        WhichPseudoElement::Before => element.to_threadsafe().get_before_pseudo(),
+        WhichPseudoElement::After => element.to_threadsafe().get_after_pseudo(),
+    } {
+        let style = pseudo_element.style(context.shared_context());
+        if style.ineffective_content_property() {
+            None
+        } else {
+            Some(style)
+        }
+    } else {
+        None
+    }
 }
 
 fn generate_pseudo_element_content<'dom, Node>(
-    _pseudo_element_style: &ComputedValues,
+    pseudo_element_style: &ComputedValues,
     _element: Node,
     _context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem>
 where
     Node: NodeExt<'dom>,
 {
-    let _ = PseudoElementContentItem::Text;
-    let _ = PseudoElementContentItem::Replaced;
-    unimplemented!()
+    match &pseudo_element_style.get_counters().content {
+        Content::Items(ref items) => {
+            let mut vec = vec![];
+            for item in items.iter() {
+                match item {
+                    ContentItem::String(s) => {
+                        vec.push(PseudoElementContentItem::Text(s.to_string()))
+                    },
+                    _ => unimplemented!(),
+                }
+            }
+            vec
+        },
+        _ => vec![],
+    }
 }
 
 pub struct BoxSlot<'dom> {
