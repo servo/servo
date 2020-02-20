@@ -64,18 +64,20 @@ pip install virtualenv
 
 #### On Debian-based Linuxes
 
-Please run `./mach bootstrap`.
+``` sh
+sudo apt install python-virtualenv python-pip
+./mach bootstrap
+```
 
-If this doesn't work, file a bug, and, run the commands below:
+If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 
 ``` sh
-sudo apt install git curl autoconf libx11-dev \
-    libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
-    gperf g++ build-essential cmake virtualenv python-pip \
-    libssl-dev libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
-    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
-    libharfbuzz-dev ccache clang libunwind-dev \
-    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
+sudo apt install git curl autoconf libx11-dev libfreetype6-dev libgl1-mesa-dri \
+    libglib2.0-dev xorg-dev gperf g++ build-essential cmake libssl-dev \
+    libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev libglu1-mesa-dev \
+    libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libharfbuzz-dev ccache \
+    clang libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
 ```
 
 Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up.
@@ -116,35 +118,41 @@ sudo apt-get install cmake
 
 </details>
 
-If `virtualenv` does not exist, try `python-virtualenv`.
-
 #### On Fedora
 
-Please run `./mach bootstrap`.
+``` sh
+sudo dnf install python2 python2-virtualenv python2-pip
+./mach bootstrap
+```
 
-If this doesn't work, file a bug, and, run the commands below:
+If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 
 ``` sh
 sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
-    freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python2 python2-virtualenv python2-pip expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
+    freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel \
+    libXrandr-devel gperf fontconfig-devel cabextract ttmkfdir  expat-devel \
+    rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel \
+    libXmu-devel mesa-libOSMesa-devel dbus-devel ncurses-devel harfbuzz-devel \
+    ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
+
 #### On CentOS
 
+``` sh
+sudo yum install python-virtualenv python-pip
+./mach bootstrap
+```
 
-Please run `./mach bootstrap`.
-
-If this doesn't work, file a bug, and, run the commands below:
+If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 
 ``` sh
-sudo yum install curl libtool gcc-c++ libXi-devel \
-    freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
-    rpm-build openssl-devel cmake3 bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ncurses-devel python34 harfbuzz-devel ccache clang clang-libs llvm-toolset-7
+sudo yum install curl libtool gcc-c++ libXi-devel freetype-devel \
+    mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel \
+    gperf fontconfig-devel cabextract ttmkfdir python expat-devel rpm-build \
+    openssl-devel cmake3 bzip2-devel libXcursor-devel libXmu-devel \
+    mesa-libOSMesa-devel dbus-devel ncurses-devel python34 harfbuzz-devel \
+    ccache clang clang-libs llvm-toolset-7
 ```
 
 Build inside `llvm-toolset` and `devtoolset`:
@@ -159,7 +167,9 @@ with the following environmental variables set:
 export CMAKE=cmake3
 export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 ```
+
 #### On openSUSE Linux
+
 ``` sh
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
@@ -167,12 +177,14 @@ sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel M
     python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang autoconf213 gstreamer-devel \
     gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
 ```
+
 #### On Arch Linux
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
     pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi
 ```
+
 #### On Gentoo Linux
 
 ```sh
@@ -188,6 +200,7 @@ With the following environment variable set:
 ```sh
 export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
+
 #### On Windows (MSVC)
 
 1. Install Python 2.7 for Windows (https://www.python.org/downloads/release/python-2716/). The Windows x86-64 MSI installer is fine. This is required for the build system execution and many dependencies.
