@@ -14,6 +14,7 @@ namespace ServoApp {
       void SetTransientMode(Boolean transient);
       void SetArgs(String args);
       void Shutdown();
+      void ChangeVisibility(Boolean visible);
       void SendMediaSessionAction(UInt32 action);
       event EventDelegate OnLoadStarted;
       event EventDelegate OnLoadEnded;

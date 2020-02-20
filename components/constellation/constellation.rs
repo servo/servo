@@ -1681,6 +1681,9 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
+            FromCompositorMsg::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
+                self.handle_change_browser_visibility(top_level_browsing_context_id, visible);
+            },
         }
     }
 
@@ -4274,6 +4277,32 @@ where
                     .send(ToCompositorMsg::CreatePng(rect, reply));
             },
         }
+    }
+
+    fn handle_change_browser_visibility(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        visible: bool,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(browsing_context) => browsing_context.pipeline_id,
+            None => {
+                return warn!(
+                    "Browsing context {} got visibility change event after closure.",
+                    browsing_context_id
+                );
+            },
+        };
+        match self.pipelines.get(&pipeline_id) {
+            None => {
+                return warn!(
+                    "Pipeline {} got visibility change event after closure.",
+                    pipeline_id
+                )
+            },
+            Some(pipeline) => pipeline.notify_visibility(visible),
+        };
     }
 
     fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {

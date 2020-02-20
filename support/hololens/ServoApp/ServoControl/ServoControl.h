@@ -13,6 +13,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void GoForward();
   void Reload();
   void Stop();
+  void ChangeVisibility(bool);
   void Shutdown();
   hstring LoadURIOrSearch(hstring);
   void SendMediaSessionAction(int32_t);
