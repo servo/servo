@@ -115,6 +115,7 @@ use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 #[cfg(not(target_os = "windows"))]
 use surfman::platform::default::device::Device as HWDevice;
@@ -505,6 +506,8 @@ where
             device_pixel_ratio: Scale::new(device_pixel_ratio),
         };
 
+        let pending_wr_frame = Arc::new(AtomicBool::new(false));
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -527,6 +530,7 @@ where
             glplayer_threads,
             event_loop_waker,
             window_size,
+            pending_wr_frame.clone(),
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -553,6 +557,7 @@ where
                 webrender_api,
                 webvr_heartbeats,
                 webxr_main_thread,
+                pending_wr_frame,
             },
             opts.output_file.clone(),
             opts.is_running_problem_test,
@@ -865,6 +870,7 @@ fn create_constellation(
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
+    pending_wr_frame: Arc<AtomicBool>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -907,6 +913,7 @@ fn create_constellation(
         glplayer_threads,
         player_context,
         event_loop_waker,
+        pending_wr_frame,
     };
 
     let (canvas_chan, ipc_canvas_chan) = canvas::canvas_paint_thread::CanvasPaintThread::start();
