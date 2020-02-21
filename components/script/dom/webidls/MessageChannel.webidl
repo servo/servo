@@ -8,7 +8,7 @@
 
 [Exposed=(Window,Worker)]
 interface MessageChannel {
-  [Throws] constructor();
+  constructor();
   readonly attribute MessagePort port1;
   readonly attribute MessagePort port2;
 };

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::{MessageChannelMethods, Wrap};
-use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -20,9 +19,12 @@ pub struct MessageChannel {
 impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<MessageChannel>> {
-        let incumbent = GlobalScope::incumbent().ok_or(Error::InvalidState)?;
+    pub fn Constructor(global: &GlobalScope) -> DomRoot<MessageChannel> {
+        MessageChannel::new(global)
+    }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
+    pub fn new(incumbent: &GlobalScope) -> DomRoot<MessageChannel> {
         // Step 1
         let port1 = MessagePort::new(&incumbent);
 
@@ -39,18 +41,19 @@ impl MessageChannel {
         );
 
         // Steps 4-6
-        let channel = reflect_dom_object(
-            Box::new(MessageChannel {
-                reflector_: Reflector::new(),
-                port1: Dom::from_ref(&port1),
-                port2: Dom::from_ref(&port2),
-            }),
-            global,
+        reflect_dom_object(
+            Box::new(MessageChannel::new_inherited(&*port1, &*port2)),
+            incumbent,
             Wrap,
-        );
+        )
+    }
 
-        // Step 7
-        Ok(channel)
+    pub fn new_inherited(port1: &MessagePort, port2: &MessagePort) -> MessageChannel {
+        MessageChannel {
+            reflector_: Reflector::new(),
+            port1: Dom::from_ref(port1),
+            port2: Dom::from_ref(port2),
+        }
     }
 }
 
