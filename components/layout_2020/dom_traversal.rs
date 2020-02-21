@@ -49,6 +49,7 @@ pub(super) enum NonReplacedContents {
 
 pub(super) enum PseudoElementContentItem {
     Text(String),
+    #[allow(dead_code)]
     Replaced(ReplacedContent),
 }
 
