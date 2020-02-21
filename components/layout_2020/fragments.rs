@@ -4,10 +4,12 @@
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
+#[cfg(debug_assertions)]
 use crate::layout_debug;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+#[cfg(not(debug_assertions))]
+use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -26,9 +28,11 @@ pub(crate) enum Fragment {
     Image(ImageFragment),
 }
 
+#[derive(Serialize)]
 pub(crate) struct BoxFragment {
     pub tag: OpaqueNode,
     pub debug_id: DebugId,
+    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -72,20 +76,26 @@ pub(crate) struct AnonymousFragment {
     pub scrollable_overflow: PhysicalRect<Length>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct TextFragment {
     pub debug_id: DebugId,
     pub tag: OpaqueNode,
+    #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
     pub ascent: Length,
+    #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct ImageFragment {
     pub debug_id: DebugId,
+    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
+    #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }
 
@@ -355,49 +365,13 @@ impl CollapsedMargin {
     }
 }
 
-impl Serialize for BoxFragment {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("BoxFragment", 7)?;
-        serializer.serialize_field("debug_id", &self.debug_id)?;
-        serializer.serialize_field("content_rect", &self.content_rect)?;
-        serializer.serialize_field("padding", &self.padding)?;
-        serializer.serialize_field("border", &self.border)?;
-        serializer.serialize_field("margin", &self.margin)?;
-        serializer.serialize_field(
-            "block_margins_collapsed_with_children",
-            &self.block_margins_collapsed_with_children,
-        )?;
-        serializer.serialize_field("children", &self.children)?;
-        serializer.end()
-    }
-}
-
-impl Serialize for TextFragment {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("TextFragment", 4)?;
-        serializer.serialize_field("debug_id", &self.debug_id)?;
-        serializer.serialize_field("rect", &self.rect)?;
-        serializer.serialize_field("ascent", &self.ascent)?;
-        serializer.serialize_field("glyphs", &self.glyphs)?;
-        serializer.end()
-    }
-}
-
-impl Serialize for ImageFragment {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("ImageFragment", 2)?;
-        serializer.serialize_field("debug_id", &self.debug_id)?;
-        serializer.serialize_field("rect", &self.rect)?;
-        serializer.end()
-    }
-}
-
 #[cfg(not(debug_assertions))]
 #[derive(Clone)]
 pub struct DebugId;
 
 #[cfg(debug_assertions)]
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
+#[serde(transparent)]
 pub struct DebugId(u16);
 
 #[cfg(not(debug_assertions))]
@@ -418,12 +392,5 @@ impl DebugId {
 impl Serialize for DebugId {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&format!("{:p}", &self))
-    }
-}
-
-#[cfg(debug_assertions)]
-impl Serialize for DebugId {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u16(self.0)
     }
 }

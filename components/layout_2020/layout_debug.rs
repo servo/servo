@@ -8,8 +8,7 @@
 use crate::flow::{BoxTreeRoot, FragmentTreeRoot};
 use serde_json::{to_string, to_value, Value};
 use std::cell::RefCell;
-use std::fs::File;
-use std::io::Write;
+use std::fs;
 #[cfg(debug_assertions)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -141,6 +140,9 @@ pub fn end_trace(generation: u32) {
         fragment_tree: to_value(&thread_state.fragment_tree).unwrap_or(Value::Null),
     };
     let result = to_string(&root_scope).unwrap();
-    let mut file = File::create(format!("layout_trace-{}.json", generation)).unwrap();
-    file.write_all(result.as_bytes()).unwrap();
+    fs::write(
+        format!("layout_trace-{}.json", generation),
+        result.as_bytes(),
+    )
+    .unwrap();
 }
