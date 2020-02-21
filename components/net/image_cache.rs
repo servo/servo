@@ -10,7 +10,7 @@ use net_traits::image_cache::{
     CanRequestImages, CorsStatus, ImageCache, ImageCacheResult, ImageResponder,
     PendingImageResponse,
 };
-use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
+use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::request::CorsSettings;
 use net_traits::{
@@ -391,7 +391,7 @@ impl ImageCacheStore {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
         placeholder: UsePlaceholder,
-    ) -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
+    ) -> Option<Result<(Arc<Image>, ServoUrl), ()>> {
         self.completed_loads
             .get(&(url, origin, cors_setting))
             .map(
@@ -400,13 +400,10 @@ impl ImageCacheStore {
                     (
                         &ImageResponse::PlaceholderLoaded(ref image, ref url),
                         UsePlaceholder::Yes,
-                    ) => Ok(ImageOrMetadataAvailable::ImageAvailable(
-                        image.clone(),
-                        url.clone(),
-                    )),
+                    ) => Ok((image.clone(), url.clone())),
                     (&ImageResponse::PlaceholderLoaded(_, _), UsePlaceholder::No) |
                     (&ImageResponse::None, _) |
-                    (&ImageResponse::MetadataLoaded(_), _) => Err(ImageState::LoadError),
+                    (&ImageResponse::MetadataLoaded(_), _) => Err(()),
                 },
             )
     }
@@ -453,7 +450,7 @@ impl ImageCache for ImageCacheImpl {
         let result =
             store.get_completed_image_if_available(url, origin, cors_setting, UsePlaceholder::No);
         match result {
-            Some(Ok(ImageOrMetadataAvailable::ImageAvailable(img, _))) => Some(img),
+            Some(Ok((img, _))) => Some(img),
             _ => None,
         }
     }
@@ -467,14 +464,24 @@ impl ImageCache for ImageCacheImpl {
         can_request: CanRequestImages,
     ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
-        if let Some(Ok(result)) = store.get_completed_image_if_available(
+        if let Some(result) = store.get_completed_image_if_available(
             url.clone(),
             origin.clone(),
             cors_setting,
             use_placeholder,
         ) {
-            debug!("{} is available", url);
-            return ImageCacheResult::Available(result);
+            match result {
+                Ok((image, image_url)) => {
+                    debug!("{} is available", url);
+                    return ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(
+                        image, image_url,
+                    ));
+                },
+                Err(()) => {
+                    debug!("{} is not available", url);
+                    return ImageCacheResult::LoadError;
+                },
+            }
         }
 
         let decoded = {
@@ -518,7 +525,9 @@ impl ImageCache for ImageCacheImpl {
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
         match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
-            Some(Ok(result)) => ImageCacheResult::Available(result),
+            Some(Ok((image, image_url))) => ImageCacheResult::Available(
+                ImageOrMetadataAvailable::ImageAvailable(image, image_url),
+            ),
             _ => ImageCacheResult::LoadError,
         }
     }

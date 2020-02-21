@@ -73,14 +73,6 @@ pub enum ImageResponse {
     None,
 }
 
-/// The current state of an image in the cache.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum ImageState {
-    Pending(PendingImageId),
-    LoadError,
-    NotRequested(PendingImageId),
-}
-
 /// The unique id for an image that has previously been requested.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct PendingImageId(pub u64);
