@@ -16,7 +16,7 @@ use crate::values::generics::length::{
     GenericLengthOrNumber, GenericLengthPercentageOrNormal, GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
-use crate::values::specified::calc::CalcNode;
+use crate::values::specified::calc::{self, CalcNode};
 use crate::values::specified::NonNegativeNumber;
 use crate::values::CSSFloat;
 use crate::Zero;
@@ -952,9 +952,10 @@ impl From<Percentage> for LengthPercentage {
     #[inline]
     fn from(pc: Percentage) -> Self {
         if pc.is_calc() {
+            // FIXME(emilio): Hard-coding the clamping mode is suspect.
             LengthPercentage::Calc(Box::new(CalcLengthPercentage {
-                percentage: Some(computed::Percentage(pc.get())),
-                ..Default::default()
+                clamping_mode: AllowedNumericType::All,
+                node: CalcNode::Leaf(calc::Leaf::Percentage(pc.get())),
             }))
         } else {
             LengthPercentage::Percentage(computed::Percentage(pc.get()))

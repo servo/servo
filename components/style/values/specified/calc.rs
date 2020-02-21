@@ -7,7 +7,6 @@
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
 use crate::parser::ParserContext;
-use crate::values::computed;
 use crate::values::generics::calc as generic;
 use crate::values::generics::calc::{MinMaxOp, SortKey};
 use crate::values::specified::length::ViewportPercentageLength;
@@ -35,7 +34,7 @@ pub enum MathFunction {
 }
 
 /// A leaf node inside a `Calc` expression's AST.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Leaf {
     /// `<length>`
     Length(NoCalcLength),
@@ -89,87 +88,12 @@ enum CalcUnit {
 /// relative lengths, and to_computed_pixel_length_without_context() handles
 /// this case. Therefore, if you want to add a new field, please make sure this
 /// function work properly.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 #[allow(missing_docs)]
 pub struct CalcLengthPercentage {
+    #[css(skip)]
     pub clamping_mode: AllowedNumericType,
-    pub absolute: Option<AbsoluteLength>,
-    pub vw: Option<CSSFloat>,
-    pub vh: Option<CSSFloat>,
-    pub vmin: Option<CSSFloat>,
-    pub vmax: Option<CSSFloat>,
-    pub em: Option<CSSFloat>,
-    pub ex: Option<CSSFloat>,
-    pub ch: Option<CSSFloat>,
-    pub rem: Option<CSSFloat>,
-    pub percentage: Option<computed::Percentage>,
-}
-
-impl ToCss for CalcLengthPercentage {
-    /// <https://drafts.csswg.org/css-values/#calc-serialize>
-    ///
-    /// FIXME(emilio): Should this simplify away zeros?
-    #[allow(unused_assignments)]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        use num_traits::Zero;
-
-        let mut first_value = true;
-        macro_rules! first_value_check {
-            ($val:expr) => {
-                if !first_value {
-                    dest.write_str(if $val < Zero::zero() { " - " } else { " + " })?;
-                } else if $val < Zero::zero() {
-                    dest.write_str("-")?;
-                }
-                first_value = false;
-            };
-        }
-
-        macro_rules! serialize {
-            ( $( $val:ident ),* ) => {
-                $(
-                    if let Some(val) = self.$val {
-                        first_value_check!(val);
-                        val.abs().to_css(dest)?;
-                        dest.write_str(stringify!($val))?;
-                    }
-                )*
-            };
-        }
-
-        macro_rules! serialize_abs {
-            ( $( $val:ident ),+ ) => {
-                $(
-                    if let Some(AbsoluteLength::$val(v)) = self.absolute {
-                        first_value_check!(v);
-                        AbsoluteLength::$val(v.abs()).to_css(dest)?;
-                    }
-                )+
-            };
-        }
-
-        dest.write_str("calc(")?;
-
-        // NOTE(emilio): Percentages first because of web-compat problems, see:
-        // https://github.com/w3c/csswg-drafts/issues/1731
-        if let Some(val) = self.percentage {
-            first_value_check!(val.0);
-            val.abs().to_css(dest)?;
-        }
-
-        // NOTE(emilio): The order here it's very intentional, and alphabetic
-        // per the spec linked above.
-        serialize!(ch);
-        serialize_abs!(Cm);
-        serialize!(em, ex);
-        serialize_abs!(In, Mm, Pc, Pt, Px, Q);
-        serialize!(rem, vh, vmax, vmin, vw);
-
-        dest.write_str(")")
-    }
+    pub node: CalcNode,
 }
 
 impl SpecifiedValueInfo for CalcLengthPercentage {}
@@ -591,84 +515,15 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
-    fn to_length_or_percentage(
-        &mut self,
+    fn into_length_or_percentage(
+        mut self,
         clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthPercentage, ()> {
-        let mut ret = CalcLengthPercentage {
-            clamping_mode,
-            ..Default::default()
-        };
         self.simplify_and_sort_children();
-        self.add_length_or_percentage_to(&mut ret, 1.0)?;
-        Ok(ret)
-    }
-
-    /// Puts this `<length>` or `<percentage>` into `ret`, or error.
-    ///
-    /// `factor` is the sign or multiplicative factor to account for the sign
-    /// (this allows adding and substracting into the return value).
-    fn add_length_or_percentage_to(
-        &self,
-        ret: &mut CalcLengthPercentage,
-        factor: CSSFloat,
-    ) -> Result<(), ()> {
-        match *self {
-            CalcNode::Leaf(Leaf::Percentage(pct)) => {
-                ret.percentage = Some(computed::Percentage(
-                    ret.percentage.map_or(0., |p| p.0) + pct * factor,
-                ));
-            },
-            CalcNode::Leaf(Leaf::Length(ref l)) => match *l {
-                NoCalcLength::Absolute(abs) => {
-                    ret.absolute = Some(match ret.absolute {
-                        Some(value) => value + abs * factor,
-                        None => abs * factor,
-                    });
-                },
-                NoCalcLength::FontRelative(rel) => match rel {
-                    FontRelativeLength::Em(em) => {
-                        ret.em = Some(ret.em.unwrap_or(0.) + em * factor);
-                    },
-                    FontRelativeLength::Ex(ex) => {
-                        ret.ex = Some(ret.ex.unwrap_or(0.) + ex * factor);
-                    },
-                    FontRelativeLength::Ch(ch) => {
-                        ret.ch = Some(ret.ch.unwrap_or(0.) + ch * factor);
-                    },
-                    FontRelativeLength::Rem(rem) => {
-                        ret.rem = Some(ret.rem.unwrap_or(0.) + rem * factor);
-                    },
-                },
-                NoCalcLength::ViewportPercentage(rel) => match rel {
-                    ViewportPercentageLength::Vh(vh) => {
-                        ret.vh = Some(ret.vh.unwrap_or(0.) + vh * factor)
-                    },
-                    ViewportPercentageLength::Vw(vw) => {
-                        ret.vw = Some(ret.vw.unwrap_or(0.) + vw * factor)
-                    },
-                    ViewportPercentageLength::Vmax(vmax) => {
-                        ret.vmax = Some(ret.vmax.unwrap_or(0.) + vmax * factor)
-                    },
-                    ViewportPercentageLength::Vmin(vmin) => {
-                        ret.vmin = Some(ret.vmin.unwrap_or(0.) + vmin * factor)
-                    },
-                },
-                NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
-            },
-            CalcNode::Sum(ref children) => {
-                for child in &**children {
-                    child.add_length_or_percentage_to(ret, factor)?;
-                }
-            },
-            CalcNode::MinMax(..) | CalcNode::Clamp { .. } => {
-                // FIXME(emilio): Implement min/max/clamp for length-percentage.
-                return Err(());
-            },
-            CalcNode::Leaf(..) => return Err(()),
-        }
-
-        Ok(())
+        Ok(CalcLengthPercentage {
+            clamping_mode,
+            node: self,
+        })
     }
 
     /// Tries to simplify this expression into a `<time>` value.
@@ -742,7 +597,7 @@ impl CalcNode {
         function: MathFunction,
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::LengthPercentage)?
-            .to_length_or_percentage(clamping_mode)
+            .into_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
@@ -765,7 +620,7 @@ impl CalcNode {
         function: MathFunction,
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::Length)?
-            .to_length_or_percentage(clamping_mode)
+            .into_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 

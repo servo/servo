@@ -354,7 +354,7 @@ impl ToAbsoluteLength for SpecifiedLengthPercentage {
         match *self {
             Length(len) => len.to_computed_pixel_length_without_context(),
             Calc(ref calc) => calc.to_computed_pixel_length_without_context(),
-            _ => Err(()),
+            Percentage(..) => Err(()),
         }
     }
 }

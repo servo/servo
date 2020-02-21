@@ -295,10 +295,8 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 let length = length.to_computed_value(context);
-                let p = Percentage(1. - length.percentage());
-                let l = -length.unclamped_length();
                 // We represent `<end-side> <length>` as `calc(100% - <length>)`.
-                ComputedLengthPercentage::new_calc(l, Some(p), AllowedNumericType::All)
+                ComputedLengthPercentage::hundred_percent_minus(length, AllowedNumericType::All)
             },
             PositionComponent::Side(_, Some(ref length)) |
             PositionComponent::Length(ref length) => length.to_computed_value(context),

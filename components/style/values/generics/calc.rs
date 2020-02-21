@@ -12,7 +12,7 @@ use std::{cmp, mem};
 use smallvec::SmallVec;
 
 /// Whether we're a `min` or `max` function.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue, ToShmem)]
 #[repr(u8)]
 pub enum MinMaxOp {
     /// `min()`
@@ -44,24 +44,27 @@ pub enum SortKey {
 }
 
 /// A generic node in a calc expression.
+///
+/// FIXME: This would be much more elegant if we used `Self` in the types below,
+/// but we can't because of https://github.com/serde-rs/serde/issues/1565.
 #[repr(u8)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue, ToShmem)]
 pub enum GenericCalcNode<L> {
     /// A leaf node.
     Leaf(L),
     /// A sum node, representing `a + b + c` where a, b, and c are the
     /// arguments.
-    Sum(Box<[Self]>),
+    Sum(Box<[GenericCalcNode<L>]>),
     /// A `min` or `max` function.
-    MinMax(Box<[Self]>, MinMaxOp),
+    MinMax(Box<[GenericCalcNode<L>]>, MinMaxOp),
     /// A `clamp()` function.
     Clamp {
         /// The minimum value.
-        min: Box<Self>,
+        min: Box<GenericCalcNode<L>>,
         /// The central value.
-        center: Box<Self>,
+        center: Box<GenericCalcNode<L>>,
         /// The maximum value.
-        max: Box<Self>,
+        max: Box<GenericCalcNode<L>>,
     },
 }
 
@@ -108,6 +111,46 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         match (self, other) {
             (&mut CalcNode::Leaf(ref mut one), &CalcNode::Leaf(ref other)) => one.try_sum_in_place(other),
             _ => Err(()),
+        }
+    }
+
+    /// Convert this `CalcNode` into a `CalcNode` with a different leaf kind.
+    pub fn map_leaves<O, F>(&self, mut map: F) -> CalcNode<O>
+    where
+        O: CalcNodeLeaf,
+        F: FnMut(&L) -> O,
+    {
+        self.map_leaves_internal(&mut map)
+    }
+
+    fn map_leaves_internal<O, F>(&self, map: &mut F) -> CalcNode<O>
+    where
+        O: CalcNodeLeaf,
+        F: FnMut(&L) -> O,
+    {
+        fn map_children<L, O, F>(
+            children: &[CalcNode<L>],
+            map: &mut F,
+        ) -> Box<[CalcNode<O>]>
+        where
+            L: CalcNodeLeaf,
+            O: CalcNodeLeaf,
+            F: FnMut(&L) -> O,
+        {
+            children.iter().map(|c| c.map_leaves_internal(map)).collect()
+        }
+
+        match *self {
+            Self::Leaf(ref l) => CalcNode::Leaf(map(l)),
+            Self::Sum(ref c) => CalcNode::Sum(map_children(c, map)),
+            Self::MinMax(ref c, op) => CalcNode::MinMax(map_children(c, map), op),
+            Self::Clamp { ref min, ref center, ref max } => {
+                let min = Box::new(min.map_leaves_internal(map));
+                let center = Box::new(center.map_leaves_internal(map));
+                let max = Box::new(max.map_leaves_internal(map));
+                CalcNode::Clamp { min, center, max }
+
+            }
         }
     }
 
