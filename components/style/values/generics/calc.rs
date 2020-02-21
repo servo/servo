@@ -6,9 +6,11 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
+use crate::Zero;
 use style_traits::{CssWriter, ToCss};
 use std::fmt::{self, Write};
 use std::{cmp, mem};
+use std::ops::Add;
 use smallvec::SmallVec;
 
 /// Whether we're a `min` or `max` function.
@@ -149,9 +151,62 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 let center = Box::new(center.map_leaves_internal(map));
                 let max = Box::new(max.map_leaves_internal(map));
                 CalcNode::Clamp { min, center, max }
-
             }
         }
+    }
+
+    /// Resolves the expression returning a value of `O`, given a function to
+    /// turn a leaf into the relevant value.
+    pub fn resolve<O>(&self, mut leaf_to_output_fn: impl FnMut(&L) -> Result<O, ()>) -> Result<O, ()>
+    where
+        O: PartialOrd + PartialEq + Add<Output = O> + Zero,
+    {
+        self.resolve_internal(&mut leaf_to_output_fn)
+    }
+
+    fn resolve_internal<O, F>(&self, leaf_to_output_fn: &mut F) -> Result<O, ()>
+    where
+        O: PartialOrd + PartialEq + Add<Output = O> + Zero,
+        F: FnMut(&L) -> Result<O, ()>,
+    {
+        Ok(match *self {
+            Self::Leaf(ref l) => return leaf_to_output_fn(l),
+            Self::Sum(ref c) => {
+                let mut result = Zero::zero();
+                for child in &**c {
+                    result = result + child.resolve_internal(leaf_to_output_fn)?;
+                }
+                result
+            },
+            Self::MinMax(ref nodes, op) => {
+                let mut result = nodes[0].resolve_internal(leaf_to_output_fn)?;
+                for node in nodes.iter().skip(1) {
+                    let candidate = node.resolve_internal(leaf_to_output_fn)?;
+                    let candidate_wins = match op {
+                        MinMaxOp::Min => candidate < result,
+                        MinMaxOp::Max => candidate > result,
+                    };
+                    if candidate_wins {
+                        result = candidate;
+                    }
+                }
+                result
+            },
+            Self::Clamp { ref min, ref center, ref max } => {
+                let min = min.resolve_internal(leaf_to_output_fn)?;
+                let center = center.resolve_internal(leaf_to_output_fn)?;
+                let max = max.resolve_internal(leaf_to_output_fn)?;
+
+                let mut result = center;
+                if result > max {
+                    result = max;
+                }
+                if result < min {
+                    result = min
+                }
+                result
+            },
+        })
     }
 
     fn is_negative_leaf(&self) -> bool {

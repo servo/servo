@@ -98,72 +98,6 @@ pub struct CalcLengthPercentage {
 
 impl SpecifiedValueInfo for CalcLengthPercentage {}
 
-macro_rules! impl_generic_to_type {
-    ($self:ident, $self_variant:ident, $to_self:ident, $to_float:ident, $from_float:path) => {{
-        if let Self::Leaf(Leaf::$self_variant(ref v)) = *$self {
-            return Ok(v.clone());
-        }
-
-        Ok(match *$self {
-            Self::Sum(ref expressions) => {
-                let mut sum = 0.;
-                for sub in &**expressions {
-                    sum += sub.$to_self()?.$to_float();
-                }
-                $from_float(sum)
-            },
-            Self::Clamp {
-                ref min,
-                ref center,
-                ref max,
-            } => {
-                let min = min.$to_self()?;
-                let center = center.$to_self()?;
-                let max = max.$to_self()?;
-
-                // Equivalent to cmp::max(min, cmp::min(center, max))
-                //
-                // But preserving units when appropriate.
-                let center_float = center.$to_float();
-                let min_float = min.$to_float();
-                let max_float = max.$to_float();
-
-                let mut result = center;
-                let mut result_float = center_float;
-
-                if result_float > max_float {
-                    result = max;
-                    result_float = max_float;
-                }
-
-                if result_float < min_float {
-                    min
-                } else {
-                    result
-                }
-            },
-            Self::MinMax(ref nodes, op) => {
-                let mut result = nodes[0].$to_self()?;
-                let mut result_float = result.$to_float();
-                for node in nodes.iter().skip(1) {
-                    let candidate = node.$to_self()?;
-                    let candidate_float = candidate.$to_float();
-                    let candidate_wins = match op {
-                        MinMaxOp::Min => candidate_float < result_float,
-                        MinMaxOp::Max => candidate_float > result_float,
-                    };
-                    if candidate_wins {
-                        result = candidate;
-                        result_float = candidate_float;
-                    }
-                }
-                result
-            },
-            Self::Leaf(..) => return Err(()),
-        })
-    }};
-}
-
 impl PartialOrd for Leaf {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         use self::Leaf::*;
@@ -527,22 +461,44 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<time>` value.
     fn to_time(&self) -> Result<Time, ()> {
-        impl_generic_to_type!(self, Time, to_time, seconds, Time::from_calc)
+        let seconds = self.resolve(|leaf| {
+            match *leaf {
+                Leaf::Time(ref t) => Ok(t.seconds()),
+                _ => Err(()),
+            }
+        })?;
+        Ok(Time::from_calc(seconds))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
     fn to_angle(&self) -> Result<Angle, ()> {
-        impl_generic_to_type!(self, Angle, to_angle, degrees, Angle::from_calc)
+        let degrees = self.resolve(|leaf| {
+            match *leaf {
+                Leaf::Angle(ref angle) => Ok(angle.degrees()),
+                _ => Err(()),
+            }
+        })?;
+        Ok(Angle::from_calc(degrees))
     }
 
     /// Tries to simplify this expression into a `<number>` value.
     fn to_number(&self) -> Result<CSSFloat, ()> {
-        impl_generic_to_type!(self, Number, to_number, clone, From::from)
+        self.resolve(|leaf| {
+            match *leaf {
+                Leaf::Number(n) => Ok(n),
+                _ => Err(()),
+            }
+        })
     }
 
     /// Tries to simplify this expression into a `<percentage>` value.
     fn to_percentage(&self) -> Result<CSSFloat, ()> {
-        impl_generic_to_type!(self, Percentage, to_percentage, clone, From::from)
+        self.resolve(|leaf| {
+            match *leaf {
+                Leaf::Percentage(p) => Ok(p),
+                _ => Err(()),
+            }
+        })
     }
 
     /// Given a function name, and the location from where the token came from,

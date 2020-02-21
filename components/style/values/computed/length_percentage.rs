@@ -656,23 +656,14 @@ impl CalcLengthPercentage {
     /// Resolves the percentage.
     #[inline]
     fn resolve(&self, basis: Length) -> Length {
-        // TODO: This could be faster (without the extra allocations),
-        // potentially.
-        let mut resolved = self.node.map_leafs(|l| {
-            match l {
-                CalcLengthPercentageLeaf::Length(..) => l.clone(),
-                CalcLengthPercentageLeaf::Percentage(ref p) => {
-                    CalcLengthPercentageLeaf::Length(Length::new(basis.px() * p.0))
-                },
-            }
-        });
-
-        resolved.simplify_and_sort_children();
-
-        match resolved {
-            CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l)) => l,
-            other => unreachable!("Didn't manage to resolve <length-percentage>: {:?}", other),
-        }
+        // unwrap() is fine because the conversion below is infallible.
+        let px = self.node.resolve(|l| {
+            Ok(match *l {
+                CalcLengthPercentageLeaf::Length(l) => l.px(),
+                CalcLengthPercentageLeaf::Percentage(ref p) => basis.px() * p.0,
+            })
+        }).unwrap();
+        Length::new(self.clamping_mode.clamp(px))
     }
 
     fn clamp_to_non_negative(&self) -> LengthPercentage {
