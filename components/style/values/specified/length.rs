@@ -92,7 +92,16 @@ impl FontRelativeLength {
             FontRelativeLength::Em(v) |
             FontRelativeLength::Ex(v) |
             FontRelativeLength::Ch(v) |
-            FontRelativeLength::Rem(v) => v == 0.0,
+            FontRelativeLength::Rem(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            FontRelativeLength::Em(v) |
+            FontRelativeLength::Ex(v) |
+            FontRelativeLength::Ch(v) |
+            FontRelativeLength::Rem(v) => v < 0.,
         }
     }
 
@@ -266,7 +275,16 @@ impl ViewportPercentageLength {
             ViewportPercentageLength::Vw(v) |
             ViewportPercentageLength::Vh(v) |
             ViewportPercentageLength::Vmin(v) |
-            ViewportPercentageLength::Vmax(v) => v == 0.0,
+            ViewportPercentageLength::Vmax(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            ViewportPercentageLength::Vw(v) |
+            ViewportPercentageLength::Vh(v) |
+            ViewportPercentageLength::Vmin(v) |
+            ViewportPercentageLength::Vmax(v) => v < 0.,
         }
     }
 
@@ -367,6 +385,18 @@ impl AbsoluteLength {
             AbsoluteLength::Q(v) |
             AbsoluteLength::Pt(v) |
             AbsoluteLength::Pc(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            AbsoluteLength::Px(v) |
+            AbsoluteLength::In(v) |
+            AbsoluteLength::Cm(v) |
+            AbsoluteLength::Mm(v) |
+            AbsoluteLength::Q(v) |
+            AbsoluteLength::Pt(v) |
+            AbsoluteLength::Pc(v) => v < 0.,
         }
     }
 
@@ -484,6 +514,16 @@ impl Mul<CSSFloat> for NoCalcLength {
 }
 
 impl NoCalcLength {
+    /// Returns whether the value of this length without unit is less than zero.
+    pub fn is_negative(&self) -> bool {
+        match *self {
+            NoCalcLength::Absolute(v) => v.is_negative(),
+            NoCalcLength::FontRelative(v) => v.is_negative(),
+            NoCalcLength::ViewportPercentage(v) => v.is_negative(),
+            NoCalcLength::ServoCharacterWidth(c) => c.0 < 0,
+        }
+    }
+
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(
         context: &ParserContext,

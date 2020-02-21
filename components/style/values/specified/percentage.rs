@@ -120,9 +120,6 @@ impl Percentage {
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(name, location)?;
                 let value = CalcNode::parse_percentage(context, input, function)?;
-
-                // TODO(emilio): -moz-image-rect is the only thing that uses
-                // the clamping mode... I guess we could disallow it...
                 Ok(Percentage {
                     value,
                     calc_clamping_mode: Some(num_context),
