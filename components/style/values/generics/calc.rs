@@ -454,10 +454,10 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                             dest.write_str(" - ")?;
                             let mut c = child.clone();
                             c.negate();
-                            c.to_css(dest)?;
+                            c.to_css_impl(dest, false)?;
                         } else {
                             dest.write_str(" + ")?;
-                            child.to_css(dest)?;
+                            child.to_css_impl(dest, false)?;
                         }
                     } else {
                         first = false;
