@@ -242,7 +242,7 @@ impl LengthPercentage {
         mut node: CalcNode,
         clamping_mode: AllowedNumericType,
     ) -> Self {
-        node.simplify_and_sort_children();
+        node.simplify_and_sort();
 
         match node {
             CalcNode::Leaf(l) => {

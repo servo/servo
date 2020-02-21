@@ -446,13 +446,26 @@ impl CalcNode {
         Ok(node)
     }
 
-    /// Tries to simplify this expression into a `<length>` or `<percentage`>
+    /// Tries to simplify this expression into a `<length>` or `<percentage>`
     /// value.
     fn into_length_or_percentage(
         mut self,
         clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthPercentage, ()> {
-        self.simplify_and_sort_children();
+        // Keep track of whether there's any invalid member of the calculation,
+        // so as to reject the calculation properly at parse-time.
+        let mut any_invalid = false;
+        self.visit_depth_first(|node| {
+            if let CalcNode::Leaf(ref l) = *node {
+                any_invalid |= !matches!(*l, Leaf::Percentage(..) | Leaf::Length(..));
+            }
+            node.simplify_and_sort_direct_children();
+        });
+
+        if any_invalid {
+            return Err(());
+        }
+
         Ok(CalcLengthPercentage {
             clamping_mode,
             node: self,
