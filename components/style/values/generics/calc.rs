@@ -54,9 +54,9 @@ pub enum GenericCalcNode<L> {
     Leaf(L),
     /// A sum node, representing `a + b + c` where a, b, and c are the
     /// arguments.
-    Sum(Box<[GenericCalcNode<L>]>),
+    Sum(crate::OwnedSlice<GenericCalcNode<L>>),
     /// A `min` or `max` function.
-    MinMax(Box<[GenericCalcNode<L>]>, MinMaxOp),
+    MinMax(crate::OwnedSlice<GenericCalcNode<L>>, MinMaxOp),
     /// A `clamp()` function.
     Clamp {
         /// The minimum value.
@@ -131,7 +131,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         fn map_children<L, O, F>(
             children: &[CalcNode<L>],
             map: &mut F,
-        ) -> Box<[CalcNode<O>]>
+        ) -> crate::OwnedSlice<CalcNode<O>>
         where
             L: CalcNodeLeaf,
             O: CalcNodeLeaf,
@@ -209,7 +209,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
     pub fn simplify_and_sort_children(&mut self) {
         macro_rules! replace_self_with {
             ($slot:expr) => {{
-                let dummy = Self::MinMax(Box::new([]), MinMaxOp::Max);
+                let dummy = Self::MinMax(Default::default(), MinMaxOp::Max);
                 let result = mem::replace($slot, dummy);
                 mem::replace(self, result);
             }};
@@ -315,7 +315,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     return replace_self_with!(&mut children_slot[0]);
                 }
 
-                let mut children = mem::replace(children_slot, Box::new([])).into_vec();
+                let mut children = mem::replace(children_slot, Default::default()).into_vec();
 
                 if !sums_to_merge.is_empty() {
                     children.reserve(extra_kids - sums_to_merge.len());
@@ -347,7 +347,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     replace_self_with!(&mut children[0]);
                 } else {
                     // Else put our simplified children back.
-                    mem::replace(children_slot, children.into_boxed_slice());
+                    mem::replace(children_slot, children.into_boxed_slice().into());
                 }
             },
             Self::Leaf(ref mut l) => {

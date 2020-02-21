@@ -397,8 +397,7 @@ impl CalcNode {
                     let arguments = input
                         .parse_comma_separated(|input| {
                             Self::parse_argument(context, input, expected_unit)
-                        })?
-                        .into_boxed_slice();
+                        })?;
 
                     let op = match function {
                         MathFunction::Min => MinMaxOp::Min,
@@ -406,7 +405,7 @@ impl CalcNode {
                         _ => unreachable!(),
                     };
 
-                    Ok(Self::MinMax(arguments, op))
+                    Ok(Self::MinMax(arguments.into(), op))
                 },
             }
         })
@@ -452,7 +451,7 @@ impl CalcNode {
         Ok(if sum.len() == 1 {
             sum.drain(..).next().unwrap()
         } else {
-            Self::Sum(sum.into_boxed_slice())
+            Self::Sum(sum.into_boxed_slice().into())
         })
     }
 
