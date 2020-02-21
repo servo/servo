@@ -276,6 +276,10 @@ impl WebGLRenderingContext {
         }
     }
 
+    pub fn webgl_version(&self) -> WebGLVersion {
+        self.webgl_version
+    }
+
     pub fn limits(&self) -> &GLLimits {
         &self.limits
     }
@@ -4264,6 +4268,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
+        }
+
+        // From the GLES 2.0.25 spec, page 113:
+        //
+        //     "level specifies the mipmap level of the texture image
+        //      to be attached to the framebuffer and must be
+        //      0. Otherwise, INVALID_VALUE is generated."
+        if level != 0 {
+            return self.webgl_error(InvalidValue);
         }
 
         match self.bound_draw_framebuffer.get() {

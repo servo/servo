@@ -5,9 +5,8 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -15,7 +14,7 @@ use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
-    webgl_channel, GlType, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
+    webgl_channel, GlType, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult, WebGLVersion,
 };
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -146,14 +145,21 @@ impl WebGLRenderbuffer {
             constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
                 internal_format
             },
+            constants::DEPTH_COMPONENT24 |
+            constants::DEPTH_COMPONENT32F |
+            constants::DEPTH24_STENCIL8 |
+            constants::DEPTH32F_STENCIL8 => match self.upcast().context().webgl_version() {
+                WebGLVersion::WebGL1 => return Err(WebGLError::InvalidEnum),
+                _ => internal_format,
+            },
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
-            constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
+            constants::DEPTH_STENCIL => constants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
                 if is_gles {
                     constants::RGB5_A1
                 } else {
-                    WebGL2RenderingContextConstants::RGBA8
+                    constants::RGBA8
                 }
             },
             constants::RGB565 => {
@@ -161,7 +167,7 @@ impl WebGLRenderbuffer {
                 if is_gles {
                     constants::RGB565
                 } else {
-                    WebGL2RenderingContextConstants::RGB8
+                    constants::RGB8
                 }
             },
             EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
