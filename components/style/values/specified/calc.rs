@@ -8,6 +8,8 @@
 
 use crate::parser::ParserContext;
 use crate::values::computed;
+use crate::values::generics::calc as generic;
+use crate::values::generics::calc::{MinMaxOp, SortKey};
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::{self, Angle, Time};
@@ -15,7 +17,7 @@ use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
-use std::{cmp, mem};
+use std::cmp;
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
@@ -32,40 +34,9 @@ pub enum MathFunction {
     Clamp,
 }
 
-/// This determines the order in which we serialize members of a calc()
-/// sum.
-///
-/// See https://drafts.csswg.org/css-values-4/#sort-a-calculations-children
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-enum SortKey {
-    Number,
-    Percentage,
-    Ch,
-    Deg,
-    Em,
-    Ex,
-    Px,
-    Rem,
-    Sec,
-    Vh,
-    Vmax,
-    Vmin,
-    Vw,
-    Other,
-}
-
-/// Whether we're a `min` or `max` function.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MinMaxOp {
-    /// `min()`
-    Min,
-    /// `max()`
-    Max,
-}
-
-/// A node inside a `Calc` expression's AST.
+/// A leaf node inside a `Calc` expression's AST.
 #[derive(Clone, Debug, PartialEq)]
-pub enum CalcNode {
+pub enum Leaf {
     /// `<length>`
     Length(NoCalcLength),
     /// `<angle>`
@@ -76,27 +47,28 @@ pub enum CalcNode {
     Percentage(CSSFloat),
     /// `<number>`
     Number(CSSFloat),
-    /// An expression of the form `x + y + ...`. Subtraction is represented by
-    /// the negated expression of the right hand side.
-    Sum(Box<[CalcNode]>),
-    /// A `min()` / `max()` function.
-    MinMax(Box<[CalcNode]>, MinMaxOp),
-    /// A `clamp()` function.
-    Clamp {
-        /// The minimum value.
-        min: Box<CalcNode>,
-        /// The central value.
-        center: Box<CalcNode>,
-        /// The maximum value.
-        max: Box<CalcNode>,
-    },
+}
+
+impl ToCss for Leaf {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            Self::Length(ref l) => l.to_css(dest),
+            Self::Number(ref n) => n.to_css(dest),
+            Self::Percentage(p) => crate::values::serialize_percentage(p, dest),
+            Self::Angle(ref a) => a.to_css(dest),
+            Self::Time(ref t) => t.to_css(dest),
+        }
+    }
 }
 
 /// An expected unit we intend to parse within a `calc()` expression.
 ///
 /// This is used as a hint for the parser to fast-reject invalid expressions.
 #[derive(Clone, Copy, PartialEq)]
-pub enum CalcUnit {
+enum CalcUnit {
     /// `<number>`
     Number,
     /// `<length>`
@@ -204,7 +176,7 @@ impl SpecifiedValueInfo for CalcLengthPercentage {}
 
 macro_rules! impl_generic_to_type {
     ($self:ident, $self_variant:ident, $to_self:ident, $to_float:ident, $from_float:path) => {{
-        if let Self::$self_variant(ref v) = *$self {
+        if let Self::Leaf(Leaf::$self_variant(ref v)) = *$self {
             return Ok(v.clone());
         }
 
@@ -263,45 +235,44 @@ macro_rules! impl_generic_to_type {
                 }
                 result
             },
-            Self::Length(..) |
-            Self::Angle(..) |
-            Self::Time(..) |
-            Self::Percentage(..) |
-            Self::Number(..) => return Err(()),
+            Self::Leaf(..) => return Err(()),
         })
     }};
 }
 
-impl PartialOrd for CalcNode {
+impl PartialOrd for Leaf {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        use self::CalcNode::*;
+        use self::Leaf::*;
+
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return None;
+        }
+
         match (self, other) {
             (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
             (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
             (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
             (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
             (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
-            _ => None,
+            _ => {
+                match *self {
+                    Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) => {},
+                }
+                unsafe { debug_unreachable!("Forgot a branch?"); }
+            }
         }
     }
 }
 
-impl CalcNode {
-    fn is_simple_negative(&self) -> bool {
+impl generic::CalcNodeLeaf for Leaf {
+    fn is_negative(&self) -> bool {
         match *self {
             Self::Length(ref l) => l.is_negative(),
             Self::Percentage(n) |
             Self::Number(n) => n < 0.,
             Self::Angle(ref a) => a.degrees() < 0.,
             Self::Time(ref t) => t.seconds() < 0.,
-            Self::MinMax(..) |
-            Self::Sum(..) |
-            Self::Clamp { .. } => false,
         }
-    }
-
-    fn negate(&mut self) {
-        self.mul_by(-1.);
     }
 
     fn mul_by(&mut self, scalar: f32) {
@@ -323,44 +294,10 @@ impl CalcNode {
             Self::Percentage(ref mut p) => {
                 *p *= scalar;
             },
-            // Multiplication is distributive across this.
-            Self::Sum(ref mut children) => {
-                for node in &mut **children {
-                    node.mul_by(scalar);
-                }
-            },
-            // This one is a bit trickier.
-            Self::MinMax(ref mut children, ref mut op) => {
-                for node in &mut **children {
-                    node.mul_by(scalar);
-                }
-
-                // For negatives we need to invert the operation.
-                if scalar < 0. {
-                    *op = match *op {
-                        MinMaxOp::Min => MinMaxOp::Max,
-                        MinMaxOp::Max => MinMaxOp::Min,
-                    }
-                }
-            },
-            // Multiplication is distributive across these.
-            Self::Clamp {
-                ref mut min,
-                ref mut center,
-                ref mut max,
-            } => {
-                min.mul_by(scalar);
-                center.mul_by(scalar);
-                max.mul_by(scalar);
-                // For negatives we need to swap min / max.
-                if scalar < 0. {
-                    mem::swap(min, max);
-                }
-            },
         }
     }
 
-    fn calc_node_sort_key(&self) -> SortKey {
+    fn sort_key(&self) -> SortKey {
         match *self {
             Self::Number(..) => SortKey::Number,
             Self::Percentage(..) => SortKey::Percentage,
@@ -382,7 +319,12 @@ impl CalcNode {
                 },
                 NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
             },
-            Self::Sum(..) | Self::MinMax(..) | Self::Clamp { .. } => SortKey::Other,
+        }
+    }
+
+    fn simplify(&mut self) {
+        if let Self::Length(NoCalcLength::Absolute(ref mut abs)) = *self {
+            *abs = AbsoluteLength::Px(abs.to_px());
         }
     }
 
@@ -391,7 +333,11 @@ impl CalcNode {
     /// Only handles leaf nodes, it's the caller's responsibility to simplify
     /// them before calling this if needed.
     fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
-        use self::CalcNode::*;
+        use self::Leaf::*;
+
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return Err(());
+        }
 
         match (self, other) {
             (&mut Number(ref mut one), &Number(ref other)) |
@@ -407,170 +353,22 @@ impl CalcNode {
             (&mut Length(ref mut one), &Length(ref other)) => {
                 *one = one.try_sum(other)?;
             },
-            _ => return Err(()),
+            _ => {
+                match *other {
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                }
+                unsafe { debug_unreachable!(); }
+            }
         }
 
         Ok(())
     }
+}
 
-    /// Simplifies and sorts the calculation. This is only needed if it's going
-    /// to be preserved after parsing (so, for `<length-percentage>`). Otherwise
-    /// we can just evaluate it and we'll come up with a simplified value
-    /// anyways.
-    fn simplify_and_sort_children(&mut self) {
-        macro_rules! replace_self_with {
-            ($slot:expr) => {{
-                let result = mem::replace($slot, Self::Number(0.));
-                mem::replace(self, result);
-            }};
-        }
-        match *self {
-            Self::Clamp {
-                ref mut min,
-                ref mut center,
-                ref mut max,
-            } => {
-                min.simplify_and_sort_children();
-                center.simplify_and_sort_children();
-                max.simplify_and_sort_children();
+/// A calc node representation for specified values.
+pub type CalcNode = generic::GenericCalcNode<Leaf>;
 
-                // NOTE: clamp() is max(min, min(center, max))
-                let min_cmp_center = match min.partial_cmp(&center) {
-                    Some(o) => o,
-                    None => return,
-                };
-
-                // So if we can prove that min is more than center, then we won,
-                // as that's what we should always return.
-                if matches!(min_cmp_center, cmp::Ordering::Greater) {
-                    return replace_self_with!(&mut **min);
-                }
-
-                // Otherwise try with max.
-                let max_cmp_center = match max.partial_cmp(&center) {
-                    Some(o) => o,
-                    None => return,
-                };
-
-                if matches!(max_cmp_center, cmp::Ordering::Less) {
-                    // max is less than center, so we need to return effectively
-                    // `max(min, max)`.
-                    let max_cmp_min = match max.partial_cmp(&min) {
-                        Some(o) => o,
-                        None => {
-                            debug_assert!(
-                                false,
-                                "We compared center with min and max, how are \
-                                 min / max not comparable with each other?"
-                            );
-                            return;
-                        },
-                    };
-
-                    if matches!(max_cmp_min, cmp::Ordering::Less) {
-                        return replace_self_with!(&mut **min);
-                    }
-
-                    return replace_self_with!(&mut **max);
-                }
-
-                // Otherwise we're the center node.
-                return replace_self_with!(&mut **center);
-            },
-            Self::MinMax(ref mut children, op) => {
-                for child in &mut **children {
-                    child.simplify_and_sort_children();
-                }
-
-                let winning_order = match op {
-                    MinMaxOp::Min => cmp::Ordering::Less,
-                    MinMaxOp::Max => cmp::Ordering::Greater,
-                };
-
-                let mut result = 0;
-                for i in 1..children.len() {
-                    let o = match children[i].partial_cmp(&children[result]) {
-                        // We can't compare all the children, so we can't
-                        // know which one will actually win. Bail out and
-                        // keep ourselves as a min / max function.
-                        //
-                        // TODO: Maybe we could simplify compatible children,
-                        // see https://github.com/w3c/csswg-drafts/issues/4756
-                        None => return,
-                        Some(o) => o,
-                    };
-
-                    if o == winning_order {
-                        result = i;
-                    }
-                }
-
-                replace_self_with!(&mut children[result]);
-            },
-            Self::Sum(ref mut children_slot) => {
-                let mut sums_to_merge = SmallVec::<[_; 3]>::new();
-                let mut extra_kids = 0;
-                for (i, child) in children_slot.iter_mut().enumerate() {
-                    child.simplify_and_sort_children();
-                    if let Self::Sum(ref mut children) = *child {
-                        extra_kids += children.len();
-                        sums_to_merge.push(i);
-                    }
-                }
-
-                // If we only have one kid, we've already simplified it, and it
-                // doesn't really matter whether it's a sum already or not, so
-                // lift it up and continue.
-                if children_slot.len() == 1 {
-                    return replace_self_with!(&mut children_slot[0]);
-                }
-
-                let mut children = mem::replace(children_slot, Box::new([])).into_vec();
-
-                if !sums_to_merge.is_empty() {
-                    children.reserve(extra_kids - sums_to_merge.len());
-                    // Merge all our nested sums, in reverse order so that the
-                    // list indices are not invalidated.
-                    for i in sums_to_merge.drain(..).rev() {
-                        let kid_children = match children.swap_remove(i) {
-                            Self::Sum(c) => c,
-                            _ => unreachable!(),
-                        };
-
-                        // This would be nicer with
-                        // https://github.com/rust-lang/rust/issues/59878 fixed.
-                        children.extend(kid_children.into_vec());
-                    }
-                }
-
-                debug_assert!(children.len() >= 2, "Should still have multiple kids!");
-
-                // Sort by spec order.
-                children.sort_unstable_by_key(|c| c.calc_node_sort_key());
-
-                // NOTE: if the function returns true, by the docs of dedup_by,
-                // a is removed.
-                children.dedup_by(|a, b| b.try_sum_in_place(a).is_ok());
-
-                if children.len() == 1 {
-                    // If only one children remains, lift it up, and carry on.
-                    replace_self_with!(&mut children[0]);
-                } else {
-                    // Else put our simplified children back.
-                    mem::replace(children_slot, children.into_boxed_slice());
-                }
-            },
-            Self::Length(ref mut len) => {
-                if let NoCalcLength::Absolute(ref mut absolute_length) = *len {
-                    *absolute_length = AbsoluteLength::Px(absolute_length.to_px());
-                }
-            },
-            Self::Percentage(..) | Self::Angle(..) | Self::Time(..) | Self::Number(..) => {
-                // These are leaves already, nothing to do.
-            },
-        }
-    }
-
+impl CalcNode {
     /// Tries to parse a single element in the expression, that is, a
     /// `<length>`, `<angle>`, `<time>`, `<percentage>`, according to
     /// `expected_unit`.
@@ -584,7 +382,7 @@ impl CalcNode {
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         match (input.next()?, expected_unit) {
-            (&Token::Number { value, .. }, _) => Ok(CalcNode::Number(value)),
+            (&Token::Number { value, .. }, _) => Ok(CalcNode::Leaf(Leaf::Number(value))),
             (
                 &Token::Dimension {
                     value, ref unit, ..
@@ -596,18 +394,22 @@ impl CalcNode {
                     value, ref unit, ..
                 },
                 CalcUnit::LengthPercentage,
-            ) => NoCalcLength::parse_dimension(context, value, unit)
-                .map(CalcNode::Length)
-                .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            ) => {
+                match NoCalcLength::parse_dimension(context, value, unit) {
+                    Ok(l) => Ok(CalcNode::Leaf(Leaf::Length(l))),
+                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                }
+            },
             (
                 &Token::Dimension {
                     value, ref unit, ..
                 },
                 CalcUnit::Angle,
             ) => {
-                Angle::parse_dimension(value, unit, /* from_calc = */ true)
-                    .map(CalcNode::Angle)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                match Angle::parse_dimension(value, unit, /* from_calc = */ true) {
+                    Ok(a) => Ok(CalcNode::Leaf(Leaf::Angle(a))),
+                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                }
             },
             (
                 &Token::Dimension {
@@ -615,13 +417,14 @@ impl CalcNode {
                 },
                 CalcUnit::Time,
             ) => {
-                Time::parse_dimension(value, unit, /* from_calc = */ true)
-                    .map(CalcNode::Time)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                match Time::parse_dimension(value, unit, /* from_calc = */ true) {
+                    Ok(t) => Ok(CalcNode::Leaf(Leaf::Time(t))),
+                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                }
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
-                Ok(CalcNode::Percentage(unit_value))
+                Ok(CalcNode::Leaf(Leaf::Percentage(unit_value)))
             },
             (&Token::ParenthesisBlock, _) => input.parse_nested_block(|input| {
                 CalcNode::parse_argument(context, input, expected_unit)
@@ -811,12 +614,12 @@ impl CalcNode {
         factor: CSSFloat,
     ) -> Result<(), ()> {
         match *self {
-            CalcNode::Percentage(pct) => {
+            CalcNode::Leaf(Leaf::Percentage(pct)) => {
                 ret.percentage = Some(computed::Percentage(
                     ret.percentage.map_or(0., |p| p.0) + pct * factor,
                 ));
             },
-            CalcNode::Length(ref l) => match *l {
+            CalcNode::Leaf(Leaf::Length(ref l)) => match *l {
                 NoCalcLength::Absolute(abs) => {
                     ret.absolute = Some(match ret.absolute {
                         Some(value) => value + abs * factor,
@@ -862,7 +665,7 @@ impl CalcNode {
                 // FIXME(emilio): Implement min/max/clamp for length-percentage.
                 return Err(());
             },
-            CalcNode::Angle(..) | CalcNode::Time(..) | CalcNode::Number(..) => return Err(()),
+            CalcNode::Leaf(..) => return Err(()),
         }
 
         Ok(())
@@ -1034,94 +837,5 @@ impl CalcNode {
             Ok(value) => Ok(AngleOrNumber::Number { value }),
             Err(()) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }
-    }
-
-    fn to_css_impl<W>(&self, dest: &mut CssWriter<W>, is_outermost: bool) -> fmt::Result
-    where
-        W: Write,
-    {
-        let write_closing_paren = match *self {
-            Self::MinMax(_, op) => {
-                dest.write_str(match op {
-                    MinMaxOp::Max => "max(",
-                    MinMaxOp::Min => "min(",
-                })?;
-                true
-            },
-            Self::Clamp { .. } => {
-                dest.write_str("clamp(")?;
-                true
-            },
-            _ => {
-                if is_outermost {
-                    dest.write_str("calc(")?;
-                }
-                is_outermost
-            },
-        };
-
-        match *self {
-            Self::MinMax(ref children, _) => {
-                let mut first = true;
-                for child in &**children {
-                    if !first {
-                        dest.write_str(", ")?;
-                    }
-                    first = false;
-                    child.to_css_impl(dest, false)?;
-                }
-            },
-            Self::Sum(ref children) => {
-                let mut first = true;
-                for child in &**children {
-                    if !first {
-                        if child.is_simple_negative() {
-                            dest.write_str(" - ")?;
-                            let mut c = child.clone();
-                            c.negate();
-                            c.to_css(dest)?;
-                        } else {
-                            dest.write_str(" + ")?;
-                            child.to_css(dest)?;
-                        }
-                    } else {
-                        first = false;
-                        child.to_css_impl(dest, false)?;
-                    }
-                }
-            },
-            Self::Clamp {
-                ref min,
-                ref center,
-                ref max,
-            } => {
-                min.to_css_impl(dest, false)?;
-                dest.write_str(", ")?;
-                center.to_css_impl(dest, false)?;
-                dest.write_str(", ")?;
-                max.to_css_impl(dest, false)?;
-            },
-            Self::Length(ref l) => l.to_css(dest)?,
-            Self::Number(ref n) => n.to_css(dest)?,
-            Self::Percentage(p) => crate::values::serialize_percentage(p, dest)?,
-            Self::Angle(ref a) => a.to_css(dest)?,
-            Self::Time(ref t) => t.to_css(dest)?,
-
-        }
-
-        if write_closing_paren {
-            dest.write_str(")")?;
-        }
-        Ok(())
-    }
-}
-
-impl ToCss for CalcNode {
-    /// <https://drafts.csswg.org/css-values/#calc-serialize>
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.to_css_impl(dest, /* is_outermost = */ true)
     }
 }
