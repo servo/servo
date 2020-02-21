@@ -166,6 +166,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::rc::{Rc, Weak};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use style_traits::viewport::ViewportConstraints;
@@ -546,6 +547,9 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// A flag share with the compositor to indicate that a WR frame is in progress.
+    pub pending_wr_frame: Arc<AtomicBool>,
 }
 
 /// Data needed for webdriver
@@ -720,12 +724,17 @@ enum WebrenderMsg {
 
 /// Accept messages from content processes that need to be relayed to the WebRender
 /// instance in the parent process.
-fn handle_webrender_message(webrender_api: &webrender_api::RenderApi, msg: WebrenderMsg) {
+fn handle_webrender_message(
+    pending_wr_frame: &AtomicBool,
+    webrender_api: &webrender_api::RenderApi,
+    msg: WebrenderMsg,
+) {
     match msg {
         WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(
             doc,
             pipeline,
         )) => {
+            pending_wr_frame.store(true, Ordering::SeqCst);
             let mut txn = webrender_api::Transaction::new();
             txn.set_display_list(
                 webrender_api::Epoch(0),
@@ -757,6 +766,7 @@ fn handle_webrender_message(webrender_api: &webrender_api::RenderApi, msg: Webre
             data,
             descriptor,
         )) => {
+            pending_wr_frame.store(true, Ordering::SeqCst);
             let mut txn = webrender_api::Transaction::new();
             txn.set_display_list(
                 epoch,
@@ -881,10 +891,12 @@ where
                     ipc::channel().expect("ipc channel failure");
 
                 let webrender_api = state.webrender_api_sender.create_api();
+                let pending_wr_frame_clone = state.pending_wr_frame.clone();
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
                         handle_webrender_message(
+                            &pending_wr_frame_clone,
                             &webrender_api,
                             WebrenderMsg::Layout(message.to().expect("conversion failure")),
                         )
@@ -892,10 +904,12 @@ where
                 );
 
                 let webrender_api = state.webrender_api_sender.create_api();
+                let pending_wr_frame_clone = state.pending_wr_frame.clone();
                 ROUTER.add_route(
                     webrender_image_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
                         handle_webrender_message(
+                            &pending_wr_frame_clone,
                             &webrender_api,
                             WebrenderMsg::Net(message.to().expect("conversion failure")),
                         )

@@ -39,6 +39,8 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
@@ -208,6 +210,11 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// True to translate mouse input into touch events.
     convert_mouse_to_touch: bool,
+
+    /// True if a WR frame render has been requested. Screenshots
+    /// taken before the render is complete will not reflect the
+    /// most up to date rendering.
+    waiting_on_pending_frame: Arc<AtomicBool>,
 }
 
 #[derive(Clone, Copy)]
@@ -322,6 +329,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
+            waiting_on_pending_frame: state.pending_wr_frame,
         }
     }
 
@@ -425,6 +433,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
+                self.waiting_on_pending_frame.store(false, Ordering::SeqCst);
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             },
 
@@ -455,7 +464,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready {
+                if is_ready && !self.waiting_on_pending_frame.load(Ordering::SeqCst) {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                     if self.is_running_problem_test {
                         println!("ready to save image!");

@@ -17,6 +17,8 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api;
@@ -167,4 +169,5 @@ pub struct InitialCompositorState {
     pub webrender_api: webrender_api::RenderApi,
     pub webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     pub webxr_main_thread: webxr::MainThreadRegistry,
+    pub pending_wr_frame: Arc<AtomicBool>,
 }
