@@ -136,6 +136,9 @@ pub struct Opts {
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
 
+    /// Whether we want background hang monitor enabled or not
+    pub background_hang_monitor: bool,
+
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
@@ -545,6 +548,7 @@ pub fn default_opts() -> Opts {
         initial_window_size: Size2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
+        background_hang_monitor: false,
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
         sandbox: false,
@@ -669,6 +673,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
     );
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
+    opts.optflag("B", "bhm", "Background Hang Monitor enabled");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
     opts.optopt(
         "",
@@ -965,6 +970,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
+        background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability: random_pipeline_closure_probability,
         random_pipeline_closure_seed: random_pipeline_closure_seed,

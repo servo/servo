@@ -159,7 +159,7 @@ pub struct LayoutThread {
     font_cache_sender: IpcSender<()>,
 
     /// A means of communication with the background hang monitor.
-    background_hang_monitor: Box<dyn BackgroundHangMonitor>,
+    background_hang_monitor: Option<Box<dyn BackgroundHangMonitor>>,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: IpcSender<ConstellationMsg>,
@@ -292,7 +292,7 @@ impl LayoutThreadFactory for LayoutThread {
         is_iframe: bool,
         chan: (Sender<Msg>, Receiver<Msg>),
         pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        background_hang_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
@@ -326,12 +326,13 @@ impl LayoutThreadFactory for LayoutThread {
                     // Ensures layout thread is destroyed before we send shutdown message
                     let sender = chan.0;
 
-                    let background_hang_monitor = background_hang_monitor_register
-                        .register_component(
+                    let background_hang_monitor = background_hang_monitor_register.map(|bhm| {
+                        bhm.register_component(
                             MonitoredComponentId(id, MonitoredComponentType::Layout),
                             Duration::from_millis(1000),
                             Duration::from_millis(5000),
-                        );
+                        )
+                    });
 
                     let layout = LayoutThread::new(
                         id,
@@ -510,7 +511,7 @@ impl LayoutThread {
         is_iframe: bool,
         port: Receiver<Msg>,
         pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor: Box<dyn BackgroundHangMonitor>,
+        background_hang_monitor: Option<Box<dyn BackgroundHangMonitor>>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
@@ -708,7 +709,8 @@ impl LayoutThread {
             Msg::GetRunningAnimations(..) => LayoutHangAnnotation::GetRunningAnimations,
         };
         self.background_hang_monitor
-            .notify_activity(HangAnnotation::Layout(hang_annotation));
+            .as_ref()
+            .map(|bhm| bhm.notify_activity(HangAnnotation::Layout(hang_annotation)));
     }
 
     /// Receives and dispatches messages from the script and constellation threads
@@ -720,7 +722,9 @@ impl LayoutThread {
         }
 
         // Notify the background-hang-monitor we are waiting for an event.
-        self.background_hang_monitor.notify_wait();
+        self.background_hang_monitor
+            .as_ref()
+            .map(|bhm| bhm.notify_wait());
 
         let request = select! {
             recv(self.pipeline_port) -> msg => Request::FromPipeline(msg.unwrap()),
@@ -995,7 +999,9 @@ impl LayoutThread {
         );
 
         self.root_flow.borrow_mut().take();
-        self.background_hang_monitor.unregister();
+        self.background_hang_monitor
+            .as_ref()
+            .map(|bhm| bhm.unregister());
     }
 
     fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {

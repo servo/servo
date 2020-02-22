@@ -282,11 +282,11 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
+    background_hang_monitor_sender: Option<IpcSender<HangMonitorAlert>>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
+    background_hang_monitor_receiver: Option<Receiver<Result<HangMonitorAlert, IpcError>>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -849,28 +849,42 @@ where
                     ipc_scheduler_receiver,
                 );
 
-                let (background_hang_monitor_sender, ipc_bhm_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let background_hang_monitor_receiver =
-                    route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
+                let (background_hang_monitor_sender, background_hang_monitor_receiver) =
+                    if opts::get().background_hang_monitor {
+                        let (bhm_sender, ipc_bhm_receiver) =
+                            ipc::channel().expect("ipc channel failure");
+                        (
+                            Some(bhm_sender),
+                            Some(route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(
+                                ipc_bhm_receiver,
+                            )),
+                        )
+                    } else {
+                        (None, None)
+                    };
 
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let (background_monitor_register, sampler_chan) = if opts::multiprocess() {
-                    (None, vec![])
-                } else {
-                    let (sampling_profiler_control, sampling_profiler_port) =
-                        ipc::channel().expect("ipc channel failure");
-
-                    (
-                        Some(HangMonitorRegister::init(
-                            background_hang_monitor_sender.clone(),
-                            sampling_profiler_port,
-                        )),
-                        vec![sampling_profiler_control],
-                    )
-                };
+                let (background_monitor_register, sampler_chan) =
+                    if opts::multiprocess() || !opts::get().background_hang_monitor {
+                        (None, vec![])
+                    } else {
+                        let (sampling_profiler_control, sampling_profiler_port) =
+                            ipc::channel().expect("ipc channel failure");
+                        if let Some(bhm_sender) = background_hang_monitor_sender.clone() {
+                            (
+                                Some(HangMonitorRegister::init(
+                                    bhm_sender,
+                                    sampling_profiler_port,
+                                )),
+                                vec![sampling_profiler_control],
+                            )
+                        } else {
+                            warn!("No BHM sender found in BHM mode.");
+                            (None, vec![])
+                        }
+                    };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
                     ipc::channel().expect("ipc channel failure");
@@ -1413,7 +1427,7 @@ where
             recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
-            recv(self.background_hang_monitor_receiver) -> msg => {
+            recv(self.background_hang_monitor_receiver.as_ref().unwrap_or(&never())) -> msg => {
                 msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
             }
             recv(self.compositor_receiver) -> msg => {
