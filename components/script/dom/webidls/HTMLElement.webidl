@@ -14,7 +14,7 @@ interface HTMLElement : Element {
            attribute DOMString lang;
   [CEReactions]
            attribute boolean translate;
-   [CEReactions]
+  [CEReactions]
            attribute DOMString dir;
   readonly attribute DOMStringMap dataset;
 

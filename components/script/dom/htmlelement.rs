@@ -774,6 +774,7 @@ impl HTMLElement {
             .count() as u32
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-directionality.
     // returns Some if can infer direction by itself or from child nodes
     // returns None if requires to go up to parent
     pub fn directionality(&self) -> Option<String> {
