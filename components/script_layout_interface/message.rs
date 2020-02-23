@@ -226,7 +226,7 @@ pub struct LayoutThreadInit {
     pub is_parent: bool,
     pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+    pub background_hang_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,

@@ -131,7 +131,7 @@ pub struct InitialPipelineState {
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    pub background_hang_monitor_to_constellation_chan: Option<IpcSender<HangMonitorAlert>>,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -319,15 +319,24 @@ impl Pipeline {
                     Some(sampler_chan)
                 } else {
                     // Should not be None in single-process mode.
-                    let register = state
-                        .background_monitor_register
-                        .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
-                        false,
-                        register,
-                        state.event_loop_waker,
-                    );
-                    None
+                    if opts::get().background_hang_monitor {
+                        let register = state.background_monitor_register.expect(
+                            "Couldn't start content, no background monitor has been initiated",
+                        );
+                        unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
+                            false,
+                            Some(register),
+                            state.event_loop_waker,
+                        );
+                        None
+                    } else {
+                        unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
+                            false,
+                            None,
+                            state.event_loop_waker,
+                        );
+                        None
+                    }
                 };
 
                 (EventLoop::new(script_chan), sampler_chan)
@@ -488,7 +497,7 @@ pub struct UnprivilegedPipelineContent {
     opener: Option<BrowsingContextId>,
     namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    background_hang_monitor_to_constellation_chan: Option<IpcSender<HangMonitorAlert>>,
     sampling_profiler_port: Option<IpcReceiver<SamplerControlMsg>>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -520,7 +529,7 @@ impl UnprivilegedPipelineContent {
     pub fn start_all<Message, LTF, STF>(
         self,
         wait_for_completion: bool,
-        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        background_hang_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
         event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
@@ -730,13 +739,17 @@ impl UnprivilegedPipelineContent {
 
     pub fn register_with_background_hang_monitor(
         &mut self,
-    ) -> Box<dyn BackgroundHangMonitorRegister> {
-        HangMonitorRegister::init(
-            self.background_hang_monitor_to_constellation_chan.clone(),
-            self.sampling_profiler_port
-                .take()
-                .expect("no sampling profiler?"),
-        )
+    ) -> Option<Box<dyn BackgroundHangMonitorRegister>> {
+        self.background_hang_monitor_to_constellation_chan
+            .clone()
+            .map(|bhm| {
+                HangMonitorRegister::init(
+                    bhm.clone(),
+                    self.sampling_profiler_port
+                        .take()
+                        .expect("no sampling profiler?"),
+                )
+            })
     }
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
