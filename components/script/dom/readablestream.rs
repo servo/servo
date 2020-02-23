@@ -74,6 +74,17 @@ impl ReadableStreamMethods for ReadableStream {
     fn GetReader(&self, cx: SafeJSContext) -> Fallible<NonNull<JSObject>> {
         get_stream_reader(cx, &self.stream)
     }
+
+    #[allow(unsafe_code)]
+    fn Locked(&self) -> bool {
+        let mut is_locked = false;
+        unsafe {
+            let stream = self.stream.handle();
+            let is_locked_ptr = &mut is_locked as *mut _;
+            ReadableStreamIsLocked(*self.global().get_cx(), stream, is_locked_ptr);
+        }
+        is_locked
+    }
 }
 
 #[allow(unsafe_code)]
