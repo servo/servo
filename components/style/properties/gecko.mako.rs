@@ -22,7 +22,6 @@ use crate::gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ff
 use crate::gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
 use crate::gecko_bindings::bindings::Gecko_CopyCounterStyle;
-use crate::gecko_bindings::bindings::Gecko_CopyCursorArrayFrom;
 use crate::gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use crate::gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use crate::gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
@@ -2263,61 +2262,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="InheritedUI" skip_longhands="cursor">
-    pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
-        self.gecko.mCursor = v.keyword;
-        unsafe {
-            bindings::Gecko_SetCursorArrayCapacity(&mut *self.gecko, v.images.len());
-        }
-        for i in 0..v.images.len() {
-            unsafe {
-                bindings::Gecko_AppendCursorImage(&mut *self.gecko, &v.images[i].url);
-            }
-
-            match v.images[i].hotspot {
-                Some((x, y)) => {
-                    self.gecko.mCursorImages[i].mHaveHotspot = true;
-                    self.gecko.mCursorImages[i].mHotspotX = x;
-                    self.gecko.mCursorImages[i].mHotspotY = y;
-                },
-                _ => {
-                    self.gecko.mCursorImages[i].mHaveHotspot = false;
-                }
-            }
-        }
-    }
-
-    pub fn copy_cursor_from(&mut self, other: &Self) {
-        self.gecko.mCursor = other.gecko.mCursor;
-        unsafe {
-            Gecko_CopyCursorArrayFrom(&mut *self.gecko, &*other.gecko);
-        }
-    }
-
-    pub fn reset_cursor(&mut self, other: &Self) {
-        self.copy_cursor_from(other)
-    }
-
-    pub fn clone_cursor(&self) -> longhands::cursor::computed_value::T {
-        use crate::values::computed::ui::CursorImage;
-
-        let keyword = self.gecko.mCursor;
-
-        let images = self.gecko.mCursorImages.iter().map(|gecko_cursor_image| {
-            let url = gecko_cursor_image.mImage.clone();
-
-            let hotspot =
-                if gecko_cursor_image.mHaveHotspot {
-                    Some((gecko_cursor_image.mHotspotX, gecko_cursor_image.mHotspotY))
-                } else {
-                    None
-                };
-
-            CursorImage { url, hotspot }
-        }).collect::<Vec<_>>().into_boxed_slice();
-
-        longhands::cursor::computed_value::T { images, keyword }
-    }
+<%self:impl_trait style_struct_name="InheritedUI">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
