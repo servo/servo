@@ -10,12 +10,13 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::jsapi::{Heap, JSFunction, JSObject};
-use js::jsapi::NewReadableDefaultStreamObject;
-use js::jsval::UndefinedValue;
 use dom_struct::dom_struct;
-use std::rc::Rc;
+use js::jsapi::NewReadableDefaultStreamObject;
+use js::jsapi::{Heap, JSFunction, JSObject, JS_ValueToFunction};
+use js::jsval::UndefinedValue;
+use js::rust::IntoHandle;
 use std::ptr;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct ReadableStream {
@@ -31,7 +32,7 @@ impl ReadableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         underlying_source: *mut JSObject,
-        _size: Rc<Function>,
+        size: Rc<Function>,
         high_watermark: Finite<f64>,
         proto: *mut JSObject,
     ) -> DomRoot<ReadableStream> {
@@ -40,10 +41,22 @@ impl ReadableStream {
         unsafe {
             let source = Heap::boxed(underlying_source);
             let proto = Heap::boxed(proto);
-            rooted!(in(*cx) let mut size_handler = ptr::null_mut::<JSFunction>());
-            let size = Heap::boxed(size_handler.get());
 
-            rooted!(in(*cx) let stream = NewReadableDefaultStreamObject(*cx, source.handle(), size.handle(), *high_watermark, proto.handle()));
+            rooted!(in(*cx) let mut size_val = UndefinedValue());
+            size.to_jsval(*cx, size_val.handle_mut());
+
+            let size_func = Heap::boxed(JS_ValueToFunction(*cx, size_val.handle().into_handle()));
+
+            rooted!(in(*cx)
+                let stream = NewReadableDefaultStreamObject(
+                    *cx,
+                    source.handle(),
+                    size_func.handle(),
+                    *high_watermark,
+                    proto.handle()
+                )
+            );
+
             heap.set(stream.get());
         }
 
