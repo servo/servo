@@ -536,12 +536,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
 </%def>
 
-<%def name="impl_simple_type_with_conversion(ident, gecko_ffi_name=None)">
-    <%
-    if gecko_ffi_name is None:
-        gecko_ffi_name = "m" + to_camel_case(ident)
-    %>
-
+<%def name="impl_simple_type_with_conversion(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         self.gecko.${gecko_ffi_name} = From::from(v)
@@ -806,11 +801,10 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} grid-auto-flow">
+                  skip_longhands="${skip_position_longhands}">
     % for side in SIDES:
     <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
-    ${impl_simple_type_with_conversion("grid_auto_flow")}
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
         debug_assert_ne!(v.0, crate::values::specified::align::AlignFlags::LEGACY);
         self.gecko.mJustifyItems.computed = v;
@@ -861,15 +855,13 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%
-    skip_font_longhands = """font-family font-size font-size-adjust font-weight
-                             font-style font-stretch -moz-script-level
-                             font-synthesis -x-lang font-variant-alternates
-                             font-variant-east-asian font-variant-ligatures
-                             font-variant-numeric font-language-override
-                             font-feature-settings font-variation-settings
-                             -moz-min-font-size-ratio -x-text-zoom"""
-%>
+<% skip_font_longhands = """font-family font-size font-size-adjust font-weight
+                            font-style font-stretch font-synthesis -x-lang
+                            font-variant-alternates font-variant-east-asian
+                            font-variant-ligatures font-variant-numeric
+                            font-language-override font-feature-settings
+                            font-variation-settings -moz-min-font-size-ratio
+                            -x-text-zoom""" %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}">
 
@@ -1131,9 +1123,7 @@ fn static_assert() {
         longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoom)
     }
 
-    ${impl_simple("_moz_script_level", "mScriptLevel")}
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
-
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
     ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
     ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
@@ -1257,9 +1247,6 @@ fn static_assert() {
     ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
 </%def>
 
-<%def name="impl_transition_timing_function()">
-    ${impl_animation_or_transition_timing_function('transition')}
-</%def>
 
 <%def name="impl_animation_count(ident, gecko_ffi_name)">
     ${impl_animation_or_transition_count('animation', ident, gecko_ffi_name)}
@@ -1267,10 +1254,6 @@ fn static_assert() {
 
 <%def name="impl_animation_time_value(ident, gecko_ffi_name)">
     ${impl_animation_or_transition_time_value('animation', ident, gecko_ffi_name)}
-</%def>
-
-<%def name="impl_animation_timing_function()">
-    ${impl_animation_or_transition_timing_function('animation')}
 </%def>
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
@@ -1365,7 +1348,7 @@ fn static_assert() {
 
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
-    ${impl_transition_timing_function()}
+    ${impl_animation_or_transition_timing_function('transition')}
 
     pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
@@ -1579,8 +1562,7 @@ fn static_assert() {
 
     ${impl_animation_count('iteration_count', 'IterationCount')}
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
-
-    ${impl_animation_timing_function()}
+    ${impl_animation_or_transition_timing_function('animation')}
 
     #[allow(non_snake_case)]
     pub fn set__webkit_line_clamp(&mut self, v: longhands::_webkit_line_clamp::computed_value::T) {
@@ -2034,14 +2016,12 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align -webkit-text-stroke-width text-emphasis-position">
+                  skip_longhands="text-align -webkit-text-stroke-width">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
                                     gecko_strip_moz_prefix=False) %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword)}
-
-    ${impl_simple_type_with_conversion("text_emphasis_position")}
 
     ${impl_non_negative_length('_webkit_text_stroke_width',
                                'mWebkitTextStrokeWidth')}
@@ -2145,8 +2125,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="UI" skip_longhands="-moz-force-broken-image-icon">
-    ${impl_simple_type_with_conversion("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
+<%self:impl_trait style_struct_name="UI">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL">
