@@ -9,6 +9,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::js::conversions::ToJSValConvertible;
@@ -18,10 +19,10 @@ use js::jsapi::{Heap, JSObject, JS_ValueToFunction};
 use js::jsapi::{
     IsReadableStream, NewReadableDefaultStreamObject, ReadableStreamCancel,
     ReadableStreamGetReader, ReadableStreamIsLocked,
-    ReadableStreamReaderMode as JSReadableStreamReaderMode,
+    ReadableStreamReaderMode as JSReadableStreamReaderMode, ReadableStreamTee,
 };
-use js::jsval::UndefinedValue;
-use js::rust::{Handle, IntoHandle};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::{Handle, IntoHandle, IntoMutableHandle, MutableHandle};
 use std::ptr::NonNull;
 use std::rc::Rc;
 
@@ -75,15 +76,34 @@ impl ReadableStreamMethods for ReadableStream {
         get_stream_reader(cx, &self.stream)
     }
 
-    #[allow(unsafe_code)]
     fn Locked(&self) -> bool {
-        let mut is_locked = false;
-        unsafe {
-            let stream = self.stream.handle();
-            let is_locked_ptr = &mut is_locked as *mut _;
-            ReadableStreamIsLocked(*self.global().get_cx(), stream, is_locked_ptr);
+        stream_is_locked(self.global().get_cx(), &self.stream)
+    }
+
+    fn Tee(&self, cx: SafeJSContext) -> Fallible<JSVal> {
+        tee_stream(cx, &self.stream)
+    }
+}
+
+#[allow(unsafe_code)]
+fn tee_stream(cx: SafeJSContext, stream: &Heap<*mut JSObject>) -> Fallible<JSVal> {
+    unsafe {
+        rooted!(in(*cx) let mut branch1_stream = UndefinedValue());
+        rooted!(in(*cx) let mut branch2_stream = UndefinedValue());
+
+        if !ReadableStreamTee(
+            *cx,
+            stream.handle(),
+            MutableHandle::new(&mut branch1_stream.to_object()).into_handle_mut(),
+            MutableHandle::new(&mut branch2_stream.to_object()).into_handle_mut(),
+        ) {
+            return Err(Error::Type(
+                "The stream you are trying to tee is not a ReadableStream, or it is locked."
+                    .to_string(),
+            ));
         }
-        is_locked
+
+        Ok(to_frozen_array(&[*branch1_stream, *branch2_stream], cx))
     }
 }
 
@@ -151,19 +171,30 @@ fn construct_default_readablestream(
 }
 
 #[allow(unsafe_code)]
+fn stream_is_locked(cx: SafeJSContext, stream: &Heap<*mut JSObject>) -> bool {
+    let mut is_locked = false;
+    unsafe {
+        let stream = stream.handle();
+        let is_locked_ptr = &mut is_locked as *mut _;
+        ReadableStreamIsLocked(*cx, stream, is_locked_ptr);
+    }
+    is_locked
+}
+
+#[allow(unsafe_code)]
 fn cancel_readablestream(
     cx: SafeJSContext,
     stream: &Heap<*mut JSObject>,
     reason: DOMString,
 ) -> Fallible<Rc<Promise>> {
     unsafe {
-        let stream = stream.handle();
-
-        let mut is_locked = false;
-        let is_locked_ptr = &mut is_locked as *mut _;
-        ReadableStreamIsLocked(*cx, stream, is_locked_ptr);
-
         let is_stream = IsReadableStream(stream.get());
+
+        let is_locked = if is_stream {
+            stream_is_locked(cx.clone(), stream)
+        } else {
+            false
+        };
 
         if !is_stream || is_locked {
             return Err(Error::Type(
@@ -175,7 +206,7 @@ fn cancel_readablestream(
         rooted!(in(*cx) let mut reason_val = UndefinedValue());
         (*reason).to_jsval(*cx, reason_val.handle_mut());
 
-        rooted!(in(*cx) let raw_cancel_promise = ReadableStreamCancel(*cx, stream, reason_val.handle().into_handle()));
+        rooted!(in(*cx) let raw_cancel_promise = ReadableStreamCancel(*cx, stream.handle(), reason_val.handle().into_handle()));
 
         let cancel_promise = Promise::new_with_js_promise(raw_cancel_promise.handle(), cx);
 
