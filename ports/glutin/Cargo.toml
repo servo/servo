@@ -47,6 +47,7 @@ webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webrender_debugger = ["libservo/webrender_debugger"]
 vslatestinstalled = ["libservo/vslatestinstalled"]
+xr-profile = ["libservo/xr-profile"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"

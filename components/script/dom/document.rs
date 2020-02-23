@@ -2530,11 +2530,17 @@ impl Document {
             return;
         }
 
+        #[allow(unused)]
+        let mut time = 0;
+        #[cfg(feature = "xr-profile")]
+        {
+            time = time::precise_time_ns();
+        }
         let (sender, receiver) = webgl::webgl_channel().unwrap();
         self.window
             .webgl_chan()
             .expect("Where's the WebGL channel?")
-            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender))
+            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender, time))
             .unwrap();
         receiver.recv().unwrap();
     }

@@ -12,6 +12,7 @@ path = "lib.rs"
 
 [features]
 webgl_backtrace = []
+xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
 crossbeam-channel = "0.4"
@@ -26,6 +27,7 @@ serde = "1.0"
 serde_bytes = "0.11"
 servo_config = {path = "../config"}
 sparkle = "0.1"
+time = { version = "0.1.0", optional = true }
 webrender_api = {git = "https://github.com/servo/webrender"}
 webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}

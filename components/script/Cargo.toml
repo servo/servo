@@ -22,6 +22,7 @@ js_backtrace = ["backtrace"]
 refcell_backtrace = ["accountable-refcell"]
 uwp = ["js/uwp"]
 vslatestinstalled = ["js/vslatestinstalled"]
+xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
 phf_codegen = "0.8"

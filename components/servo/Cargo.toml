@@ -39,6 +39,7 @@ webgl_backtrace = [
 vslatestinstalled = ["script/vslatestinstalled"]
 media-dummy = ["servo-media-dummy"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
 background_hang_monitor = {path = "../background_hang_monitor"}
