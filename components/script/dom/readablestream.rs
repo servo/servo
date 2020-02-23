@@ -14,13 +14,15 @@ use crate::dom::promise::Promise;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleObject, Heap, JSFunction, JSObject, JS_ValueToFunction};
+use js::jsapi::{Heap, JSObject, JS_ValueToFunction};
 use js::jsapi::{
-    IsReadableStream, NewReadableDefaultStreamObject, ReadableStreamCancel, ReadableStreamIsLocked,
+    IsReadableStream, NewReadableDefaultStreamObject, ReadableStreamCancel,
+    ReadableStreamGetReader, ReadableStreamIsLocked,
+    ReadableStreamReaderMode as JSReadableStreamReaderMode,
 };
-use js::jsval::{BooleanValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::{Handle, IntoHandle};
-use std::ptr;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -44,19 +46,59 @@ impl ReadableStream {
         let stream =
             construct_default_readablestream(cx, underlying_source, size, high_watermark, proto);
 
+        ReadableStream::new(global, stream)
+    }
+
+    fn new_inherited(stream: Heap<*mut JSObject>) -> ReadableStream {
+        ReadableStream {
+            reflector_: Reflector::new(),
+            stream,
+        }
+    }
+
+    fn new(global: &GlobalScope, stream: Heap<*mut JSObject>) -> DomRoot<ReadableStream> {
         reflect_dom_object(
-            Box::new(ReadableStream {
-                reflector_: Reflector::new(),
-                stream,
-            }),
+            Box::new(ReadableStream::new_inherited(stream)),
             global,
             Wrap,
         )
     }
+}
 
-    pub fn Cancel(&self, reason: DOMString) -> Fallible<Rc<Promise>> {
+impl ReadableStreamMethods for ReadableStream {
+    fn Cancel(&self, reason: DOMString) -> Fallible<Rc<Promise>> {
         let cx = self.global().get_cx();
         cancel_readablestream(cx, &self.stream, reason)
+    }
+
+    fn GetReader(&self, cx: SafeJSContext) -> Fallible<NonNull<JSObject>> {
+        get_stream_reader(cx, &self.stream)
+    }
+}
+
+#[allow(unsafe_code)]
+fn get_stream_reader(
+    cx: SafeJSContext,
+    stream: &Heap<*mut JSObject>,
+) -> Fallible<NonNull<JSObject>> {
+    unsafe {
+        let stream = stream.handle();
+        if !IsReadableStream(stream.get()) {
+            return Err(Error::Type(
+                "The stream you are trying to create a reader for is not a ReadableStream."
+                    .to_string(),
+            ));
+        }
+
+        // TODO: support ReadableStreamBYOBReader,
+        // SM currently seems to only support default mode,
+        // see https://github.com/servo/mozjs/blob/
+        // bc4935b668171863e537d3fb0d911001a6742013/mozjs/js/public/Stream.h#L274
+        Ok(NonNull::new_unchecked(ReadableStreamGetReader(
+            *cx,
+            stream,
+            JSReadableStreamReaderMode::Default,
+        )))
     }
 }
 

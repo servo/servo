@@ -9,6 +9,7 @@
 interface ReadableStream {
   constructor(object underlyingSource, Function size, HighWatermark highWaterMark, object proto);
   [Throws] Promise<DOMString> cancel(DOMString reason);
+  [Throws] object getReader();
 };
 
 typedef double HighWatermark;
