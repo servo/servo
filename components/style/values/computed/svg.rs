@@ -31,7 +31,7 @@ impl SVGPaint {
 }
 
 /// <length> | <percentage> | <number> | context-value
-pub type SVGLength = generic::SVGLength<LengthPercentage>;
+pub type SVGLength = generic::GenericSVGLength<LengthPercentage>;
 
 impl SVGLength {
     /// `0px`
@@ -41,7 +41,7 @@ impl SVGLength {
 }
 
 /// An non-negative wrapper of SVGLength.
-pub type SVGWidth = generic::SVGLength<NonNegativeLengthPercentage>;
+pub type SVGWidth = generic::GenericSVGLength<NonNegativeLengthPercentage>;
 
 impl SVGWidth {
     /// `1px`.

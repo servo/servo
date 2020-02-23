@@ -387,112 +387,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_svg_length(ident, gecko_ffi_name)">
-    // When context-value is used on an SVG length, the corresponding flag is
-    // set on mContextFlags, and the length field is set to the initial value.
-
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use crate::values::generics::svg::SVGLength;
-        use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        let length = match v {
-            SVGLength::LengthPercentage(length) => {
-                self.gecko.mContextFlags &= !CONTEXT_VALUE;
-                length
-            }
-            SVGLength::ContextValue => {
-                self.gecko.mContextFlags |= CONTEXT_VALUE;
-                match longhands::${ident}::get_initial_value() {
-                    SVGLength::LengthPercentage(length) => length,
-                    _ => unreachable!("Initial value should not be context-value"),
-                }
-            }
-        };
-        self.gecko.${gecko_ffi_name} = length;
-    }
-
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}.clone();
-        self.gecko.mContextFlags =
-            (self.gecko.mContextFlags & !CONTEXT_VALUE) |
-            (other.gecko.mContextFlags & CONTEXT_VALUE);
-    }
-
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::values::generics::svg::SVGLength;
-        use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
-            return SVGLength::ContextValue;
-        }
-        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name}.clone())
-    }
-</%def>
-
-<%def name="impl_svg_opacity(ident, gecko_ffi_name)">
-    <% source_prefix = ident.split("_")[0].upper() + "_OPACITY_SOURCE" %>
-
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use crate::gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
-        use crate::gecko_bindings::structs::nsStyleSVG_${source_prefix}_SHIFT as SHIFT;
-        use crate::gecko_bindings::structs::nsStyleSVGOpacitySource::*;
-        use crate::values::generics::svg::SVGOpacity;
-        self.gecko.mContextFlags &= !MASK;
-        match v {
-            SVGOpacity::Opacity(opacity) => {
-                self.gecko.mContextFlags |=
-                    (eStyleSVGOpacitySource_Normal as u8) << SHIFT;
-                self.gecko.${gecko_ffi_name} = opacity;
-            }
-            SVGOpacity::ContextFillOpacity => {
-                self.gecko.mContextFlags |=
-                    (eStyleSVGOpacitySource_ContextFillOpacity as u8) << SHIFT;
-                self.gecko.${gecko_ffi_name} = 1.;
-            }
-            SVGOpacity::ContextStrokeOpacity => {
-                self.gecko.mContextFlags |=
-                    (eStyleSVGOpacitySource_ContextStrokeOpacity as u8) << SHIFT;
-                self.gecko.${gecko_ffi_name} = 1.;
-            }
-        }
-    }
-
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
-        self.gecko.mContextFlags =
-            (self.gecko.mContextFlags & !MASK) |
-            (other.gecko.mContextFlags & MASK);
-    }
-
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use crate::gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
-        use crate::gecko_bindings::structs::nsStyleSVG_${source_prefix}_SHIFT as SHIFT;
-        use crate::gecko_bindings::structs::nsStyleSVGOpacitySource::*;
-        use crate::values::generics::svg::SVGOpacity;
-
-        let source = (self.gecko.mContextFlags & MASK) >> SHIFT;
-        if source == eStyleSVGOpacitySource_Normal as u8 {
-            return SVGOpacity::Opacity(self.gecko.${gecko_ffi_name});
-        } else {
-            debug_assert_eq!(self.gecko.${gecko_ffi_name}, 1.0);
-            if source == eStyleSVGOpacitySource_ContextFillOpacity as u8 {
-                SVGOpacity::ContextFillOpacity
-            } else {
-                debug_assert_eq!(source, eStyleSVGOpacitySource_ContextStrokeOpacity as u8);
-                SVGOpacity::ContextStrokeOpacity
-            }
-        }
-    }
-</%def>
-
 <%def name="impl_non_negative_length(ident, gecko_ffi_name, inherit_from=None,
                                      round_to_pixels=False)">
     #[allow(non_snake_case)]
@@ -706,9 +600,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "MozScriptMinSize": impl_absolute_length,
-        "SVGLength": impl_svg_length,
-        "SVGOpacity": impl_svg_opacity,
-        "SVGWidth": impl_svg_length,
     }
 
     def longhand_method(longhand):
@@ -2204,62 +2095,12 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 %>
 <%self:impl_trait style_struct_name="SVG"
                   skip_longhands="${skip_svg_longhands}">
-
     <% impl_common_image_layer_properties("mask") %>
     <% impl_simple_image_array_property("mode", "mask", "mMask", "mMaskMode", "SVG") %>
     <% impl_simple_image_array_property("composite", "mask", "mMask", "mComposite", "SVG") %>
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="stroke-dasharray">
-    pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
-        use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::generics::svg::SVGStrokeDashArray;
-
-        match v {
-            SVGStrokeDashArray::Values(v) => {
-                let v = v.into_iter();
-                self.gecko.mContextFlags &= !CONTEXT_VALUE;
-                unsafe {
-                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut *self.gecko, v.len() as u32);
-                }
-                for (gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
-                    *gecko = servo;
-                }
-            }
-            SVGStrokeDashArray::ContextValue => {
-                self.gecko.mContextFlags |= CONTEXT_VALUE;
-                unsafe {
-                    bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut *self.gecko, 0);
-                }
-            }
-        }
-    }
-
-    pub fn copy_stroke_dasharray_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        unsafe {
-            bindings::Gecko_nsStyleSVG_CopyDashArray(&mut *self.gecko, &*other.gecko);
-        }
-        self.gecko.mContextFlags =
-            (self.gecko.mContextFlags & !CONTEXT_VALUE) |
-            (other.gecko.mContextFlags & CONTEXT_VALUE);
-    }
-
-    pub fn reset_stroke_dasharray(&mut self, other: &Self) {
-        self.copy_stroke_dasharray_from(other)
-    }
-
-    pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
-        use crate::gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use crate::values::generics::svg::SVGStrokeDashArray;
-
-        if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
-            debug_assert_eq!(self.gecko.mStrokeDasharray.len(), 0);
-            return SVGStrokeDashArray::ContextValue;
-        }
-        SVGStrokeDashArray::Values(self.gecko.mStrokeDasharray.iter().cloned().collect())
-    }
+<%self:impl_trait style_struct_name="InheritedSVG">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedUI">
