@@ -11,10 +11,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::jsapi::NewReadableDefaultStreamObject;
 use js::jsapi::{Heap, JSFunction, JSObject, JS_ValueToFunction};
+use js::jsapi::{IsReadableStream, NewReadableDefaultStreamObject};
 use js::jsval::UndefinedValue;
-use js::rust::IntoHandle;
+use js::rust::{Handle, IntoHandle};
 use std::ptr;
 use std::rc::Rc;
 
@@ -25,9 +25,46 @@ pub struct ReadableStream {
     stream: Heap<*mut JSObject>,
 }
 
+#[allow(unsafe_code)]
+fn construct_default_readablestream(
+    cx: SafeJSContext,
+    underlying_source: *mut JSObject,
+    size: Rc<Function>,
+    high_watermark: Finite<f64>,
+    proto: *mut JSObject,
+) -> Heap<*mut JSObject> {
+    let heap = Heap::default();
+    let source = Handle::new(&underlying_source);
+    let proto = Handle::new(&proto);
+
+    unsafe {
+        rooted!(in(*cx) let mut size_val = UndefinedValue());
+        size.to_jsval(*cx, size_val.handle_mut());
+
+        let func = JS_ValueToFunction(*cx, size_val.handle().into_handle());
+        let size_func = Handle::new(&func);
+
+        rooted!(in(*cx)
+            let stream = NewReadableDefaultStreamObject(
+                *cx,
+                source.into_handle(),
+                size_func.into_handle(),
+                *high_watermark,
+                proto.into_handle()
+            )
+        );
+
+        assert!(IsReadableStream(stream.get()));
+
+        heap.set(stream.get());
+    }
+
+    heap
+}
+
 impl ReadableStream {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
-    #[allow(non_snake_case, unsafe_code)]
+    #[allow(non_snake_case)]
     pub fn Constructor(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -36,34 +73,13 @@ impl ReadableStream {
         high_watermark: Finite<f64>,
         proto: *mut JSObject,
     ) -> DomRoot<ReadableStream> {
-        let heap = Heap::default();
-
-        unsafe {
-            let source = Heap::boxed(underlying_source);
-            let proto = Heap::boxed(proto);
-
-            rooted!(in(*cx) let mut size_val = UndefinedValue());
-            size.to_jsval(*cx, size_val.handle_mut());
-
-            let size_func = Heap::boxed(JS_ValueToFunction(*cx, size_val.handle().into_handle()));
-
-            rooted!(in(*cx)
-                let stream = NewReadableDefaultStreamObject(
-                    *cx,
-                    source.handle(),
-                    size_func.handle(),
-                    *high_watermark,
-                    proto.handle()
-                )
-            );
-
-            heap.set(stream.get());
-        }
+        let stream =
+            construct_default_readablestream(cx, underlying_source, size, high_watermark, proto);
 
         reflect_dom_object(
             Box::new(ReadableStream {
                 reflector_: Reflector::new(),
-                stream: heap,
+                stream,
             }),
             global,
             Wrap,
