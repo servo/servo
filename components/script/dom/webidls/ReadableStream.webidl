@@ -8,6 +8,7 @@
 [Exposed=(Window,Worker)]
 interface ReadableStream {
   constructor(object underlyingSource, Function size, HighWatermark highWaterMark, object proto);
+  [Throws] Promise<DOMString> cancel(DOMString reason);
 };
 
 typedef double HighWatermark;
