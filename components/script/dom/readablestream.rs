@@ -34,7 +34,7 @@ pub struct ReadableStream {
 }
 
 impl ReadableStream {
-    /// <https://streams.spec.whatwg.org/#rs-class>
+    /// <https://streams.spec.whatwg.org/#rs-constructor>
     #[allow(non_snake_case)]
     pub fn Constructor(
         cx: SafeJSContext,
@@ -67,19 +67,23 @@ impl ReadableStream {
 }
 
 impl ReadableStreamMethods for ReadableStream {
+    /// <https://streams.spec.whatwg.org/#rs-cancel>
     fn Cancel(&self, reason: DOMString) -> Fallible<Rc<Promise>> {
         let cx = self.global().get_cx();
         cancel_readablestream(cx, &self.stream, reason)
     }
 
+    /// <https://streams.spec.whatwg.org/#rs-get-reader>
     fn GetReader(&self, cx: SafeJSContext) -> Fallible<NonNull<JSObject>> {
         get_stream_reader(cx, &self.stream)
     }
 
+    /// <https://streams.spec.whatwg.org/#rs-locked>
     fn Locked(&self) -> bool {
         stream_is_locked(self.global().get_cx(), &self.stream)
     }
 
+    /// <https://streams.spec.whatwg.org/#rs-tee>
     fn Tee(&self, cx: SafeJSContext) -> Fallible<JSVal> {
         tee_stream(cx, &self.stream)
     }
@@ -206,7 +210,8 @@ fn cancel_readablestream(
         rooted!(in(*cx) let mut reason_val = UndefinedValue());
         (*reason).to_jsval(*cx, reason_val.handle_mut());
 
-        rooted!(in(*cx) let raw_cancel_promise = ReadableStreamCancel(*cx, stream.handle(), reason_val.handle().into_handle()));
+        rooted!(in(*cx) let raw_cancel_promise =
+            ReadableStreamCancel(*cx, stream.handle(), reason_val.handle().into_handle()));
 
         let cancel_promise = Promise::new_with_js_promise(raw_cancel_promise.handle(), cx);
 
