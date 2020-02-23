@@ -170,6 +170,13 @@ enum Unpacked<'a> {
     Percentage(Percentage),
 }
 
+/// An unpacked `<length-percentage>` that mutably borrows the `calc()` variant.
+enum UnpackedMut<'a> {
+    Calc(&'a mut CalcLengthPercentage),
+    Length(Length),
+    Percentage(Percentage),
+}
+
 /// An unpacked `<length-percentage>` that owns the `calc()` variant, for
 /// serialization purposes.
 #[derive(Deserialize, PartialEq, Serialize)]
@@ -294,7 +301,18 @@ impl LengthPercentage {
             LengthPercentageUnion::TAG_CALC => Tag::Calc,
             LengthPercentageUnion::TAG_LENGTH => Tag::Length,
             LengthPercentageUnion::TAG_PERCENTAGE => Tag::Percentage,
-            _ => unreachable!("Bogus tag?"),
+            _ => unsafe { debug_unreachable!("Bogus tag?") },
+        }
+    }
+
+    #[inline]
+    fn unpack_mut<'a>(&'a mut self) -> UnpackedMut<'a> {
+        unsafe {
+            match self.tag() {
+                Tag::Calc => UnpackedMut::Calc(&mut *self.calc_ptr()),
+                Tag::Length => UnpackedMut::Length(self.0.length.length),
+                Tag::Percentage => UnpackedMut::Percentage(self.0.percentage.percentage),
+            }
         }
     }
 
@@ -425,11 +443,14 @@ impl LengthPercentage {
 
     /// Returns the clamped non-negative values.
     #[inline]
-    pub fn clamp_to_non_negative(&self) -> Self {
-        match self.unpack() {
-            Unpacked::Length(l) => Self::new_length(l.clamp_to_non_negative()),
-            Unpacked::Percentage(p) => Self::new_percent(p.clamp_to_non_negative()),
-            Unpacked::Calc(c) => c.clamp_to_non_negative(),
+    pub fn clamp_to_non_negative(mut self) -> Self {
+        match self.unpack_mut() {
+            UnpackedMut::Length(l) => Self::new_length(l.clamp_to_non_negative()),
+            UnpackedMut::Percentage(p) => Self::new_percent(p.clamp_to_non_negative()),
+            UnpackedMut::Calc(ref mut c) => {
+                c.clamping_mode = AllowedNumericType::NonNegative;
+                self
+            }
         }
     }
 }
@@ -664,12 +685,6 @@ impl CalcLengthPercentage {
             })
         }).unwrap();
         Length::new(self.clamping_mode.clamp(px))
-    }
-
-    fn clamp_to_non_negative(&self) -> LengthPercentage {
-        let mut new = self.clone();
-        new.clamping_mode = AllowedNumericType::NonNegative;
-        LengthPercentage::new_calc_unchecked(Box::new(new))
     }
 }
 
