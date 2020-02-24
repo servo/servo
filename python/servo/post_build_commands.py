@@ -126,7 +126,7 @@ class PostBuildCommands(CommandBase):
         args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
 
         if headless:
-            set_osmesa_env(args[0], env)
+            set_osmesa_env(args[0], env, debugger is not None)
             args.append('-z')
 
         if software:
