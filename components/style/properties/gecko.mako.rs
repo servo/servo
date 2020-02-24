@@ -2016,16 +2016,9 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align -webkit-text-stroke-width">
-
-    <% text_align_keyword = Keyword("text-align",
-                                    "start end left right center justify -moz-center -moz-left -moz-right char",
-                                    gecko_strip_moz_prefix=False) %>
-    ${impl_keyword('text_align', 'mTextAlign', text_align_keyword)}
-
+                  skip_longhands="-webkit-text-stroke-width">
     ${impl_non_negative_length('_webkit_text_stroke_width',
                                'mWebkitTextStrokeWidth')}
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text" skip_longhands="initial-letter">

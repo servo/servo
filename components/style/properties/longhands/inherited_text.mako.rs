@@ -141,11 +141,12 @@ ${helpers.predefined_type(
     % endif
 </%helpers:single_keyword>
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "text-align-last",
-    "auto start end left right center justify",
+    "TextAlignLast",
+    "computed::text::TextAlignLast::Auto",
+    needs_context=False,
     engines="gecko",
-    gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align-last",
 )}

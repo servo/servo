@@ -10,10 +10,9 @@
 
 #![allow(unsafe_code)]
 
-use crate::gecko_bindings::structs::{self, Matrix4x4Components, nsresult};
+use crate::gecko_bindings::structs::{Matrix4x4Components, nsresult};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
-use crate::values::computed::TextAlign;
 
 impl From<RulesMutateError> for nsresult {
     fn from(other: RulesMutateError) -> Self {
@@ -24,39 +23,6 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
         }
     }
-}
-
-impl TextAlign {
-    /// Obtain a specified value from a Gecko keyword value
-    ///
-    /// Intended for use with presentation attributes, not style structs
-    pub fn from_gecko_keyword(kw: u32) -> Self {
-        match kw {
-            structs::NS_STYLE_TEXT_ALIGN_LEFT => TextAlign::Left,
-            structs::NS_STYLE_TEXT_ALIGN_RIGHT => TextAlign::Right,
-            structs::NS_STYLE_TEXT_ALIGN_CENTER => TextAlign::Center,
-            structs::NS_STYLE_TEXT_ALIGN_JUSTIFY => TextAlign::Justify,
-            structs::NS_STYLE_TEXT_ALIGN_MOZ_LEFT => TextAlign::MozLeft,
-            structs::NS_STYLE_TEXT_ALIGN_MOZ_RIGHT => TextAlign::MozRight,
-            structs::NS_STYLE_TEXT_ALIGN_MOZ_CENTER => TextAlign::MozCenter,
-            structs::NS_STYLE_TEXT_ALIGN_CHAR => TextAlign::Char,
-            structs::NS_STYLE_TEXT_ALIGN_END => TextAlign::End,
-            _ => panic!("Found unexpected value in style struct for text-align property"),
-        }
-    }
-}
-
-/// Convert to String from given chars pointer.
-pub unsafe fn string_from_chars_pointer(p: *const u16) -> String {
-    use std::slice;
-    let mut length = 0;
-    let mut iter = p;
-    while *iter != 0 {
-        length += 1;
-        iter = iter.offset(1);
-    }
-    let char_vec = slice::from_raw_parts(p, length as usize);
-    String::from_utf16_lossy(char_vec)
 }
 
 impl<'a> From<&'a Matrix4x4Components> for Matrix3D {

@@ -382,6 +382,7 @@ class Longhand(object):
                 "ScrollSnapStrictness",
                 "ScrollSnapType",
                 "TextAlign",
+                "TextAlignLast",
                 "TextDecorationLine",
                 "TextEmphasisPosition",
                 "TextTransform",
