@@ -419,6 +419,22 @@ fn valid_compressed_data_len(
     data_len == required_bytes as usize
 }
 
+// fn valid_depth_texture_cube_map(format: u32, target: u32) -> bool {
+//     ((format == constants::DEPTH_COMPONENT || format == constants::DEPTH_STENCIL) &&
+//     (target == constants::GL_TEXTURE_CUBE_MAP_POSITIVE_X ||
+//         target == constants::GL_TEXTURE_CUBE_MAP_POSITIVE_Y ||
+//         target == constants::GL_TEXTURE_CUBE_MAP_POSITIVE_Z ||
+//         target == constants::GL_TEXTURE_CUBE_MAP_NEGATIVE_X ||
+//         target == constants::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y ||
+//         target == constants::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z))
+
+// }
+
+// fn valid_depth_texture_internal_format(format: u32, internalformat: u32, type: u32) -> bool {
+//     (format == constants::DEPTH_COMPONENT && internalformat == constants::DEPTH_STENCIL && (type != constants::UNSIGNED_SHORT || type != constants::UNSIGNED_INT)) ||
+//     (format != constants::DEPTH_COMPONENT && internalformat != constants::DEPTH_STENCIL) && (type == constants::UNSIGNED_SHORT || type == constants::UNSIGNED_INT))
+// }
+
 fn is_subimage_blockaligned(
     xoffset: u32,
     yoffset: u32,
@@ -539,6 +555,13 @@ impl<'a> WebGLValidator for CompressedTexImage2DValidator<'a> {
                 valid_width && valid_height
             },
             TexCompressionValidation::None => true,
+            // TexCompressionValidation::DepthTexture => {
+            //     // let valid_format =
+            //     let valid_format = valid_depth_texture_cube_map(compression.format, target, );
+            //     // let valid_internal_format = compression.format == constants::DEPTH_COMPONENT && self.compression_validator.common_validator.internal_format == constants::DEPTH_STENCIL;
+            //     let valid_internal_format = valid_depth_texture_internal_format(compression.format, self.compression_validator.common_validator.internal_format, data_type);
+            //     valid_format && valid_internal_format
+            // }
         };
         if !compression_valid {
             context.webgl_error(InvalidOperation);

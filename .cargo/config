@@ -36,3 +36,9 @@ linker = "lld-link.exe"
 
 [target.aarch64-uwp-windows-msvc]
 linker = "lld-link.exe"
+
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]

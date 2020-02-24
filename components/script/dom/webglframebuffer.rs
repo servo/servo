@@ -22,6 +22,7 @@ use euclid::Size2D;
 use std::cell::Cell;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Viewport;
+use sparkle::gl;
 
 pub enum CompleteForRendering {
     Complete,
@@ -571,7 +572,7 @@ impl WebGLFramebuffer {
         self.upcast::<WebGLObject>()
             .context()
             .send_command(WebGLCommand::FramebufferTexture2D(
-                constants::FRAMEBUFFER,
+                gl::UNSIGNED_INT_24_8,
                 attachment,
                 textarget,
                 tex_id,

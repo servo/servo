@@ -30,8 +30,9 @@ use std::ptr::NonNull;
 // Data types that are implemented for texImage2D and texSubImage2D in a WebGL 1.0 context
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_texture_float/
-const DEFAULT_DISABLED_TEX_TYPES_WEBGL1: [GLenum; 2] = [
+const DEFAULT_DISABLED_TEX_TYPES_WEBGL1: [GLenum; 3] = [
     constants::FLOAT,
+    gl::UNSIGNED_INT_24_8,
     OESTextureHalfFloatConstants::HALF_FLOAT_OES,
 ];
 
@@ -393,6 +394,7 @@ impl WebGLExtensions {
         self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
         self.register::<ext::webglcompressedtextureetc1::WEBGLCompressedTextureETC1>();
         self.register::<ext::webglcompressedtextures3tc::WEBGLCompressedTextureS3TC>();
+        self.register::<ext::webgldepthtexture::WebGLDepthTexture>();
     }
 
     pub fn enable_element_index_uint(&self) {

@@ -82,7 +82,7 @@ use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use webxr_api::SwapChainId as WebXRSwapChainId;
-
+use sparkle::gl;
 // From the GLES 2.0.25 spec, page 85:
 //
 //     "If a texture that is currently bound to one of the targets
@@ -667,6 +667,7 @@ impl WebGLRenderingContext {
             Some(ref buffer) => match buffer.get_array_type() {
                 Type::Uint8 => 1,
                 Type::Uint16 => 2,
+                Type::Uint32 => 4,
                 Type::Float32 => 4,
                 _ => {
                     self.webgl_error(InvalidOperation);
@@ -4227,7 +4228,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
         }
 
-        if target != constants::FRAMEBUFFER {
+        if target != gl::UNSIGNED_INT_24_8 {
             return self.webgl_error(InvalidEnum);
         }
 

@@ -915,6 +915,7 @@ mod gl_ext_constants {
     pub const COMPRESSED_RGBA_S3TC_DXT3_EXT: GLenum = 0x83F2;
     pub const COMPRESSED_RGBA_S3TC_DXT5_EXT: GLenum = 0x83F3;
     pub const COMPRESSED_RGB_ETC1_WEBGL: GLenum = 0x8D64;
+    pub const UNSIGNED_INT_24_8_WEBGL: GLenum = 0x84FA;
 
     pub static COMPRESSIONS: &'static [GLenum] = &[
         COMPRESSED_RGB_S3TC_DXT1_EXT,
@@ -938,6 +939,7 @@ gl_enums! {
         CompressedRgbaS3tcDxt3 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT3_EXT,
         CompressedRgbaS3tcDxt5 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT5_EXT,
         CompressedRgbEtc1 = gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL,
+        UnsignedInt24_8 = gl_ext_constants::UNSIGNED_INT_24_8_WEBGL,
     }
 
     pub enum TexDataType {
@@ -947,6 +949,7 @@ gl_enums! {
         UnsignedShort565 = gl::UNSIGNED_SHORT_5_6_5,
         Float = gl::FLOAT,
         HalfFloat = gl::HALF_FLOAT_OES,
+        UnsignedInt24_8 = gl::UNSIGNED_INT_24_8,
     }
 }
 
@@ -982,6 +985,7 @@ impl TexDataType {
             TexDataType::UnsignedShort565 => 2,
             TexDataType::Float => 4,
             TexDataType::HalfFloat => 2,
+            TexDataType::UnsignedInt24_8 => 4,
         }
     }
 
@@ -995,6 +999,7 @@ impl TexDataType {
             TexDataType::UnsignedShort4444 => 4,
             TexDataType::Float => 1,
             TexDataType::HalfFloat => 1,
+            TexDataType::UnsignedInt24_8 => 3,
         }
     }
 }
