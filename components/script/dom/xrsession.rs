@@ -412,14 +412,6 @@ impl XRSession {
             "WEBXR PROFILING [raf execute]:\t{}ms",
             (time::precise_time_ns() - raf_start) as f64 / 1_000_000.
         );
-
-        // If the canvas element is attached to the DOM, it is now dirty,
-        // and we need to trigger a reflow.
-        base_layer
-            .Context()
-            .Canvas()
-            .upcast::<Node>()
-            .dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_inline_projection_matrix(&self) {
