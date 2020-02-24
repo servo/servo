@@ -18,10 +18,10 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::vrdisplay::VRDisplay;
 use crate::dom::vrdisplayevent::VRDisplayEvent;
+use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
@@ -30,6 +30,7 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::PipelineId;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -46,10 +47,13 @@ pub struct XRSystem {
     active_immersive_session: MutNullableDom<XRSession>,
     active_inline_sessions: DomRefCell<Vec<Dom<XRSession>>>,
     test: MutNullableDom<XRTest>,
+    pipeline: PipelineId,
+    #[ignore_malloc_size_of = "channels are hard"]
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 impl XRSystem {
-    fn new_inherited() -> XRSystem {
+    fn new_inherited(pipeline: PipelineId, webvr_thread: Option<IpcSender<WebVRMsg>>) -> XRSystem {
         XRSystem {
             eventtarget: EventTarget::new_inherited(),
             displays: DomRefCell::new(Vec::new()),
@@ -58,13 +62,18 @@ impl XRSystem {
             active_immersive_session: Default::default(),
             active_inline_sessions: DomRefCell::new(Vec::new()),
             test: Default::default(),
+            pipeline,
+            webvr_thread,
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XRSystem> {
+    pub fn new(window: &Window) -> DomRoot<XRSystem> {
         let root = reflect_dom_object(
-            Box::new(XRSystem::new_inherited()),
-            global,
+            Box::new(XRSystem::new_inherited(
+                window.pipeline_id(),
+                window.webvr_thread(),
+            )),
+            window,
             XRSystemBinding::Wrap,
         );
         root.register();
@@ -304,7 +313,7 @@ impl XRSystem {
     }
 
     pub fn get_displays(&self) -> Result<Vec<DomRoot<VRDisplay>>, ()> {
-        if let Some(webvr_thread) = self.webvr_thread() {
+        if let Some(ref webvr_thread) = self.webvr_thread {
             let (sender, receiver) =
                 ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             webvr_thread.send(WebVRMsg::GetDisplays(sender)).unwrap();
@@ -333,10 +342,6 @@ impl XRSystem {
             .collect())
     }
 
-    fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
-        self.global().as_window().webvr_thread()
-    }
-
     fn find_display(&self, display_id: u32) -> Option<DomRoot<VRDisplay>> {
         self.displays
             .borrow()
@@ -346,15 +351,15 @@ impl XRSystem {
     }
 
     fn register(&self) {
-        if let Some(webvr_thread) = self.webvr_thread() {
+        if let Some(ref webvr_thread) = self.webvr_thread {
             let msg = WebVRMsg::RegisterContext(self.global().pipeline_id());
             webvr_thread.send(msg).unwrap();
         }
     }
 
     fn unregister(&self) {
-        if let Some(webvr_thread) = self.webvr_thread() {
-            let msg = WebVRMsg::UnregisterContext(self.global().pipeline_id());
+        if let Some(ref webvr_thread) = self.webvr_thread {
+            let msg = WebVRMsg::UnregisterContext(self.pipeline);
             webvr_thread.send(msg).unwrap();
         }
     }
@@ -364,7 +369,7 @@ impl XRSystem {
             existing.update_display(&display);
             existing
         } else {
-            let root = VRDisplay::new(&self.global(), display.clone());
+            let root = VRDisplay::new(&self.global().as_window(), display.clone());
             self.displays.borrow_mut().push(Dom::from_ref(&*root));
             root
         }
@@ -474,7 +479,7 @@ impl XRSystem {
     // guarantees that the gamepads always have a valid state and can be very useful for
     // motion capture or drawing applications.
     pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad>> {
-        if let Some(wevbr_sender) = self.webvr_thread() {
+        if let Some(ref wevbr_sender) = self.webvr_thread {
             let (sender, receiver) =
                 ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             let synced_ids = self

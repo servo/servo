@@ -7,8 +7,8 @@ use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrfieldofview::VRFieldOfView;
+use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -41,7 +41,7 @@ impl VREyeParameters {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> DomRoot<VREyeParameters> {
+    pub fn new(parameters: WebVREyeParameters, global: &Window) -> DomRoot<VREyeParameters> {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();

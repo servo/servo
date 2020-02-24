@@ -74,7 +74,7 @@ use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward};
+use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::{Destination, Referrer};
@@ -373,6 +373,8 @@ pub struct HTMLMediaElement {
     /// the access to the "privileged" document.servoGetMediaControls(id) API by
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
+    #[ignore_malloc_size_of = "Defined in other crates"]
+    player_context: WindowGLContext,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -437,6 +439,7 @@ impl HTMLMediaElement {
             current_fetch_context: DomRefCell::new(None),
             id: Cell::new(0),
             media_controls_id: DomRefCell::new(None),
+            player_context: document.window().get_player_context(),
         }
     }
 
@@ -1340,9 +1343,7 @@ impl HTMLMediaElement {
 
         let audio_renderer = self.audio_renderer.borrow().as_ref().map(|r| r.clone());
 
-        let pipeline_id = window
-            .pipeline_id()
-            .expect("Cannot create player outside of a pipeline");
+        let pipeline_id = window.pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let player = ServoMedia::get().unwrap().create_player(
@@ -1969,15 +1970,14 @@ impl HTMLMediaElement {
 
 impl Drop for HTMLMediaElement {
     fn drop(&mut self) {
-        let window = window_from_node(self);
-        window.get_player_context().glplayer_chan.map(|pipeline| {
+        if let Some(ref pipeline) = self.player_context.glplayer_chan {
             if let Err(err) = pipeline
                 .channel()
                 .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
             {
                 warn!("GLPlayer disappeared!: {:?}", err);
             }
-        });
+        }
 
         self.remove_controls();
     }

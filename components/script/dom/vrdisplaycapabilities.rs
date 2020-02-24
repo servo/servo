@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding::VRDisplayCapabilitiesMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRDisplayCapabilities;
 
@@ -30,7 +30,7 @@ impl VRDisplayCapabilities {
 
     pub fn new(
         capabilities: WebVRDisplayCapabilities,
-        global: &GlobalScope,
+        global: &Window,
     ) -> DomRoot<VRDisplayCapabilities> {
         reflect_dom_object(
             Box::new(VRDisplayCapabilities::new_inherited(capabilities)),

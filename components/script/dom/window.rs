@@ -1403,7 +1403,9 @@ impl Window {
         // We tear down the active document, which causes all the attached
         // nodes to dispose of their layout data. This messages the layout
         // thread, informing it that it can safely free the memory.
-        self.Document().upcast::<Node>().teardown();
+        self.Document()
+            .upcast::<Node>()
+            .teardown(self.layout_chan());
 
         // Tell the constellation to drop the sender to our message-port router, if there is any.
         self.upcast::<GlobalScope>().remove_message_ports_router();
@@ -1987,7 +1989,7 @@ impl Window {
                             .task_canceller(TaskSourceName::DOMManipulation)
                             .wrap_task(task),
                     ),
-                    self.pipeline_id(),
+                    Some(self.pipeline_id()),
                     TaskSourceName::DOMManipulation,
                 ));
                 doc.set_url(load_data.url.clone());
@@ -2353,8 +2355,8 @@ impl Window {
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
     }
 
-    pub fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.upcast::<GlobalScope>().pipeline_id())
+    pub fn pipeline_id(&self) -> PipelineId {
+        self.upcast::<GlobalScope>().pipeline_id()
     }
 }
 
@@ -2485,7 +2487,7 @@ impl Window {
                     .task_canceller(TaskSourceName::DOMManipulation)
                     .wrap_task(task),
             ),
-            self.pipeline_id(),
+            Some(self.pipeline_id()),
             TaskSourceName::DOMManipulation,
         ));
     }
