@@ -18,9 +18,10 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct IndependentFormattingContext {
     pub tag: OpaqueNode,
+    #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
 
     /// If it was requested during construction
@@ -38,7 +39,7 @@ pub(crate) struct IndependentLayout {
 
 // Private so that code outside of this module cannot match variants.
 // It should got through methods instead.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum IndependentFormattingContextContents {
     Flow(BlockFormattingContext),
 

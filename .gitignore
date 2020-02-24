@@ -60,3 +60,6 @@ support/hololens/ServoApp/Release/
 support/hololens/packages/
 support/hololens/AppPackages/
 support/hololens/.vs/
+
+# Layout debugger trace files
+layout_trace*

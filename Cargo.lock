@@ -2929,6 +2929,7 @@ dependencies = [
  "script_layout_interface",
  "script_traits",
  "serde",
+ "serde_json",
  "servo_arc",
  "servo_geometry",
  "servo_url",

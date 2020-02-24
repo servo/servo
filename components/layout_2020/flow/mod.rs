@@ -8,8 +8,8 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
-use crate::fragments::{CollapsedBlockMargins, CollapsedMargin};
+use crate::fragments::{AnonymousFragment, BoxFragment};
+use crate::fragments::{CollapsedBlockMargins, CollapsedMargin, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
@@ -30,22 +30,23 @@ mod root;
 
 pub use root::{BoxTreeRoot, FragmentTreeRoot};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
         tag: OpaqueNode,
+        #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
     },

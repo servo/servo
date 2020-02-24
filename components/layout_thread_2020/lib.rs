@@ -36,6 +36,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
+use layout::layout_debug;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
@@ -172,10 +173,10 @@ pub struct LayoutThread {
     outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// The root of the box tree.
-    box_tree_root: RefCell<Option<BoxTreeRoot>>,
+    box_tree_root: RefCell<Option<Arc<BoxTreeRoot>>>,
 
     /// The root of the fragment tree.
-    fragment_tree_root: RefCell<Option<FragmentTreeRoot>>,
+    fragment_tree_root: RefCell<Option<Arc<FragmentTreeRoot>>>,
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
@@ -234,6 +235,10 @@ pub struct LayoutThread {
 
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
+
+    /// True if each step of layout is traced to an external JSON file
+    /// for debugging purposes.
+    trace_layout: bool,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -266,7 +271,7 @@ impl LayoutThreadFactory for LayoutThread {
         dump_rule_tree: bool,
         relayout_event: bool,
         _nonincremental_layout: bool,
-        _trace_layout: bool,
+        trace_layout: bool,
         dump_flow_tree: bool,
     ) {
         thread::Builder::new()
@@ -315,6 +320,7 @@ impl LayoutThreadFactory for LayoutThread {
                         dump_style_tree,
                         dump_rule_tree,
                         dump_flow_tree,
+                        trace_layout,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -483,6 +489,7 @@ impl LayoutThread {
         dump_style_tree: bool,
         dump_rule_tree: bool,
         dump_flow_tree: bool,
+        trace_layout: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(webrender_document, id.to_webrender());
@@ -568,6 +575,7 @@ impl LayoutThread {
             dump_style_tree,
             dump_rule_tree,
             dump_flow_tree,
+            trace_layout,
         }
     }
 
@@ -870,9 +878,9 @@ impl LayoutThread {
             self.dump_style_tree,
             self.dump_rule_tree,
             self.relayout_event,
-            true,  // nonincremental_layout
-            false, // trace_layout
-            self.dump_flow_tree,
+            true,                // nonincremental_layout
+            self.trace_layout,   // trace_layout
+            self.dump_flow_tree, // dump_flow_tree
         );
     }
 
@@ -1152,7 +1160,8 @@ impl LayoutThread {
             } else {
                 build_box_tree()
             };
-            Some(box_tree)
+
+            Some(Arc::new(box_tree))
         } else {
             None
         };
@@ -1165,11 +1174,11 @@ impl LayoutThread {
                 self.viewport_size.height.to_f32_px(),
             );
             let run_layout = || box_tree.layout(&layout_context, viewport_size);
-            let fragment_tree = if let Some(pool) = rayon_pool {
+            let fragment_tree = Arc::new(if let Some(pool) = rayon_pool {
                 pool.install(run_layout)
             } else {
                 run_layout()
-            };
+            });
             *self.box_tree_root.borrow_mut() = Some(box_tree);
             *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
         }
@@ -1201,7 +1210,7 @@ impl LayoutThread {
         // Perform post-style recalculation layout passes.
         if let Some(root) = &*self.fragment_tree_root.borrow() {
             self.perform_post_style_recalc_layout_passes(
-                root,
+                root.clone(),
                 &data.reflow_goal,
                 Some(&document),
                 &mut layout_context,
@@ -1232,10 +1241,8 @@ impl LayoutThread {
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
-                    rw_data.content_box_response = process_content_box_request(
-                        node,
-                        (&*self.fragment_tree_root.borrow()).as_ref(),
-                    );
+                    rw_data.content_box_response =
+                        process_content_box_request(node, self.fragment_tree_root.borrow().clone());
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
                     rw_data.content_boxes_response = process_content_boxes_request(node);
@@ -1250,7 +1257,7 @@ impl LayoutThread {
                 &QueryMsg::ClientRectQuery(node) => {
                     rw_data.client_rect_response = process_node_geometry_request(
                         node,
-                        (&*self.fragment_tree_root.borrow()).as_ref(),
+                        self.fragment_tree_root.borrow().clone(),
                     );
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
@@ -1364,7 +1371,7 @@ impl LayoutThread {
             let mut layout_context = self.build_layout_context(guards, false, &snapshots, origin);
 
             self.perform_post_style_recalc_layout_passes(
-                root,
+                root.clone(),
                 &ReflowGoal::TickAnimations,
                 None,
                 &mut layout_context,
@@ -1375,11 +1382,17 @@ impl LayoutThread {
 
     fn perform_post_style_recalc_layout_passes(
         &self,
-        fragment_tree: &FragmentTreeRoot,
+        fragment_tree: Arc<FragmentTreeRoot>,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
     ) {
+        if self.trace_layout {
+            if let Some(box_tree) = &*self.box_tree_root.borrow() {
+                layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
+            }
+        }
+
         if !reflow_goal.needs_display() {
             // Defer the paint step until the next ForDisplay.
             //
@@ -1390,6 +1403,7 @@ impl LayoutThread {
                 .needs_paint_from_layout();
             return;
         }
+
         if let Some(document) = document {
             document.will_paint();
         }
@@ -1431,6 +1445,10 @@ impl LayoutThread {
             viewport_size,
             display_list.wr.finalize(),
         );
+
+        if self.trace_layout {
+            layout_debug::end_trace(self.generation.get());
+        }
 
         self.generation.set(self.generation.get() + 1);
     }

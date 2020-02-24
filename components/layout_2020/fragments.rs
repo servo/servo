@@ -4,8 +4,12 @@
 
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
+#[cfg(debug_assertions)]
+use crate::layout_debug;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
+#[cfg(not(debug_assertions))]
+use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -16,6 +20,7 @@ use style::values::computed::Length;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
+#[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
     Anonymous(AnonymousFragment),
@@ -23,8 +28,11 @@ pub(crate) enum Fragment {
     Image(ImageFragment),
 }
 
+#[derive(Serialize)]
 pub(crate) struct BoxFragment {
     pub tag: OpaqueNode,
+    pub debug_id: DebugId,
+    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -43,20 +51,23 @@ pub(crate) struct BoxFragment {
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub(crate) struct CollapsedMargin {
     max_positive: Length,
     min_negative: Length,
 }
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting itself.
+#[derive(Serialize)]
 pub(crate) struct AnonymousFragment {
+    pub debug_id: DebugId,
     pub rect: Rect<Length>,
     pub children: Vec<Fragment>,
     pub mode: WritingMode,
@@ -65,18 +76,26 @@ pub(crate) struct AnonymousFragment {
     pub scrollable_overflow: PhysicalRect<Length>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct TextFragment {
+    pub debug_id: DebugId,
     pub tag: OpaqueNode,
+    #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
     pub ascent: Length,
+    #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct ImageFragment {
+    pub debug_id: DebugId,
+    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
+    #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }
 
@@ -119,6 +138,7 @@ impl Fragment {
 impl AnonymousFragment {
     pub fn no_op(mode: WritingMode) -> Self {
         Self {
+            debug_id: DebugId::new(),
             children: vec![],
             rect: Rect::zero(),
             mode,
@@ -136,6 +156,7 @@ impl AnonymousFragment {
             )
         });
         AnonymousFragment {
+            debug_id: DebugId::new(),
             rect,
             children,
             mode,
@@ -175,6 +196,7 @@ impl BoxFragment {
             });
         BoxFragment {
             tag,
+            debug_id: DebugId::new(),
             style,
             children,
             content_rect,
@@ -340,5 +362,35 @@ impl CollapsedMargin {
 
     pub fn solve(&self) -> Length {
         self.max_positive + self.min_negative
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[derive(Clone)]
+pub struct DebugId;
+
+#[cfg(debug_assertions)]
+#[derive(Clone, Serialize)]
+#[serde(transparent)]
+pub struct DebugId(u16);
+
+#[cfg(not(debug_assertions))]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId
+    }
+}
+
+#[cfg(debug_assertions)]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId(layout_debug::generate_unique_debug_id())
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&format!("{:p}", &self))
     }
 }

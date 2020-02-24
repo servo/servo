@@ -7,7 +7,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::CollapsedBlockMargins;
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, TextFragment};
+use crate::fragments::{AnonymousFragment, BoxFragment, DebugId, Fragment, TextFragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
@@ -23,12 +23,12 @@ use style::values::specified::text::TextAlignKeyword;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<Arc<InlineLevelBox>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum InlineLevelBox {
     InlineBox(InlineBox),
     TextRun(TextRun),
@@ -37,9 +37,10 @@ pub(crate) enum InlineLevelBox {
     Atomic(IndependentFormattingContext),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct InlineBox {
     pub tag: OpaqueNode,
+    #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
     pub last_fragment: bool,
@@ -47,9 +48,10 @@ pub(crate) struct InlineBox {
 }
 
 /// https://www.w3.org/TR/css-display-3/#css-text-run
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
     pub tag: OpaqueNode,
+    #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
 }
@@ -713,6 +715,7 @@ impl TextRun {
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
                     tag: self.tag,
+                    debug_id: DebugId::new(),
                     parent_style: self.parent_style.clone(),
                     rect,
                     ascent: font_ascent.into(),
