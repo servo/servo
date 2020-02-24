@@ -228,8 +228,6 @@ pip install virtualenv
 ```
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-4. Install `pkg-config` either via [Chocolatey](https://chocolatey.org/install#installing-chocolatey)(`choco install pkgconfiglite`) or from [here](https://sourceforge.net/projects/pkgconfiglite/).
-
 5. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) MSVC packages. You need to download the two `.msi` files for your platform from the [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) website and install them. The currently recommended version is 1.16.0. i.e.:
 
 - [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
