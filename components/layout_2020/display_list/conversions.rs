@@ -4,6 +4,7 @@
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::computed::Length;
 use webrender_api as wr;
@@ -53,6 +54,16 @@ impl ToWebRender for ComputedMixBlendMode {
             ComputedMixBlendMode::Saturation => wr::MixBlendMode::Saturation,
             ComputedMixBlendMode::Color => wr::MixBlendMode::Color,
             ComputedMixBlendMode::Luminosity => wr::MixBlendMode::Luminosity,
+        }
+    }
+}
+
+impl ToWebRender for ComputedTransformStyle {
+    type Type = wr::TransformStyle;
+    fn to_webrender(&self) -> Self::Type {
+        match *self {
+            ComputedTransformStyle::Flat => wr::TransformStyle::Flat,
+            ComputedTransformStyle::Preserve3d => wr::TransformStyle::Preserve3D,
         }
     }
 }
