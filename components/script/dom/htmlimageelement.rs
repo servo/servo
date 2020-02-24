@@ -849,8 +849,7 @@ impl HTMLImageElement {
                 self.abort_request(State::Broken, ImageRequestPhase::Current);
                 self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 9.
-                // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(
+                task_source.queue(
                     task!(image_null_source_error: move || {
                         let this = this.root();
                         {
@@ -867,7 +866,7 @@ impl HTMLImageElement {
                         }
                     }),
                     window.upcast(),
-                );
+                ).expect("Couldn't queue task to fire error from updating image data with null image source");
                 return;
             },
         };
@@ -885,20 +884,23 @@ impl HTMLImageElement {
                 self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 // Step 12.1-12.5.
                 let src = src.0;
-                // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(
-                    task!(image_selected_source_error: move || {
-                        let this = this.root();
-                        {
-                            let mut current_request =
-                                this.current_request.borrow_mut();
-                            current_request.source_url = Some(USVString(src))
-                        }
-                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+                task_source
+                    .queue(
+                        task!(image_selected_source_error: move || {
+                            let this = this.root();
+                            {
+                                let mut current_request =
+                                    this.current_request.borrow_mut();
+                                current_request.source_url = Some(USVString(src))
+                            }
+                            this.upcast::<EventTarget>().fire_event(atom!("error"));
 
-                    }),
-                    window.upcast(),
-                );
+                        }),
+                        window.upcast(),
+                    )
+                    .expect(
+                        "Couldn't queue task to fire error from updating image data with url error",
+                    );
             },
         }
     }

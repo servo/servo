@@ -46,6 +46,7 @@ impl TaskSource for MediaElementTaskSource {
 impl MediaElementTaskSource {
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
         let target = Trusted::new(target);
-        let _ = self.queue(SimpleEventTask { target, name }, window.upcast());
+        self.queue(SimpleEventTask { target, name }, window.upcast())
+            .expect("Couldn't queue media element task");
     }
 }

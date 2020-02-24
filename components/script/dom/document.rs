@@ -566,8 +566,8 @@ impl Document {
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
+
+                    window.dispatch_event_with_target_override(
                         &event,
                     );
                 }),
@@ -1890,7 +1890,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self.window.dispatch_event_with_target_override(&event);
+            self.window.dispatch_event_with_target_override(&event);
             // TODO Step 6, document visibility steps.
         }
         // Step 7
@@ -1904,7 +1904,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
-            let _ = self.window.dispatch_event_with_target_override(&event);
+            self.window.dispatch_event_with_target_override(&event);
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -1999,8 +1999,7 @@ impl Document {
                     update_with_current_time_ms(&document.load_event_start);
 
                     debug!("About to dispatch load for {:?}", document.url());
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
+                    window.dispatch_event_with_target_override(
                         &event,
                     );
 
@@ -2043,8 +2042,7 @@ impl Document {
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);
 
-                        // FIXME(nox): Why are errors silenced here?
-                        let _ = window.dispatch_event_with_target_override(
+                        window.dispatch_event_with_target_override(
                             &event,
                         );
                     }),
@@ -4401,6 +4399,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let (tx, rx) = profile_ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        // FIXME: Why is send silencing errors but recv unwrapping them?
         let _ = self
             .window
             .upcast::<GlobalScope>()
@@ -4426,6 +4425,8 @@ impl DocumentMethods for Document {
             vec![]
         };
 
+        // FIXME: Why are we silencing errors here? Is it really okay to return
+        // immediately and leave the set-cookies message asynchronous?
         let _ = self
             .window
             .upcast::<GlobalScope>()

@@ -50,12 +50,12 @@ impl TaskSource for PerformanceTimelineTaskSource {
 impl PerformanceTimelineTaskSource {
     pub fn queue_notification(&self, global: &GlobalScope) {
         let owner = Trusted::new(&*global.performance());
-        // FIXME(nox): Why are errors silenced here?
-        let _ = self.queue(
+        self.queue(
             task!(notify_performance_observers: move || {
                 owner.root().notify_observers();
             }),
             global,
-        );
+        )
+        .expect("Couldn't queue task to notify performance observers");
     }
 }

@@ -105,17 +105,19 @@ impl EventSourceContext {
         }
         let global = event_source.global();
         let event_source = self.event_source.clone();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
-            task!(announce_the_event_source_connection: move || {
-                let event_source = event_source.root();
-                if event_source.ready_state.get() != ReadyState::Closed {
-                    event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"));
-                }
-            }),
-            &global,
-        );
+        global
+            .remote_event_task_source()
+            .queue(
+                task!(announce_the_event_source_connection: move || {
+                    let event_source = event_source.root();
+                    if event_source.ready_state.get() != ReadyState::Closed {
+                        event_source.ready_state.set(ReadyState::Open);
+                        event_source.upcast::<EventTarget>().fire_event(atom!("open"));
+                    }
+                }),
+                &global,
+            )
+            .expect("Couldn't queue task to announce an event source connection");
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
@@ -138,40 +140,43 @@ impl EventSourceContext {
         let trusted_event_source = self.event_source.clone();
         let action_sender = self.action_sender.clone();
         let global = event_source.global();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
-            task!(reestablish_the_event_source_onnection: move || {
-                let event_source = trusted_event_source.root();
+        global
+            .remote_event_task_source()
+            .queue(
+                task!(reestablish_the_event_source_onnection: move || {
+                        let event_source = trusted_event_source.root();
 
-                // Step 1.1.
-                if event_source.ready_state.get() == ReadyState::Closed {
-                    return;
-                }
+                        // Step 1.1.
+                        if event_source.ready_state.get() == ReadyState::Closed {
+                            return;
+                        }
 
-                // Step 1.2.
-                event_source.ready_state.set(ReadyState::Connecting);
+                        // Step 1.2.
+                        event_source.ready_state.set(ReadyState::Connecting);
 
-                // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                        // Step 1.3.
+                        event_source.upcast::<EventTarget>().fire_event(atom!("error"));
 
-                // Step 2.
-                let duration = Length::new(event_source.reconnection_time.get());
+                        // Step 2.
+                        let duration = Length::new(event_source.reconnection_time.get());
 
-                // Step 3.
-                // TODO: Optionally wait some more.
+                        // Step 3.
+                        // TODO: Optionally wait some more.
 
-                // Steps 4-5.
-                let callback = OneshotTimerCallback::EventSourceTimeout(
-                    EventSourceTimeoutCallback {
-                        event_source: trusted_event_source,
-                        action_sender,
-                    }
-                );
-                // FIXME(nox): Why are errors silenced here?
-                let _ = event_source.global().schedule_callback(callback, duration);
-            }),
-            &global,
-        );
+                        // Steps 4-5.
+                        let callback = OneshotTimerCallback::EventSourceTimeout(
+                            EventSourceTimeoutCallback {
+                                event_source: trusted_event_source,
+                                action_sender,
+                            }
+                        );
+                // This formerly had a comment here that we were silencing errors
+                // and a "let _ ="; was there a reason?
+                        event_source.global().schedule_callback(callback, duration);
+                    }),
+                &global,
+            )
+            .expect("Couldn't queue task to reestablish an event source connection");
     }
 
     // https://html.spec.whatwg.org/multipage/#processField
@@ -247,16 +252,18 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
-            task!(dispatch_the_event_source_event: move || {
-                let event_source = event_source.root();
-                if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(&event_source.upcast());
-                }
-            }),
-            &global,
-        );
+        global
+            .remote_event_task_source()
+            .queue(
+                task!(dispatch_the_event_source_event: move || {
+                    let event_source = event_source.root();
+                    if event_source.ready_state.get() != ReadyState::Closed {
+                        event.root().upcast::<Event>().fire(&event_source.upcast());
+                    }
+                }),
+                &global,
+            )
+            .expect("Couldn't queue dispatch task to remote event task source");
     }
 
     // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
@@ -477,17 +484,19 @@ impl EventSource {
     pub fn fail_the_connection(&self) {
         let global = self.global();
         let event_source = Trusted::new(self);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
-            task!(fail_the_event_source_connection: move || {
-                let event_source = event_source.root();
-                if event_source.ready_state.get() != ReadyState::Closed {
-                    event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
-                }
-            }),
-            &global,
-        );
+        global
+            .remote_event_task_source()
+            .queue(
+                task!(fail_the_event_source_connection: move || {
+                    let event_source = event_source.root();
+                    if event_source.ready_state.get() != ReadyState::Closed {
+                        event_source.ready_state.set(ReadyState::Closed);
+                        event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                    }
+                }),
+                &global,
+            )
+            .expect("Couldn't queue task to report failed event source connection");
     }
 
     pub fn request(&self) -> RequestBuilder {
