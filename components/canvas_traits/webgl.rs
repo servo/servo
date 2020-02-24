@@ -529,6 +529,10 @@ pub enum WebGLCommand {
     GetSamplerParameterInt(WebGLSamplerId, u32, WebGLSender<i32>),
     BindBufferBase(u32, u32, Option<WebGLBufferId>),
     BindBufferRange(u32, u32, Option<WebGLBufferId>, i64, i64),
+    ClearBufferfv(u32, i32, Vec<f32>),
+    ClearBufferiv(u32, i32, Vec<i32>),
+    ClearBufferuiv(u32, i32, Vec<u32>),
+    ClearBufferfi(u32, i32, f32, i32),
 }
 
 macro_rules! nonzero_type {

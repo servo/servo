@@ -1956,6 +1956,18 @@ impl WebGLImpl {
                 offset as isize,
                 size as isize,
             ),
+            WebGLCommand::ClearBufferfv(buffer, draw_buffer, ref value) => {
+                gl.clear_buffer_fv(buffer, draw_buffer, value)
+            },
+            WebGLCommand::ClearBufferiv(buffer, draw_buffer, ref value) => {
+                gl.clear_buffer_iv(buffer, draw_buffer, value)
+            },
+            WebGLCommand::ClearBufferuiv(buffer, draw_buffer, ref value) => {
+                gl.clear_buffer_uiv(buffer, draw_buffer, value)
+            },
+            WebGLCommand::ClearBufferfi(buffer, draw_buffer, depth, stencil) => {
+                gl.clear_buffer_fi(buffer, draw_buffer, depth, stencil)
+            },
         }
 
         // If debug asertions are enabled, then check the error state.
