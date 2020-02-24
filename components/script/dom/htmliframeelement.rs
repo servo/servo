@@ -290,7 +290,30 @@ impl HTMLIFrameElement {
 
         let url = self.get_url();
 
-        // TODO: check ancestor browsing contexts for same URL
+        // TODO(#25748):
+        // By spec, we return early if there's an ancestor browsing context
+        // "whose active document's url, ignoring fragments, is equal".
+        // However, asking about ancestor browsing contexts is more nuanced than
+        // it sounds and not implemented here.
+        // Within a single origin, we can do it by walking window proxies,
+        // and this check covers only that single-origin case, protecting
+        // against simple typo self-includes but nothing more elaborate.
+        let mut ancestor = window.GetParent();
+        while let Some(a) = ancestor {
+            if let Some(ancestor_url) = a.document().map(|d| d.url()) {
+                if ancestor_url.scheme() == url.scheme() &&
+                    ancestor_url.username() == url.username() &&
+                    ancestor_url.password() == url.password() &&
+                    ancestor_url.host() == url.host() &&
+                    ancestor_url.port() == url.port() &&
+                    ancestor_url.path() == url.path() &&
+                    ancestor_url.query() == url.query()
+                {
+                    return;
+                }
+            }
+            ancestor = a.parent().map(|p| DomRoot::from_ref(p));
+        }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
             Some(window.upcast::<GlobalScope>().pipeline_id())
