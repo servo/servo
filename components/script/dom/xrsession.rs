@@ -7,7 +7,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::XRBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -16,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlen
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
