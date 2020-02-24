@@ -12,7 +12,7 @@ use crate::dom::bindings::error::{report_pending_exception, Error, ErrorInfo};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -293,18 +293,26 @@ pub enum BlobState {
 
 /// Data representing a message-port managed by this global.
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum ManagedMessagePort {
+#[unrooted_must_root_lint::must_root]
+pub struct ManagedMessagePort {
+    /// The DOM port.
+    dom_port: Dom<MessagePort>,
+    /// The logic and data backing the DOM port.
+    /// The option is needed to take out the port-impl
+    /// as part of its transferring steps,
+    /// without having to worry about rooting the dom-port.
+    port_impl: Option<MessagePortImpl>,
     /// We keep ports pending when they are first transfer-received,
     /// and only add them, and ask the constellation to complete the transfer,
     /// in a subsequent task if the port hasn't been re-transfered.
-    Pending(MessagePortImpl, WeakRef<MessagePort>),
-    /// A port who was transferred into, or initially created in, this realm,
-    /// and that hasn't been re-transferred in the same task it was noted.
-    Added(MessagePortImpl, WeakRef<MessagePort>),
+    pending: bool,
+    /// Has the port been closed? If closed, it can be dropped and later GC'ed.
+    closed: bool,
 }
 
 /// State representing whether this global is currently managing messageports.
 #[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
 pub enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
@@ -410,7 +418,7 @@ impl MessageListener {
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_remove_message_port: move || {
                         let global = context.root();
-                        global.remove_message_port(&port_id);
+                        global.note_entangled_port_removed(&port_id);
                     }),
                     &self.canceller,
                 );
@@ -581,12 +589,16 @@ impl GlobalScope {
                 None => {
                     panic!("complete_port_transfer called for an unknown port.");
                 },
-                Some(ManagedMessagePort::Pending(_, _)) => {
-                    panic!("CompleteTransfer msg received for a pending port.");
-                },
-                Some(ManagedMessagePort::Added(port_impl, _port)) => {
-                    port_impl.complete_transfer(tasks);
-                    port_impl.enabled()
+                Some(managed_port) => {
+                    if managed_port.pending {
+                        panic!("CompleteTransfer msg received for a pending port.");
+                    }
+                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                        port_impl.complete_transfer(tasks);
+                        port_impl.enabled()
+                    } else {
+                        panic!("managed-port has no port-impl.");
+                    }
                 },
             }
         } else {
@@ -626,19 +638,13 @@ impl GlobalScope {
                     None => {
                         return warn!("entangled_ports called on a global not managing the port.");
                     },
-                    Some(ManagedMessagePort::Pending(port_impl, dom_port)) => {
-                        dom_port
-                            .root()
-                            .expect("Port to be entangled to not have been GC'ed")
-                            .entangle(entangled_id.clone());
-                        port_impl.entangle(entangled_id.clone());
-                    },
-                    Some(ManagedMessagePort::Added(port_impl, dom_port)) => {
-                        dom_port
-                            .root()
-                            .expect("Port to be entangled to not have been GC'ed")
-                            .entangle(entangled_id.clone());
-                        port_impl.entangle(entangled_id.clone());
+                    Some(managed_port) => {
+                        if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                            managed_port.dom_port.entangle(entangled_id.clone());
+                            port_impl.entangle(entangled_id.clone());
+                        } else {
+                            panic!("managed-port has no port-impl.");
+                        }
                     },
                 }
             }
@@ -651,23 +657,16 @@ impl GlobalScope {
             .send(ScriptMsg::EntanglePorts(port1, port2));
     }
 
-    /// Remove all referrences to a port.
-    pub fn remove_message_port(&self, port_id: &MessagePortId) {
-        let is_empty = if let MessagePortState::Managed(_id, message_ports) =
-            &mut *self.message_port_state.borrow_mut()
-        {
-            match message_ports.remove(&port_id) {
-                None => panic!("remove_message_port called on a global not managing the port."),
-                Some(_) => message_ports.is_empty(),
-            }
-        } else {
-            return warn!("remove_message_port called on a global not managing any ports.");
-        };
-        if is_empty {
-            // Remove our port router,
-            // it will be setup again if we start managing ports again.
-            self.remove_message_ports_router();
-        }
+    /// Note that the entangled port of `port_id` has been removed in another global.
+    pub fn note_entangled_port_removed(&self, port_id: &MessagePortId) {
+        // Note: currently this is a no-op,
+        // as we only use the `close` method to manage the local lifecyle of a port.
+        // This could be used as part of lifecyle management to determine a port can be GC'ed.
+        // See https://github.com/servo/servo/issues/25772
+        warn!(
+            "Entangled port of {:?} has been removed in another global",
+            port_id
+        );
     }
 
     /// Handle the transfer of a port in the current task.
@@ -675,18 +674,20 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let mut port = match message_ports.remove(&port_id) {
-                None => {
-                    panic!("mark_port_as_transferred called on a global not managing the port.")
-                },
-                Some(ManagedMessagePort::Pending(port_impl, _)) => port_impl,
-                Some(ManagedMessagePort::Added(port_impl, _)) => port_impl,
-            };
-            port.set_has_been_shipped();
+            let mut port_impl = message_ports
+                .remove(&port_id)
+                .map(|ref mut managed_port| {
+                    managed_port
+                        .port_impl
+                        .take()
+                        .expect("Managed port doesn't have a port-impl.")
+                })
+                .expect("mark_port_as_transferred called on a global not managing the port.");
+            port_impl.set_has_been_shipped();
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::MessagePortShipped(port_id.clone()));
-            port
+            port_impl
         } else {
             panic!("mark_port_as_transferred called on a global not managing any ports.");
         }
@@ -697,12 +698,17 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let port = match message_ports.get_mut(&port_id) {
+            let message_buffer = match message_ports.get_mut(&port_id) {
                 None => panic!("start_message_port called on a unknown port."),
-                Some(ManagedMessagePort::Pending(port_impl, _)) => port_impl,
-                Some(ManagedMessagePort::Added(port_impl, _)) => port_impl,
+                Some(managed_port) => {
+                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                        port_impl.start()
+                    } else {
+                        panic!("managed-port has no port-impl.");
+                    }
+                },
             };
-            if let Some(message_buffer) = port.start() {
+            if let Some(message_buffer) = message_buffer {
                 for task in message_buffer {
                     let port_id = port_id.clone();
                     let this = Trusted::new(&*self);
@@ -725,12 +731,17 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let port = match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&port_id) {
                 None => panic!("close_message_port called on an unknown port."),
-                Some(ManagedMessagePort::Pending(port_impl, _)) => port_impl,
-                Some(ManagedMessagePort::Added(port_impl, _)) => port_impl,
+                Some(managed_port) => {
+                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                        port_impl.close();
+                        managed_port.closed = true;
+                    } else {
+                        panic!("managed-port has no port-impl.");
+                    }
+                },
             };
-            port.close();
         } else {
             return warn!("close_message_port called on a global not managing any ports.");
         }
@@ -742,12 +753,17 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let port = match message_ports.get_mut(&port_id) {
+            let entangled_port = match message_ports.get_mut(&port_id) {
                 None => panic!("post_messageport_msg called on an unknown port."),
-                Some(ManagedMessagePort::Pending(port_impl, _)) => port_impl,
-                Some(ManagedMessagePort::Added(port_impl, _)) => port_impl,
+                Some(managed_port) => {
+                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                        port_impl.entangled_port_id()
+                    } else {
+                        panic!("managed-port has no port-impl.");
+                    }
+                },
             };
-            if let Some(entangled_id) = port.entangled_port_id() {
+            if let Some(entangled_id) = entangled_port {
                 // Step 7
                 let this = Trusted::new(&*self);
                 let _ = self.port_message_queue().queue(
@@ -782,23 +798,19 @@ impl GlobalScope {
                 self.re_route_port_task(port_id, task);
                 return;
             }
-            let (port_impl, dom_port) = match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&port_id) {
                 None => panic!("route_task_to_port called for an unknown port."),
-                Some(ManagedMessagePort::Pending(port_impl, dom_port)) => (port_impl, dom_port),
-                Some(ManagedMessagePort::Added(port_impl, dom_port)) => (port_impl, dom_port),
-            };
-
-            // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
-            // the task will be buffered and dispatched upon enablement or completion of the transfer.
-            if let Some(task_to_dispatch) = port_impl.handle_incoming(task) {
-                // Get a corresponding DOM message-port object.
-                let dom_port = match dom_port.root() {
-                    Some(dom_port) => dom_port,
-                    None => panic!("Messageport Gc'ed too early"),
-                };
-                Some((dom_port, task_to_dispatch))
-            } else {
-                None
+                Some(managed_port) => {
+                    // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
+                    // the task will be buffered and dispatched upon enablement or completion of the transfer.
+                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                        port_impl.handle_incoming(task).and_then(|to_dispatch| {
+                            Some((DomRoot::from_ref(&*managed_port.dom_port), to_dispatch))
+                        })
+                    } else {
+                        panic!("managed-port has no port-impl.");
+                    }
+                },
             }
         } else {
             self.re_route_port_task(port_id, task);
@@ -833,23 +845,22 @@ impl GlobalScope {
         {
             let to_be_added: Vec<MessagePortId> = message_ports
                 .iter()
-                .filter_map(|(id, port_info)| match port_info {
-                    ManagedMessagePort::Pending(_, _) => Some(id.clone()),
-                    _ => None,
+                .filter_map(|(id, managed_port)| {
+                    if managed_port.pending {
+                        Some(id.clone())
+                    } else {
+                        None
+                    }
                 })
                 .collect();
             for id in to_be_added.iter() {
-                let (id, port_info) = message_ports
-                    .remove_entry(&id)
+                let managed_port = message_ports
+                    .get_mut(&id)
                     .expect("Collected port-id to match an entry");
-                match port_info {
-                    ManagedMessagePort::Pending(port_impl, dom_port) => {
-                        let new_port_info = ManagedMessagePort::Added(port_impl, dom_port);
-                        let present = message_ports.insert(id, new_port_info);
-                        assert!(present.is_none());
-                    },
-                    _ => panic!("Only pending ports should be found in to_be_added"),
+                if !managed_port.pending {
+                    panic!("Only pending ports should be found in to_be_added")
                 }
+                managed_port.pending = false;
             }
             let _ =
                 self.script_to_constellation_chan()
@@ -869,18 +880,17 @@ impl GlobalScope {
         {
             let to_be_removed: Vec<MessagePortId> = message_ports
                 .iter()
-                .filter_map(|(id, port_info)| {
-                    if let ManagedMessagePort::Added(_port_impl, dom_port) = port_info {
-                        if dom_port.root().is_none() {
-                            // Let the constellation know to drop this port and the one it is entangled with,
-                            // and to forward this message to the script-process where the entangled is found.
-                            let _ = self
-                                .script_to_constellation_chan()
-                                .send(ScriptMsg::RemoveMessagePort(id.clone()));
-                            return Some(id.clone());
-                        }
+                .filter_map(|(id, ref managed_port)| {
+                    if managed_port.closed {
+                        // Let the constellation know to drop this port and the one it is entangled with,
+                        // and to forward this message to the script-process where the entangled is found.
+                        let _ = self
+                            .script_to_constellation_chan()
+                            .send(ScriptMsg::RemoveMessagePort(id.clone()));
+                        Some(id.clone())
+                    } else {
+                        None
                     }
-                    None
                 })
                 .collect();
             for id in to_be_removed {
@@ -940,7 +950,12 @@ impl GlobalScope {
                 // if they're not re-shipped in the current task.
                 message_ports.insert(
                     dom_port.message_port_id().clone(),
-                    ManagedMessagePort::Pending(port_impl, WeakRef::new(dom_port)),
+                    ManagedMessagePort {
+                        port_impl: Some(port_impl),
+                        dom_port: Dom::from_ref(dom_port),
+                        pending: true,
+                        closed: false,
+                    },
                 );
 
                 // Queue a task to complete the transfer,
@@ -958,7 +973,12 @@ impl GlobalScope {
                 let port_impl = MessagePortImpl::new(dom_port.message_port_id().clone());
                 message_ports.insert(
                     dom_port.message_port_id().clone(),
-                    ManagedMessagePort::Added(port_impl, WeakRef::new(dom_port)),
+                    ManagedMessagePort {
+                        port_impl: Some(port_impl),
+                        dom_port: Dom::from_ref(dom_port),
+                        pending: false,
+                        closed: false,
+                    },
                 );
                 let _ = self
                     .script_to_constellation_chan()
