@@ -5,11 +5,10 @@
 // https://streams.spec.whatwg.org/#rs-class
 [Exposed=(Window,Worker)]
 interface ReadableStream {
-  constructor(object underlyingSource, Function size, HighWatermark highWaterMark, object proto);
+  constructor(object underlyingSource, optional object queuingStrategy);
   [Throws] Promise<DOMString> cancel(DOMString reason);
   [Throws] object getReader();
   [Throws] /*FrozenArray<ReadableStream>*/any tee();
   readonly attribute boolean locked;
 };
 
-typedef double HighWatermark;

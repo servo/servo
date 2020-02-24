@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{ReadableStreamMethods, Wrap};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -15,15 +13,16 @@ use crate::dom::promise::Promise;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject, JS_ValueToFunction};
+use js::jsapi::{Heap, JSFunction, JSObject, JS_ValueToFunction};
 use js::jsapi::{
-    IsReadableStream, NewReadableDefaultStreamObject, ReadableStreamCancel,
+    IsReadableStream, JS_GetProperty, NewReadableDefaultStreamObject, ReadableStreamCancel,
     ReadableStreamGetReader, ReadableStreamIsLocked,
     ReadableStreamReaderMode as JSReadableStreamReaderMode, ReadableStreamTee,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle, IntoHandle, IntoMutableHandle, MutableHandle};
-use std::ptr::NonNull;
+use std::ffi::CString;
+use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 #[dom_struct]
@@ -40,12 +39,9 @@ impl ReadableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         underlying_source: *mut JSObject,
-        size: Rc<Function>,
-        high_watermark: Finite<f64>,
-        proto: *mut JSObject,
+        queuing_strategy: Option<*mut JSObject>,
     ) -> DomRoot<ReadableStream> {
-        let stream =
-            construct_default_readablestream(cx, underlying_source, size, high_watermark, proto);
+        let stream = construct_default_readablestream(cx, underlying_source, queuing_strategy);
 
         ReadableStream::new(global, stream)
     }
@@ -141,34 +137,58 @@ fn get_stream_reader(
 fn construct_default_readablestream(
     cx: SafeJSContext,
     underlying_source: *mut JSObject,
-    size: Rc<Function>,
-    high_watermark: Finite<f64>,
-    proto: *mut JSObject,
+    queuing_strategy: Option<*mut JSObject>,
 ) -> Heap<*mut JSObject> {
     let heap = Heap::default();
     let source = Handle::new(&underlying_source);
-    let proto = Handle::new(&proto);
 
     unsafe {
-        rooted!(in(*cx) let mut size_val = UndefinedValue());
-        size.to_jsval(*cx, size_val.handle_mut());
-
-        let func = JS_ValueToFunction(*cx, size_val.handle().into_handle());
-        let size_func = Handle::new(&func);
-
-        rooted!(in(*cx)
-            let stream = NewReadableDefaultStreamObject(
+        if let Some(object) = queuing_strategy.as_ref() {
+            rooted!(in(*cx) let mut high_watermark = UndefinedValue());
+            let name = CString::new("highWaterMark").unwrap();
+            JS_GetProperty(
                 *cx,
-                source.into_handle(),
-                size_func.into_handle(),
-                *high_watermark,
-                proto.into_handle()
-            )
-        );
+                Handle::new(object).into_handle(),
+                name.as_ptr(),
+                high_watermark.handle_mut().into_handle_mut(),
+            );
 
-        assert!(IsReadableStream(stream.get()));
+            rooted!(in(*cx) let mut size = UndefinedValue());
+            let name = CString::new("size").unwrap();
+            JS_GetProperty(
+                *cx,
+                Handle::new(object).into_handle(),
+                name.as_ptr(),
+                size.handle_mut().into_handle_mut(),
+            );
+            let func = JS_ValueToFunction(*cx, size.handle().into_handle());
 
-        heap.set(stream.get());
+            rooted!(in(*cx)
+                let stream = NewReadableDefaultStreamObject(
+                    *cx,
+                    source.into_handle(),
+                    Handle::new(&func).into_handle(),
+                    high_watermark.get().to_double(),
+                    Handle::new(&ptr::null_mut::<JSObject>()).into_handle(),
+                )
+            );
+
+            assert!(IsReadableStream(stream.get()));
+            heap.set(stream.get());
+        } else {
+            rooted!(in(*cx)
+                let stream = NewReadableDefaultStreamObject(
+                    *cx,
+                    source.into_handle(),
+                    Handle::new(&ptr::null_mut::<JSFunction>()).into_handle(),
+                    1.0,
+                    Handle::new(&ptr::null_mut::<JSObject>()).into_handle(),
+                )
+            );
+
+            assert!(IsReadableStream(stream.get()));
+            heap.set(stream.get());
+        }
     }
 
     heap
