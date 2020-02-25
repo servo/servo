@@ -268,21 +268,31 @@ pub fn init(
                     let dom_action = message.to().expect("Ws dom_action message to deserialize");
                     match dom_action {
                         WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                            ws_sender.send(Message::text(data)).unwrap();
+                            if let Err(e) = ws_sender.send(Message::text(data)) {
+                                warn!("Error sending websocket message: {:?}", e);
+                            }
                         },
                         WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                            ws_sender.send(Message::binary(data)).unwrap();
+                            if let Err(e) = ws_sender.send(Message::binary(data)) {
+                                warn!("Error sending websocket message: {:?}", e);
+                            }
                         },
                         WebSocketDomAction::Close(code, reason) => {
                             if !initiated_close.fetch_or(true, Ordering::SeqCst) {
                                 match code {
-                                    Some(code) => ws_sender
-                                        .close_with_reason(
+                                    Some(code) => {
+                                        if let Err(e) = ws_sender.close_with_reason(
                                             code.into(),
                                             reason.unwrap_or("".to_owned()),
-                                        )
-                                        .unwrap(),
-                                    None => ws_sender.close(CloseCode::Status).unwrap(),
+                                        ) {
+                                            warn!("Error closing websocket: {:?}", e);
+                                        }
+                                    },
+                                    None => {
+                                        if let Err(e) = ws_sender.close(CloseCode::Status) {
+                                            warn!("Error closing websocket: {:?}", e);
+                                        }
+                                    },
                                 };
                             }
                         },
