@@ -12,7 +12,7 @@ use webrender_api::NativeFontHandle;
 /// Platform specific font representation for Linux.
 /// The identifier is an absolute path, and the bytes
 /// field is the loaded data that can be passed to
-/// freetype and azure directly.
+/// freetype and Raqote directly.
 #[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
     // If you add members here, review the Debug impl below

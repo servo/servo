@@ -12,8 +12,6 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-canvas2d-azure = ["canvas/canvas2d-azure"]
-canvas2d-raqote = ["canvas/canvas2d-raqote"]
 debugmozjs = ["script/debugmozjs"]
 egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]

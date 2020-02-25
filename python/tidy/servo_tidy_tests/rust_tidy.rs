@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use    app_units::Au;
-use azure::azure_hl::{ AntialiasMode, Color, ColorPattern, CompositionOp };
-use azure::azure_hl::{AntialiasMode, Color,
+use raqote::{GradientStop, Source, SolidSource};
+use raqote::{Source, SolidSource},
 ColorPattern, CompositionOp};
 use euclid::Size2D;
-use azure::azure::AzIntSize;
-use azure::azure::{AzIntSize};
+use raqote::Gradient;
+use raqote::{Gradient};
 
 
 mod paint_context;

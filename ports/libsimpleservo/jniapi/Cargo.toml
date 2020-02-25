@@ -27,8 +27,6 @@ simpleservo = { path = "../api" }
 cc = "1.0"
 
 [features]
-canvas2d-azure = ["simpleservo/canvas2d-azure"]
-canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
 media-dummy = ["simpleservo/media-dummy"]
