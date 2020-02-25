@@ -13,8 +13,6 @@ test = false
 bench = false
 
 [features]
-canvas2d-azure = ["simpleservo/canvas2d-azure"]
-canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 egl = ["simpleservo/egl"]
 layout-2013 = ["simpleservo/layout-2013"]
 layout-2020 = ["simpleservo/layout-2020"]

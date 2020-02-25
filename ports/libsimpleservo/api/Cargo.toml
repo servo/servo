@@ -31,8 +31,6 @@ libloading = "0.5"
 gl_generator = "0.11"
 
 [features]
-canvas2d-azure = ["libservo/canvas2d-azure"]
-canvas2d-raqote = ["libservo/canvas2d-raqote"]
 default = ["webdriver", "max_log_level"]
 debugmozjs = ["libservo/debugmozjs"]
 media-dummy = ["libservo/media-dummy"]

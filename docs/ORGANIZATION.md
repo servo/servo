@@ -105,7 +105,7 @@
 * <https://github.com/servo/ipc-channel/>: an IPC implementation
 * <https://github.com/PistonDevelopers/image/>: image decoders
 * <https://github.com/tomaka/glutin/>: cross-platform windowing and input
-* <https://github.com/servo/rust-azure/>: bindings to Moz2D/Azure (cross-platform 2D rendering library)
+* <https://github.com/jrmuizel/raqote>: a pure Rust 2D Graphics Library
 * <https://github.com/servo/rust-cssparser/>: a CSS parser
 * <https://github.com/servo/rust-selectors/>: a CSS selector matching library
 * <https://github.com/cyderize/rust-websocket/>: a WebSocket protocol implementation

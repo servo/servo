@@ -188,18 +188,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d49d90015b3c36167a20fe2810c5cd875ad504b39cff3d4eae7977e6b7c1cb2"
 
 [[package]]
-name = "azure"
-version = "0.37.0"
-source = "git+https://github.com/servo/rust-azure#1dbd223157997b5b5301e7da73bff37f928a7418"
-dependencies = [
- "cmake",
- "euclid",
- "libc",
- "servo-freetype-sys",
- "servo-skia",
-]
-
-[[package]]
 name = "background_hang_monitor"
 version = "0.0.1"
 dependencies = [
@@ -489,7 +477,6 @@ dependencies = [
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "azure",
  "bitflags",
  "byteorder",
  "canvas_traits",
@@ -2091,16 +2078,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f801bbc91efc22dd1c4818a47814fc72bf74d024510451b119381579bfa39021"
 dependencies = [
  "gl_generator 0.11.0",
-]
-
-[[package]]
-name = "glx"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d56d59aa89ba084f04dd4767df10649c65d1ab180a9a0d1eabb9b1d5a28ab2bd"
-dependencies = [
- "gl_generator 0.11.0",
- "libc",
 ]
 
 [[package]]
@@ -5223,27 +5200,6 @@ dependencies = [
  "boxfnonce",
  "log",
  "servo-media-streams",
-]
-
-[[package]]
-name = "servo-skia"
-version = "0.30000023.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf31d622cdfc24317eb1caa1018294f8058eb8315c9ed79103487b9504ddadb"
-dependencies = [
- "cgl 0.3.2",
- "cmake",
- "euclid",
- "expat-sys",
- "gleam 0.7.0",
- "glutin",
- "glx",
- "io-surface",
- "libc",
- "servo-egl",
- "servo-fontconfig-sys",
- "servo-freetype-sys",
- "x11",
 ]
 
 [[package]]

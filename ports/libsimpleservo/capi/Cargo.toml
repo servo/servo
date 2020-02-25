@@ -27,8 +27,6 @@ winapi = {version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", 
 cbindgen = "0.9"
 
 [features]
-canvas2d-azure = ["simpleservo/canvas2d-azure"]
-canvas2d-raqote = ["simpleservo/canvas2d-raqote"]
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
 media-dummy = ["simpleservo/media-dummy"]

@@ -23,6 +23,7 @@ use webrender_api::units::RectExt as RectExt_;
 /// further operations to it in device space. When it's time to
 /// draw the path, we convert it back to userspace and draw it
 /// with the correct transform applied.
+/// TODO: De-abstract now that Azure is removed?
 enum PathState {
     /// Path builder in user-space. If a transform has been applied
     /// but no further path operations have occurred, it is stored
@@ -80,8 +81,8 @@ pub trait Backend {
     fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>>;
 }
 
-/// A generic PathBuilder that abstracts the interface for
-/// azure's and raqote's PathBuilder.
+/// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.
+/// TODO: De-abstract now that Azure is removed?
 pub trait GenericPathBuilder {
     fn arc(
         &mut self,
@@ -220,6 +221,7 @@ impl<'a> PathBuilderRef<'a> {
 // TODO(pylbrecht)
 // This defines required methods for DrawTarget of azure and raqote
 // The prototypes are derived from azure's methods.
+// TODO: De-abstract now that Azure is removed?
 pub trait GenericDrawTarget {
     fn clear_rect(&mut self, rect: &Rect<f32>);
     fn copy_surface(
@@ -299,93 +301,57 @@ pub trait GenericDrawTarget {
 
 #[derive(Clone)]
 pub enum ExtendMode {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::ExtendMode),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 pub enum GradientStop {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::AzGradientStop),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::GradientStop),
 }
 
 pub enum GradientStops {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::GradientStops),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(Vec<raqote::GradientStop>),
 }
 
 #[derive(Clone)]
 pub enum Color {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::Color),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::SolidSource),
 }
 
 #[derive(Clone)]
 pub enum CompositionOp {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::CompositionOp),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::BlendMode),
 }
 
 pub enum SurfaceFormat {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::SurfaceFormat),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum SourceSurface {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::SourceSurface),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(Vec<u8>), // TODO: See if we can avoid the alloc (probably?)
 }
 
 #[derive(Clone)]
 pub enum Path {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::Path),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::Path),
 }
 
 #[derive(Clone)]
 pub enum Pattern<'a> {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::Pattern, PhantomData<&'a ()>),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(crate::raqote_backend::Pattern<'a>),
 }
 
 pub enum DrawSurfaceOptions {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::DrawSurfaceOptions),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(()),
 }
 
 #[derive(Clone)]
 pub enum DrawOptions {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::DrawOptions),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::DrawOptions),
 }
 
 #[derive(Clone)]
 pub enum StrokeOptions<'a> {
-    #[cfg(feature = "canvas2d-azure")]
-    Azure(azure::azure_hl::StrokeOptions<'a>),
-    #[cfg(feature = "canvas2d-raqote")]
     Raqote(raqote::StrokeStyle, PhantomData<&'a ()>),
 }
 
@@ -410,12 +376,6 @@ pub struct CanvasData<'a> {
     pub canvas_id: CanvasId,
 }
 
-#[cfg(feature = "canvas2d-azure")]
-fn create_backend() -> Box<dyn Backend> {
-    Box::new(crate::azure_backend::AzureBackend)
-}
-
-#[cfg(feature = "canvas2d-raqote")]
 fn create_backend() -> Box<dyn Backend> {
     Box::new(crate::raqote_backend::RaqoteBackend)
 }

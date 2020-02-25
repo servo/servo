@@ -64,7 +64,6 @@ licenses_dep_toml = [
     'name = "dylib"',
     'name = "ipc-channel"',
     'name = "mozjs_sys"',
-    'name = "azure"',
     'name = "freetype"',
     'name = "js"',
     'name = "servo-freetype-sys"',
