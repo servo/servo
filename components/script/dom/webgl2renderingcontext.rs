@@ -96,6 +96,8 @@ pub struct WebGL2RenderingContext {
     texture_pack_skip_pixels: Cell<usize>,
     texture_pack_skip_rows: Cell<usize>,
     enable_rasterizer_discard: Cell<bool>,
+    default_fb_readbuffer: Cell<u32>,
+    default_fb_drawbuffer: Cell<u32>,
 }
 
 fn typedarray_elem_size(typeid: Type) -> usize {
@@ -162,6 +164,8 @@ impl WebGL2RenderingContext {
             texture_pack_skip_pixels: Cell::new(0),
             texture_pack_skip_rows: Cell::new(0),
             enable_rasterizer_discard: Cell::new(false),
+            default_fb_readbuffer: Cell::new(constants::BACK),
+            default_fb_drawbuffer: Cell::new(constants::BACK),
         })
     }
 
@@ -341,6 +345,11 @@ impl WebGL2RenderingContext {
         handle_potential_webgl_error!(self.base, self.base.validate_framebuffer(), return);
 
         if self.bound_pixel_pack_buffer.get().is_some() {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let fb_slot = self.base.get_draw_framebuffer_slot();
+        if fb_slot.get().is_none() && self.default_fb_readbuffer.get() == constants::NONE {
             return self.base.webgl_error(InvalidOperation);
         }
 
@@ -799,6 +808,26 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     *cx,
                     &self.base.get_read_framebuffer_slot().get()
                 );
+            },
+            constants::READ_BUFFER => {
+                let buffer = match self.base.get_read_framebuffer_slot().get() {
+                    Some(fb) => fb.read_buffer(),
+                    None => self.default_fb_readbuffer.get(),
+                };
+                return UInt32Value(buffer);
+            },
+            constants::DRAW_BUFFER0..=constants::DRAW_BUFFER15 => {
+                let buffer = match self.base.get_read_framebuffer_slot().get() {
+                    Some(fb) => {
+                        let idx = parameter - constants::DRAW_BUFFER0;
+                        fb.draw_buffer_i(idx as usize)
+                    },
+                    None if parameter == constants::DRAW_BUFFER0 => {
+                        self.default_fb_readbuffer.get()
+                    },
+                    None => constants::NONE,
+                };
+                return UInt32Value(buffer);
             },
             _ => {},
         }
@@ -3810,6 +3839,46 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     ) {
         self.base
             .renderbuffer_storage(target, samples, internal_format, width, height)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    fn ReadBuffer(&self, src: u32) {
+        match src {
+            constants::BACK | constants::NONE => {},
+            _ if self.base.valid_color_attachment_enum(src) => {},
+            _ => return self.base.webgl_error(InvalidEnum),
+        }
+
+        if let Some(fb) = self.base.get_read_framebuffer_slot().get() {
+            handle_potential_webgl_error!(self.base, fb.set_read_buffer(src), return)
+        } else {
+            match src {
+                constants::NONE | constants::BACK => {},
+                _ => return self.base.webgl_error(InvalidOperation),
+            }
+
+            self.default_fb_readbuffer.set(src);
+            self.base.send_command(WebGLCommand::ReadBuffer(src));
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    fn DrawBuffers(&self, buffers: Vec<u32>) {
+        if let Some(fb) = self.base.get_draw_framebuffer_slot().get() {
+            handle_potential_webgl_error!(self.base, fb.set_draw_buffers(buffers), return)
+        } else {
+            if buffers.len() != 1 {
+                return self.base.webgl_error(InvalidOperation);
+            }
+
+            match buffers[0] {
+                constants::NONE | constants::BACK => {},
+                _ => return self.base.webgl_error(InvalidOperation),
+            }
+
+            self.default_fb_drawbuffer.set(buffers[0]);
+            self.base.send_command(WebGLCommand::DrawBuffers(buffers));
+        }
     }
 }
 

@@ -2024,6 +2024,8 @@ impl WebGLImpl {
                     attach(attachment)
                 }
             },
+            WebGLCommand::ReadBuffer(buffer) => gl.read_buffer(buffer),
+            WebGLCommand::DrawBuffers(ref buffers) => gl.draw_buffers(buffers),
         }
 
         // If debug asertions are enabled, then check the error state.

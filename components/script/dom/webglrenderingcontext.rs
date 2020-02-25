@@ -1510,6 +1510,11 @@ impl WebGLRenderingContext {
 
         // FIXME: https://github.com/servo/servo/issues/13710
     }
+
+    pub fn valid_color_attachment_enum(&self, attachment: u32) -> bool {
+        let last_slot = constants::COLOR_ATTACHMENT0 + self.limits().max_color_attachments - 1;
+        constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
