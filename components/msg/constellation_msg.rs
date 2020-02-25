@@ -171,6 +171,13 @@ impl PipelineNamespace {
         }
     }
 
+    fn next_broadcast_channel_router_id(&mut self) -> BroadcastChannelRouterId {
+        BroadcastChannelRouterId {
+            namespace_id: self.id,
+            index: BroadcastChannelRouterIndex(self.next_index()),
+        }
+    }
+
     fn next_blob_id(&mut self) -> BlobId {
         BlobId {
             namespace_id: self.id,
@@ -377,6 +384,42 @@ impl fmt::Display for MessagePortRouterId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let MessagePortRouterIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct BroadcastChannelRouterIndex(pub NonZeroU32);
+malloc_size_of_is_0!(BroadcastChannelRouterIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct BroadcastChannelRouterId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: BroadcastChannelRouterIndex,
+}
+
+impl BroadcastChannelRouterId {
+    pub fn new() -> BroadcastChannelRouterId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_broadcast_channel_router_id = namespace.next_broadcast_channel_router_id();
+            tls.set(Some(namespace));
+            next_broadcast_channel_router_id
+        })
+    }
+}
+
+impl fmt::Display for BroadcastChannelRouterId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let BroadcastChannelRouterIndex(index) = self.index;
+        write!(
+            fmt,
+            "(BroadcastChannelRouterId{},{})",
+            namespace_id,
+            index.get()
+        )
     }
 }
 

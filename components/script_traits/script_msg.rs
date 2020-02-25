@@ -4,6 +4,7 @@
 
 use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
+use crate::BroadcastMsg;
 use crate::DocumentState;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
@@ -22,7 +23,8 @@ use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
-    BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
+    BroadcastChannelRouterId, BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId,
+    TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::request::RequestBuilder;
@@ -142,6 +144,21 @@ pub enum ScriptMsg {
     RemoveMessagePort(MessagePortId),
     /// Entangle two message-ports.
     EntanglePorts(MessagePortId, MessagePortId),
+    /// A global has started managing broadcast-channels.
+    NewBroadcastChannelRouter(
+        BroadcastChannelRouterId,
+        IpcSender<BroadcastMsg>,
+        ImmutableOrigin,
+    ),
+    /// A global has stopped managing broadcast-channels.
+    RemoveBroadcastChannelRouter(BroadcastChannelRouterId, ImmutableOrigin),
+    /// A global started managing broadcast channels for a given channel-name.
+    NewBroadcastChannelNameInRouter(BroadcastChannelRouterId, String, ImmutableOrigin),
+    /// A global stopped managing broadcast channels for a given channel-name.
+    RemoveBroadcastChannelNameInRouter(BroadcastChannelRouterId, String, ImmutableOrigin),
+    /// Broadcast a message to all same-origin broadcast channels,
+    /// excluding the source of the broadcast.
+    ScheduleBroadcast(BroadcastChannelRouterId, BroadcastMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -280,6 +297,11 @@ impl fmt::Debug for ScriptMsg {
             RemoveMessagePort(..) => "RemoveMessagePort",
             MessagePortShipped(..) => "MessagePortShipped",
             EntanglePorts(..) => "EntanglePorts",
+            NewBroadcastChannelRouter(..) => "NewBroadcastChannelRouter",
+            RemoveBroadcastChannelRouter(..) => "RemoveBroadcastChannelRouter",
+            RemoveBroadcastChannelNameInRouter(..) => "RemoveBroadcastChannelNameInRouter",
+            NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
+            ScheduleBroadcast(..) => "ScheduleBroadcast",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",

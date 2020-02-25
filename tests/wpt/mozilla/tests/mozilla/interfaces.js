@@ -7,6 +7,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "ArrayBuffer",
       "Atomics",
       "Boolean",
+      "BroadcastChannel",
       "Crypto",
       "DataView",
       "Date",
