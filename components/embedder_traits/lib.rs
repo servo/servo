@@ -149,7 +149,7 @@ pub enum EmbedderMsg {
     ResizeTo(DeviceIntSize),
     /// Show dialog to user
     Prompt(PromptDefinition, PromptOrigin),
-    /// Wether or not to allow a pipeline to load a url.
+    /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningBrowser(IpcSender<bool>),

@@ -440,6 +440,26 @@ impl Node {
             .upcast::<Event>()
             .dispatch(self.upcast::<EventTarget>(), false);
     }
+
+    pub fn parent_directionality(&self) -> String {
+        let mut current = self.GetParentNode();
+
+        loop {
+            match current {
+                Some(node) => {
+                    if let Some(directionality) = node
+                        .downcast::<HTMLElement>()
+                        .and_then(|html_element| html_element.directionality())
+                    {
+                        return directionality;
+                    } else {
+                        current = node.GetParentNode();
+                    }
+                },
+                None => return "ltr".to_owned(),
+            }
+        }
+    }
 }
 
 pub struct QuerySelectorIterator {

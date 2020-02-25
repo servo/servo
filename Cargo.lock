@@ -4784,6 +4784,7 @@ dependencies = [
  "tendril",
  "time",
  "tinyfiledialogs",
+ "unicode-bidi",
  "unicode-segmentation",
  "url",
  "utf-8",
@@ -6292,13 +6293,12 @@ dependencies = [
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6a2c4e3710edd365cd7e78383153ed739fa31af19f9172f72d3575060f5a43a"
+checksum = "49f2bd0c6468a8230e1db229cff8029217cf623c767ea5d60bfbd42729ea54d5"
 dependencies = [
  "matches",
  "serde",
- "serde_derive",
 ]
 
 [[package]]

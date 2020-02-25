@@ -540,6 +540,16 @@ impl Element {
         }
         true // whatwg/html#5239
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-directionality
+    pub fn directionality(&self) -> String {
+        self.downcast::<HTMLElement>()
+            .and_then(|html_element| html_element.directionality())
+            .unwrap_or_else(|| {
+                let node = self.upcast::<Node>();
+                node.parent_directionality()
+            })
+    }
 }
 
 #[allow(unsafe_code)]

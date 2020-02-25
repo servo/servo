@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <form action="dirname-ltr-iframe.html" method=get target="iframe">
-  <p><label>Comment: <input type=text name="comment" dirname="comment.dir" required></label></p>
+  <p><label>Comment: <input type=text name="comment" dir="auto" dirname="comment.dir" required/></label></p>
   <p><button type=submit>Post Comment</button></p>
 </form>
 <iframe name="iframe"></iframe>
@@ -20,7 +20,8 @@
   }
 
   var t = async_test("submit element directionality");
-  document.querySelector("input").value = "foobar";
+  var rtlValue = "مرحبا";
+  document.querySelector("input").value = rtlValue;
   document.querySelector("button").click();
 
   var iframe = document.querySelector("iframe");
@@ -29,7 +30,7 @@
     // See https://github.com/whatwg/html/issues/490 for more information.
     if(iframe.contentWindow.location.href == "about:blank") { return; }
 
-    assert_equals(getParameterByName("comment.dir"), "ltr");
+    assert_equals(getParameterByName("comment.dir"), "rtl");
 
     t.done();
   });

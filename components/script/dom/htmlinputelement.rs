@@ -75,6 +75,7 @@ use std::ptr::NonNull;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::{split_commas, str_join};
+use unicode_bidi::{bidi_class, BidiClass};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -325,6 +326,36 @@ impl HTMLInputElement {
             document,
             HTMLInputElementBinding::Wrap,
         )
+    }
+
+    pub fn auto_directionality(&self) -> Option<String> {
+        match self.input_type() {
+            InputType::Text | InputType::Search | InputType::Url | InputType::Email => {
+                let value: String = self.Value().to_string();
+                Some(HTMLInputElement::directionality_from_value(&value))
+            },
+            _ => None,
+        }
+    }
+
+    pub fn directionality_from_value(value: &str) -> String {
+        if HTMLInputElement::is_first_strong_character_rtl(value) {
+            "rtl".to_owned()
+        } else {
+            "ltr".to_owned()
+        }
+    }
+
+    fn is_first_strong_character_rtl(value: &str) -> bool {
+        for ch in value.chars() {
+            return match bidi_class(ch) {
+                BidiClass::L => false,
+                BidiClass::AL => true,
+                BidiClass::R => true,
+                _ => continue,
+            };
+        }
+        false
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
