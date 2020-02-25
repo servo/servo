@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - fill/stroke.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-26-ref.html">
+<style>
+  div {
+    fill: red;
+    stroke: blue;
+  }
+</style>
+<body>
+  <div>
+    The triangle below should be currentColor when forced colors mode.
+    <svg height="600" width="600">
+      <path d="M150 0 L75 200 L225 200 Z" />
+    </svg>
+  </div>
+</body>

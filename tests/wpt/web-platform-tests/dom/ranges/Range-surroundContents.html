@@ -181,7 +181,7 @@ function testSurroundContents(i, j) {
       throw e;
     }
     if (typeof result == "string") {
-      assert_throws_dom(result, function() {
+      assert_throws_dom(result, actualIframe.contentWindow.DOMException, function() {
         try {
           actualRange.surroundContents(actualNode);
         } catch (e) {

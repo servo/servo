@@ -592,21 +592,9 @@ class WebSocketDaemon(object):
                     "-w", handlers_root]
 
         if ssl_config is not None:
-            # This is usually done through pywebsocket.main, however we're
-            # working around that to get the server instance and manually
-            # setup the wss server.
-            if pywebsocket._import_ssl():
-                tls_module = pywebsocket._TLS_BY_STANDARD_MODULE
-            elif pywebsocket._import_pyopenssl():
-                tls_module = pywebsocket._TLS_BY_PYOPENSSL
-            else:
-                print("No SSL module available")
-                sys.exit(1)
-
             cmd_args += ["--tls",
                          "--private-key", ssl_config["key_path"],
-                         "--certificate", ssl_config["cert_path"],
-                         "--tls-module", tls_module]
+                         "--certificate", ssl_config["cert_path"]]
 
         if (bind_address):
             cmd_args = ["-H", host] + cmd_args

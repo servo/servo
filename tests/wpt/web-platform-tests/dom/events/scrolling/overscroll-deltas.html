@@ -47,7 +47,7 @@ function runTest() {
         'Document did not receive scrollend event.');
 
     assert_greater_than(overscrolled_y_deltas.length, 0, "There should be at least one overscroll events when overscrolling.");
-    assert_equals(Math.max(...overscrolled_x_deltas), 0, "The deltaX attribute must be 0 when there is no scrolling in x direction.");
+    assert_equals(overscrolled_x_deltas.filter(function(x){ return x!=0; }).length, 0, "The deltaX attribute must be 0 when there is no scrolling in x direction.");
     assert_less_than_equal(Math.max(...overscrolled_y_deltas), 0, "The deltaY attribute must be <= 0 when there is overscrolling in up direction.");
     assert_less_than_equal(Math.min(...overscrolled_y_deltas),-100, "The deltaY attribute must be the number of pixels overscrolled.");
 
@@ -62,7 +62,7 @@ function runTest() {
         'Document did not receive scrollend event.');
 
     assert_greater_than(overscrolled_y_deltas.length, 0, "There should be at least one overscroll events when overscrolling.");
-    assert_equals(Math.max(...overscrolled_y_deltas), 0, "The deltaY attribute must be 0 when there is no scrolling in y direction.");
+    assert_equals(overscrolled_y_deltas.filter(function(x){ return x!=0; }).length, 0, "The deltaY attribute must be 0 when there is no scrolling in y direction.");
     assert_less_than_equal(Math.max(...overscrolled_x_deltas), 0, "The deltaX attribute must be <= 0 when there is overscrolling in left direction.");
     assert_less_than_equal(Math.min(...overscrolled_x_deltas),-100, "The deltaX attribute must be the number of pixels overscrolled.");
 

@@ -4,6 +4,7 @@
 <body>
 <script>
   function openPortalAndReceiveMessage(portalSrc) {
+    assert_precondition("HTMLPortalElement" in self);
     let portal = document.createElement('portal');
     portal.src = portalSrc;
     let received = new Promise((resolve, reject) => {

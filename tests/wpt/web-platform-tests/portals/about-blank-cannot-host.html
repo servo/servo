@@ -4,6 +4,7 @@
 <script>
 
 promise_test(async (t) => {
+  assert_precondition("HTMLPortalElement" in self);
   let hostWindow = window.open();
   assert_equals(hostWindow.location.href, "about:blank");
 

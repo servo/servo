@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection Failed State</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Tests for validating ice-ufrag and ice-pwd syntax defined in
+// https://tools.ietf.org/html/rfc5245#section-15.4
+// Alphanumeric, '+' and '/' are allowed.
+
+const preamble = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+m=video 1 RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/30
+a=setup:actpass
+`;
+const valid_ufrag = 'a=ice-ufrag:ETEn\r\n';
+const valid_pwd = 'a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l\r\n';
+const not_ice_char = '$'; // A snowman emoji would be cool but is not interoperable.
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const sdp = preamble +
+    valid_ufrag.replace('ETEn', 'E' + not_ice_char + 'En') +
+    valid_pwd;
+
+  return promise_rejects_dom(t, 'InvalidAccessError',
+    pc.setRemoteDescription({type: 'offer', sdp}));
+}, 'setRemoteDescription with a ice-ufrag containing a non-ice-char fails');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const sdp = preamble +
+    valid_ufrag +
+    valid_pwd.replace('K0Wp', 'K' + not_ice_char + 'Wp');
+
+  return promise_rejects_dom(t, 'InvalidAccessError',
+    pc.setRemoteDescription({type: 'offer', sdp}));
+}, 'setRemoteDescription with a ice-pwd containing a non-ice-char fails');
+</script>

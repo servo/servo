@@ -109,6 +109,17 @@ test(function(t) {
 
 <div id="disabled" aria-disabled="true"></div>
 
+<div id="description" aria-description="cold as ice"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("description");
+    assert_equals(element.ariaDescription, "cold as ice");
+    element.ariaDescription = "hot as fire";
+    assert_equals(element.getAttribute("aria-description"), "hot as fire");
+}, "aria-description attribute reflects.");
+</script>
+
 <script>
 test(function(t) {
     var element = document.getElementById("disabled");

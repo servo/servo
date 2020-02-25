@@ -30,6 +30,7 @@ interface Bluetooth : EventTarget {
   attribute EventHandler onavailabilitychanged;
   [SameObject]
   readonly attribute BluetoothDevice? referringDevice;
+  Promise<sequence<BluetoothDevice>> getDevices();
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 
@@ -51,7 +52,7 @@ dictionary AllowedBluetoothDevice {
   // An allowedServices of "all" means all services are allowed.
   required (DOMString or sequence<UUID>) allowedServices;
 };
-dictionary BluetoothPermissionData {
+dictionary BluetoothPermissionStorage {
   required sequence<AllowedBluetoothDevice> allowedDevices;
 };
 

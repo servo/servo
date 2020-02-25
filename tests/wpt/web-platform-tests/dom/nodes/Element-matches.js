@@ -49,9 +49,13 @@ function runInvalidSelectorTestMatches(method, type, root, selectors) {
       var q = s["selector"];
 
       test(function() {
-        assert_throws_dom("SyntaxError", function() {
-          root[method](q)
-        })
+        assert_throws_dom(
+          "SyntaxError",
+          root.ownerDocument.defaultView.DOMException,
+          function() {
+            root[method](q)
+          }
+        );
       }, type + "." + method + ": " + n + ": " + q);
     }
   }

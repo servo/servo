@@ -4,8 +4,12 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/common/utils.js></script> <!-- Use token() to allow running tests in parallel -->
+<script src="/common/get-host-info.sub.js"></script>
 <div id=log></div>
 <script>
+const HOST = get_host_info();
+const BASE = new URL("resources", location).pathname;
+
 async_test(t => {
   const frame = document.createElement("iframe");
   t.add_cleanup(() => frame.remove());
@@ -79,4 +83,19 @@ async_test(t => {
   const win = window.open(`resources/navigate-require-corp.sub.html?channelName=${bc.name}&to=navigate-none.sub.html?channelName=${bc2.name}`, "_blank", "noopener");
   assert_equals(win, null);
 }, `"require-corp" top-level noopener popup: navigating to "none" should succeed`);
+
+async_test(t => {
+  const frame = document.createElement("iframe");
+  const id = token();
+  t.add_cleanup(() => frame.remove());
+  window.addEventListener('message', t.step_func((e) => {
+    if (e.data === id) {
+      // Loaded!
+      t.done();
+    }
+  }));
+  frame.src = `${HOST.HTTPS_NOTSAMESITE_ORIGIN}${BASE}/navigate-require-corp-same-site.sub.html?token=${id}`;
+  document.body.append(frame);
+}, 'CORP: same-site is not checked.');
+
 </script>

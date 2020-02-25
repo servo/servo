@@ -713,6 +713,138 @@ function test16() {
   ]);
 
   return helper.start(() => t.remove());
+
+}
+
+
+function test17() {
+  // <div id="outer">
+  //   <div id="nested">
+  //   </div>
+  // </div>
+
+  let outer = document.createElement('div');
+  outer.style.width = "100px";
+  outer.style.height = "100px";
+  outer.style.padding = "10px";
+  outer.style.border = "1px solid blue"
+  let nested = document.createElement('div');
+  nested.style.width = "60px";
+  nested.style.height = "50px";
+  nested.style.padding = "5%";
+  nested.style.boxSizing = "border-box";
+  nested.style.border = "5px solid black";
+  outer.appendChild(nested);
+  document.body.appendChild(outer);
+
+  let helper = new ResizeTestHelper(
+    "test17: Box sizing snd Resize Observer notifications",
+  [
+    {
+      setup: observer => {
+        observer.observe(nested, { box: "content-box" });
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, nested, "target is nested");
+        assert_equals(entries[0].contentRect.width, 40, "target width");
+        assert_equals(entries[0].contentRect.height, 30, "target height");
+        assert_equals(entries[0].contentRect.top, 5, "target top padding");
+        assert_equals(entries[0].contentRect.left, 5, "target left padding");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 40,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 30,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 60,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 50,
+                      "target border-box block size");
+      }
+    },
+    {
+      // Changes to a parent's dimensions with a child's padding set as a percentage
+      // should fire observation if content-box is being observed
+      setup: observer => {
+        outer.style.height = "200px";
+        outer.style.width = "200px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, nested, "target is nested");
+        assert_equals(entries[0].contentRect.width, 30, "target width");
+        assert_equals(entries[0].contentRect.height, 20, "target height");
+        assert_equals(entries[0].contentRect.top, 10, "target top padding");
+        assert_equals(entries[0].contentRect.left, 10, "target left padding");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 30,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 20,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 60,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 50,
+                      "target border-box block size");
+      }
+    },
+    {
+      // Changes to a parent's dimensions with a child's padding set as a percentage
+      // should fire observation if content-box is being observed
+      setup: observer => {
+        nested.style.border = "1px solid black";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, nested, "target is nested");
+        assert_equals(entries[0].contentRect.width, 38, "target width");
+        assert_equals(entries[0].contentRect.height, 28, "target height");
+        assert_equals(entries[0].contentRect.top, 10, "target top padding");
+        assert_equals(entries[0].contentRect.left, 10, "target left padding");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 38,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 28,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 60,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 50,
+                      "target border-box block size");
+      }
+    },
+    {
+      setup: observer => {
+        observer.observe(nested, { box: "border-box" });
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, nested, "target is nested");
+        assert_equals(entries[0].contentRect.width, 38, "target width");
+        assert_equals(entries[0].contentRect.height, 28, "target height");
+        assert_equals(entries[0].contentRect.top, 10, "target top padding");
+        assert_equals(entries[0].contentRect.left, 10, "target left padding");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 38,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 28,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 60,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 50,
+                      "target border-box block size");
+      }
+    },
+    {
+      // Changes to a parent's dimensions with a child's padding set as a percentage
+      // should not fire observation if border-box is being observed
+      setup: observer => {
+        outer.style.height = "100px";
+      },
+      notify: entries => {
+        assert_unreached("No observation should be fired when nested border box remains constant");
+      },
+      timeout: () => {
+        // expected
+      }
+    },
+
+  ]);
+  return helper.start(() => nested.remove());
 }
 
 let guard;
@@ -738,6 +870,7 @@ test0()
   .then(() => test14())
   .then(() => test15())
   .then(() => test16())
+  .then(() => test17())
   .then(() => guard.done());
 
 </script>

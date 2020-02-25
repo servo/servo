@@ -206,7 +206,7 @@ promise_rejects_exactly(test_object, value, promise, description)
 
 The `code`, `constructor`, and `value` arguments are equivalent to the same
 argument to the `assert_throws_dom`, `assert_throws_js`, and
-`assert_throws_exactly` functions.
+`assert_throws_exactly` functions.  The `promise_rejects_dom` function can also be called with a DOMException constructor argument between the `code` and `promise` arguments, just like `assert_throws_dom`, when we want to assert that the DOMException comes from a non-default global.
 
 Here's an example where the `bar()` function returns a Promise that rejects
 with a TypeError:
@@ -858,7 +858,7 @@ attribute attribute_name following the conditions specified by WebIDL
 ### `assert_readonly(object, property_name, description)`
 assert that property `property_name` on object is readonly
 
-### `assert_throws_dom(code, func, description)`
+### `assert_throws_dom(code, func, description)` or `assert_throws_dom(code, constructor, func, description)`
 `code` - the expected exception. This can take several forms:
 
   * string - asserts that the thrown exception must be a DOMException
@@ -870,6 +870,8 @@ assert that property `property_name` on object is readonly
              with the fiven code value (e.g. DOMException.TIMEOUT_ERR).
 
 `func` - a function that should throw
+
+`constructor` - The DOMException constructor that the resulting DOMException should have as its `.constructor`.  This should be used when a DOMException from a non-default global is expected to be thrown.
 
 ### `assert_throws_js(constructor, func, description)`
 `constructor` - the expected exception. This is the constructor object

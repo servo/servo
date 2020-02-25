@@ -24,8 +24,10 @@ function testTextDecorationSkipInk() {
                           "Text-decoration-skip-ink must allow setting the value auto.");
               assert_true(CSS.supports('text-decoration-skip-ink', "none"),
                           "Text-decoration-skip-ink must allow setting the value none.");
+              assert_true(CSS.supports('text-decoration-skip-ink', "all"),
+                          "Text-decoration-skip-ink must allow setting the value all.");
           },
-          'Property text-decoration-skip-ink must support values auto and none.')
+          'Property text-decoration-skip-ink must support values auto, none and all.')
 }
 
 testTextDecorationSkipInk();

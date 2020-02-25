@@ -129,9 +129,7 @@ interface AudioBuffer {
                         unsigned long channelNumber,
                         optional unsigned long bufferOffset = 0);
   void copyToChannel (Float32Array source,
-
                       unsigned long channelNumber,
-
                       optional unsigned long bufferOffset = 0);
 };
 
@@ -198,9 +196,7 @@ interface AudioParam {
   AudioParam exponentialRampToValueAtTime (float value, double endTime);
   AudioParam setTargetAtTime (float target, double startTime, float timeConstant);
   AudioParam setValueCurveAtTime (sequence<float> values,
-
                                   double startTime,
-
                                   double duration);
   AudioParam cancelScheduledValues (double cancelTime);
   AudioParam cancelAndHoldAtTime (double cancelTime);

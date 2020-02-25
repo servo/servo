@@ -75,12 +75,14 @@ promise_test(t => {
       .then(() => { return with_iframe(scope); })
       .then(frame => {
           const worker = frame.contentWindow.navigator.serviceWorker.controller;
+          const ctor = frame.contentWindow.DOMException;
           frame.remove();
           assert_equals(worker.scriptURL, normalizeURL(script));
           assert_equals(worker.state, 'activated');
           worker.onstatechange = () => { /* empty */ };
           assert_throws_dom(
               'InvalidStateError',
+               ctor,
               () => { worker.postMessage(''); },
               'postMessage on a detached client should throw an exception.');
         });

@@ -49,7 +49,7 @@
     test(t => {
       script.setAttribute('nonce', 'foo');
       assert_equals(script.getAttribute('nonce'), 'foo');
-      assert_equals(script.nonce, 'abc');
+      assert_equals(script.nonce, 'foo');
     }, "Writing 'nonce' content attribute.");
 
     // Set the IDL attribute to 'bar'

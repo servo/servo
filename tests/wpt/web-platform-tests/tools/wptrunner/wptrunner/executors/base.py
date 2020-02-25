@@ -163,10 +163,14 @@ class TimedRunner(object):
                 self.result = False, ("INTERNAL-ERROR", "%s.run_func didn't set a result" %
                                       self.__class__.__name__)
             else:
-                message = "Executor hit external timeout (this may indicate a hang)\n"
-                # get a traceback for the current stack of the executor thread
-                message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
-                self.result = False, ("EXTERNAL-TIMEOUT", message)
+                if self.protocol.is_alive():
+                    message = "Executor hit external timeout (this may indicate a hang)\n"
+                    # get a traceback for the current stack of the executor thread
+                    message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
+                    self.result = False, ("EXTERNAL-TIMEOUT", message)
+                else:
+                    self.logger.info("Browser not responding, setting status to CRASH")
+                    self.result = False, ("CRASH", None)
         elif self.result[1] is None:
             # We didn't get any data back from the test, so check if the
             # browser is still responsive

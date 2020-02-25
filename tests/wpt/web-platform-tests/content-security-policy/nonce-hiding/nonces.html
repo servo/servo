@@ -7,7 +7,7 @@
  ["div", ""],
  ["script", ""],
  ["meh", "http://www.w3.org/2000/svg"],
- ["svg", "http://www.w3.org/2000/svg"], ,
+ ["svg", "http://www.w3.org/2000/svg"],
  ["script", "http://www.w3.org/2000/svg"]].forEach(([localName, namespace]) => {
   test(t => {
     const element = namespace === "" ? document.createElement(localName) : document.createElementNS(namespace, localName);

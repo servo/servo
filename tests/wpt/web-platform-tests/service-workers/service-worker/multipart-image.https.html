@@ -56,12 +56,13 @@ promise_test(t => {
 promise_test(t => {
     return frame.contentWindow.load_multipart_image('cross-origin-multipart-image-with-no-cors')
       .then(img => {
-        assert_throws_dom('SecurityError', () => frame.contentWindow.get_image_data(img));
+        assert_throws_dom('SecurityError', frame.contentWindow.DOMException,
+                          () => frame.contentWindow.get_image_data(img));
       });
   }, 'cross-origin multipart image with no-cors via SW should not be readable');
 
 promise_test(t => {
     const promise = frame.contentWindow.load_multipart_image('cross-origin-multipart-image-with-cors-rejected');
-    return promise_rejects_dom(t, 'NetworkError', promise);
+    return promise_rejects_dom(t, 'NetworkError', frame.contentWindow.DOMException, promise);
   }, 'cross-origin multipart image via SW with rejected CORS should fail to load');
 </script>

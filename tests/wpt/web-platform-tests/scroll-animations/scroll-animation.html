@@ -135,4 +135,28 @@ promise_test(async t => {
       "The start time is zero in Playing state.");
 }, 'Animation start and current times are correct when multiple animations' +
     ' are attached to the same timeline.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = "visible";
+    // Trigger layout;
+    scroller.scrollTop;
+    assert_equals(animation.timeline.currentTime, null,
+      "Timeline current time is null in inactive state.");
+    // Play the animation when the timeline is inactive.
+    animation.play();
+    // Make the scroll timeline active.
+    scroller.style.overflow = "auto";
+    await animation.ready;
+    // Ready promise is resolved as a result of the timeline becoming active.
+    assert_equals(animation.timeline.currentTime, 0,
+      "Timeline current time is resolved in active state.");
+    assert_equals(animation.currentTime, 0,
+      "Animation current time is resolved when the animation is ready.");
+    assert_equals(animation.startTime, 0,
+      "Animation start time is resolved when the animation is ready.");
+}, 'Animation start and current times are correct if scroll timeline is ' +
+   'activated after animation.play call.');
 </script>

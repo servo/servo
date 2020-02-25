@@ -99,7 +99,7 @@ function reportload() {
             assert_throws_dom('SECURITY_ERR',function () { history.replaceState('','','data:text/html,'); });
         }, 'replaceState must not be allowed to create cross-origin URLs (data:URI)');
         test(function () {
-            assert_throws_dom('SECURITY_ERR',function () { iframe.contentWindow.history.replaceState('','','http://www.example.com/'); },iframe.contentWindow);
+            assert_throws_dom('SECURITY_ERR',iframe.contentWindow.DOMException,function () { iframe.contentWindow.history.replaceState('','','http://www.example.com/'); });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
         test(function () {
             //avoids browsers running .go synchronously when only a hash change is involved
@@ -161,9 +161,9 @@ function reportload() {
             }
         }, 'replaceState must be able to use an error object as data');
         test(function () {
-            assert_throws_dom( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom('DATA_CLONE_ERR', iframe.contentWindow.DOMException, function () {
                 iframe.contentWindow.history.replaceState(document,'');
-            }, iframe.contentWindow );
+            });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object (2)');
         cloneobj = {
             nulldata: null,

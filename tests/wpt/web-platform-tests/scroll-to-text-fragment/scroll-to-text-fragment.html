@@ -61,6 +61,12 @@ let test_cases = [
     expect_position: 'text',
     description: 'Exact text with prefix and suffix should match text'
   },
+  // Test tricky edge case where prefix and query are equal
+  {
+    fragment: '#:~:text=foo-,foo,-bar',
+    expect_position: 'text',
+    description: 'Exact text with prefix and suffix and query equals prefix.'
+  },
   // Test text range matching, with all combinations of context terms
   {
     fragment: '#:~:text=this,page',

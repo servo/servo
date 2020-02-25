@@ -373,10 +373,8 @@ class Session(object):
                  port,
                  url_prefix="/",
                  capabilities=None,
-                 timeout=None,
                  extension=None):
-        self.transport = transport.HTTPWireProtocol(
-            host, port, url_prefix, timeout=timeout)
+        self.transport = transport.HTTPWireProtocol(host, port, url_prefix)
         self.requested_capabilities = capabilities
         self.capabilities = None
         self.session_id = None

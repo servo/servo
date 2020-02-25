@@ -7,7 +7,7 @@
 #outer {
   height: 10em;
   display: inline-block;
-  background: green;
+  background: tan;
   vertical-align: top;
 }
 
@@ -18,11 +18,14 @@
 
 #inner {
   width: 200px;
+  height: 100%;
+  background: green;
 }
 
 #outer2 {
   height: 10em;
   display: inline-block;
+  background: tan;
 }
 
 #middle2 {
@@ -37,7 +40,8 @@
 }
 </style>
 
-<p>You should not see red nor a vertical scrollbar</p>
+<p>You should not see tan (except perhaps as the background of a horizontal
+   scrollbar), and you should not see a vertical scrollbar.</p>
 
 <div id="outer">
   <div id="middle">

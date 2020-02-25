@@ -361,6 +361,12 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
                 used_images[i] = 1
                 i = '../images/%s' % i
             images += '<img src="%s" id="%s" class="resource">\n' % (i,id)
+        for i in test.get('svgimages', []):
+            id = i.split('/')[-1]
+            if '/' not in i:
+                used_images[i] = 1
+                i = '../images/%s' % i
+            images += '<svg><image xlink:href="%s" id="%s" class="resource"></svg>\n' % (i,id)
         images = images.replace("../images/", "/images/")
 
         fonts = ''

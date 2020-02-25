@@ -20,9 +20,9 @@ dictionary ScrollTimelineOptions {
   (double or ScrollTimelineAutoKeyword) timeRange = "auto";
 };
 
-[Exposed=Window,
- Constructor(optional ScrollTimelineOptions options = {})]
+[Exposed=Window]
 interface ScrollTimeline : AnimationTimeline {
+  constructor(optional ScrollTimelineOptions options = {});
   readonly attribute Element scrollSource;
   readonly attribute ScrollDirection orientation;
   readonly attribute DOMString startScrollOffset;
