@@ -29,6 +29,7 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
+use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{
     Destination, Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
 };
@@ -683,6 +684,7 @@ fn test_fetch_with_hsts() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
@@ -735,6 +737,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

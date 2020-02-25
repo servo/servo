@@ -11,14 +11,16 @@ use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
-use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
+use net_traits::filemanager_thread::{
+    FileManagerResult, FileManagerThreadMsg, FileOrigin, FileTokenCheck,
+};
 use net_traits::filemanager_thread::{
     FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile,
 };
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use servo_arc::Arc as ServoArc;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::mem;
@@ -46,6 +48,9 @@ struct FileStoreEntry {
     /// by the user with createObjectURL. Validity can be revoked as well.
     /// (The UUID is the one that maps to this entry in `FileManagerStore`)
     is_valid_url: AtomicBool,
+    /// UUIDs of fetch instances that acquired an interest in this file,
+    /// when the url was still valid.
+    outstanding_tokens: HashSet<Uuid>,
 }
 
 #[derive(Clone)]
@@ -91,7 +96,6 @@ impl FileManager {
         &self,
         sender: IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
-        check_url_validity: bool,
         origin: FileOrigin,
     ) {
         let store = self.store.clone();
@@ -99,7 +103,7 @@ impl FileManager {
             .upgrade()
             .and_then(|pool| {
                 pool.spawn(move || {
-                    if let Err(e) = store.try_read_file(&sender, id, check_url_validity, origin) {
+                    if let Err(e) = store.try_read_file(&sender, id, origin) {
                         let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
                     }
                 });
@@ -110,6 +114,14 @@ impl FileManager {
             });
     }
 
+    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+        self.store.get_token_for_file(file_id)
+    }
+
+    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+        self.store.invalidate_token(token, file_id);
+    }
+
     // Read a file for the Fetch implementation.
     // It gets the required headers synchronously and reads the actual content
     // in a separate thread.
@@ -118,7 +130,7 @@ impl FileManager {
         done_sender: &Sender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: Uuid,
-        check_url_validity: bool,
+        file_token: &FileTokenCheck,
         origin: FileOrigin,
         response: &mut Response,
         range: RangeRequestBounds,
@@ -127,9 +139,9 @@ impl FileManager {
             done_sender,
             cancellation_listener,
             &id,
+            file_token,
             &origin,
             range,
-            check_url_validity,
             response,
         )
     }
@@ -175,8 +187,8 @@ impl FileManager {
                         );
                     });
             },
-            FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
-                self.read_file(sender, id, check_url_validity, origin);
+            FileManagerThreadMsg::ReadFile(sender, id, origin) => {
+                self.read_file(sender, id, origin);
             },
             FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin) => {
                 self.promote_memory(id, blob_buf, set_valid, origin);
@@ -273,12 +285,12 @@ impl FileManager {
         done_sender: &Sender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: &Uuid,
+        file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
         range: RangeRequestBounds,
-        check_url_validity: bool,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
-        let file_impl = self.store.get_impl(id, origin_in, check_url_validity)?;
+        let file_impl = self.store.get_impl(id, file_token, origin_in)?;
         match file_impl {
             FileImpl::Memory(buf) => {
                 let range = match range.get_final(Some(buf.size)) {
@@ -362,11 +374,11 @@ impl FileManager {
                     done_sender,
                     cancellation_listener,
                     &parent_id,
+                    file_token,
                     origin_in,
                     RangeRequestBounds::Final(
                         RelativePos::full_range().slice_inner(&inner_rel_pos),
                     ),
-                    false,
                     response,
                 );
             },
@@ -392,24 +404,80 @@ impl FileManagerStore {
     pub fn get_impl(
         &self,
         id: &Uuid,
+        file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
-        check_url_validity: bool,
     ) -> Result<FileImpl, BlobURLStoreError> {
         match self.entries.read().unwrap().get(id) {
             Some(ref entry) => {
                 if *origin_in != *entry.origin {
                     Err(BlobURLStoreError::InvalidOrigin)
                 } else {
-                    let is_valid = entry.is_valid_url.load(Ordering::Acquire);
-                    if check_url_validity && !is_valid {
-                        Err(BlobURLStoreError::InvalidFileID)
-                    } else {
-                        Ok(entry.file_impl.clone())
+                    match file_token {
+                        FileTokenCheck::NotRequired => Ok(entry.file_impl.clone()),
+                        FileTokenCheck::Required(token) => {
+                            if entry.outstanding_tokens.contains(token) {
+                                return Ok(entry.file_impl.clone());
+                            }
+                            Err(BlobURLStoreError::InvalidFileID)
+                        },
+                        FileTokenCheck::ShouldFail => Err(BlobURLStoreError::InvalidFileID),
                     }
                 }
             },
             None => Err(BlobURLStoreError::InvalidFileID),
         }
+    }
+
+    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+        if let FileTokenCheck::Required(token) = token {
+            let mut entries = self.entries.write().unwrap();
+            if let Some(entry) = entries.get_mut(file_id) {
+                entry.outstanding_tokens.remove(token);
+
+                // Check if there are references left.
+                let zero_refs = entry.refs.load(Ordering::Acquire) == 0;
+
+                // Check if no other fetch has acquired a token for this file.
+                let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+
+                // Check if there is still a blob URL outstanding.
+                let valid = entry.is_valid_url.load(Ordering::Acquire);
+
+                // Can we remove this file?
+                let do_remove = zero_refs && no_outstanding_tokens && !valid;
+
+                if do_remove {
+                    entries.remove(&file_id);
+                }
+            }
+        }
+    }
+
+    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+        let mut entries = self.entries.write().unwrap();
+        let parent_id = match entries.get(file_id) {
+            Some(entry) => {
+                if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
+                    Some(parent_id.clone())
+                } else {
+                    None
+                }
+            },
+            None => return FileTokenCheck::ShouldFail,
+        };
+        let file_id = match parent_id.as_ref() {
+            Some(id) => id,
+            None => file_id,
+        };
+        if let Some(entry) = entries.get_mut(file_id) {
+            if !entry.is_valid_url.load(Ordering::Acquire) {
+                return FileTokenCheck::ShouldFail;
+            }
+            let token = Uuid::new_v4();
+            entry.outstanding_tokens.insert(token.clone());
+            return FileTokenCheck::Required(token);
+        }
+        FileTokenCheck::ShouldFail
     }
 
     fn insert(&self, id: Uuid, entry: FileStoreEntry) {
@@ -453,6 +521,7 @@ impl FileManagerStore {
                         // Valid here since AddSlicedURLEntry implies URL creation
                         // from a BlobImpl::Sliced
                         is_valid_url: AtomicBool::new(true),
+                        outstanding_tokens: Default::default(),
                     },
                 );
 
@@ -604,6 +673,7 @@ impl FileManagerStore {
                 refs: AtomicUsize::new(1),
                 // Invalid here since create_entry is called by file selection
                 is_valid_url: AtomicBool::new(false),
+                outstanding_tokens: Default::default(),
             },
         );
 
@@ -626,11 +696,11 @@ impl FileManagerStore {
         &self,
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: &Uuid,
+        file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
         rel_pos: RelativePos,
-        check_url_validity: bool,
     ) -> Result<(), BlobURLStoreError> {
-        let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
+        let file_impl = self.get_impl(id, file_token, origin_in)?;
         match file_impl {
             FileImpl::Memory(buf) => {
                 let range = rel_pos.to_abs_range(buf.size as usize);
@@ -686,9 +756,9 @@ impl FileManagerStore {
                 self.get_blob_buf(
                     sender,
                     &parent_id,
+                    file_token,
                     origin_in,
                     rel_pos.slice_inner(&inner_rel_pos),
-                    false,
                 )
             },
         }
@@ -699,15 +769,14 @@ impl FileManagerStore {
         &self,
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
-        check_url_validity: bool,
         origin_in: FileOrigin,
     ) -> Result<(), BlobURLStoreError> {
         self.get_blob_buf(
             sender,
             &id,
+            &FileTokenCheck::NotRequired,
             &origin_in,
             RelativePos::full_range(),
-            check_url_validity,
         )
     }
 
@@ -724,10 +793,17 @@ impl FileManagerStore {
                         // last reference, and if it has a reference to parent id
                         // dec_ref on parent later if necessary
                         let is_valid = entry.is_valid_url.load(Ordering::Acquire);
+
+                        // Check if no fetch has acquired a token for this file.
+                        let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+
+                        // Can we remove this file?
+                        let do_remove = !is_valid && no_outstanding_tokens;
+
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                            (!is_valid, Some(parent_id.clone()))
+                            (do_remove, Some(parent_id.clone()))
                         } else {
-                            (!is_valid, None)
+                            (do_remove, None)
                         }
                     }
                 } else {
@@ -762,6 +838,7 @@ impl FileManagerStore {
                         file_impl: FileImpl::Memory(blob_buf),
                         refs: AtomicUsize::new(1),
                         is_valid_url: AtomicBool::new(set_valid),
+                        outstanding_tokens: Default::default(),
                     },
                 );
             },
@@ -786,10 +863,16 @@ impl FileManagerStore {
                         // and store entry id holders
                         let zero_refs = entry.refs.load(Ordering::Acquire) == 0;
 
+                        // Check if no fetch has acquired a token for this file.
+                        let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+
+                        // Can we remove this file?
+                        let do_remove = zero_refs && no_outstanding_tokens;
+
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                            (zero_refs, Some(parent_id.clone()), Ok(()))
+                            (do_remove, Some(parent_id.clone()), Ok(()))
                         } else {
-                            (zero_refs, None, Ok(()))
+                            (do_remove, None, Ok(()))
                         }
                     } else {
                         (false, None, Ok(()))

@@ -59,7 +59,6 @@ fn test_filemanager() {
             filemanager.handle(FileManagerThreadMsg::ReadFile(
                 tx2,
                 selected.id.clone(),
-                false,
                 origin.clone(),
             ));
 
@@ -113,7 +112,6 @@ fn test_filemanager() {
             filemanager.handle(FileManagerThreadMsg::ReadFile(
                 tx2,
                 selected.id.clone(),
-                false,
                 origin.clone(),
             ));
 

@@ -35,6 +35,7 @@ use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
+use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
@@ -98,6 +99,7 @@ fn new_fetch_context(
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(sender, pool_handle.unwrap_or_else(|| Weak::new())),
+        file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

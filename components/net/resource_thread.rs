@@ -22,6 +22,8 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::blob_url_store::parse_blob_url;
+use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -621,8 +623,31 @@ impl CoreResourceManager {
             _ => ResourceTimingType::Resource,
         };
 
+        let mut request = request_builder.build();
+        let url = request.current_url();
+
+        // In the case of a valid blob URL, acquiring a token granting access to a file,
+        // regardless if the URL is revoked after token acquisition.
+        //
+        // TODO: to make more tests pass, acquire this token earlier,
+        // probably in a separate message flow.
+        //
+        // In such a setup, the token would not be acquired here,
+        // but could instead be contained in the actual CoreResourceMsg::Fetch message.
+        //
+        // See https://github.com/servo/servo/issues/25226
+        let (file_token, blob_url_file_id) = match url.scheme() {
+            "blob" => {
+                if let Ok((id, _)) = parse_blob_url(&url) {
+                    (self.filemanager.get_token_for_file(&id), Some(id))
+                } else {
+                    (FileTokenCheck::ShouldFail, None)
+                }
+            },
+            _ => (FileTokenCheck::NotRequired, None),
+        };
+
         self.thread_pool.spawn(move || {
-            let mut request = request_builder.build();
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
@@ -632,6 +657,7 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
+                file_token,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
@@ -651,6 +677,13 @@ impl CoreResourceManager {
                 },
                 None => fetch(&mut request, &mut sender, &context),
             };
+
+            // Remove token after fetch.
+            if let Some(id) = blob_url_file_id.as_ref() {
+                context
+                    .filemanager
+                    .invalidate_token(&context.file_token, id);
+            }
         });
     }
 
