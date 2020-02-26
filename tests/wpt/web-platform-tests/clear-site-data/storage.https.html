@@ -17,7 +17,7 @@
       var serviceWorkerTestPageIFrame;
       function fetchFromIFrame() {
         return serviceWorkerTestPageIFrame.contentWindow
-          .fetch('support/controlled-endpoint.py')
+          .fetch('controlled-endpoint.py')
           .then((result) => {
             return result.text();
           });

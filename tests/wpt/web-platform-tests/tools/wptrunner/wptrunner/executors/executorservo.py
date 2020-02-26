@@ -332,6 +332,8 @@ class ServoCrashtestExecutor(ProcessTestExecutor):
         self.test = test
         success, data = ServoTimedRunner(self.logger, self.do_crashtest, self.protocol,
                                          test_url, timeout, self.extra_timeout).run()
+        # Ensure that no processes hang around if they timeout.
+        self.proc.kill()
 
         if success:
             return self.convert_result(test, data)

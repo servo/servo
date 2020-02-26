@@ -2,7 +2,7 @@ import hashlib
 import re
 import os
 from collections import deque
-from six import binary_type, PY3
+from six import binary_type, PY3, iteritems
 from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
 
@@ -195,7 +195,7 @@ class SourceFile(object):
                          ("css", "common")}  # type: Set[Tuple[bytes, ...]]
 
     def __init__(self, tests_root, rel_path, url_base, hash=None, contents=None):
-        # type: (AnyStr, AnyStr, Text, Optional[bytes], Optional[bytes]) -> None
+        # type: (AnyStr, AnyStr, Text, Optional[Text], Optional[bytes]) -> None
         """Object representing a file in a source tree.
 
         :param tests_root: Path to the root of the source tree
@@ -242,9 +242,7 @@ class SourceFile(object):
 
         if "__cached_properties__" in rv:
             cached_properties = rv["__cached_properties__"]
-            for key in rv.keys():
-                if key in cached_properties:
-                    del rv[key]
+            rv = {key:value for key, value in iteritems(rv) if key not in cached_properties}
             del rv["__cached_properties__"]
         return rv
 
@@ -304,7 +302,7 @@ class SourceFile(object):
 
     @cached_property
     def hash(self):
-        # type: () -> bytes
+        # type: () -> Text
         if not self._hash:
             with self.open() as f:
                 content = f.read()
