@@ -26,6 +26,7 @@ if MYPY:
     from typing import Callable
     from typing import List
     from typing import Optional
+    from typing import Text
 
 here = os.path.dirname(__file__)
 
@@ -50,9 +51,9 @@ def should_download(manifest_path, rebuild_time=timedelta(days=5)):
 
 
 def merge_pr_tags(repo_root, max_count=50):
-    # type: (str, int) -> List[str]
+    # type: (str, int) -> List[Text]
     gitfunc = git(repo_root)
-    tags = []  # type: List[str]
+    tags = []  # type: List[Text]
     if gitfunc is None:
         return tags
     for line in gitfunc("log", "--format=%D", "--max-count=%s" % max_count).split("\n"):
@@ -79,7 +80,7 @@ def score_name(name):
 
 
 def github_url(tags):
-    # type: (List[str]) -> Optional[List[str]]
+    # type: (List[Text]) -> Optional[List[Text]]
     for tag in tags:
         url = "https://api.github.com/repos/web-platform-tests/wpt/releases/tags/%s" % tag
         try:
@@ -111,8 +112,8 @@ def github_url(tags):
 
 def download_manifest(
         manifest_path,  # type: str
-        tags_func,  # type: Callable[[], List[str]]
-        url_func,  # type: Callable[[List[str]], Optional[List[str]]]
+        tags_func,  # type: Callable[[], List[Text]]
+        url_func,  # type: Callable[[List[Text]], Optional[List[Text]]]
         force=False  # type: bool
 ):
     # type: (...) -> bool

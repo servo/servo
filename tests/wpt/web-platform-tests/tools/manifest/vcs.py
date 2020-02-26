@@ -33,7 +33,7 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
     # type: (bytes, Manifest, Optional[bytes], Optional[bytes], bool, bool) -> FileSystem
     tree = None
     if cache_root is None:
-        cache_root = os.path.join(tests_root, b".wptcache")
+        cache_root = os.path.join(tests_root, ".wptcache")
     if not os.path.exists(cache_root):
         try:
             os.makedirs(cache_root)
@@ -58,21 +58,21 @@ class GitHasher(object):
         self.git = git(path)
 
     def _local_changes(self):
-        # type: () -> Set[bytes]
+        # type: () -> Set[Text]
         """get a set of files which have changed between HEAD and working copy"""
         assert self.git is not None
         # note that git runs the command with tests_root as the cwd, which may
         # not be the root of the git repo (e.g., within a browser repo)
         cmd = [b"diff-index", b"--relative", b"--no-renames", b"--name-only", b"-z", b"HEAD"]
         data = self.git(*cmd)
-        return set(data.split(b"\0"))
+        return set(data.split("\0"))
 
     def hash_cache(self):
-        # type: () -> Dict[bytes, Optional[bytes]]
+        # type: () -> Dict[Text, Optional[Text]]
         """
         A dict of rel_path -> current git object id if the working tree matches HEAD else None
         """
-        hash_cache = {}  # type: Dict[bytes, Optional[bytes]]
+        hash_cache = {}  # type: Dict[Text, Optional[Text]]
 
         if self.git is None:
             return hash_cache
@@ -81,9 +81,9 @@ class GitHasher(object):
         # not be the root of the git repo (e.g., within a browser repo)
         cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
-        for result in self.git(*cmd).split(b"\0")[:-1]:  # type: bytes
-            data, rel_path = result.rsplit(b"\t", 1)
-            hash_cache[rel_path] = None if rel_path in local_changes else data.split(b" ", 3)[2]
+        for result in self.git(*cmd).split("\0")[:-1]:  # type: Text
+            data, rel_path = result.rsplit("\t", 1)
+            hash_cache[rel_path] = None if rel_path in local_changes else data.split(" ", 3)[2]
 
         return hash_cache
 
@@ -174,7 +174,7 @@ class CacheFile(with_metaclass(abc.ABCMeta)):
 
 
 class MtimeCache(CacheFile):
-    file_name = b"mtime.json"
+    file_name = "mtime.json"
 
     def __init__(self, cache_root, tests_root, manifest_path, rebuild=False):
         # type: (bytes, bytes, bytes, bool) -> None
@@ -222,7 +222,7 @@ class MtimeCache(CacheFile):
 
 
 class GitIgnoreCache(CacheFile, MutableMapping):  # type: ignore
-    file_name = b"gitignore.json"
+    file_name = "gitignore.json"
 
     def check_valid(self, data):
         # type: (Dict[Any, Any]) -> Dict[Any, Any]
@@ -286,7 +286,7 @@ def walk(root):
     relpath = os.path.relpath
 
     root = os.path.abspath(root)
-    stack = deque([(root, b"")])
+    stack = deque([(root, "")])
 
     while stack:
         dir_path, rel_path = stack.popleft()

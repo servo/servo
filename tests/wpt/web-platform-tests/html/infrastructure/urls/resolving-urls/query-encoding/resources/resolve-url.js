@@ -51,7 +51,7 @@ onload = function() {
 
   // loading html (or actually svg to support <embed>)
   function test_load_nested_browsing_context(tag, attr, spec_url) {
-    async_test(function() {
+    subsetTestByKey('nested-browsing', async_test, function() {
       var id = 'test_load_nested_browsing_context_'+tag;
       var elm = document.createElement(tag);
       elm.setAttribute(attr, input_url_svg);
@@ -81,7 +81,7 @@ onload = function() {
   });
 
   // loading css with <link>
-  async_test(function() {
+  subsetTestByKey('loading', async_test, function() {
     var elm = document.createElement('link');
     elm.href = input_url_css;
     elm.rel = 'stylesheet';
@@ -99,7 +99,7 @@ onload = function() {
          'https://html.spec.whatwg.org/multipage/#styling']});
 
   // loading js
-  async_test(function() {
+  subsetTestByKey('loading-css', async_test, function() {
     var elm = document.createElement('script');
     elm.src = input_url_js + '&var=test_load_js_got';
     document.head.appendChild(elm); // no cleanup
@@ -111,7 +111,7 @@ onload = function() {
 
   // loading image
   function test_load_image(tag, attr, spec_url) {
-    async_test(function() {
+    subsetTestByKey('loading', async_test, function() {
       var elm = document.createElement(tag);
       if (tag == 'input') {
         elm.type = 'image';
@@ -173,7 +173,7 @@ onload = function() {
 
   // loading video
   function test_load_video(tag, use_source_element) {
-    async_test(function() {
+    subsetTestByKey('loading', async_test, function() {
       var elm = document.createElement(tag);
       var video_ext = '';
       if (elm.canPlayType('video/ogg; codecs="theora,flac"')) {
@@ -229,7 +229,7 @@ onload = function() {
   });
 
   // loading webvtt
-  async_test(function() {
+  subsetTestByKey('loading', async_test, function() {
     var video = document.createElement('video');
     var track = document.createElement('track');
     video.appendChild(track);
@@ -248,7 +248,7 @@ onload = function() {
 
   // submit forms
   function test_submit_form(tag, attr) {
-    async_test(function(){
+    subsetTestByKey('submit', async_test, function(){
       var elm = document.createElement(tag);
       elm.setAttribute(attr, input_url_html);
       var form;
@@ -291,7 +291,7 @@ onload = function() {
   });
 
   // <base href>
-  async_test(function() {
+  subsetTestByKey('base-href', async_test, function() {
     var iframe = document.createElement('iframe');
     iframe.src = blank;
     document.body.appendChild(iframe);
@@ -315,7 +315,7 @@ onload = function() {
   // XXX drag and drop (<a href> or <img src>) seems hard to automate
 
   // Worker()
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new Worker(input_url_worker);
     worker.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_current);
@@ -324,7 +324,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#dom-worker'});
 
   // SharedWorker()
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new SharedWorker(input_url_sharedworker);
     worker.port.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_current);
@@ -333,7 +333,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#dom-sharedworker'});
 
   // EventSource()
-  async_test(function() {
+  subsetTestByKey('eventsource', async_test, function() {
     var source = new EventSource(input_url_eventstream);
     this.add_cleanup(function() {
       source.close();
@@ -345,7 +345,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#dom-eventsource'});
 
   // EventSource#url
-  test(function() {
+  subsetTestByKey('eventsource', test, function() {
     var source = new EventSource(input_url_eventstream);
     source.close();
     var got = source.url;
@@ -354,7 +354,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#dom-eventsource'});
 
   // XMLDocument#load()
-  async_test(function() {
+  subsetTestByKey('xmldocument', async_test, function() {
     var doc = document.implementation.createDocument(null, "x");
     doc.load(input_url_svg);
     doc.onload = this.step_func_done(function() {
@@ -364,7 +364,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#dom-xmldocument-load'});
 
   // window.open
-  async_test(function() {
+  subsetTestByKey('window-open', async_test, function() {
     var id = 'test_window_open';
     var iframe = document.createElement('iframe');
     iframe.name = id;
@@ -385,7 +385,7 @@ onload = function() {
 
   // a.search, area.search
   function test_hyperlink_search(tag) {
-    test(function() {
+    subsetTestByKey('hyperlink-search', test, function() {
       var elm = document.createElement(tag);
       var input_arr = input_url_html.split('?');
       elm.href = input_arr[0];
@@ -405,7 +405,7 @@ onload = function() {
   // history.pushState
   // history.replaceState
   function test_history(prop) {
-    async_test(function() {
+    subsetTestByKey('history', async_test, function() {
       var iframe = document.createElement('iframe');
       iframe.src = blank;
       document.body.appendChild(iframe);
@@ -429,7 +429,7 @@ onload = function() {
   // SVG
   var ns = {svg:'http://www.w3.org/2000/svg', xlink:'http://www.w3.org/1999/xlink'};
   // a
-  async_test(function() {
+  subsetTestByKey('svg', async_test, function() {
     SVGAElement; // check support
     var iframe = document.createElement('iframe');
     var id = 'test_svg_a';
@@ -458,7 +458,7 @@ onload = function() {
 
   // feImage, image, use
   function test_svg(func, tag) {
-    async_test(function() {
+    subsetTestByKey('svg', async_test, function() {
       var uuid = token();
       var id = 'test_svg_'+tag;
       var svg = document.createElementNS(ns.svg, 'svg');
@@ -492,7 +492,7 @@ onload = function() {
 
   // UTF-8:
   // XHR
-  async_test(function() {
+  subsetTestByKey('xhr', async_test, function() {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', input_url_html);
     xhr.onload = this.step_func_done(function() {
@@ -503,7 +503,7 @@ onload = function() {
   {help:'https://xhr.spec.whatwg.org/#the-open()-method'});
 
   // in a worker
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new Worker(input_url_worker_importScripts);
     worker.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -512,7 +512,7 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
          'https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts']});
 
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new Worker(input_url_worker_worker);
     worker.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -521,7 +521,7 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
          'https://html.spec.whatwg.org/multipage/#dom-worker']});
 
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new Worker(input_url_worker_sharedworker);
     worker.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -530,7 +530,7 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
          'https://html.spec.whatwg.org/multipage/#dom-sharedworker']});
 
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new SharedWorker(input_url_sharedworker_importScripts);
     worker.port.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -539,7 +539,7 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
          'https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts']});
 
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new SharedWorker(input_url_sharedworker_worker);
     worker.port.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -548,7 +548,7 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
          'https://html.spec.whatwg.org/multipage/#dom-worker']});
 
-  async_test(function() {
+  subsetTestByKey('workers', async_test, function() {
     var worker = new SharedWorker(input_url_sharedworker_sharedworker);
     worker.port.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -558,7 +558,7 @@ onload = function() {
          'https://html.spec.whatwg.org/multipage/#dom-sharedworker']});
 
   // WebSocket()
-  async_test(function(){
+  subsetTestByKey('websocket', async_test, function() {
     var ws = new WebSocket('ws://{{host}}:{{ports[ws][0]}}/echo-query?\u00E5');
     this.add_cleanup(function() {
       ws.close();
@@ -570,7 +570,7 @@ onload = function() {
   {help:'https://html.spec.whatwg.org/multipage/#parse-a-websocket-url\'s-components'});
 
   // WebSocket#url
-  test(function(){
+  subsetTestByKey('websocket', test, function() {
     var ws = new WebSocket('ws://{{host}}:{{ports[ws][0]}}/echo-query?\u00E5');
     ws.close();
     var got = ws.url;
@@ -580,7 +580,7 @@ onload = function() {
 
   // Parsing cache manifest
   function test_cache_manifest(mode) {
-    async_test(function() {
+    subsetTestByKey('appcache', async_test, function() {
       var iframe = document.createElement('iframe');
       var uuid = token();
       iframe.src = 'resources/page-using-manifest.py?id='+uuid+'&encoding='+encoding+'&mode='+mode;
@@ -600,7 +600,7 @@ onload = function() {
   // CSS
   function test_css(tmpl, expected_cssom, encoding, use_style_element) {
     var desc = ['CSS', (use_style_element ? '<style>' : '<link> (' + encoding + ')'),  tmpl].join(' ');
-    async_test(function(){
+    subsetTestByKey('css', async_test, function(){
       css_is_supported(tmpl, expected_cssom, this);
       var uuid = token();
       var id = 'test_css_' + uuid;
@@ -672,7 +672,7 @@ onload = function() {
   // image() (not implemented?)
 
   // <?xml-stylesheet?>
-  async_test(function() {
+  subsetTestByKey('xml', async_test, function() {
     var iframe = document.createElement('iframe');
     iframe.src = input_url_xmlstylesheet_css;
     document.body.appendChild(iframe);
@@ -686,7 +686,7 @@ onload = function() {
   {help:'http://dev.w3.org/csswg/cssom/#requirements-on-user-agents-implementing-the-xml-stylesheet-processing-instruction'});
 
   // new URL()
-  test(function() {
+  subsetTestByKey('url', test, function() {
     var url = new URL('http://example.org/'+input_url);
     var expected = expected_utf8;
     assert_true(url.href.indexOf(expected) > -1, 'url.href '+msg(expected, url.href));
@@ -694,7 +694,7 @@ onload = function() {
   }, 'URL constructor, url',
   {help:'http://url.spec.whatwg.org/#dom-url'});
 
-  test(function() {
+  subsetTestByKey('url', test, function() {
     var url = new URL('', 'http://example.org/'+input_url);
     var expected = expected_utf8;
     assert_true(url.href.indexOf(expected) > -1, 'url.href '+msg(expected, url.href));
@@ -704,7 +704,7 @@ onload = function() {
 
   // Test different schemes
   function test_scheme(url, utf8) {
-    test(function() {
+    subsetTestByKey('scheme', test, function() {
       var a = document.createElement('a');
       a.setAttribute('href', url);
       var got = a.href;

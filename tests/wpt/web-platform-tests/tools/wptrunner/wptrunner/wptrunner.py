@@ -45,7 +45,7 @@ def setup_logging(*args, **kwargs):
     return logger
 
 
-def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
+def get_loader(test_paths, product, debug=None, run_info_extras=None, chunker_kwargs=None, **kwargs):
     if run_info_extras is None:
         run_info_extras = {}
 
@@ -78,7 +78,8 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
                                         include_https=ssl_enabled,
-                                        skip_timeout=kwargs["skip_timeout"])
+                                        skip_timeout=kwargs["skip_timeout"],
+                                        chunker_kwargs=chunker_kwargs)
     return run_info, test_loader
 
 
@@ -162,18 +163,23 @@ def run_tests(config, test_paths, product, **kwargs):
             ))
 
         recording.set(["startup", "load_tests"])
-        run_info, test_loader = get_loader(test_paths,
-                                           product.name,
-                                           run_info_extras=product.run_info_extras(**kwargs),
-                                           **kwargs)
 
         test_source_kwargs = {"processes": kwargs["processes"]}
+        chunker_kwargs = {}
         if kwargs["run_by_dir"] is False:
             test_source_cls = testloader.SingleTestSource
         else:
             # A value of None indicates infinite depth
             test_source_cls = testloader.PathGroupedSource
             test_source_kwargs["depth"] = kwargs["run_by_dir"]
+            chunker_kwargs["depth"] = kwargs["run_by_dir"]
+
+        run_info, test_loader = get_loader(test_paths,
+                                           product.name,
+                                           run_info_extras=product.run_info_extras(**kwargs),
+                                           chunker_kwargs=chunker_kwargs,
+                                           **kwargs)
+
 
         logger.info("Using %i client processes" % kwargs["processes"])
 
