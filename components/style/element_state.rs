@@ -137,6 +137,10 @@ bitflags! {
         const IN_AUTOFILL_STATE = 1 << 50;
         /// Non-standard & undocumented.
         const IN_AUTOFILL_PREVIEW_STATE = 1 << 51;
+        /// :focus-visible
+        ///
+        /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
+        const IN_FOCUS_VISIBLE_STATE = 1 << 52;
     }
 }
 

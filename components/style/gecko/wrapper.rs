@@ -2064,6 +2064,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozReadOnly |
             NonTSPseudoClass::MozReadWrite |
             NonTSPseudoClass::FocusWithin |
+            NonTSPseudoClass::FocusVisible |
             NonTSPseudoClass::MozDragOver |
             NonTSPseudoClass::MozDevtoolsHighlighted |
             NonTSPseudoClass::MozStyleeditorTransitioning |

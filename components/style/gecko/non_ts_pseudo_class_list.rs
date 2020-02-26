@@ -42,6 +42,7 @@ macro_rules! apply_non_ts_list {
                 ("enabled", Enabled, enabled, IN_ENABLED_STATE, _),
                 ("focus", Focus, focus, IN_FOCUS_STATE, _),
                 ("focus-within", FocusWithin, focusWithin, IN_FOCUS_WITHIN_STATE, _),
+                ("focus-visible", FocusVisible, focusVisible, IN_FOCUS_VISIBLE_STATE, _),
                 ("hover", Hover, hover, IN_HOVER_STATE, _),
                 ("-moz-drag-over", MozDragOver, mozDragOver, IN_DRAGOVER_STATE, _),
                 ("target", Target, target, IN_TARGET_STATE, _),
