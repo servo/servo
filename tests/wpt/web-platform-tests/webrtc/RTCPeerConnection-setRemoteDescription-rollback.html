@@ -551,4 +551,19 @@
     pc1.removeTrack(transceiver.sender);
   }, 'removeTrack() with a sender being rolled back does not crash or throw');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    const channel = pc2.createDataChannel('dummy');
+    await pc2.setLocalDescription(await pc2.createOffer());
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(pc2.signalingState, 'have-remote-offer');
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc2.setLocalDescription(await pc2.createOffer());
+    assert_equals(channel.readyState, 'connecting');
+  }, 'Implicit rollback with only a datachannel works');
+
 </script>

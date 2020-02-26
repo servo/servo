@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/C/#following-hyperlinks">
+<title>Anchor element with onclick form submission and href to fragment</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- When an anchor element has an onclick handler which submits a form,
+  the anchor's navigation should occur instead of the form's navigation.
+  However, if the anchor has an href which is just a fragment like "#",
+  then the form should be submitted. Many sites rely on this behavior. -->
+
+<iframe name="test"></iframe>
+<form target="test" action="form.html"></form>
+<a id="anchor" target="test" onclick="document.forms[0].submit()">Test</a>
+
+<script>
+async_test(async t => {
+  const iframe = document.querySelector('iframe');
+  const iframeLoadPromise = new Promise(resolve => iframe.onload = resolve);
+  iframe.src = '/';
+  await iframeLoadPromise;
+
+  const anchor = document.getElementById('anchor');
+  anchor.href = '/#';
+  t.step(() => anchor.click());
+  window.onmessage = t.step_func(event => {
+    if (typeof event.data === 'string' && event.data.includes('navigation')) {
+      assert_equals(event.data, 'form navigation');
+      t.done();
+    }
+  });
+});
+</script>

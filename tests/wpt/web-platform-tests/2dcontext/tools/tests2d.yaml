@@ -2898,11 +2898,85 @@
 
 - name: 2d.pattern.image.broken
   testing:
-    - 2d.pattern.incomplete.image
+    - 2d.pattern.broken.image
   images:
     - broken.png
   code: |
     var img = document.getElementById('broken.png');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.nonexistent
+  testing:
+    - 2d.pattern.nonexistent.image
+  images:
+    - no-such-image-really.png
+  code: |
+    var img = document.getElementById('no-such-image-really.png');
+    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+
+- name: 2d.pattern.svgimage.nonexistent
+  testing:
+    - 2d.pattern.nonexistent.svgimage
+  svgimages:
+    - no-such-image-really.png
+  code: |
+    var img = document.getElementById('no-such-image-really.png');
+    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+
+- name: 2d.pattern.image.nonexistent-but-loading
+  testing:
+    - 2d.pattern.nonexistent-but-loading.image
+  code: |
+    var img = document.createElement("img");
+    img.src = "/images/no-such-image-really.png";
+    @assert ctx.createPattern(img, 'repeat') === null;
+    var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    img.src = "/images/no-such-image-really.png";
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.nosrc
+  testing:
+    - 2d.pattern.nosrc.image
+  code: |
+    var img = document.createElement("img");
+    @assert ctx.createPattern(img, 'repeat') === null;
+    var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.zerowidth
+  testing:
+    - 2d.pattern.zerowidth.image
+  images:
+    - red-zerowidth.svg
+  code: |
+    var img = document.getElementById('red-zerowidth.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.zeroheight
+  testing:
+    - 2d.pattern.zeroheight.image
+  images:
+    - red-zeroheight.svg
+  code: |
+    var img = document.getElementById('red-zeroheight.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.svgimage.zerowidth
+  testing:
+    - 2d.pattern.zerowidth.svgimage
+  svgimages:
+    - red-zerowidth.svg
+  code: |
+    var img = document.getElementById('red-zerowidth.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.svgimage.zeroheight
+  testing:
+    - 2d.pattern.zeroheight.svgimage
+  svgimages:
+    - red-zeroheight.svg
+  code: |
+    var img = document.getElementById('red-zeroheight.svg');
     @assert ctx.createPattern(img, 'repeat') === null;
 
 - name: 2d.pattern.repeat.empty

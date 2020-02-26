@@ -645,10 +645,42 @@ policies and contribution forms [3].
         });
     }
 
-    function promise_rejects_dom(test, type, promise, description) {
+    /**
+     * Assert that a Promise is rejected with the right DOMException.
+     *
+     * @param test the test argument passed to promise_test
+     * @param {number|string} type.  See documentation for assert_throws_dom.
+     *
+     * For the remaining arguments, there are two ways of calling
+     * promise_rejects_dom:
+     *
+     * 1) If the DOMException is expected to come from the current global, the
+     * third argument should be the promise expected to reject, and a fourth,
+     * optional, argument is the assertion description.
+     *
+     * 2) If the DOMException is expected to come from some other global, the
+     * third argument should be the DOMException constructor from that global,
+     * the fourth argument the promise expected to reject, and the fifth,
+     * optional, argument the assertion description.
+     */
+
+    function promise_rejects_dom(test, type, promiseOrConstructor, descriptionOrPromise, maybeDescription) {
+        let constructor, promise, description;
+        if (typeof promiseOrConstructor === "function" &&
+            promiseOrConstructor.name === "DOMException") {
+            constructor = promiseOrConstructor;
+            promise = descriptionOrPromise;
+            description = maybeDescription;
+        } else {
+            constructor = self.DOMException;
+            promise = promiseOrConstructor;
+            description = descriptionOrPromise;
+            assert(maybeDescription === undefined,
+                   "Too many args pased to no-constructor version of promise_rejects_dom");
+        }
         return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
-            assert_throws_dom_impl(type, function() { throw e },
-                                   description, "promise_rejects_dom");
+            assert_throws_dom_impl(type, function() { throw e }, description,
+                                   "promise_rejects_dom", constructor);
         });
     }
 
@@ -1541,20 +1573,44 @@ policies and contribution forms [3].
      *        either be an exception name (e.g. "HierarchyRequestError",
      *        "WrongDocumentError") or the name of the corresponding error code
      *        (e.g. "HIERARCHY_REQUEST_ERR", "WRONG_DOCUMENT_ERR").
-     * @param {Function} func Function which should throw.
-     * @param {string} description Error description for the case that the error is not thrown.
+     *
+     * For the remaining arguments, there are two ways of calling
+     * promise_rejects_dom:
+     *
+     * 1) If the DOMException is expected to come from the current global, the
+     * second argument should be the function expected to throw and a third,
+     * optional, argument is the assertion description.
+     *
+     * 2) If the DOMException is expected to come from some other global, the
+     * second argument should be the DOMException constructor from that global,
+     * the third argument the function expected to throw, and the fourth, optional,
+     * argument the assertion description.
      */
-    function assert_throws_dom(type, func, description)
+    function assert_throws_dom(type, funcOrConstructor, descriptionOrFunc, maybeDescription)
     {
-        assert_throws_dom_impl(type, func, description, "assert_throws_dom")
+        let constructor, func, description;
+        if (funcOrConstructor.name === "DOMException") {
+            constructor = funcOrConstructor;
+            func = descriptionOrFunc;
+            description = maybeDescription;
+        } else {
+            constructor = self.DOMException;
+            func = funcOrConstructor;
+            description = descriptionOrFunc;
+            assert(maybeDescription === undefined,
+                   "Too many args pased to no-constructor version of assert_throws_dom");
+        }
+        assert_throws_dom_impl(type, func, description, "assert_throws_dom", constructor)
     }
     expose(assert_throws_dom, "assert_throws_dom");
 
     /**
-     * Like assert_throws_dom but allows specifying the assertion type
-     * (assert_throws_dom or promise_rejects_dom, in practice).
+     * Similar to assert_throws_dom but allows specifying the assertion type
+     * (assert_throws_dom or promise_rejects_dom, in practice).  The
+     * "constructor" argument must be the DOMException constructor from the
+     * global we expect the exception to come from.
      */
-    function assert_throws_dom_impl(type, func, description, assertion_type)
+    function assert_throws_dom_impl(type, func, description, assertion_type, constructor)
     {
         try {
             func.call(this);
@@ -1565,6 +1621,7 @@ policies and contribution forms [3].
                 throw e;
             }
 
+            // Basic sanity-checks on the thrown exception.
             assert(typeof e === "object",
                    assertion_type, description,
                    "${func} threw ${e} with type ${type}, not an object",
@@ -1678,19 +1735,21 @@ policies and contribution forms [3].
                 required_props.name = name;
             }
 
-            //We'd like to test that e instanceof the appropriate interface,
-            //but we can't, because we don't know what window it was created
-            //in.  It might be an instanceof the appropriate interface on some
-            //unknown other window.  TODO: Work around this somehow?  Maybe have
-            //the first arg just be a DOMException with the right name instead
-            //of the string-or-code thing we have now?
-
             for (var prop in required_props) {
                 assert(prop in e && e[prop] == required_props[prop],
                        assertion_type, description,
                        "${func} threw ${e} that is not a DOMException " + type + ": property ${prop} is equal to ${actual}, expected ${expected}",
                        {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
             }
+
+            // Check that the exception is from the right global.  This check is last
+            // so more specific, and more informative, checks on the properties can
+            // happen in case a totally incorrect exception is thrown.
+            assert(e.constructor === constructor,
+                   assertion_type, description,
+                   "${func} threw an exception from the wrong global",
+                   {func});
+
         }
     }
 

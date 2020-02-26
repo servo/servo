@@ -75,7 +75,7 @@ class HTTPWireProtocol(object):
         # => webdriver.Element
     """
 
-    def __init__(self, host, port, url_prefix="/", timeout=None):
+    def __init__(self, host, port, url_prefix="/"):
         """
         Construct interface for communicating with the remote server.
 
@@ -85,9 +85,8 @@ class HTTPWireProtocol(object):
         self.host = host
         self.port = port
         self.url_prefix = url_prefix
-
         self._conn = None
-        self._timeout = timeout
+        self._last_request_is_blocked = False
 
     def __del__(self):
         self.close()
@@ -102,10 +101,11 @@ class HTTPWireProtocol(object):
         """Gets the current HTTP connection, or lazily creates one."""
         if not self._conn:
             conn_kwargs = {}
-            if self._timeout is not None:
-                conn_kwargs["timeout"] = self._timeout
             if not PY3:
                 conn_kwargs["strict"] = True
+            # We are not setting an HTTP timeout other than the default
+            # because the timeouts are handled externally by the runner
+            # and can be different for each type of test.
             self._conn = HTTPConnection(self.host, self.port, **conn_kwargs)
 
         return self._conn
@@ -172,7 +172,15 @@ class HTTPWireProtocol(object):
                 raise ValueError("Failed to encode request body as JSON:\n"
                     "%s" % json.dumps(body, indent=2))
 
+        # When the timeout triggers, the TestRunnerManager thread will reuse
+        # this connection to check if the WebDriver its alive and we may end
+        # raising an httplib.CannotSendRequest exception if the WebDriver is
+        # not responding and this httplib.request() call is blocked on the
+        # runner thread. We use the boolean below to check for that and restart
+        # the connection in that case.
+        self._last_request_is_blocked = True
         response = self._request(method, uri, payload, headers)
+        self._last_request_is_blocked = False
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 
     def _request(self, method, uri, payload, headers=None):
@@ -185,7 +193,7 @@ class HTTPWireProtocol(object):
 
         url = self.url(uri)
 
-        if self._has_unread_data():
+        if self._last_request_is_blocked or self._has_unread_data():
             self.close()
         self.connection.request(method, url, payload, headers)
         return self.connection.getresponse()

@@ -2,7 +2,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  async_test(async t => {
+  async_test(t => {
+    assert_precondition("HTMLPortalElement" in self);
     let win = window.open("resources/portal-repeated-activate-window.html");
     win.onload = () => win.activate();
     window.onmessage = t.step_func_done(() => {});

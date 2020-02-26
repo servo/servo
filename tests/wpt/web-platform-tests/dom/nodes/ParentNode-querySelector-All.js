@@ -207,6 +207,10 @@ function runValidSelectorTest(type, root, selectors, testType, docType) {
   }
 }
 
+function windowFor(root) {
+  return root.defaultView || root.ownerDocument.defaultView;
+}
+
 /*
  * Execute queries with the specified invalid selectors for both querySelector() and querySelectorAll()
  * Only run these tests when errors are expected. Don't run for valid selector tests.
@@ -218,15 +222,15 @@ function runInvalidSelectorTest(type, root, selectors) {
     var q = s["selector"];
 
     test(function() {
-      assert_throws_dom("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", windowFor(root).DOMException, function() {
         root.querySelector(q)
-      })
+      });
     }, type + ".querySelector: " + n + ": " + q);
 
     test(function() {
-      assert_throws_dom("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", windowFor(root).DOMException, function() {
         root.querySelectorAll(q)
-      })
+      });
     }, type + ".querySelectorAll: " + n + ": " + q);
   }
 }

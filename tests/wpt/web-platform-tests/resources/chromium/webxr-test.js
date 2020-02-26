@@ -1012,6 +1012,9 @@ class MockXRInputSource {
       this.primary_input_clicked_ = fakeInputSourceInit.selectionClicked;
     }
 
+    this.primary_squeeze_pressed_ = false;
+    this.primary_squeeze_clicked_ = false;
+
     this.mojo_from_input_ = null;
     if (fakeInputSourceInit.gripOrigin != null) {
       this.setGripOrigin(fakeInputSourceInit.gripOrigin);
@@ -1163,6 +1166,20 @@ class MockXRInputSource {
       throw new Error("Unknown Button Type!");
     }
 
+    // is this a 'squeeze' button?
+    if (buttonIndex === this.getButtonIndex('grip')) {
+      // squeeze
+      if (buttonState.pressed) {
+        this.primary_squeeze_pressed_ = true;
+      } else if (this.gamepad_.buttons[buttonIndex].pressed) {
+        this.primary_squeeze_clicked_ = true;
+        this.primary_squeeze_pressed_ = false;
+      } else {
+        this.primary_squeeze_clicked_ = false;
+        this.primary_squeeze_pressed_ = false;
+      }
+    }
+
     this.gamepad_.buttons[buttonIndex].pressed = buttonState.pressed;
     this.gamepad_.buttons[buttonIndex].touched = buttonState.touched;
     this.gamepad_.buttons[buttonIndex].value = buttonState.pressedValue;
@@ -1181,10 +1198,17 @@ class MockXRInputSource {
 
     input_state.primaryInputPressed = this.primary_input_pressed_;
     input_state.primaryInputClicked = this.primary_input_clicked_;
+
+    input_state.primarySqueezePressed = this.primary_squeeze_pressed_;
+    input_state.primarySqueezeClicked = this.primary_squeeze_clicked_;
     // Setting the input source's "clicked" state should generate one "select"
     // event. Reset the input value to prevent it from continuously generating
     // events.
     this.primary_input_clicked_ = false;
+    // Setting the input source's "clicked" state should generate one "squeeze"
+    // event. Reset the input value to prevent it from continuously generating
+    // events.
+    this.primary_squeeze_clicked_ = false;
 
     input_state.mojoFromInput = this.mojo_from_input_;
 
@@ -1233,6 +1257,7 @@ class MockXRInputSource {
     // Pointer data for DOM Overlay, set by setOverlayPointerPosition()
     if (this.overlay_pointer_position_) {
       input_state.overlayPointerPosition = this.overlay_pointer_position_;
+      this.overlay_pointer_position_ = null;
     }
 
     return input_state;

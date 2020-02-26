@@ -348,6 +348,28 @@
     await new Promise(resolve => pc.onnegotiationneeded = resolve);
   }, 'Calling setStreams should cause negotiationneeded to fire');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    let negotiationCount = 0;
+    pc1.onnegotiationneeded = async () => {
+      negotiationCount++;
+      await pc1.setLocalDescription(await pc1.createOffer());
+      await pc2.setRemoteDescription(pc1.localDescription);
+      await pc2.setLocalDescription(await pc2.createAnswer());
+      await pc1.setRemoteDescription(pc2.localDescription);
+    }
+
+    pc1.addTransceiver("video");
+    await new Promise(r => pc1.onsignalingstatechange = () => pc1.signalingState == "stable" && r());
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onsignalingstatechange = () => pc1.signalingState == "stable" && r());
+    assert_equals(negotiationCount, 2);
+  }, 'Adding two transceivers, one at a time, results in the expected number of negotiationneeded events');
+
   /*
     TODO
     4.7.3.  Updating the Negotiation-Needed flag

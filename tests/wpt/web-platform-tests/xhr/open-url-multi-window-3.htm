@@ -10,12 +10,13 @@
     <script>
       function init() {
         test(function() {
-          var client = new self[0].XMLHttpRequest()
+          var client = new self[0].XMLHttpRequest();
+          let exceptionCtor = self[0].DOMException;
           client.open("GET", "folder.txt")
           document.body.removeChild(document.getElementsByTagName("iframe")[0])
-          assert_throws_dom("InvalidStateError", function() {
+          assert_throws_dom("InvalidStateError", exceptionCtor, function() {
             client.send(null)
-          }, "send() when associated document's IFRAME is removed")
+          }, "send() when associated document's IFRAME is removed");
         })
       }
     </script>

@@ -2406,10 +2406,7 @@ IdlInterface.prototype.test_member_operation = function(member)
     if (!shouldRunSubTest(this.name)) {
         return;
     }
-    var a_test = subsetTestByKey(this.name, async_test, this.name + " interface: operation " + member.name +
-                            "(" + member.arguments.map(
-                                function(m) {return m.idlType.idlType; } ).join(", ")
-                            +")");
+    var a_test = subsetTestByKey(this.name, async_test, this.name + " interface: operation " + member);
     a_test.step(function()
     {
         // This function tests WebIDL as of 2015-12-29.
@@ -2883,11 +2880,6 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
         || member.type == "operation")
         && member.name)
         {
-            var described_name = member.name;
-            if (member.type == "operation")
-            {
-                described_name += "(" + member.arguments.map(arg => arg.idlType.idlType).join(", ") + ")";
-            }
             subsetTestByKey(this.name, test, function()
             {
                 assert_equals(exception, null, "Unexpected exception when evaluating object");
@@ -2927,16 +2919,17 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
                         assert_equals(typeof obj[member.name], "function");
                     }
                 }
-            }.bind(this), this.name + " interface: " + desc + ' must inherit property "' + described_name + '" with the proper type');
+            }.bind(this), this.name + " interface: " + desc + ' must inherit property "' + member + '" with the proper type');
         }
         // TODO: This is wrong if there are multiple operations with the same
         // identifier.
         // TODO: Test passing arguments of the wrong type.
         if (member.type == "operation" && member.name && member.arguments.length)
         {
-            var a_test = subsetTestByKey(this.name, async_test, this.name + " interface: calling " + member.name +
-            "(" + member.arguments.map(function(m) { return m.idlType.idlType; }).join(", ") +
-            ") on " + desc + " with too few arguments must throw TypeError");
+            var description =
+                this.name + " interface: calling " + member + " on " + desc +
+                " with too few arguments must throw TypeError";
+            var a_test = subsetTestByKey(this.name, async_test, description);
             a_test.step(function()
             {
                 assert_equals(exception, null, "Unexpected exception when evaluating object");
@@ -3150,6 +3143,36 @@ IdlInterfaceMember.prototype.is_to_json_regular_operation = function() {
     return this.type == "operation" && this.special !== "static" && this.name == "toJSON";
 };
 
+IdlInterfaceMember.prototype.toString = function() {
+    function formatType(type) {
+        var result;
+        if (type.generic) {
+            result = type.generic + "<" + type.idlType.map(formatType).join(", ") + ">";
+        } else if (type.union) {
+            result = "(" + type.subtype.map(formatType).join(" or ") + ")";
+        } else {
+            result = type.idlType;
+        }
+        if (type.nullable) {
+            result += "?"
+        }
+        return result;
+    }
+
+    if (this.type === "operation") {
+        var args = this.arguments.map(function(m) {
+            return [
+                m.optional ? "optional " : "",
+                formatType(m.idlType),
+                m.variadic ? "..." : "",
+            ].join("");
+        }).join(", ");
+        return this.name + "(" + args + ")";
+    }
+
+    return this.name;
+}
+
 /// Internal helper functions ///
 function create_suitable_object(type)
 {
@@ -3294,17 +3317,10 @@ IdlNamespace.prototype.test_member_operation = function(member)
     if (!shouldRunSubTest(this.name)) {
         return;
     }
-    var args = member.arguments.map(function(a) {
-        var s = a.idlType.idlType;
-        if (a.variadic) {
-            s += '...';
-        }
-        return s;
-    }).join(", ");
     var a_test = subsetTestByKey(
         this.name,
         async_test,
-        this.name + ' namespace: operation ' + member.name + '(' + args + ')');
+        this.name + ' namespace: operation ' + member);
     a_test.step(function() {
         assert_own_property(
             self[this.name],

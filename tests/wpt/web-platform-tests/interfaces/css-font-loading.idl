@@ -18,10 +18,10 @@ dictionary FontFaceDescriptors {
 
 enum FontFaceLoadStatus { "unloaded", "loading", "loaded", "error" };
 
-[Constructor(CSSOMString family, (CSSOMString or BinaryData) source,
-             optional FontFaceDescriptors descriptors),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface FontFace {
+  constructor(CSSOMString family, (CSSOMString or BinaryData) source,
+                optional FontFaceDescriptors descriptors = {});
   attribute CSSOMString family;
   attribute CSSOMString style;
   attribute CSSOMString weight;
@@ -42,9 +42,9 @@ dictionary FontFaceSetLoadEventInit : EventInit {
   sequence<FontFace> fontfaces = [];
 };
 
-[Constructor(CSSOMString type, optional FontFaceSetLoadEventInit eventInitDict),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface FontFaceSetLoadEvent : Event {
+  constructor(CSSOMString type, optional FontFaceSetLoadEventInit eventInitDict = {});
   [SameObject] readonly attribute FrozenArray<FontFace> fontfaces;
 };
 
@@ -52,9 +52,10 @@ enum FontFaceSetLoadStatus { "loading", "loaded" };
 
 callback ForEachCallback = void (FontFace font, long index, FontFaceSet self);
 
-[Exposed=(Window,Worker),
- Constructor(sequence<FontFace> initialFaces)]
+[Exposed=(Window,Worker)]
 interface FontFaceSet : EventTarget {
+  constructor(sequence<FontFace> initialFaces);
+
   // FontFaceSet is Set-like!
   setlike<FontFace>;
   FontFaceSet add(FontFace font);

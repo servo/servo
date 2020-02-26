@@ -196,6 +196,33 @@
 
     test(function()
     {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError", ifr.contentWindow.DOMException,
+                          function () {ifr.contentDocument.querySelector("")});
+    }, "Test throw DOM SyntaxError from subframe");
+
+    test(function()
+    {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError",
+                          function () {ifr.contentDocument.querySelector("")});
+    }, "Test throw DOM SyntaxError from subframe with incorrect global expectation; expected to fail");
+
+    test(function()
+    {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError", ifr.contentWindow.DOMException,
+                          function () {document.querySelector("")});
+    }, "Test throw DOM SyntaxError with incorrect expectation; expected to fail");
+
+    test(function()
+    {
         assert_throws_dom("SyntaxError", function () {JSON.parse("{")});
     }, "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail")
 
@@ -214,13 +241,15 @@
 
     test(function()
     {
-        var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
+        var e = {code:0, name:"TEST_ERR", TEST_ERR:0};
+        e.constructor = DOMException;
         assert_throws_dom("TEST_ERR", function() {throw e});
     }, "Test assert_throws_dom with non-DOM-exception expected to Fail");
 
     test(function()
     {
-        var e = {code: DOMException.SYNTAX_ERR, name:"SyntaxError"}
+        var e = {code: DOMException.SYNTAX_ERR, name:"SyntaxError"};
+        e.constructor = DOMException;
         assert_throws_dom(DOMException.SYNTAX_ERR, function() {throw e});
     }, "Test assert_throws_dom with number code value expected to Pass");
 
@@ -356,6 +385,24 @@
       "status_string": "PASS",
       "name": "Test throw DOM SyntaxError",
       "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw DOM SyntaxError from subframe",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOM SyntaxError from subframe with incorrect global expectation; expected to fail",
+      "message": "assert_throws_dom: function \"function () {ifr.contentDocument.querySelector(\"\")}\" threw an exception from the wrong global",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOM SyntaxError with incorrect expectation; expected to fail",
+      "message": "assert_throws_dom: function \"function () {document.querySelector(\"\")}\" threw an exception from the wrong global",
       "properties": {}
     },
     {

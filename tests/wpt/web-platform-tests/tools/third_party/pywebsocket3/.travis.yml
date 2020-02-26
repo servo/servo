@@ -1,0 +1,17 @@
+language: python
+python:
+  - 2.7
+  - 3.5
+  - 3.6
+  - 3.7
+  - 3.8
+  - nightly
+
+matrix:
+  allow_failures:
+    - python: 3.5, nightly
+install:
+  - pip install six yapf
+script:
+  - python test/run_all.py
+  - yapf --diff --recursive .

@@ -535,62 +535,20 @@ function validateAuthenticatorAssertionResponse(assert) {
     // TODO: parseAuthenticatorData() and make sure flags are correct
 }
 
-//************* BEGIN DELETE AFTER 1/1/2018 *************** //
-// XXX for development mode only!!
-// debug() for debugging purposes... we can drop this later if it is considered ugly
-// note that debug is currently an empty function (i.e. - prints no output)
-// and debug only prints output if the polyfill is loaded
-var debug = function() {};
-// if the WebAuthn API doesn't exist load a polyfill for testing
-// note that the polyfill only gets loaded if navigator.credentials create doesn't exist
-// AND if the polyfill script is found at the right path (i.e. - the polyfill is opt-in)
-function ensureInterface() {
-    if (typeof navigator.credentials === "object" && typeof navigator.credentials.create !== "function") {
-        // debug = onsole.log;
-
-        return loadJavaScript("/webauthn/webauthn-polyfill/webauthn-polyfill.js")
-            .then(() => {
-                return loadJavaScript("/webauthn/webauthn-soft-authn/soft-authn.js");
-            });
-    } else {
-        return Promise.resolve();
-    }
-}
-
-function loadJavaScript(path) {
-    return new Promise((resolve, reject) => {
-        // dynamic loading of polyfill script by creating new <script> tag and seeing the src=
-        var scriptElem = document.createElement("script");
-        if (typeof scriptElem !== "object") {
-            debug("ensureInterface: Error creating script element while attempting loading polyfill");
-            return reject(new Error("ensureInterface: Error creating script element while loading polyfill"));
+function standardSetup(cb) {
+    // Setup an automated testing environment if available.
+    window.test_driver.add_virtual_authenticator({
+      protocol: "ctap1/u2f",
+      transport: "usb"
+    }).then(cb).catch(error => {
+        if (error === "error: Action add_virtual_authenticator not implemented") {
+          // The protocol is not available. Continue manually.
+          cb();
+          return;
         }
-        scriptElem.type = "application/javascript";
-        scriptElem.onload = function() {
-            debug("!!! Loaded " + path + " ...");
-            return resolve();
-        };
-        scriptElem.onerror = function() {
-            debug("navigator.credentials.create does not exist");
-            resolve();
-        };
-        scriptElem.src = path;
-        if (document.body) {
-            document.body.appendChild(scriptElem);
-        } else {
-            debug("ensureInterface: DOM has no body");
-            return reject(new Error("ensureInterface: DOM has no body"));
-        }
+        throw error;
     });
 }
-
-function standardSetup(cb) {
-    return ensureInterface()
-        .then(() => {
-            if (cb) return cb();
-        });
-}
-//************* END DELETE AFTER 1/1/2018 *************** //
 
 /* JSHINT */
 /* globals promise_rejects_dom, promise_rejects_js, assert_class_string, assert_equals, assert_idl_attribute, assert_readonly, promise_test */

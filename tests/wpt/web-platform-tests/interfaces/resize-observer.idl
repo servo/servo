@@ -11,9 +11,9 @@ dictionary ResizeObserverOptions {
     ResizeObserverBoxOptions box = "content-box";
 };
 
-[Exposed=(Window),
- Constructor(ResizeObserverCallback callback)]
+[Exposed=(Window)]
 interface ResizeObserver {
+    constructor(ResizeObserverCallback callback);
     void observe(Element target, optional ResizeObserverOptions options);
     void unobserve(Element target);
     void disconnect();
@@ -35,9 +35,8 @@ interface ResizeObserverSize {
     readonly attribute unrestricted double blockSize;
 };
 
-[Constructor(Element target)
-]
 interface ResizeObservation {
+    constructor(Element target);
     readonly attribute Element target;
     readonly attribute ResizeObserverBoxOptions observedBox;
     readonly attribute sequence<ResizeObserverSize> lastReportedSizes;

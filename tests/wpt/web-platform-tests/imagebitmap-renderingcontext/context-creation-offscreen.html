@@ -12,7 +12,7 @@ test(function() {
     var ctx = canvas.getContext('bitmaprenderer');
     assert_true(ctx instanceof ImageBitmapRenderingContext);
     assert_true("canvas" in ctx);
-    assert_object_equals(canvas, ctx.canvas);
+    assert_equals(canvas, ctx.canvas);
 }, "Test that canvas.getContext('bitmaprenderer') returns an instance of ImageBitmapRenderingContext and ctx.canvas on a ImageBitmapRenderingContext returns the original OffscreenCanvas");
 
 </script>

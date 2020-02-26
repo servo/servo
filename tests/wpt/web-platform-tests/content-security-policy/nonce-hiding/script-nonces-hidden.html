@@ -149,10 +149,10 @@
 <nonce-element nonce="abc"></nonce-element>
 <script nonce="abc">
   test(t => {
+    assert_object_equals(eventList[0], { type: "AttributeChanged", name: "nonce", oldValue: null, newValue: "abc" }, "AttributeChanged 1");
+    assert_object_equals(eventList[1], { type: "Connected" }, "Connected");
+    assert_object_equals(eventList[2], { type: "AttributeChanged", name: "nonce", oldValue: "abc", newValue: "" }, "AttributeChanged 2");
     assert_equals(eventList.length, 3);
-    assert_object_equals(eventList[0], { type: "AttributeChanged", name: "nonce", oldValue: null, newValue: "abc" });
-    assert_object_equals(eventList[1], { type: "Connected" });
-    assert_object_equals(eventList[2], { type: "AttributeChanged", name: "nonce", oldValue: "abc", newValue: "" });
   }, "Custom elements expose the correct events.");
 </script>
 

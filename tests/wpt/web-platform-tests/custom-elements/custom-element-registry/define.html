@@ -105,7 +105,7 @@
   });
   invalidCustomElementNames.forEach(name =>  {
     test(() =>  {
-      assert_throws_dom(expectSyntaxError, () =>  {
+      assert_throws_dom(expectSyntaxError, testWindow.DOMException, () =>  {
         customElements.define(name, class {});
       });
     }, `Element names: defining an element named ${name} should throw a SyntaxError`);
@@ -115,7 +115,7 @@
   // then throw a NotSupportedError and abort these steps.
   test(() =>  {
     customElements.define('test-define-dup-name', class {});
-    assert_throws_dom(expectNotSupportedError, () =>  {
+    assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
       customElements.define('test-define-dup-name', class {});
     });
   }, 'If the name is already defined, should throw a NotSupportedError');
@@ -125,7 +125,7 @@
   test(() =>  {
     class TestDupConstructor {};
     customElements.define('test-define-dup-constructor', TestDupConstructor);
-    assert_throws_dom(expectNotSupportedError, () =>  {
+    assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
       customElements.define('test-define-dup-ctor2', TestDupConstructor);
     });
   }, 'If the constructor is already defined, should throw a NotSupportedError');
@@ -134,7 +134,7 @@
   // then throw a NotSupportedError.
   validCustomElementNames.forEach(name =>  {
     test(() =>  {
-      assert_throws_dom(expectNotSupportedError, () =>  {
+      assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
         customElements.define('test-define-extend-valid-name', class {}, { extends: name });
       });
     }, `If extends is ${name}, should throw a NotSupportedError`);
@@ -154,7 +154,7 @@
     'elementnametobeunknownelement',
   ].forEach(name =>  {
     test(() =>  {
-      assert_throws_dom(expectNotSupportedError, () =>  {
+      assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
         customElements.define('test-define-extend-' + name, class {}, { extends: name });
       });
     }, `If extends is ${name}, should throw a NotSupportedError`);

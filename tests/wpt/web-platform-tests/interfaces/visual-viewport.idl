@@ -7,6 +7,7 @@ partial interface Window {
   [SameObject, Replaceable] readonly attribute VisualViewport visualViewport;
 };
 
+[Exposed=Window]
 interface VisualViewport : EventTarget {
   readonly attribute double offsetLeft;
   readonly attribute double offsetTop;

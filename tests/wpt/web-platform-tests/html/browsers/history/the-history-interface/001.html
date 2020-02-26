@@ -94,7 +94,7 @@ function reportload() {
             assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','data:text/html,'); });
         }, 'pushState must not be allowed to create cross-origin URLs (data:URI)');
         test(function () {
-            assert_throws_dom('SECURITY_ERR',function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); },iframe.contentWindow);
+            assert_throws_dom('SECURITY_ERR', iframe.contentWindow.DOMException, function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
         test(function () {
             iframe.contentWindow.location.hash = 'test2';
@@ -180,9 +180,9 @@ function reportload() {
             }
         }, 'pushState must be able to use an error object as data');
         test(function () {
-            assert_throws_dom( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom('DATA_CLONE_ERR', iframe.contentWindow.DOMException, function () {
                 iframe.contentWindow.history.pushState(document,'');
-            }, iframe.contentWindow );
+            });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object (2)');
         cloneobj = {
             nulldata: null,

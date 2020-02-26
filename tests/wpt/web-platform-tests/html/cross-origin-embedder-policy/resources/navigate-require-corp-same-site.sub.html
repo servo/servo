@@ -1,0 +1,29 @@
+<!doctype html>
+<script>
+  const current = new URL(window.location.href);
+  const token = current.searchParams.get("token");
+  const navigateTo = current.searchParams.get("to");
+  const channelName = current.searchParams.get("channelName");
+  const clearOpener = current.searchParams.get("clearOpener");
+
+  if (clearOpener) {
+    window.opener = null;
+  }
+
+  current.search = "";
+  if (navigateTo) {
+    let next = new URL(navigateTo, current);
+    setTimeout(() => {
+      window.location = next.href;
+    }, 50);
+  }
+
+  if (channelName) {
+    let bc = new BroadcastChannel(channelName);
+    bc.postMessage("loaded");
+  }
+
+  if (parent !== window && token) {
+    parent.postMessage(token, "*");
+  }
+</script>

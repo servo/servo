@@ -301,11 +301,19 @@ class WebDriverProtocol(Protocol):
         self.webdriver = None
 
     def is_alive(self):
+        socket_previous_timeout = socket.getdefaulttimeout()
         try:
-            # Get a simple property over the connection
+            # Get a simple property over the connection, with 2 seconds of timeout
+            # that should be more than enough to check if the WebDriver its
+            # still alive, and allows to complete the check within the testrunner
+            # 5 seconds of extra_timeout we have as maximum to end the test before
+            # the external timeout from testrunner triggers.
+            socket.setdefaulttimeout(2)
             self.webdriver.window_handle
-        except (socket.timeout, client.UnknownErrorException):
+        except (socket.timeout, client.UnknownErrorException, client.InvalidSessionIdException):
             return False
+        finally:
+            socket.setdefaulttimeout(socket_previous_timeout)
         return True
 
     def after_connect(self):

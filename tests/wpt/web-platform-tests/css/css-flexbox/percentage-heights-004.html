@@ -9,7 +9,7 @@
 #outer {
   height: 10em;
   display: inline-flex;
-  background: red;
+  background: tan;
 }
 
 #middle {
@@ -17,8 +17,8 @@
 }
 
 #inner {
-  height: 100%;
   width: 200px;
+  height: 100%;
   background: green;
 }
 
@@ -26,7 +26,7 @@
   height: 10em;
   display: inline-flex;
   flex-direction: column;
-  background: red;
+  background: tan;
 }
 
 #middle2 {
@@ -35,13 +35,14 @@
 }
 
 #inner2 {
-  height: 100%;
   width: 200px;
+  height: 100%;
   background: green;
 }
 </style>
 
-<p>You should not see red nor a vertical scrollbar</p>
+<p>You should not see tan (except perhaps as the background of a horizontal
+   scrollbar), and you should not see a vertical scrollbar.</p>
 
 <div id="outer">
   <div id="middle">

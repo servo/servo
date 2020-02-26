@@ -58,9 +58,9 @@ interface MediaQueryList : EventTarget {
            attribute EventHandler onchange;
 };
 
-[Exposed=Window,
- Constructor(CSSOMString type, optional MediaQueryListEventInit eventInitDict = {})]
+[Exposed=Window]
 interface MediaQueryListEvent : Event {
+  constructor(CSSOMString type, optional MediaQueryListEventInit eventInitDict = {});
   readonly attribute CSSOMString media;
   readonly attribute boolean matches;
 };
