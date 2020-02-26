@@ -29,6 +29,7 @@ gleam = "0.6.7"
 half = "1"
 ipc-channel = "0.14"
 log = "0.4"
+lyon_geom = "0.14"
 num-traits = "0.2"
 raqote = {git = "https://github.com/jrmuizel/raqote"}
 time = { version = "0.1.0", optional = true }

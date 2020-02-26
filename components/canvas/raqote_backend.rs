@@ -12,8 +12,9 @@ use crate::canvas_paint_thread::AntialiasMode;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::Angle;
+use lyon_geom::Arc;
 use raqote::PathOp;
-use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 pub struct RaqoteBackend;
@@ -684,25 +685,19 @@ impl GenericPathBuilder for PathBuilder {
         &mut self,
         origin: Point2D<f32>,
         radius: f32,
-        mut start_angle: f32,
-        mut end_angle: f32,
+        start_angle: f32,
+        end_angle: f32,
         anticlockwise: bool,
     ) {
-        if (!anticlockwise && start_angle > end_angle + 2. * PI) ||
-            (anticlockwise && end_angle > start_angle + 2. * PI)
-        {
-            start_angle = start_angle % (2. * PI);
-            end_angle = end_angle % (2. * PI);
-        }
-
-        if (anticlockwise && end_angle > 0.) || (!anticlockwise && end_angle < 0.) {
-            end_angle = -end_angle;
-        }
-
-        self.0
-            .as_mut()
-            .unwrap()
-            .arc(origin.x, origin.y, radius, start_angle, end_angle);
+        self.ellipse(
+            origin,
+            radius,
+            radius,
+            0.,
+            start_angle,
+            end_angle,
+            anticlockwise,
+        );
     }
     fn bezier_curve_to(
         &mut self,
@@ -727,77 +722,57 @@ impl GenericPathBuilder for PathBuilder {
         origin: Point2D<f32>,
         radius_x: f32,
         radius_y: f32,
-        _rotation_angle: f32,
+        rotation_angle: f32,
         start_angle: f32,
-        mut end_angle: f32,
+        end_angle: f32,
         anticlockwise: bool,
     ) {
-        let start_point = Point2D::new(
-            origin.x + start_angle.cos() * radius_x,
-            origin.y + end_angle.sin() * radius_y,
-        );
-        self.line_to(start_point);
+        let mut start = Angle::radians(start_angle);
+        let mut end = Angle::radians(end_angle);
 
-        if !anticlockwise && (end_angle < start_angle) {
-            let correction = ((start_angle - end_angle) / (2.0 * PI)).ceil();
-            end_angle += correction * 2.0 * PI;
-        } else if anticlockwise && (start_angle < end_angle) {
-            let correction = ((end_angle - start_angle) / (2.0 * PI)).ceil();
-            end_angle += correction * 2.0 * PI;
-        }
-        // Sweeping more than 2 * pi is a full circle.
-        if !anticlockwise && (end_angle - start_angle > 2.0 * PI) {
-            end_angle = start_angle + 2.0 * PI;
-        } else if anticlockwise && (start_angle - end_angle > 2.0 * PI) {
-            end_angle = start_angle - 2.0 * PI;
+        // Wrap angles mod 2 * PI if necessary
+        if !anticlockwise && start > end + Angle::two_pi() ||
+            anticlockwise && end > start + Angle::two_pi()
+        {
+            start = start.positive();
+            end = end.positive();
         }
 
         // Calculate the total arc we're going to sweep.
-        let mut arc_sweep_left = (end_angle - start_angle).abs();
-        let sweep_direction = match anticlockwise {
-            true => -1.0,
-            false => 1.0,
+        let sweep = match anticlockwise {
+            true => {
+                if end - start == Angle::two_pi() {
+                    -Angle::two_pi()
+                } else if end > start {
+                    -(Angle::two_pi() - (end - start))
+                } else {
+                    -(start - end)
+                }
+            },
+            false => {
+                if start - end == Angle::two_pi() {
+                    Angle::two_pi()
+                } else if start > end {
+                    Angle::two_pi() - (start - end)
+                } else {
+                    end - start
+                }
+            },
         };
-        let mut current_start_angle = start_angle;
-        while arc_sweep_left > 0.0 {
-            // We guarantee here the current point is the start point of the next
-            // curve segment.
-            let current_end_angle;
-            if arc_sweep_left > PI / 2.0 {
-                current_end_angle = current_start_angle + PI / 2.0 * sweep_direction;
-            } else {
-                current_end_angle = current_start_angle + arc_sweep_left * sweep_direction;
-            }
-            let current_start_point = Point2D::new(
-                origin.x + current_start_angle.cos() * radius_x,
-                origin.y + current_start_angle.sin() * radius_y,
-            );
-            let current_end_point = Point2D::new(
-                origin.x + current_end_angle.cos() * radius_x,
-                origin.y + current_end_angle.sin() * radius_y,
-            );
-            // Calculate kappa constant for partial curve. The sign of angle in the
-            // tangent will actually ensure this is negative for a counter clockwise
-            // sweep, so changing signs later isn't needed.
-            let kappa_factor =
-                (4.0 / 3.0) * ((current_end_angle - current_start_angle) / 4.0).tan();
-            let kappa_x = kappa_factor * radius_x;
-            let kappa_y = kappa_factor * radius_y;
 
-            let tangent_start =
-                Point2D::new(-(current_start_angle.sin()), current_start_angle.cos());
-            let mut cp1 = current_start_point;
-            cp1 += Point2D::new(tangent_start.x * kappa_x, tangent_start.y * kappa_y).to_vector();
-            let rev_tangent_end = Point2D::new(current_end_angle.sin(), -(current_end_angle.cos()));
-            let mut cp2 = current_end_point;
-            cp2 +=
-                Point2D::new(rev_tangent_end.x * kappa_x, rev_tangent_end.y * kappa_y).to_vector();
+        let arc: Arc<f32> = Arc {
+            center: origin,
+            radii: Vector2D::new(radius_x, radius_y),
+            start_angle: start,
+            sweep_angle: sweep,
+            x_rotation: Angle::radians(rotation_angle),
+        };
 
-            self.bezier_curve_to(&cp1, &cp2, &current_end_point);
+        self.line_to(arc.from());
 
-            arc_sweep_left -= PI / 2.0;
-            current_start_angle = current_end_angle;
-        }
+        arc.for_each_quadratic_bezier(&mut |q| {
+            self.quadratic_curve_to(&q.ctrl, &q.to);
+        });
     }
 
     fn get_current_point(&mut self) -> Option<Point2D<f32>> {
