@@ -554,7 +554,7 @@ def linux_wpt():
 
 
 def linux_wpt_layout_2020():
-    linux_wpt_common(total_chunks=1, layout_2020=True)
+    linux_wpt_common(total_chunks=2, layout_2020=True)
 
 
 def linux_wpt_common(total_chunks, layout_2020):
