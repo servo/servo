@@ -67,6 +67,9 @@ bitflags! {
 
         /// Whether this style is the style of the document element.
         const IS_ROOT_ELEMENT_STYLE = 1 << 11;
+
+        /// Whether this element is inside an `opacity: 0` subtree.
+        const IS_IN_OPACITY_ZERO_SUBTREE = 1 << 12;
     }
 }
 
@@ -74,10 +77,11 @@ impl ComputedValueFlags {
     /// Flags that are unconditionally propagated to descendants.
     #[inline]
     fn inherited_flags() -> Self {
-        ComputedValueFlags::IS_RELEVANT_LINK_VISITED |
-            ComputedValueFlags::CAN_BE_FRAGMENTED |
-            ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
-            ComputedValueFlags::HAS_TEXT_DECORATION_LINES
+        Self::IS_RELEVANT_LINK_VISITED |
+            Self::CAN_BE_FRAGMENTED |
+            Self::IS_IN_PSEUDO_ELEMENT_SUBTREE |
+            Self::HAS_TEXT_DECORATION_LINES |
+            Self::IS_IN_OPACITY_ZERO_SUBTREE
     }
 
     /// Flags that may be propagated to descendants.
