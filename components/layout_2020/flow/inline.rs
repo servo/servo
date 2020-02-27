@@ -567,7 +567,10 @@ fn layout_atomic<'box_tree>(
         },
     };
 
-    ifc.inline_position += pbm.inline_end;
+    ifc.inline_position += pbm.inline_end + fragment.content_rect.size.inline;
+    ifc.current_nesting_level
+        .max_block_size_of_fragments_so_far
+        .max_assign(pbm.block_sum() + fragment.content_rect.size.block);
     ifc.current_nesting_level
         .fragments_so_far
         .push(Fragment::Box(fragment));
