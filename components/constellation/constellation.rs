@@ -2207,7 +2207,11 @@ where
             Some(browsing_context_group) => {
                 let adapter_request =
                     if let FromScriptMsg::RequestAdapter(sender, options, ids) = request {
-                        WebGPURequest::RequestAdapter(sender, options, ids)
+                        WebGPURequest::RequestAdapter {
+                            sender,
+                            options,
+                            ids,
+                        }
                     } else {
                         return warn!("Wrong message type in handle_request_wgpu_adapter");
                     };

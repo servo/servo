@@ -115,7 +115,7 @@ impl GPUMethods for GPU {
             },
             None => wgpu::instance::PowerPreference::Default,
         };
-        let ids = global.wgpu_create_adapter_ids();
+        let ids = global.wgpu_id_hub().create_adapter_ids();
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
@@ -135,13 +135,17 @@ impl GPUMethods for GPU {
 impl AsyncWGPUListener for GPU {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestAdapter(name, adapter, channel) => {
+            WebGPUResponse::RequestAdapter {
+                adapter_name,
+                adapter_id,
+                channel,
+            } => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
                     channel,
-                    DOMString::from(format!("{} ({:?})", name, adapter.0.backend())),
+                    DOMString::from(format!("{} ({:?})", adapter_name, adapter_id.0.backend())),
                     Heap::default(),
-                    adapter,
+                    adapter_id,
                 );
                 promise.resolve_native(&adapter);
             },

@@ -64,10 +64,13 @@ impl GPUQueueMethods for GPUQueue {
             // TODO: Generate error to the ErrorScope
             return;
         }
-        let buffer_ids = command_buffers.iter().map(|cb| cb.id().0).collect();
+        let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0
-            .send(WebGPURequest::Submit(self.queue.0, buffer_ids))
+            .send(WebGPURequest::Submit {
+                queue_id: self.queue.0,
+                command_buffers,
+            })
             .unwrap();
     }
 }

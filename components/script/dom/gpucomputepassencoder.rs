@@ -81,11 +81,14 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass
     fn EndPass(&self) {
         if let Some(raw_pass) = self.raw_pass.borrow_mut().take() {
-            let (pass_data, id) = unsafe { raw_pass.finish_compute() };
+            let (pass_data, command_encoder_id) = unsafe { raw_pass.finish_compute() };
 
             self.channel
                 .0
-                .send(WebGPURequest::RunComputePass(id, pass_data))
+                .send(WebGPURequest::RunComputePass {
+                    command_encoder_id,
+                    pass_data,
+                })
                 .unwrap();
         }
     }
