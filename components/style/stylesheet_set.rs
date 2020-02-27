@@ -294,7 +294,9 @@ where
         // Removing sheets makes us tear down the whole cascade and invalidation
         // data, but only if the sheet has been involved in at least one flush.
         // Checking whether the sheet has been committed allows us to avoid
-        // rebuilding the world when sites quickly append and remove a stylesheet.
+        // rebuilding the world when sites quickly append and remove a
+        // stylesheet.
+        //
         // See bug 1434756.
         if sheet.committed {
             self.set_data_validity_at_least(DataValidity::FullyInvalid);
