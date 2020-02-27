@@ -5,9 +5,11 @@
 <link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
 <script>
 
-promise_test(async t => {
+nfc_test(async (t, mockNFC) => {
+  mockNFC.simulateClosedPipe();
   const reader = new NDEFReader();
   const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
   const promise = readerWatcher.wait_for("reading").then(event => {

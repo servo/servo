@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Test that *:not(:link):not(:visited) does not match links</title>
+<body>
+  <a href="#">Unvisited</a>
+  <a href="">Visited</a>
+  <span style="background-color: green">Green</span>
+  <p>
+    Only "Green" should have a green background.
+  </p>
+</body>

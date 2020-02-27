@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Test that *:not(:link):not(:visited) does not match links</title>
+<link rel="match" href="not-links-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#negation">
+<style>
+  body > *:not(:link):not(:visited) {
+    background-color: green;
+  }
+</style>
+<body>
+  <a href="#">Unvisited</a>
+  <a href="">Visited</a>
+  <span>Green</span>
+  <p style="background-color: initial">
+    Only "Green" should have a green background.
+  </p>
+</body>

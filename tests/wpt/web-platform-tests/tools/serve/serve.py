@@ -35,7 +35,7 @@ from mod_pywebsocket import standalone as pywebsocket
 
 EDIT_HOSTS_HELP = ("Please ensure all the necessary WPT subdomains "
                    "are mapped to a loopback device in /etc/hosts. "
-                   "See https://github.com/web-platform-tests/wpt#running-the-tests "
+                   "See https://web-platform-tests.org/running-tests/from-local-system.html#system-setup "
                    "for instructions.")
 
 

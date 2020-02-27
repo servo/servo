@@ -65,9 +65,9 @@ handler returns, or for directly writing to the output stream.
 
 
 EDIT_HOSTS_HELP = ("Please ensure all the necessary WPT subdomains "
-                  "are mapped to a loopback device in /etc/hosts. "
-                  "See https://github.com/web-platform-tests/wpt#running-the-tests "
-                  "for instructions.")
+                   "are mapped to a loopback device in /etc/hosts. "
+                   "See https://web-platform-tests.org/running-tests/from-local-system.html#system-setup "
+                   "for instructions.")
 
 
 class RequestRewriter(object):
