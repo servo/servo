@@ -156,7 +156,8 @@ promise_test(async t => {
 
 // We do not provide NFC mock here to simulate that there has no available
 // implementation for NFC Mojo interface.
-promise_test(async t => {
+nfc_test(async (t, mockNFC) => {
+  mockNFC.simulateClosedPipe();
   if (window.testRunner) {
     // Deny nfc permissions for Chromium testrunner.
     window.testRunner.setPermission('nfc', 'granted',

@@ -1,6 +1,6 @@
-from urllib import urlencode
-from urlparse import urlparse
 import time
+
+from six.moves.urllib.parse import urlencode, urlparse
 
 def main(request, response):
     stashed_data = {'count': 0, 'preflight': "0"}

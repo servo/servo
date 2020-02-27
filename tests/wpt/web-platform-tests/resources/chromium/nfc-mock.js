@@ -144,8 +144,13 @@ var WebNFCTest = (() => {
       this.bindingSet_ = new mojo.BindingSet(device.mojom.NFC);
 
       this.interceptor_ = new MojoInterfaceInterceptor(device.mojom.NFC.name);
-      this.interceptor_.oninterfacerequest =
-          e => this.bindingSet_.addBinding(this, e.handle);
+      this.interceptor_.oninterfacerequest = e => {
+        if (this.should_close_pipe_on_request_)
+          e.handle.close();
+        else
+          this.bindingSet_.addBinding(this, e.handle);
+      }
+
       this.interceptor_.start();
 
       this.hw_status_ = NFCHWStatus.ENABLED;
@@ -159,6 +164,7 @@ var WebNFCTest = (() => {
       this.operations_suspended_ = false;
       this.is_formatted_tag_ = false;
       this.data_transfer_failed_ = false;
+      this.should_close_pipe_on_request_ = false;
     }
 
     // NFC delegate functions.
@@ -278,6 +284,7 @@ var WebNFCTest = (() => {
       this.cancelPendingPushOperation();
       this.is_formatted_tag_ = false;
       this.data_transfer_failed_ = false;
+      this.should_close_pipe_on_request_ = false;
     }
 
     cancelPendingPushOperation() {
@@ -359,6 +366,10 @@ var WebNFCTest = (() => {
 
     simulateDataTransferFails() {
       this.data_transfer_failed_ = true;
+    }
+
+    simulateClosedPipe() {
+      this.should_close_pipe_on_request_ = true;
     }
   }
 
