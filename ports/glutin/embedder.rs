@@ -12,6 +12,7 @@ use glutin;
 use glutin::dpi::LogicalSize;
 use glutin::EventsLoopClosed;
 use rust_webvr::GlWindowVRService;
+use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::{opts, pref};
@@ -89,7 +90,12 @@ impl EmbedderMethods for EmbedderCallbacks {
         }
     }
 
-    fn register_webxr(&mut self, xr: &mut webxr::MainThreadRegistry) {
+    fn register_webxr(
+        &mut self,
+        xr: &mut webxr::MainThreadRegistry,
+        _executor: WebGlExecutor,
+        _surface_provider_registration: SurfaceProviders
+    ) {
         if pref!(dom.webxr.test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
         } else if !opts::get().headless && pref!(dom.webxr.glwindow) {

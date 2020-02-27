@@ -54,7 +54,7 @@ use sparkle::gl::GLint;
 use sparkle::gl::GLuint;
 use sparkle::gl::Gl;
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -70,9 +70,10 @@ use surfman::GLVersion;
 use surfman::SurfaceAccess;
 use surfman::SurfaceInfo;
 use surfman::SurfaceType;
-use surfman_chains::SwapChains;
+use surfman_chains::{SurfmanProvider, SwapChains};
 use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use webxr_api::SessionId;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 #[cfg(feature = "xr-profile")]
@@ -138,25 +139,29 @@ pub(crate) struct WebGLThread {
     /// We use it to get an unique ID for new WebGLContexts.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     /// The receiver that will be used for processing WebGL messages.
-    receiver: WebGLReceiver<WebGLMsg>,
+    receiver: crossbeam_channel::Receiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
     sender: WebGLSender<WebGLMsg>,
     /// The swap chains used by webrender
     webrender_swap_chains: SwapChains<WebGLContextId>,
     /// The swap chains used by webxr
     webxr_swap_chains: SwapChains<WebXRSwapChainId>,
+    /// The set of all surface providers corresponding to WebXR sessions.
+    webxr_surface_providers: SurfaceProviders,
+    /// A channel to allow arbitrary threads to execute tasks that run in the WebGL thread.
+    runnable_receiver: crossbeam_channel::Receiver<WebGlRunnable>,
     /// Whether this context is a GL or GLES context.
     api_type: gl::GlType,
 }
 
-#[derive(PartialEq)]
-enum EventLoop {
-    Blocking,
-    Nonblocking,
-}
+pub type WebGlExecutor = crossbeam_channel::Sender<WebGlRunnable>;
+pub type WebGlRunnable = Box<dyn FnOnce() + Send>;
+pub type SurfaceProviders = Arc<Mutex<HashMap<SessionId, SurfaceProvider>>>;
+pub type SurfaceProvider = Box<dyn surfman_chains::SurfaceProvider + Send>;
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
+    pub webxr_surface_providers: SurfaceProviders,
     pub webrender_api_sender: webrender_api::RenderApiSender,
     pub webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -167,37 +172,7 @@ pub(crate) struct WebGLThreadInit {
     pub connection: Connection,
     pub adapter: Adapter,
     pub api_type: gl::GlType,
-}
-
-/// The extra data required to run an instance of WebGLThread when it is
-/// not running in its own thread.
-pub struct WebGLMainThread {
-    pub(crate) thread_data: RefCell<WebGLThread>,
-    shut_down: Cell<bool>,
-}
-
-impl WebGLMainThread {
-    /// Synchronously process all outstanding WebGL messages.
-    pub fn process(&self) {
-        if self.shut_down.get() {
-            return;
-        }
-
-        // Any context could be current when we start.
-        self.thread_data.borrow_mut().bound_context_id = None;
-        let result = self
-            .thread_data
-            .borrow_mut()
-            .process(EventLoop::Nonblocking);
-        if !result {
-            self.shut_down.set(true);
-            WEBGL_MAIN_THREAD.with(|thread_data| thread_data.borrow_mut().take());
-        }
-    }
-}
-
-thread_local! {
-    static WEBGL_MAIN_THREAD: RefCell<Option<Rc<WebGLMainThread>>> = RefCell::new(None);
+    pub runnable_receiver: crossbeam_channel::Receiver<WebGlRunnable>,
 }
 
 // A size at which it should be safe to create GL contexts
@@ -214,9 +189,11 @@ impl WebGLThread {
             receiver,
             webrender_swap_chains,
             webxr_swap_chains,
+            webxr_surface_providers,
             connection,
             adapter,
             api_type,
+            runnable_receiver,
         }: WebGLThreadInit,
     ) -> Self {
         WebGLThread {
@@ -229,9 +206,11 @@ impl WebGLThread {
             dom_outputs: Default::default(),
             external_images,
             sender,
-            receiver,
+            receiver: receiver.into_inner(),
             webrender_swap_chains,
             webxr_swap_chains,
+            webxr_surface_providers,
+            runnable_receiver,
             api_type,
         }
     }
@@ -243,23 +222,35 @@ impl WebGLThread {
             .name("WebGL thread".to_owned())
             .spawn(move || {
                 let mut data = WebGLThread::new(init);
-                data.process(EventLoop::Blocking);
+                data.process();
             })
             .expect("Thread spawning failed");
     }
 
-    fn process(&mut self, loop_type: EventLoop) -> bool {
+    fn process(&mut self) {
         let webgl_chan = WebGLChan(self.sender.clone());
-        while let Ok(msg) = match loop_type {
-            EventLoop::Blocking => self.receiver.recv(),
-            EventLoop::Nonblocking => self.receiver.try_recv(),
-        } {
-            let exit = self.handle_msg(msg, &webgl_chan);
-            if exit {
-                return false;
+        loop {
+            crossbeam_channel::select! {
+                recv(self.receiver) -> msg => {
+                    match msg {
+                        Ok(msg) => {
+                            let exit = self.handle_msg(msg, &webgl_chan);
+                            if exit {
+                                return;
+                            }
+                        }
+                        _ => break,
+                    }
+                }
+                recv(self.runnable_receiver) -> msg => {
+                    if let Ok(msg) = msg {
+                        msg();
+                    } else {
+                        self.runnable_receiver = crossbeam_channel::never();
+                    }
+                }
             }
         }
-        true
     }
 
     /// Handles a generic WebGLMsg message
@@ -331,8 +322,8 @@ impl WebGLThread {
             WebGLMsg::WebVRCommand(ctx_id, command) => {
                 self.handle_webvr_command(ctx_id, command);
             },
-            WebGLMsg::CreateWebXRSwapChain(ctx_id, size, sender) => {
-                let _ = sender.send(self.create_webxr_swap_chain(ctx_id, size));
+            WebGLMsg::CreateWebXRSwapChain(ctx_id, size, sender, id) => {
+                let _ = sender.send(self.create_webxr_swap_chain(ctx_id, size, id));
             },
             WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
@@ -443,6 +434,7 @@ impl WebGLThread {
             size: safe_size.to_i32(),
         };
         let surface_access = self.surface_access();
+        let surface_provider = Box::new(SurfmanProvider::new(surface_access));
 
         let mut ctx = self
             .device
@@ -469,7 +461,7 @@ impl WebGLThread {
         );
 
         self.webrender_swap_chains
-            .create_attached_swap_chain(id, &mut self.device, &mut ctx, surface_access)
+            .create_attached_swap_chain(id, &mut self.device, &mut ctx, surface_provider)
             .expect("Failed to create the swap chain");
 
         let swap_chain = self
@@ -765,6 +757,7 @@ impl WebGLThread {
         &mut self,
         context_id: WebGLContextId,
         size: Size2D<i32>,
+        session_id: SessionId,
     ) -> Option<WebXRSwapChainId> {
         debug!("WebGLThread::create_webxr_swap_chain()");
         let id = WebXRSwapChainId::new();
@@ -775,8 +768,14 @@ impl WebGLThread {
             &mut self.contexts,
             &mut self.bound_context_id,
         )?;
+        let surface_provider = self
+            .webxr_surface_providers
+            .lock()
+            .unwrap()
+            .remove(&session_id)
+            .unwrap_or_else(|| Box::new(SurfmanProvider::new(surface_access)));
         self.webxr_swap_chains
-            .create_detached_swap_chain(id, size, &mut self.device, &mut data.ctx, surface_access)
+            .create_detached_swap_chain(id, size, &mut self.device, &mut data.ctx, surface_provider)
             .ok()?;
         debug!("Created swap chain {:?}", id);
         Some(id)

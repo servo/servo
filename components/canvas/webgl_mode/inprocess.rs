@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::webgl_thread::{WebGLThread, WebGLThreadInit};
+use crate::webgl_thread::{SurfaceProviders, WebGLThread, WebGLThreadInit, WebGlExecutor};
 use canvas_traits::webgl::{webgl_channel, WebVRRenderHandler};
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
@@ -11,6 +11,7 @@ use gleam;
 use servo_config::pref;
 use sparkle::gl;
 use sparkle::gl::GlType;
+use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -27,8 +28,10 @@ use webxr_api::SwapChainId as WebXRSwapChainId;
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub webxr_swap_chains: SwapChains<WebXRSwapChainId>,
+    pub webxr_surface_providers: SurfaceProviders,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
     pub output_handler: Option<Box<dyn webrender_api::OutputImageHandler>>,
+    pub webgl_executor: WebGlExecutor,
 }
 
 impl WebGLComm {
@@ -46,6 +49,8 @@ impl WebGLComm {
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let webrender_swap_chains = SwapChains::new();
         let webxr_swap_chains = SwapChains::new();
+        let webxr_surface_providers = Arc::new(Mutex::new(HashMap::new()));
+        let (runnable_sender, runnable_receiver) = crossbeam_channel::unbounded();
 
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
@@ -56,9 +61,11 @@ impl WebGLComm {
             receiver,
             webrender_swap_chains: webrender_swap_chains.clone(),
             webxr_swap_chains: webxr_swap_chains.clone(),
+            webxr_surface_providers: webxr_surface_providers.clone(),
             connection: device.connection(),
             adapter: device.adapter(),
             api_type,
+            runnable_receiver,
         };
 
         let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
@@ -74,8 +81,10 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             webxr_swap_chains,
+            webxr_surface_providers,
             image_handler: Box::new(external),
             output_handler: output_handler.map(|b| b as Box<_>),
+            webgl_executor: runnable_sender,
         }
     }
 }

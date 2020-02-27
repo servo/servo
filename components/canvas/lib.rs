@@ -12,6 +12,9 @@ extern crate log;
 mod raqote_backend;
 
 pub use webgl_mode::WebGLComm;
+pub use webgl_thread::SurfaceProvider;
+pub use webgl_thread::SurfaceProviders;
+pub use webgl_thread::WebGlExecutor;
 
 pub mod canvas_data;
 pub mod canvas_paint_thread;

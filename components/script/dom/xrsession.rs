@@ -51,7 +51,7 @@ use std::mem;
 use std::rc::Rc;
 use webxr_api::{
     self, util, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind,
-    Session, View, Viewer, Visibility,
+    Session, SessionId, View, Viewer, Visibility,
 };
 
 #[dom_struct]
@@ -461,6 +461,10 @@ impl XRSession {
             projection: *self.inline_projection_matrix.borrow(),
             viewport: Rect::from_size(size.to_i32()),
         }
+    }
+
+    pub fn session_id(&self) -> SessionId {
+        self.session.borrow().id()
     }
 }
 

@@ -14,6 +14,7 @@ use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 use webvr_traits::WebVRPoseInformation;
+use webxr_api::SessionId;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
@@ -80,6 +81,7 @@ pub enum WebGLMsg {
         WebGLContextId,
         Size2D<i32>,
         WebGLSender<Option<WebXRSwapChainId>>,
+        SessionId,
     ),
     /// Performs a buffer swap.
     ///
@@ -188,9 +190,14 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<i32>,
         sender: WebGLSender<Option<WebXRSwapChainId>>,
+        id: SessionId,
     ) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::CreateWebXRSwapChain(self.ctx_id, size, sender))
+        self.sender.send(WebGLMsg::CreateWebXRSwapChain(
+            self.ctx_id,
+            size,
+            sender,
+            id,
+        ))
     }
 
     #[inline]
