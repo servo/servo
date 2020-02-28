@@ -4,7 +4,7 @@
 blessings == 1.6
 distro == 1.4
 mach == 1.0.0
-mozdebug == 0.1
+mozdebug == 0.2
 mozinfo == 1.1.0
 mozlog == 5.0
 setuptools == 39.0
