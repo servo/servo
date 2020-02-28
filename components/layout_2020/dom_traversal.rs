@@ -271,10 +271,11 @@ where
     })
 }
 
+/// https://www.w3.org/TR/CSS2/generate.html#propdef-content
 fn generate_pseudo_element_content<'dom, Node>(
     pseudo_element_style: &ComputedValues,
     element: Node,
-    _context: &LayoutContext,
+    context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem>
 where
     Node: NodeExt<'dom>,
@@ -297,6 +298,13 @@ where
                         vec.push(PseudoElementContentItem::Text(
                             attr_val.map_or("".to_string(), |s| s.to_string()),
                         ));
+                    },
+                    ContentItem::Url(image_url) => {
+                        if let Some(replaced_content) =
+                            ReplacedContent::from_image_url(element, context, image_url)
+                        {
+                            vec.push(PseudoElementContentItem::Replaced(replaced_content));
+                        }
                     },
                     _ => (),
                 }
