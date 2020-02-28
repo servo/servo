@@ -134,7 +134,7 @@ impl Parse for Content {
         let mut content = vec![];
         let mut has_alt_content = false;
         loop {
-            #[cfg(feature = "gecko")]
+            #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
             {
                 if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(context, i)) {
                     content.push(generics::ContentItem::Url(url));
