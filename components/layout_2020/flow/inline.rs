@@ -255,7 +255,7 @@ impl InlineFormattingContext {
                                 },
                             };
                         ifc.positioning_context
-                            .push(box_.layout(initial_start_corner, tree_rank));
+                            .push(box_.to_hoisted(initial_start_corner, tree_rank));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO
