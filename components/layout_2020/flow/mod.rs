@@ -320,7 +320,7 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                positioning_context.push(box_.layout(Vec2::zero(), tree_rank));
+                positioning_context.push(box_.to_hoisted(Vec2::zero(), tree_rank));
                 Fragment::Anonymous(AnonymousFragment::no_op(
                     containing_block.style.writing_mode,
                 ))

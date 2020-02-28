@@ -86,7 +86,7 @@ impl AbsolutelyPositionedBox {
         }
     }
 
-    pub(crate) fn layout(
+    pub(crate) fn to_hoisted(
         &self,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
