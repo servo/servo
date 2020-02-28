@@ -1,0 +1,18 @@
+import os
+import glob
+
+
+def main(request, response):
+    host_piece = request.url_parts.hostname.split(".")[0]
+
+    filepath_pattern = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(
+        __file__)), "../origin-policy/policies/", "{} *.json".format(host_piece)))
+
+    matches = glob.glob(filepath_pattern)
+
+    if len(matches) != 1:
+        return 404, [], '{} origin policies found at a path matching "{}"'.format(len(matches), filepath_pattern)
+
+    with open(matches[0]) as f:
+        data = f.read()
+        return 200, [('Content-Type', 'application/originpolicy+json')], data

@@ -1,6 +1,0 @@
-{
-  "features": {
-    "policy": "camera 'self' https://example.com/",
-    "policy": "geolocation 'self' https://example.com/"
-  }
-}

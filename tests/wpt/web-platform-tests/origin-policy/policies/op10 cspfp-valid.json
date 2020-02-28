@@ -1,0 +1,13 @@
+{
+  "ids": [
+    "cspfp-valid"
+  ],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'; img-src 'none'"
+    ]
+  },
+  "features": {
+    "policy": "camera 'self' https://example.com/; geolocation 'self' https://example.com/"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "ids": [
+    "csp-noimg-report-only"
+  ],
+  "content_security": {
+    "policies_report_only": [
+      "img-src 'none'"
+    ]
+  }
+}
