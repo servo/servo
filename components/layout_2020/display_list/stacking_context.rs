@@ -6,6 +6,7 @@ use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::geom::PhysicalRect;
+use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use std::cmp::Ordering;
@@ -14,7 +15,6 @@ use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
-use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Length;
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
@@ -96,7 +96,7 @@ impl<'a> StackingContext<'a> {
 
     fn z_index(&self) -> i32 {
         match self.initializing_fragment {
-            Some(fragment) => fragment.effective_z_index(),
+            Some(fragment) => fragment.style.effective_z_index(),
             None => 0,
         }
     }
@@ -259,7 +259,7 @@ impl Fragment {
 
 impl BoxFragment {
     fn get_stacking_context_type(&self) -> Option<StackingContextType> {
-        if self.establishes_stacking_context() {
+        if self.style.establishes_stacking_context() {
             return Some(StackingContextType::Real);
         }
 
@@ -289,68 +289,6 @@ impl BoxFragment {
         }
 
         StackingContextSection::BlockBackgroundsAndBorders
-    }
-
-    /// Returns true if this fragment establishes a new stacking context and false otherwise.
-    fn establishes_stacking_context(&self) -> bool {
-        let effects = self.style.get_effects();
-        if effects.opacity != 1.0 {
-            return true;
-        }
-
-        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
-            return true;
-        }
-
-        if self.has_transform_or_perspective() {
-            return true;
-        }
-
-        if !self.style.get_effects().filter.0.is_empty() {
-            return true;
-        }
-
-        if self.style.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-            self.style.overrides_transform_style()
-        {
-            return true;
-        }
-
-        // Fixed position and sticky position always create stacking contexts.
-        // TODO(mrobinson): We need to handle sticky positioning here when we support it.
-        if self.style.get_box().position == ComputedPosition::Fixed {
-            return true;
-        }
-
-        // Statically positioned fragments don't establish stacking contexts if the previous
-        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
-        // positioned fragments.
-        if self.style.get_box().position == ComputedPosition::Static {
-            return false;
-        }
-
-        // For absolutely and relatively positioned fragments we only establish a stacking
-        // context if there is a z-index set.
-        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
-        !self.style.get_position().z_index.is_auto()
-    }
-
-    // Get the effective z-index of this fragment. Z-indices only apply to positioned element
-    // per CSS 2 9.9.1 (http://www.w3.org/TR/CSS2/visuren.html#z-index), so this value may differ
-    // from the value specified in the style.
-    fn effective_z_index(&self) -> i32 {
-        match self.style.get_box().position {
-            ComputedPosition::Static => {},
-            _ => return self.style.get_position().z_index.integer_or(0),
-        }
-
-        0
-    }
-
-    /// Returns true if this fragment has a transform, or perspective property set.
-    fn has_transform_or_perspective(&self) -> bool {
-        !self.style.get_box().transform.0.is_empty() ||
-            self.style.get_box().perspective != Perspective::None
     }
 
     fn build_stacking_context_tree<'a>(
@@ -452,8 +390,7 @@ impl BoxFragment {
         // TODO(mrobinson): Eventually this should use the spatial id of the reference
         // frame that is the parent of this one once we have full support for stacking
         // contexts and transforms.
-        builder.current_space_and_clip.spatial_id =
-            wr::SpatialId::root_reference_frame(builder.wr.pipeline_id);
+        builder.current_space_and_clip.spatial_id = builder.nearest_reference_frame;
     }
 
     fn build_scroll_frame_if_necessary(
@@ -505,7 +442,7 @@ impl BoxFragment {
         builder: &mut DisplayListBuilder,
         border_rect: &PhysicalRect<Length>,
     ) -> bool {
-        if !self.has_transform_or_perspective() {
+        if !self.style.has_transform_or_perspective() {
             return false;
         }
         let untyped_border_rect = border_rect.to_untyped();
@@ -535,6 +472,7 @@ impl BoxFragment {
             wr::PropertyBinding::Value(reference_frame_transform),
             reference_frame_kind,
         );
+        builder.nearest_reference_frame = builder.current_space_and_clip.spatial_id;
         true
     }
 

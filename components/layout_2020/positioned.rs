@@ -25,7 +25,12 @@ pub(crate) struct AbsolutelyPositionedBox {
 
 pub(crate) struct PositioningContext<'box_tree> {
     for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox<'box_tree>>>,
-    for_initial_containing_block: Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
+
+    // For nearest `containing block for all descendants` as defined by the CSS transforms
+    // spec.
+    // https://www.w3.org/TR/css-transforms-1/#containing-block-for-all-descendants
+    for_nearest_containing_block_for_all_descendants:
+        Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
 }
 
 #[derive(Debug)]
@@ -127,60 +132,156 @@ impl AbsolutelyPositionedBox {
 }
 
 impl<'box_tree> PositioningContext<'box_tree> {
-    pub(crate) fn new_for_initial_containing_block() -> Self {
+    pub(crate) fn new_for_containing_block_for_all_descendants() -> Self {
         Self {
             for_nearest_positioned_ancestor: None,
-            for_initial_containing_block: Vec::new(),
+            for_nearest_containing_block_for_all_descendants: Vec::new(),
         }
     }
 
-    pub(crate) fn new_for_rayon(has_positioned_ancestor: bool) -> Self {
+    pub(crate) fn new_for_rayon(collects_for_nearest_positioned_ancestor: bool) -> Self {
         Self {
-            for_nearest_positioned_ancestor: if has_positioned_ancestor {
+            for_nearest_positioned_ancestor: if collects_for_nearest_positioned_ancestor {
                 Some(Vec::new())
             } else {
                 None
             },
-            for_initial_containing_block: Vec::new(),
+            for_nearest_containing_block_for_all_descendants: Vec::new(),
         }
     }
 
-    pub(crate) fn has_positioned_ancestor(&self) -> bool {
+    pub(crate) fn collects_for_nearest_positioned_ancestor(&self) -> bool {
         self.for_nearest_positioned_ancestor.is_some()
     }
 
-    pub(crate) fn for_maybe_position_relative(
+    /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
+    /// `PositioningContext`, create a new positioning context if necessary for the fragment and
+    /// lay out the fragment and all its children. Returns the newly created `BoxFragment`.
+    pub(crate) fn layout_maybe_position_relative_fragment(
         &mut self,
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        f: impl FnOnce(&mut Self) -> BoxFragment,
+        fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
-        if style.clone_position() == Position::Relative {
-            let mut fragment =
-                // Establing a containing block for absolutely positioned descendants
-                Self::for_positioned(layout_context, &mut self.for_initial_containing_block, f);
+        debug_assert!(style.clone_position() != Position::Fixed);
+        debug_assert!(style.clone_position() != Position::Absolute);
 
-            fragment.content_rect.start_corner += &relative_adjustement(style, containing_block);
-            fragment
-        } else {
-            f(self)
+        if style.establishes_containing_block_for_all_descendants() {
+            let mut fragment = Self::layout_containing_block_for_all_descendants(
+                layout_context,
+                fragment_layout_fn,
+            );
+            if style.clone_position() == Position::Relative {
+                fragment.content_rect.start_corner +=
+                    &relative_adjustement(style, containing_block);
+            }
+            return fragment;
         }
+
+        if style.clone_position() == Position::Relative {
+            let mut fragment = Self::create_and_layout_positioned(
+                layout_context,
+                style,
+                &mut self.for_nearest_containing_block_for_all_descendants,
+                fragment_layout_fn,
+            );
+            fragment.content_rect.start_corner += &relative_adjustement(style, containing_block);
+            return fragment;
+        }
+
+        // We don't need to create a new PositioningContext for this Fragment, so
+        // we pass in the current one to the fragment layout closure.
+        fragment_layout_fn(self)
     }
 
-    fn for_positioned(
+    /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
+    /// `PositioningContext`, create a positioning context a positioned fragment and lay out the
+    /// fragment and all its children. Returns the resulting `BoxFragment`.
+    fn create_and_layout_positioned(
         layout_context: &LayoutContext,
-        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
-        f: impl FnOnce(&mut Self) -> BoxFragment,
+        style: &ComputedValues,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<
+            HoistedAbsolutelyPositionedBox<'box_tree>,
+        >,
+        fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
+        if style.establishes_containing_block_for_all_descendants() {
+            return Self::layout_containing_block_for_all_descendants(
+                layout_context,
+                fragment_layout_fn,
+            );
+        }
+
         let mut new = Self {
             for_nearest_positioned_ancestor: Some(Vec::new()),
-            for_initial_containing_block: std::mem::take(for_initial_containing_block),
+            for_nearest_containing_block_for_all_descendants: std::mem::take(
+                for_nearest_containing_block_for_all_descendants,
+            ),
         };
-        let mut positioned_box_fragment = f(&mut new);
-        new.layout_in_positioned_ancestor(layout_context, &mut positioned_box_fragment);
-        *for_initial_containing_block = new.for_initial_containing_block;
+        let mut positioned_box_fragment = fragment_layout_fn(&mut new);
+        new.layout_positioned_fragment_children(layout_context, &mut positioned_box_fragment);
+        *for_nearest_containing_block_for_all_descendants =
+            new.for_nearest_containing_block_for_all_descendants;
         positioned_box_fragment
+    }
+
+    /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
+    /// `PositioningContext`, create a positioning context for a fragment that establishes a
+    /// containing block for all descendants and lay out the fragment and all its children using
+    /// the new positioning context. Returns the resulting `BoxFragment`.
+    fn layout_containing_block_for_all_descendants(
+        layout_context: &LayoutContext,
+        fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
+    ) -> BoxFragment {
+        let mut containing_block_for_all_descendants =
+            Self::new_for_containing_block_for_all_descendants();
+        debug_assert!(containing_block_for_all_descendants
+            .for_nearest_positioned_ancestor
+            .is_none());
+
+        let mut new_fragment = fragment_layout_fn(&mut containing_block_for_all_descendants);
+
+        let padding_rect = Rect {
+            size: new_fragment.content_rect.size.clone(),
+            // Ignore the content rect’s position in its own containing block:
+            start_corner: Vec2::zero(),
+        }
+        .inflate(&new_fragment.padding);
+        let containing_block = DefiniteContainingBlock {
+            size: padding_rect.size.clone(),
+            style: &new_fragment.style,
+        };
+
+        // Loop because it’s possible that we discover (the static position of)
+        // more absolutely-positioned boxes while doing layout for others.
+        let mut new_child_fragments = Vec::new();
+        while !containing_block_for_all_descendants
+            .for_nearest_containing_block_for_all_descendants
+            .is_empty()
+        {
+            HoistedAbsolutelyPositionedBox::layout_many(
+                layout_context,
+                &std::mem::take(
+                    &mut containing_block_for_all_descendants
+                        .for_nearest_containing_block_for_all_descendants,
+                ),
+                &mut new_child_fragments,
+                &mut containing_block_for_all_descendants
+                    .for_nearest_containing_block_for_all_descendants,
+                &containing_block,
+            )
+        }
+
+        new_fragment
+            .children
+            .push(Fragment::Anonymous(AnonymousFragment::new(
+                padding_rect,
+                new_child_fragments,
+                new_fragment.style.writing_mode,
+            )));
+
+        new_fragment
     }
 
     pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox<'box_tree>) {
@@ -196,13 +297,14 @@ impl<'box_tree> PositioningContext<'box_tree> {
                 Position::Static | Position::Relative => unreachable!(),
             }
         }
-        self.for_initial_containing_block.push(box_)
+        self.for_nearest_containing_block_for_all_descendants
+            .push(box_)
     }
 
     pub(crate) fn append(&mut self, other: Self) {
         vec_append_owned(
-            &mut self.for_initial_containing_block,
-            other.for_initial_containing_block,
+            &mut self.for_nearest_containing_block_for_all_descendants,
+            other.for_nearest_containing_block_for_all_descendants,
         );
         match (
             self.for_nearest_positioned_ancestor.as_mut(),
@@ -219,7 +321,8 @@ impl<'box_tree> PositioningContext<'box_tree> {
         tree_rank_in_parent: usize,
         f: impl FnOnce(&mut Self) -> Vec<Fragment>,
     ) -> Vec<Fragment> {
-        let for_icb_so_far = self.for_initial_containing_block.len();
+        let for_containing_block_for_all_descendants =
+            self.for_nearest_containing_block_for_all_descendants.len();
         let for_nearest_so_far = self
             .for_nearest_positioned_ancestor
             .as_ref()
@@ -228,7 +331,8 @@ impl<'box_tree> PositioningContext<'box_tree> {
         let fragments = f(self);
 
         adjust_static_positions(
-            &mut self.for_initial_containing_block[for_icb_so_far..],
+            &mut self.for_nearest_containing_block_for_all_descendants
+                [for_containing_block_for_all_descendants..],
             &fragments,
             tree_rank_in_parent,
         );
@@ -242,7 +346,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
         fragments
     }
 
-    pub(crate) fn layout_in_initial_containing_block(
+    pub(crate) fn layout_initial_containing_block_children(
         &mut self,
         layout_context: &LayoutContext,
         initial_containing_block: &DefiniteContainingBlock,
@@ -252,18 +356,21 @@ impl<'box_tree> PositioningContext<'box_tree> {
 
         // Loop because it’s possible that we discover (the static position of)
         // more absolutely-positioned boxes while doing layout for others.
-        while !self.for_initial_containing_block.is_empty() {
+        while !self
+            .for_nearest_containing_block_for_all_descendants
+            .is_empty()
+        {
             HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
-                &std::mem::take(&mut self.for_initial_containing_block),
+                &std::mem::take(&mut self.for_nearest_containing_block_for_all_descendants),
                 fragments,
-                &mut self.for_initial_containing_block,
+                &mut self.for_nearest_containing_block_for_all_descendants,
                 initial_containing_block,
             )
         }
     }
 
-    fn layout_in_positioned_ancestor(
+    fn layout_positioned_fragment_children(
         &mut self,
         layout_context: &LayoutContext,
         positioned_box_fragment: &mut BoxFragment,
@@ -285,7 +392,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
                 layout_context,
                 &for_here,
                 &mut children,
-                &mut self.for_initial_containing_block,
+                &mut self.for_nearest_containing_block_for_all_descendants,
                 &containing_block,
             );
             positioned_box_fragment
@@ -304,16 +411,18 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
         layout_context: &LayoutContext,
         boxes: &[Self],
         fragments: &mut Vec<Fragment>,
-        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<
+            HoistedAbsolutelyPositionedBox<'box_tree>,
+        >,
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
             fragments.par_extend(boxes.par_iter().mapfold_reduce_into(
-                for_initial_containing_block,
-                |for_initial_containing_block, box_| {
+                for_nearest_containing_block_for_all_descendants,
+                |for_nearest_containing_block_for_all_descendants, box_| {
                     Fragment::Box(box_.layout(
                         layout_context,
-                        for_initial_containing_block,
+                        for_nearest_containing_block_for_all_descendants,
                         containing_block,
                     ))
                 },
@@ -324,7 +433,7 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
             fragments.extend(boxes.iter().map(|box_| {
                 Fragment::Box(box_.layout(
                     layout_context,
-                    for_initial_containing_block,
+                    for_nearest_containing_block_for_all_descendants,
                     containing_block,
                 ))
             }))
@@ -334,7 +443,9 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
-        for_initial_containing_block: &mut Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<
+            HoistedAbsolutelyPositionedBox<'box_tree>,
+        >,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
         let style = &self.absolutely_positioned_box.contents.style;
@@ -396,91 +507,101 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
             block_end: block_axis.margin_end,
         };
 
-        let for_icb = for_initial_containing_block;
-        PositioningContext::for_positioned(layout_context, for_icb, |positioning_context| {
-            let size;
-            let fragments;
-            match self.absolutely_positioned_box.contents.as_replaced() {
-                Ok(replaced) => {
-                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    let style = &self.absolutely_positioned_box.contents.style;
-                    size = replaced_used_size.unwrap();
-                    fragments = replaced.make_fragments(style, size.clone());
-                },
-                Err(non_replaced) => {
-                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                    let inline_size = inline_axis.size.auto_is(|| {
-                        let available_size = match inline_axis.anchor {
-                            Anchor::Start(start) => {
-                                cbis - start - pb.inline_sum() - margin.inline_sum()
-                            },
-                            Anchor::End(end) => cbis - end - pb.inline_sum() - margin.inline_sum(),
+        let for_containing_block_for_all_descendants =
+            for_nearest_containing_block_for_all_descendants;
+        PositioningContext::create_and_layout_positioned(
+            layout_context,
+            style,
+            for_containing_block_for_all_descendants,
+            |positioning_context| {
+                let size;
+                let fragments;
+                match self.absolutely_positioned_box.contents.as_replaced() {
+                    Ok(replaced) => {
+                        // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                        // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                        let style = &self.absolutely_positioned_box.contents.style;
+                        size = replaced_used_size.unwrap();
+                        fragments = replaced.make_fragments(style, size.clone());
+                    },
+                    Err(non_replaced) => {
+                        // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+                        // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+                        let inline_size = inline_axis.size.auto_is(|| {
+                            let available_size = match inline_axis.anchor {
+                                Anchor::Start(start) => {
+                                    cbis - start - pb.inline_sum() - margin.inline_sum()
+                                },
+                                Anchor::End(end) => {
+                                    cbis - end - pb.inline_sum() - margin.inline_sum()
+                                },
+                            };
+                            self.absolutely_positioned_box
+                                .contents
+                                .content_sizes
+                                .shrink_to_fit(available_size)
+                        });
+
+                        let containing_block_for_children = ContainingBlock {
+                            inline_size,
+                            block_size: block_axis.size,
+                            style,
                         };
-                        self.absolutely_positioned_box
-                            .contents
-                            .content_sizes
-                            .shrink_to_fit(available_size)
-                    });
+                        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                        assert_eq!(
+                            containing_block.style.writing_mode,
+                            containing_block_for_children.style.writing_mode,
+                            "Mixed writing modes are not supported yet"
+                        );
+                        let dummy_tree_rank = 0;
+                        let independent_layout = non_replaced.layout(
+                            layout_context,
+                            positioning_context,
+                            &containing_block_for_children,
+                            dummy_tree_rank,
+                        );
 
-                    let containing_block_for_children = ContainingBlock {
-                        inline_size,
-                        block_size: block_axis.size,
-                        style,
-                    };
-                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                    assert_eq!(
-                        containing_block.style.writing_mode,
-                        containing_block_for_children.style.writing_mode,
-                        "Mixed writing modes are not supported yet"
-                    );
-                    let dummy_tree_rank = 0;
-                    let independent_layout = non_replaced.layout(
-                        layout_context,
-                        positioning_context,
-                        &containing_block_for_children,
-                        dummy_tree_rank,
-                    );
+                        size = Vec2 {
+                            inline: inline_size,
+                            block: block_axis
+                                .size
+                                .auto_is(|| independent_layout.content_block_size),
+                        };
+                        fragments = independent_layout.fragments
+                    },
+                };
 
-                    size = Vec2 {
-                        inline: inline_size,
-                        block: block_axis
-                            .size
-                            .auto_is(|| independent_layout.content_block_size),
-                    };
-                    fragments = independent_layout.fragments
-                },
-            };
+                let inline_start = match inline_axis.anchor {
+                    Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
+                    Anchor::End(end) => {
+                        cbis - end - pb.inline_end - margin.inline_end - size.inline
+                    },
+                };
+                let block_start = match block_axis.anchor {
+                    Anchor::Start(start) => start + pb.block_start + margin.block_start,
+                    Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
+                };
 
-            let inline_start = match inline_axis.anchor {
-                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                Anchor::End(end) => cbis - end - pb.inline_end - margin.inline_end - size.inline,
-            };
-            let block_start = match block_axis.anchor {
-                Anchor::Start(start) => start + pb.block_start + margin.block_start,
-                Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
-            };
+                let content_rect = Rect {
+                    start_corner: Vec2 {
+                        inline: inline_start,
+                        block: block_start,
+                    },
+                    size,
+                };
 
-            let content_rect = Rect {
-                start_corner: Vec2 {
-                    inline: inline_start,
-                    block: block_start,
-                },
-                size,
-            };
-
-            BoxFragment::new(
-                self.absolutely_positioned_box.contents.tag,
-                style.clone(),
-                fragments,
-                content_rect,
-                padding,
-                border,
-                margin,
-                CollapsedBlockMargins::zero(),
-            )
-        })
+                BoxFragment::new(
+                    self.absolutely_positioned_box.contents.tag,
+                    style.clone(),
+                    fragments,
+                    content_rect,
+                    padding,
+                    border,
+                    margin,
+                    CollapsedBlockMargins::zero(),
+                )
+            },
+        )
     }
 }
 

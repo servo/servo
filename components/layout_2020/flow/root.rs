@@ -137,7 +137,8 @@ impl BoxTreeRoot {
         };
 
         let dummy_tree_rank = 0;
-        let mut positioning_context = PositioningContext::new_for_initial_containing_block();
+        let mut positioning_context =
+            PositioningContext::new_for_containing_block_for_all_descendants();
         let mut independent_layout = self.0.layout(
             layout_context,
             &mut positioning_context,
@@ -145,7 +146,7 @@ impl BoxTreeRoot {
             dummy_tree_rank,
         );
 
-        positioning_context.layout_in_initial_containing_block(
+        positioning_context.layout_initial_containing_block_children(
             layout_context,
             &initial_containing_block,
             &mut independent_layout.fragments,
