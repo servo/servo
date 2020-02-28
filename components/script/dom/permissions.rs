@@ -19,18 +19,13 @@ use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PermissionRequest};
+use embedder_traits::{self, EmbedderMsg, PermissionPrompt, PermissionRequest};
 use ipc_channel::ipc;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use servo_config::pref;
 use std::rc::Rc;
-
-const DIALOG_TITLE: &'static str = "Permission request dialog";
-const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in secure context,\
- but servo can't guarantee\n that the current context is secure. Do you want to proceed and grant permission?";
-const REQUEST_DIALOG_MESSAGE: &'static str = "Do you want to grant permission for";
 
 pub trait PermissionAlgorithm {
     type Descriptor;
@@ -256,10 +251,11 @@ impl PermissionAlgorithm for Permissions {
             // Step 3.
             PermissionState::Prompt => {
                 let perm_name = status.get_query();
+                let prompt =
+                    PermissionPrompt::Request(embedder_traits::PermissionName::from(perm_name));
 
                 // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
                 let globalscope = GlobalScope::current().expect("No current global object");
-                let prompt = format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone());
                 let state = prompt_user_from_embedder(prompt, &globalscope);
                 globalscope
                     .permission_state_invocation_results()
@@ -305,8 +301,10 @@ pub fn get_descriptor_permission_state(
                 .borrow_mut()
                 .remove(&permission_name.to_string());
 
-            let prompt = format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE);
-            prompt_user_from_embedder(prompt, &globalscope)
+            prompt_user_from_embedder(
+                PermissionPrompt::Insecure(embedder_traits::PermissionName::from(permission_name)),
+                &globalscope,
+            )
         }
     };
 
@@ -357,13 +355,9 @@ fn allowed_in_nonsecure_contexts(permission_name: &PermissionName) -> bool {
     }
 }
 
-fn prompt_user_from_embedder(prompt: String, gs: &GlobalScope) -> PermissionState {
+fn prompt_user_from_embedder(prompt: PermissionPrompt, gs: &GlobalScope) -> PermissionState {
     let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-    gs.send_to_embedder(EmbedderMsg::PromptPermission(
-        prompt,
-        DIALOG_TITLE.to_string(),
-        sender,
-    ));
+    gs.send_to_embedder(EmbedderMsg::PromptPermission(prompt, sender));
 
     match receiver.recv() {
         Ok(PermissionRequest::Granted) => PermissionState::Granted,
@@ -375,5 +369,25 @@ fn prompt_user_from_embedder(prompt: String, gs: &GlobalScope) -> PermissionStat
             );
             PermissionState::Denied
         },
+    }
+}
+
+impl From<PermissionName> for embedder_traits::PermissionName {
+    fn from(permission_name: PermissionName) -> Self {
+        match permission_name {
+            PermissionName::Geolocation => embedder_traits::PermissionName::Geolocation,
+            PermissionName::Notifications => embedder_traits::PermissionName::Notifications,
+            PermissionName::Push => embedder_traits::PermissionName::Push,
+            PermissionName::Midi => embedder_traits::PermissionName::Midi,
+            PermissionName::Camera => embedder_traits::PermissionName::Camera,
+            PermissionName::Microphone => embedder_traits::PermissionName::Microphone,
+            PermissionName::Speaker => embedder_traits::PermissionName::Speaker,
+            PermissionName::Device_info => embedder_traits::PermissionName::DeviceInfo,
+            PermissionName::Background_sync => embedder_traits::PermissionName::BackgroundSync,
+            PermissionName::Bluetooth => embedder_traits::PermissionName::Bluetooth,
+            PermissionName::Persistent_storage => {
+                embedder_traits::PermissionName::PersistentStorage
+            },
+        }
     }
 }
