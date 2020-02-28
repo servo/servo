@@ -7,7 +7,9 @@ extern crate log;
 
 pub mod gl_glue;
 
-pub use servo::embedder_traits::{MediaSessionPlaybackState, PromptResult};
+pub use servo::embedder_traits::{
+    MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
+};
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 
 use getopts::Options;
@@ -614,6 +616,29 @@ impl ServoGlue {
                 },
                 EmbedderMsg::Shutdown => {
                     self.callbacks.host_callbacks.on_shutdown_complete();
+                },
+                EmbedderMsg::PromptPermission(prompt, sender) => {
+                    let message = match prompt {
+                        PermissionPrompt::Request(permission_name) => {
+                            format!("Do you want to grant permission for {:?}?", permission_name)
+                        },
+                        PermissionPrompt::Insecure(permission_name) => {
+                            format!(
+                                "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
+                                that the current context is secure. Do you want to proceed and grant permission?",
+                                permission_name
+                            )
+                        },
+                    };
+
+                    let result = match self.callbacks.host_callbacks.prompt_yes_no(message, true) {
+                        PromptResult::Primary => PermissionRequest::Granted,
+                        PromptResult::Secondary | PromptResult::Dismissed => {
+                            PermissionRequest::Denied
+                        },
+                    };
+
+                    let _ = sender.send(result);
                 },
                 EmbedderMsg::ShowIME(..) => {
                     self.callbacks.host_callbacks.on_ime_state_changed(true);
