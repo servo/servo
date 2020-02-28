@@ -942,8 +942,7 @@ impl<'a> CanvasData<'a> {
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
-            is_opaque: false,
-            allow_mipmaps: false,
+            flags: webrender_api::ImageDescriptorFlags::empty(),
         };
         let data = self.drawtarget.snapshot_data_owned();
         let data = webrender_api::ImageData::Raw(Arc::new(data));

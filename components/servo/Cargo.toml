@@ -55,7 +55,7 @@ embedder_traits = {path = "../embedder_traits"}
 env_logger = "0.6"
 euclid = "0.20"
 gfx = {path = "../gfx"}
-gleam = "0.6"
+gleam = "0.9"
 ipc-channel = "0.14"
 keyboard-types = "0.4"
 layout_thread_2013 = {path = "../layout_thread", optional = true}

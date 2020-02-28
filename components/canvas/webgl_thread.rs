@@ -945,13 +945,14 @@ impl WebGLThread {
 
     /// Helper function to create a `webrender_api::ImageDescriptor`.
     fn image_descriptor(size: Size2D<i32>, alpha: bool) -> webrender_api::ImageDescriptor {
+        let mut flags = webrender_api::ImageDescriptorFlags::empty();
+        flags.set(webrender_api::ImageDescriptorFlags::IS_OPAQUE, !alpha);
         webrender_api::ImageDescriptor {
             size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
-            is_opaque: !alpha,
-            allow_mipmaps: false,
+            flags,
         }
     }
 

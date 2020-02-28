@@ -1396,7 +1396,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                     FramebufferUintLength::new(height),
                                 );
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
-                                if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG)
+                                if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png)
                                 {
                                     error!("Failed to save {} ({}).", path, e);
                                 }

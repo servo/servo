@@ -52,14 +52,14 @@ backtrace = "0.3"
 clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
-gleam = "0.6"
+gleam = "0.9"
 glutin = "0.21.0"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
 libc = "0.2"
 log = "0.4"
-rust-webvr = { version = "0.17", features = ["glwindow"] }
+rust-webvr = { version = "0.18", features = ["glwindow"] }
 servo-media = {git = "https://github.com/servo/media"}
 shellwords = "1.0.0"
 tinyfiledialogs = "3.0"
@@ -67,7 +67,7 @@ webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-image = "0.22"
+image = "0.23"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 osmesa-sys = "0.1.2"

@@ -1583,7 +1583,7 @@ impl Handler {
         let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
         let mut png_data = Vec::new();
         DynamicImage::ImageRgb8(rgb)
-            .write_to(&mut png_data, ImageFormat::PNG)
+            .write_to(&mut png_data, ImageFormat::Png)
             .unwrap();
 
         Ok(base64::encode(&png_data))

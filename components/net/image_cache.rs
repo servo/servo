@@ -21,6 +21,7 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_api::units::DeviceIntSize;
+use webrender_api::ImageDescriptorFlags;
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -75,13 +76,14 @@ fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image
             panic!("Not support by webrender yet");
         },
     };
+    let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
+    flags.set(ImageDescriptorFlags::IS_OPAQUE, is_opaque);
     let descriptor = webrender_api::ImageDescriptor {
         size: DeviceIntSize::new(image.width as i32, image.height as i32),
         stride: None,
         format: webrender_api::ImageFormat::BGRA8,
         offset: 0,
-        is_opaque,
-        allow_mipmaps: true,
+        flags,
     };
     let data = webrender_api::ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();

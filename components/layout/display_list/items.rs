@@ -454,6 +454,7 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
         hit_info: None,
         flags: PrimitiveFlags::empty(),
+        item_key: None,
     }
 }
 
