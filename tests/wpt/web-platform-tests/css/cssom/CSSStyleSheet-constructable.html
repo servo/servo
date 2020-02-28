@@ -47,8 +47,8 @@ test(() => {
 }, "document.adoptedStyleSheets should initially have length 0.");
 
 test(() => {
-  const sheet = new CSSStyleSheet({title: "Red", disabled: true, media: "screen, print"});
-  assert_equals(sheet.title, "Red");
+  const sheet = new CSSStyleSheet({disabled: true, media: "screen, print"});
+  assert_equals(sheet.title, null);
   assert_equals(sheet.ownerNode, null);
   assert_equals(sheet.ownerRule, null);
   assert_equals(sheet.media.length, 2);
@@ -96,11 +96,16 @@ test(() => {
   assert_equals(sheet3.cssRules.length, 0);
 }, 'new CSSStyleSheet produces empty CSSStyleSheet');
 
+test(() => {
+  const sheet = new CSSStyleSheet({title: "something"});
+  assert_equals(sheet.title, null);
+}, "title cannot be set in the CSSStyleSheet constructor");
+
 promise_test(() => {
-  const sheet = new CSSStyleSheet({title: "Red", disabled: true, media: "screen, print"});
+  const sheet = new CSSStyleSheet({disabled: true, media: "screen, print"});
   const promise_sheet = sheet.replace(redStyleTexts[0]);
   return promise_sheet.then(function(sheet) {
-    assert_equals(sheet.title, "Red");
+    assert_equals(sheet.title, null);
     assert_equals(sheet.ownerNode, null);
     assert_equals(sheet.ownerRule, null);
     assert_equals(sheet.media.length, 2);
@@ -119,8 +124,8 @@ promise_test(() => {
 function createAllSheetsPromise() {
   const greenSheet = new CSSStyleSheet();
   const redSheet = new CSSStyleSheet({media: "screen, print"});
-  const blueSheet = new CSSStyleSheet({title: "Blue", disabled: true});
-  const whiteSheet = new CSSStyleSheet({title: "White", disabled: true});
+  const blueSheet = new CSSStyleSheet({disabled: true});
+  const whiteSheet = new CSSStyleSheet({disabled: true});
   const yellowSheet = new CSSStyleSheet({disabled: false});
 
   const greenPromise = greenSheet.replace(greenStyleText);

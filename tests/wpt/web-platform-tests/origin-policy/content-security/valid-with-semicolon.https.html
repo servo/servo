@@ -3,11 +3,14 @@
 <title>"content_security/policy" array items can contain semicolons to enforce multiple CSP directives</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="helper.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
 
-<body>
+<div id="log"></div>
 
 <script>
 "use strict";
-runCSPTest({ unsafeEval: false, img: false });
+runTestsInSubframe({
+  hostname: "op10",
+  testJS: "resources/disallow-unsafe-eval-disallow-images.mjs"
+});
 </script>

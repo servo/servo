@@ -1,0 +1,11 @@
+{
+  "ids": [
+    "csp-valid-with-multi-item-array"
+  ],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'",
+      "img-src 'none'"
+    ]
+  }
+}

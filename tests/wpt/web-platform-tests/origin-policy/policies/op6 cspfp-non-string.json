@@ -1,0 +1,17 @@
+{
+  "ids": [
+    "csp-non-string"
+  ],
+  "content_security": {
+    "policies": [
+      [
+        "script-src 'self' 'unsafe-inline'"
+      ]
+    ]
+  },
+  "features": {
+    "policy": [
+      "camera 'self' https://example.com/"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "ids": [
+    "csp-noimg"
+  ],
+  "content_security": {
+    "policies": ["img-src 'none'"]
+  }
+}
