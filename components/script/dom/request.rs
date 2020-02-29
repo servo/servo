@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::body::{consume_body, BodyOperations, BodyType};
-use crate::dom::bindings::cell::{DomRefCell, Ref};
+use crate::body::Extractable;
+use crate::body::{consume_body, BodyMixin, BodyType};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
@@ -22,11 +23,13 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
-use crate::dom::xmlhttprequest::Extractable;
+use crate::dom::readablestream::ReadableStream;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
 use http::Method as HttpMethod;
+use js::jsapi::JSObject;
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -37,7 +40,7 @@ use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::{Origin, Window};
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
-use std::cell::Cell;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -45,11 +48,9 @@ use std::str::FromStr;
 pub struct Request {
     reflector_: Reflector,
     request: DomRefCell<NetTraitsRequest>,
-    body_used: Cell<bool>,
+    body_stream: MutNullableDom<ReadableStream>,
     headers: MutNullableDom<Headers>,
     mime_type: DomRefCell<Vec<u8>>,
-    #[ignore_malloc_size_of = "Rc"]
-    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Request {
@@ -57,10 +58,9 @@ impl Request {
         Request {
             reflector_: Reflector::new(),
             request: DomRefCell::new(net_request_from_global(global, url)),
-            body_used: Cell::new(false),
+            body_stream: MutNullableDom::new(None),
             headers: Default::default(),
             mime_type: DomRefCell::new("".to_string().into_bytes()),
-            body_promise: DomRefCell::new(None),
         }
     }
 
@@ -72,7 +72,7 @@ impl Request {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
-        input: RequestInfo,
+        mut input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
         // Step 1
@@ -365,9 +365,9 @@ impl Request {
         r.request.borrow_mut().headers = r.Headers().get_headers_list();
 
         // Step 33
-        let mut input_body = if let RequestInfo::Request(ref input_request) = input {
-            let input_request_request = input_request.request.borrow();
-            input_request_request.body.clone()
+        let mut input_body = if let RequestInfo::Request(ref mut input_request) = input {
+            let mut input_request_request = input_request.request.borrow_mut();
+            input_request_request.body.take()
         } else {
             None
         };
@@ -398,12 +398,10 @@ impl Request {
             // Step 36.2 TODO "If init["keepalive"] exists and is true..."
 
             // Step 36.3
-            let extracted_body_tmp = init_body.extract();
-            input_body = Some(extracted_body_tmp.0);
-            let content_type = extracted_body_tmp.1;
+            let mut extracted_body = init_body.extract(global)?;
 
             // Step 36.4
-            if let Some(contents) = content_type {
+            if let Some(contents) = extracted_body.content_type.take() {
                 let ct_header_name = b"Content-Type";
                 if !r
                     .Headers()
@@ -427,6 +425,10 @@ impl Request {
                     }
                 }
             }
+
+            let (net_body, stream) = extracted_body.into_net_request_body();
+            r.body_stream.set(Some(&*stream));
+            input_body = Some(net_body);
         }
 
         // Step 37 "TODO if body is non-null and body's source is null..."
@@ -448,13 +450,6 @@ impl Request {
         // Step 42
         Ok(r)
     }
-
-    // https://fetch.spec.whatwg.org/#concept-body-locked
-    fn locked(&self) -> bool {
-        // TODO: ReadableStream is unimplemented. Just return false
-        // for now.
-        false
-    }
 }
 
 impl Request {
@@ -467,7 +462,6 @@ impl Request {
     fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
         let r_clone = Request::new(&r.global(), url);
@@ -477,7 +471,6 @@ impl Request {
             borrowed_r_request.origin = req.origin.clone();
         }
         *r_clone.request.borrow_mut() = req.clone();
-        r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
         r_clone.Headers().copy_from_headers(r.Headers())?;
         r_clone.Headers().set_guard(headers_guard);
@@ -536,16 +529,14 @@ fn includes_credentials(input: &ServoUrl) -> bool {
     !input.username().is_empty() || input.password().is_some()
 }
 
-// TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn request_is_disturbed(_input: &Request) -> bool {
-    false
+fn request_is_disturbed(input: &Request) -> bool {
+    input.is_disturbed()
 }
 
-// TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-locked
-fn request_is_locked(_input: &Request) -> bool {
-    false
+fn request_is_locked(input: &Request) -> bool {
+    input.is_locked()
 }
 
 impl RequestMethods for Request {
@@ -622,9 +613,14 @@ impl RequestMethods for Request {
         DOMString::from_string(r.integrity_metadata.clone())
     }
 
+    /// <https://fetch.spec.whatwg.org/#dom-body-body>
+    fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
+        self.body().map(|stream| stream.get_js_stream())
+    }
+
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
-        self.body_used.get()
+        self.is_disturbed()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
@@ -667,29 +663,25 @@ impl RequestMethods for Request {
     }
 }
 
-impl BodyOperations for Request {
-    fn get_body_used(&self) -> bool {
-        self.BodyUsed()
-    }
-
-    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
-        assert!(self.body_promise.borrow().is_none());
-        self.body_used.set(true);
-        *self.body_promise.borrow_mut() = Some((p.clone(), body_type));
+impl BodyMixin for Request {
+    fn is_disturbed(&self) -> bool {
+        let body_stream = self.body_stream.get();
+        body_stream
+            .as_ref()
+            .map_or(false, |stream| stream.is_disturbed())
     }
 
     fn is_locked(&self) -> bool {
-        self.locked()
+        let body_stream = self.body_stream.get();
+        body_stream.map_or(false, |stream| stream.is_locked())
     }
 
-    fn take_body(&self) -> Option<Vec<u8>> {
-        let mut request = self.request.borrow_mut();
-        let body = request.body.take();
-        Some(body.unwrap_or(vec![]))
+    fn body(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body_stream.get()
     }
 
-    fn get_mime_type(&self) -> Ref<Vec<u8>> {
-        self.mime_type.borrow()
+    fn get_mime_type(&self) -> Vec<u8> {
+        self.mime_type.borrow().clone()
     }
 }
 

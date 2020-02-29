@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::body::{consume_body, consume_body_with_promise, BodyOperations, BodyType};
-use crate::dom::bindings::cell::{DomRefCell, Ref};
+use crate::body::{consume_body, BodyMixin, BodyType};
+use crate::body::{Extractable, ExtractedBody};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
@@ -18,16 +19,16 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{is_obs_text, is_vchar};
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
-use crate::dom::xmlhttprequest::Extractable;
+use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_runtime::StreamConsumer;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper::StatusCode;
 use hyper_serde::Serde;
-use net_traits::response::ResponseBody as NetTraitsResponseBody;
+use js::jsapi::JSObject;
 use servo_url::ServoUrl;
-use std::cell::Cell;
-use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 use url::Position;
@@ -37,7 +38,6 @@ pub struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
     mime_type: DomRefCell<Vec<u8>>,
-    body_used: Cell<bool>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_malloc_size_of = "Defined in hyper"]
     status: DomRefCell<Option<StatusCode>>,
@@ -45,10 +45,8 @@ pub struct Response {
     response_type: DomRefCell<DOMResponseType>,
     url: DomRefCell<Option<ServoUrl>>,
     url_list: DomRefCell<Vec<ServoUrl>>,
-    // For now use the existing NetTraitsResponseBody enum
-    body: DomRefCell<NetTraitsResponseBody>,
-    #[ignore_malloc_size_of = "Rc"]
-    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
+    /// The stream of https://fetch.spec.whatwg.org/#body.
+    body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
     redirected: DomRefCell<bool>,
@@ -56,19 +54,21 @@ pub struct Response {
 
 #[allow(non_snake_case)]
 impl Response {
-    pub fn new_inherited() -> Response {
+    pub fn new_inherited(global: &GlobalScope) -> Response {
+        let stream = ReadableStream::new_with_external_underlying_source(
+            global,
+            ExternalUnderlyingSource::FetchResponse,
+        );
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
             mime_type: DomRefCell::new("".to_string().into_bytes()),
-            body_used: Cell::new(false),
             status: DomRefCell::new(Some(StatusCode::OK)),
             raw_status: DomRefCell::new(Some((200, b"".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
-            body: DomRefCell::new(NetTraitsResponseBody::Empty),
-            body_promise: DomRefCell::new(None),
+            body_stream: MutNullableDom::new(Some(&*stream)),
             stream_consumer: DomRefCell::new(None),
             redirected: DomRefCell::new(false),
         }
@@ -76,7 +76,7 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        reflect_dom_object(Box::new(Response::new_inherited()), global)
+        reflect_dom_object(Box::new(Response::new_inherited(global)), global)
     }
 
     pub fn Constructor(
@@ -128,8 +128,14 @@ impl Response {
             };
 
             // Step 7.3
-            let (extracted_body, content_type) = body.extract();
-            *r.body.borrow_mut() = NetTraitsResponseBody::Done(extracted_body);
+            let ExtractedBody {
+                stream,
+                total_bytes: _,
+                content_type,
+                source: _,
+            } = body.extract(global)?;
+
+            r.body_stream.set(Some(&*stream));
 
             // Step 7.4
             if let Some(content_type_contents) = content_type {
@@ -211,42 +217,32 @@ impl Response {
         Ok(r)
     }
 
-    // https://fetch.spec.whatwg.org/#concept-body-locked
-    fn locked(&self) -> bool {
-        // TODO: ReadableStream is unimplemented. Just return false
-        // for now.
-        false
+    pub fn error_stream(&self, error: Error) {
+        if let Some(body) = self.body_stream.get() {
+            body.error_native(error);
+        }
     }
 }
 
-impl BodyOperations for Response {
-    fn get_body_used(&self) -> bool {
-        self.BodyUsed()
-    }
-
-    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
-        assert!(self.body_promise.borrow().is_none());
-        self.body_used.set(true);
-        *self.body_promise.borrow_mut() = Some((p.clone(), body_type));
+impl BodyMixin for Response {
+    fn is_disturbed(&self) -> bool {
+        self.body_stream
+            .get()
+            .map_or(false, |stream| stream.is_disturbed())
     }
 
     fn is_locked(&self) -> bool {
-        self.locked()
+        self.body_stream
+            .get()
+            .map_or(false, |stream| stream.is_locked())
     }
 
-    fn take_body(&self) -> Option<Vec<u8>> {
-        let body = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
-        match body {
-            NetTraitsResponseBody::Done(bytes) => Some(bytes),
-            body => {
-                let _ = mem::replace(&mut *self.body.borrow_mut(), body);
-                None
-            },
-        }
+    fn body(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body_stream.get()
     }
 
-    fn get_mime_type(&self) -> Ref<Vec<u8>> {
-        self.mime_type.borrow()
+    fn get_mime_type(&self) -> Vec<u8> {
+        self.mime_type.borrow().clone()
     }
 }
 
@@ -328,7 +324,7 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-response-clone
     fn Clone(&self) -> Fallible<DomRoot<Response>> {
         // Step 1
-        if self.is_locked() || self.body_used.get() {
+        if self.is_locked() || self.is_disturbed() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
         }
 
@@ -346,8 +342,8 @@ impl ResponseMethods for Response {
         *new_response.url.borrow_mut() = self.url.borrow().clone();
         *new_response.url_list.borrow_mut() = self.url_list.borrow().clone();
 
-        if *self.body.borrow() != NetTraitsResponseBody::Empty {
-            *new_response.body.borrow_mut() = self.body.borrow().clone();
+        if let Some(stream) = self.body_stream.get().clone() {
+            new_response.body_stream.set(Some(&*stream));
         }
 
         // Step 3
@@ -359,7 +355,12 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
-        self.body_used.get()
+        self.is_disturbed()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-body>
+    fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
+        self.body().map(|stream| stream.get_js_stream())
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
@@ -424,20 +425,19 @@ impl Response {
                 *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
             },
             DOMResponseType::Opaque => {
                 *self.url_list.borrow_mut() = vec![];
                 *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+                self.body_stream.set(None);
             },
             DOMResponseType::Opaqueredirect => {
                 *self.status.borrow_mut() = None;
                 self.set_raw_status(None);
                 self.set_headers(None);
-                *self.body.borrow_mut() = NetTraitsResponseBody::Done(vec![]);
+                self.body_stream.set(None);
             },
             DOMResponseType::Default => {},
             DOMResponseType::Basic => {},
@@ -449,17 +449,19 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, stream: &[u8]) {
+    pub fn stream_chunk(&self, chunk: Vec<u8>) {
+        // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow_mut().as_ref() {
-            stream_consumer.consume_chunk(stream);
+            stream_consumer.consume_chunk(chunk.as_slice());
+        } else if let Some(body) = self.body_stream.get() {
+            body.enqueue_native(chunk);
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn finish(&self, body: Vec<u8>) {
-        *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
-        if let Some((p, body_type)) = self.body_promise.borrow_mut().take() {
-            consume_body_with_promise(self, body_type, &p);
+    pub fn finish(&self) {
+        if let Some(body) = self.body_stream.get() {
+            body.close_native();
         }
         if let Some(stream_consumer) = self.stream_consumer.borrow_mut().take() {
             stream_consumer.stream_end();

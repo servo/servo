@@ -49,7 +49,7 @@ use msg::constellation_msg::{
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
-use net_traits::request::Referrer;
+use net_traits::request::{Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
@@ -171,8 +171,8 @@ pub struct LoadData {
         serialize_with = "::hyper_serde::serialize"
     )]
     pub headers: HeaderMap,
-    /// The data.
-    pub data: Option<Vec<u8>>,
+    /// The data that will be used as the body of the request.
+    pub data: Option<RequestBody>,
     /// The result of evaluating a javascript scheme url.
     pub js_eval_result: Option<JsEvalResult>,
     /// The referrer.

@@ -53,7 +53,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
@@ -1018,9 +1018,8 @@ impl TestBindingMethods for TestBinding {
             }
         }
         impl Callback for SimpleHandler {
-            #[allow(unsafe_code)]
-            fn callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
-                let global = unsafe { GlobalScope::from_context(cx, realm) };
+            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm) {
+                let global = GlobalScope::from_safe_context(cx, realm);
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
         }

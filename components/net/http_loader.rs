@@ -32,13 +32,17 @@ use http::header::{
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header};
+use net_traits::request::{
+    BodyChunkRequest, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
+};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestBuilder, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
@@ -52,11 +56,12 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::{Condvar, Mutex, RwLock};
+use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime};
 use time::{self, Tm};
-use tokio::prelude::{future, Future, Stream};
+use tokio::prelude::{future, Future, Sink, Stream};
 use tokio::runtime::Runtime;
+use tokio::sync::mpsc::channel;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));
@@ -400,8 +405,10 @@ fn obtain_response(
     client: &Client<Connector, Body>,
     url: &ServoUrl,
     method: &Method,
-    headers: &HeaderMap,
-    data: &Option<Vec<u8>>,
+    request_headers: &HeaderMap,
+    body: Option<IpcSender<BodyChunkRequest>>,
+    request_len: Option<usize>,
+    load_data_method: &Method,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
     is_xhr: bool,
@@ -412,7 +419,71 @@ fn obtain_response(
         Error = NetworkError,
     >,
 > {
-    let request_body = data.as_ref().cloned().unwrap_or(vec![]);
+    let mut headers = request_headers.clone();
+
+    let devtools_bytes = StdArc::new(Mutex::new(vec![]));
+
+    let request_body = match body {
+        Some(chunk_requester) => {
+            // TODO: If body is a stream, append `Transfer-Encoding`/`chunked`,
+            // see step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+
+            // Step 5.6 of https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch
+            // If source is non-null,
+            // set contentLengthValue to httpRequest’s body’s total bytes
+            if let Some(request_len) = request_len {
+                headers.typed_insert(ContentLength(request_len as u64));
+            }
+            let (body_chan, body_port) = ipc::channel().unwrap();
+
+            let (sender, receiver) = channel(1);
+
+            let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
+
+            // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+            // Request the first chunk, corresponding to Step 3 and 4.
+            let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+
+            let devtools_bytes = devtools_bytes.clone();
+
+            ROUTER.add_route(
+                body_port.to_opaque(),
+                Box::new(move |message| {
+                    let bytes: Vec<u8> = message.to().unwrap();
+                    let chunk_requester = chunk_requester.clone();
+                    let sender = sender.clone();
+
+                    devtools_bytes.lock().unwrap().append(&mut bytes.clone());
+
+                    HANDLE.lock().unwrap().as_mut().unwrap().spawn(
+                        // Step 5.1.2.2
+                        // Transmit a chunk over the network(and blocking until this is done).
+                        sender
+                            .send(bytes)
+                            .map(move |_| {
+                                // Step 5.1.2.3
+                                // Request the next chunk.
+                                let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+                                ()
+                            })
+                            .map_err(|_| ()),
+                    );
+                }),
+            );
+
+            receiver
+        },
+        _ => {
+            if *load_data_method != Method::GET && *load_data_method != Method::HEAD {
+                headers.typed_insert(ContentLength(0))
+            }
+            let (_sender, mut receiver) = channel(1);
+
+            receiver.close();
+
+            receiver
+        },
+    };
 
     context
         .timing
@@ -440,7 +511,7 @@ fn obtain_response(
                 .replace("{", "%7B")
                 .replace("}", "%7D"),
         )
-        .body(request_body.clone().into());
+        .body(Body::wrap_stream(request_body));
 
     // TODO: We currently don't know when the handhhake before the connection is done
     // so our best bet would be to set `secure_connection_start` here when we are currently
@@ -488,7 +559,7 @@ fn obtain_response(
                             closure_url,
                             method.clone(),
                             headers,
-                            Some(request_body.clone()),
+                            Some(devtools_bytes.lock().unwrap().clone()),
                             pipeline_id,
                             time::now(),
                             connect_end - connect_start,
@@ -804,7 +875,7 @@ pub fn http_redirect_fetch(
         .status
         .as_ref()
         .map_or(true, |s| s.0 != StatusCode::SEE_OTHER) &&
-        request.body.as_ref().map_or(false, |b| b.is_empty())
+        request.body.as_ref().map_or(false, |b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -943,7 +1014,7 @@ fn http_network_or_cache_fetch(
             _ => None,
         },
         // Step 5.6
-        Some(ref http_request_body) => Some(http_request_body.len() as u64),
+        Some(ref http_request_body) => http_request_body.len().map(|size| size as u64),
     };
 
     // Step 5.7
@@ -1460,7 +1531,7 @@ impl Drop for ResponseEndTimer {
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(
-    request: &Request,
+    request: &mut Request,
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
@@ -1503,7 +1574,9 @@ fn http_network_fetch(
         &url,
         &request.method,
         &request.headers,
-        &request.body,
+        request.body.as_mut().and_then(|body| body.take_stream()),
+        request.body.as_ref().and_then(|body| body.len()),
+        &request.method,
         &request.pipeline_id,
         request_id.as_ref().map(Deref::deref),
         is_xhr,

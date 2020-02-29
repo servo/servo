@@ -8,6 +8,7 @@ use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
 use http::HeaderMap;
 use hyper::Method;
+use ipc_channel::ipc::IpcSender;
 use mime::Mime;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -115,6 +116,57 @@ pub enum ParserMetadata {
     NotParserInserted,
 }
 
+/// <https://fetch.spec.whatwg.org/#concept-body-source>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum BodySource {
+    Null,
+    Blob,
+    BufferSource,
+    FormData,
+    URLSearchParams,
+    USVString,
+}
+
+/// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum BodyChunkRequest {
+    /// Connect a fetch in `net`, with a stream of bytes from `script`.
+    Connect(IpcSender<Vec<u8>>),
+    /// Ask for another chunk.
+    Chunk,
+    /// Signal the stream is done.
+    Done,
+}
+
+/// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct RequestBody {
+    /// Net's view into a <https://fetch.spec.whatwg.org/#concept-body-stream>
+    #[ignore_malloc_size_of = "Channels are hard"]
+    pub stream: Option<IpcSender<BodyChunkRequest>>,
+    /// <https://fetch.spec.whatwg.org/#concept-body-source>
+    pub source: BodySource,
+    /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
+    pub total_bytes: Option<usize>,
+}
+
+impl RequestBody {
+    pub fn take_stream(&mut self) -> Option<IpcSender<BodyChunkRequest>> {
+        self.stream.take()
+    }
+
+    pub fn source_is_null(&self) -> bool {
+        if let BodySource::Null = self.source {
+            return true;
+        }
+        false
+    }
+
+    pub fn len(&self) -> Option<usize> {
+        self.total_bytes.clone()
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     #[serde(
@@ -131,7 +183,7 @@ pub struct RequestBuilder {
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub unsafe_request: bool,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<RequestBody>,
     pub service_workers_mode: ServiceWorkersMode,
     // TODO: client object
     pub destination: Destination,
@@ -210,7 +262,7 @@ impl RequestBuilder {
         self
     }
 
-    pub fn body(mut self, body: Option<Vec<u8>>) -> RequestBuilder {
+    pub fn body(mut self, body: Option<RequestBody>) -> RequestBuilder {
         self.body = body;
         self
     }
@@ -338,7 +390,7 @@ pub struct Request {
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
-    pub body: Option<Vec<u8>>,
+    pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
     // TODO: target browsing context

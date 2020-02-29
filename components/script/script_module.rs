@@ -675,7 +675,7 @@ impl ModuleHandler {
 }
 
 impl Callback for ModuleHandler {
-    fn callback(&self, _cx: *mut JSContext, _v: HandleValue, _realm: InRealm) {
+    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm) {
         let task = self.task.borrow_mut().take().unwrap();
         task.run_box();
     }
