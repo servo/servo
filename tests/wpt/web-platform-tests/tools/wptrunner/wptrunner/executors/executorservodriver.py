@@ -126,8 +126,8 @@ class ServoWebDriverProtocol(Protocol):
                 pass
             except (socket.timeout, IOError):
                 break
-            except Exception as e:
-                self.logger.error(traceback.format_exc(e))
+            except Exception:
+                self.logger.error(traceback.format_exc())
                 break
 
 
@@ -146,7 +146,7 @@ class ServoWebDriverRun(TimedRunner):
             message = getattr(e, "message", "")
             if message:
                 message += "\n"
-            message += traceback.format_exc(e)
+            message += traceback.format_exc()
             self.result = False, ("INTERNAL-ERROR", e)
         finally:
             self.result_flag.set()
@@ -256,7 +256,7 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
             message = getattr(e, "message", "")
             if message:
                 message += "\n"
-            message += traceback.format_exc(e)
+            message += traceback.format_exc()
             return test.result_cls("INTERNAL-ERROR", message), []
 
     def screenshot(self, test, viewport_size, dpi):

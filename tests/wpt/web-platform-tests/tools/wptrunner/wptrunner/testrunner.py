@@ -393,8 +393,8 @@ class TestRunnerManager(threading.Thread):
                             return
                     self.state = new_state
                     self.logger.debug("new state: %s" % self.state.__class__.__name__)
-            except Exception as e:
-                self.logger.error(traceback.format_exc(e))
+            except Exception:
+                self.logger.error(traceback.format_exc())
                 raise
             finally:
                 self.logger.debug("TestRunnerManager main loop terminating, starting cleanup")

@@ -25,9 +25,9 @@ callback ResizeObserverCallback = void (sequence<ResizeObserverEntry> entries, R
 interface ResizeObserverEntry {
     readonly attribute Element target;
     readonly attribute DOMRectReadOnly contentRect;
-    readonly attribute sequence<ResizeObserverSize> borderBoxSize;
-    readonly attribute sequence<ResizeObserverSize> contentBoxSize;
-    readonly attribute sequence<ResizeObserverSize> devicePixelContentBoxSize;
+    readonly attribute FrozenArray<ResizeObserverSize> borderBoxSize;
+    readonly attribute FrozenArray<ResizeObserverSize> contentBoxSize;
+    readonly attribute FrozenArray<ResizeObserverSize> devicePixelContentBoxSize;
 };
 
 interface ResizeObserverSize {

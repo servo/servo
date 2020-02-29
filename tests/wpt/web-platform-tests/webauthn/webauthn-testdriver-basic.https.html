@@ -10,8 +10,10 @@
 <script>
 "use strict";
 
+let authenticator;
+
 promise_test(async t => {
-  return window.test_driver.add_virtual_authenticator({
+  authenticator = await window.test_driver.add_virtual_authenticator({
     protocol: "ctap1/u2f",
     transport: "usb",
   });
@@ -113,5 +115,9 @@ promise_test(async t => {
   assert_true(await crypto.subtle.verify(
     { name: "ECDSA", hash: "SHA-256" }, key, signature, signedData));
 }, "Get an assertion");
+
+promise_test(async t => {
+  await window.test_driver.remove_virtual_authenticator(authenticator);
+}, "Clean up the test environment");
 
 </script>
