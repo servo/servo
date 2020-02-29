@@ -185,6 +185,8 @@ pub enum EmbedderMsg {
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    /// Open interface to request permission specified by prompt.
+    PromptPermission(PermissionPrompt, IpcSender<PermissionRequest>),
     /// Request to present an IME to the user when an editable element is focused.
     ShowIME(InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
@@ -222,6 +224,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
+            EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
@@ -298,4 +301,34 @@ pub enum MediaSessionEvent {
     PlaybackStateChange(MediaSessionPlaybackState),
     /// Indicates that the position state is set.
     SetPositionState(MediaPositionState),
+}
+
+/// Enum with variants that match the DOM PermissionName enum
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PermissionName {
+    Geolocation,
+    Notifications,
+    Push,
+    Midi,
+    Camera,
+    Microphone,
+    Speaker,
+    DeviceInfo,
+    BackgroundSync,
+    Bluetooth,
+    PersistentStorage,
+}
+
+/// Information required to display a permission prompt
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PermissionPrompt {
+    Insecure(PermissionName),
+    Request(PermissionName),
+}
+
+/// Status for prompting user for permission.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PermissionRequest {
+    Granted,
+    Denied,
 }

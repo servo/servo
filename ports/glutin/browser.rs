@@ -7,7 +7,10 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
-use servo::embedder_traits::{EmbedderMsg, FilterPattern, PromptDefinition, PromptOrigin, PromptResult};
+use servo::embedder_traits::{
+    EmbedderMsg, FilterPattern, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
+    PermissionPrompt,
+};
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -491,6 +494,10 @@ where
                         self.event_queue.push(WindowEvent::SendError(None, reason));
                     };
                 },
+                EmbedderMsg::PromptPermission(prompt, sender) => {
+                    let permission_state = prompt_user(prompt);
+                    let _ = sender.send(permission_state);
+                }
                 EmbedderMsg::ShowIME(_kind) => {
                     debug!("ShowIME received");
                 },
@@ -511,6 +518,42 @@ where
             }
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn prompt_user(prompt: PermissionPrompt) -> PermissionRequest {
+    if opts::get().headless {
+        return PermissionRequest::Denied;
+    }
+
+    let message = match prompt {
+        PermissionPrompt::Request(permission_name) => {
+            format!("Do you want to grant permission for {:?}?", permission_name)
+        },
+        PermissionPrompt::Insecure(permission_name) => {
+            format!(
+                "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
+                that the current context is secure. Do you want to proceed and grant permission?",
+                permission_name
+            )
+        },
+    };
+
+    match tinyfiledialogs::message_box_yes_no(
+        "Permission request dialog",
+        &message,
+        MessageBoxIcon::Question,
+        YesNo::No,
+    ) {
+        YesNo::Yes => PermissionRequest::Granted,
+        YesNo::No => PermissionRequest::Denied,
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn prompt_user(_prompt: PermissionPrompt) -> PermissionRequest {
+    // TODO popup only supported on linux
+    PermissionRequest::Denied
 }
 
 #[cfg(target_os = "linux")]

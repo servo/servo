@@ -5,6 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -60,6 +61,7 @@ use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -180,6 +182,9 @@ pub struct GlobalScope {
 
     /// The origin of the globalscope
     origin: MutableOrigin,
+
+    /// A map for storing the previous permission state read results.
+    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
     /// The microtask queue associated with this global.
     ///
@@ -567,6 +572,7 @@ impl GlobalScope {
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
             origin,
+            permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
@@ -1693,6 +1699,12 @@ impl GlobalScope {
         }
     }
 
+    pub fn permission_state_invocation_results(
+        &self,
+    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+        &self.permission_state_invocation_results
+    }
+
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
         self.list_auto_close_worker
             .borrow_mut()
@@ -1896,6 +1908,14 @@ impl GlobalScope {
     /// Get a sender to the constellation thread.
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan
+    }
+
+    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+    }
+
+    pub fn send_to_constellation(&self, msg: ScriptMsg) {
+        self.script_to_constellation_chan().send(msg).unwrap();
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
