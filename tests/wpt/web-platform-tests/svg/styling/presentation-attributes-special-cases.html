@@ -89,7 +89,7 @@ if (propertiesAreSupported(["rx", "ry"])) {
 
 if (CSS.supports("d", "initial")) {
   test(function() {
-    assertPresentationAttributeIsSupported("g", "d", "M0,0 L1,1", "d");
+    assertPresentationAttributeIsNotSupported("g", "d", "M0,0 L1,1", "d");
   }, `d presentation attribute not supported on other elements`);
 }
 

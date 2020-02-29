@@ -73,8 +73,8 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
             except (socket.timeout, exceptions.NoSuchWindowException,
                     exceptions.ErrorInResponseException, IOError):
                 break
-            except Exception as e:
-                self.logger.error(traceback.format_exc(e))
+            except Exception:
+                self.logger.error(traceback.format_exc())
                 break
 
 
@@ -262,7 +262,7 @@ class SeleniumRun(TimedRunner):
             message = str(getattr(e, "message", ""))
             if message:
                 message += "\n"
-            message += traceback.format_exc(e)
+            message += traceback.format_exc()
             self.result = False, ("INTERNAL-ERROR", message)
         finally:
             self.result_flag.set()

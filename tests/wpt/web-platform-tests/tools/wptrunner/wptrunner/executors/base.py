@@ -260,8 +260,9 @@ class TestExecutor(object):
         try:
             result = self.do_test(test)
         except Exception as e:
-            self.logger.warning(traceback.format_exc(e))
-            result = self.result_from_exception(test, e)
+            exception_string = traceback.format_exc()
+            self.logger.warning(exception_string)
+            result = self.result_from_exception(test, e, exception_string)
 
         if result is Stop:
             return result
@@ -294,7 +295,7 @@ class TestExecutor(object):
     def on_environment_change(self, new_environment):
         pass
 
-    def result_from_exception(self, test, e):
+    def result_from_exception(self, test, e, exception_string):
         if hasattr(e, "status") and e.status in test.result_cls.statuses:
             status = e.status
         else:
@@ -302,7 +303,7 @@ class TestExecutor(object):
         message = text_type(getattr(e, "message", ""))
         if message:
             message += "\n"
-        message += traceback.format_exc(e)
+        message += exception_string
         return test.result_cls(status, message), []
 
     def wait(self):
@@ -579,7 +580,7 @@ class WdspecRun(object):
             message = getattr(e, "message")
             if message:
                 message += "\n"
-            message += traceback.format_exc(e)
+            message += traceback.format_exc()
             self.result = False, ("INTERNAL-ERROR", message)
         finally:
             self.result_flag.set()

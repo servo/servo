@@ -51,39 +51,6 @@ promise_test(async t => {
 }, 'Transitions on ::before/::after pseudo-elements are canceled when the'
    + ' content property is cleared');
 
-promise_test(async t => {
-  if (!CSS.supports('selector(::marker)')) {
-    return;
-  }
-
-  addStyle(t, {
-    '.init::marker': 'content: ""; color: red; transition: color 100s;',
-    '.change::marker': 'color: green',
-  });
-
-  // Create element (and pseudo-element) and attach event listeners
-  const div = addDiv(t, { 'style': 'display: list-item' });
-  div.classList.add('init');
-
-  const eventWatcher = new EventWatcher(t, div, [
-    'transitionrun',
-    'transitioncancel',
-  ]);
-
-  // Trigger transition
-  getComputedStyle(div).color;
-  div.classList.add('change');
-  getComputedStyle(div).color;
-
-  await eventWatcher.wait_for('transitionrun');
-
-  // Make the parent element no longer display: list-item so that the pseudo
-  // element no longer renders
-  div.style.display = 'block';
-
-  await eventWatcher.wait_for('transitioncancel');
-}, 'Transitions on ::marker pseudo-elements are canceled when the'
-   + ' parent display type is no longer list-item');
 </script>
 
 </body>

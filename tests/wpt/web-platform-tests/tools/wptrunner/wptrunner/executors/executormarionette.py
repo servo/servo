@@ -115,8 +115,8 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
             except IOError:
                 self.logger.debug("Socket closed")
                 break
-            except Exception as e:
-                self.logger.warning(traceback.format_exc(e))
+            except Exception:
+                self.logger.warning(traceback.format_exc())
                 break
 
 
@@ -138,12 +138,12 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
         self.logger.debug("Loading %s" % url)
         try:
             self.dismiss_alert(lambda: self.marionette.navigate(url))
-        except Exception as e:
+        except Exception:
             self.logger.critical(
                 "Loading initial page %s failed. Ensure that the "
                 "there are no other programs bound to this port and "
                 "that your firewall rules or network setup does not "
-                r"prevent access.\e%s" % (url, traceback.format_exc(e)))
+                r"prevent access.\e%s" % (url, traceback.format_exc()))
             raise
         self.runner_handle = self.marionette.current_window_handle
         format_map = {"title": threading.current_thread().name.replace("'", '"')}
@@ -659,7 +659,7 @@ class ExecuteAsyncScriptRun(TimedRunner):
                 message = getattr(e, "message", "")
                 if message:
                     message += "\n"
-                message += traceback.format_exc(e)
+                message += traceback.format_exc()
                 self.logger.warning(traceback.format_exc())
             self.result = False, ("INTERNAL-ERROR", message)
         finally:
@@ -809,10 +809,10 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 if handles:
                     self.protocol.marionette.switch_to_window(handles[0])
             super(self.__class__, self).teardown()
-        except Exception as e:
+        except Exception:
             # Ignore errors during teardown
             self.logger.warning("Exception during reftest teardown:\n%s" %
-                                traceback.format_exc(e))
+                                traceback.format_exc())
 
     def reset(self):
         self.implementation.reset(**self.implementation_kwargs)
@@ -935,9 +935,9 @@ class InternalRefTestImplementation(RefTestImplementation):
                 handles = self.executor.protocol.marionette.window_handles
                 if handles:
                     self.executor.protocol.marionette.switch_to_window(handles[0])
-        except Exception as e:
+        except Exception:
             # Ignore errors during teardown
-            self.logger.warning(traceback.format_exc(e))
+            self.logger.warning(traceback.format_exc())
 
 
 class GeckoDriverProtocol(WebDriverProtocol):

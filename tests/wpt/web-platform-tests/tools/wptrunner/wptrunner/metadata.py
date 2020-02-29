@@ -497,6 +497,9 @@ class ExpectedUpdater(object):
         return dir_id, self.id_test_map[dir_id]
 
     def lsan_leak(self, data):
+        if data["scope"] == "/":
+            logger.warning("Not updating lsan annotations for root scope")
+            return
         dir_id, test_data = self.test_for_scope(data)
         test_data.set(dir_id, None, "lsan",
                       self.run_info, (data["frames"], data.get("allowed_match")))
@@ -504,6 +507,9 @@ class ExpectedUpdater(object):
             test_data.set_requires_update()
 
     def mozleak_object(self, data):
+        if data["scope"] == "/":
+            logger.warning("Not updating mozleak annotations for root scope")
+            return
         dir_id, test_data = self.test_for_scope(data)
         test_data.set(dir_id, None, "leak-object",
                       self.run_info, ("%s:%s", (data["process"], data["name"]),
@@ -512,6 +518,9 @@ class ExpectedUpdater(object):
             test_data.set_requires_update()
 
     def mozleak_total(self, data):
+        if data["scope"] == "/":
+            logger.warning("Not updating mozleak annotations for root scope")
+            return
         if data["bytes"]:
             dir_id, test_data = self.test_for_scope(data)
             test_data.set(dir_id, None, "leak-threshold",

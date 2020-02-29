@@ -7,8 +7,12 @@
 
 // TODO: Factor out the test cases into a separate file.
 // (like import-test-cases.js)
-// TODO: Add rest of the tests correponding to
-// 'dedicated-worker-import-failure.html'
+
+// SharedWorkers doesn't fire error events when runtime script errors occur.
+//
+// "For shared workers, if the error is still not handled afterwards, the error
+// may be reported to a developer console." [spec text]
+// https://html.spec.whatwg.org/C/#runtime-script-errors-2
 
 promise_test(async () => {
   const scriptURL = 'resources/import-scripts-worker.js';
@@ -24,6 +28,29 @@ promise_test(() => {
   return new Promise(resolve => worker.onerror = resolve);
 }, 'Worker construction for non-existent script should dispatch an ' +
    'ErrorEvent.');
+
+promise_test(() => {
+  const scriptURL = 'resources/static-import-non-existent-script-worker.js';
+  const worker = new SharedWorker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Static import for non-existent script should dispatch an ErrorEvent.');
+
+promise_test(async () => {
+  const scriptURL = './non-existent-worker.js';
+  const worker =
+      new SharedWorker('resources/dynamic-import-given-url-worker.js',
+                       { type: 'module' });
+  worker.port.postMessage(scriptURL);
+  const msg_event = await new Promise((resolve, reject) => {
+    worker.port.onmessage = resolve;
+    worker.onerror = error => {
+      const msg = error instanceof ErrorEvent ? error.message
+                                              : 'unknown error';
+      reject(msg);
+    };
+  });
+  assert_equals(msg_event.data, 'TypeError');
+}, 'Dynamic import for non-existent script should throw an exception.');
 
 test(() => {
   const scriptURL = 'http://invalid:123$';

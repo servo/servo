@@ -62,7 +62,7 @@ const PROPERTIES = {
   "d": {
     value: "M0,0 L1,1",
     relevantElement: "path",
-    irrelevantElement: "image",
+    irrelevantElement: null,
   },
   "dominant-baseline": {
     value: "middle",
@@ -142,7 +142,7 @@ const PROPERTIES = {
   "height": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
   "image-rendering": {
     value: "optimizeSpeed",
@@ -207,17 +207,17 @@ const PROPERTIES = {
   "r": {
     value: "1",
     relevantElement: "circle",
-    irrelevantElement: "rect",
+    irrelevantElement: null,
   },
   "rx": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
   "ry": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
   "shape-rendering": {
     value: "geometricPrecision",
@@ -302,7 +302,7 @@ const PROPERTIES = {
   "transform": {
     value: "scale(2)",
     relevantElement: "g",
-    irrelevantElement: "linearGradient",
+    irrelevantElement: null,
   },
   "unicode-bidi": {
     value: "embed",
@@ -327,7 +327,7 @@ const PROPERTIES = {
   "width": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
   "word-spacing": {
     value: "1",
@@ -342,12 +342,12 @@ const PROPERTIES = {
   "x": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
   "y": {
     value: "1",
     relevantElement: "rect",
-    irrelevantElement: "path",
+    irrelevantElement: null,
   },
 };
 

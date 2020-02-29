@@ -262,83 +262,88 @@ test(t => {
                 'returned');
 }, 'CSS Animations canceled and restarted via the API are returned');
 
-test(t => {
-  // Create two divs with the following arrangement:
-  //
-  //       parent
-  //    (::marker,)
-  //     ::before,
-  //     ::after
-  //        |
-  //       child
+function pseudoTest(description, testMarkerPseudos) {
+  test(t => {
+    // Create two divs with the following arrangement:
+    //
+    //       parent
+    //    (::marker,)  // Optionally
+    //     ::before,
+    //     ::after
+    //        |
+    //       child
 
-  addStyle(t, {
-    '#parent::after': "content: ''; animation: animLeft 100s;",
-    '#parent::before': "content: ''; animation: animRight 100s;",
-  });
-
-  const supportsMarkerPseudos = CSS.supports('selector(::marker)');
-  if (supportsMarkerPseudos) {
     addStyle(t, {
-      '#parent': 'display: list-item;',
-      '#parent::marker': "content: ''; animation: animLeft 100s;",
+      '#parent::after': "content: ''; animation: animLeft 100s;",
+      '#parent::before': "content: ''; animation: animRight 100s;",
     });
-  }
 
-  const parent = addDiv(t, { id: 'parent' });
-  const child = addDiv(t);
-  parent.appendChild(child);
-  for (const div of [parent, child]) {
-    div.setAttribute('style', 'animation: animBottom 100s');
-  }
-
-  const expectedAnimations = [
-    [parent, undefined],
-    [parent, '::marker'],
-    [parent, '::before'],
-    [parent, '::after'],
-    [child, undefined],
-  ];
-  if (!supportsMarkerPseudos) {
-    expectedAnimations.splice(1, 1);
-  }
-
-  const animations = document.getAnimations();
-  assert_equals(
-    animations.length,
-    expectedAnimations.length,
-    'CSS animations on both pseudo-elements and elements are returned'
-  );
-
-  for (const [index, expected] of expectedAnimations.entries()) {
-    const [element, pseudo] = expected;
-    const actual = animations[index];
-
-    if (pseudo) {
-      assert_equals(
-        actual.effect.target,
-        element,
-        `Animation #${index + 1} has expected target`
-      );
-      assert_equals(
-        actual.effect.pseudoElement,
-        pseudo,
-        `Animation #${index + 1} has expected pseudo type`
-      );
-    } else {
-      assert_equals(
-        actual.effect.target,
-        element,
-        `Animation #${index + 1} has expected target`
-      );
-      assert_equals(
-        actual.effect.pseudoElement,
-        null,
-        `Animation #${index + 1} has null pseudo type`
-      );
+    if (testMarkerPseudos) {
+      addStyle(t, {
+        '#parent': 'display: list-item;',
+        '#parent::marker': "content: ''; animation: animLeft 100s;",
+      });
     }
-  }
-}, 'CSS Animations targetting (pseudo-)elements should have correct order '
-   + 'after sorting');
+
+    const parent = addDiv(t, { id: 'parent' });
+    const child = addDiv(t);
+    parent.appendChild(child);
+    for (const div of [parent, child]) {
+      div.setAttribute('style', 'animation: animBottom 100s');
+    }
+
+    const expectedAnimations = [
+      [parent, undefined],
+      [parent, '::marker'],
+      [parent, '::before'],
+      [parent, '::after'],
+      [child, undefined],
+    ];
+    if (!testMarkerPseudos) {
+      expectedAnimations.splice(1, 1);
+    }
+
+    const animations = document.getAnimations();
+    assert_equals(
+      animations.length,
+      expectedAnimations.length,
+      'CSS animations on both pseudo-elements and elements are returned'
+    );
+
+    for (const [index, expected] of expectedAnimations.entries()) {
+      const [element, pseudo] = expected;
+      const actual = animations[index];
+
+      if (pseudo) {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Animation #${index + 1} has expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          pseudo,
+          `Animation #${index + 1} has expected pseudo type`
+        );
+      } else {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Animation #${index + 1} has expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          null,
+          `Animation #${index + 1} has null pseudo type`
+        );
+      }
+    }
+  }, description);
+}
+
+pseudoTest('CSS Animations targetting (pseudo-)elements should have correct '
+     + 'order after sorting', false);
+pseudoTest('CSS Animations targetting (pseudo-)elements should have correct '
+     + 'order after sorting (::marker)', true);
 
 </script>

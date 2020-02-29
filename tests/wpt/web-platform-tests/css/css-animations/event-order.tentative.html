@@ -129,62 +129,68 @@ promise_test(async t => {
                       ['animationend', div2, 200]);
 }, 'Same events are ordered by elements');
 
-promise_test(async t => {
-  // Setup a hierarchy as follows:
-  //
-  //              parent
-  //                |
-  //  (::marker, ::before, ::after)
-  //                |
-  //              child
-  const parentDiv = addDiv(t, { style: 'animation: anim 100s' });
+function pseudoTest(description, testMarkerPseudos) {
+  promise_test(async t => {
+    // Setup a hierarchy as follows:
+    //
+    //              parent
+    //                |
+    //  (::marker, ::before, ::after) // ::marker optional
+    //                |
+    //              child
+    const parentDiv = addDiv(t, { style: 'animation: anim 100s' });
 
-  parentDiv.id = 'parent-div';
-  addStyle(t, {
-    '#parent-div::after': "content: ''; animation: anim 100s",
-    '#parent-div::before': "content: ''; animation: anim 100s",
-  });
-
-  if (CSS.supports('selector(::marker)')) {
-    parentDiv.style.display = 'list-item';
+    parentDiv.id = 'parent-div';
     addStyle(t, {
-      '#parent-div::marker': "content: ''; animation: color-anim 100s",
+      '#parent-div::after': "content: ''; animation: anim 100s",
+      '#parent-div::before': "content: ''; animation: anim 100s",
     });
-  }
 
-  const childDiv = addDiv(t, { style: 'animation: anim 100s' });
-  parentDiv.append(childDiv);
-
-  // Setup event handlers
-  let events = [];
-  for (const name of ['start', 'iteration', 'end', 'cancel']) {
-    parentDiv['onanimation' + name] = evt => {
-      events.push({
-        type: evt.type,
-        target: evt.target,
-        pseudoElement: evt.pseudoElement,
-        elapsedTime: evt.elapsedTime,
+    if (testMarkerPseudos) {
+      parentDiv.style.display = 'list-item';
+      addStyle(t, {
+        '#parent-div::marker': "content: ''; animation: color-anim 100s",
       });
-    };
-  }
+    }
 
-  // Wait a couple of frames for the events to be dispatched
-  await waitForFrame();
-  await waitForFrame();
+    const childDiv = addDiv(t, { style: 'animation: anim 100s' });
+    parentDiv.append(childDiv);
 
-  const expectedEvents = [
-    ['animationstart', parentDiv, 0],
-    ['animationstart', parentDiv, '::marker', 0],
-    ['animationstart', parentDiv, '::before', 0],
-    ['animationstart', parentDiv, '::after', 0],
-    ['animationstart', childDiv, 0],
-  ];
-  if (!CSS.supports('selector(::marker)')) {
-    expectedEvents.splice(1, 1);
-  }
+    // Setup event handlers
+    let events = [];
+    for (const name of ['start', 'iteration', 'end', 'cancel']) {
+      parentDiv['onanimation' + name] = evt => {
+        events.push({
+          type: evt.type,
+          target: evt.target,
+          pseudoElement: evt.pseudoElement,
+          elapsedTime: evt.elapsedTime,
+        });
+      };
+    }
 
-  checkEvents(events, ...expectedEvents);
-}, 'Same events on pseudo-elements follow the prescribed order');
+    // Wait a couple of frames for the events to be dispatched
+    await waitForFrame();
+    await waitForFrame();
+
+    const expectedEvents = [
+      ['animationstart', parentDiv, 0],
+      ['animationstart', parentDiv, '::marker', 0],
+      ['animationstart', parentDiv, '::before', 0],
+      ['animationstart', parentDiv, '::after', 0],
+      ['animationstart', childDiv, 0],
+    ];
+    if (!testMarkerPseudos) {
+      expectedEvents.splice(1, 1);
+    }
+
+    checkEvents(events, ...expectedEvents);
+  }, description);
+}
+
+pseudoTest('Same events on pseudo-elements follow the prescribed order', false);
+pseudoTest('Same events on pseudo-elements follow the prescribed order ' +
+    '(::marker)', true);
 
 promise_test(async t => {
   let events = [];
