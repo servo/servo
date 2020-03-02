@@ -28,31 +28,6 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn size_from_pattern(
-        &self,
-        rect: &Rect<f32>,
-        pattern: &canvas_data::Pattern,
-    ) -> Option<Size2D<f32>> {
-        match pattern {
-            canvas_data::Pattern::Raqote(Pattern::Surface(pattern)) => match pattern.repeat {
-                Repetition::RepeatX => Some(Size2D::new(
-                    rect.size.width as f32,
-                    pattern.image.height as f32,
-                )),
-                Repetition::RepeatY => Some(Size2D::new(
-                    pattern.image.width as f32,
-                    rect.size.height as f32,
-                )),
-                Repetition::Repeat => Some(rect.size),
-                Repetition::NoRepeat => Some(Size2D::new(
-                    pattern.image.width as f32,
-                    pattern.image.height as f32,
-                )),
-            },
-            _ => None,
-        }
-    }
-
     fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>) {
         state.shadow_color = Color::Raqote(color.to_raqote_style());
     }
@@ -207,6 +182,12 @@ impl<'a> SurfacePattern<'a> {
     }
     fn set_transform(&mut self, transform: Transform2D<f32>) {
         self.transform = transform;
+    }
+    pub fn size(&self) -> Size2D<f32> {
+        Size2D::new(self.image.width as f32, self.image.height as f32)
+    }
+    pub fn repetition(&self) -> &Repetition {
+        &self.repeat
     }
 }
 

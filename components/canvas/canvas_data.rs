@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_paint_thread::AntialiasMode;
+use crate::raqote_backend::Repetition;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -78,7 +79,6 @@ pub trait Backend {
     );
     fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget>;
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a>;
-    fn size_from_pattern(&self, rect: &Rect<f32>, pattern: &Pattern) -> Option<Size2D<f32>>;
 }
 
 /// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.
@@ -470,12 +470,41 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let draw_rect = Rect::new(
-            rect.origin,
-            self.backend
-                .size_from_pattern(&rect, &self.state.fill_style)
-                .unwrap_or(rect.size),
-        );
+        let draw_rect = match &self.state.fill_style {
+            Pattern::Raqote(pattern) => match pattern {
+                crate::raqote_backend::Pattern::Surface(pattern) => {
+                    let pattern_rect = Rect::new(Point2D::origin(), pattern.size());
+                    let mut draw_rect = rect.intersection(&pattern_rect).unwrap_or(Rect::zero());
+
+                    match pattern.repetition() {
+                        Repetition::NoRepeat => {
+                            draw_rect.size.width =
+                                draw_rect.size.width.min(pattern_rect.size.width);
+                            draw_rect.size.height =
+                                draw_rect.size.height.min(pattern_rect.size.height);
+                        },
+                        Repetition::RepeatX => {
+                            draw_rect.size.width = rect.size.width;
+                            draw_rect.size.height =
+                                draw_rect.size.height.min(pattern_rect.size.height);
+                        },
+                        Repetition::RepeatY => {
+                            draw_rect.size.height = rect.size.height;
+                            draw_rect.size.width =
+                                draw_rect.size.width.min(pattern_rect.size.width);
+                        },
+                        Repetition::Repeat => {
+                            draw_rect = *rect;
+                        },
+                    }
+
+                    draw_rect
+                },
+                crate::raqote_backend::Pattern::Color(..) |
+                crate::raqote_backend::Pattern::LinearGradient(..) |
+                crate::raqote_backend::Pattern::RadialGradient(..) => *rect,
+            },
+        };
 
         if self.need_to_draw_shadow() {
             self.draw_with_shadow(&draw_rect, |new_draw_target: &mut dyn GenericDrawTarget| {
