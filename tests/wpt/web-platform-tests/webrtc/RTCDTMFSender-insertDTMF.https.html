@@ -53,17 +53,15 @@
       All other characters (and only those other characters) MUST be considered
       unrecognized.
    */
-  promise_test(t => {
-    return createDtmfSender()
-  .then(dtmfSender => {
-      dtmfSender.insertDTMF('');
-      dtmfSender.insertDTMF('012345689');
-      dtmfSender.insertDTMF('ABCD');
-      dtmfSender.insertDTMF('abcd');
-      dtmfSender.insertDTMF('#*');
-      dtmfSender.insertDTMF(',');
-      dtmfSender.insertDTMF('0123456789ABCDabcd#*,');
-    });
+  promise_test(async t => {
+    const dtmfSender = await createDtmfSender();
+    dtmfSender.insertDTMF('');
+    dtmfSender.insertDTMF('012345689');
+    dtmfSender.insertDTMF('ABCD');
+    dtmfSender.insertDTMF('abcd');
+    dtmfSender.insertDTMF('#*');
+    dtmfSender.insertDTMF(',');
+    dtmfSender.insertDTMF('0123456789ABCDabcd#*,');
   }, 'insertDTMF() should succeed if tones contains valid DTMF characters');
 
 
@@ -72,21 +70,19 @@
       6.  If tones contains any unrecognized characters, throw an
           InvalidCharacterError.
    */
-  promise_test(t => {
-    return createDtmfSender()
-    .then(dtmfSender => {
-      assert_throws_dom('InvalidCharacterError', () =>
-        // 'F' is invalid
-        dtmfSender.insertDTMF('123FFABC'));
+  promise_test(async t => {
+    const dtmfSender = await createDtmfSender();
+    assert_throws_dom('InvalidCharacterError', () =>
+      // 'F' is invalid
+      dtmfSender.insertDTMF('123FFABC'));
 
-      assert_throws_dom('InvalidCharacterError', () =>
-        // 'E' is invalid
-        dtmfSender.insertDTMF('E'));
+    assert_throws_dom('InvalidCharacterError', () =>
+      // 'E' is invalid
+      dtmfSender.insertDTMF('E'));
 
-      assert_throws_dom('InvalidCharacterError', () =>
-        // ' ' is invalid
-        dtmfSender.insertDTMF('# *'));
-    });
+    assert_throws_dom('InvalidCharacterError', () =>
+      // ' ' is invalid
+      dtmfSender.insertDTMF('# *'));
   }, 'insertDTMF() should throw InvalidCharacterError if tones contains invalid DTMF characters');
 
   /*
@@ -152,37 +148,29 @@
 
       7.  Set the object's toneBuffer attribute to tones.
    */
-  promise_test(t => {
-    return createDtmfSender()
-    .then(dtmfSender => {
-      dtmfSender.insertDTMF('123');
-      assert_equals(dtmfSender.toneBuffer, '123');
+  promise_test(async t => {
+    const dtmfSender = await createDtmfSender();
+    dtmfSender.insertDTMF('123');
+    assert_equals(dtmfSender.toneBuffer, '123');
 
-      dtmfSender.insertDTMF('ABC');
-      assert_equals(dtmfSender.toneBuffer, 'ABC');
+    dtmfSender.insertDTMF('ABC');
+    assert_equals(dtmfSender.toneBuffer, 'ABC');
 
-      dtmfSender.insertDTMF('bcd');
-      assert_equals(dtmfSender.toneBuffer, 'BCD');
-    });
+    dtmfSender.insertDTMF('bcd');
+    assert_equals(dtmfSender.toneBuffer, 'BCD');
   }, 'insertDTMF() should set toneBuffer to provided tones normalized, with old tones overridden');
 
-  promise_test(t => {
-    let dtmfSender;
-    let sender;
-    let pc = new RTCPeerConnection();
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return getTrackFromUserMedia('audio')
-      .then(([track, mediaStream]) => {
-        sender = pc.addTrack(track, mediaStream);
-        return pc.createOffer();
-      }).then(offer => {
-        pc.setLocalDescription(offer);
-        dtmfSender = sender.dtmf;
-        pc.removeTrack(sender);
-        pc.close();
-        assert_throws_dom('InvalidStateError', () =>
-                          dtmfSender.insertDTMF('123'));
-      });
+    const [track, mediaStream] = await getTrackFromUserMedia('audio');
+    const sender = pc.addTrack(track, mediaStream);
+    await pc.setLocalDescription(await pc.createOffer());
+    const dtmfSender = sender.dtmf;
+    pc.removeTrack(sender);
+    pc.close();
+    assert_throws_dom('InvalidStateError', () =>
+                      dtmfSender.insertDTMF('123'));
   }, 'insertDTMF() after remove and close should reject');
 
 </script>

@@ -1,0 +1,211 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver("video");
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  const {candidate} = await new Promise(r => pc1.onicecandidate = r);
+  try {
+    await pc2.addIceCandidate(candidate);
+    assert_unreached("Control. Must not succeed");
+  } catch (e) {
+    assert_equals(e.name, "InvalidStateError");
+  }
+  const p = pc2.setRemoteDescription(offer);
+  await pc2.addIceCandidate(candidate);
+  await p;
+}, "addIceCandidate chains onto SRD, fails before");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver("video");
+  await Promise.all([
+    pc1.createOffer(),
+    pc1.setLocalDescription({type: "offer"})
+  ]);
+  await Promise.all([
+    pc2.setRemoteDescription(pc1.localDescription),
+    pc2.createAnswer(),
+    pc2.setLocalDescription({type: "answer"})
+  ]);
+  await pc1.setRemoteDescription(pc2.localDescription);
+}, "Pack operations queue with implicit offer and answer");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const state = (pc, s) => new Promise(r => pc.onsignalingstatechange =
+                                       () => pc.signalingState == s && r());
+  pc1.addTransceiver("video");
+  pc1.createOffer();
+  pc1.setLocalDescription({type: "offer"});
+  await state(pc1, "have-local-offer");
+  pc2.setRemoteDescription(pc1.localDescription);
+  pc2.createAnswer();
+  pc2.setLocalDescription({type: "answer"});
+  await state(pc2, "stable");
+  await pc1.setRemoteDescription(pc2.localDescription);
+}, "Negotiate solely by operations queue and signaling state");
+
+// Helpers to test APIs "return a promise rejected with a newly created" error.
+// Strictly speaking this means already-rejected upon return.
+function promiseState(p) {
+  const t = {};
+  return Promise.race([p, t])
+    .then(v => (v === t)? "pending" : "fulfilled", () => "rejected");
+}
+
+// However, to allow promises to be used in implementations, this helper adds
+// some slack: returning a pending promise will pass, provided it is rejected
+// before the end of the current run of the event loop (i.e. on microtask queue
+// before next task).
+async function promiseStateFinal(p) {
+  for (let i = 0; i < 20; i++) {
+    await promiseState(p);
+  }
+  return promiseState(p);
+}
+
+promise_test(async t => {
+  assert_equals(await promiseState(Promise.resolve()), "fulfilled");
+  assert_equals(await promiseState(Promise.reject()), "rejected");
+  assert_equals(await promiseState(new Promise(() => {})), "pending");
+}, "promiseState helper works");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const p = pc.setLocalDescription({type: "offer", sdp: "blah"});
+  const haveState = promiseStateFinal(p);
+  try {
+    await p;
+    assert_unreached("Control. Must not succeed");
+  } catch (e) {
+    assert_equals(e.name, "InvalidModificationError");
+  }
+  assert_equals(await haveState, "rejected", "promise rejected on same task");
+}, "Operations chain must run first operation's sync part synchronously");
+
+// Helper builds on above test to check if operations queue is empty or not.
+async function isOperationsChainEmpty(pc) {
+  const type = pc.signalingState == "have-remote-offer" ? "answer" : "offer";
+  const p = pc.setLocalDescription({type, sdp: "blah"});
+  const state = await promiseStateFinal(p);
+  try {
+    await p;
+    assert_unreached("Control. Must not succeed");
+  } catch (e) {
+    assert_equals(e.name, "InvalidModificationError", "isOperationsChainEmpty");
+  }
+  return state == "rejected";
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  assert_true(await isOperationsChainEmpty(pc), "Empty to start");
+}, "isOperationsChainEmpty detects empty");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+  const p = await pc.createOffer();
+  try {
+    await pc.setLocalDescription({type: "offer", sdp: "blah"});
+    assert_unreached("Control. Must not succeed");
+  } catch (e) {
+    assert_equals(e.name, "InvalidModificationError");
+  }
+}, "SLD(offer) must validate against LastCreatedOffer early (prerequisite)");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+  await pc.setRemoteDescription(await pc.createOffer());
+  try {
+    await pc.setLocalDescription({type: "offer", sdp: "blah"});
+    assert_unreached("Control. Must not succeed");
+  } catch (e) {
+    assert_equals(e.name, "InvalidModificationError");
+  }
+}, "SLD(offer) must validate input before signaling state (prerequisite)");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+  const p = pc.createOffer();
+  assert_true(!await isOperationsChainEmpty(pc), "Non-empty queue");
+  await p;
+}, "createOffer uses operations chain");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+  await pc.setRemoteDescription(await pc.createOffer());
+  const p = pc.createAnswer();
+  assert_true(!await isOperationsChainEmpty(pc), "Non-empty queue");
+  await p;
+}, "createAnswer uses operations chain");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+
+  const offer = await pc.createOffer();
+  const p = pc.setLocalDescription(offer);
+  assert_true(!await isOperationsChainEmpty(pc), "Non-empty queue");
+  await p;
+}, "setLocalDescription uses operations chain");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel("dummy");
+
+  const offer = await pc.createOffer();
+  assert_true(await isOperationsChainEmpty(pc), "Empty after settled");
+  const p = pc.setRemoteDescription(offer);
+  assert_true(!await isOperationsChainEmpty(pc), "Non-empty queue");
+  await p;
+}, "setRemoteDescription uses operations chain");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver("video");
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  const {candidate} = await new Promise(r => pc1.onicecandidate = r);
+  await pc2.setRemoteDescription(offer);
+  const p = pc2.addIceCandidate(candidate);
+  assert_true(!await isOperationsChainEmpty(pc2), "Non-empty queue");
+  await p;
+}, "addIceCandidate uses operations chain");
+
+</script>

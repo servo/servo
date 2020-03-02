@@ -84,6 +84,8 @@ async_test(t => {
   assert_equals(win, null);
 }, `"require-corp" top-level noopener popup: navigating to "none" should succeed`);
 
+// CORP is checked because COEP of the frame is "require-corp". The parent
+// frame's COEP value doesn't matter.
 async_test(t => {
   const frame = document.createElement("iframe");
   const id = token();
@@ -94,8 +96,33 @@ async_test(t => {
       t.done();
     }
   }));
+  // REMOTE_ORIGIN is cross-origin, same-site.
+  frame.src = `${HOST.HTTPS_REMOTE_ORIGIN}${BASE}/navigate-require-corp-same-site.sub.html?token=${id}`;
+  document.body.append(frame);
+}, 'CORP: same-site is checked and allowed.');
+
+// CORP is checked because COEP of the frame is "require-corp". The parent
+// frame's COEP value doesn't matter.
+async_test(t => {
+  const frame = document.createElement("iframe");
+  const id = token();
+  t.add_cleanup(() => frame.remove());
+  let loaded = false;
+  window.addEventListener('message', t.step_func((e) => {
+    if (e.data === id) {
+        loaded = true;
+    }
+  }));
+  t.step_timeout(() => {
+    // Make sure the iframe didn't load. See https://github.com/whatwg/html/issues/125 for why a
+    // timeout is used here. Long term all network error handling should be similar and have a
+    // reliable event.
+    assert_false(loaded);
+    t.done();
+  }, 2000);
+
+  // NOTESAMESITE_ORIGIN is cross-origin, cross-site.
   frame.src = `${HOST.HTTPS_NOTSAMESITE_ORIGIN}${BASE}/navigate-require-corp-same-site.sub.html?token=${id}`;
   document.body.append(frame);
-}, 'CORP: same-site is not checked.');
-
+}, 'CORP: same-site is checked and blocked.');
 </script>
