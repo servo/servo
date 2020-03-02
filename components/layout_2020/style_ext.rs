@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::geom::{flow_relative, PhysicalSides, PhysicalSize};
+use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::position::T as ComputedPosition;
+use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
+use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::specified::box_ as stylo;
 
@@ -49,6 +53,10 @@ pub(crate) trait ComputedValuesExt {
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
+    fn has_transform_or_perspective(&self) -> bool;
+    fn effective_z_index(&self) -> i32;
+    fn establishes_stacking_context(&self) -> bool;
+    fn establishes_containing_block_for_all_descendants(&self) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -164,6 +172,80 @@ impl ComputedValuesExt for ComputedValues {
             ),
             self.writing_mode,
         )
+    }
+
+    /// Returns true if this style has a transform, or perspective property set.
+    fn has_transform_or_perspective(&self) -> bool {
+        !self.get_box().transform.0.is_empty() || self.get_box().perspective != Perspective::None
+    }
+
+    /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
+    /// per CSS 2 9.9.1 (http://www.w3.org/TR/CSS2/visuren.html#z-index), so this value may differ
+    /// from the value specified in the style.
+    fn effective_z_index(&self) -> i32 {
+        match self.get_box().position {
+            ComputedPosition::Static => 0,
+            _ => self.get_position().z_index.integer_or(0),
+        }
+    }
+
+    /// Returns true if this fragment establishes a new stacking context and false otherwise.
+    fn establishes_stacking_context(&self) -> bool {
+        let effects = self.get_effects();
+        if effects.opacity != 1.0 {
+            return true;
+        }
+
+        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
+            return true;
+        }
+
+        if self.has_transform_or_perspective() {
+            return true;
+        }
+
+        if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+            self.overrides_transform_style()
+        {
+            return true;
+        }
+
+        // Fixed position and sticky position always create stacking contexts.
+        // TODO(mrobinson): We need to handle sticky positioning here when we support it.
+        if self.get_box().position == ComputedPosition::Fixed {
+            return true;
+        }
+
+        // Statically positioned fragments don't establish stacking contexts if the previous
+        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
+        // positioned fragments.
+        if self.get_box().position == ComputedPosition::Static {
+            return false;
+        }
+
+        // For absolutely and relatively positioned fragments we only establish a stacking
+        // context if there is a z-index set.
+        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
+        !self.get_position().z_index.is_auto()
+    }
+
+    /// Returns true if this style establishes a containing block for all descendants
+    /// including fixed and absolutely positioned ones.
+    fn establishes_containing_block_for_all_descendants(&self) -> bool {
+        if self.has_transform_or_perspective() {
+            return true;
+        }
+
+        if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        // TODO: We need to handle CSS Contain here.
+        false
     }
 }
 

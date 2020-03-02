@@ -223,7 +223,8 @@ fn layout_block_level_children<'a>(
                 })
                 .collect()
         } else {
-            let has_positioned_ancestor = positioning_context.has_positioned_ancestor();
+            let collects_for_nearest_positioned_ancestor =
+                positioning_context.collects_for_nearest_positioned_ancestor();
             let mut fragments = child_boxes
                 .par_iter()
                 .enumerate()
@@ -238,7 +239,7 @@ fn layout_block_level_children<'a>(
                             /* float_context = */ None,
                         )
                     },
-                    || PositioningContext::new_for_rayon(has_positioned_ancestor),
+                    || PositioningContext::new_for_rayon(collects_for_nearest_positioned_ancestor),
                     PositioningContext::append,
                 )
                 .collect();
@@ -275,7 +276,7 @@ impl BlockLevelBox {
                 tag,
                 style,
                 contents,
-            } => Fragment::Box(positioning_context.for_maybe_position_relative(
+            } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                 layout_context,
                 containing_block,
                 style,
@@ -293,7 +294,7 @@ impl BlockLevelBox {
                 },
             )),
             BlockLevelBox::Independent(contents) => {
-                Fragment::Box(positioning_context.for_maybe_position_relative(
+                Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
                     &contents.style,
@@ -326,8 +327,7 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
-                // FIXME: call for_maybe_position_relative here
-                // TODO
+                // FIXME: call layout_maybe_position_relative_fragment here
                 Fragment::Anonymous(AnonymousFragment::no_op(
                     containing_block.style.writing_mode,
                 ))
