@@ -87,7 +87,7 @@ impl Fragment {
                     .to_physical(t.parent_style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
                 let mut baseline_origin = rect.origin.clone();
-                baseline_origin.y += t.ascent;
+                baseline_origin.y += t.font_metrics.ascent;
                 let glyphs = glyphs(&t.glyphs, baseline_origin);
                 if glyphs.is_empty() {
                     return;
