@@ -7,7 +7,7 @@
 <script>
 "use strict";
 
-const kSmallTimeoutMs = 10;
+const kSmallTimeoutMs = 100;
 
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
@@ -34,6 +34,7 @@ promise_test(async t => {
   t.add_cleanup(() => offerer.close());
 
   const transceiver = offerer.addTransceiver('audio');
+  assert_equals(transceiver.mid, null);
   await offerer.setLocalDescription();
   assert_not_equals(transceiver.mid, null);
 }, "Parameterless SLD() in 'stable' assigns transceiver.mid");
@@ -110,20 +111,25 @@ promise_test(async t => {
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
   offerer.close();
-
-  offerer.setLocalDescription().then(t.step_func(() => assert_not_reached()));
-  await new Promise(resolve => t.step_timeout(resolve, kSmallTimeoutMs));
-}, "Parameterless SLD() never resolves if already closed");
+  try {
+    await offerer.setLocalDescription();
+    assert_not_reached();
+  } catch (e) {
+    assert_equals(e.name, "InvalidStateError");
+  }
+}, "Parameterless SLD() rejects with InvalidStateError if already closed");
 
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
   t.add_cleanup(() => offerer.close());
 
-  offerer.setLocalDescription().then(t.step_func(() => assert_not_reached()));
+  const p = Promise.race([
+    offerer.setLocalDescription(),
+    new Promise(r => t.step_timeout(() => r("timeout"), kSmallTimeoutMs))
+  ]);
   offerer.close();
-  await new Promise(resolve => t.step_timeout(resolve, kSmallTimeoutMs));
-}, "Parameterless SLD() never resolves if closed while pending");
-
+  assert_equals(await p, "timeout");
+}, "Parameterless SLD() never settles if closed while pending");
 
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
@@ -138,5 +144,27 @@ promise_test(async t => {
   await answerer.setLocalDescription();
   await offerer.setRemoteDescription(answerer.currentLocalDescription);
 }, "Parameterless SLD() in a full O/A exchange succeeds");
+
+promise_test(async t => {
+  const answerer = new RTCPeerConnection();
+  try {
+    await answerer.setRemoteDescription();
+    assert_not_reached();
+  } catch (e) {
+    assert_equals(e.name, "TypeError");
+  }
+}, "Parameterless SRD() rejects with TypeError.");
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const {sdp} = await offerer.createOffer();
+  new RTCSessionDescription({type: "offer", sdp});
+  try {
+    new RTCSessionDescription({sdp});
+    assert_not_reached();
+  } catch (e) {
+    assert_equals(e.name, "TypeError");
+  }
+}, "RTCSessionDescription constructed without type throws TypeError");
 
 </script>

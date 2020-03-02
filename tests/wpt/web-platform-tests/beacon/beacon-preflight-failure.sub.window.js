@@ -2,13 +2,10 @@
 // META: script=/common/get-host-info.sub.js
 
 promise_test(async (test) => {
-  const sid = token();
-  const tid = token();
   const origin = get_host_info().REMOTE_ORIGIN;
-  const store =
-    `${origin}/beacon/resources/beacon.py?cmd=store&sid=${sid}&tid=${tid}&tidx=0`;
-  const monitor =
-    `/beacon/resources/beacon.py?cmd=stat&sid=${sid}&tidx_min=0&tidx_max=0`;
+  const id = token();
+  const store = `${origin}/beacon/resources/beacon.py?cmd=store&id=${id}`;
+  const monitor = `/beacon/resources/beacon.py?cmd=stat&id=${id}`;
 
   assert_true(navigator.sendBeacon(store, new Blob([], {type: 'x/y'})));
 
@@ -25,7 +22,7 @@ promise_test(async (test) => {
   }
 
   const expected =
-    JSON.stringify([{id: tid, error: 'Preflight not expected.'}]);
+    JSON.stringify([{error: 'Preflight not expected.'}]);
 
   assert_equals(actual, expected);
 });
