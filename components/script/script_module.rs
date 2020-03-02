@@ -56,6 +56,7 @@ use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
 use js::rust::{Handle, HandleValue};
+use mime::Mime;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
@@ -68,6 +69,7 @@ use std::ffi;
 use std::marker::PhantomData;
 use std::ptr;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
@@ -934,15 +936,20 @@ impl FetchResponseListener for ModuleContext {
             let meta = self.metadata.take().unwrap();
 
             if let Some(content_type) = meta.content_type.map(Serde::into_inner) {
-                let c = content_type.to_string();
-                // The MIME crate includes params (e.g. charset=utf8) in the to_string
-                // https://github.com/hyperium/mime/issues/120
-                if let Some(ty) = c.split(';').next() {
-                    if !SCRIPT_JS_MIMES.contains(&ty) {
-                        return Err(NetworkError::Internal(format!("Invalid MIME type: {}", ty)));
+                if let Ok(content_type) = Mime::from_str(&content_type.to_string()) {
+                    let essence_mime = content_type.essence_str();
+
+                    if !SCRIPT_JS_MIMES.contains(&essence_mime) {
+                        return Err(NetworkError::Internal(format!(
+                            "Invalid MIME type: {}",
+                            essence_mime
+                        )));
                     }
                 } else {
-                    return Err(NetworkError::Internal("Empty MIME type".into()));
+                    return Err(NetworkError::Internal(format!(
+                        "Failed to parse MIME type: {}",
+                        content_type.to_string()
+                    )));
                 }
             } else {
                 return Err(NetworkError::Internal("No MIME type".into()));
