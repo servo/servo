@@ -109,8 +109,8 @@ impl Promise {
                 reflector: Reflector::new(),
                 permanent_js_root: Heap::default(),
             };
-            let mut promise = Rc::new(promise);
-            Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());
+            let promise = Rc::new(promise);
+            promise.init_reflector(obj.get());
             promise.initialize(cx);
             promise
         }

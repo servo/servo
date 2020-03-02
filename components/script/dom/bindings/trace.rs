@@ -918,35 +918,6 @@ impl RootedTraceableSet {
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
-#[derive(JSTraceable)]
-pub struct RootedTraceable<'a, T: 'static + JSTraceable> {
-    ptr: &'a T,
-}
-
-impl<'a, T: JSTraceable + 'static> RootedTraceable<'a, T> {
-    /// DomRoot a JSTraceable thing for the life of this RootedTraceable
-    pub fn new(traceable: &'a T) -> RootedTraceable<'a, T> {
-        unsafe {
-            RootedTraceableSet::add(traceable);
-        }
-        RootedTraceable { ptr: traceable }
-    }
-}
-
-impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
-    fn drop(&mut self) {
-        unsafe {
-            RootedTraceableSet::remove(self.ptr);
-        }
-    }
-}
-
-/// Roots any JSTraceable thing
-///
-/// If you have a valid DomObject, use DomRoot.
-/// If you have GC things like *mut JSObject or JSVal, use rooted!.
-/// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
-/// If you know what you're doing, use this.
 #[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedTraceableBox<T: 'static + JSTraceable> {
     ptr: *mut T,
@@ -959,12 +930,12 @@ unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
 }
 
 impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
-    /// DomRoot a JSTraceable thing for the life of this RootedTraceable
+    /// DomRoot a JSTraceable thing for the life of this RootedTraceableBox
     pub fn new(traceable: T) -> RootedTraceableBox<T> {
         Self::from_box(Box::new(traceable))
     }
 
-    /// Consumes a boxed JSTraceable and roots it for the life of this RootedTraceable.
+    /// Consumes a boxed JSTraceable and roots it for the life of this RootedTraceableBox.
     pub fn from_box(boxed_traceable: Box<T>) -> RootedTraceableBox<T> {
         let traceable = Box::into_raw(boxed_traceable);
         unsafe {

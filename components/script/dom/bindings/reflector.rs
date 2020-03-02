@@ -6,6 +6,7 @@
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use js::jsapi::{Heap, JSObject};
@@ -53,7 +54,7 @@ impl Reflector {
     }
 
     /// Initialize the reflector. (May be called only once.)
-    pub fn set_jsobject(&mut self, object: *mut JSObject) {
+    pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
@@ -75,7 +76,7 @@ impl Reflector {
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
-pub trait DomObject: 'static {
+pub trait DomObject: JSTraceable + 'static {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
@@ -97,11 +98,11 @@ impl DomObject for Reflector {
 /// A trait to initialize the `Reflector` for a DOM object.
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
-    fn init_reflector(&mut self, obj: *mut JSObject);
+    unsafe fn init_reflector(&self, obj: *mut JSObject);
 }
 
 impl MutDomObject for Reflector {
-    fn init_reflector(&mut self, obj: *mut JSObject) {
+    unsafe fn init_reflector(&self, obj: *mut JSObject) {
         self.set_jsobject(obj)
     }
 }
