@@ -2919,6 +2919,7 @@ dependencies = [
  "html5ever",
  "ipc-channel",
  "libc",
+ "log",
  "mitochondria",
  "msg",
  "net_traits",

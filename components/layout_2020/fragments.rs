@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
+use crate::positioned::HoistedFragmentId;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 #[cfg(not(debug_assertions))]
@@ -24,9 +25,13 @@ use webrender_api::{FontInstanceKey, ImageKey};
 pub(crate) enum Fragment {
     Box(BoxFragment),
     Anonymous(AnonymousFragment),
+    AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment),
     Text(TextFragment),
     Image(ImageFragment),
 }
+
+#[derive(Serialize)]
+pub(crate) struct AbsoluteOrFixedPositionedFragment(pub HoistedFragmentId);
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
@@ -49,6 +54,9 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+
+    /// XXX Add thsi
+    pub hoisted_fragment_id: Option<HoistedFragmentId>,
 }
 
 #[derive(Serialize)]
@@ -100,18 +108,22 @@ pub(crate) struct ImageFragment {
 }
 
 impl Fragment {
-    pub fn position_mut(&mut self) -> &mut Vec2<Length> {
-        match self {
+    pub fn offset_inline(&mut self, offset: &Length) {
+        let position = match self {
             Fragment::Box(f) => &mut f.content_rect.start_corner,
+            Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
             Fragment::Image(f) => &mut f.rect.start_corner,
-        }
+        };
+
+        position.inline += *offset;
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
+            Fragment::AbsoluteOrFixedPositioned(fragment) => fragment.print(tree),
             Fragment::Anonymous(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
             Fragment::Image(fragment) => fragment.print(tree),
@@ -124,6 +136,7 @@ impl Fragment {
         let containing_block = PhysicalRect::zero();
         match self {
             Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
+            Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
                 .rect
@@ -132,6 +145,26 @@ impl Fragment {
                 .rect
                 .to_physical(fragment.style.writing_mode, &containing_block),
         }
+    }
+
+    pub fn is_hoisted(&self) -> bool {
+        match self {
+            Fragment::Box(fragment) if fragment.hoisted_fragment_id.is_some() => true,
+            _ => false,
+        }
+    }
+
+    pub fn hoisted_fragment_id(&self) -> Option<&HoistedFragmentId> {
+        match self {
+            Fragment::Box(fragment) => fragment.hoisted_fragment_id.as_ref(),
+            _ => None,
+        }
+    }
+}
+
+impl AbsoluteOrFixedPositionedFragment {
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.add_item(format!("AbsoluteOrFixedPositionedFragment({:?})", self.0));
     }
 }
 
@@ -189,6 +222,7 @@ impl BoxFragment {
         border: Sides<Length>,
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
+        hoisted_fragment_id: Option<HoistedFragmentId>,
     ) -> BoxFragment {
         let scrollable_overflow_from_children =
             children.iter().fold(PhysicalRect::zero(), |acc, child| {
@@ -205,6 +239,7 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
+            hoisted_fragment_id,
         }
     }
 
@@ -242,7 +277,8 @@ impl BoxFragment {
                 \nborder rect={:?}\
                 \nscrollable_overflow={:?}\
                 \noverflow={:?} / {:?}\
-                \nstyle={:p}",
+                \nstyle={:p}\
+                \nhoisted_id={:?}",
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
@@ -250,6 +286,7 @@ impl BoxFragment {
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
             self.style,
+            self.hoisted_fragment_id,
         ));
 
         for child in &self.children {

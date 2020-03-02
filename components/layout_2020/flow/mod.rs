@@ -8,7 +8,7 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
-use crate::fragments::{AnonymousFragment, BoxFragment};
+use crate::fragments::{AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment};
 use crate::fragments::{CollapsedBlockMargins, CollapsedMargin, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -176,14 +176,7 @@ fn layout_block_level_children<'a>(
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
             },
-            Fragment::Anonymous(fragment) => {
-                // FIXME(nox): Margin collapsing for hypothetical boxes of
-                // abspos elements is probably wrong.
-                assert!(fragment.children.is_empty());
-                assert_eq!(fragment.rect.size.block, Length::zero());
-                fragment.rect.start_corner.block +=
-                    placement_state.current_block_direction_position;
-            },
+            Fragment::Anonymous(_) | Fragment::AbsoluteOrFixedPositioned(_) => {},
             _ => unreachable!(),
         }
     }
@@ -321,9 +314,11 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                positioning_context.push(box_.to_hoisted(Vec2::zero(), tree_rank));
-                Fragment::Anonymous(AnonymousFragment::no_op(
-                    containing_block.style.writing_mode,
+                let hoisted_fragment = box_.to_hoisted(Vec2::zero(), tree_rank);
+                let hoisted_fragment_id = hoisted_fragment.fragment_id.clone();
+                positioning_context.push(hoisted_fragment);
+                Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment(
+                    hoisted_fragment_id,
                 ))
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
@@ -505,6 +500,7 @@ fn layout_in_flow_non_replaced_block_level<'a>(
         border,
         margin,
         block_margins_collapsed_with_children,
+        None, // hoisted_fragment_id
     )
 }
 
@@ -556,6 +552,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         border,
         margin,
         block_margins_collapsed_with_children,
+        None, // hoisted_fragment_id
     )
 }
 

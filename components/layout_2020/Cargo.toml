@@ -25,6 +25,7 @@ gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.25"
 ipc-channel = "0.14"
 libc = "0.2"
+log = "0.4"
 msg = {path = "../msg"}
 mitochondria = "1.1.2"
 net_traits = {path = "../net_traits"}
