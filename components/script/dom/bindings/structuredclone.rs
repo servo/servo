@@ -361,6 +361,9 @@ pub fn read(
             JS_STRUCTURED_CLONE_VERSION,
             StructuredCloneScope::DifferentProcess,
             rval,
+            CloneDataPolicy {
+                sharedArrayBuffer_: false,
+            },
             &STRUCTURED_CLONE_CALLBACKS,
             sc_holder_ptr as *mut raw::c_void,
         );

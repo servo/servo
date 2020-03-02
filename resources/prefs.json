@@ -65,7 +65,6 @@
   "js.mem.gc.per_zone.enabled": false,
   "js.mem.gc.zeal.frequency": 100,
   "js.mem.gc.zeal.level": 0,
-  "js.mem.high_water_mark": 128,
   "js.mem.max": -1,
   "js.native_regex.enabled": true,
   "js.offthread_compilation.enabled": true,

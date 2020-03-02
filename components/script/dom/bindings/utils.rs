@@ -23,8 +23,9 @@ use js::glue::{
 };
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::{AutoIdVector, CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
+use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
 use js::jsapi::{Heap, JSAutoRealm, JSContext, JS_FreezeObject};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
@@ -375,7 +376,7 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 pub unsafe extern "C" fn enumerate_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
-    _props: *mut AutoIdVector,
+    _props: RawMutableHandleIdVector,
     _enumerable_only: bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
@@ -439,6 +440,7 @@ unsafe extern "C" fn wrap(
 unsafe extern "C" fn pre_wrap(
     cx: *mut JSContext,
     _scope: RawHandleObject,
+    _orig_obj: RawHandleObject,
     obj: RawHandleObject,
     _object_passed_to_wrap: RawHandleObject,
     rval: RawMutableHandleObject,
@@ -482,7 +484,7 @@ unsafe fn generic_call(
     let args = CallArgs::from_vp(vp, argc);
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
-    let proto_id = (*info).protoID;
+    let proto_id = (*info).__bindgen_anon_2.protoID;
 
     let thisobj = args.thisv();
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
@@ -495,7 +497,7 @@ unsafe fn generic_call(
     } else {
         GetNonCCWObjectGlobal(JS_CALLEE(cx, vp).to_object_or_null())
     });
-    let depth = (*info).depth;
+    let depth = (*info).__bindgen_anon_3.depth;
     let proto_check =
         |class: &'static DOMClass| class.interface_chain[depth as usize] as u16 == proto_id;
     let this = match private_from_proto_check(obj.get(), cx, proto_check) {
@@ -582,7 +584,7 @@ pub unsafe extern "C" fn generic_lenient_setter(
 }
 
 unsafe extern "C" fn instance_class_has_proto_at_depth(
-    clasp: *const js::jsapi::Class,
+    clasp: *const js::jsapi::JSClass,
     proto_id: u32,
     depth: u32,
 ) -> bool {

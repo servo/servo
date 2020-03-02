@@ -55,7 +55,11 @@ pub unsafe extern "C" fn shadow_check_callback(
 
 /// Initialize the infrastructure for DOM proxy objects.
 pub unsafe fn init() {
-    SetDOMProxyInformation(GetProxyHandlerFamily(), Some(shadow_check_callback));
+    SetDOMProxyInformation(
+        GetProxyHandlerFamily(),
+        Some(shadow_check_callback),
+        ptr::null(),
+    );
 }
 
 /// Defines an expando on the given `proxy`.

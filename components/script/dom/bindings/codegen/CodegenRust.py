@@ -1654,7 +1654,7 @@ class MethodDefiner(PropertyDefiner):
         if any(m.isGetter() and m.isIndexed() for m in methods):
             self.regular.append({"name": '@@iterator',
                                  "methodInfo": False,
-                                 "selfHostedName": "ArrayValues",
+                                 "selfHostedName": "$ArrayValues",
                                  "length": 0,
                                  "flags": "0",  # Not enumerable, per spec.
                                  "condition": "Condition::Satisfied"})
@@ -1678,7 +1678,7 @@ class MethodDefiner(PropertyDefiner):
             self.regular.append({
                 "name": "values",
                 "methodInfo": False,
-                "selfHostedName": "ArrayValues",
+                "selfHostedName": "$ArrayValues",
                 "length": 0,
                 "flags": "JSPROP_ENUMERATE",
                 "condition": PropertyDefiner.getControllingCondition(m,
@@ -1731,7 +1731,7 @@ class MethodDefiner(PropertyDefiner):
                 selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
                 accessor = "None"
-                jitinfo = "0 as *const JSJitInfo"
+                jitinfo = "ptr::null()"
             else:
                 selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
@@ -1743,28 +1743,30 @@ class MethodDefiner(PropertyDefiner):
                     jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
                     accessor = "Some(generic_method)"
                 else:
-                    jitinfo = "0 as *const JSJitInfo"
+                    jitinfo = "ptr::null()"
                     accessor = 'Some(%s)' % m.get("nativeName", m["name"])
             if m["name"].startswith("@@"):
-                return ('(SymbolCode::%s as i32 + 1)'
-                        % m["name"][2:], accessor, jitinfo, m["length"], flags, selfHostedName)
-            return (str_to_const_array(m["name"]), accessor, jitinfo, m["length"], flags, selfHostedName)
+                name = 'JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 }' % m["name"][2:]
+            else:
+                name = ('JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char }'
+                        % str_to_const_array(m["name"]))
+            return (name, accessor, jitinfo, m["length"], flags, selfHostedName)
 
         return self.generateGuardedArray(
             array, name,
             '    JSFunctionSpec {\n'
-            '        name: %s as *const u8 as *const libc::c_char,\n'
+            '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
             '        flags: (%s) as u16,\n'
             '        selfHostedName: %s\n'
             '    }',
             '    JSFunctionSpec {\n'
-            '        name: 0 as *const libc::c_char,\n'
-            '        call: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
+            '        name: JSPropertySpec_Name { string_: ptr::null() },\n'
+            '        call: JSNativeWrapper { op: None, info: ptr::null() },\n'
             '        nargs: 0,\n'
             '        flags: 0,\n'
-            '        selfHostedName: 0 as *const libc::c_char\n'
+            '        selfHostedName: ptr::null()\n'
             '    }',
             'JSFunctionSpec',
             condition, specData)
@@ -1834,14 +1836,14 @@ class AttrDefiner(PropertyDefiner):
         return self.generateGuardedArray(
             array, name,
             '    JSPropertySpec {\n'
-            '        name: %s as *const u8 as *const libc::c_char,\n'
+            '        name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },\n'
             '        flags: (%s) as u8,\n'
-            '        __bindgen_anon_1: JSPropertySpec__bindgen_ty_1 {\n'
-            '            accessors: JSPropertySpec__bindgen_ty_1__bindgen_ty_1 {\n'
-            '                getter: JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1 {\n'
+            '        u: JSPropertySpec_AccessorsOrValue {\n'
+            '            accessors: JSPropertySpec_AccessorsOrValue_Accessors {\n'
+            '                getter: JSPropertySpec_Accessor {\n'
             '                    native: %s,\n'
             '                },\n'
-            '                setter: JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2 {\n'
+            '                setter: JSPropertySpec_Accessor {\n'
             '                    native: %s,\n'
             '                }\n'
             '            }\n'
@@ -2203,7 +2205,9 @@ static Class: DOMJSClass = DOMJSClass {
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
         cOps: &CLASS_OPS,
-        reserved: [0 as *mut _; 3],
+        spec: ptr::null(),
+        ext: ptr::null(),
+        oOps: ptr::null(),
     },
     dom_class: %(domClass)s
 };
@@ -2274,7 +2278,9 @@ static PrototypeClass: JSClass = JSClass {
         // JSCLASS_HAS_RESERVED_SLOTS(%(slotCount)s)
         (%(slotCount)s & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
     cOps: 0 as *const _,
-    reserved: [0 as *mut os::raw::c_void; 3]
+    spec: ptr::null(),
+    ext: ptr::null(),
+    oOps: ptr::null(),
 };
 """ % {'name': name, 'slotCount': slotCount}
 
@@ -2916,9 +2922,9 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
     Generate the CollectJSONAttributes method for an interface descriptor
     """
     def __init__(self, descriptor, toJSONMethod):
-        args = [Argument('SafeJSContext', 'cx'),
-                Argument('HandleObject', 'obj'),
-                Argument('*const %s' % descriptor.concreteType, 'this'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', 'obj'),
+                Argument('*mut libc::c_void', 'this'),
                 Argument('&RootedGuard<*mut JSObject>', 'result')]
         CGAbstractMethod.__init__(self, descriptor, 'CollectJSONAttributes',
                                   'bool', args, pub=True, unsafe=True)
@@ -2932,11 +2938,11 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 name = m.identifier.name
                 ret += fill(
                     """
-                    rooted!(in(*cx) let mut temp = UndefinedValue());
+                    rooted!(in(cx) let mut temp = UndefinedValue());
                     if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                       return false;
                     }
-                    if !JS_DefineProperty(*cx, result.handle().into(),
+                    if !JS_DefineProperty(cx, result.handle().into(),
                                           ${nameAsArray} as *const u8 as *const libc::c_char,
                                           temp.handle(), JSPROP_ENUMERATE as u32) {
                       return false;
@@ -3668,8 +3674,9 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', '_obj'),
-                Argument('*const %s' % descriptor.concreteType, 'this'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
 
@@ -3678,7 +3685,8 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                                         self.method)
         return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
-                         pre="let this = &*this;\n"
+                         pre="let cx = SafeJSContext::from_ptr(cx);\n" +
+                             ("let this = &*(this as *const %s);\n" % self.descriptor.concreteType) +
                              "let args = &*args;\n"
                              "let argc = args.argc_;\n")
 
@@ -3701,7 +3709,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def definition_body(self):
         ret = dedent("""
             use crate::dom::bindings::inheritance::HasParent;
-            rooted!(in(*cx) let result = JS_NewPlainObject(*cx));
+            rooted!(in(cx) let result = JS_NewPlainObject(cx));
             if result.is_null() {
               return false;
             }
@@ -3717,17 +3725,16 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
         parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes(cx, _obj, this${asparent}, &result) {
+             if !${parentclass}CollectJSONAttributes(cx, _obj, this, &result) {
                  return false;
              }
              """
 
         # Iterate the array in reverse: oldest ancestor first
         for descriptor in jsonDescriptors[:0:-1]:
-            ret += fill(form, parentclass=toBindingNamespace(descriptor.name) + "::",
-                        asparent=".as_ref().unwrap()" + ".as_parent()" * parents)
+            ret += fill(form, parentclass=toBindingNamespace(descriptor.name) + "::")
             parents -= 1
-        ret += fill(form, parentclass="", asparent="")
+        ret += fill(form, parentclass="")
         ret += ('(*args).rval().set(ObjectValue(*result));\n'
                 'return true;\n')
         return CGGeneric(ret)
@@ -3759,9 +3766,9 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'get_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('SafeJSContext', 'cx'),
-                Argument('HandleObject', '_obj'),
-                Argument('*const %s' % descriptor.concreteType, 'this'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
 
@@ -3771,7 +3778,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
 
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
-                         pre="let this = &*this;\n")
+                         pre="let cx = SafeJSContext::from_ptr(cx);\n" +
+                             ("let this = &*(this as *const %s);\n" % self.descriptor.concreteType))
 
     @staticmethod
     def makeNativeName(descriptor, attr):
@@ -3815,9 +3823,9 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'set_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('SafeJSContext', 'cx'),
-                Argument('HandleObject', 'obj'),
-                Argument('*const %s' % descriptor.concreteType, 'this'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', 'obj'),
+                Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitSetterCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
 
@@ -3826,7 +3834,8 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                                                         self.attr)
         return CGWrapper(CGSetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
-                         pre="let this = &*this;\n")
+                         pre="let cx = SafeJSContext::from_ptr(cx);\n" +
+                             ("let this = &*(this as *const %s);\n" % self.descriptor.concreteType))
 
     @staticmethod
     def makeNativeName(descriptor, attr):
@@ -3875,8 +3884,9 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in attrName)
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric("""\
+let cx = SafeJSContext::from_ptr(cx);
 rooted!(in(*cx) let mut v = UndefinedValue());
-if !JS_GetProperty(*cx, obj, %s as *const u8 as *const libc::c_char, v.handle_mut()) {
+if !JS_GetProperty(*cx, HandleObject::from_raw(obj), %s as *const u8 as *const libc::c_char, v.handle_mut()) {
     return false;
 }
 if !v.is_object() {
@@ -3901,7 +3911,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
         # JS_DefineProperty can only deal with ASCII.
         assert all(ord(c) < 128 for c in name)
         return CGGeneric("""\
-JS_DefineProperty(*cx, obj, %s as *const u8 as *const libc::c_char,
+JS_DefineProperty(cx, HandleObject::from_raw(obj), %s as *const u8 as *const libc::c_char,
                   HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)""" % name)
 
 
@@ -3931,27 +3941,34 @@ class CGMemberJITInfo(CGThing):
             initializer = fill(
                 """
                 JSJitInfo {
-                    call: ${opName} as *const os::raw::c_void,
-                    protoID: PrototypeList::ID::${name} as u16,
-                    depth: ${depth},
-                    _bitfield_1: new_jsjitinfo_bitfield_1!(
-                        JSJitInfo_OpType::${opType} as u8,
-                        JSJitInfo_AliasSet::${aliasSet} as u8,
-                        JSValueType::${returnType} as u8,
-                        ${isInfallible},
-                        ${isMovable},
-                        ${isEliminatable},
-                        ${isAlwaysInSlot},
-                        ${isLazilyCachedInSlot},
-                        ${isTypedMethod},
-                        ${slotIndex},
-                    ),
+                    __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {
+                        ${opKind}: Some(${opName})
+                    },
+                    __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {
+                        protoID: PrototypeList::ID::${name} as u16,
+                    },
+                    __bindgen_anon_3: JSJitInfo__bindgen_ty_3 { depth: ${depth} },
+                    _bitfield_1: unsafe {
+                        mem::transmute(new_jsjitinfo_bitfield_1!(
+                            JSJitInfo_OpType::${opType} as u8,
+                            JSJitInfo_AliasSet::${aliasSet} as u8,
+                            JSValueType::${returnType} as u8,
+                            ${isInfallible},
+                            ${isMovable},
+                            ${isEliminatable},
+                            ${isAlwaysInSlot},
+                            ${isLazilyCachedInSlot},
+                            ${isTypedMethod},
+                            ${slotIndex},
+                        ))
+                    },
                 }
                 """,
                 opName=opName,
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
+                opKind=opType.lower(),
                 aliasSet=aliasSet,
                 returnType=functools.reduce(CGMemberJITInfo.getSingleReturnType, returnTypes,
                                             ""),
@@ -4211,7 +4228,7 @@ class CGMemberJITInfo(CGThing):
             return "JSJitInfo_ArgType::Object as i32"
         if t.isUnion():
             u = t.unroll()
-            type = "JSJitInfo::Null as i32" if u.hasNullableType else ""
+            type = "JSJitInfo_ArgType::Null as i32" if u.hasNullableType else ""
             return functools.reduce(CGMemberJITInfo.getSingleArgType,
                                     u.flatMemberTypes, type)
         if t.isDictionary():
@@ -5311,7 +5328,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
-                Argument('*mut AutoIdVector', 'props')]
+                Argument('RawMutableHandleIdVector', 'props')]
         CGAbstractExternMethod.__init__(self, descriptor, "own_property_keys", "bool", args)
         self.descriptor = descriptor
 
@@ -5328,7 +5345,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 for i in 0..(*unwrapped_proxy).Length() {
                     rooted!(in(*cx) let mut rooted_jsid: jsid);
                     int_to_jsid(i as i32, rooted_jsid.handle_mut());
-                    AppendToAutoIdVector(props, rooted_jsid.handle());
+                    AppendToIdVector(props, rooted_jsid.handle());
                 }
                 """)
 
@@ -5341,7 +5358,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                     rooted!(in(*cx) let rooted = jsstring);
                     rooted!(in(*cx) let mut rooted_jsid: jsid);
                     RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
-                    AppendToAutoIdVector(props, rooted_jsid.handle());
+                    AppendToIdVector(props, rooted_jsid.handle());
                 }
                 """)
 
@@ -5369,7 +5386,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"))
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
-                Argument('*mut AutoIdVector', 'props')]
+                Argument('RawMutableHandleIdVector', 'props')]
         CGAbstractExternMethod.__init__(self, descriptor,
                                         "getOwnEnumerablePropertyKeys", "bool", args)
         self.descriptor = descriptor
@@ -5387,7 +5404,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 for i in 0..(*unwrapped_proxy).Length() {
                     rooted!(in(*cx) let mut rooted_jsid: jsid);
                     int_to_jsid(i as i32, rooted_jsid.handle_mut());
-                    AppendToAutoIdVector(props, rooted_jsid.handle());
+                    AppendToIdVector(props, rooted_jsid.handle());
                 }
                 """)
 
@@ -5917,11 +5934,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::JS_CALLEE',
         'js::error::throw_type_error',
         'js::error::throw_internal_error',
-        'js::jsapi::AutoIdVector',
         'js::rust::wrappers::Call',
         'js::jsapi::CallArgs',
         'js::jsapi::CurrentGlobalOrNull',
-        'js::jsapi::FreeOp',
         'js::rust::wrappers::GetPropertyKeys',
         'js::jsapi::GetWellKnownSymbol',
         'js::rust::Handle',
@@ -5948,6 +5963,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSITER_SYMBOLS',
         'js::jsapi::JSJitGetterCallArgs',
         'js::jsapi::JSJitInfo',
+        'js::jsapi::JSJitInfo__bindgen_ty_1',
+        'js::jsapi::JSJitInfo__bindgen_ty_2',
+        'js::jsapi::JSJitInfo__bindgen_ty_3',
         'js::jsapi::JSJitInfo_AliasSet',
         'js::jsapi::JSJitInfo_ArgType',
         'js::jsapi::JSJitInfo_OpType',
@@ -5960,10 +5978,10 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
         'js::jsapi::JSPropertySpec',
-        'js::jsapi::JSPropertySpec__bindgen_ty_1',
-        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1',
-        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1',
-        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2',
+        'js::jsapi::JSPropertySpec_Accessor',
+        'js::jsapi::JSPropertySpec_AccessorsOrValue',
+        'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
+        'js::jsapi::JSPropertySpec_Name',
         'js::jsapi::JSString',
         'js::jsapi::JSTracer',
         'js::jsapi::JSType',
@@ -6005,6 +6023,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::MutableHandleObject as RawMutableHandleObject',
         'js::rust::MutableHandleValue',
         'js::jsapi::MutableHandleValue as RawMutableHandleValue',
+        'js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector',
         'js::jsapi::ObjectOpResult',
         'js::jsapi::PropertyDescriptor',
         'js::jsapi::Rooted',
@@ -6020,7 +6039,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsval::PrivateValue',
         'js::jsval::UndefinedValue',
         'js::jsapi::UndefinedHandleValue',
-        'js::rust::wrappers::AppendToAutoIdVector',
+        'js::rust::wrappers::AppendToIdVector',
         'js::glue::CallJitGetterOp',
         'js::glue::CallJitMethodOp',
         'js::glue::CallJitSetterOp',

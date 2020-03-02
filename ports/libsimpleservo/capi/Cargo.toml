@@ -16,7 +16,7 @@ bench = false
 simpleservo = { path = "../api" }
 log = "0.4"
 lazy_static = "1"
-env_logger = "0.6"
+env_logger = "0.7"
 backtrace = "0.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]

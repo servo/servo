@@ -39,22 +39,24 @@ use encoding_rs::UTF_8;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::glue::{AppendToAutoObjectVector, CreateAutoObjectVector};
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
-use js::jsapi::{AutoObjectVector, JSAutoRealm, JSObject, JSString};
-use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
+use js::jsapi::{
+    CompileModule, ExceptionStackBehavior, GetModuleResolveHook, JSRuntime, SetModuleResolveHook,
+};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate, SourceText};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
+use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::rust::jsapi_wrapped::{CompileModule, JS_GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
+use js::rust::jsapi_wrapped::{JS_GetArrayLength, JS_GetElement};
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
+use js::rust::RootedObjectVectorWrapper;
 use js::rust::{Handle, HandleValue};
 use mime::Mime;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
@@ -67,7 +69,6 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ffi;
 use std::marker::PhantomData;
-use std::ptr;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -364,19 +365,19 @@ impl ModuleTree {
 
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
-        let compile_options = CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1);
-
-        rooted!(in(*global.get_cx()) let mut module_script = ptr::null_mut::<JSObject>());
+        let compile_options =
+            unsafe { CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1) };
 
         let mut source = get_source_text(&module);
 
         unsafe {
-            if !CompileModule(
+            rooted!(in(*global.get_cx()) let mut module_script = CompileModule(
                 *global.get_cx(),
                 compile_options.ptr,
                 &mut source,
-                &mut module_script.handle_mut(),
-            ) {
+            ));
+
+            if module_script.is_null() {
                 warn!("fail to compile module script of {}", url);
 
                 rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
@@ -399,16 +400,16 @@ impl ModuleTree {
                 module_script.get(),
                 &PrivateValue(Box::into_raw(module_script_data) as *const _),
             );
+
+            debug!("module script of {} compile done", url);
+
+            self.resolve_requested_module_specifiers(
+                &global,
+                module_script.handle().into_handle(),
+                url.clone(),
+            )
+            .map(|_| ModuleObject(Heap::boxed(*module_script)))
         }
-
-        debug!("module script of {} compile done", url);
-
-        self.resolve_requested_module_specifiers(
-            &global,
-            module_script.handle().into_handle(),
-            url.clone(),
-        )
-        .map(|_| ModuleObject(Heap::boxed(*module_script)))
     }
 
     #[allow(unsafe_code)]
@@ -477,7 +478,11 @@ impl ModuleTree {
         if let Some(exception) = &*module_error {
             unsafe {
                 let ar = enter_realm(&*global);
-                JS_SetPendingException(*global.get_cx(), exception.handle());
+                JS_SetPendingException(
+                    *global.get_cx(),
+                    exception.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
                 report_pending_exception(*global.get_cx(), true, InRealm::Entered(&ar));
             }
         }
@@ -1338,16 +1343,16 @@ fn fetch_module_descendants_and_link(
                     AlreadyInRealm::assert(&*global);
                     let _ais = AutoIncumbentScript::new(&*global);
 
-                    let abv = CreateAutoObjectVector(*global.get_cx());
+                    let abv = RootedObjectVectorWrapper::new(*global.get_cx());
 
                     for descendant in descendants {
-                        assert!(AppendToAutoObjectVector(
-                            abv as *mut AutoObjectVector,
-                            descendant.promise_obj().get()
-                        ));
+                        assert!(abv.append(descendant.promise_obj().get()));
                     }
 
-                    rooted!(in(*global.get_cx()) let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv));
+                    rooted!(
+                        in(*global.get_cx())
+                        let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv.handle())
+                    );
 
                     let promise_all =
                         Promise::new_with_js_promise(raw_promise_all.handle(), global.get_cx());

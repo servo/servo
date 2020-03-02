@@ -81,7 +81,7 @@ void = "1.0.2"
 [build-dependencies]
 lazy_static = "1"
 log = "0.4"
-bindgen = {version = "0.51", optional = true, default-features = false}
+bindgen = {version = "0.53", optional = true, default-features = false}
 regex = {version = "1.1", optional = true}
 walkdir = "2.1.4"
 toml = {version = "0.5", optional = true, default-features = false}
