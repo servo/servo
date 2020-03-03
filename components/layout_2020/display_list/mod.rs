@@ -124,7 +124,7 @@ impl Fragment {
             return;
         }
 
-        let mut common = builder.common_properties(rect.clone().to_webrender());
+        let mut common = builder.common_properties(rect.to_webrender());
         common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
