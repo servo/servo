@@ -219,10 +219,10 @@ impl WebGLFramebuffer {
         self.size.get()
     }
 
-    fn check_attachment_constraints(
+    fn check_attachment_constraints<'a>(
         &self,
         attachment: &Option<WebGLFramebufferAttachment>,
-        constraints: &[u32],
+        mut constraints: impl Iterator<Item = &'a u32>,
         fb_size: &mut Option<(i32, i32)>,
     ) -> Result<(), u32> {
         // Get the size of this attachment.
@@ -254,7 +254,7 @@ impl WebGLFramebuffer {
         }
 
         if let Some(format) = format {
-            if constraints.iter().all(|c| *c != format) {
+            if constraints.all(|c| *c != format) {
                 return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
             }
         }
@@ -269,22 +269,6 @@ impl WebGLFramebuffer {
         let has_z = z.is_some();
         let has_s = s.is_some();
         let has_zs = zs.is_some();
-        let attachments = [&*z, &*s, &*zs];
-        let attachment_constraints = [
-            &[
-                constants::DEPTH_COMPONENT16,
-                constants::DEPTH_COMPONENT24,
-                constants::DEPTH_COMPONENT32F,
-                constants::DEPTH24_STENCIL8,
-                constants::DEPTH32F_STENCIL8,
-            ][..],
-            &[
-                constants::STENCIL_INDEX8,
-                constants::DEPTH24_STENCIL8,
-                constants::DEPTH32F_STENCIL8,
-            ][..],
-            &[constants::DEPTH_STENCIL][..],
-        ];
 
         let is_supported = match self.webgl_version {
             // From the WebGL 1.0 spec, 6.6 ("Framebuffer Object Attachments"):
@@ -326,7 +310,38 @@ impl WebGLFramebuffer {
 
         let mut fb_size = None;
 
-        for (attachment, constraints) in attachments.iter().zip(&attachment_constraints) {
+        let attachments = [&*z, &*s, &*zs];
+        let webgl1_attachment_constraints = &[
+            &[
+                constants::DEPTH_COMPONENT16,
+                constants::DEPTH_COMPONENT24,
+                constants::DEPTH_COMPONENT32F,
+                constants::DEPTH24_STENCIL8,
+                constants::DEPTH32F_STENCIL8,
+            ][..],
+            &[
+                constants::STENCIL_INDEX8,
+                constants::DEPTH24_STENCIL8,
+                constants::DEPTH32F_STENCIL8,
+            ][..],
+            &[constants::DEPTH_STENCIL][..],
+        ];
+        let webgl2_attachment_constraints = &[
+            &[constants::DEPTH_STENCIL][..],
+            &[constants::DEPTH_STENCIL][..],
+            &[][..],
+        ];
+        let empty_attachment_constrains = &[&[][..], &[][..], &[][..]];
+        let extra_attachment_constraints = match self.webgl_version {
+            WebGLVersion::WebGL1 => empty_attachment_constrains,
+            WebGLVersion::WebGL2 => webgl2_attachment_constraints,
+        };
+        let attachment_constraints = webgl1_attachment_constraints
+            .iter()
+            .zip(extra_attachment_constraints.iter())
+            .map(|(a, b)| a.iter().chain(b.iter()));
+
+        for (attachment, constraints) in attachments.iter().zip(attachment_constraints) {
             if let Err(errnum) =
                 self.check_attachment_constraints(attachment, constraints, &mut fb_size)
             {
@@ -334,18 +349,79 @@ impl WebGLFramebuffer {
             }
         }
 
-        let color_constraints = &[
-            constants::RGBA4,
-            constants::RGB5_A1,
-            constants::RGB565,
-            constants::RGBA,
+        let webgl1_color_constraints = &[
             constants::RGB,
+            constants::RGB565,
+            constants::RGB5_A1,
+            constants::RGBA,
+            constants::RGBA4,
         ][..];
+        let webgl2_color_constraints = &[
+            constants::ALPHA,
+            constants::LUMINANCE,
+            constants::LUMINANCE_ALPHA,
+            constants::R11F_G11F_B10F,
+            constants::R16F,
+            constants::R16I,
+            constants::R16UI,
+            constants::R32F,
+            constants::R32I,
+            constants::R32UI,
+            constants::R8,
+            constants::R8_SNORM,
+            constants::R8I,
+            constants::R8UI,
+            constants::RG16F,
+            constants::RG16I,
+            constants::RG16UI,
+            constants::RG32F,
+            constants::RG32I,
+            constants::RG32UI,
+            constants::RG8,
+            constants::RG8_SNORM,
+            constants::RG8I,
+            constants::RG8UI,
+            constants::RGB10_A2,
+            constants::RGB10_A2UI,
+            constants::RGB16F,
+            constants::RGB16I,
+            constants::RGB16UI,
+            constants::RGB32F,
+            constants::RGB32I,
+            constants::RGB32UI,
+            constants::RGB8,
+            constants::RGB8_SNORM,
+            constants::RGB8I,
+            constants::RGB8UI,
+            constants::RGB9_E5,
+            constants::RGBA16F,
+            constants::RGBA16I,
+            constants::RGBA16UI,
+            constants::RGBA32F,
+            constants::RGBA32I,
+            constants::RGBA32UI,
+            constants::RGBA8,
+            constants::RGBA8_SNORM,
+            constants::RGBA8I,
+            constants::RGBA8UI,
+            constants::SRGB8,
+            constants::SRGB8_ALPHA8,
+        ][..];
+        let empty_color_constrains = &[][..];
+        let extra_color_constraints = match self.webgl_version {
+            WebGLVersion::WebGL1 => empty_color_constrains,
+            WebGLVersion::WebGL2 => webgl2_color_constraints,
+        };
+        let color_constraints = webgl1_color_constraints
+            .iter()
+            .chain(extra_color_constraints.iter());
+
         let has_c = self.colors.iter().any(|att| att.borrow().is_some());
         for attachment in self.colors.iter() {
             let attachment = attachment.borrow();
+            let constraints = color_constraints.clone();
             if let Err(errnum) =
-                self.check_attachment_constraints(&*attachment, color_constraints, &mut fb_size)
+                self.check_attachment_constraints(&*attachment, constraints, &mut fb_size)
             {
                 return self.status.set(errnum);
             }
