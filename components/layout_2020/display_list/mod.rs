@@ -159,6 +159,15 @@ impl Fragment {
             rgba(color),
             None,
         );
+
+        // Line-through.
+        if text_decorations.line_through {
+            let mut rect = rect;
+            rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
+            // XXX(ferjm) This does not work on MacOS #942
+            rect.size.height = font_metrics.strikeout_size;
+            self.build_display_list_for_text_decoration(builder, &rect, color);
+        }
     }
 
     fn build_display_list_for_text_decoration(
