@@ -1968,6 +1968,12 @@ impl WebGLImpl {
             WebGLCommand::ClearBufferfi(buffer, draw_buffer, depth, stencil) => {
                 gl.clear_buffer_fi(buffer, draw_buffer, depth, stencil)
             },
+            WebGLCommand::InvalidateFramebuffer(target, ref attachments) => {
+                gl.invalidate_framebuffer(target, attachments)
+            },
+            WebGLCommand::InvalidateSubFramebuffer(target, ref attachments, x, y, w, h) => {
+                gl.invalidate_sub_framebuffer(target, attachments, x, y, w, h)
+            },
         }
 
         // If debug asertions are enabled, then check the error state.
