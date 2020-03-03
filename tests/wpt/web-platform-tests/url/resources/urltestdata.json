@@ -6682,5 +6682,50 @@
     "pathname": "/test",
     "search": "?a",
     "hash": "#bc"
+  },
+  "First scheme char - not allowed: https://github.com/whatwg/url/issues/464",
+  {
+    "input": "10.0.0.7:8080/foo.html",
+    "base": "file:///some/dir/bar.html",
+    "href": "file:///some/dir/10.0.0.7:8080/foo.html",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/some/dir/10.0.0.7:8080/foo.html",
+    "search": "",
+    "hash": ""
+  },
+  "Subsequent scheme chars - not allowed",
+  {
+    "input": "a!@$*=/foo.html",
+    "base": "file:///some/dir/bar.html",
+    "href": "file:///some/dir/a!@$*=/foo.html",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/some/dir/a!@$*=/foo.html",
+    "search": "",
+    "hash": ""
+  },
+  "First and subsequent scheme chars - allowed",
+  {
+    "input": "a1234567890-+.:foo/bar",
+    "base": "http://example.com/dir/file",
+    "href": "a1234567890-+.:foo/bar",
+    "protocol": "a1234567890-+.:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "foo/bar",
+    "search": "",
+    "hash": ""
   }
 ]

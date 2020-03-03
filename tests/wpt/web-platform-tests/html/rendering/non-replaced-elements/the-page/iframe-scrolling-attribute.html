@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>iframe and the scrolling attributes</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-page">
+<link rel="match" href="iframe-scrolling-attribute-ref.html">
+
+<p>These two iframes should *both* render with scrollbars:</p>
+<iframe style="height: 100px; width: 100px;" scrolling="unknown"
+   srcdoc="<div style='height: 200px; width: 200px; background: linear-gradient(135deg, red, blue);'></div>"></iframe>
+<iframe style="height: 100px; width: 100px;" scrolling="unknown"
+   srcdoc="<div style='height: 200px; width: 200px; background: linear-gradient(135deg, red, blue);'></div>"></iframe>
+
+<script>
+  var iframe = document.getElementsByTagName("iframe")[1];
+  // Setting scrolling=no and then back to scrolling=unknown
+  // should result in a final value of auto.
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute("scrolling", "unknown");
+</script>

@@ -55,13 +55,25 @@ class ChromiumFormatter(base.BaseFormatter):
             prefix += "%s: " % subtest
         self.messages[test] += prefix + message + "\n"
 
-    def _store_test_result(self, name, actual, expected, message, subtest_failure=False):
+    def _append_artifact(self, cur_dict, artifact_name, artifact_value):
+        """
+        Appends artifacts to the specified dictionary.
+        :param dict cur_dict: the test leaf dictionary to append to
+        :param str artifact_name: the name of the artifact
+        :param str artifact_value: the value of the artifact
+        """
+        if "artifacts" not in cur_dict.keys():
+            cur_dict["artifacts"] = {}
+        cur_dict["artifacts"][artifact_name] = artifact_value
+
+    def _store_test_result(self, name, actual, expected, message, wpt_actual, subtest_failure):
         """
         Stores the result of a single test in |self.tests|
         :param str name: name of the test.
         :param str actual: actual status of the test.
         :param str expected: expected statuses of the test.
         :param str message: test output, such as status, subtest, errors etc.
+        :param str wpt_actual: actual status reported by wpt, may differ from |actual|.
         :param bool subtest_failure: whether this test failed because of subtests
         """
         # The test name can contain a leading / which will produce an empty
@@ -73,12 +85,12 @@ class ChromiumFormatter(base.BaseFormatter):
             cur_dict = cur_dict.setdefault(name_part, {})
         cur_dict["actual"] = actual
         cur_dict["expected"] = expected
-        if subtest_failure or message:
-            cur_dict["artifacts"] = {"log": ""}
-            if subtest_failure:
-                cur_dict["artifacts"]["log"] += "subtest_failure\n"
-            if message != "":
-                cur_dict["artifacts"]["log"] += message
+        if subtest_failure:
+            self._append_artifact(cur_dict, "wpt_subtest_failure", "true")
+        if wpt_actual != actual:
+            self._append_artifact(cur_dict, "wpt_actual_status", wpt_actual)
+        if message != "":
+            self._append_artifact(cur_dict, "log", message)
 
         # Figure out if there was a regression or unexpected status. This only
         # happens for tests that were run
@@ -108,7 +120,7 @@ class ChromiumFormatter(base.BaseFormatter):
             return "SKIP"
         if status == "EXTERNAL-TIMEOUT":
             return "TIMEOUT"
-        if status in ("ERROR", "CRASH"):
+        if status in ("ERROR", "CRASH", "PRECONDITION_FAILED"):
             # CRASH in WPT means a browser crash, which Chromium treats as a
             # test failure.
             return "FAIL"
@@ -161,20 +173,28 @@ class ChromiumFormatter(base.BaseFormatter):
 
     def test_end(self, data):
         test_name = data["test"]
-        actual_status = self._map_status_name(data["status"])
+        # Save the status reported by WPT since we might change it when reporting
+        # to Chromium.
+        wpt_actual_status = data["status"]
+        actual_status = self._map_status_name(wpt_actual_status)
         expected_statuses = self._get_expected_status_from_data(actual_status, data)
         subtest_failure = False
-        if actual_status == "PASS" and test_name in self.tests_with_subtest_fails:
-            # This test passed but it has failing subtests, so we flip the status
-            # to FAIL.
-            actual_status = "FAIL"
+        if test_name in self.tests_with_subtest_fails:
             subtest_failure = True
             # Clean up the test list to avoid accumulating too many.
             self.tests_with_subtest_fails.remove(test_name)
+            # This test passed but it has failing subtests. Since we can only
+            # report a single status to Chromium, we choose FAIL to indicate
+            # that something about this test did not run correctly.
+            if actual_status == "PASS":
+                actual_status = "FAIL"
 
         if "message" in data:
-            self._append_test_message(test_name, None, actual_status, expected_statuses, data["message"])
-        self._store_test_result(test_name, actual_status, expected_statuses, self.messages[test_name], subtest_failure)
+            self._append_test_message(test_name, None, actual_status,
+                                      expected_statuses, data["message"])
+        self._store_test_result(test_name, actual_status, expected_statuses,
+                                self.messages[test_name], wpt_actual_status,
+                                subtest_failure)
 
         # Remove the test from messages dict to avoid accumulating too many.
         self.messages.pop(test_name)
