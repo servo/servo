@@ -140,16 +140,14 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
             rect.size.height = font_metrics.underline_size;
-            let rect = rect.to_webrender();
-            let wavy_line_thickness = (0.33 * rect.size.height).ceil();
-            builder.wr.push_line(
-                &common,
-                &rect,
-                wavy_line_thickness,
-                wr::LineOrientation::Horizontal,
-                &rgba(color),
-                wr::LineStyle::Solid,
-            );
+            self.build_display_list_for_text_decoration(builder, &rect, color);
+        }
+
+        // Overline.
+        if text_decorations.overline {
+            let mut rect = rect;
+            rect.size.height = font_metrics.underline_size;
+            self.build_display_list_for_text_decoration(builder, &rect, color);
         }
 
         // Text.
@@ -160,6 +158,24 @@ impl Fragment {
             fragment.font_key,
             rgba(color),
             None,
+        );
+    }
+
+    fn build_display_list_for_text_decoration(
+        &self,
+        builder: &mut DisplayListBuilder,
+        rect: &PhysicalRect<Length>,
+        color: cssparser::RGBA,
+    ) {
+        let rect = rect.to_webrender();
+        let wavy_line_thickness = (0.33 * rect.size.height).ceil();
+        builder.wr.push_line(
+            &builder.common_properties(rect),
+            &rect,
+            wavy_line_thickness,
+            wr::LineOrientation::Horizontal,
+            &rgba(color),
+            wr::LineStyle::Solid,
         );
     }
 }
