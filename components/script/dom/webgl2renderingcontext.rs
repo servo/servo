@@ -42,7 +42,8 @@ use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, GLContextAttributes, WebGLCommand, WebGLResult, WebGLVersion,
+    webgl_channel, GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLResult,
+    WebGLVersion,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -51,7 +52,7 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, CreateWith, Float32, Uint32, Uint32Array};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
 use std::cmp;
@@ -3752,6 +3753,60 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             ),
             None => self.base.webgl_error(InvalidOperation),
         }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5
+    #[allow(unsafe_code)]
+    fn GetInternalformatParameter(
+        &self,
+        cx: JSContext,
+        target: u32,
+        internal_format: u32,
+        pname: u32,
+    ) -> JSVal {
+        if target != constants::RENDERBUFFER {
+            self.base.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        match handle_potential_webgl_error!(
+            self.base,
+            InternalFormatParameter::from_u32(pname),
+            return NullValue()
+        ) {
+            InternalFormatParameter::IntVec(param) => unsafe {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.base
+                    .send_command(WebGLCommand::GetInternalFormatIntVec(
+                        target,
+                        internal_format,
+                        param,
+                        sender,
+                    ));
+
+                rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Int32Array::create(
+                    *cx,
+                    CreateWith::Slice(&receiver.recv().unwrap()),
+                    rval.handle_mut(),
+                )
+                .unwrap();
+                ObjectValue(rval.get())
+            },
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5
+    fn RenderbufferStorageMultisample(
+        &self,
+        target: u32,
+        samples: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+    ) {
+        self.base
+            .renderbuffer_storage(target, samples, internal_format, width, height)
     }
 }
 

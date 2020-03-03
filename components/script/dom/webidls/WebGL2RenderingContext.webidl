@@ -316,9 +316,9 @@ interface mixin WebGL2RenderingContextBase
   // void readBuffer(GLenum src);
 
   /* Renderbuffer objects */
-  // any getInternalformatParameter(GLenum target, GLenum internalformat, GLenum pname);
-  // void renderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat,
-  //                                     GLsizei width, GLsizei height);
+  any getInternalformatParameter(GLenum target, GLenum internalformat, GLenum pname);
+  void renderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat,
+                                      GLsizei width, GLsizei height);
 
   /* Texture objects */
   // void texStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width,

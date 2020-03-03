@@ -330,6 +330,7 @@ pub enum WebGLCommand {
     TransformFeedbackVaryings(WebGLProgramId, Vec<String>, u32),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
+    RenderbufferStorageMultisample(u32, i32, u32, i32, i32),
     ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
     ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),
@@ -458,6 +459,7 @@ pub enum WebGLCommand {
     GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
     GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
+    GetInternalFormatIntVec(u32, u32, InternalFormatIntVec, WebGLSender<Vec<i32>>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
     DrawArrays {
@@ -909,6 +911,14 @@ parameters! {
         Int(TexParameterInt {
             TextureWrapS = gl::TEXTURE_WRAP_S,
             TextureWrapT = gl::TEXTURE_WRAP_T,
+        }),
+    }
+}
+
+parameters! {
+    InternalFormatParameter {
+        IntVec(InternalFormatIntVec {
+            Samples = gl::SAMPLES,
         }),
     }
 }
