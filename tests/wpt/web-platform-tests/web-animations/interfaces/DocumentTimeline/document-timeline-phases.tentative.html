@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test basic functionality of document timeline phases.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+  promise_test(async t => {
+    const timeline = new DocumentTimeline();
+    assert_equals(timeline.phase, "active");
+  }, 'Document timeline starts in "active" phase.');
+
+  promise_test(async t => {
+    const timeline = new DocumentTimeline();
+    assert_throws_js(TypeError, () => {
+      timeline.phase = "after";
+    });
+  }, 'Setting document timeline phase (which is readonly) throws TypeError.');
+</script>

@@ -268,10 +268,11 @@ def has_mirroring_label(pull_request):
 
 def should_be_mirrored(project, pull_request):
     return (
-        is_open(pull_request) and
-        pull_request['user']['login'] not in AUTOMATION_GITHUB_USERS and (
-            pull_request['author_association'] in TRUSTED_AUTHOR_ASSOCIATIONS or
-            has_mirroring_label(pull_request)
+        is_open(pull_request) and (
+            has_mirroring_label(pull_request) or (
+                pull_request['user']['login'] not in AUTOMATION_GITHUB_USERS and
+                pull_request['author_association'] in TRUSTED_AUTHOR_ASSOCIATIONS
+            )
         ) and
         # Query this last as it requires another API call to verify
         not project.pull_request_is_from_fork(pull_request)

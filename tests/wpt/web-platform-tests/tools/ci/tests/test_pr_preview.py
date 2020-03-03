@@ -512,10 +512,57 @@ def test_synchronize_sync_trusted_contributor():
                 'items': [
                     {
                         'number': 23,
+                        # user here is a contributor (untrusted), but the issue
+                        # has been labelled as safe.
                         'labels': [{'name': 'safe for preview'}],
                         'closed_at': None,
                         'user': {'login': 'Hexcles'},
                         'author_association': 'CONTRIBUTOR'
+                    }
+                ],
+                'incomplete_results': False
+            }
+        )),
+        (Requests.pr_details, (200,
+            {
+                'head': {
+                    'repo': {
+                        'full_name': 'test-org/test-repo'
+                    }
+                }
+            }
+        )),
+        (Requests.ref_create_open, (200, {})),
+        (Requests.ref_create_trusted, (200, {})),
+        (Requests.deployment_get, (200, [])),
+        (Requests.deployment_create, (200, {}))
+    ]
+
+    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+
+    assert returncode == 0
+    assert same_members(expected_traffic, actual_traffic)
+
+def test_synchronize_sync_bot_with_label():
+    expected_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.search, (
+            200,
+            {
+                'items': [
+                    {
+                        'number': 23,
+                        # user here is a bot which is normally not mirrored,
+                        # but the issue has been labelled as safe.
+                        'labels': [{'name': 'safe for preview'}],
+                        'closed_at': None,
+                        'user': {'login': 'chromium-wpt-export-bot'},
+                        'author_association': 'COLLABORATOR'
                     }
                 ],
                 'incomplete_results': False

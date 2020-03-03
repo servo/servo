@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred images with loading='lazy' use the latest crossorigin attribute</title>
+  <link rel="author" title="Raj T" href="mailto:rajendrant@chromium.org">
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<script>
+  const crossorigin_img = new ElementLoadPromise("crossorigin_img");
+
+  // Set the crossorigin attribute and scroll down to load the deferred image.
+  window.addEventListener("load", () => {
+    crossorigin_img.element().crossOrigin = 'anonymous';
+    crossorigin_img.element().scrollIntoView();
+  });
+
+  async_test(function(t) {
+    crossorigin_img.promise.then(t.unreached_func("The image should not load.")).catch(t.step_func_done());
+  }, "Test that when deferred image is loaded, it uses the latest crossorigin attribute.");
+</script>
+
+<body>
+  <div style="height:1000vh;"></div>
+  <img id="crossorigin_img" loading="lazy"
+       src='http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-img-element/resources/image.png'
+       onload="crossorigin_img.resolve();" onerror="crossorigin_img.reject();">
+</body>

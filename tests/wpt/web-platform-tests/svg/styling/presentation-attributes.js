@@ -145,7 +145,7 @@ const PROPERTIES = {
     irrelevantElement: null,
   },
   "image-rendering": {
-    value: "optimizeSpeed",
+    value: ["optimizeSpeed", "pixelated"],
     relevantElement: "image",
     irrelevantElement: "path",
   },
@@ -361,17 +361,25 @@ function presentationAttributeIsSupported(element, attribute, value, property) {
   return propertyValueBefore != propertyValueAfter;
 }
 
-function assertPresentationAttributeIsSupported(element, attribute, value, property) {
+function assertPresentationAttributeIsSupported(element, attribute, values, property) {
+  if (typeof values === 'string')
+    values = [values];
+  let supported = values.some(
+    value => presentationAttributeIsSupported(element, attribute, value, property));
   assert_true(
-    presentationAttributeIsSupported(element, attribute, value, property),
-    `Presentation attribute ${attribute}="${value}" should be supported on ${element} element`
+    supported,
+    `Presentation attribute ${attribute}="${values.join(" | ")}" should be supported on ${element} element`
   );
 }
 
-function assertPresentationAttributeIsNotSupported(element, attribute, value, property) {
+function assertPresentationAttributeIsNotSupported(element, attribute, values, property) {
+  if (typeof values === 'string')
+    values = [values];
+  let supported = values.some(
+    value => presentationAttributeIsSupported(element, attribute, value, property));
   assert_false(
-    presentationAttributeIsSupported(element, attribute, value, property),
-    `Presentation attribute ${attribute}="${value}" should be supported on ${element} element`
+    supported,
+    `Presentation attribute ${attribute}="${values.join(" | ")}" should not be supported on ${element} element`
   );
 }
 

@@ -12,9 +12,9 @@ function nextMessage(target) {
   });
 }
 
-async function openPortalAndActivate(logic, activateOptions) {
+async function openPortalAndActivate(logic, activateOptions, testWindow) {
   assert_precondition("HTMLPortalElement" in self);
-  const w = await openBlankPortalHost();
+  const w = testWindow || await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');
     portal.src = new URL('resources/portal-activate-data-portal.html?logic=' + encodeURIComponent(logic), location.href);
@@ -71,9 +71,10 @@ promise_test(async () => {
 }, "A message port can be passed through activate data.");
 
 promise_test(async t => {
-await promise_rejects_dom(
-    t, 'DataCloneError',
-    openPortalAndActivate('', {data: new SharedArrayBuffer}));
+  const w = await openBlankPortalHost();
+  await promise_rejects_dom(
+      t, 'DataCloneError', w.DOMException,
+      openPortalAndActivate('', {data: new SharedArrayBuffer}, w));
 }, "A SharedArrayBuffer cannot be passed through activate data.");
 
 promise_test(async t => {
@@ -83,9 +84,10 @@ promise_test(async t => {
 }, "Uncloneable data has its exception propagated.");
 
 promise_test(async t => {
+  const w = await openBlankPortalHost();
   await promise_rejects_js(
-      t, TypeError,
-      openPortalAndActivate('', {data: null, transfer: [null]}));
+      t, w.TypeError,
+      openPortalAndActivate('', {data: null, transfer: [null]}, w));
 }, "Errors during transfer list processing are propagated.");
 </script>
 </body>

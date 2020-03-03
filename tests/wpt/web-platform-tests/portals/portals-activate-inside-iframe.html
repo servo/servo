@@ -13,7 +13,9 @@
       document.body.appendChild(iframe);
       await waitForLoad;
       const portal = iframe.contentDocument.getElementById("portal");
-      return promise_rejects_dom(t, "InvalidStateError", portal.activate());
+      return promise_rejects_dom(t, "InvalidStateError",
+                                 iframe.contentWindow.DOMException,
+                                 portal.activate());
     }, "activating portal inside iframe should fail");
   </script>
 </body>

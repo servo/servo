@@ -61,6 +61,8 @@ function testAbortShowIfDocumentIsNotActive() {
       iframe,
       "/payment-request/resources/page1.html"
     );
+    // Save the DOMException of page1.html before navigating away.
+    const frameDOMException1 = iframe.contentWindow.DOMException;
     // We navigate the iframe again, putting request1's document into an inactive state.
     const request2 = await getLoadedPaymentRequest(
       iframe,
@@ -71,6 +73,7 @@ function testAbortShowIfDocumentIsNotActive() {
     await promise_rejects_dom(
       t,
       "AbortError",
+      frameDOMException1,
       request1.show(),
       "Inactive document, so must throw AbortError"
     );
@@ -80,6 +83,7 @@ function testAbortShowIfDocumentIsNotActive() {
     await promise_rejects_dom(
       t,
       "InvalidStateError",
+      iframe.contentWindow.DOMException,
       request2.show(),
       "Abort already called, so InvalidStateError"
     );
@@ -112,6 +116,8 @@ function testAbortShowIfDocumentIsNotFullyActive() {
       innerIframe,
       "/payment-request/resources/page2.html"
     );
+    // Save DOMException from innerIframe before navigating away.
+    const innerIframeDOMException = innerIframe.contentWindow.DOMException;
 
     // Navigate the outer iframe to a new location.
     // Wait for the load event to fire.
@@ -128,6 +134,7 @@ function testAbortShowIfDocumentIsNotFullyActive() {
     await promise_rejects_dom(
       t,
       "AbortError",
+      innerIframeDOMException,
       showPromise,
       "Active, but not fully active, so must throw AbortError"
     );
