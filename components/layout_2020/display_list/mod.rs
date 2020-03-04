@@ -128,7 +128,6 @@ impl Fragment {
         common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
-
         let text_decorations = fragment
             .parent_style
             .get_inherited_text()
@@ -140,14 +139,14 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
             rect.size.height = font_metrics.underline_size;
-            self.build_display_list_for_text_decoration(builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
 
         // Overline.
         if text_decorations.overline {
             let mut rect = rect;
             rect.size.height = font_metrics.underline_size;
-            self.build_display_list_for_text_decoration(builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
 
         // Text.
@@ -166,24 +165,29 @@ impl Fragment {
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
             // XXX(ferjm) This does not work on MacOS #942
             rect.size.height = font_metrics.strikeout_size;
-            self.build_display_list_for_text_decoration(builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
     }
 
     fn build_display_list_for_text_decoration(
         &self,
+        fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
         rect: &PhysicalRect<Length>,
         color: cssparser::RGBA,
     ) {
         let rect = rect.to_webrender();
         let wavy_line_thickness = (0.33 * rect.size.height).ceil();
+        let text_decoration_color = fragment
+            .parent_style
+            .clone_text_decoration_color()
+            .to_rgba(color);
         builder.wr.push_line(
             &builder.common_properties(rect),
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
-            &rgba(color),
+            &rgba(text_decoration_color),
             wr::LineStyle::Solid,
         );
     }

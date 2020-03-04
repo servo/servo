@@ -50,7 +50,7 @@ ${helpers.predefined_type(
     "text-decoration-color",
     "Color",
     "computed_value::T::currentcolor()",
-    engines="gecko",
+    engines="gecko servo-2020",
     initial_specified_value="specified::Color::currentcolor()",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
