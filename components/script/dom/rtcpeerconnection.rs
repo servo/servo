@@ -55,8 +55,8 @@ pub struct RTCPeerConnection {
     #[ignore_malloc_size_of = "defined in servo-media"]
     controller: DomRefCell<Option<WebRtcController>>,
     closed: Cell<bool>,
-    /// Helps track state changes between the time createOffer/createAnswer
-    /// is called and resolved
+    // Helps track state changes between the time createOffer/createAnswer
+    // is called and resolved
     offer_answer_generation: Cell<u32>,
     #[ignore_malloc_size_of = "promises are hard"]
     offer_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -419,34 +419,34 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
+    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
 
-    /// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ontrack
+    // https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ontrack
     event_handler!(track, GetOntrack, SetOntrack);
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-iceconnectionstatechange
+    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-iceconnectionstatechange
     event_handler!(
         iceconnectionstatechange,
         GetOniceconnectionstatechange,
         SetOniceconnectionstatechange
     );
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icegatheringstatechange
+    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icegatheringstatechange
     event_handler!(
         icegatheringstatechange,
         GetOnicegatheringstatechange,
         SetOnicegatheringstatechange
     );
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-onnegotiationneeded
+    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-onnegotiationneeded
     event_handler!(
         negotiationneeded,
         GetOnnegotiationneeded,
         SetOnnegotiationneeded
     );
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-signalingstatechange
+    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-signalingstatechange
     event_handler!(
         signalingstatechange,
         GetOnsignalingstatechange,

@@ -338,6 +338,6 @@ impl MessagePortMethods for MessagePort {
         self.global().start_message_port(self.message_port_id());
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
+    // <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
     event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }
