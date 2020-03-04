@@ -3581,6 +3581,36 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 height,
             ))
     }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    fn FramebufferTextureLayer(
+        &self,
+        target: u32,
+        attachment: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+        layer: i32,
+    ) {
+        if let Some(tex) = texture {
+            handle_potential_webgl_error!(self.base, self.base.validate_ownership(tex), return);
+        }
+
+        let fb_slot = match target {
+            constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
+                self.base.get_draw_framebuffer_slot()
+            },
+            constants::READ_FRAMEBUFFER => self.base.get_read_framebuffer_slot(),
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+
+        match fb_slot.get() {
+            Some(fb) => handle_potential_webgl_error!(
+                self.base,
+                fb.texture_layer(attachment, texture, level, layer)
+            ),
+            None => self.base.webgl_error(InvalidOperation),
+        }
+    }
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingContext> {

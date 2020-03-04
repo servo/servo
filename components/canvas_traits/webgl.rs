@@ -535,6 +535,7 @@ pub enum WebGLCommand {
     ClearBufferfi(u32, i32, f32, i32),
     InvalidateFramebuffer(u32, Vec<u32>),
     InvalidateSubFramebuffer(u32, Vec<u32>, i32, i32, i32, i32),
+    FramebufferTextureLayer(u32, u32, Option<WebGLTextureId>, i32, i32),
 }
 
 macro_rules! nonzero_type {
@@ -1074,5 +1075,7 @@ pub struct GLLimits {
     pub max_vertex_uniform_components: u32,
     pub max_fragment_uniform_blocks: u32,
     pub max_fragment_uniform_components: u32,
+    pub max_3d_texture_size: u32,
+    pub max_array_texture_layers: u32,
     pub uniform_buffer_offset_alignment: u32,
 }

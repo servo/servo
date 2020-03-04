@@ -79,6 +79,8 @@ impl GLLimitsDetect for GLLimits {
             max_vertex_uniform_components,
             max_fragment_uniform_blocks,
             max_fragment_uniform_components,
+            max_3d_texture_size,
+            max_array_texture_layers,
             uniform_buffer_offset_alignment,
         );
         if webgl_version == WebGLVersion::WebGL2 {
@@ -102,6 +104,8 @@ impl GLLimitsDetect for GLLimits {
             max_fragment_uniform_blocks = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_BLOCKS);
             max_fragment_uniform_components = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_COMPONENTS);
             uniform_buffer_offset_alignment = gl.get_integer(gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT);
+            max_3d_texture_size = gl.get_integer(gl::MAX_3D_TEXTURE_SIZE);
+            max_array_texture_layers = gl.get_integer(gl::MAX_ARRAY_TEXTURE_LAYERS)
         } else {
             max_uniform_block_size = 0;
             max_uniform_buffer_bindings = 0;
@@ -118,6 +122,8 @@ impl GLLimitsDetect for GLLimits {
             max_fragment_uniform_blocks = 0;
             max_fragment_uniform_components = 0;
             uniform_buffer_offset_alignment = 0;
+            max_3d_texture_size = 0;
+            max_array_texture_layers = 0;
         }
 
         GLLimits {
@@ -148,6 +154,8 @@ impl GLLimitsDetect for GLLimits {
             max_vertex_uniform_components,
             max_fragment_uniform_blocks,
             max_fragment_uniform_components,
+            max_3d_texture_size,
+            max_array_texture_layers,
             uniform_buffer_offset_alignment,
         }
     }
