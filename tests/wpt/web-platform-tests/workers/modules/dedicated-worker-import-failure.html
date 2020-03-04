@@ -13,12 +13,6 @@ promise_test(async () => {
 }, 'importScripts() on module worker should throw an exception.');
 
 promise_test(() => {
-  const scriptURL = 'resources/static-import-worker.js';
-  const worker = new Worker(scriptURL, { type: 'classic' });
-  return new Promise(resolve => worker.onerror = resolve);
-}, 'Static import on classic worker should throw an exception.');
-
-promise_test(() => {
   const scriptURL = 'resources/non-existent-worker.js';
   const worker = new Worker(scriptURL, { type: 'module' });
   return new Promise(resolve => worker.onerror = resolve);
