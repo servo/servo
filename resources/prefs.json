@@ -31,6 +31,7 @@
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
   "dom.webvr.test": false,
+  "dom.webvtt.enabled": false,
   "dom.webxr.enabled": true,
   "dom.webxr.glwindow": true,
   "dom.webxr.test": false,
