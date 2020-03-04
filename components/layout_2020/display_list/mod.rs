@@ -13,9 +13,9 @@ use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
+use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
@@ -182,14 +182,19 @@ impl Fragment {
             .parent_style
             .clone_text_decoration_color()
             .to_rgba(color);
+        let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
+        if text_decoration_style == ComputedTextDecorationStyle::MozNone {
+            return;
+        }
         builder.wr.push_line(
             &builder.common_properties(rect),
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
             &rgba(text_decoration_color),
-            wr::LineStyle::Solid,
+            text_decoration_style.to_webrender(),
         );
+        // XXX(ferjm) support text-decoration-style: double
     }
 }
 
