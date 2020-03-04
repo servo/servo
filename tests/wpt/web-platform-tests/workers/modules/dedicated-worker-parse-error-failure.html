@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>DedicatedWorker: parse error failure</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script> setup({allow_uncaught_exception: true}); </script>
+<script>
+
+promise_test(async () => {
+  const scriptURL = 'resources/syntax-error.js';
+  const worker = new Worker(scriptURL, { type: 'classic' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Classic worker construction for script with syntax error should dispatch ' +
+   'an ErrorEvent.');
+
+promise_test(async () => {
+  const scriptURL = 'resources/syntax-error.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Module worker construction for script with syntax error should dispatch ' +
+   'an ErrorEvent.');
+
+promise_test(async () => {
+  const scriptURL = 'resources/static-import-syntax-error.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Static import on module worker for script with syntax error should ' +
+   'dispatch an ErrorEvent.');
+
+promise_test(() => {
+  const scriptURL = 'resources/static-import-worker.js';
+  const worker = new Worker(scriptURL, { type: 'classic' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Static import on classic worker should dispatch an ErrorEvent.');
+
+</script>

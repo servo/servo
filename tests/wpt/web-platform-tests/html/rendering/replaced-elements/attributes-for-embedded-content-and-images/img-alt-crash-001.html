@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Crash test: img alt rendering in combination with style attribute selector</title>
+<link rel="help" href="https://crbug.com/1057210">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img { display: block; width: 100px; }
+  [style] + * {}
+</style>
+<img id="img" alt="alternative text">
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(img).width, "100px");
+  }, "Should not crash.");
+</script>

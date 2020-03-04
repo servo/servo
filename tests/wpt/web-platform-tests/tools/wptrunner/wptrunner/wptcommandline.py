@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
-from six import iterkeys, itervalues, iteritems, string_types
+from six import iterkeys, itervalues, iteritems
 
 from . import config
 from . import wpttest
@@ -538,9 +538,6 @@ def check_args(kwargs):
         kwargs["certutil_binary"] = path
 
     if kwargs['extra_prefs']:
-        # If a single pref is passed in as a string, make it a list
-        if isinstance(kwargs['extra_prefs'], string_types):
-            kwargs['extra_prefs'] = [kwargs['extra_prefs']]
         missing = any('=' not in prefarg for prefarg in kwargs['extra_prefs'])
         if missing:
             print("Preferences via --setpref must be in key=value format", file=sys.stderr)

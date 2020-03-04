@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect.setKeyframes() for CSS transitions</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#csstransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  transition.effect.setKeyframes({ left: ['200px', '300px', '100px'] });
+
+  assert_equals(getComputedStyle(div).left, '200px');
+}, 'Keyframes set using setKeyframes() are reflected in computed style for'
+   + ' a running transition');
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  transition.effect.setKeyframes({ top: ['0px', '100px', '300px'] });
+
+  assert_equals(transition.transitionProperty, 'left');
+}, 'A transition with replaced keyframes still returns the original'
+   + ' transitionProperty');
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  transition.effect.setKeyframes({ });
+
+  assert_equals(transition.transitionProperty, 'left');
+}, 'A transition with no keyframes still returns the original'
+   + ' transitionProperty');
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+
+  // Seek to the middle and get the portion.
+  //
+  // We deliberately DON'T set transition-timing-function to linear so that we
+  // can test that it is applied correctly.
+  transition.currentTime = 50 * MS_PER_SEC;
+  const portion = transition.effect.getComputedTiming().progress;
+
+  transition.effect.setKeyframes({ top: ['200px', '300px', '100px'] });
+
+  // Reverse transition
+  div.style.left = '0px';
+  const reversedTransition = div.getAnimations()[0];
+
+  const expectedDuration = 100 * MS_PER_SEC * portion;
+  assert_approx_equals(
+    reversedTransition.effect.getComputedTiming().activeDuration,
+    expectedDuration,
+    1
+  );
+}, 'A transition with replaced keyframes still exhibits the regular transition'
+   + ' reversing behavior');
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+
+  transition.currentTime = 50 * MS_PER_SEC;
+  const portion = transition.effect.getComputedTiming().progress;
+
+  transition.effect.setKeyframes({ });
+
+  div.style.left = '0px';
+  const reversedTransition = div.getAnimations()[0];
+
+  const expectedDuration = 100 * MS_PER_SEC * portion;
+  assert_approx_equals(
+    reversedTransition.effect.getComputedTiming().activeDuration,
+    expectedDuration,
+    1
+  );
+}, 'A transition with no keyframes still exhibits the regular transition'
+   + ' reversing behavior');
+
+</script>
