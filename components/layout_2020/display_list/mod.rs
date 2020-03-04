@@ -17,6 +17,7 @@ use style::computed_values::text_decoration_style::T as ComputedTextDecorationSt
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
+use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
 
@@ -128,14 +129,13 @@ impl Fragment {
         common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
-        let text_decorations = fragment
-            .parent_style
-            .get_inherited_text()
-            .text_decorations_in_effect;
         let font_metrics = &fragment.font_metrics;
 
         // Underline.
-        if text_decorations.underline {
+        if fragment
+            .text_decorations_in_effect
+            .contains(TextDecorationLine::UNDERLINE)
+        {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
             rect.size.height = font_metrics.underline_size;
@@ -143,7 +143,10 @@ impl Fragment {
         }
 
         // Overline.
-        if text_decorations.overline {
+        if fragment
+            .text_decorations_in_effect
+            .contains(TextDecorationLine::OVERLINE)
+        {
             let mut rect = rect;
             rect.size.height = font_metrics.underline_size;
             self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
@@ -160,7 +163,10 @@ impl Fragment {
         );
 
         // Line-through.
-        if text_decorations.line_through {
+        if fragment
+            .text_decorations_in_effect
+            .contains(TextDecorationLine::LINE_THROUGH)
+        {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
             // XXX(ferjm) This does not work on MacOS #942

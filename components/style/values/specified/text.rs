@@ -217,7 +217,7 @@ impl ToComputedValue for TextOverflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, Serialize, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     #[value_info(other_values = "none,underline,overline,line-through,blink")]
     #[repr(C)]
     /// Specified keyword values for the text-decoration-line property.

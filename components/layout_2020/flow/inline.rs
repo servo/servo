@@ -26,6 +26,7 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::specified::text::TextAlignKeyword;
+use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
@@ -385,6 +386,18 @@ impl Lines {
             block: line_block_size,
         };
         self.next_line_block_position += size.block;
+
+        // From https://drafts.csswg.org/css-text-decor/#line-decoration
+        // "When specified on or propagated to an inline box,
+        // that box becomes a decorating box for that decoration,
+        // applying the decoration to all its fragments..."
+        let text_decoration_line = containing_block.style.clone_text_decoration_line();
+        if text_decoration_line != TextDecorationLine::NONE {
+            for fragment in &mut line_contents {
+                fragment.set_text_decorations_in_effect(text_decoration_line);
+            }
+        }
+
         self.fragments
             .push(Fragment::Anonymous(AnonymousFragment::new(
                 Rect { start_corner, size },
@@ -775,6 +788,7 @@ impl TextRun {
                     font_metrics,
                     font_key,
                     glyphs,
+                    text_decorations_in_effect: TextDecorationLine::NONE,
                 }));
             if runs.is_empty() {
                 break;
