@@ -20,14 +20,15 @@
 #![cfg(feature = "unrooted_must_root_lint")]
 
 extern crate rustc;
+extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_hir;
 extern crate rustc_lint;
 extern crate rustc_session;
 extern crate rustc_span;
-extern crate syntax;
 
 use rustc::ty;
+use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit as visit;
@@ -38,7 +39,6 @@ use rustc_span::source_map;
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
 use rustc_span::symbol::sym;
 use rustc_span::symbol::Symbol;
-use syntax::ast::{AttrKind, Attribute};
 
 #[allow(deprecated)]
 #[plugin_registrar]

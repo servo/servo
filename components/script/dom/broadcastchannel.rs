@@ -98,9 +98,9 @@ impl BroadcastChannelMethods for BroadcastChannel {
         self.closed.set(true);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#handler-broadcastchannel-onmessageerror>
+    // <https://html.spec.whatwg.org/multipage/#handler-broadcastchannel-onmessageerror>
     event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 
-    /// <https://html.spec.whatwg.org/multipage/#handler-broadcastchannel-onmessage>
+    // <https://html.spec.whatwg.org/multipage/#handler-broadcastchannel-onmessage>
     event_handler!(message, GetOnmessage, SetOnmessage);
 }
