@@ -11,10 +11,6 @@
 typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
-
-// interface WebGLVertexArrayObject : WebGLObject {
-// };
-
 typedef (/*[AllowShared]*/ Uint32Array or sequence<GLuint>) Uint32List;
 
 interface mixin WebGL2RenderingContextBase
@@ -540,10 +536,10 @@ interface mixin WebGL2RenderingContextBase
   void uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 
   /* Vertex Array Objects */
-  /*WebGLVertexArrayObject? createVertexArray();
+  WebGLVertexArrayObject? createVertexArray();
   void deleteVertexArray(WebGLVertexArrayObject? vertexArray);
   [WebGLHandlesContextLoss] GLboolean isVertexArray(WebGLVertexArrayObject? vertexArray);
-  void bindVertexArray(WebGLVertexArrayObject? array);*/
+  void bindVertexArray(WebGLVertexArrayObject? array);
 };
 
 [Exposed=Window, Pref="dom.webgl2.enabled"]
