@@ -1420,7 +1420,7 @@ impl LayoutThread {
             fragment_tree.print();
         }
         if self.dump_display_list {
-            display_list.wr.print_display_list();
+            display_list.wr.dump_serialized_display_list();
         }
 
         debug!("Layout done!");

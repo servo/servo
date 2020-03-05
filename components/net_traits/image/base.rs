@@ -77,15 +77,15 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     if is_gif(buffer) {
-        Ok(ImageFormat::GIF)
+        Ok(ImageFormat::Gif)
     } else if is_jpeg(buffer) {
-        Ok(ImageFormat::JPEG)
+        Ok(ImageFormat::Jpeg)
     } else if is_png(buffer) {
-        Ok(ImageFormat::PNG)
+        Ok(ImageFormat::Png)
     } else if is_bmp(buffer) {
-        Ok(ImageFormat::BMP)
+        Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
-        Ok(ImageFormat::ICO)
+        Ok(ImageFormat::Ico)
     } else {
         Err("Image Format Not Supported")
     }

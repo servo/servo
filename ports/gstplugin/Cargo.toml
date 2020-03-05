@@ -17,7 +17,7 @@ path = "lib.rs"
 [dependencies]
 crossbeam-channel = "0.4"
 euclid = "0.20"
-gleam = "0.6"
+gleam = "0.9"
 glib = "0.9"
 gstreamer = "0.15"
 gstreamer-base = "0.15"

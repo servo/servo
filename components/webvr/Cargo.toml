@@ -22,7 +22,7 @@ euclid = "0.20"
 ipc-channel = "0.14"
 log = "0.4"
 msg = {path = "../msg"}
-rust-webvr = {version = "0.17", features = ["mock", "openvr", "vrexternal"]}
+rust-webvr = {version = "0.18", features = ["mock", "openvr", "vrexternal"]}
 rust-webvr-api = "0.17"
 servo_config = {path = "../config"}
 sparkle = "0.1"

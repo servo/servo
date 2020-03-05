@@ -338,5 +338,6 @@ fn build_common_item_properties(
         // TODO(gw): Make use of the WR backface visibility functionality.
         flags: PrimitiveFlags::default(),
         hit_info: tag,
+        item_key: None,
     }
 }

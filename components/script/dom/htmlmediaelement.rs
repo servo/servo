@@ -96,7 +96,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
 use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
-use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, Transaction};
+use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
+use webrender_api::{ImageKey, Transaction};
 
 #[derive(PartialEq)]
 enum FrameStatus {
@@ -186,8 +187,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             frame.get_width(),
             frame.get_height(),
             ImageFormat::BGRA8,
-            false,
-            false,
+            ImageDescriptorFlags::empty(),
         );
 
         match self.current_frame {

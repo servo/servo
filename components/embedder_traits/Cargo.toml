@@ -18,7 +18,7 @@ lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}
 num-traits = "0.2"
-num-derive = "0.2"
+num-derive = "0.3"
 serde = "1.0"
 servo_url = {path = "../url"}
 webrender_api = {git = "https://github.com/servo/webrender"}
