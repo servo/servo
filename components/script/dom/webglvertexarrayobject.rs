@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::Ref;
-use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
+use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::vertexarrayobject::{VertexArrayObject, VertexAttribData};
@@ -14,12 +14,12 @@ use canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 use dom_struct::dom_struct;
 
 #[dom_struct]
-pub struct WebGLVertexArrayObjectOES {
+pub struct WebGLVertexArrayObject {
     webgl_object_: WebGLObject,
     array_object: VertexArrayObject,
 }
 
-impl WebGLVertexArrayObjectOES {
+impl WebGLVertexArrayObject {
     fn new_inherited(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
         Self {
             webgl_object_: WebGLObject::new_inherited(context),
@@ -29,9 +29,9 @@ impl WebGLVertexArrayObjectOES {
 
     pub fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
+            Box::new(WebGLVertexArrayObject::new_inherited(context, id)),
             &*context.global(),
-            WebGLVertexArrayObjectOESBinding::Wrap,
+            WebGLVertexArrayObjectBinding::Wrap,
         )
     }
 

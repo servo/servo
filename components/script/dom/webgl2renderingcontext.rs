@@ -36,6 +36,7 @@ use crate::dom::webglsync::WebGLSync;
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webgltransformfeedback::WebGLTransformFeedback;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
+use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
@@ -181,6 +182,10 @@ impl WebGL2RenderingContext {
         self.base.recreate(size)
     }
 
+    pub fn current_vao(&self) -> DomRoot<WebGLVertexArrayObject> {
+        self.base.current_vao_webgl2()
+    }
+
     pub fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&*self.base)
     }
@@ -193,6 +198,7 @@ impl WebGL2RenderingContext {
             constants::PIXEL_UNPACK_BUFFER => Ok(self.bound_pixel_unpack_buffer.get()),
             constants::TRANSFORM_FEEDBACK_BUFFER => Ok(self.bound_transform_feedback_buffer.get()),
             constants::UNIFORM_BUFFER => Ok(self.bound_uniform_buffer.get()),
+            constants::ELEMENT_ARRAY_BUFFER => Ok(self.current_vao().element_array_buffer().get()),
             _ => self.base.bound_buffer(target),
         }
     }
@@ -777,6 +783,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     self.current_transform_feedback.get()
                 );
             },
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
+                let buffer = self.current_vao().element_array_buffer().get();
+                return optional_root_object_to_js_or_null!(*cx, buffer);
+            },
+            constants::VERTEX_ARRAY_BINDING => unsafe {
+                let vao = self.current_vao();
+                let vao = vao.id().map(|_| &*vao);
+                return optional_root_object_to_js_or_null!(*cx, vao);
+            },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
             constants::READ_FRAMEBUFFER_BINDING => unsafe {
                 return optional_root_object_to_js_or_null!(
@@ -942,6 +957,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
+        let current_vao;
         let slot = match target {
             constants::COPY_READ_BUFFER => &self.bound_copy_read_buffer,
             constants::COPY_WRITE_BUFFER => &self.bound_copy_write_buffer,
@@ -949,6 +965,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::PIXEL_UNPACK_BUFFER => &self.bound_pixel_unpack_buffer,
             constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
             constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
+            constants::ELEMENT_ARRAY_BUFFER => {
+                current_vao = self.current_vao();
+                current_vao.element_array_buffer()
+            },
             _ => return self.base.BindBuffer(target, buffer),
         };
         self.base.bind_buffer_maybe(&slot, target, buffer);
@@ -1409,6 +1429,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.CreateShader(shader_type)
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    fn CreateVertexArray(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
+        self.base.create_vertex_array_webgl2()
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         let buffer = match buffer {
@@ -1419,7 +1444,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         if buffer.is_marked_for_deletion() {
             return;
         }
-        self.base.current_vao().unbind_buffer(buffer);
+        self.current_vao().unbind_buffer(buffer);
         self.unbind_from(&self.base.array_buffer_slot(), &buffer);
         self.unbind_from(&self.bound_copy_read_buffer, &buffer);
         self.unbind_from(&self.bound_copy_write_buffer, &buffer);
@@ -1461,6 +1486,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         self.base.DeleteShader(shader)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    fn DeleteVertexArray(&self, vertex_array: Option<&WebGLVertexArrayObject>) {
+        self.base.delete_vertex_array_webgl2(vertex_array);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -1660,6 +1690,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
         self.base.IsTexture(texture)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    fn IsVertexArray(&self, vertex_array: Option<&WebGLVertexArrayObject>) -> bool {
+        self.base.is_vertex_array_webgl2(vertex_array)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -3040,6 +3075,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 Err(error) => self.base.webgl_error(error),
             }
         }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    fn BindVertexArray(&self, array: Option<&WebGLVertexArrayObject>) {
+        self.base.bind_vertex_array_webgl2(array);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
