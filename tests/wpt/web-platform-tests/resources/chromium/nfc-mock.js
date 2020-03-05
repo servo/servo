@@ -26,6 +26,10 @@ function toMojoNDEFRecord(record) {
   nfcRecord.recordType = record.recordType;
   nfcRecord.mediaType = record.mediaType;
   nfcRecord.id = record.id;
+  if (record.recordType == 'text') {
+    nfcRecord.encoding = record.encoding == null? 'utf-8': record.encoding;
+    nfcRecord.lang = record.lang == null? 'en': record.lang;
+  }
   nfcRecord.data = toByteArray(record.data);
   if (record.data != null && record.data.records !== undefined) {
     // |record.data| may be an NDEFMessageInit, i.e. the payload is a message.
@@ -71,6 +75,17 @@ function compareNDEFRecords(providedRecord, receivedRecord) {
   }
 
   assert_not_equals(providedRecord.recordType, 'empty');
+
+  if (providedRecord.recordType == 'text') {
+    assert_equals(
+        providedRecord.encoding == null? 'utf-8': providedRecord.encoding,
+        receivedRecord.encoding);
+    assert_equals(providedRecord.lang == null? 'en': providedRecord.lang,
+                  receivedRecord.lang);
+  } else {
+    assert_equals(null, receivedRecord.encoding);
+    assert_equals(null, receivedRecord.lang);
+  }
 
   assert_array_equals(toByteArray(providedRecord.data),
                       new Uint8Array(receivedRecord.data));

@@ -16,6 +16,6 @@ dictionary CSSStyleSheetInit {
   boolean disabled = false;
 };
 
-partial interface DocumentOrShadowRoot {
+partial interface mixin DocumentOrShadowRoot {
   attribute FrozenArray<CSSStyleSheet> adoptedStyleSheets;
 };

@@ -35,16 +35,20 @@ function test_math_used(testString, expectedString, {base="123px", msg, prop="le
 All of these expect the testString to evaluate to a <number>.
 */
 function test_plus_infinity(testString) {
-    test_math_used(`calc(1px * ${testString})`, "calc(infinity * 1px)");
+    test_math_used(`calc(1px * ${testString})`, "calc(infinity * 1px)",
+        {msg:`${testString} should equal +Infinity.`});
 }
 function test_minus_infinity(testString) {
-    test_math_used(`calc(1px * ${testString})`, "calc(-infinity * 1px)");
+    test_math_used(`calc(1px * ${testString})`, "calc(-infinity * 1px)",
+        {msg:`${testString} should equal -Infinity.`});
 }
 function test_plus_zero(testString) {
-    test_math_used(`calc(1px / ${testString})`, "calc(infinity * 1px)");
+    test_math_used(`calc(1px / ${testString})`, "calc(infinity * 1px)",
+        {msg:`${testString} should equal 0⁺.`});
 }
 function test_minus_zero(testString) {
-    test_math_used(`calc(1px / ${testString})`, "calc(-infinity * 1px)");
+    test_math_used(`calc(1px / ${testString})`, "calc(-infinity * 1px)",
+        {msg:`${testString} should equal 0⁻.`});
 }
 function test_nan(testString) {
     // Make sure that it's NaN, not an infinity,

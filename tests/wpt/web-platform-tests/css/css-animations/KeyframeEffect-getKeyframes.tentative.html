@@ -164,20 +164,6 @@
 
 const getKeyframes = elem => elem.getAnimations()[0].effect.getKeyframes();
 
-const assert_frames_equal = (a, b, name) => {
-  assert_equals(Object.keys(a).sort().toString(),
-                Object.keys(b).sort().toString(),
-                "properties on " + name);
-  for (const p in a) {
-    if (p === 'offset' || p === 'computedOffset') {
-      assert_approx_equals(a[p], b[p], 0.00001,
-                           "value for '" + p + "' on " + name);
-    } else {
-      assert_equals(a[p], b[p], "value for '" + p + "' on " + name);
-    }
-  }
-};
-
 // animation-timing-function values to test with, where the value
 // is exactly the same as its serialization, sorted by the order
 // getKeyframes() will group frames with the same easing function
@@ -221,11 +207,9 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-simple 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease",
@@ -233,10 +217,7 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease",
       color: "rgb(255, 255, 255)", composite: "auto" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for a simple'
    + ' animation');
 
@@ -292,11 +273,9 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-simple-shorthand 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -306,21 +285,16 @@ test(t => {
       marginBottom: "16px", marginLeft: "16px",
       marginRight: "16px", marginTop: "16px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for a simple'
    + ' animation that specifies a single shorthand property');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-omit-to 100s';
   div.style.color = 'rgb(255, 255, 255)';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -328,21 +302,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with a 0% keyframe and no 100% keyframe');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-omit-from 100s';
   div.style.color = 'rgb(255, 255, 255)';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -350,21 +319,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 255)" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with a 100% keyframe and no 0% keyframe');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-omit-from-to 100s';
   div.style.color = 'rgb(255, 255, 255)';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 3, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0,   computedOffset: 0,   easing: "ease", composite: "auto",
@@ -374,21 +338,16 @@ test(t => {
     { offset: 1,   computedOffset: 1,   easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with no 0% or 100% keyframe but with a 50% keyframe');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-partially-omit-to 100s';
   div.style.marginTop = '250px';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -396,21 +355,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginTop: '250px', marginBottom: '200px' },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with a partially complete 100% keyframe (because the ' +
    '!important rule is ignored)');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-different-props 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 4, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -422,21 +376,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with different properties on different keyframes, all ' +
    'with the same easing function');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-different-props-and-easing 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 4, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "linear", composite: "auto",
@@ -448,21 +397,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with different properties on different keyframes, with ' +
    'a different easing function on each');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-merge-offset 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -470,21 +414,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with multiple keyframes for the same time, and all with ' +
    'the same easing function');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-merge-offset-and-easing 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 3, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "steps(1)", composite: "auto",
@@ -495,21 +434,16 @@ test(t => {
       color: "rgb(255, 255, 255)", fontSize: "32px", marginTop: "16px",
       paddingLeft: "4px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with multiple keyframes for the same time and with ' +
    'different easing functions');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-no-merge-equiv-easing 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 3, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "steps(1)", composite: "auto",
@@ -519,21 +453,16 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginTop: "20px", marginRight: "20px", marginBottom: "20px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for an ' +
    'animation with multiple keyframes for the same time and with ' +
    'different but equivalent easing functions');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-overriding 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 6, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -549,10 +478,7 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       paddingTop: "70px" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected frames for ' +
    'overlapping keyframes');
 
@@ -561,11 +487,9 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-filter 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -573,20 +497,15 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       filter: "blur(5px) sepia(60%) saturate(30%)" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with filter properties and missing keyframes');
 
 test(t => {
   const div = addDiv(t);
-
   div.style.animation = 'anim-filter-drop-shadow 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -594,10 +513,7 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       filter: "drop-shadow(rgb(255, 0, 0) 50px 30px 10px)" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animation with drop-shadow of filter property');
 
@@ -607,14 +523,12 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
-
   div.style.textShadow = '1px 1px 2px rgb(0, 0, 0), ' +
                          '0 0 16px rgb(0, 0, 255), ' +
                          '0 0 3.2px rgb(0, 0, 255)';
   div.style.animation = 'anim-text-shadow 100s';
-  const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
+  const frames = getKeyframes(div);
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -624,10 +538,7 @@ test(t => {
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       textShadow: "none" },
   ];
-
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with text-shadow properties and missing keyframes');
 
@@ -673,17 +584,13 @@ test(t => {
 
   const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
-
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       transform: "none" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       transform: "translate(100px)" },
   ];
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with CSS variables as keyframe values');
 
@@ -692,8 +599,6 @@ test(t => {
   div.style.animation = 'anim-variables-shorthand 100s';
 
   const frames = getKeyframes(div);
-
-  assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
@@ -707,9 +612,7 @@ test(t => {
       marginRight: "100px",
       marginTop: "100px" },
   ];
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with CSS variables as keyframe values in a shorthand property');
 
@@ -719,17 +622,13 @@ test(t => {
 
   const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
-
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 0)" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(0, 255, 0)" },
   ];
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with a CSS variable which is overriden by the value in keyframe');
 
@@ -739,19 +638,63 @@ test(t => {
 
   const frames = getKeyframes(div);
 
-  assert_equals(frames.length, 2, "number of frames");
-
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       transform: "translate(100px)" },
     { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       transform: "none" },
   ];
-  for (let i = 0; i < frames.length; i++) {
-    assert_frames_equal(frames[i], expected[i], "ComputedKeyframe #" + i);
-  }
+  assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +
    'animations with only custom property in a keyframe');
+
+test(t => {
+  const div = addDiv(t);
+
+  // Add custom @keyframes rule
+  const stylesheet = document.styleSheets[0];
+  const keyframes = '@keyframes anim-custom { to { left: 100px } }';
+  const ruleIndex = stylesheet.insertRule(keyframes, 0);
+  const keyframesRule = stylesheet.cssRules[ruleIndex];
+
+  t.add_cleanup(function() {
+    stylesheet.deleteRule(ruleIndex);
+  });
+
+  div.style.animation = 'anim-custom 100s';
+
+  // Sanity check the initial result
+  let frames = getKeyframes(div);
+  assert_frames_equal(
+    frames[frames.length - 1],
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      left: '100px',
+    },
+    'Keyframes reflect the initial @keyframes rule'
+  );
+
+  // Update the @keyframes rule
+  keyframesRule.deleteRule(0);
+  keyframesRule.appendRule('to { left: 200px }');
+
+  // Check the result from getKeyframes() is updated
+  frames = getKeyframes(div);
+  assert_frames_equal(
+    frames[frames.length - 1],
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      left: '200px',
+    },
+    'Keyframes reflects the updated @keyframes rule'
+  );
+}, 'KeyframeEffect.getKeyframes() reflects changes to @keyframes rules');
 
 </script>
 </body>

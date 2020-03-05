@@ -101,6 +101,16 @@ function assert_key_equals(actual, expected, description) {
   assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
   async_test(function(t) {
     options = Object.assign({upgrade_will_abort: false}, options);
@@ -187,5 +197,15 @@ function keep_alive(tx, store_name) {
   return () => {
     assert_false(completed, 'Transaction completed while kept alive');
     keepSpinning = false;
+  };
+}
+
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+  let n = 0;
+  return () => {
+    if (++n === count)
+      func();
   };
 }

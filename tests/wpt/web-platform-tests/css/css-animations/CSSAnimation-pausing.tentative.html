@@ -16,129 +16,218 @@
 <script>
 'use strict';
 
-const getMarginLeft = cs => parseFloat(cs.marginLeft);
-
 promise_test(async t => {
   const div = addDiv(t);
-  const cs = getComputedStyle(div);
   div.style.animation = 'anim 1000s paused';
+
   const animation = div.getAnimations()[0];
-  assert_equals(getMarginLeft(cs), 0,
-                'Initial value of margin-left is zero');
   animation.play();
 
   await animation.ready;
   await waitForNextFrame();
 
-  assert_greater_than(getMarginLeft(cs), 0,
-                      'Playing value of margin-left is greater than zero');
+  assert_equals(
+    animation.playState,
+    'running',
+    'Play state is running after calling play()'
+  );
+
+  // Flip the animation-play-state back and forth to check it has no effect
+
+  div.style.animationPlayState = 'running';
+  getComputedStyle(div).animationPlayState;
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationPlayState;
+
+  assert_equals(
+    animation.playState,
+    'running',
+    'Should still be running even after flipping the animation-play-state'
+  );
 }, 'play() overrides animation-play-state');
 
 promise_test(async t => {
   const div = addDiv(t);
-  const cs = getComputedStyle(div);
-  div.style.animation = 'anim 1000s paused';
-  const animation = div.getAnimations()[0];
-  assert_equals(getMarginLeft(cs), 0,
-                'Initial value of margin-left is zero');
+  div.style.animation = 'anim 100s infinite paused';
 
-  animation.pause();
+  const animation = div.getAnimations()[0];
+  animation.playbackRate = -1;
+  animation.currentTime = -1;
+
+  assert_throws_dom('InvalidStateError', () => {
+    animation.play();
+  }, 'Trying to play a reversed infinite animation should throw');
+
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Animation should still be paused'
+  );
+
+  animation.playbackRate = 1;
   div.style.animationPlayState = 'running';
+
+  assert_equals(
+    animation.playState,
+    'running',
+    'Changing the animation-play-state should play the animation'
+  );
+}, 'play() does NOT override the animation-play-state if there was an error');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 1000s paused';
+
+  const animation = div.getAnimations()[0];
+  animation.pause();
+
+  div.style.animationPlayState = 'running';
+  getComputedStyle(div).animationPlayState;
 
   await animation.ready;
   await waitForNextFrame();
 
-  assert_equals(cs.animationPlayState, 'running',
-                'animation-play-state is running');
-  assert_equals(getMarginLeft(cs), 0,
-                'Paused value of margin-left is zero');
+  assert_equals(animation.playState, 'paused', 'playState is paused ');
+
+  // Flip the animation-play-state back and forth to check it has no effect
+
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationPlayState;
+  div.style.animationPlayState = 'running';
+  getComputedStyle(div).animationPlayState;
+
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Should still be paused even after flipping the animation-play-state'
+  );
 }, 'pause() overrides animation-play-state');
 
 promise_test(async t => {
   const div = addDiv(t);
-  const cs = getComputedStyle(div);
-  div.style.animation = 'anim 1000s paused';
-  const animation = div.getAnimations()[0];
-  assert_equals(getMarginLeft(cs), 0,
-                'Initial value of margin-left is zero');
-  animation.play();
+  div.style.animation = 'anim 100s paused';
 
-  await animation.ready;
+  const animation = div.getAnimations()[0];
+  animation.reverse();
+
+  assert_equals(
+    animation.playState,
+    'running',
+    'Play state is running after calling reverse()'
+  );
+
+  // Flip the animation-play-state back and forth to check it has no effect
 
   div.style.animationPlayState = 'running';
-  cs.animationPlayState; // Trigger style resolution
-  await waitForNextFrame();
-
-  assert_equals(cs.animationPlayState, 'running',
-                'animation-play-state is running');
+  getComputedStyle(div).animationPlayState;
   div.style.animationPlayState = 'paused';
-  await animation.ready;
+  getComputedStyle(div).animationPlayState;
 
-  assert_equals(cs.animationPlayState, 'paused',
-                'animation-play-state is paused');
-  const previousAnimVal = getMarginLeft(cs);
-  await waitForNextFrame();
-
-  assert_equals(getMarginLeft(cs), previousAnimVal,
-                'Animated value of margin-left does not change when'
-                + ' paused by style');
-}, 'play() is overridden by later setting "animation-play-state: paused"');
+  assert_equals(
+    animation.playState,
+    'running',
+    'Should still be running even after flipping the animation-play-state'
+  );
+}, 'reverse() overrides animation-play-state when it starts playing the'
+   + ' animation');
 
 promise_test(async t => {
   const div = addDiv(t);
-  const cs = getComputedStyle(div);
-  div.style.animation = 'anim 1000s';
+  div.style.animation = 'anim 100s';
+
   const animation = div.getAnimations()[0];
-  assert_equals(getMarginLeft(cs), 0,
-                'Initial value of margin-left is zero');
+  animation.reverse();
 
-  // Set the specified style first. If implementations fail to
-  // apply the style changes first, they will ignore the redundant
-  // call to play() and fail to correctly override the pause style.
+  assert_equals(
+    animation.playState,
+    'running',
+    'Play state is running after calling reverse()'
+  );
+
   div.style.animationPlayState = 'paused';
-  animation.play();
-  const previousAnimVal = getMarginLeft(cs);
+  getComputedStyle(div).animationPlayState;
 
-  await animation.ready;
-  await waitForNextFrame();
-
-  assert_equals(cs.animationPlayState, 'paused',
-                'animation-play-state is paused');
-  assert_greater_than(getMarginLeft(cs), previousAnimVal,
-                      'Playing value of margin-left is increasing');
-}, 'play() flushes pending changes to animation-play-state first');
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Should be paused after changing the animation-play-state'
+  );
+}, 'reverse() does NOT override animation-play-state if the animation is'
+   + ' already running');
 
 promise_test(async t => {
   const div = addDiv(t);
-  const cs = getComputedStyle(div);
-  div.style.animation = 'anim 1000s paused';
+  div.style.animation = 'anim 100s';
+
   const animation = div.getAnimations()[0];
-  assert_equals(getMarginLeft(cs), 0,
-                'Initial value of margin-left is zero');
+  animation.startTime = null;
 
-  // Unlike the previous test for play(), since calling pause() is sticky,
-  // we'll apply it even if the underlying style also says we're paused.
-  //
-  // We would like to test that implementations flush styles before running
-  // pause() but actually there's no style we can currently set that will
-  // change the behavior of pause(). That may change in the future
-  // (e.g. if we introduce animation-timeline or animation-playback-rate etc.).
-  //
-  // For now this just serves as a sanity check that we do the same thing
-  // even if we set style before calling the API.
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Play state is paused after setting the start time to null'
+  );
+
+  // Flip the animation-play-state back and forth to check it has no effect
+
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationPlayState;
   div.style.animationPlayState = 'running';
-  animation.pause();
-  const previousAnimVal = getMarginLeft(cs);
+  getComputedStyle(div).animationPlayState;
 
-  await animation.ready;
-  await waitForNextFrame();
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Should still be paused even after flipping the animation-play-state'
+  );
+}, 'Setting the startTime to null overrides animation-play-state if the'
+   + ' animation is already running');
 
-  assert_equals(cs.animationPlayState, 'running',
-                'animation-play-state is running');
-  assert_equals(getMarginLeft(cs), previousAnimVal,
-                'Paused value of margin-left does not change');
-}, 'pause() applies pending changes to animation-play-state first');
-// (Note that we can't actually test for this; see comment above, in test-body.)
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s paused';
+
+  const animation = div.getAnimations()[0];
+  animation.startTime = document.timeline.currentTime;
+
+  assert_equals(
+    animation.playState,
+    'running',
+    'Play state is running after setting the start time to non-null'
+  );
+
+  // Flip the animation-play-state back and forth to check it has no effect
+
+  div.style.animationPlayState = 'running';
+  getComputedStyle(div).animationPlayState;
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationPlayState;
+
+  assert_equals(
+    animation.playState,
+    'running',
+    'Should still be running even after flipping the animation-play-state'
+  );
+}, 'Setting the startTime to non-null overrides animation-play-state if the'
+   + ' animation is paused');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+
+  const animation = div.getAnimations()[0];
+  animation.startTime = document.timeline.currentTime;
+
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationPlayState;
+
+  assert_equals(
+    animation.playState,
+    'paused',
+    'Should be paused after changing the animation-play-state'
+  );
+}, 'Setting the startTime to non-null does NOT override the'
+   + ' animation-play-state if the animation is already running');
 
 promise_test(async t => {
   const div = addDiv(t, { style: 'animation: anim 1000s' });
