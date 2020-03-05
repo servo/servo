@@ -36,6 +36,55 @@ function assert_time_equals_literal(actual, expected, description) {
   assert_approx_equals(actual, expected, TIME_PRECISION, description);
 }
 
+/*
+ * Compare two keyframes
+ */
+function assert_frames_equal(actual, expected, name) {
+  // TODO: Make this skip the 'composite' member when it is not specified in
+  // `expected` or when the implementation does not support it.
+  assert_array_equals(
+    Object.keys(actual).sort(),
+    Object.keys(expected).sort(),
+    `properties on ${name} should match`
+  );
+
+  for (const prop in actual) {
+    if (
+      // 'offset' can be null
+      (prop === 'offset' && typeof actual[prop] === 'number') ||
+      prop === 'computedOffset'
+    ) {
+      assert_approx_equals(
+        actual[prop],
+        expected[prop],
+        0.00001,
+        "value for '" + prop + "' on " + name
+      );
+    } else {
+      assert_equals(
+        actual[prop],
+        expected[prop],
+        `value for '${prop}' on ${name} should match`
+      );
+    }
+  }
+}
+
+/*
+ * Compare two lists of keyframes
+ */
+function assert_frame_lists_equal(actual, expected) {
+  assert_equals(
+    actual.length,
+    expected.length,
+    'Number of keyframes should match'
+  );
+
+  for (let i = 0; i < actual.length; i++) {
+    assert_frames_equal(actual[i], expected[i], `Keyframe #${i}`);
+  }
+}
+
 /**
  * Appends a div to the document body.
  *

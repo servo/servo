@@ -128,4 +128,82 @@ promise_test(async t => {
 }, 'After replacing a finished animation\'s effect with a longer one ' +
    'it fires an animationstart event');
 
+test(t => {
+  const div = addDiv(t);
+
+  // Create custom keyframes so we can tweak them
+  const stylesheet = document.styleSheets[0];
+  const keyframes = '@keyframes anim-custom { to { left: 100px } }';
+  const ruleIndex = stylesheet.insertRule(keyframes, 0);
+  const keyframesRule = stylesheet.cssRules[ruleIndex];
+
+  t.add_cleanup(function() {
+    stylesheet.deleteRule(ruleIndex);
+  });
+
+  div.style.animation = 'anim-custom 100s';
+
+  // Replace the effect
+  const animation = div.getAnimations()[0];
+  animation.effect = new KeyframeEffect(
+    div,
+    { left: '200px' },
+    200 * MS_PER_SEC
+  );
+
+  // Update the timing properties
+  div.style.animationDuration = '4s';
+  div.style.animationIterationCount = '6';
+  div.style.animationDirection = 'reverse';
+  div.style.animationDelay = '8s';
+  div.style.animationFillMode = 'both';
+  div.style.animationPlayState = 'paused';
+  getComputedStyle(div).animationDuration;
+
+  // Update the keyframes
+  keyframesRule.deleteRule(0);
+  keyframesRule.appendRule('to { left: 300px }');
+
+  // Check nothing (except the play state) changed
+  assert_equals(
+    animation.effect.getTiming().duration,
+    200 * MS_PER_SEC,
+    'duration should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().iterations,
+    1,
+    'iterations should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().direction,
+    'normal',
+    'direction should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().delay,
+    0,
+    'delay should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().fill,
+    'auto',
+    'fill should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getKeyframes()[0].left,
+    '200px',
+    'keyframes should be the value set by the API'
+  );
+
+  // Unlike the other properties animation-play-state maps to the Animation
+  // not the KeyframeEffect so it should be overridden.
+  assert_equals(
+    animation.playState,
+    'paused',
+    'play state should be the value set by style'
+  );
+}, 'Replacing the effect of a CSSAnimation causes subsequent changes to'
+   + ' corresponding animation-* properties to be ignored');
+
 </script>

@@ -100,3 +100,27 @@ directory_test(async (t, root_dir) => {
     assert_equals(result.length, value.length);
     await assert_equals_cloned_handles(result, value);
 }, 'Store handle in IndexedDB and read using a cursor.');
+
+directory_test(async (t, root_dir) => {
+    const handles = await create_file_system_handles(t, root_dir);
+
+    const db = await createDatabase(t, db => {
+      const store = db.createObjectStore('store', {keyPath: 'key'});
+    });
+    t.add_cleanup(() => deleteAllDatabases(t));
+
+    const value = handles;
+    let tx = db.transaction('store', 'readwrite');
+    let store = tx.objectStore('store');
+    await promiseForRequest(t, store.put({key: 'key', value}));
+    await promiseForTransaction(t, tx);
+
+    tx = db.transaction('store', 'readonly');
+    store = tx.objectStore('store');
+    const result = await promiseForRequest(t, store.get('key'));
+    await promiseForTransaction(t, tx);
+
+    assert_true(Array.isArray(result.value), 'Result should be an array');
+    assert_equals(result.value.length, value.length);
+    await assert_equals_cloned_handles(result.value, value);
+}, 'Store handle in IndexedDB using inline keys.');

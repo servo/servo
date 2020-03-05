@@ -106,11 +106,14 @@ def get_parser():
                         type=int,
                         help="maximum number of revisions to be returned by "
                              "the command")
+    parser.add_argument("--verbose", action="store_true", help="debug logging")
     return parser
 
 
 def run_rev_list(**kwargs):
     # type: (**Any) -> None
+    if kwargs.get('verbose'):
+        logger.setLevel(logging.DEBUG)
     # "epoch_threshold" is a safety margin. After this time it is fine to
     # assume that any tags are created and pushed.
     epoch_threshold = 600
