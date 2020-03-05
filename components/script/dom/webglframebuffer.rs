@@ -468,7 +468,7 @@ impl WebGLFramebuffer {
             return CompleteForRendering::Complete;
         }
 
-        if self.colors.iter().any(|att| att.borrow().is_none()) {
+        if self.colors.iter().all(|att| att.borrow().is_none()) {
             return CompleteForRendering::MissingColorAttachment;
         }
 
