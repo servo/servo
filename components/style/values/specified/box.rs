@@ -1601,7 +1601,7 @@ pub enum Appearance {
     Meterchunk,
     /// The "arrowed" part of the dropdown button that open up a dropdown list.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMenulistButton,
+    MozMenulistArrowButton,
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.
