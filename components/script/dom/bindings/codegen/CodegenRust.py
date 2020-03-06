@@ -2728,7 +2728,7 @@ assert!(!obj.is_null());
 SetProxyReservedSlot(
     obj.get(),
     0,
-    &PrivateValue(&*raw as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
 );
 """
         else:
@@ -2742,7 +2742,7 @@ assert!(!obj.is_null());
 JS_SetReservedSlot(
     obj.get(),
     DOM_OBJECT_SLOT,
-    &PrivateValue(&*raw as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
 );
 """
         create = create % {"concreteType": self.descriptor.concreteType}
@@ -2765,11 +2765,11 @@ GetProtoObject(cx, scope, proto.handle_mut());
 assert!(!proto.is_null());
 
 %(createObject)s
-raw.init_reflector(obj.get());
+let root = raw.reflect_with(obj.get());
 
 %(copyUnforgeable)s
 
-DomRoot::from_ref(&*raw)\
+DomRoot::from_ref(&*root)\
 """ % {'copyUnforgeable': unforgeable, 'createObject': create})
 
 
@@ -2809,12 +2809,12 @@ rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
     cx,
     &Class.base,
-    &*raw as *const %(concreteType)s as *const libc::c_void,
+    raw.as_ptr() as *const %(concreteType)s as *const libc::c_void,
     _trace,
     obj.handle_mut());
 assert!(!obj.is_null());
 
-raw.init_reflector(obj.get());
+let root = raw.reflect_with(obj.get());
 
 let _ac = JSAutoRealm::new(*cx, obj.get());
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
@@ -2828,7 +2828,7 @@ assert!(immutable);
 
 %(unforgeable)s
 
-DomRoot::from_ref(&*raw)\
+DomRoot::from_ref(&*root)\
 """ % values)
 
 
