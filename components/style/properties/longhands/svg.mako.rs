@@ -10,6 +10,7 @@ ${helpers.single_keyword(
     "vector-effect",
     "none non-scaling-stroke",
     engines="gecko",
+    gecko_enum_prefix="StyleVectorEffect",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty",
 )}
