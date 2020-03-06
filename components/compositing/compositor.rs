@@ -483,9 +483,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.pipeline_details(pipeline_id).visible = visible;
-                if visible {
-                    self.process_animations();
-                }
+                self.process_animations();
             },
 
             (Msg::PipelineExited(pipeline_id, sender), _) => {

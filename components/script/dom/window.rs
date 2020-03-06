@@ -332,6 +332,8 @@ pub struct Window {
     /// A mechanism to force the compositor to process events.
     #[ignore_malloc_size_of = "traits are cumbersome"]
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    visible: Cell<bool>,
 }
 
 impl Window {
@@ -2185,11 +2187,16 @@ impl Window {
 
     /// Slow down/speed up timers based on visibility.
     pub fn alter_resource_utilization(&self, visible: bool) {
+        self.visible.set(visible);
         if visible {
             self.upcast::<GlobalScope>().speed_up_timers();
         } else {
             self.upcast::<GlobalScope>().slow_down_timers();
         }
+    }
+
+    pub fn visible(&self) -> bool {
+        self.visible.get()
     }
 
     pub fn unminified_js_dir(&self) -> Option<String> {
@@ -2339,6 +2346,7 @@ impl Window {
             replace_surrogates,
             player_context,
             event_loop_waker,
+            visible: Cell::new(true),
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
