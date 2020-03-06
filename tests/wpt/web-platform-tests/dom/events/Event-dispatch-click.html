@@ -191,6 +191,24 @@ async_test(function(t) {
   input.click()
 }, "disconnected radio should be checked")
 
+async_test(t => {
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.onclick = t.step_func_done(() => {
+    assert_true(input.checked);
+  });
+  input.dispatchEvent(new MouseEvent('click'));
+}, `disconnected checkbox should be checked from dispatchEvent(new MouseEvent('click'))`);
+
+async_test(t => {
+  const input = document.createElement('input');
+  input.type = 'radio';
+  input.onclick = t.step_func_done(() => {
+    assert_true(input.checked);
+  });
+  input.dispatchEvent(new MouseEvent('click'));
+}, `disconnected radio should be checked from dispatchEvent(new MouseEvent('click'))`);
+
 async_test(function(t) {
   var form = document.createElement("form")
   var didSubmit = false

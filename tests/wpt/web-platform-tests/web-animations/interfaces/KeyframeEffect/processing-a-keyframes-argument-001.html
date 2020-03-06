@@ -344,6 +344,42 @@ test(() => {
    + ' should throw');
 
 test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px', easing: '' } },
+      { done: false, value: 1234 },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a non-object keyframe'
+   + ' and an invalid easing should throw');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: { left: '150px', offset: 'o' } },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a keyframe with a non finite'
+   + ' floating-point offset value should throw');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px', easing: '' } },
+      { done: false, value: { left: '150px', offset: 'o' } },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a keyframe with a non finite'
+   + ' floating-point offset value and an invalid easing should throw');
+
+test(() => {
   const effect = new KeyframeEffect(null, createIterable([
     { done: false, value: { left: '100px' } },
     { done: false },  // No value member; keyframe is undefined.

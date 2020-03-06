@@ -1,6 +1,4 @@
 {
-  "selection_pattern": "%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s",
-  "test_file_path_pattern": "gen/%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s.html",
   "test_description_template": "Referrer Policy: Expects %(expectation)s for %(subresource)s to %(origin)s origin and %(redirection)s redirection from %(source_scheme)s context.",
   "test_page_title_template": "Referrer-Policy: %(title)s",
   "specification": [
@@ -530,26 +528,6 @@
   "delivery_key": "referrerPolicy",
   "excluded_tests": [
     {
-      "name": "cross-origin-workers",
-      "expansion": "*",
-      "source_scheme": "*",
-      "source_context_list": "*",
-      "redirection": "*",
-      "delivery_type": "*",
-      "delivery_value": "*",
-      "origin": [
-        "cross-http",
-        "cross-https"
-      ],
-      "subresource": [
-        "worker-classic",
-        "worker-module",
-        "sharedworker-classic",
-        "sharedworker-module"
-      ],
-      "expectation": "*"
-    },
-    {
       "name": "upgraded-protocol-workers",
       "expansion": "*",
       "source_scheme": "http",
@@ -579,38 +557,15 @@
       "redirection": "*",
       "origin": [
         "same-http",
-        "cross-http"
+        "same-http-downgrade",
+        "cross-http",
+        "cross-http-downgrade",
+        "same-ws",
+        "same-ws-downgrade",
+        "cross-ws",
+        "cross-ws-downgrade"
       ],
       "subresource": "*",
-      "expectation": "*"
-    },
-    {
-      "name": "area-tag",
-      "expansion": "*",
-      "source_scheme": "*",
-      "source_context_list": "*",
-      "delivery_type": "*",
-      "delivery_value": "*",
-      "redirection": "*",
-      "origin": "*",
-      "subresource": "area-tag",
-      "expectation": "*"
-    },
-    {
-      "name": "worker-requests-with-swap-origin-redirect",
-      "expansion": "*",
-      "source_scheme": "*",
-      "source_context_list": "*",
-      "delivery_type": "*",
-      "delivery_value": "*",
-      "redirection": "swap-origin",
-      "origin": "*",
-      "subresource": [
-        "worker-classic",
-        "worker-module",
-        "sharedworker-classic",
-        "sharedworker-module"
-      ],
       "expectation": "*"
     },
     {
@@ -663,7 +618,90 @@
       "origin": "*",
       "subresource": "*",
       "expectation": "*"
-    }
+    },
+    {
+      "name": "redirections that referrer-policy tests don't care",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-scheme",
+        "swap-scheme",
+        "downgrade"
+      ],
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "origins that referrer-policy tests don't care",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http-downgrade",
+        "cross-http-downgrade",
+        "same-ws-downgrade",
+        "cross-ws-downgrade"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "subresource values not yet tested",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": [
+        "area-tag",
+        "audio-tag",
+        "beacon",
+        "link-css-tag",
+        "link-prefetch-tag",
+        "object-tag",
+        "picture-tag",
+        "sharedworker-import-data",
+        "video-tag",
+        "websocket",
+        "worker-import-data",
+        "worklet-animation",
+        "worklet-animation-import-data",
+        "worklet-audio",
+        "worklet-audio-import-data",
+        "worklet-layout",
+        "worklet-layout-import-data",
+        "worklet-paint",
+        "worklet-paint-import-data"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "source_context_list values not yet tested",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "iframe-blank-inherit",
+        "sharedworker-classic-data",
+        "sharedworker-module-data",
+        "worker-classic-data",
+        "worker-module-data"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
   ],
   "source_context_schema": {
     "supported_delivery_type": {
@@ -688,46 +726,22 @@
         "http-rp"
       ],
       "worker-classic-data": [],
-      "worker-module-data": []
-    },
-    "supported_subresource": {
-      "top": "*",
-      "iframe": "*",
-      "iframe-blank": "*",
-      "srcdoc": "*",
-      "worker-classic": [
-        "xhr",
-        "fetch",
-        "worker-classic",
-        "worker-module"
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        "http-rp"
       ],
-      "worker-module": [
-        "xhr",
-        "fetch",
-        "worker-classic",
-        "worker-module"
+      "sharedworker-module": [
+        "http-rp"
       ],
-      "worker-classic-data": [
-        "xhr",
-        "fetch"
-      ],
-      "worker-module-data": [
-        "xhr",
-        "fetch"
-      ]
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
     }
   },
   "subresource_schema": {
     "supported_delivery_type": {
-      "iframe-tag": [
-        "attr"
-      ],
-      "img-tag": [
-        "attr"
-      ],
-      "script-tag": [
-        "attr"
-      ],
+      // List of elements that support "attr" delivery type can be followed
+      // from the cross reference of:
+      // https://html.spec.whatwg.org/C/#referrer-policy-attribute
       "a-tag": [
         "attr",
         "rel-noref"
@@ -735,166 +749,54 @@
       "area-tag": [
         "attr"
       ],
-      "xhr": [],
+      "audio-tag": [],
+      "beacon": [],
+      // Fetch API supports `init["referrerPolicy"]` in `Request`:
+      // https://fetch.spec.whatwg.org/#dom-request.
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Add support for this. Currently `common.sub.js` doesn't support this.
       "fetch": [],
-      "sharedworker-module": [],
-      "worker-module": [],
+      "iframe-tag": [
+        "attr"
+      ],
+      "img-tag": [
+        "attr"
+      ],
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Support "attr" in the following `<link>`-related subresources.
+      // The current referrrer-policy test helper doesn't support
+      // checking referrer results via <link> elements.
+      "link-css-tag": [],
+      "link-prefetch-tag": [],
+      "object-tag": [],
+      // `<img>` supports referrerpolicy attribute,
+      // so `<img>` inside `<picture>` also supports the attribute.
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Support this.
+      "picture-tag": [],
+      "script-tag": [
+        "attr"
+      ],
       "sharedworker-classic": [],
-      "worker-classic": []
-    }
-  },
-  "source_context_list_schema": {
-    "top": {
-      "description": "Policy set by the top-level Document",
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "req": {
-      "description": "Subresource request's policy should override Document's policy",
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": [
-        "nonNullPolicy"
-      ]
-    },
-    "srcdoc-inherit": {
-      "description": "srcdoc iframe should inherit parent Document's policy",
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "policy"
-          ]
-        },
-        {
-          "sourceContextType": "srcdoc"
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "srcdoc": {
-      "description": "srcdoc iframe's policy should override parent Document's policy",
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "srcdoc",
-          "policyDeliveries": [
-            "nonNullPolicy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "iframe": {
-      "description": "external iframe's policy should override parent Document's policy",
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "iframe",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "worker-classic": {
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "worker-classic",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "worker-classic-data": {
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "worker-classic-data",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "worker-module": {
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "worker-module",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
-    },
-    "worker-module-data": {
-      "sourceContextList": [
-        {
-          "sourceContextType": "top",
-          "policyDeliveries": [
-            "anotherPolicy"
-          ]
-        },
-        {
-          "sourceContextType": "worker-module-data",
-          "policyDeliveries": [
-            "policy"
-          ]
-        }
-      ],
-      "subresourcePolicyDeliveries": []
+      "sharedworker-import-data": [],
+      "sharedworker-module": [],
+      "video-tag": [],
+      "websocket": [],
+      "worker-classic": [],
+      "worker-import-data": [],
+      "worker-module": [],
+      "worklet-animation": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint": [],
+      "worklet-paint-import-data": [],
+      "xhr": []
     }
   },
   "test_expansion_schema": {
-    "expansion": [
-      "default",
-      "override"
-    ],
     "delivery_type": [
       "attr",
       "rel-noref",
@@ -911,45 +813,6 @@
       "strict-origin",
       "strict-origin-when-cross-origin",
       "unsafe-url"
-    ],
-    "origin": [
-      "same-http",
-      "same-https",
-      "cross-http",
-      "cross-https"
-    ],
-    "source_context_list": [
-      "top",
-      "req",
-      "srcdoc-inherit",
-      "srcdoc",
-      "iframe",
-      "worker-classic",
-      "worker-classic-data",
-      "worker-module",
-      "worker-module-data"
-    ],
-    "source_scheme": [
-      "http",
-      "https"
-    ],
-    "redirection": [
-      "no-redirect",
-      "keep-origin",
-      "swap-origin"
-    ],
-    "subresource": [
-      "iframe-tag",
-      "img-tag",
-      "script-tag",
-      "a-tag",
-      "area-tag",
-      "xhr",
-      "worker-classic",
-      "worker-module",
-      "sharedworker-classic",
-      "sharedworker-module",
-      "fetch"
     ],
     "expectation": [
       "omitted",

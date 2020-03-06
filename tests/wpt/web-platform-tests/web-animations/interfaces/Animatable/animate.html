@@ -247,7 +247,6 @@ promise_test(async t => {
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
-  getComputedStyle(div,"::before").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::before'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation');
 }, 'animate() with pseudoElement parameter creates an Animation object');
@@ -262,7 +261,6 @@ test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
   div.style.display = 'list-item';
-  getComputedStyle(div,"::marker").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::marker'});
   assert_class_string(anim, 'Animation', 'The returned object is an Animation for ::marker');
 }, 'animate() with pseudoElement parameter creates an Animation object for ::marker');
@@ -278,7 +276,6 @@ test(t => {
 test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
-  getComputedStyle(div,"::before").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::before'});
   assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
   assert_equals(anim.effect.pseudoElement, '::before',
@@ -299,7 +296,6 @@ test(t => {
   const div = createDiv(t);
   div.classList.add('pseudo');
   div.style.display = 'list-item';
-  getComputedStyle(div,"::marker").content; // Sync style
   const anim = div.animate(null, {pseudoElement: '::marker'});
   assert_equals(anim.effect.target, div, 'The returned element has the correct target element');
   assert_equals(anim.effect.pseudoElement, '::marker',

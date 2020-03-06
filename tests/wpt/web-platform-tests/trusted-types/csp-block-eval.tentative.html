@@ -6,7 +6,7 @@
   <script nonce="abc" src="support/helper.sub.js"></script>
 
   <!-- Note: Trusted Types enforcement, and a CSP that does not blanket-allow eval. -->
-  <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; require-trusted-types-for 'script'">
 </head>
 <body>
 <script nonce="abc">

@@ -23,7 +23,6 @@ interface TrustedScriptURL {
 interface TrustedTypePolicyFactory {
     [Unforgeable] TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
     // All the policy object names that have been created
-    [Unforgeable] sequence<DOMString> getPolicyNames();
 };
 
 [Exposed=(Window, Worker)]

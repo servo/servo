@@ -1,6 +1,6 @@
 html5lib==1.0.1
 mozinfo==1.1.0
-mozlog==5.0
+mozlog==6.0
 mozdebug==0.2
 # Pillow 7 requires Python 3
 pillow==6.2.2  # pyup: <7.0

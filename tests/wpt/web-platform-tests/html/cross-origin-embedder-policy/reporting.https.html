@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+const HOST = get_host_info();
+function getIframeUrl(filename, token1, token2) {
+  let query = `template=${filename}`;
+  if (token1) {
+    query += `&coep=${token1}`
+  }
+  if (token2) {
+    query += `&coep-report-only=${token2}`
+  }
+  return `resources/reporting-iframe.py?${query}`;
+}
+
+function checkReports(reports, contextUrl) {
+  assert_not_equals(reports, null);
+  assert_equals(reports.length, 2);
+  assert_equals(reports[0].type, 'coep');
+  assert_equals(reports[0].url, contextUrl);
+  assert_equals(reports[0].body.type, 'corp');
+  assert_equals(reports[1].type, 'coep');
+  assert_equals(reports[1].url, contextUrl);
+  assert_equals(reports[1].body.type, 'corp');
+
+  // The order of the reports is non-deterministic.
+  const actualBlockedUrls = reports.map((r) => r.body['blocked-url']).sort();
+  const expectedBlockedUrls = [
+    `${HOST.REMOTE_ORIGIN}/common/text-plain.txt`,
+    `${HOST.ORIGIN}/common/redirect.py?location=${HOST.REMOTE_ORIGIN}/common/text-plain.txt`,
+  ];
+  assert_array_equals(actualBlockedUrls.sort(), expectedBlockedUrls.sort());
+}
+
+async_test(async (t) => {
+  try {
+    const iframe = document.createElement('iframe');
+    t.add_cleanup(() => iframe.remove());
+    const token1 = token();
+    const token2 = token();
+
+    iframe.src = `resources/subresource-corp.html?token1=${token1}&token2=${token2}`;
+    document.body.appendChild(iframe);
+
+    await new Promise(resolve => t.step_timeout(resolve, 3000));
+
+    const res1 = await fetch(`resources/stash-take.py?key=${token1}`);
+    const res2 = await fetch(`resources/stash-take.py?key=${token2}`);
+
+    const reports = JSON.parse(await res1.text());
+    const reportsForReportOnly = JSON.parse(await res2.text());
+
+    checkReports(reports, iframe.src);
+    checkReports(reportsForReportOnly, iframe.src);
+
+    t.done();
+  } catch (e) {
+    t.step(() => { throw e });
+  };
+}, 'report-to parameter for COEP and COEP-report-only');
+
+</script>

@@ -5,12 +5,15 @@
 
 promise_test(async testCase => {
   const frame = document.createElement("iframe");
-  const path = new URL("resources/iframe.sub.html", window.location).pathname;
-  frame.src = `${SAME_ORIGIN}${path}`;
+  const child = getUrl(SAME_ORIGIN, "resources/child.sub.html");
+  const grandchild = getUrl(SAME_ORIGIN, "resources/grandchild.sub.html");
+  frame.src = child;
   document.body.append(frame);
   try {
     let result = await performance.measureMemory();
-    checkMeasureMemory(result);
+    checkMeasureMemory(result, {
+      allowed: [window.location.href, child, grandchild],
+    });
   } catch (error) {
     if (!(error instanceof DOMException)) {
       throw error;

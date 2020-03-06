@@ -20,14 +20,6 @@
     });
   }, "duplicate policy name attempt throws");
 
-  // Retrieve policy names tests
-  test(t => {
-    let policy = trustedTypes.createPolicy('SomeOtherName', {} );
-    let names = trustedTypes.getPolicyNames();
-    assert_true(names.includes('SomeName'));
-    assert_true(names.includes('SomeOtherName'));
-  }, "Retrieving policy names");
-
   // Check error messages.
   test(t => {
     try {

@@ -6,7 +6,7 @@
 promise_test(async testCase => {
   try {
     let result = await performance.measureMemory();
-    checkMeasureMemory(result);
+    checkMeasureMemory(result, {allowed: [window.location.href]});
   } catch (error) {
     if (!(error instanceof DOMException)) {
       throw error;

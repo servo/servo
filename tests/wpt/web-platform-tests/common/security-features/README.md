@@ -32,6 +32,7 @@ This is the overview of the project structure:
 ```
 common/security-features/
 └── tools/ - the common test generator logic
+    ├── spec.src.json
     └── template/ - the test files templates
 project-directory/ (e.g. referrer-policy/)
 ├── spec.src.json
@@ -57,7 +58,14 @@ path/to/common/security-features/tools/generate.py --spec path/to/project-direct
 git add path/to/project-directory/gen/ && git commit -m "Add generated tests"
 ```
 
-This will parse the spec JSON5 (`project-directory/spec.src.json`) and determine which tests to generate (or skip) while using templates.
+This will parse the spec JSON5 files and determine which tests to generate (or skip) while using templates.
+
+- The default spec JSON5: `common/security-features/tools/spec.src.json`.
+    - Describes common configurations, such as subresource types, source context types, etc.
+- The per-project spec JSON5: `project-directory/spec.src.json`.
+    - Describes project-specific configurations, particularly those related to test generation patterns (`specification`), policy deliveries (e.g. `delivery_type`, `delivery_value`) and `expectation`.
+
+For how these two spec JSON5 files are merged, see [Sub projects](#sub-projects) section.
 
 Note: `spec.src.json` is transitioning to JSON5 [#21710](https://github.com/web-platform-tests/wpt/issues/21710).
 
