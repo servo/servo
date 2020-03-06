@@ -80,41 +80,43 @@
 </style>
 <script type="text/javascript">
 
-    test(function(){
-        let expectedForSelector = {
-            "" : "margin-top: 5cm; margin-bottom: 10cm;",
-            ":left" : "margin-right: 3cm;",
-            ":right" : "margin-left: 3cm;",
-            ":first" : "border-width: 1px;",
-            "hello" : "color: green;",
-            "world:right" : "background-color: green;",
-            "auto_page" : "size: auto;",
-            "square_page" : "size: 4in;",
-            "letter_page" : "size: letter;",
-            "page_width_height" : "size: 10cm 15cm;",
-            "page_size_orientation" : "size: ledger landscape;",
-            "page_orientation_size" : "size: a4 portrait;",
-            "page_jis_size_orientation" : "size: jis-b5 portrait;",
-            "page_orientation_jis_size" : "size: jis-b4 landscape;",
-            "err_empty_size" : "",
-            "err_unknow_page_size" : "",
-            "err_length_and_page_size" : "",
-            "err_length_and_orientation" : "",
-            "err_orientations" : "",
-            "err_too_many_params" : ""
-        };
-        let styleSheets = document.styleSheets;
-        for (let i = 0; i < styleSheets.length; i++) {
-            let rules = styleSheets[i].cssRules;
-            for (let rule of rules) {
-                if (rule.type == CSSRule.PAGE_RULE) {
-                    let expected = expectedForSelector[rule.selectorText];
+    let expectedForSelector = {
+        "" : "margin-top: 5cm; margin-bottom: 10cm;",
+        ":left" : "margin-right: 3cm;",
+        ":right" : "margin-left: 3cm;",
+        ":first" : "border-width: 1px;",
+        "hello" : "color: green;",
+        "world:right" : "background-color: green;",
+        "auto_page" : "size: auto;",
+        "square_page" : "size: 4in;",
+        "letter_page" : "size: letter;",
+        "page_width_height" : "size: 10cm 15cm;",
+        "page_size_orientation" : "size: ledger landscape;",
+        "page_orientation_size" : "size: a4 portrait;",
+        "page_jis_size_orientation" : "size: jis-b5 portrait;",
+        "page_orientation_jis_size" : "size: jis-b4 landscape;",
+        "err_empty_size" : "",
+        "err_unknow_page_size" : "",
+        "err_length_and_page_size" : "",
+        "err_length_and_orientation" : "",
+        "err_orientations" : "",
+        "err_too_many_params" : ""
+    };
+    let styleSheets = document.styleSheets;
+    for (let i = 0; i < styleSheets.length; i++) {
+        let rules = styleSheets[i].cssRules;
+        for (let rule of rules) {
+            if (rule.type == CSSRule.PAGE_RULE) {
+                let expected = expectedForSelector[rule.selectorText];
+                test(function(){
                     assert_equals(rule.style.cssText, expected, "unexpected @page contents");
-                    delete expectedForSelector[rule.selectorText];
-                }
+                }, "unexpected contents for selector ['" + rule.selectorText + "']");
+                delete expectedForSelector[rule.selectorText];
             }
         }
+    }
+    test(function() {
         assert_equals(Object.keys(expectedForSelector).length, 0, "missing @page selectors");
-    }, "test CSS @page declarations");
+    });
 
 </script>

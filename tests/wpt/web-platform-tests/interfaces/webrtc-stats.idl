@@ -203,7 +203,7 @@ dictionary RTCVideoSourceStats : RTCMediaSourceStats {
              unsigned long   height;
              unsigned long   bitDepth;
              unsigned long   frames;
-             unsigned long   framesPerSecond;
+             double          framesPerSecond;
 };
 
 dictionary RTCRtpContributingSourceStats : RTCStats {
@@ -220,7 +220,7 @@ dictionary RTCPeerConnectionStats : RTCStats {
             unsigned long dataChannelsAccepted;
 };
 
-dictionary RTCRtpTransceiverStats {
+dictionary RTCRtpTransceiverStats : RTCStats {
     DOMString senderId;
     DOMString receiverId;
     DOMString mid;
@@ -257,7 +257,7 @@ dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
 dictionary RTCDataChannelStats : RTCStats {
              DOMString           label;
              DOMString           protocol;
-             long                dataChannelIdentifier;
+             unsigned short      dataChannelIdentifier;
              DOMString           transportId;
              RTCDataChannelState state;
              unsigned long       messagesSent;
@@ -353,96 +353,4 @@ dictionary RTCIceServerStats : RTCStats {
            unsigned long totalRequestsSent;
            unsigned long totalResponsesReceived;
            double totalRoundTripTime;
-};
-
-dictionary RTCMediaStreamStats : RTCStats {
-  DOMString streamIdentifier;
-  sequence<DOMString> trackIds;
-};
-
-dictionary RTCSenderVideoTrackAttachmentStats : RTCVideoSenderStats {
-};
-
-dictionary RTCSenderAudioTrackAttachmentStats : RTCAudioSenderStats {
-};
-
-dictionary RTCReceiverVideoTrackAttachmentStats : RTCVideoReceiverStats {};
-
-dictionary RTCReceiverAudioTrackAttachmentStats : RTCAudioReceiverStats {};
-
-partial dictionary RTCCodecStats {
-    DOMString implementation;
-};
-
-partial dictionary RTCIceCandidateStats {
-    boolean deleted = false;
-    boolean isRemote;
-};
-
-partial dictionary RTCIceCandidatePairStats {
-    double totalRtt;
-    double currentRtt;
-    unsigned long long priority;
-};
-
-partial dictionary RTCRtpStreamStats {
-    DOMString mediaType;
-    double averageRTCPInterval;
-};
-
-partial dictionary RTCInboundRtpStreamStats {
-    double fractionLost;
-};
-
-partial dictionary RTCAudioHandlerStats {
-    double audioLevel;
-    double totalAudioEnergy;
-    double totalSamplesDuration;
-    boolean voiceActivityFlag;
-};
-
-partial dictionary RTCAudioSenderStats {
-    unsigned long long totalSamplesSent;
-    double echoReturnLoss;
-    double echoReturnLossEnhancement;
-};
-
-partial dictionary RTCAudioReceiverStats {
-    DOMHighResTimeStamp estimatedPlayoutTimestamp;
-    double jitterBufferDelay;
-    unsigned long long jitterBufferEmittedCount;
-    unsigned long long totalSamplesReceived;
-    unsigned long long concealedSamples;
-    unsigned long long silentConcealedSamples;
-    unsigned long long concealmentEvents;
-    unsigned long long insertedSamplesForDeceleration;
-    unsigned long long removedSamplesForAcceleration;
-    double audioLevel;
-    double totalAudioEnergy;
-    double totalSamplesDuration;
-};
-
-partial dictionary RTCVideoHandlerStats {
-    unsigned long frameWidth;
-    unsigned long frameHeight;
-    double framesPerSecond;
-};
-
-partial dictionary RTCVideoSenderStats {
-    unsigned long keyFramesSent;
-    unsigned long framesCaptured;
-    unsigned long framesSent;
-    unsigned long hugeFramesSent;
-};
-
-partial dictionary RTCVideoReceiverStats {
-    unsigned long keyFramesReceived;
-    DOMHighResTimeStamp estimatedPlayoutTimestamp;
-    double jitterBufferDelay;
-    unsigned long long jitterBufferEmittedCount;
-    unsigned long framesReceived;
-    unsigned long framesDecoded;
-    unsigned long framesDropped;
-    unsigned long partialFramesLost;
-    unsigned long fullFramesLost;
 };

@@ -23,14 +23,12 @@
 </style>
 <script type="text/javascript">
 
-    test(function(){
-        test_valid_value("page", "auto");
-        test_valid_value("page", "small_page");
-        test_valid_value("page", "large_page");
-        test_invalid_value("page", "auto small_page");
-        test_invalid_value("page", "large_page auto");
-        test_invalid_value("page", "small_page large_page");
-        test_invalid_value("page", "1cm");
-    }, "test page properties in HTML elements");
+    test_valid_value("page", "auto");
+    test_valid_value("page", "small_page");
+    test_valid_value("page", "large_page");
+    test_invalid_value("page", "auto small_page");
+    test_invalid_value("page", "large_page auto");
+    test_invalid_value("page", "small_page large_page");
+    test_invalid_value("page", "1cm");
 
 </script>

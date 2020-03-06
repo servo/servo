@@ -9,9 +9,9 @@
   // (rather than as "<meta http-equiv" tags). This test assumes the following
   // headers are set in the .headers file:
   //
-  //   Content-Security-Policy: trusted-types *
   //   Content-Security-Policy: script-src 'unsafe-inline' 'unsafe-eval'; report-uri ...
   //   Content-Security-Policy: plugin-types bla/blubb
+  //   Content-Security-Policy: require-trusted-types-for 'script'
   //
   // The last rule is there so we can provoke a CSP violation report at will.
   // The intent is that in order to test that a violation has *not* been thrown

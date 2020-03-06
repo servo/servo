@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+const HOST = get_host_info();
+const current = new URL(window.location.href);
+const token = current.searchParams.get("token");
+
+const cache = 'no-store';
+const mode = 'no-cors';
+
+async function run() {
+  const init = { mode, cache };
+  // This is not blocked.
+  await fetch('/common/text-plain.txt', init);
+  // This is blocked but not due to COEP.
+  try {
+    await fetch('nothing-same-origin-corp.txt', init);
+  } catch (e) {
+  }
+
+  try {
+    await fetch(`${HOST.REMOTE_ORIGIN}/common/text-plain.txt`, init);
+  } catch (e) {
+  }
+  try {
+    await fetch(`/common/redirect.py?location=${HOST.REMOTE_ORIGIN}/common/text-plain.txt`, init);
+  } catch (e) {
+  }
+}
+
+run();
+
+</script>
+</html>

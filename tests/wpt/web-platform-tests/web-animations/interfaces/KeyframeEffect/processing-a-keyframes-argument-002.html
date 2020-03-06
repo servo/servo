@@ -54,6 +54,29 @@ test(() => {
    + ' sequence');
 
 test(() => {
+  let readToEnd = false;
+  const keyframe_obj = {
+    *[Symbol.iterator]() {
+      yield { left: '100px', easing: '' };
+      yield { left: '200px' };
+      readToEnd = true;
+    },
+  };
+  assert_throws_js(
+    TypeError,
+    () => {
+      new KeyframeEffect(null, keyframe_obj);
+    },
+    'TypeError is thrown for an invalid easing'
+  );
+  assert_true(
+    readToEnd,
+    'Read all the keyframe properties before reporting invalid easing'
+  );
+}, 'Invalid easing values are correctly rejected after doing all the'
+   + ' iterating');
+
+test(() => {
   let propAccessCount = 0;
   const keyframe = {};
   const addProp = prop => {

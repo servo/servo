@@ -1,0 +1,4 @@
+cache-control: no-store, no-cache
+report-to: { "group": "endpoint", "max_age": 3600, "endpoints": [{ "url": "https://{{hosts[][www]}}:{{ports[https][0]}}/html/cross-origin-embedder-policy/resources/report.py?key={{GET[token1]}}" }] }, { "group": "report-only-endpoint", "max_age": 3600, "endpoints": [{ "url": "https://{{hosts[][www]}}:{{ports[https][0]}}/html/cross-origin-embedder-policy/resources/report.py?key={{GET[token2]}}" }] }
+cross-origin-embedder-policy: require-corp; report-to="endpoint"
+cross-origin-embedder-policy-report-only: require-corp; report-to="report-only-endpoint"

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Test for font-display-late-swap feature policy set to report-only</title>
-    <link rel="help" href="https://w3c.github.io/webappsec-feature-policy/#reporting">
+    <title>Test for font-display-late-swap feature policy set to reporting</title>
+    <link rel="help" href="https://github.com/w3c/webappsec-feature-policy/blob/master/policies/font-display-late-swap.md">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <style>
@@ -52,10 +52,10 @@ let t = async_test('font-display-late-swap Report Format');
 let check_report_format = (reports, observer) => {
   reportCounter -= reports.length;
   for (let report of reports) {
-    assert_equals(report.type, 'feature-policy-violation');
+    assert_equals(report.type, 'document-policy-violation');
     assert_equals(report.url, document.location.href, 'Report URL');
     assert_equals(report.body.featureId, 'font-display-late-swap');
-    assert_equals(report.body.disposition, 'report');
+    assert_equals(report.body.disposition, 'enforce');
     assert_true('sourceFile' in report.body);
     assert_true('lineNumber' in report.body);
     assert_true('columnNumber' in report.body);
@@ -66,7 +66,7 @@ let check_report_format = (reports, observer) => {
 };
 
 new ReportingObserver(t.step_func(check_report_format),
-                      {types: ['feature-policy-violation'], buffered: true}).observe();
+                      {types: ['document-policy-violation'], buffered: true}).observe();
     </script>
   </body>
 </html>

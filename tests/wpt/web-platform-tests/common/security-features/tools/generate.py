@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import argparse
+import collections
 import copy
 import json
 import os
@@ -359,8 +360,14 @@ def main():
         print('Error: No spec.src.json is found at %s.' % spec_directory)
         return
 
-    spec_json = util.load_spec_json(spec_filenames[0])
-    for spec_filename in spec_filenames[1:]:
+    # Load the default spec JSON file, ...
+    default_spec_filename = os.path.join(util.script_directory, 'spec.src.json')
+    spec_json = collections.OrderedDict()
+    if os.path.exists(default_spec_filename):
+        spec_json = util.load_spec_json(default_spec_filename)
+
+    # ... and then make spec JSON files in subdirectories override the default.
+    for spec_filename in spec_filenames:
         child_spec_json = util.load_spec_json(spec_filename)
         merge_json(spec_json, child_spec_json)
 

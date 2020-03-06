@@ -122,7 +122,6 @@ for (const hasContent of [true, false]){
     d.classList.add('pseudoa');
     if (hasContent) {
       d.classList.add('before');
-      getComputedStyle(d,"::before").content; // Sync style
     }
 
     const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
@@ -147,7 +146,6 @@ for (const hasContent of [true, false]){
     d.classList.add('pseudoa');
     if (hasContent) {
       d.classList.add('before');
-      getComputedStyle(d,"::before").content; // Sync style
     }
 
     const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
@@ -172,7 +170,6 @@ for (const hasContent of [true, false]){
     d.classList.add('pseudoa');
     if (hasContent) {
       d.classList.add('before');
-      getComputedStyle(d,"::before").content; // Sync style
     }
     const anim = d.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});
 
@@ -198,11 +195,9 @@ for (const hasContent of [true, false]){
       b.classList.add('pseudob');
       if (prevHasContent) {
         a.classList.add('before');
-        getComputedStyle(a,"::before").content; // Sync style
       }
       if (hasContent) {
         b.classList.add('before');
-        getComputedStyle(b,"::before").content; // Sync style
       }
 
       const anim = a.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});
@@ -228,11 +223,9 @@ for (const hasContent of [true, false]){
       d.classList.add('pseudoc');
       if (prevHasContent) {
         d.classList.add('before');
-        getComputedStyle(d,"::before").content; // Sync style
       }
       if (hasContent) {
         d.classList.add('after');
-        getComputedStyle(d,"::after").content; // Sync style
       }
 
       const anim = d.animate(gKeyFrames, {duration: 100 * MS_PER_SEC, pseudoElement: '::before'});

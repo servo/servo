@@ -27,29 +27,31 @@
 </style>
 <script type="text/javascript">
 
-    test(function(){
-        let expectedForSelector = {
-            "" : "margin: 3cm;",
-            ":first" : "margin-top: 6cm;",
-            ":left" : "color: red;",
-            ":right" : "color: blue;"
-        };
-        let styleSheets = document.styleSheets;
-        for (let i = 0; i < styleSheets.length; i++) {
-            let rules = styleSheets[i].cssRules;
-            for (let rule of rules) {
-                if (rule.type == CSSRule.MEDIA_RULE && rule.conditionText == 'print') {
-                    for (let mediaRule of rule.cssRules) {
-                        if (mediaRule.type == CSSRule.PAGE_RULE) {
-                            let expected = expectedForSelector[mediaRule.selectorText];
+    let expectedForSelector = {
+        "" : "margin: 3cm;",
+        ":first" : "margin-top: 6cm;",
+        ":left" : "color: red;",
+        ":right" : "color: blue;"
+    };
+    let styleSheets = document.styleSheets;
+    for (let i = 0; i < styleSheets.length; i++) {
+        let rules = styleSheets[i].cssRules;
+        for (let rule of rules) {
+            if (rule.type == CSSRule.MEDIA_RULE && rule.conditionText == 'print') {
+                for (let mediaRule of rule.cssRules) {
+                    if (mediaRule.type == CSSRule.PAGE_RULE) {
+                        let expected = expectedForSelector[mediaRule.selectorText];
+                        test(function(){
                             assert_equals(mediaRule.style.cssText, expected, "unexpected @page contents");
-                            delete expectedForSelector[mediaRule.selectorText];
-                        }
+                        }, "unexpected contents for selector ['" + mediaRule.selectorText + "']");
+                        delete expectedForSelector[mediaRule.selectorText];
                     }
                 }
             }
         }
+    }
+    test(function() {
         assert_equals(Object.keys(expectedForSelector).length, 0, "missing @page selectors in @media");
-    }, "test @page inside a @media print rule");
+    });
 
 </script>

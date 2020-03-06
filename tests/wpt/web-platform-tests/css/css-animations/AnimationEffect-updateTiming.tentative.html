@@ -23,7 +23,6 @@ test(t => {
 
   div.style.animationDuration = '4s';
   div.style.animationDelay = '6s';
-  getComputedStyle(div).animationDuration;
 
   assert_equals(
     animation.effect.getTiming().duration,
@@ -61,7 +60,6 @@ test(t => {
   div.style.animationDirection = 'alternate';
   div.style.animationDelay = '6s';
   div.style.animationFillMode = 'both';
-  getComputedStyle(div).animationIterationCount;
 
   assert_equals(
     animation.effect.getTiming().iterations,
@@ -97,7 +95,6 @@ test(t => {
   div.style.animationFillMode = 'forwards';
   div.style.animationIterationCount = '6';
   div.style.animationDirection = 'reverse';
-  getComputedStyle(div).animationDelay;
 
   assert_equals(
     animation.effect.getTiming().delay,
@@ -132,7 +129,6 @@ test(t => {
   }, 'Negative iteration count should cause an error to be thrown');
 
   div.style.animationDuration = '4s';
-  getComputedStyle(div).animationDuration;
 
   assert_equals(
     animation.effect.getTiming().duration,
@@ -155,7 +151,6 @@ test(t => {
 
   div.style.animationDuration = '6s';
   div.style.animationTimingFunction = 'ease-in';
-  getComputedStyle(div).animationDuration;
 
   assert_equals(
     animation.effect.getTiming().easing,
