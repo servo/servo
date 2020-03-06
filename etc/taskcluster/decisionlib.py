@@ -547,10 +547,10 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
     def with_curl(self):
         return self \
-        .with_path_from_homedir("curl\\curl-7.67.0-win64-mingw\\bin") \
+        .with_path_from_homedir("curl\\curl-7.69.0-win64-mingw\\bin") \
         .with_directory_mount(
-            "https://curl.haxx.se/windows/dl-7.67.0_4/curl-7.67.0_4-win64-mingw.zip",
-            sha256="1d50deeac7f945ed75149e6300f6d21f007a6b942ab851a119ed76cdef27d714",
+            "https://curl.haxx.se/windows/dl-7.69.0/curl-7.69.0-win64-mingw.zip",
+            sha256="1c3caf39bf8ad2794b0515a09b3282f85a7ccfcf753ea639f2ef99e50351ade0",
             path="curl",
         )
 
