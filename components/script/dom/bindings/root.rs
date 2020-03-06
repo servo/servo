@@ -26,7 +26,7 @@
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
@@ -385,15 +385,25 @@ where
     }
 }
 
-impl<T> Deref for MaybeUnreflectedDom<T>
+impl<T> Root<MaybeUnreflectedDom<T>>
 where
     T: DomObject,
 {
-    type Target = T;
+    pub fn as_ptr(&self) -> *const T {
+        self.value.ptr.as_ptr()
+    }
+}
 
-    fn deref(&self) -> &T {
-        debug_assert!(thread_state::get().is_script());
-        unsafe { &*self.ptr.as_ptr() }
+impl<T> Root<MaybeUnreflectedDom<T>>
+where
+    T: MutDomObject,
+{
+    pub unsafe fn reflect_with(self, obj: *mut JSObject) -> DomRoot<T> {
+        let ptr = self.as_ptr();
+        drop(self);
+        let root = DomRoot::from_ref(&*ptr);
+        root.init_reflector(obj);
+        root
     }
 }
 
