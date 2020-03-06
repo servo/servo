@@ -15,8 +15,8 @@ use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::GetWellKnownSymbol;
 use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::{jsid, Class, ClassOps};
-use js::jsapi::{JSAutoRealm, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
+use js::jsapi::{jsid, JSClass, JSClassOps};
+use js::jsapi::{JSAutoRealm, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
 use js::jsapi::{JS_NewObject, JS_NewPlainObject};
@@ -38,8 +38,8 @@ use std::ptr;
 /// The class of a non-callback interface object.
 #[derive(Clone, Copy)]
 pub struct NonCallbackInterfaceObjectClass {
-    /// The SpiderMonkey Class structure.
-    pub class: Class,
+    /// The SpiderMonkey class structure.
+    pub class: JSClass,
     /// The prototype id of that interface, used in the hasInstance hook.
     pub proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
@@ -59,7 +59,7 @@ impl NonCallbackInterfaceObjectClass {
         proto_depth: u16,
     ) -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
-            class: Class {
+            class: JSClass {
                 name: b"Function\0" as *const _ as *const libc::c_char,
                 flags: 0,
                 cOps: &constructor_behavior.0,
@@ -84,12 +84,12 @@ pub type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
 
 /// The constructor behavior of a non-callback interface object.
-pub struct InterfaceConstructorBehavior(ClassOps);
+pub struct InterfaceConstructorBehavior(JSClassOps);
 
 impl InterfaceConstructorBehavior {
     /// An interface constructor that unconditionally throws a type error.
     pub const fn throw() -> Self {
-        InterfaceConstructorBehavior(ClassOps {
+        InterfaceConstructorBehavior(JSClassOps {
             addProperty: None,
             delProperty: None,
             enumerate: None,
@@ -106,7 +106,7 @@ impl InterfaceConstructorBehavior {
 
     /// An interface constructor that calls a native Rust function.
     pub const fn call(hook: ConstructorClassHook) -> Self {
-        InterfaceConstructorBehavior(ClassOps {
+        InterfaceConstructorBehavior(JSClassOps {
             addProperty: None,
             delProperty: None,
             enumerate: None,

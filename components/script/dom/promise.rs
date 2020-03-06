@@ -91,7 +91,7 @@ impl Promise {
     pub fn new_in_current_realm(global: &GlobalScope, _comp: InRealm) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-        Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+        Promise::create_js_promise(cx, obj.handle_mut());
         Promise::new_with_js_promise(obj.handle(), cx)
     }
 
@@ -117,7 +117,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    fn create_js_promise(cx: SafeJSContext, proto: HandleObject, mut obj: MutableHandleObject) {
+    fn create_js_promise(cx: SafeJSContext, mut obj: MutableHandleObject) {
         unsafe {
             let do_nothing_func = JS_NewFunction(
                 *cx,
@@ -129,7 +129,7 @@ impl Promise {
             assert!(!do_nothing_func.is_null());
             rooted!(in(*cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
             assert!(!do_nothing_obj.is_null());
-            obj.set(NewPromiseObject(*cx, do_nothing_obj.handle(), proto));
+            obj.set(NewPromiseObject(*cx, do_nothing_obj.handle()));
             assert!(!obj.is_null());
         }
     }

@@ -37,6 +37,7 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::{Documents, ScriptThread};
 use cookie::Cookie;
@@ -160,6 +161,7 @@ pub unsafe fn jsval_to_webdriver(
     global_scope: &GlobalScope,
     val: HandleValue,
 ) -> WebDriverJSResult {
+    let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
     } else if val.get().is_null() {
@@ -996,7 +998,9 @@ pub fn handle_get_property(
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
-                let cx = documents.find_document(pipeline).unwrap().window().get_cx();
+                let document = documents.find_document(pipeline).unwrap();
+                let _ac = enter_realm(&*document);
+                let cx = document.window().get_cx();
 
                 rooted!(in(*cx) let mut property = UndefinedValue());
                 match unsafe {

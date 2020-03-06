@@ -120,12 +120,12 @@ where
         }
 
         rooted!(in(cx) let object = value.to_object());
-        let ids = IdVector::new(cx);
+        let mut ids = IdVector::new(cx);
         if !GetPropertyKeys(
             cx,
             object.handle(),
             JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
-            ids.get(),
+            ids.handle_mut(),
         ) {
             return Err(());
         }

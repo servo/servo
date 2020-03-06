@@ -4,6 +4,7 @@
 
 #![feature(box_into_raw_non_null)]
 #![feature(const_fn)]
+#![feature(const_transmute)]
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
 #![feature(inner_deref)]

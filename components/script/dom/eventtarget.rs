@@ -37,9 +37,9 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_realm, InRealm};
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSFunction, JS_GetFunctionObject, SourceText};
+use js::jsapi::{JS_GetFunctionObject, SourceText};
 use js::rust::wrappers::CompileFunction;
-use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
+use js::rust::{CompileOptionsWrapper, RootedObjectVectorWrapper};
 use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -51,7 +51,6 @@ use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use std::ptr;
 use std::rc::Rc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
@@ -491,9 +490,10 @@ impl EventTarget {
         // source text, we handle parse errors later
 
         // Step 3.8 TODO: settings objects not implemented
+        let window = document.window();
+        let _ac = enter_realm(&*window);
 
         // Step 3.9
-        let window = document.window();
 
         let url_serialized = CString::new(handler.url.to_string()).unwrap();
         let name = CString::new(&**ty).unwrap();
@@ -517,10 +517,12 @@ impl EventTarget {
         };
 
         let cx = window.get_cx();
-        let options = CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32);
+        let options = unsafe {
+            CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32)
+        };
 
         // Step 3.9, subsection Scope steps 1-6
-        let scopechain = AutoObjectVectorWrapper::new(*cx);
+        let scopechain = RootedObjectVectorWrapper::new(*cx);
 
         if let Some(element) = element {
             scopechain.append(document.reflector().get_jsobject().get());
@@ -530,12 +532,10 @@ impl EventTarget {
             scopechain.append(element.reflector().get_jsobject().get());
         }
 
-        let _ac = enter_realm(&*window); // TODO 3.8 should replace this
-        rooted!(in(*cx) let mut handler = ptr::null_mut::<JSFunction>());
-        let rv = unsafe {
+        rooted!(in(*cx) let mut handler = unsafe {
             CompileFunction(
                 *cx,
-                scopechain.ptr,
+                scopechain.handle(),
                 options.ptr,
                 name.as_ptr(),
                 args.len() as u32,
@@ -546,10 +546,9 @@ impl EventTarget {
                     ownsUnits_: false,
                     _phantom_0: PhantomData,
                 },
-                handler.handle_mut().into(),
             )
-        };
-        if !rv || handler.get().is_null() {
+        });
+        if handler.get().is_null() {
             // Step 3.7
             unsafe {
                 let ar = enter_realm(&*self);

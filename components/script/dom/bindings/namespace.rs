@@ -9,6 +9,7 @@ use crate::dom::bindings::interface::{create_object, define_on_global_object};
 use crate::script_runtime::JSContext;
 use js::jsapi::{JSClass, JSFunctionSpec};
 use js::rust::{HandleObject, MutableHandleObject};
+use std::ptr;
 
 /// The class of a namespace object.
 #[derive(Clone, Copy)]
@@ -23,7 +24,9 @@ impl NamespaceObjectClass {
             name: name as *const _ as *const libc::c_char,
             flags: 0,
             cOps: 0 as *mut _,
-            reserved: [0 as *mut _; 3],
+            spec: ptr::null(),
+            ext: ptr::null(),
+            oOps: ptr::null(),
         })
     }
 }
