@@ -465,35 +465,35 @@ impl XRSession {
 }
 
 impl XRSessionMethods for XRSession {
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-end
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-end
     event_handler!(end, GetOnend, SetOnend);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-select
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-select
     event_handler!(select, GetOnselect, SetOnselect);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-selectstart
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectstart
     event_handler!(selectstart, GetOnselectstart, SetOnselectstart);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-selectend
     event_handler!(selectend, GetOnselectend, SetOnselectend);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-squeeze
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeeze
     event_handler!(squeeze, GetOnsqueeze, SetOnsqueeze);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezestart
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezestart
     event_handler!(squeezestart, GetOnsqueezestart, SetOnsqueezestart);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezeend
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-squeezeend
     event_handler!(squeezeend, GetOnsqueezeend, SetOnsqueezeend);
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-visibilitychange
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-visibilitychange
     event_handler!(
         visibilitychange,
         GetOnvisibilitychange,
         SetOnvisibilitychange
     );
 
-    // https://immersive-web.github.io/webxr/#eventdef-xrsession-inputsourceschange
+    /// https://immersive-web.github.io/webxr/#eventdef-xrsession-inputsourceschange
     event_handler!(
         inputsourceschange,
         GetOninputsourceschange,

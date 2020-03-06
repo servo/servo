@@ -331,7 +331,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         self.listener.or_init(|| AudioListener::new(&window, self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
