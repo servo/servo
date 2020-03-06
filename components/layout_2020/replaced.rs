@@ -10,15 +10,19 @@ use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::Image;
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use servo_arc::Arc as ServoArc;
-use std::sync::Arc;
+use std::fmt;
+use std::sync::{Arc, Mutex};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::computed::{Length, LengthOrAuto};
 use style::values::CSSFloat;
 use style::Zero;
+use webrender_api::ImageKey;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
@@ -44,33 +48,69 @@ pub(crate) struct IntrinsicSizes {
     pub ratio: Option<CSSFloat>,
 }
 
+#[derive(Serialize)]
+pub(crate) enum CanvasSource {
+    WebGL(ImageKey),
+    Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>),
+}
+
+impl fmt::Debug for CanvasSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                CanvasSource::WebGL(_) => "WebGL",
+                CanvasSource::Image(_) => "Image",
+            }
+        )
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct CanvasInfo {
+    pub source: CanvasSource,
+    pub canvas_id: CanvasId,
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
+    Canvas(CanvasInfo),
 }
 
 impl ReplacedContent {
     pub fn for_element<'dom>(element: impl NodeExt<'dom>) -> Option<Self> {
-        if let Some((image, intrinsic_size_in_dots)) = element.as_image() {
-            // FIXME: should 'image-resolution' (when implemented) be used *instead* of
-            // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
+        let (kind, intrinsic_size_in_dots) = {
+            if let Some((image, intrinsic_size_in_dots)) = element.as_image() {
+                (ReplacedContentKind::Image(image), intrinsic_size_in_dots)
+            } else if let Some((canvas_info, intrinsic_size_in_dots)) = element.as_canvas() {
+                (
+                    ReplacedContentKind::Canvas(canvas_info),
+                    intrinsic_size_in_dots,
+                )
+            } else {
+                return None;
+            }
+        };
 
-            // https://drafts.csswg.org/css-images-4/#the-image-resolution
-            let dppx = 1.0;
+        // FIXME: should 'image-resolution' (when implemented) be used *instead* of
+        // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
 
-            let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
-            let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
-            return Some(Self {
-                kind: ReplacedContentKind::Image(image),
-                intrinsic: IntrinsicSizes {
-                    width: Some(Length::new(width)),
-                    height: Some(Length::new(height)),
-                    // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                    ratio: Some(width / height),
-                },
-            });
-        }
-        None
+        // https://drafts.csswg.org/css-images-4/#the-image-resolution
+        let dppx = 1.0;
+
+        let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
+        let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
+        return Some(Self {
+            kind,
+            intrinsic: IntrinsicSizes {
+                width: Some(Length::new(width)),
+                height: Some(Length::new(height)),
+                // FIXME https://github.com/w3c/csswg-drafts/issues/4572
+                ratio: Some(width / height),
+            },
+        });
     }
 
     pub fn from_image_url<'dom>(
@@ -160,6 +200,34 @@ impl ReplacedContent {
                 })
                 .into_iter()
                 .collect(),
+            ReplacedContentKind::Canvas(canvas_info) => {
+                let image_key = match canvas_info.source {
+                    CanvasSource::WebGL(image_key) => image_key,
+                    CanvasSource::Image(ref ipc_renderer) => match *ipc_renderer {
+                        Some(ref ipc_renderer) => {
+                            let ipc_renderer = ipc_renderer.lock().unwrap();
+                            let (sender, receiver) = ipc::channel().unwrap();
+                            ipc_renderer
+                                .send(CanvasMsg::FromLayout(
+                                    FromLayoutMsg::SendData(sender),
+                                    canvas_info.canvas_id,
+                                ))
+                                .unwrap();
+                            receiver.recv().unwrap().image_key
+                        },
+                        None => return vec![],
+                    },
+                };
+                vec![Fragment::Image(ImageFragment {
+                    debug_id: DebugId::new(),
+                    style: style.clone(),
+                    rect: Rect {
+                        start_corner: Vec2::zero(),
+                        size,
+                    },
+                    image_key,
+                })]
+            },
         }
     }
 
