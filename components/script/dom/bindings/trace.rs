@@ -891,7 +891,11 @@ impl RootedTraceableSet {
     unsafe fn remove(traceable: *const dyn JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
-            let idx = match traceables.set.iter().rposition(|x| *x == traceable) {
+            let idx = match traceables
+                .set
+                .iter()
+                .rposition(|x| *x as *const () == traceable as *const ())
+            {
                 Some(idx) => idx,
                 None => unreachable!(),
             };
