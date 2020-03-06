@@ -305,6 +305,7 @@ pub enum WebGLCommand {
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
+    GetFragDataLocation(WebGLProgramId, String, WebGLSender<i32>),
     GetUniformLocation(WebGLProgramId, String, WebGLSender<i32>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),

@@ -1287,6 +1287,12 @@ impl WebGLImpl {
                 Self::shader_precision_format(gl, shader_type, precision_type, chan)
             },
             WebGLCommand::GetExtensions(ref chan) => Self::get_extensions(gl, chan),
+            WebGLCommand::GetFragDataLocation(program_id, ref name, ref sender) => {
+                let location =
+                    gl.get_frag_data_location(program_id.get(), &to_name_in_compiled_shader(name));
+                assert!(location >= 0);
+                sender.send(location).unwrap();
+            },
             WebGLCommand::GetUniformLocation(program_id, ref name, ref chan) => {
                 Self::uniform_location(gl, program_id, &name, chan)
             },

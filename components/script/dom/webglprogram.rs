@@ -365,6 +365,30 @@ impl WebGLProgram {
         Ok(location)
     }
 
+    /// glGetFragDataLocation
+    pub fn get_frag_data_location(&self, name: DOMString) -> WebGLResult<i32> {
+        if !self.is_linked() || self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if !validate_glsl_name(&name)? {
+            return Ok(-1);
+        }
+        if name.starts_with("gl_") {
+            return Ok(-1);
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GetFragDataLocation(
+                self.id,
+                name.into(),
+                sender,
+            ));
+        Ok(receiver.recv().unwrap())
+    }
+
     /// glGetUniformLocation
     pub fn get_uniform_location(
         &self,

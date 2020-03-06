@@ -422,7 +422,7 @@ interface mixin WebGL2RenderingContextBase
   //                              optional GLuint srcLengthOverride = 0);
 
   /* Programs and shaders */
-  // [WebGLHandlesContextLoss] GLint getFragDataLocation(WebGLProgram program, DOMString name);
+  [WebGLHandlesContextLoss] GLint getFragDataLocation(WebGLProgram program, DOMString name);
 
   /* Uniforms */
   void uniform1ui(WebGLUniformLocation? location, GLuint v0);
