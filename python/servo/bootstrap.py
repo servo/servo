@@ -9,6 +9,7 @@ from distutils.version import LooseVersion
 import json
 import os
 import distro
+import platform
 import shutil
 import subprocess
 import six
@@ -18,7 +19,7 @@ from subprocess import PIPE
 from zipfile import BadZipfile
 
 import servo.packages as packages
-from servo.util import extract, download_file, host_triple
+from servo.util import extract, download_file, host_triple, check_call
 
 
 def install_trusty_deps(force):
@@ -391,6 +392,40 @@ def get_linux_distribution():
     return distrib, version
 
 
+TARGET_MACOS_SDK = "MacOSX10.14.sdk"
+
+
+def apple(context, force=False):
+    '''Bootstrapper for building on macOS.'''
+
+    deps_dir = os.path.join(context.sharedir, "macos-dependencies")
+    version = map(lambda x: int(x), platform.mac_ver()[0].split('.'))
+    context.macos_sdk_path = None
+
+    # Any earlier version than the 10.15 SDK is supported.
+    if version[0] == 10 and version[1] < 15:
+        return
+
+    if not os.path.isdir(deps_dir):
+        os.makedirs(deps_dir)
+
+    sdk_path = os.path.join(deps_dir, TARGET_MACOS_SDK)
+    if not os.path.isdir(sdk_path):
+        sdk_file = TARGET_MACOS_SDK + ".tar.xz"
+        archive_path = os.path.join(deps_dir, sdk_file)
+        print('Downloading SDK for macOS 10.14...')
+        sdk_url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/" + sdk_file
+        download_file(TARGET_MACOS_SDK, sdk_url, archive_path)
+        print('Extracting 10.14 SDK...')
+        check_call(['tar', 'xf', archive_path, '-C', os.path.dirname(sdk_path)])
+        os.remove(archive_path)
+
+
+def get_macos_sdk_path(context):
+    sdk_path = os.path.join(context.sharedir, "macos-dependencies", TARGET_MACOS_SDK)
+    return sdk_path if os.path.isdir(sdk_path) else None
+
+
 def bootstrap(context, force=False, specific=None):
     '''Dispatches to the right bootstrapping function for the OS.'''
 
@@ -403,6 +438,8 @@ def bootstrap(context, force=False, specific=None):
         context.distro = distrib
         context.distro_version = version
         bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
+    elif "apple-darwin" in host_triple():
+        bootstrapper = apple
 
     if bootstrapper is None:
         print('Bootstrap support is not yet available for your OS.')

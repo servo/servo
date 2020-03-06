@@ -23,9 +23,10 @@ from mach.decorators import (
 
 from servo.command_base import (
     CommandBase,
-    check_call, check_output, BIN_SUFFIX,
+    check_output, BIN_SUFFIX,
     is_linux, set_osmesa_env,
 )
+from servo.util import check_call
 
 
 def read_file(filename, if_exists=False):

@@ -30,8 +30,8 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
-from servo.util import host_triple
+from servo.command_base import CommandBase, cd, call, append_to_path_env, gstreamer_root
+from servo.util import host_triple, check_call
 
 
 def format_duration(seconds):

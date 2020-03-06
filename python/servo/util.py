@@ -16,10 +16,12 @@ import platform
 import shutil
 from socket import error as socket_error
 import stat
+import subprocess
 from io import BytesIO
 import sys
 import time
 import zipfile
+import six
 import six.moves.urllib as urllib
 
 
@@ -229,3 +231,50 @@ def check_hash(filename, expected, algorithm):
     if hasher.hexdigest() != expected:
         print("Incorrect {} hash for {}".format(algorithm, filename))
         sys.exit(1)
+
+
+def normalize_env(env):
+    # There is a bug in subprocess where it doesn't like unicode types in
+    # environment variables. Here, ensure all unicode are converted to
+    # binary. utf-8 is our globally assumed default. If the caller doesn't
+    # want UTF-8, they shouldn't pass in a unicode instance.
+    normalized_env = {}
+    for k, v in env.items():
+        if isinstance(k, six.text_type):
+            k = k.encode('utf-8', 'strict')
+
+        if isinstance(v, six.text_type):
+            v = v.encode('utf-8', 'strict')
+
+        normalized_env[k] = v
+
+    return normalized_env
+
+
+def check_call(*args, **kwargs):
+    """Wrap `subprocess.check_call`, printing the command if verbose=True.
+
+    Also fix any unicode-containing `env`, for subprocess """
+    verbose = kwargs.pop('verbose', False)
+
+    if 'env' in kwargs:
+        kwargs['env'] = normalize_env(kwargs['env'])
+
+    if verbose:
+        print(' '.join(args[0]))
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    proc = subprocess.Popen(*args, shell=sys.platform == 'win32', **kwargs)
+    status = None
+    # Leave it to the subprocess to handle Ctrl+C. If it terminates as
+    # a result of Ctrl+C, proc.wait() will return a status code, and,
+    # we get out of the loop. If it doesn't, like e.g. gdb, we continue
+    # waiting.
+    while status is None:
+        try:
+            status = proc.wait()
+        except KeyboardInterrupt:
+            pass
+
+    if status:
+        raise subprocess.CalledProcessError(status, ' '.join(*args))

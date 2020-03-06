@@ -28,22 +28,19 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes, download_file, extract, check_hash
+from servo.command_base import CommandBase, cd
+from servo.util import delete, download_bytes, download_file, extract, check_hash, check_call
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('bootstrap',
+    @Command('bootstrap-build',
              description='Install required packages for building.',
              category='bootstrap')
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Boostrap without confirmation')
-    def bootstrap(self, force=False):
-        # This entry point isn't actually invoked, ./mach bootstrap is directly
-        # called by mach (see mach_bootstrap.bootstrap_command_only) so that
-        # it can install dependencies without needing mach's dependencies
+    def bootstrap_build(self, force=False):
         return bootstrap.bootstrap(self.context, force=force)
 
     @Command('bootstrap-salt',

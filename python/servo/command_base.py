@@ -29,7 +29,7 @@ import tarfile
 import zipfile
 import functools
 from xml.etree.ElementTree import XML
-from servo.util import download_file
+from servo.util import download_file, check_call, normalize_env
 import six.moves.urllib as urllib
 from .bootstrap import check_gstreamer_lib
 
@@ -38,6 +38,7 @@ from mach.registrar import Registrar
 import toml
 import json
 
+from servo.bootstrap import get_macos_sdk_path
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
 
@@ -130,24 +131,6 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         os.rename(temp_file, dest_archive)
 
 
-def normalize_env(env):
-    # There is a bug in subprocess where it doesn't like unicode types in
-    # environment variables. Here, ensure all unicode are converted to
-    # binary. utf-8 is our globally assumed default. If the caller doesn't
-    # want UTF-8, they shouldn't pass in a unicode instance.
-    normalized_env = {}
-    for k, v in env.items():
-        if isinstance(k, six.text_type):
-            k = k.encode('utf-8', 'strict')
-
-        if isinstance(v, six.text_type):
-            v = v.encode('utf-8', 'strict')
-
-        normalized_env[k] = v
-
-    return normalized_env
-
-
 def call(*args, **kwargs):
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)
@@ -170,35 +153,6 @@ def check_output(*args, **kwargs):
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
-
-
-def check_call(*args, **kwargs):
-    """Wrap `subprocess.check_call`, printing the command if verbose=True.
-
-    Also fix any unicode-containing `env`, for subprocess """
-    verbose = kwargs.pop('verbose', False)
-
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
-
-    if verbose:
-        print(' '.join(args[0]))
-    # we have to use shell=True in order to get PATH handling
-    # when looking for the binary on Windows
-    proc = subprocess.Popen(*args, shell=sys.platform == 'win32', **kwargs)
-    status = None
-    # Leave it to the subprocess to handle Ctrl+C. If it terminates as
-    # a result of Ctrl+C, proc.wait() will return a status code, and,
-    # we get out of the loop. If it doesn't, like e.g. gdb, we continue
-    # waiting.
-    while status is None:
-        try:
-            status = proc.wait()
-        except KeyboardInterrupt:
-            pass
-
-    if status:
-        raise subprocess.CalledProcessError(status, ' '.join(*args))
 
 
 def is_windows():
@@ -782,6 +736,10 @@ install them, let us know by filing a bug!")
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
         env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
+
+        macos_sdk_path = get_macos_sdk_path(self.context)
+        if macos_sdk_path:
+            env['MACOS_SDK_PATH'] = macos_sdk_path
 
         return env
 
