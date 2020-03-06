@@ -531,7 +531,7 @@ interface mixin WebGL2RenderingContextBase
   /* Uniform Buffer Objects and Transform Feedback Buffers */
   void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);
   void bindBufferRange(GLenum target, GLuint index, WebGLBuffer? buffer, GLintptr offset, GLsizeiptr size);
-  // any getIndexedParameter(GLenum target, GLuint index);
+  any getIndexedParameter(GLenum target, GLuint index);
   sequence<GLuint>? getUniformIndices(WebGLProgram program, sequence<DOMString> uniformNames);
   any getActiveUniforms(WebGLProgram program, sequence<GLuint> uniformIndices, GLenum pname);
   GLuint getUniformBlockIndex(WebGLProgram program, DOMString uniformBlockName);

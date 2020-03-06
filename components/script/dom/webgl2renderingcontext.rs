@@ -56,6 +56,24 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 
+#[unrooted_must_root_lint::must_root]
+#[derive(JSTraceable, MallocSizeOf)]
+struct IndexedBinding {
+    buffer: MutNullableDom<WebGLBuffer>,
+    start: Cell<i64>,
+    size: Cell<i64>,
+}
+
+impl IndexedBinding {
+    fn new() -> IndexedBinding {
+        IndexedBinding {
+            buffer: MutNullableDom::new(None),
+            start: Cell::new(0),
+            size: Cell::new(0),
+        }
+    }
+}
+
 #[dom_struct]
 pub struct WebGL2RenderingContext {
     reflector_: Reflector,
@@ -69,6 +87,8 @@ pub struct WebGL2RenderingContext {
     bound_pixel_unpack_buffer: MutNullableDom<WebGLBuffer>,
     bound_transform_feedback_buffer: MutNullableDom<WebGLBuffer>,
     bound_uniform_buffer: MutNullableDom<WebGLBuffer>,
+    indexed_uniform_buffer_bindings: Box<[IndexedBinding]>,
+    indexed_transform_feedback_buffer_bindings: Box<[IndexedBinding]>,
     current_transform_feedback: MutNullableDom<WebGLTransformFeedback>,
     texture_pack_row_length: Cell<usize>,
     texture_pack_skip_pixels: Cell<usize>,
@@ -111,6 +131,15 @@ impl WebGL2RenderingContext {
             .map(|_| Default::default())
             .collect::<Vec<_>>()
             .into();
+        let indexed_uniform_buffer_bindings = (0..base.limits().max_uniform_buffer_bindings)
+            .map(|_| IndexedBinding::new())
+            .collect::<Vec<_>>()
+            .into();
+        let indexed_transform_feedback_buffer_bindings =
+            (0..base.limits().max_transform_feedback_separate_attribs)
+                .map(|_| IndexedBinding::new())
+                .collect::<Vec<_>>()
+                .into();
 
         Some(WebGL2RenderingContext {
             reflector_: Reflector::new(),
@@ -124,6 +153,8 @@ impl WebGL2RenderingContext {
             bound_pixel_unpack_buffer: MutNullableDom::new(None),
             bound_transform_feedback_buffer: MutNullableDom::new(None),
             bound_uniform_buffer: MutNullableDom::new(None),
+            indexed_uniform_buffer_bindings,
+            indexed_transform_feedback_buffer_bindings,
             current_transform_feedback: MutNullableDom::new(None),
             texture_pack_row_length: Cell::new(0),
             texture_pack_skip_pixels: Cell::new(0),
@@ -1396,6 +1427,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.unbind_from(&self.bound_pixel_unpack_buffer, &buffer);
         self.unbind_from(&self.bound_transform_feedback_buffer, &buffer);
         self.unbind_from(&self.bound_uniform_buffer, &buffer);
+
+        for binding in self.indexed_uniform_buffer_bindings.iter() {
+            self.unbind_from(&binding.buffer, &buffer);
+        }
+        for binding in self.indexed_transform_feedback_buffer_bindings.iter() {
+            self.unbind_from(&binding.buffer, &buffer);
+        }
+
         buffer.mark_for_deletion(false);
     }
 
@@ -1518,6 +1557,46 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
         self.base
             .GetShaderPrecisionFormat(shader_type, precision_type)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
+    #[allow(unsafe_code)]
+    fn GetIndexedParameter(&self, cx: JSContext, target: u32, index: u32) -> JSVal {
+        let bindings = match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING |
+            constants::TRANSFORM_FEEDBACK_BUFFER_SIZE |
+            constants::TRANSFORM_FEEDBACK_BUFFER_START => {
+                &self.indexed_transform_feedback_buffer_bindings
+            },
+            constants::UNIFORM_BUFFER_BINDING |
+            constants::UNIFORM_BUFFER_SIZE |
+            constants::UNIFORM_BUFFER_START => &self.indexed_uniform_buffer_bindings,
+            _ => {
+                self.base.webgl_error(InvalidEnum);
+                return NullValue();
+            },
+        };
+
+        let binding = match bindings.get(index as usize) {
+            Some(binding) => binding,
+            None => {
+                self.base.webgl_error(InvalidValue);
+                return NullValue();
+            },
+        };
+
+        match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => unsafe {
+                optional_root_object_to_js_or_null!(*cx, binding.buffer.get())
+            },
+            constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
+                Int32Value(binding.start.get() as _)
+            },
+            constants::TRANSFORM_FEEDBACK_BUFFER_SIZE | constants::UNIFORM_BUFFER_SIZE => {
+                Int32Value(binding.size.get() as _)
+            },
+            _ => unreachable!(),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3212,20 +3291,21 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
     fn BindBufferBase(&self, target: u32, index: u32, buffer: Option<&WebGLBuffer>) {
-        let (bind_limit, slot) = match target {
+        let (generic_slot, indexed_bindings) = match target {
             constants::TRANSFORM_FEEDBACK_BUFFER => (
-                self.base.limits().max_transform_feedback_separate_attribs,
                 &self.bound_transform_feedback_buffer,
+                &self.indexed_transform_feedback_buffer_bindings,
             ),
             constants::UNIFORM_BUFFER => (
-                self.base.limits().max_uniform_buffer_bindings,
                 &self.bound_uniform_buffer,
+                &self.indexed_uniform_buffer_bindings,
             ),
             _ => return self.base.webgl_error(InvalidEnum),
         };
-        if index >= bind_limit {
-            return self.base.webgl_error(InvalidValue);
-        }
+        let indexed_binding = match indexed_bindings.get(index as usize) {
+            Some(slot) => slot,
+            None => return self.base.webgl_error(InvalidValue),
+        };
 
         if let Some(buffer) = buffer {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
@@ -3234,6 +3314,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 return self.base.webgl_error(InvalidOperation);
             }
             handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+
+            // for both the generic and the indexed bindings
+            buffer.increment_attached_counter();
             buffer.increment_attached_counter();
         }
 
@@ -3242,11 +3325,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             index,
             buffer.map(|b| b.id()),
         ));
-        if let Some(old) = slot.get() {
-            old.decrement_attached_counter();
-        }
 
-        slot.set(buffer);
+        for slot in &[&generic_slot, &indexed_binding.buffer] {
+            if let Some(old) = slot.get() {
+                old.decrement_attached_counter();
+            }
+            slot.set(buffer);
+        }
+        indexed_binding.start.set(0);
+        indexed_binding.size.set(0);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
@@ -3258,20 +3345,21 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         offset: i64,
         size: i64,
     ) {
-        let (bind_limit, slot) = match target {
+        let (generic_slot, indexed_bindings) = match target {
             constants::TRANSFORM_FEEDBACK_BUFFER => (
-                self.base.limits().max_transform_feedback_separate_attribs,
                 &self.bound_transform_feedback_buffer,
+                &self.indexed_transform_feedback_buffer_bindings,
             ),
             constants::UNIFORM_BUFFER => (
-                self.base.limits().max_uniform_buffer_bindings,
                 &self.bound_uniform_buffer,
+                &self.indexed_uniform_buffer_bindings,
             ),
             _ => return self.base.webgl_error(InvalidEnum),
         };
-        if index >= bind_limit {
-            return self.base.webgl_error(InvalidValue);
-        }
+        let indexed_binding = match indexed_bindings.get(index as usize) {
+            Some(slot) => slot,
+            None => return self.base.webgl_error(InvalidValue),
+        };
 
         if offset < 0 || size < 0 {
             return self.base.webgl_error(InvalidValue);
@@ -3302,6 +3390,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 return self.base.webgl_error(InvalidOperation);
             }
             handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+
+            // for both the generic and the indexed bindings
+            buffer.increment_attached_counter();
             buffer.increment_attached_counter();
         }
 
@@ -3312,11 +3403,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             offset,
             size,
         ));
-        if let Some(old) = slot.get() {
-            old.decrement_attached_counter();
-        }
 
-        slot.set(buffer);
+        for slot in &[&generic_slot, &indexed_binding.buffer] {
+            if let Some(old) = slot.get() {
+                old.decrement_attached_counter();
+            }
+            slot.set(buffer);
+        }
+        indexed_binding.start.set(offset);
+        indexed_binding.size.set(size);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
