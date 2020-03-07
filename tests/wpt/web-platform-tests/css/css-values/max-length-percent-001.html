@@ -12,7 +12,15 @@ html, body { margin: 0px; padding: 0px; }
   height: 200px;
   background: green;
 }
+#fail {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  z-index: -1;
+  background: red;
+}
 </style>
 <div id=parent>
+  <div id=fail></div>
   <div id=target></div>
 </div>

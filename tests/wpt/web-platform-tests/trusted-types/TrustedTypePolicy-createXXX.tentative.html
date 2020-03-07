@@ -99,7 +99,7 @@
     for (let [index, [policy_fn, value]] of test_cases.entries()) {
       let subtest_name = "TestPolicy" + trusted_class.name + index;
       test(t => {
-        if (typeof value == "object") {
+        if (typeof value == "object" || typeof value == "function") {
           assert_throws_js(value, () => builder(subtest_name, policy_fn));
         } else {
           assert_equals("" + builder(subtest_name, policy_fn), value);

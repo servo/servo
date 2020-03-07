@@ -17,8 +17,17 @@
 
 .test {
   background-color: green;
-  animation: anim 2000000s linear;
-  animation-delay: -1000000s;
+  animation: anim 1s linear;
+  animation-delay: -.5s;
+  animation-play-state: paused;
+}
+
+.fail {
+  background: red;
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
 }
 
 .container {
@@ -29,5 +38,6 @@
 </style>
 <p>Test passes if there is a filled green square.</p>
 <div class="container">
+  <div class="fail"></div>
   <div class="test"></div>
 </div>

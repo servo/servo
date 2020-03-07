@@ -103,9 +103,8 @@ class HTTPWireProtocol(object):
             conn_kwargs = {}
             if not PY3:
                 conn_kwargs["strict"] = True
-            # We are not setting an HTTP timeout other than the default
-            # because the timeouts are handled externally by the runner
-            # and can be different for each type of test.
+            # We are not setting an HTTP timeout other than the default when the
+            # connection its created. The send method has a timeout value if needed.
             self._conn = HTTPConnection(self.host, self.port, **conn_kwargs)
 
         return self._conn
@@ -124,6 +123,7 @@ class HTTPWireProtocol(object):
              headers=None,
              encoder=json.JSONEncoder,
              decoder=json.JSONDecoder,
+             timeout=None,
              **codec_kwargs):
         """
         Send a command to the remote.
@@ -179,11 +179,11 @@ class HTTPWireProtocol(object):
         # runner thread. We use the boolean below to check for that and restart
         # the connection in that case.
         self._last_request_is_blocked = True
-        response = self._request(method, uri, payload, headers)
+        response = self._request(method, uri, payload, headers, timeout=None)
         self._last_request_is_blocked = False
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 
-    def _request(self, method, uri, payload, headers=None):
+    def _request(self, method, uri, payload, headers=None, timeout=None):
         if isinstance(payload, text_type):
             payload = payload.encode("utf-8")
 
@@ -195,8 +195,21 @@ class HTTPWireProtocol(object):
 
         if self._last_request_is_blocked or self._has_unread_data():
             self.close()
+
         self.connection.request(method, url, payload, headers)
-        return self.connection.getresponse()
+
+        # timeout for request has to be set just before calling httplib.getresponse()
+        # and the previous value restored just after that, even on exception raised
+        try:
+            if timeout:
+                previous_timeout = self._conn.gettimeout()
+                self._conn.settimeout(timeout)
+            response = self.connection.getresponse()
+        finally:
+            if timeout:
+                self._conn.settimeout(previous_timeout)
+
+        return response
 
     def _has_unread_data(self):
         return self._conn and self._conn.sock and select.select([self._conn.sock], [], [], 0)[0]

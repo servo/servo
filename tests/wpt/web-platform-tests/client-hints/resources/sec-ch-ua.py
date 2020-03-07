@@ -5,7 +5,7 @@ def main(request, response):
     response.headers.set("Accept-CH-Lifetime", "10")
     response.content = '''
 <script>
-  window.opener.postMessage({ header: "%s" }, "*");
+  window.opener.postMessage({ header: '%s' }, "*");
 </script>
 Sec-CH-UA: %s
 ''' % (ua, ua)
