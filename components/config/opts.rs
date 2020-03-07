@@ -653,12 +653,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "Start remote debugger server on port",
         "2794",
     );
-    opts.optflagopt(
-        "",
-        "devtools",
-        "Start remote devtools server on port",
-        "6000",
-    );
+    opts.optflagopt("", "devtools", "Start remote devtools server on port", "0");
     opts.optflagopt(
         "",
         "webdriver",
@@ -886,7 +881,8 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
             })
         });
 
-    let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
+    // Set default port 0 for a random port to be selected.
+    let devtools_port = opt_match.opt_default("devtools", "0").map(|port| {
         port.parse()
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });

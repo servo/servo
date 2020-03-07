@@ -31,6 +31,7 @@ public:
   typedef capi::CPromptResult PromptResult;
   typedef capi::CMediaSessionActionType MediaSessionActionType;
   typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
+  typedef capi::CDevtoolsServerState DevtoolsServerState;
 
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }

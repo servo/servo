@@ -198,6 +198,8 @@ pub enum EmbedderMsg {
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(MediaSessionEvent),
+    /// Report the status of Devtools Server
+    OnDevtoolsStarted(Result<u16, ()>),
 }
 
 impl Debug for EmbedderMsg {
@@ -232,6 +234,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
+            EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
         }
     }
 }

@@ -423,6 +423,13 @@ impl HostTrait for HostCallbacks {
     }
 
     fn set_clipboard_contents(&self, _contents: String) {}
+
+    fn on_devtools_started(&self, port: Result<u16, ()>) {
+        match port {
+            Ok(p) => info!("Devtools Server running on port {}", p),
+            Err(()) => error!("Error running Devtools server"),
+        }
+    }
 }
 
 pub struct ServoInstance {

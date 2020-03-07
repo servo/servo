@@ -87,6 +87,11 @@ const char *prompt_input(const char *message, const char *default,
   }
 }
 
+void on_devtools_started(Servo::DevtoolsServerState result,
+                         const unsigned int port) {
+  // FIXME
+}
+
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
@@ -147,6 +152,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   c.prompt_ok_cancel = &prompt_ok_cancel;
   c.prompt_yes_no = &prompt_yes_no;
   c.prompt_input = &prompt_input;
+  c.on_devtools_started = &on_devtools_started;
 
   capi::register_panic_handler(&on_panic);
 
