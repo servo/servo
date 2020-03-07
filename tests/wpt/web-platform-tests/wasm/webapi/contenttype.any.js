@@ -40,6 +40,15 @@ for (const contenttype of validContentTypes) {
   promise_test(async t => {
     const response = fetch(`/wasm/incrementer.wasm?pipe=header(Content-Type,${encodeURIComponent(contenttype)})`);
     const result = await WebAssembly.instantiateStreaming(response);
-    assert_WebAssemblyInstantiatedSource(result);
+    assert_WebAssemblyInstantiatedSource(
+        result,
+        {
+          "increment": {
+            "kind": "function",
+            "name": "0",
+            "length": 1
+          }
+        }
+      );
   }, `Response with Content-Type ${format_value(contenttype)}: instantiateStreaming`);
 }

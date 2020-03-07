@@ -2,10 +2,9 @@
 <link rel="help" href="https://w3c.github.io/wake-lock/#the-wakelockpermissiondescriptor-dictionary">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
-// Checking for the permission status requires testdriver.js support for permissions.
-// See https://github.com/web-platform-tests/wpt/issues/5671.
-
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.permissions.query({ name:'wake-lock' }));
 }, "WakeLockPermissionDescriptor's type attribute is required");
@@ -13,4 +12,22 @@ promise_test(t => {
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.permissions.query({ name: 'wake-lock', type: 'foo' }));
 }, "WakeLockPermissionDescriptor's type attribute must be a WakeLockType");
+
+promise_test(async t => {
+  await test_driver.set_permission({name: 'wake-lock', type: 'screen'}, 'denied', false);
+
+  return navigator.permissions.query({name:'wake-lock', type: 'screen'}).then(status => {
+    assert_class_string(status, "PermissionStatus");
+    assert_equals(status.state, "denied");
+  });
+}, "WakeLockPermissionDescriptor with type=screen works");
+
+promise_test(async t => {
+  await test_driver.set_permission({name: 'wake-lock', type: 'system'}, 'denied', false);
+
+  return navigator.permissions.query({ name: 'wake-lock', type: 'system' }).then(status => {
+    assert_class_string(status, "PermissionStatus");
+    assert_equals(status.state, "denied");
+  });
+}, "WakeLockPermissionDescriptor with type=system works");
 </script>

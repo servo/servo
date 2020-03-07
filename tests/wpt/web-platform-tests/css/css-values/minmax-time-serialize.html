@@ -3,36 +3,62 @@
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#time">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
 <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../support/parsing-testcommon.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
 <script>
-function test_valid_time(value, expected) {
-  test_valid_value('transition-delay', value, expected);
+function test_serialization(t,s,c,u, {prop="transition-delay"}={}) {
+    test_specified_serialization(prop, t, s);
+    test_computed_serialization(prop, t, c);
+    if(u) test_used_serialization(prop, t, u);
 }
 
-test_valid_time('min(1ms)', 'min(1ms)');
-test_valid_time('min(1s)', 'min(1s)');
-test_valid_time('max(1ms)', 'max(1ms)');
-test_valid_time('max(1s)', 'max(1s)');
+test_serialization(
+    'min(1ms)',
+    'calc(0.001s)',
+    '0.001s');
+test_serialization(
+    'min(1s)',
+    'calc(1s)',
+    '1s');
+test_serialization(
+    'max(1ms)',
+    'calc(0.001s)',
+    '0.001s');
+test_serialization(
+    'max(1s)',
+    'calc(1s)',
+    '1s');
 
-test_valid_time('min(1ms, 2ms, 3ms)', 'min(1ms, 2ms, 3ms)');
-test_valid_time('min(3ms, 2ms, 1ms)', 'min(3ms, 2ms, 1ms)');
-test_valid_time('max(1ms, 2ms, 3ms)', 'max(1ms, 2ms, 3ms)');
-test_valid_time('max(3ms, 2ms, 1ms)', 'max(3ms, 2ms, 1ms)');
-test_valid_time('min(1000ms, 1s)', 'min(1000ms, 1s)');
-test_valid_time('min(1s, 1000ms)', 'min(1s, 1000ms)');
-test_valid_time('max(1000ms, 1s)', 'max(1000ms, 1s)');
-test_valid_time('max(1s, 1000ms)', 'max(1s, 1000ms)');
+test_serialization(
+    'min(1s, 2s, 3s)',
+    'calc(1s)',
+    '1s');
+test_serialization(
+    'min(3s, 2s, 1s)',
+    'calc(1s)',
+    '1s');
+test_serialization(
+    'max(1s, 2s, 3s)',
+    'calc(3s)',
+    '3s');
+test_serialization(
+    'max(3s, 2s, 1s)',
+    'calc(3s)',
+    '3s');
+test_serialization(
+    'min(900ms, 1s)',
+    'calc(0.9s)',
+    '0.9s');
+test_serialization(
+    'max(1100ms, 1s)',
+    'calc(1.1s)',
+    '1.1s');
 
-test_valid_time('calc(min(1s) + min(2s))', 'calc(min(1s) + min(2s))');
-test_valid_time('calc(min(2s) + min(1s))', 'calc(min(2s) + min(1s))');
-test_valid_time('calc(max(1s) + max(2s))', 'calc(max(1s) + max(2s))');
-test_valid_time('calc(max(2s) + max(1s))', 'calc(max(2s) + max(1s))');
-
-test_valid_time('calc(1s + min(2s))', 'calc(1s + min(2s))');
-test_valid_time('calc(min(2s) + 1s)', 'calc(1s + min(2s))');
-test_valid_time('calc(1s + max(2s))', 'calc(1s + max(2s))');
-test_valid_time('calc(max(2s) + 1s)', 'calc(1s + max(2s))');
-
+test_serialization(
+    'calc(min(1s, 2s) + max(3s, 4s) + 10s)',
+    'calc(15s)',
+    '15s');
 </script>

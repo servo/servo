@@ -742,4 +742,30 @@ test(() => {
   sheet.replaceSync('');
 }, 'Modifying an adopted stylesheet on a disconnected shadow root should not crash.');
 
+function currentLocation() {
+  const sections = location.href.split("/")
+  sections.pop();
+  return sections.join("/");
+}
+
+test(() => {
+  const span = document.createElement("span");
+  thirdSection.appendChild(span);
+  const shadowDiv = attachShadowDiv(span);
+
+  const fileName = "example.png"
+  const fullPath = `${currentLocation()}/${fileName}`
+
+  const sheet = new CSSStyleSheet();
+  span.shadowRoot.adoptedStyleSheets = [sheet];
+
+  sheet.replaceSync(`* { background-image: url("${fileName}"); }`);
+  const styleFromRelative = getComputedStyle(shadowDiv).backgroundImage;
+
+  sheet.replaceSync(`* { background-image: url("${fullPath}"); }`);
+  const styleFromFull = getComputedStyle(shadowDiv).backgroundImage;
+
+  assert_equals(styleFromRelative, styleFromFull);
+}, "Constructing a sheet with the default base URL uses the constructor document's base URL for CSS rules");
+
 </script>

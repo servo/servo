@@ -1,4 +1,4 @@
-window.runTestsInSubframe = ({ hostname, testJS }) => {
+window.runTestsInSubframe = ({ hostname, testJS, expectedIds }) => {
   test(() => {
     assert_equals(location.protocol, "https:");
   }, "Prerequisite check: running on HTTPS");
@@ -11,6 +11,8 @@ window.runTestsInSubframe = ({ hostname, testJS }) => {
     // Normalize the URL so that callers can idiomatically give values relative
     // to themselves.
     url.searchParams.append("test", new URL(testJS, document.baseURI).pathname);
+
+    url.searchParams.append("expectedIds", JSON.stringify(expectedIds));
 
     const iframe = document.createElement("iframe");
     iframe.src = url.href;

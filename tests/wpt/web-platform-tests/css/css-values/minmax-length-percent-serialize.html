@@ -3,79 +3,117 @@
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#mixed-percentages">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
 <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../support/parsing-testcommon.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div style="width: 100px;">
+    <div id=target></div>
+</div>
 <script>
-const property = 'margin-left';
-
-function test_valid_length_percent(value, expected) {
-  test_valid_value(property, value, expected);
+function test_serialization(t,s,c,u, {prop}={}) {
+    test_specified_serialization(prop || 'text-indent', t, s);
+    test_computed_serialization(prop || 'text-indent', t, c);
+    if(u) test_used_serialization(prop || 'margin-left', t, u);
 }
 
-test_valid_length_percent('min(1px + 1%)', 'min(1% + 1px)');
-test_valid_length_percent('min(1cm + 1%)', 'min(1% + 1cm)');
-test_valid_length_percent('min(1mm + 1%)', 'min(1% + 1mm)');
-test_valid_length_percent('min(1Q + 1%)', 'min(1% + 1q)');
-test_valid_length_percent('min(1in + 1%)', 'min(1% + 1in)');
-test_valid_length_percent('min(1pc + 1%)', 'min(1% + 1pc)');
-test_valid_length_percent('min(1pt + 1%)', 'min(1% + 1pt)');
-test_valid_length_percent('min(1em + 1%)', 'min(1% + 1em)');
-test_valid_length_percent('min(1ex + 1%)', 'min(1% + 1ex)');
-test_valid_length_percent('min(1ch + 1%)', 'min(1% + 1ch)');
-test_valid_length_percent('min(1rem + 1%)', 'min(1% + 1rem)');
-test_valid_length_percent('min(1vh + 1%)', 'min(1% + 1vh)');
-test_valid_length_percent('min(1vw + 1%)', 'min(1% + 1vw)');
-test_valid_length_percent('min(1vmin + 1%)', 'min(1% + 1vmin)');
-test_valid_length_percent('min(1vmax + 1%)', 'min(1% + 1vmax)');
-test_valid_length_percent('max(1px + 1%)', 'max(1% + 1px)');
-test_valid_length_percent('max(1cm + 1%)', 'max(1% + 1cm)');
-test_valid_length_percent('max(1mm + 1%)', 'max(1% + 1mm)');
-test_valid_length_percent('max(1Q + 1%)', 'max(1% + 1q)');
-test_valid_length_percent('max(1in + 1%)', 'max(1% + 1in)');
-test_valid_length_percent('max(1pc + 1%)', 'max(1% + 1pc)');
-test_valid_length_percent('max(1pt + 1%)', 'max(1% + 1pt)');
-test_valid_length_percent('max(1em + 1%)', 'max(1% + 1em)');
-test_valid_length_percent('max(1ex + 1%)', 'max(1% + 1ex)');
-test_valid_length_percent('max(1ch + 1%)', 'max(1% + 1ch)');
-test_valid_length_percent('max(1rem + 1%)', 'max(1% + 1rem)');
-test_valid_length_percent('max(1vh + 1%)', 'max(1% + 1vh)');
-test_valid_length_percent('max(1vw + 1%)', 'max(1% + 1vw)');
-test_valid_length_percent('max(1vmin + 1%)', 'max(1% + 1vmin)');
-test_valid_length_percent('max(1vmax + 1%)', 'max(1% + 1vmax)');
+// If fully resolvable to a number, serialize to a calc() or all the way to a number.
+test_serialization(
+    'min(1px)',
+    'calc(1px)',
+    '1px',
+    '1px');
+test_serialization(
+    'max(1px)',
+    'calc(1px)',
+    '1px',
+    '1px');
 
-test_valid_length_percent('min(20px, 10%)', 'min(20px, 10%)');
-test_valid_length_percent('min(1em, 10%)', 'min(1em, 10%)');
-test_valid_length_percent('max(20px, 10%)', 'max(20px, 10%)');
-test_valid_length_percent('max(1em, 10%)', 'max(1em, 10%)');
-test_valid_length_percent('min(10%, 20px)', 'min(10%, 20px)');
-test_valid_length_percent('min(10%, 1em)', 'min(10%, 1em)');
-test_valid_length_percent('max(10%, 20px)', 'max(10%, 20px)');
-test_valid_length_percent('max(10%, 1em)', 'max(10%, 1em)');
+// If not, keep as the function.
+test_serialization(
+    'min(1% + 1px)',
+    'min(1% + 1px)',
+    'min(1% + 1px)',
+    '2px');
+test_serialization(
+    'min(1px + 1%)',
+    'min(1% + 1px)',
+    'min(1% + 1px)',
+    '2px');
+test_serialization(
+    'max(1px + 1%)',
+    'max(1% + 1px)',
+    'max(1% + 1px)',
+    '2px');
 
-test_valid_length_percent('min(10% + 30px, 5% + 60px)', 'min(10% + 30px, 5% + 60px)')
-test_valid_length_percent('max(10% + 2em, 5% + 1em)', 'max(10% + 2em, 5% + 1em)')
+// Arguments are simplified, but not reordered.
+test_serialization(
+    'min(20px, 10%)',
+    'min(20px, 10%)',
+    'min(20px, 10%)',
+    '10px');
+test_serialization(
+    'min(1em, 10%)',
+    'min(1em, 10%)',
+    'min(16px, 10%)',
+    '10px');
+test_serialization(
+    'min(10%, 20px)',
+    'min(10%, 20px)',
+    'min(10%, 20px)',
+    '10px');
+test_serialization(
+    'min(10%, 1em)',
+    'min(10%, 1em)',
+    'min(10%, 16px)',
+    '10px');
+test_serialization(
+    'max(20px, 10%)',
+    'max(20px, 10%)',
+    'max(20px, 10%)',
+    '20px');
+test_serialization(
+    'max(1em, 10%)',
+    'max(1em, 10%)',
+    'max(16px, 10%)',
+    '16px');
+test_serialization(
+    'max(10%, 20px)',
+    'max(10%, 20px)',
+    'max(10%, 20px)',
+    '20px');
+test_serialization(
+    'max(10%, 1em)',
+    'max(10%, 1em)',
+    'max(10%, 16px)',
+    '16px');
 
-test_valid_length_percent('calc(min(10%) + max(1em) + min(20px))', 'calc(min(10%) + max(1em) + min(20px))');
-test_valid_length_percent('calc(max(20px) + min(1em) + max(10%))', 'calc(max(20px) + min(1em) + max(10%))');
-test_valid_length_percent('calc(max(10%) + min(1em) + max(20px))', 'calc(max(10%) + min(1em) + max(20px))');
-test_valid_length_percent('calc(min(20px) + max(1em) + min(10%))', 'calc(min(20px) + max(1em) + min(10%))');
+// Within an argument, normal sorting occurs
+test_serialization(
+    'min(10% + 30px, 5em + 5%)',
+    'min(10% + 30px, 5% + 5em)',
+    'min(10% + 30px, 5% + 80px)',
+    '40px');
+test_serialization(
+    'max(10% + 30px, 5em + 5%)',
+    'max(10% + 30px, 5% + 5em)',
+    'max(10% + 30px, 5% + 80px)',
+    '85px');
 
-test_valid_length_percent('calc(20px + min(10%))', 'calc(20px + min(10%))');
-test_valid_length_percent('calc(10% + min(20px))', 'calc(10% + min(20px))');
-test_valid_length_percent('calc(1em + min(10%))', 'calc(1em + min(10%))');
-test_valid_length_percent('calc(10% + min(1em))', 'calc(10% + min(1em))');
-test_valid_length_percent('calc(min(10%) + 20px)', 'calc(20px + min(10%))');
-test_valid_length_percent('calc(min(20px) + 10%)', 'calc(10% + min(20px))');
-test_valid_length_percent('calc(min(10%) + 1em)', 'calc(1em + min(10%))');
-test_valid_length_percent('calc(min(1em) + 10%)', 'calc(10% + min(1em))');
-test_valid_length_percent('calc(20px + max(10%))', 'calc(20px + max(10%))');
-test_valid_length_percent('calc(10% + max(20px))', 'calc(10% + max(20px))');
-test_valid_length_percent('calc(1em + max(10%))', 'calc(1em + max(10%))');
-test_valid_length_percent('calc(10% + max(1em))', 'calc(10% + max(1em))');
-test_valid_length_percent('calc(max(10%) + 20px)', 'calc(20px + max(10%))');
-test_valid_length_percent('calc(max(20px) + 10%)', 'calc(10% + max(20px))');
-test_valid_length_percent('calc(max(10%) + 1em)', 'calc(1em + max(10%))');
-test_valid_length_percent('calc(max(1em) + 10%)', 'calc(10% + max(1em))');
+// min()/max() are valid inside a calc(),
+// and retain their relative order
+test_serialization(
+    'calc(min(10% + 1px) + max(1em + 10%) + min(10% + 20px))',
+    'calc(min(10% + 1px) + max(10% + 1em) + min(10% + 20px))',
+    'calc(min(10% + 1px) + max(10% + 16px) + min(10% + 20px))',
+    '67px');
 
+// min()/max() can be combined with plain units as well.
+// While min()/max() maintain their own ordering,
+// ordinary units will re-sort around them.
+test_serialization(
+    'calc(1em + max(10% + 20px) + 5% + min(1em + 10%) + 10px)',
+    'calc(5% + 1em + 10px + max(10% + 20px) + min(10% + 1em))',
+    'calc(5% + 26px + max(10% + 20px) + min(10% + 16px))',
+    '87px');
 </script>

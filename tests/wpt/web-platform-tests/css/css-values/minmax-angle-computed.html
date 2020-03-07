@@ -5,16 +5,14 @@
 <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../support/computed-testcommon.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
 <div id="target"></div>
 <div id="reference"></div>
 <script>
 function test_angle_equals(value, expected) {
-  const reference = document.getElementById('reference');
-  reference.style.transform = '';
-  reference.style.transform = `rotate(${expected})`;
-  const computed = getComputedStyle(reference).transform;
-  test_computed_value('transform', `rotate(${value})`, computed);
+  test_math_used(`rotate(${value})`, `rotate(${expected})`,
+	{prop:'transform', base:'none',
+     msg: `${value} should be used-value-equivalent to ${expected}`});
 }
 
 // Identity tests

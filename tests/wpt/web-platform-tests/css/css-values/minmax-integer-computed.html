@@ -5,18 +5,14 @@
 <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../support/computed-testcommon.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
 <div id="target"></div>
-<div id="reference"></div>
 <script>
-const property = 'z-index';
-
 function test_integer_equals(value, expected) {
-  const reference = document.getElementById('reference');
-  reference.style[property] = '';
-  reference.style[property] = expected;
-  const computed = getComputedStyle(reference)[property];
-  test_computed_value(property, value, computed);
+  test_math_used(value, expected,
+    {base: '123',
+     prop: 'z-index'}
+  );
 }
 
 // Identity tests

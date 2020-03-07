@@ -3,27 +3,70 @@
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#percentages">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
 <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../support/parsing-testcommon.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div style="width: 100px;">
+    <div id=target></div>
+</div>
 <script>
-function test_valid_percentage(value, expected) {
-  test_valid_value('margin-left', value, expected);
+function test_serialization(t,s,c,u, {prop}={}) {
+    test_specified_serialization(prop || 'text-indent', t,s);
+    test_computed_serialization(prop || 'text-indent', t,c);
+    if(u) test_used_serialization(prop || 'margin-left', t,u);
 }
 
-test_valid_percentage('min(1%)', 'min(1%)');
-test_valid_percentage('max(1%)', 'max(1%)');
+test_serialization(
+    'min(1%)',
+    'calc(1%)',
+    '1%',
+    '1px');
+test_serialization(
+    'max(1%)',
+    'calc(1%)',
+    '1%',
+    '1px');
 
-test_valid_percentage('min(1%, 2%, 3%)', 'min(1%, 2%, 3%)');
-test_valid_percentage('min(3%, 2%, 1%)', 'min(3%, 2%, 1%)');
-test_valid_percentage('max(1%, 2%, 3%)', 'max(1%, 2%, 3%)');
-test_valid_percentage('max(3%, 2%, 1%)', 'max(3%, 2%, 1%)');
 
-test_valid_percentage('calc(min(1%) + min(2%))', 'calc(min(1%) + min(2%))');
-test_valid_percentage('calc(max(1%) + max(2%))', 'calc(max(1%) + max(2%))');
-test_valid_percentage('calc(1% + min(1%))', 'calc(1% + min(1%))');
-test_valid_percentage('calc(min(1%) + 1%)', 'calc(1% + min(1%))');
-test_valid_percentage('calc(1% + max(1%))', 'calc(1% + max(1%))');
-test_valid_percentage('calc(max(1%) + 1%)', 'calc(1% + max(1%))');
+// %s can't be simplified until we resolve them,
+// since in some cases they can resolve against a negative value
+// (so that 20% is less than 10%),
+// and we don't want to try and distinguish between the properties
+// where the resolving value is possibly-negative or always non-negative.
+test_serialization(
+    'min(1%, 2%, 3%)',
+    'min(1%, 2%, 3%)',
+    'min(1%, 2%, 3%)',
+    '1px');
+test_serialization(
+    'min(3%, 2%, 1%)',
+    'min(3%, 2%, 1%)',
+    'min(3%, 2%, 1%)',
+    '1px');
+test_serialization(
+    'max(1%, 2%, 3%)',
+    'max(1%, 2%, 3%)',
+    'max(1%, 2%, 3%)',
+    '3px');
+test_serialization(
+    'max(3%, 2%, 1%)',
+    'max(3%, 2%, 1%)',
+    'max(3%, 2%, 1%)',
+    '3px');
+
+// Also ensure that this works against a possibly-negative resolving value...
+test_serialization(
+    'min(1%, 2%, 3%) 0px',
+    'min(1%, 2%, 3%) 0px',
+    'min(1%, 2%, 3%) 0px',
+    '',
+    {prop:'background-position'});
+
+test_serialization(
+    'calc(min(1%, 2%) + max(3%, 4%) + 10%)',
+    'calc(15%)',
+    '15%',
+    '15px');
 
 </script>
