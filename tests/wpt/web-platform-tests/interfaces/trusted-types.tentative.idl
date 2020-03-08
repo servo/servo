@@ -4,33 +4,43 @@ typedef (DOMString or TrustedHTML) HTMLString;
 typedef (DOMString or TrustedScript) ScriptString;
 typedef (DOMString or TrustedScriptURL) ScriptURLString;
 
-[Exposed=(Window, Worker)]
-interface TrustedHTML {
+[
+  Exposed=(Window, Worker),
+  SecureContext
+] interface TrustedHTML {
     stringifier;
 };
 
-[Exposed=(Window, Worker)]
-interface TrustedScript {
+[
+  Exposed=(Window, Worker),
+  SecureContext
+] interface TrustedScript {
     stringifier;
 };
 
-[Exposed=(Window, Worker)]
-interface TrustedScriptURL {
+[
+  Exposed=(Window, Worker),
+  SecureContext
+] interface TrustedScriptURL {
     stringifier;
 };
 
-[Exposed=(Window, Worker)]
-interface TrustedTypePolicyFactory {
-    [Unforgeable] TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
+[
+  Exposed=(Window, Worker),
+  SecureContext
+] interface TrustedTypePolicyFactory {
+    TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
     // All the policy object names that have been created
 };
 
-[Exposed=(Window, Worker)]
-interface TrustedTypePolicy {
-    [Unforgeable] readonly attribute DOMString name;
-    [Unforgeable] TrustedHTML createHTML(DOMString input);
-    [Unforgeable] TrustedScript createScript(DOMString input);
-    [Unforgeable] TrustedScriptURL createScriptURL(DOMString input);
+[
+  Exposed=(Window, Worker),
+  SecureContext
+] interface TrustedTypePolicy {
+    readonly attribute DOMString name;
+    TrustedHTML createHTML(DOMString input);
+    TrustedScript createScript(DOMString input);
+    TrustedScriptURL createScriptURL(DOMString input);
 };
 
 dictionary TrustedTypePolicyOptions {
