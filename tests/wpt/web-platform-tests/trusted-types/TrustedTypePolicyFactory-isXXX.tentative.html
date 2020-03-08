@@ -82,40 +82,4 @@
     assert_false(trustedTypes.isScriptURL('test'));
     assert_false(trustedTypes.isScriptURL({}));
   }, 'TrustedTypePolicyFactory.isXXX should accept anything without throwing.');
-
-  // Redefinition tests, assign to property.
-  // (Assignments will through in the polyfill (because the objects are frozen)
-  //  but will be silently dropped in the native implementation (because that's
-  //  what [Unforgeable] does. Hence, the tests use try {..} catch {} to cover
-  //  both situationsm rather than expect_throws(...).)
-  test(t => {
-    try { trustedTypes.isHTML = () => 'fake'; } catch { }
-    assert_false(trustedTypes.isHTML({}));
-  }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined.');
-
-  test(t => {
-    try { trustedTypes.isScript = () => 'fake'; } catch { }
-    assert_false(trustedTypes.isScript({}));
-  }, 'TrustedTypePolicyFactory.isScript cannot be redefined.');
-
-  test(t => {
-    try { trustedTypes.isScriptURL = () => 'fake'; } catch { }
-    assert_false(trustedTypes.isScriptURL({}));
-  }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined.');
-
-  // Redefinition tests, via Object.defineProperty.
-  test(t => {
-    try { Object.defineProperty(trustedTypes, 'isHTML', () => 'fake'); } catch { }
-    assert_false(trustedTypes.isHTML({}));
-  }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined via defineProperty.');
-
-  test(t => {
-    try { Object.defineProperty(trustedTypes, 'isScript', () => 'fake'); } catch { }
-    assert_false(trustedTypes.isScript({}));
-  }, 'TrustedTypePolicyFactory.isScript cannot be redefined via definePropert.');
-
-  test(t => {
-    try { Object.defineProperty(trustedTypes, 'isScriptURL', () => 'fake'); } catch { }
-    assert_false(trustedTypes.isScriptURL({}));
-  }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined via definePropert.');
 </script>
