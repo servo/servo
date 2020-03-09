@@ -1467,6 +1467,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetAttribLocation(program, name)
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.7
+    fn GetFragDataLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
+        handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return -1);
+        handle_potential_webgl_error!(self.base, program.get_frag_data_location(name), -1)
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
         self.base.GetProgramInfoLog(program)
