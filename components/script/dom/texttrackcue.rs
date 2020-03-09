@@ -25,24 +25,32 @@ pub struct TextTrackCue {
 }
 
 impl TextTrackCue {
-    // FIXME(#22314, dlrobertson) implement VTTCue.
-    #[allow(dead_code)]
-    pub fn new_inherited(id: DOMString, track: Option<&TextTrack>) -> TextTrackCue {
+    pub fn new_inherited(
+        id: DOMString,
+        start_time: f64,
+        end_time: f64,
+        track: Option<&TextTrack>,
+    ) -> TextTrackCue {
         TextTrackCue {
             eventtarget: EventTarget::new_inherited(),
             id: DomRefCell::new(id),
             track: track.map(Dom::from_ref),
-            start_time: Cell::new(0.),
-            end_time: Cell::new(0.),
+            start_time: Cell::new(start_time),
+            end_time: Cell::new(end_time),
             pause_on_exit: Cell::new(false),
         }
     }
 
-    // FIXME(#22314, dlrobertson) implement VTTCue.
     #[allow(dead_code)]
-    pub fn new(window: &Window, id: DOMString, track: Option<&TextTrack>) -> DomRoot<TextTrackCue> {
+    pub fn new(
+        window: &Window,
+        id: DOMString,
+        start_time: f64,
+        end_time: f64,
+        track: Option<&TextTrack>,
+    ) -> DomRoot<TextTrackCue> {
         reflect_dom_object(
-            Box::new(TextTrackCue::new_inherited(id, track)),
+            Box::new(TextTrackCue::new_inherited(id, start_time, end_time, track)),
             window,
             TextTrackCueBinding::Wrap,
         )

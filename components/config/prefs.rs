@@ -294,6 +294,9 @@ mod gen {
                     event_polling_interval: i64,
                     test: bool,
                 },
+                webvtt: {
+                    enabled: bool,
+                },
                 webxr: {
                     #[serde(default)]
                     enabled: bool,

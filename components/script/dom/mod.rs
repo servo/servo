@@ -538,6 +538,8 @@ pub mod vrfieldofview;
 pub mod vrframedata;
 pub mod vrpose;
 pub mod vrstageparameters;
+pub mod vttcue;
+pub mod vttregion;
 pub mod webgl_extensions;
 pub use self::webgl_extensions::ext::*;
 pub mod webgl2renderingcontext;
