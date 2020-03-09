@@ -142,9 +142,11 @@ impl WebGLFramebuffer {
         size: Size2D<i32, Viewport>,
     ) -> Option<(WebXRSwapChainId, DomRoot<Self>)> {
         let (sender, receiver) = webgl_channel().unwrap();
-        let _ = context
-            .webgl_sender()
-            .send_create_webxr_swap_chain(size.to_untyped(), sender);
+        let _ = context.webgl_sender().send_create_webxr_swap_chain(
+            size.to_untyped(),
+            sender,
+            session.session_id(),
+        );
         let swap_chain_id = receiver.recv().unwrap()?;
         let framebuffer_id =
             WebGLFramebufferId::Opaque(WebGLOpaqueFramebufferId::WebXR(swap_chain_id));

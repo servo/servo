@@ -65,7 +65,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use canvas::WebGLComm;
+use canvas::{SurfaceProviders, WebGLComm, WebGlExecutor};
 use canvas_traits::webgl::WebGLThreads;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
@@ -432,14 +432,6 @@ where
             panic!("We don't currently support running both WebVR and WebXR");
         }
 
-        // For the moment, we enable use both the webxr crate and the rust-webvr crate,
-        // but we are migrating over to just using webxr.
-        let mut webxr_main_thread = webxr::MainThreadRegistry::new(event_loop_waker)
-            .expect("Failed to create WebXR device registry");
-        if pref!(dom.webxr.enabled) {
-            embedder.register_webxr(&mut webxr_main_thread);
-        }
-
         let mut webvr_heartbeats = Vec::new();
         let webvr_services = if pref!(dom.webvr.enabled) {
             let mut services = VRServiceManager::new();
@@ -468,7 +460,12 @@ where
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
         let mut external_image_handlers = Box::new(external_image_handlers);
 
-        let webgl_threads = create_webgl_threads(
+        // For the moment, we enable use both the webxr crate and the rust-webvr crate,
+        // but we are migrating over to just using webxr.
+        let mut webxr_main_thread = webxr::MainThreadRegistry::new(event_loop_waker)
+            .expect("Failed to create WebXR device registry");
+
+        let (webgl_threads, webgl_extras) = create_webgl_threads(
             &*window,
             &mut webrender,
             webrender_api_sender.clone(),
@@ -477,6 +474,16 @@ where
             &mut external_image_handlers,
             external_images.clone(),
         );
+
+        if pref!(dom.webxr.enabled) {
+            if let Some((webxr_surface_providers, webgl_executor)) = webgl_extras {
+                embedder.register_webxr(
+                    &mut webxr_main_thread,
+                    webgl_executor,
+                    webxr_surface_providers,
+                );
+            }
+        }
 
         let glplayer_threads = match window.get_gl_context() {
             GlContext::Unknown => None,
@@ -1060,7 +1067,10 @@ fn create_webgl_threads<W>(
     webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-) -> Option<WebGLThreads>
+) -> (
+    Option<WebGLThreads>,
+    Option<(SurfaceProviders, WebGlExecutor)>,
+)
 where
     W: WindowMethods + 'static + ?Sized,
 {
@@ -1074,7 +1084,7 @@ where
                 Ok(a) => a,
                 Err(e) => {
                     warn!("Failed to create software graphics context: {:?}", e);
-                    return None;
+                    return (None, None);
                 },
             };
             (Device::Software(device), Context::Software(context))
@@ -1083,7 +1093,7 @@ where
                 Ok(a) => a,
                 Err(e) => {
                     warn!("Failed to create hardware graphics context: {:?}", e);
-                    return None;
+                    return (None, None);
                 },
             };
             (Device::Hardware(device), Context::Hardware(context))
@@ -1094,7 +1104,7 @@ where
         Ok(a) => a,
         Err(e) => {
             warn!("Failed to create graphics context: {:?}", e);
-            return None;
+            return (None, None);
         },
     };
 
@@ -1106,8 +1116,10 @@ where
     let WebGLComm {
         webgl_threads,
         webxr_swap_chains,
+        webxr_surface_providers,
         image_handler,
         output_handler,
+        webgl_executor,
     } = WebGLComm::new(
         device,
         context,
@@ -1129,5 +1141,8 @@ where
         webrender.set_output_image_handler(output_handler);
     }
 
-    Some(webgl_threads)
+    (
+        Some(webgl_threads),
+        Some((webxr_surface_providers, webgl_executor)),
+    )
 }

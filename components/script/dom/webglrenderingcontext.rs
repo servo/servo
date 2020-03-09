@@ -81,6 +81,7 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
+use webxr_api::SessionId;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 // From the GLES 2.0.25 spec, page 85:
@@ -4576,8 +4577,9 @@ impl WebGLMessageSender {
         &self,
         size: Size2D<i32>,
         sender: WebGLSender<Option<WebXRSwapChainId>>,
+        id: SessionId,
     ) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_create_webxr_swap_chain(size, sender))
+        self.wake_after_send(|| self.sender.send_create_webxr_swap_chain(size, sender, id))
     }
 
     pub fn send_resize(

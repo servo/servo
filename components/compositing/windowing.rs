@@ -4,6 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
+use canvas::{SurfaceProviders, WebGlExecutor};
 use embedder_traits::EventLoopWaker;
 use euclid::Scale;
 #[cfg(feature = "gl")]
@@ -184,7 +185,13 @@ pub trait EmbedderMethods {
     }
 
     /// Register services with a WebXR Registry.
-    fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry) {}
+    fn register_webxr(
+        &mut self,
+        _: &mut webxr::MainThreadRegistry,
+        _: WebGlExecutor,
+        _: SurfaceProviders,
+    ) {
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

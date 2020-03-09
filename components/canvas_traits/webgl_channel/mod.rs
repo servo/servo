@@ -9,6 +9,7 @@ mod mpsc;
 
 use crate::webgl::WebGLMsg;
 use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;
@@ -76,6 +77,18 @@ where
         match *self {
             WebGLReceiver::Ipc(ref receiver) => receiver.try_recv().map_err(|_| ()),
             WebGLReceiver::Mpsc(ref receiver) => receiver.try_recv().map_err(|_| ()),
+        }
+    }
+
+    pub fn into_inner(self) -> crossbeam_channel::Receiver<T>
+    where
+        T: Send + 'static,
+    {
+        match self {
+            WebGLReceiver::Ipc(receiver) => {
+                ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(receiver)
+            },
+            WebGLReceiver::Mpsc(receiver) => receiver.into_inner(),
         }
     }
 }

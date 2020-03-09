@@ -42,5 +42,5 @@ webrender_traits = {path = "../webrender_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
 surfman = { version = "0.1", features = ["sm-angle", "sm-osmesa"] }
-surfman-chains = "0.2"
+surfman-chains = "0.3"
 surfman-chains-api = "0.2"
