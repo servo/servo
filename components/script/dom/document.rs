@@ -1636,11 +1636,10 @@ impl Document {
             .borrow_mut()
             .push((ident, Some(callback)));
 
-        // TODO: Should tick animation only when document is visible
-
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
-        if self.is_faking_animation_frames() {
+        if self.is_faking_animation_frames() && self.window().visible() {
+            warn!("Scheduling fake animation frame. Animation frames tick too fast.");
             let callback = FakeRequestAnimationFrameCallback {
                 document: Trusted::new(self),
             };
