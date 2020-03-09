@@ -21,7 +21,15 @@ function createTestTree(node) {
   function attachShadowFromTemplate(template) {
     let parent = template.parentNode;
     parent.removeChild(template);
-    let shadowRoot = parent.attachShadow({mode: template.getAttribute('data-mode')});
+    let shadowRoot;
+    if (template.getAttribute('data-slot-assignment') === 'manual') {
+       shadowRoot =
+          parent.attachShadow({mode: template.getAttribute('data-mode'),
+                               slotAssignment: 'manual'});
+    } else {
+      shadowRoot = parent.attachShadow(
+          {mode: template.getAttribute('data-mode')});
+    }
     let id = template.id;
     if (id) {
       shadowRoot.id = id;

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+</head>
+<body>
+<script>
+    test(t => {
+      assert_element_accepts_trusted_html_set_ns(window, '0', t, 'a', 'b', RESULTS.HTML);
+    }, "Element.setAttributeNS assigned via policy (successful HTML transformation)");
+
+    test(t => {
+      assert_element_accepts_trusted_script_set_ns(window, '1', t, 'a', 'b', RESULTS.SCRIPT);
+    }, "Element.setAttributeNS assigned via policy (successful Script transformation)");
+
+    test(t => {
+      assert_element_accepts_trusted_script_url_set_ns(window, '2', t, 'a', 'b', RESULTS.SCRIPTURL);
+    }, "Element.setAttributeNS assigned via policy (successful ScriptURL transformation)");
+
+// TODO: Is there any non-URL, namespaced accessor left?
+/*
+    test(t => {
+      let p = createURL_policy(window, '5');
+      let url = p.createURL(INPUTS.URL);
+
+      let elem = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      elem.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+      let attr_node = elem.getAttributeNodeNS("http://www.w3.org/1999/xlink", "href");
+      assert_equals(attr_node.value + "", RESULTS.URL);
+    }, "Element.setAttributeNS accepts a URL on <svg:image xlink:href/>");
+*/
+
+</script>
