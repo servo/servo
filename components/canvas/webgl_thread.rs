@@ -1528,21 +1528,13 @@ impl WebGLImpl {
                     &*data,
                 );
             },
-            WebGLCommand::DrawingBufferWidth(ref sender) => {
+            WebGLCommand::DrawingBufferSize(ref sender) => {
                 let size = device
                     .context_surface_info(&ctx)
                     .unwrap()
                     .expect("Where's the front buffer?")
                     .size;
-                sender.send(size.width).unwrap()
-            },
-            WebGLCommand::DrawingBufferHeight(ref sender) => {
-                let size = device
-                    .context_surface_info(&ctx)
-                    .unwrap()
-                    .expect("Where's the front buffer?")
-                    .size;
-                sender.send(size.height).unwrap()
+                sender.send(size).unwrap()
             },
             WebGLCommand::Finish(ref sender) => Self::finish(gl, sender),
             WebGLCommand::Flush => gl.flush(),

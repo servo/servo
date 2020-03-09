@@ -189,6 +189,7 @@ pub struct WebGLRenderingContext {
     current_vao_webgl2: MutNullableDom<WebGLVertexArrayObject>,
     textures: Textures,
     api_type: GlType,
+    drawing_buffer_size: Cell<Option<Size2D<i32>>>,
 }
 
 impl WebGLRenderingContext {
@@ -250,6 +251,7 @@ impl WebGLRenderingContext {
                 current_vao_webgl2: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
+                drawing_buffer_size: Cell::new(None),
             }
         })
     }
@@ -296,6 +298,17 @@ impl WebGLRenderingContext {
         })
     }
 
+    pub fn get_drawing_buffer_size(&self) -> Size2D<i32> {
+        if let Some(size) = self.drawing_buffer_size.get() {
+            return size;
+        }
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::DrawingBufferSize(sender));
+        let size = receiver.recv().unwrap();
+        self.drawing_buffer_size.set(Some(size));
+        size
+    }
+
     pub fn current_vao_webgl2(&self) -> DomRoot<WebGLVertexArrayObject> {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
@@ -306,6 +319,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn recreate(&self, size: Size2D<u32>) {
+        self.drawing_buffer_size.set(None);
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
         // FIXME(#21718) The backend is allowed to choose a size smaller than
@@ -1561,16 +1575,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferWidth(&self) -> i32 {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::DrawingBufferWidth(sender));
-        receiver.recv().unwrap()
+        self.get_drawing_buffer_size().width
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferHeight(&self) -> i32 {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::DrawingBufferHeight(sender));
-        receiver.recv().unwrap()
+        self.get_drawing_buffer_size().height
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -2029,6 +2039,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
+        }
+
+        // The only time that drawingBufferWidth/drawingBufferHeight will change values is:
+        // * the canvas is resized
+        // * an opaque framebuffer is bound
+        // * the default framebuffer is bound, replacing an opaque framebuffer
+        let drawing_buffer_changed = framebuffer.as_ref().map_or(true, |fb| fb.id().is_opaque());
+        if drawing_buffer_changed {
+            self.drawing_buffer_size.set(None);
         }
 
         self.bind_framebuffer_to(target, framebuffer, &self.bound_draw_framebuffer)

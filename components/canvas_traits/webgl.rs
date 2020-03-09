@@ -438,8 +438,7 @@ pub enum WebGLCommand {
         format: u32,
         data: TruncatedDebug<IpcSharedMemory>,
     },
-    DrawingBufferWidth(WebGLSender<i32>),
-    DrawingBufferHeight(WebGLSender<i32>),
+    DrawingBufferSize(WebGLSender<Size2D<i32>>),
     Finish(WebGLSender<()>),
     Flush,
     GenerateMipmap(u32),
@@ -674,6 +673,15 @@ pub enum WebGLOpaqueFramebufferId {
 pub enum WebGLFramebufferId {
     Transparent(WebGLTransparentFramebufferId),
     Opaque(WebGLOpaqueFramebufferId),
+}
+
+impl WebGLFramebufferId {
+    pub fn is_opaque(&self) -> bool {
+        match self {
+            WebGLFramebufferId::Opaque(_) => true,
+            WebGLFramebufferId::Transparent(_) => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
