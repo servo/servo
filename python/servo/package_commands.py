@@ -10,6 +10,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from datetime import datetime
+import base64
 import hashlib
 import json
 import os
@@ -20,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import six.moves.urllib as urllib
+import xml
 
 from mach.decorators import (
     CommandArgument,
@@ -89,6 +91,15 @@ else:
         except Exception as e:
             shutil.rmtree(dir_name)
             raise e
+
+
+def get_taskcluster_secret(name):
+    url = (
+        os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster") +
+        "/api/secrets/v1/secret/project/servo/" +
+        name
+    )
+    return json.load(urllib.request.urlopen(url))["secret"]
 
 
 def otool(s):
@@ -209,8 +220,9 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='append',
                      help='Create an APPX package')
+    @CommandArgument('--ms-app-store', default=None, action='store_true')
     def package(self, release=False, dev=False, android=None, magicleap=None, debug=False,
-                debugger=None, target=None, flavor=None, maven=False, uwp=None):
+                debugger=None, target=None, flavor=None, maven=False, uwp=None, ms_app_store=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -234,7 +246,7 @@ class PackageCommands(CommandBase):
         target_dir = path.dirname(binary_path)
         if uwp:
             vs_info = self.vs_dirs()
-            build_uwp(uwp, dev, vs_info['msbuild'])
+            build_uwp(uwp, dev, vs_info['msbuild'], ms_app_store)
         elif magicleap:
             if platform.system() not in ["Darwin"]:
                 raise Exception("Magic Leap builds are only supported on macOS.")
@@ -588,14 +600,6 @@ class PackageCommands(CommandBase):
     def upload_nightly(self, platform, secret_from_taskcluster):
         import boto3
 
-        def get_taskcluster_secret(name):
-            url = (
-                os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster") +
-                "/api/secrets/v1/secret/project/servo/" +
-                name
-            )
-            return json.load(urllib.request.urlopen(url))["secret"]
-
         def get_s3_secret():
             aws_access_key = None
             aws_secret_access_key = None
@@ -739,7 +743,59 @@ class PackageCommands(CommandBase):
         return 0
 
 
-def build_uwp(platforms, dev, msbuild_dir):
+def setup_uwp_signing(ms_app_store):
+    # App package needs to be signed. If we find a certificate that has been installed
+    # already, we use it. Otherwise we create and install a temporary certificate.
+
+    if ms_app_store:
+        return ["/p:AppxPackageSigningEnabled=false"]
+
+    is_tc = "TASKCLUSTER_PROXY_URL" in os.environ
+
+    def run_powershell_cmd(cmd):
+        try:
+            return subprocess.check_output(['powershell.exe', '-NoProfile', '-Command', cmd])
+        except subprocess.CalledProcessError:
+            print("ERROR: PowerShell command failed: ", cmd)
+            exit(1)
+
+    if is_tc:
+        print("Packaging on TC. Using secret certificate")
+        pfx = get_taskcluster_secret("windows-codesign-cert/latest")["pfx"]
+        open("servo.pfx", "wb").write(base64.b64decode(pfx["base64"]))
+        run_powershell_cmd('Import-PfxCertificate -FilePath .\servo.pfx -CertStoreLocation Cert:\CurrentUser\My')
+        os.remove("servo.pfx")
+
+    # Parse appxmanifest to find the publisher name
+    manifest_file = path.join(os.getcwd(), 'support', 'hololens', 'ServoApp', 'Package.appxmanifest')
+    manifest = xml.etree.ElementTree.parse(manifest_file)
+    namespace = "{http://schemas.microsoft.com/appx/manifest/foundation/windows10}"
+    publisher = manifest.getroot().find(namespace + "Identity").attrib["Publisher"]
+    # Powershell command that lists all certificates for publisher
+    cmd = '(dir cert: -Recurse | Where-Object {$_.Issuer -eq "' + publisher + '"}).Thumbprint'
+    certs = list(set(run_powershell_cmd(cmd).splitlines()))
+    if not certs and is_tc:
+        print("Error: No certificate installed for publisher " + publisher)
+        exit(1)
+    if not certs and not is_tc:
+        print("No certificate installed for publisher " + publisher)
+        print("Creating and installing a temporary certificate")
+        # PowerShell command that creates and install signing certificate for publisher
+        cmd = '(New-SelfSignedCertificate -Type Custom -Subject ' + publisher + \
+              ' -FriendlyName "Allizom Signing Certificate (temporary)"' + \
+              ' -KeyUsage DigitalSignature -CertStoreLocation "Cert:\CurrentUser\My"' + \
+              ' -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")).Thumbprint'
+        thumbprint = run_powershell_cmd(cmd)
+    elif len(certs) > 1:
+        print("Warning: multiple signing certificate are installed for " + publisher)
+        print("Warning: Using first one")
+        thumbprint = certs[0]
+    else:
+        thumbprint = certs[0]
+    return ["/p:AppxPackageSigningEnabled=true", "/p:PackageCertificateThumbprint=" + thumbprint]
+
+
+def build_uwp(platforms, dev, msbuild_dir, ms_app_store):
     if any(map(lambda p: p not in ['x64', 'x86', 'arm64'], platforms)):
         raise Exception("Unsupported appx platforms: " + str(platforms))
     if dev and len(platforms) > 1:
@@ -764,7 +820,8 @@ def build_uwp(platforms, dev, msbuild_dir):
         )
         build_file.close()
         # Generate an appxbundle.
-        subprocess.check_call([msbuild, "/m", build_file.name])
+        msbuild_args = setup_uwp_signing(ms_app_store)
+        subprocess.check_call([msbuild, "/m", build_file.name] + msbuild_args)
         os.unlink(build_file.name)
 
     print("Creating ZIP")

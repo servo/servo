@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5" IgnorableNamespaces="uap mp uap5">
-  <Identity Name="MozillaFoundation.FirefoxReality" Publisher="CN=193FE5E7-EFE6-4FC4-9D96-D742E0265B78" Version="1.0.0.0" />
+  <Identity Name="MozillaFoundation.FirefoxReality" Publisher="CN=Allizom" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="1d265729-8836-4bd3-9992-4cb111d1068b" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>Firefox Reality</DisplayName>

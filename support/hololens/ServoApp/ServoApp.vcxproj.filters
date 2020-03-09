@@ -159,7 +159,6 @@
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ServoApp_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\simpleservo.dll">
       <Filter>ReleaseServoDLLs</Filter>
