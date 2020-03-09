@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+
+  function promise_violation(filter_arg) {
+    return _ => new Promise((resolve, reject) => {
+      function handler(e) {
+        let matches = (filter_arg instanceof Function)
+            ? filter_arg(e)
+            : (e.originalPolicy.includes(filter_arg));
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+
+      document.addEventListener("securitypolicyviolation", handler);
+    });
+  }
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"));
+    d = document.createElement("div");
+    assert_throws_js(TypeError,
+        _ => {
+          d.innerHTML = "a";
+        });
+    assert_equals("", d.innerHTML);
+    return p;
+  }, "Require trusted types for 'script' block create HTML.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"));
+    d = document.createElement("script");
+    assert_throws_js(TypeError,
+        _ => {
+          d.innerText = "a";
+        });
+    assert_equals("", d.innerText);
+    return p;
+  }, "Require trusted types for 'script' block create script.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"));
+    s = document.createElement("script");
+    assert_throws_js(TypeError,
+        _ => {
+          s.src = "a";
+        });
+    assert_equals("", s.src);
+    return p;
+  }, "Require trusted types for 'script' block create script URL.");
+
+  promise_test(t => {
+    return new Promise(resolve => {
+      p = trustedTypes.createPolicy("policyA", {createScript: s => s + 1});
+      p1 = trustedTypes.createPolicy("policyA", {createHTML: _ => ""});
+      p2 = trustedTypes.createPolicy("default", {createScript: s => s});
+      script = p.createScript("1");
+      assert_equals(script.toString(), "11");
+      s = document.createElement("script");
+      s.innerText = script;
+      assert_equals(script.toString(), s.innerText.toString());
+      s.innerText = "1";
+      assert_equals("1", s.innerText.toString());
+      resolve();
+    });
+  }, "Set require trusted types for 'script' without CSP for trusted types don't block policy creation and using.");
+</script>

@@ -34,4 +34,20 @@ promise_test(async t => {
   worker.postMessage('WithoutCorp');
   assert_equals((await p).data, 'TypeError: Failed to fetch');
 }, "fetch() to no CORP response should not succeed.");
+
+promise_test(async t => {
+  const scope = `${SCOPE}-2`;
+  await service_worker_unregister(t, scope);
+  const promise = navigator.serviceWorker.register(
+      'resources/require-corp-sw-import-scripts.js', {scope});
+  await promise_rejects_js(t, TypeError, promise, 'register() should fail.');
+}, 'importScripts() fails for a script with no corp.');
+
+promise_test(async t => {
+  const scope = `${SCOPE}-3`;
+  await service_worker_unregister(t, scope);
+  const registration = await navigator.serviceWorker.register(
+      'resources/require-corp-sw-import-scripts.js?corp=cross-origin', {scope});
+  t.add_cleanup(() => registration.unregister());
+}, 'importScripts() succeeds for a script with corp: cross-origin.');
 </script>

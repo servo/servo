@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+</head>
+<body>
+<script>
+  // TrustedScriptURL Assignments
+  let scriptTestCases = [
+    [ 'embed', 'src' ],
+    [ 'script', 'src' ]
+  ];
+
+  scriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script_url_explicit_set(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
+    }, c[0] + "." + c[1] + " assigned via policy (successful ScriptURL transformation)");
+  });
+
+  // TrustedHTML Assignments
+  let HTMLTestCases = [
+    [ 'iframe', 'srcdoc' ]
+  ];
+
+  HTMLTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_html_explicit_set(window, c, t, c[0], c[1], RESULTS.HTML);
+    }, c[0] + "." + c[1] + " assigned via policy (successful HTML transformation)");
+  });
+
+  // Other attributes can be assigned with TrustedTypes or strings or null values
+  test(t => {
+    assert_element_accepts_trusted_script_url_explicit_set(window, 'scriptsrc1', t, 'script', 'src', RESULTS.SCRIPTURL);
+  }, "script.src assigned via policy (successful script transformation)");
+
+  test(t => {
+    assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', 'A string', 'A string');
+  }, "a.rel accepts strings");
+
+  test(t => {
+    assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', null, 'null');
+  }, "a.rel accepts null");
+</script>
