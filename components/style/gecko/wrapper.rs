@@ -1281,6 +1281,14 @@ impl<'le> TElement for GeckoElement<'le> {
         snapshot_helpers::each_class_or_part(attr, callback)
     }
 
+    #[inline]
+    fn each_exported_part<F>(&self, name: &Atom, callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+        snapshot_helpers::each_exported_part(self.attrs(), name, callback)
+    }
+
     fn each_part<F>(&self, callback: F)
     where
         F: FnMut(&Atom),
@@ -2224,11 +2232,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         };
 
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
-    }
-
-    #[inline]
-    fn exported_part(&self, name: &Atom) -> Option<Atom> {
-        snapshot_helpers::exported_part(self.attrs(), name)
     }
 
     #[inline]

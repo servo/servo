@@ -709,10 +709,6 @@ impl ElementSnapshot for ServoElementSnapshot {
         false
     }
 
-    fn exported_part(&self, _: &Atom) -> Option<Atom> {
-        None
-    }
-
     fn imported_part(&self, _: &Atom) -> Option<Atom> {
         None
     }

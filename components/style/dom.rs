@@ -522,6 +522,14 @@ pub trait TElement:
     {
     }
 
+    /// Internal iterator for the part names that this element exports for a
+    /// given part name.
+    fn each_exported_part<F>(&self, _name: &Atom, _callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+    }
+
     /// Whether a given element may generate a pseudo-element.
     ///
     /// This is useful to avoid computing, for example, pseudo styles for

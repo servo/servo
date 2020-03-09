@@ -393,14 +393,13 @@ where
                 None => break, // Nowhere to export to.
             };
 
-            parts.retain(|part| {
-                let exported_part = match inner_shadow_host.exported_part(part) {
-                    Some(part) => part,
-                    None => return false,
-                };
-                std::mem::replace(part, exported_part);
-                true
-            });
+            let mut new_parts = SmallVec::new();
+            for part in &parts {
+                inner_shadow_host.each_exported_part(part, |exported_part| {
+                    new_parts.push(exported_part.clone());
+                });
+            }
+            parts = new_parts;
         }
     }
 
