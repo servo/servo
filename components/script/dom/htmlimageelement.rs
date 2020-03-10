@@ -167,13 +167,10 @@ impl HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
     pub fn is_usable(&self) -> Fallible<bool> {
         // If image has an intrinsic width or intrinsic height (or both) equal to zero, then return bad.
-        match &self.current_request.borrow().image {
-            Some(image) => {
-                if image.width == 0 || image.height == 0 {
-                    return Ok(false);
-                }
-            },
-            None => return Ok(false),
+        if let Some(image) = &self.current_request.borrow().image {
+            if image.width == 0 || image.height == 0 {
+                return Ok(false);
+            }
         }
 
         match self.current_request.borrow().state {
