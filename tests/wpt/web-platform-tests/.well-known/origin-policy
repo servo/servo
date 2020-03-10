@@ -5,6 +5,20 @@ import glob
 def main(request, response):
     host_piece = request.url_parts.hostname.split(".")[0]
 
+    # Default return code for manifests if found.
+    return_code = 200
+
+    # Reserve 'op99' for tests that should use return code 404.
+    if host_piece == "op99":
+        return_code = 404
+
+    # Default mime type for returned data.
+    content_type = "application/originpolicy+json"
+
+    # Reserve 'op100' for testing incorrect mime type for manifest file.
+    if host_piece == "op100":
+        content_type = "text/plain"
+
     filepath_pattern = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(
         __file__)), "../origin-policy/policies/", "{} *.json".format(host_piece)))
 
@@ -15,4 +29,4 @@ def main(request, response):
 
     with open(matches[0]) as f:
         data = f.read()
-        return 200, [('Content-Type', 'application/originpolicy+json')], data
+        return return_code, [('Content-Type', content_type)], data

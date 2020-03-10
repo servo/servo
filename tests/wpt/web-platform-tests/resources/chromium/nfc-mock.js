@@ -398,15 +398,12 @@ var WebNFCTest = (() => {
       Object.freeze(this); // Makes it immutable.
     }
 
-    initialize() {
+    async initialize() {
       if (testInternal.initialized)
         throw new Error('Call reset() before initialize().');
 
-      if (window.testRunner) {
-        // Grant nfc permissions for Chromium testrunner.
-        window.testRunner.setPermission('nfc', 'granted',
-                                        location.origin, location.origin);
-      }
+      // Grant nfc permissions for Chromium testdriver.
+      await test_driver.set_permission({ name: 'nfc' }, 'granted', false);
 
       if (testInternal.mockNFC == null) {
         testInternal.mockNFC = new MockNFC();

@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conic gradient with negative angle parameter</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<meta name="assert" content="Rendering of conic-gradient with negative center parameter">
+<link rel="match" href="reference/200x200-blue-black-green-red.html">
+<style>
+  #gradient {
+    width: 200px;
+    height: 200px;
+    background-image: conic-gradient(from -90deg, blue 0 25%, black 25% 50%, red 50% 75%, green 75% 100%);
+  }
+</style>
+<div id="gradient"></div>

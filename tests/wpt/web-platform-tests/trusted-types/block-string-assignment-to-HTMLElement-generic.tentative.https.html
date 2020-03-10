@@ -5,7 +5,7 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *; require-trusted-types-for 'script';">
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
 </head>
 <body>
 <script>
@@ -56,7 +56,7 @@
   HTMLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
-      assert_element_accepts_trusted_type(c[0], c[1], null, "null");
+      assert_element_accepts_trusted_type(c[0], c[1], null, c[1] === 'innerHTML'? "" : "null");
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
   });
 

@@ -34,10 +34,12 @@ function xr_promise_test(name, func, properties) {
 // device, and the test object.
 // Requires a webglCanvas on the page.
 function xr_session_promise_test(
-    name, func, fakeDeviceInit, sessionMode, sessionInit, properties) {
+    name, func, fakeDeviceInit, sessionMode, sessionInit, properties, glcontextPropertiesParam, gllayerPropertiesParam) {
   let testDeviceController;
   let testSession;
   let sessionObjects = {};
+  const glcontextProperties = (glcontextPropertiesParam) ? glcontextPropertiesParam : {};
+  const gllayerProperties = (gllayerPropertiesParam) ? gllayerPropertiesParam : {};
 
   const webglCanvas = document.getElementsByTagName('canvas')[0];
   // We can't use assert_true here because it causes the wpt testharness to treat
@@ -47,7 +49,7 @@ function xr_session_promise_test(
       Promise.reject('xr_session_promise_test requires a canvas on the page!');
     }, name, properties);
   }
-  let gl = webglCanvas.getContext('webgl', {alpha: false, antialias: false});
+  let gl = webglCanvas.getContext('webgl', {alpha: false, antialias: false, ...glcontextProperties});
   sessionObjects.gl = gl;
 
   xr_promise_test(
@@ -77,7 +79,7 @@ function xr_session_promise_test(
                             .then((session) => {
                               testSession = session;
                               session.mode = sessionMode;
-                              let glLayer = new XRWebGLLayer(session, gl);
+                              let glLayer = new XRWebGLLayer(session, gl, gllayerProperties);
                               glLayer.context = gl;
                               // Session must have a baseLayer or frame requests
                               // will be ignored.

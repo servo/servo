@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<form>
+  <input type="text" id='myInput'>
+</form>
+<script>
+promise_test(async () => {
+  const onload = new Promise(r => window.addEventListener('load', r));
+  await onload;
+  return assertNoFirstContentfulPaint().then(() => {
+    document.getElementById('myInput').value = 'default text';
+    return assertFirstContentfulPaint();
+  })
+});
+</script>
+</body>

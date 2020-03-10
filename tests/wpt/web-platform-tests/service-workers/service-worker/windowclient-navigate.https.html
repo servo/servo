@@ -106,7 +106,9 @@ function navigate_test(override_parameters) {
       script_url += '?' + parameters.wait_state;
 
       navigator.serviceWorker.addEventListener('message', function(event) {
-          pausedLifecyclePort = event.data.port;
+          if (event.data.port) {
+            pausedLifecyclePort = event.data.port;
+          }
         });
     }
 

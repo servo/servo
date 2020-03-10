@@ -137,6 +137,10 @@ scheme host and port.""")
                                       help="Path to manifest listing tests to include")
     test_selection_group.add_argument("--skip-timeout", action="store_true",
                                       help="Skip tests that are expected to time out")
+    test_selection_group.add_argument("--skip-implementation-status",
+                                      action="append",
+                                      choices=["not-implementing", "backlog", "implementing"],
+                                      help="Skip tests that have the given implementation status")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
                                       help="Labels applied to tests to include in the run. "
                                            "Labels starting dir: are equivalent to top-level directories.")
