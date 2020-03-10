@@ -5754,7 +5754,7 @@ dependencies = [
 [[package]]
 name = "surfman-chains"
 version = "0.3.0"
-source = "git+https://github.com/asajeffrey/surfman-chains?branch=multi#80a71b1a2df71ae70c3c194d0af40b8ebf72968a"
+source = "git+https://github.com/asajeffrey/surfman-chains?branch=multi#e775b8c7807659958a4f20cf8e6eca4290f35124"
 dependencies = [
  "euclid",
  "fnv",
