@@ -90,6 +90,7 @@ use surfman::GLApi;
 use surfman::GLVersion;
 use surfman::SurfaceAccess;
 use surfman::SurfaceType;
+use surfman_chains::SurfmanProvider;
 use surfman_chains::SwapChain;
 use surfman_chains_api::SwapChainAPI;
 
@@ -359,7 +360,8 @@ impl ServoWebSrcWindow {
             (gl::FRAMEBUFFER_COMPLETE, gl::NO_ERROR)
         );
 
-        let swap_chain = SwapChain::create_attached(&mut device, &mut context, access)
+        let provider = Box::new(SurfmanProvider::new(access));
+        let swap_chain = SwapChain::create_attached(&mut device, &mut context, provider)
             .expect("Failed to create swap chain");
 
         device.make_no_context_current().unwrap();
