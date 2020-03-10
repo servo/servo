@@ -2460,6 +2460,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     &uniform_get(triple, WebGLCommand::GetUniformFloat4x3),
                 )
             },
+            constants::SAMPLER_3D | constants::SAMPLER_2D_ARRAY => {
+                Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt))
+            },
             _ => self.base.GetUniform(cx, program, location),
         }
     }
