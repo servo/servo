@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>Infinite duration animation</title>
+<link rel="match" href="infinite-duration-animation-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+  #box-1, #box-2 {
+    border: 1px solid white;
+    height: 40px;
+    position: absolute;
+    top: 40px;
+    width: 40px;
+  }
+  #box-1 {
+    background: blue;
+    z-index: 1;
+  }
+  #box-2 {
+    background: white;
+    z-index: 2;
+  }
+  #notes {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+  body {
+    background: white;
+  }
+</style>
+
+<body>
+  <div id="box-1"></div>
+  <div id="box-2"></div>
+  <p id="notes">
+    This test creates an infinite duration animations, which should be stuck at
+    a progress of 0. If any blue pixels appear in the screenshot, the test
+    fails.
+  </p>
+</body>
+<script>
+  onload = async function() {
+    // Double rAF to ensure that we are not bogged down during initialization
+    // and the compositor is ready.
+    waitForAnimationFrames(2).then(() => {
+      const elem = document.getElementById('box-1');
+      const keyframes = [
+        { transform: 'translateX(0px)' },
+        { transform: 'translateX(100px)' }
+      ];
+      const effect =
+          new KeyframeEffect(elem, keyframes,
+                             {iterations: 3, duration: Infinity});
+      const animation = new Animation(effect);
+      animation.play();
+      animation.ready.then(() => {
+        takeScreenshotDelayed(100);
+      });
+    });
+  };
+</script>

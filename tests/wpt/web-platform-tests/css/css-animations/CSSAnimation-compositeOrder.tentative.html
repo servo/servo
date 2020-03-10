@@ -36,4 +36,18 @@ promise_test(async t => {
   // in the animation list.
   assert_equals(getComputedStyle(div).marginLeft, '100px');
 }, "Animations are composited by their order in the animation-name property.");
+
+promise_test(async t => {
+  const div = addDiv(t);
+  const animA = div.animate({margin: ["100px","100px"]}, 100000);
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+  div.style.animation = 'margin50 100s';
+  assert_equals(getComputedStyle(div).marginLeft, '50px');
+  // Wait for animation starts
+  await waitForAnimationFrames(2);
+  assert_equals(getComputedStyle(div).marginLeft, '100px',
+                "A higher-priority animation is not overriden by a more recent"
+                + "one.");
+}, 'Web-animation replaces CSS animation');
+
 </script>

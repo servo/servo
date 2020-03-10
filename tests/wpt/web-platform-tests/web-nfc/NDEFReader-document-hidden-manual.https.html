@@ -16,11 +16,6 @@ nfc_test(async (t, mockNFC) => {
     if (document.hidden) reject();
     resolve();
   });
-  if (window.testRunner) {
-    // Grant nfc permissions for Chromium testrunner.
-    window.testRunner.setPermission('nfc', 'granted',
-                                    location.origin, location.origin);
-  }
   await reader.scan();
   await promise;
 }, "Test NDEFReader.onreading is not fired when document is hidden");

@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Checkerboard using conic gradients</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background-size">
+<meta name="assert" content="Gradients are correctly repeated.">
+<link rel="match" href="tiled-conic-gradients-ref.html">
+<style>
+  #gradient {
+    width: 200px;
+    height: 200px;
+    background-size: 20% 20%;
+    background-image: conic-gradient(black 0 25%, white 0 50%, black 0 75%, white 0);
+  }
+</style>
+<div id="gradient"></div>

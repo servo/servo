@@ -85,8 +85,8 @@ const VALID_BOUNDS = [
 ];
 
 const VALID_RESOLUTION = {
-    width: 20,
-    height: 20
+    width: 200,
+    height: 200
 };
 
 const LEFT_OFFSET = {

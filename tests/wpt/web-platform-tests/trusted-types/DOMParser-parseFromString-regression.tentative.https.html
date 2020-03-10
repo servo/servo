@@ -17,7 +17,6 @@ test(t => {
   probe.innerHTML = "probe";
 
   const doc = new DOMParser().parseFromString(`
-    <meta http-equiv="Content-Security-Policy" content="trusted-types *">
     <body><div id="probe"></div></body>"`, "text/html");
   probe.innerHTML = "probe";
 

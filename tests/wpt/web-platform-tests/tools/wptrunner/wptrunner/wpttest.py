@@ -342,6 +342,13 @@ class Test(object):
         except KeyError:
             return default
 
+    def implementation_status(self):
+        implementation_status = None
+        for meta in self.itermeta():
+            implementation_status = meta.implementation_status
+            if implementation_status:
+                return implementation_status
+
     def known_intermittent(self, subtest=None):
         metadata = self._get_metadata(subtest)
         if metadata is None:

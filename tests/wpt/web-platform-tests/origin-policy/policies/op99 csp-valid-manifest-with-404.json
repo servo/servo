@@ -1,0 +1,6 @@
+{
+  "ids" : ["csp-valid-but-served-as-404"],
+  "content_security" : {
+      "policies" : ["script-src 'self' 'unsafe-inline'"]
+  }
+}

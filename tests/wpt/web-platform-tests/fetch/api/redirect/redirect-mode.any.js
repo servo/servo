@@ -6,6 +6,7 @@ function testRedirect(origin, redirectStatus, redirectMode, corsMode) {
   var url = new URL("../resources/redirect.py", self.location);
   if (origin === "cross-origin") {
     url.host = get_host_info().REMOTE_HOST;
+    url.port = get_host_info().HTTP_PORT;
   }
 
   var urlParameters = "?redirect_status=" + redirectStatus;

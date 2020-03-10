@@ -17,6 +17,7 @@ manifest = None
 manifest_update = None
 download_from_github = None
 
+
 def do_delayed_imports():
     # This relies on an already loaded module having set the sys.path correctly :(
     global manifest, manifest_update, download_from_github
@@ -168,6 +169,7 @@ class TestLoader(object):
                  chunk_number=1,
                  include_https=True,
                  skip_timeout=False,
+                 skip_implementation_status=None,
                  chunker_kwargs=None):
 
         self.test_types = test_types
@@ -180,6 +182,7 @@ class TestLoader(object):
         self.disabled_tests = None
         self.include_https = include_https
         self.skip_timeout = skip_timeout
+        self.skip_implementation_status = skip_implementation_status
 
         self.chunk_type = chunk_type
         self.total_chunks = total_chunks
@@ -265,6 +268,8 @@ class TestLoader(object):
             if not self.include_https and test.environment["protocol"] == "https":
                 enabled = False
             if self.skip_timeout and test.expected() == "TIMEOUT":
+                enabled = False
+            if self.skip_implementation_status and test.implementation_status() in self.skip_implementation_status:
                 enabled = False
             key = "enabled" if enabled else "disabled"
             tests[key][test_type].append(test)

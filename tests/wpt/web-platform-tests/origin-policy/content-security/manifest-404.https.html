@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Missing manifest file.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+<!-- Manifests delivered with 404 status code must be ignored. -->
+runTestsInSubframe({
+  hostname: "op99",
+  testJS: "resources/allow-unsafe-eval.mjs"
+});
+</script>

@@ -213,6 +213,8 @@ This table gets populated by the script.
 
     for (const row of testTBody.children) {
       const input = row.firstChild.lastElementChild;
+      // FIXME: This test makes assumptions about default form control styling
+      // that don't hold in all platforms.
       const allowedDelta = 3;
       // This is not using test() because promise_setup() only allows promise_test().
       promise_test(async () => {

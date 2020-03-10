@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conic gradient with custom center parameter</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<meta name="assert" content="Rendering of conic-gradient with custom center parameter">
+<link rel="match" href="conic-gradient-center-ref.html">
+<style>
+  #gradient {
+    width: 200px;
+    height: 200px;
+    background-image: conic-gradient(at 25% 25%, red 0 25%, green 25% 50%, blue 50% 75%, black 75% 100%);
+  }
+</style>
+<div id="gradient"></div>

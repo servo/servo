@@ -79,6 +79,7 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, chunker_kw
                                         chunk_number=kwargs["this_chunk"],
                                         include_https=ssl_enabled,
                                         skip_timeout=kwargs["skip_timeout"],
+                                        skip_implementation_status=kwargs["skip_implementation_status"],
                                         chunker_kwargs=chunker_kwargs)
     return run_info, test_loader
 
