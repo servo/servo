@@ -343,7 +343,10 @@ def uwp_nightly():
         windows_build_task("Nightly UWP build and upload", package=False)
         .with_treeherder("Windows x64", "UWP-Nightly")
         .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
+        .with_scopes(
+            "secrets:get:project/servo/s3-upload-credentials",
+            "secrets:get:project/servo/windows-codesign-cert/latest",
+        )
         .with_script(
             "python mach build --release --target=x86_64-uwp-windows-msvc",
             "python mach build --release --target=aarch64-uwp-windows-msvc",
