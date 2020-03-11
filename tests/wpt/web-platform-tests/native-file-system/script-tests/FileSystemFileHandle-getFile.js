@@ -20,8 +20,8 @@ directory_test(async (t, root) => {
   });
   await timeout;
 
-  const writer = await handle.createWriter({keepExistingData: false});
-  await writer.write(0, new Blob(['foo']));
+  const writer = await handle.createWritable({keepExistingData: false});
+  await writer.write(new Blob(['foo']));
   await writer.close();
 
   file = await handle.getFile();

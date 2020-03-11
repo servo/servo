@@ -13,10 +13,13 @@
 <script>
 
     var db,
-        t = async_test();
+        t = async_test(),
+        dbname = location + '-' + t.name;
 
     t.step(function() {
-        var openrq = indexedDB.open('db', 3);
+        indexedDB.deleteDatabase(dbname);
+
+        var openrq = indexedDB.open(dbname, 3);
 
         openrq.onupgradeneeded = t.step_func(function(e) {
             assert_equals(e.oldVersion, 0, "old version (upgradeneeded)");
@@ -48,7 +51,7 @@
     });
 
     function deleteDB (e) {
-        var deleterq = indexedDB.deleteDatabase('db');
+        var deleterq = indexedDB.deleteDatabase(dbname);
 
         deleterq.onsuccess = t.step_func(function(e) {
             assert_equals(e.result, undefined, "result (delete.success for nonexistent db)");

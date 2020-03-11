@@ -8,61 +8,139 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script>
 const HOST = get_host_info();
-function getIframeUrl(filename, token1, token2) {
-  let query = `template=${filename}`;
-  if (token1) {
-    query += `&coep=${token1}`
-  }
-  if (token2) {
-    query += `&coep-report-only=${token2}`
-  }
-  return `resources/reporting-iframe.py?${query}`;
+const REMOTE_ORIGIN = HOST.REMOTE_ORIGIN;
+const BASE = new URL("resources", location).pathname
+
+function wait(ms) {
+  return new Promise(resolve => step_timeout(resolve, ms));
 }
 
-function checkReports(reports, contextUrl) {
-  assert_not_equals(reports, null);
-  assert_equals(reports.length, 2);
-  assert_equals(reports[0].type, 'coep');
-  assert_equals(reports[0].url, contextUrl);
-  assert_equals(reports[0].body.type, 'corp');
-  assert_equals(reports[1].type, 'coep');
-  assert_equals(reports[1].url, contextUrl);
-  assert_equals(reports[1].body.type, 'corp');
+async function pollReports(endpoint, reports) {
+  while (true) {
+    await wait(200);
+    const res = await fetch(`resources/report.py?endpoint=${endpoint}`, {cache: 'no-store'});
+    if (res.status !== 200) {
+      continue;
+    }
+    for (const report of await res.json()) {
+      reports.push(report);
+    }
+  }
+}
 
-  // The order of the reports is non-deterministic.
-  const actualBlockedUrls = reports.map((r) => r.body['blocked-url']).sort();
-  const expectedBlockedUrls = [
-    `${HOST.REMOTE_ORIGIN}/common/text-plain.txt`,
-    `${HOST.ORIGIN}/common/redirect.py?location=${HOST.REMOTE_ORIGIN}/common/text-plain.txt`,
-  ];
-  assert_array_equals(actualBlockedUrls.sort(), expectedBlockedUrls.sort());
+let reports = []
+let reportsForReportOnly = []
+pollReports('endpoint', reports);
+pollReports('report-only-endpoint', reportsForReportOnly);
+
+function checkCorpReportExistence(reports, blockedUrl, contextUrl) {
+  blockedUrl = new URL(blockedUrl, location).href;
+  contextUrl = new URL(contextUrl, location).href;
+  for (const report of reports) {
+    if (report.type !== 'coep' || report.url !== contextUrl ||
+        report.body.type !== 'corp') {
+      continue;
+    }
+    if (report.body['blocked-url'] === blockedUrl) {
+      return;
+    }
+  }
+  assert_unreached(`A report whose blocked-url is ${blockedUrl} and url is ${contextUrl} is not found.`);
+}
+
+function checkReportNonExistence(reports, blockedUrl, contextUrl) {
+  blockedUrl = new URL(blockedUrl, location).href;
+  contextUrl = new URL(contextUrl, location).href;
+  for (const report of reports) {
+    if (report.type !== 'coep' || report.url !== contextUrl) {
+      continue;
+    }
+    assert_not_equals(report.body['blocked-url'], blockedUrl);
+  }
 }
 
 async_test(async (t) => {
   try {
     const iframe = document.createElement('iframe');
     t.add_cleanup(() => iframe.remove());
-    const token1 = token();
-    const token2 = token();
 
-    iframe.src = `resources/subresource-corp.html?token1=${token1}&token2=${token2}`;
+    iframe.src = `resources/reporting-empty-frame.html`
     document.body.appendChild(iframe);
+    await new Promise(resolve => {
+      iframe.addEventListener('load', resolve, {once: true});
+    });
+
+    function fetchInIframe(url) {
+      const init = { mode: 'no-cors', cache: 'no-store' };
+      iframe.contentWindow.fetch(url, init).catch(() => {});
+    }
+
+    const suffix = 'subresource-corp';
+    const sameOriginUrl = `/common/text-plain.txt?${suffix}`;
+    const blockedByPureCorp = `${REMOTE_ORIGIN}${BASE}/nothing-same-origin-corp.txt?${suffix}`;
+    const blockedDueToCoep = `${REMOTE_ORIGIN}/common/text-plain.txt?abc&${suffix}`;
+    const dest = `${REMOTE_ORIGIN}/common/text-plain.txt?xyz&${suffix}`;
+    const redirect = `/common/redirect.py?location=${encodeURIComponent(dest)}&${suffix}`;
+
+    fetchInIframe(sameOriginUrl);
+    fetchInIframe(blockedByPureCorp);
+    fetchInIframe(blockedDueToCoep);
+    fetchInIframe(redirect);
 
     await new Promise(resolve => t.step_timeout(resolve, 3000));
 
-    const res1 = await fetch(`resources/stash-take.py?key=${token1}`);
-    const res2 = await fetch(`resources/stash-take.py?key=${token2}`);
-
-    const reports = JSON.parse(await res1.text());
-    const reportsForReportOnly = JSON.parse(await res2.text());
-
-    checkReports(reports, iframe.src);
-    checkReports(reportsForReportOnly, iframe.src);
+    checkReportNonExistence(reports, sameOriginUrl, iframe.src);
+    checkReportNonExistence(reports, blockedByPureCorp, iframe.src);
+    checkCorpReportExistence(reports, blockedDueToCoep, iframe.src);
+    checkCorpReportExistence(reports, redirect, iframe.src);
+    checkReportNonExistence(reports, dest, iframe.src);
 
     t.done();
   } catch (e) {
     t.step(() => { throw e });
-  };
-}, 'report-to parameter for COEP and COEP-report-only');
+  }
+}, 'subresource CORP');
+
+async_test(async (t) => {
+  try {
+    const iframe = document.createElement('iframe');
+    t.add_cleanup(() => iframe.remove());
+
+    iframe.src = `resources/reporting-empty-frame.html`
+    document.body.appendChild(iframe);
+    await new Promise(resolve => {
+      iframe.addEventListener('load', resolve, {once: true});
+    });
+
+    const w = iframe.contentWindow;
+
+    function attachFrame(url) {
+      const frame = w.document.createElement('iframe');
+      frame.src = url;
+      w.document.body.appendChild(frame);
+    }
+
+    const suffix = 'navigation-corp';
+    const sameOrigin = `/common/blank.html?${suffix}`;
+    const blockedDueToCoep = `${REMOTE_ORIGIN}/common/blank.html?abc&${suffix}`;
+    const dest = `${REMOTE_ORIGIN}/common/blank.html?xyz&${suffix}`;
+    const redirect = `/common/redirect.py?location=${encodeURIComponent(dest)}&${suffix}`;
+
+    attachFrame(sameOrigin);
+    attachFrame(blockedDueToCoep);
+    attachFrame(redirect);
+
+    await new Promise(resolve => t.step_timeout(resolve, 3000));
+
+    checkReportNonExistence(reports, sameOrigin, iframe.src);
+    checkCorpReportExistence(reports, blockedDueToCoep, iframe.src);
+    checkCorpReportExistence(reports, redirect, iframe.src);
+    checkReportNonExistence(reports, dest, iframe.src);
+
+    t.done();
+  } catch (e) {
+    t.step(() => { throw e });
+  }
+}, 'navigation CORP');
 
 </script>

@@ -188,7 +188,7 @@ function runReferrerTests(workletType) {
                              scriptOrigins: { topLevel: 'remote',
                                               descendant: 'same' } });
   }, 'Importing a same-origin script from a remote-origin worklet script ' +
-     'that has "same-origin" referrer policy should send referrer.');
+     'that has "same-origin" referrer policy should not send referrer.');
 
   promise_test(() => {
     return runReferrerTest({ workletType: workletType,
@@ -197,7 +197,7 @@ function runReferrerTests(workletType) {
                              scriptOrigins: { topLevel: 'remote',
                                               descendant: 'remote' } });
   }, 'Importing a remote-origin script from a remote-origin worklet script ' +
-     'that has "same-origin" referrer policy should not send referrer.');
+     'that has "same-origin" referrer policy should send referrer.');
 
   // TODO(domfarolino): Add tests for more referrer policies.
 }

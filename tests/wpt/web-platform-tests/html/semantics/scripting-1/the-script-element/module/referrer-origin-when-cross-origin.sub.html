@@ -29,14 +29,15 @@ const remoteOrigin = "http://{{domains[www1]}}:{{ports[http][0]}}/";
 test(t => {
   assert_equals(
       referrerSame, location.href,
-      "Referrer should be sent for the same-origin top-level script.");
+      "Full referrer should be sent for the same-origin top-level script.");
 }, "Importing a same-origin top-level script with the " +
    "origin-when-cross-origin policy.");
 
 test(t => {
   assert_equals(
       referrerRemote, origin,
-      "Referrer should be sent for the remote-origin top-level script.");
+      "Referrer should be stripped to the origin when importing " +
+      "remote-origin top-level script.");
 }, "Importing a remote-origin top-level script with the " +
    "origin-when-cross-origin policy.");
 
@@ -45,31 +46,34 @@ test(t => {
       new URL("resources/import-referrer-checker.sub.js", location.href)
   assert_equals(
       referrerSameSame, scriptURL + "?name=same_same",
-      "Referrer should be sent for the same-origin descendant script.");
+      "Full referrer should be sent for same-origin descendant script" +
+      "imported by same-origin top-level script.");
 }, "Importing a same-origin descendant script from a same-origin top-level " +
    "script with the origin-when-cross-origin policy.");
 
 test(t => {
   assert_equals(
       referrerSameRemote, origin,
-      "Referrer should be sent for the remote-origin descendant script.");
+      "Referrer should be stripped to the origin for the remote-origin " +
+      "descendant script imported from same-origin top-level script.");
 }, "Importing a remote-origin descendant script from a same-origin top-level " +
    "script with the origin-when-cross-origin policy.");
 
 test(t => {
-  assert_equals(
-      referrerRemoteRemote, remoteOrigin,
-      "Referrer should be sent for the remote-origin descendant script.");
+  const scriptURL = new URL(
+    "html/semantics/scripting-1/the-script-element/module/resources/" +
+    "import-referrer-checker.sub.js",
+    remoteOrigin);
+  assert_equals(referrerRemoteRemote, scriptURL + "?name=remote_remote",
+      "Full referrer should be sent for the remote-origin descendant script " +
+      "imported from a remote-origin top-level script.");
 }, "Importing a remote-origin descendant script from a remote-origin " +
    "top-level script with the origin-when-cross-origin policy.");
 
 test(t => {
-  const scriptURL = new URL(
-    "html/semantics/scripting-1/the-script-element/module/resources/" +
-    "import-same-origin-referrer-checker-from-remote-origin.sub.js",
-    remoteOrigin);
-  assert_equals(referrerRemoteSame, scriptURL + "?name=remote_same",
-      "Referrer should be sent for the same-origin descendant script.");
+  assert_equals(referrerRemoteSame, remoteOrigin,
+      "Referrer should be stripped to the origin for the same-origin " +
+      "descendant script imported by remote-origin top-level script.");
 }, "Importing a same-origin descendant script from a remote-origin " +
    "top-level script with the origin-when-cross-origin policy.");
 

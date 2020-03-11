@@ -35,8 +35,11 @@ explicitly-managed secret.
   - web-human@w3.org
 - [Google Domains](https://domains.google/): https://wpt.fyi
   - foolip@google.com
-  - jeffcarp@google.com
+  - robertma@google.com
   - mike@bocoup.com
+- (Google internal): https://wpt.live https://wptpr.live
+  - foolip@google.com
+  - robertma@google.com
 - [GitHub](https://github.com/): web-platform-tests
   - [@foolip](https://github.com/foolip)
   - [@Hexcles](https://github.com/Hexcles)
@@ -48,14 +51,13 @@ explicitly-managed secret.
 - [GitHub](https://github.com/): w3c
   - [@plehegar](https://github.com/plehegar)
   - [@sideshowbarker](https://github.com/sideshowbarker)
-- [Google Cloud Platform](https://cloud.google.com/): wptdashboard
-  - boaz@bocoup.com
+- [Google Cloud Platform](https://cloud.google.com/): wptdashboard{-staging}
+  - robertma@google.com
+  - smcgruer@google.com
   - foolip@google.com
-  - geoffers@gmail.com
-  - jeffcarp@google.com
-  - markdittmer@google.com
-  - mike@bocoup.com
-  - rick@bocoup.com
+- [Google Cloud Platform](https://cloud.google.com/): wpt-live
+  - smcgruer@google.com
+  - robertma@google.com
 - [Google Cloud Platform](https://cloud.google.com/): wpt-pr-bot
   - smcgruer@google.com
   - robertma@google.com
@@ -72,3 +74,21 @@ explicitly-managed secret.
 
 [web-platform-tests]: https://github.com/e3c/web-platform-tests
 [wpt.fyi]: https://github.com/web-platform-tests/wpt.fyi
+
+## Emergency playbook
+
+### Lock down write access to the repo
+
+**Recommended but not yet verified approach:** Create a [new branch protection
+rule](https://github.com/web-platform-tests/wpt/settings/branch_protection_rules/new)
+that applies to `*` (i.e. all branches), and check "Restrict who can push to
+matching branches". This should prevent everyone except those with the
+"Maintain" role (currently only the GitHub admins listed above) from pushing
+to *any* branch. To lift the limit, delete this branch protection rule.
+
+**Alternative approach proven to work in
+[#21424](https://github.com/web-platform-tests/wpt/issues/21424):** Go to
+[manage access](https://github.com/web-platform-tests/wpt/settings/access),
+and change the permission of "reviewers" to "Read". To lift the limit, change
+it back to "Write". This has the known downside of *resubscribing all reviewers
+to repo notifications*.

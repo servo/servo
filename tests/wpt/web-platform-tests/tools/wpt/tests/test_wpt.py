@@ -240,9 +240,9 @@ def test_run_verify_unstable(temp_test):
 @pytest.mark.remote_network
 def test_install_chromedriver():
     if sys.platform == "win32":
-        chromedriver_path = os.path.join(wpt.localpaths.repo_root, "_venv", "Scripts", "chromedriver.exe")
+        chromedriver_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "Scripts", "chromedriver.exe")
     else:
-        chromedriver_path = os.path.join(wpt.localpaths.repo_root, "_venv", "bin", "chromedriver")
+        chromedriver_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "bin", "chromedriver")
     if os.path.exists(chromedriver_path):
         os.unlink(chromedriver_path)
     with pytest.raises(SystemExit) as excinfo:
@@ -258,9 +258,9 @@ def test_install_chromedriver():
                    reason="https://github.com/web-platform-tests/wpt/issues/17074")
 def test_install_firefox():
     if sys.platform == "darwin":
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
+        fx_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "Firefox Nightly.app")
     else:
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
+        fx_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "firefox")
     if os.path.exists(fx_path):
         shutil.rmtree(fx_path)
     with pytest.raises(SystemExit) as excinfo:

@@ -51,8 +51,10 @@ function createScriptURLForDecendant(scriptOrigins) {
 function isDestinationCrossOrigin(fetchType, scriptOrigins) {
   if (fetchType === 'top-level')
     return scriptOrigins.topLevel === 'remote';
+
+  // Compute a descendant's cross-origin-ness relative to the top-level script.
   if (fetchType === 'descendant')
-    return scriptOrigins.descendant === 'remote';
+    return scriptOrigins.descendant !== scriptOrigins.topLevel;
   assert_unreached('fetchType has an invalid value.');
 }
 
