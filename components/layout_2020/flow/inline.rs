@@ -33,6 +33,7 @@ use webrender_api::FontInstanceKey;
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
+    pub(super) text_decoration_line: TextDecorationLine,
 }
 
 #[derive(Debug, Serialize)]
@@ -69,6 +70,11 @@ struct InlineNestingLevelState<'box_tree> {
     inline_start: Length,
     max_block_size_of_fragments_so_far: Length,
     positioning_context: Option<PositioningContext>,
+    /// Indicates whether this nesting level have text decorations in effect.
+    /// From https://drafts.csswg.org/css-text-decor/#line-decoration
+    // "When specified on or propagated to a block container that establishes
+    //  an IFC..."
+    text_decoration_line: TextDecorationLine,
 }
 
 struct PartialInlineBoxFragment<'box_tree> {
@@ -123,6 +129,13 @@ struct Lines {
 }
 
 impl InlineFormattingContext {
+    pub(super) fn new(text_decoration_line: TextDecorationLine) -> InlineFormattingContext {
+        InlineFormattingContext {
+            inline_level_boxes: Default::default(),
+            text_decoration_line,
+        }
+    }
+
     // This works on an already-constructed `InlineFormattingContext`,
     // Which would have to change if/when
     // `BlockContainer::construct` parallelize their construction.
@@ -257,8 +270,10 @@ impl InlineFormattingContext {
                 inline_start: Length::zero(),
                 max_block_size_of_fragments_so_far: Length::zero(),
                 positioning_context: None,
+                text_decoration_line: self.text_decoration_line,
             },
         };
+
         loop {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
                 match &*child.borrow() {
@@ -387,17 +402,6 @@ impl Lines {
         };
         self.next_line_block_position += size.block;
 
-        // From https://drafts.csswg.org/css-text-decor/#line-decoration
-        // "When specified on or propagated to an inline box,
-        // that box becomes a decorating box for that decoration,
-        // applying the decoration to all its fragments..."
-        let text_decoration_line = containing_block.style.clone_text_decoration_line();
-        if text_decoration_line != TextDecorationLine::NONE {
-            for fragment in &mut line_contents {
-                fragment.set_text_decorations_in_effect(text_decoration_line);
-            }
-        }
-
         self.fragments
             .push(Fragment::Anonymous(AnonymousFragment::new(
                 Rect { start_corner, size },
@@ -436,6 +440,8 @@ impl InlineBox {
             start_corner += &relative_adjustement(&style, ifc.containing_block)
         }
         let positioning_context = PositioningContext::new_for_style(&style);
+        let text_decoration_line =
+            ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
         PartialInlineBoxFragment {
             tag: self.tag,
             style,
@@ -454,6 +460,7 @@ impl InlineBox {
                     inline_start: ifc.inline_position,
                     max_block_size_of_fragments_so_far: Length::zero(),
                     positioning_context,
+                    text_decoration_line: text_decoration_line,
                 },
             ),
         }
@@ -788,7 +795,7 @@ impl TextRun {
                     font_metrics,
                     font_key,
                     glyphs,
-                    text_decorations_in_effect: TextDecorationLine::NONE,
+                    text_decoration_line: ifc.current_nesting_level.text_decoration_line,
                 }));
             if runs.is_empty() {
                 break;

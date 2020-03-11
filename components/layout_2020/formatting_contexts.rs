@@ -16,6 +16,7 @@ use std::convert::TryInto;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
+use style::values::specified::text::TextDecorationLine;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug, Serialize)]
@@ -62,6 +63,7 @@ impl IndependentFormattingContext {
         display_inside: DisplayInside,
         contents: Contents,
         content_sizes: ContentSizesRequest,
+        propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         match contents.try_into() {
             Ok(non_replaced) => match display_inside {
@@ -72,6 +74,7 @@ impl IndependentFormattingContext {
                         &style,
                         non_replaced,
                         content_sizes,
+                        propagated_text_decoration_line,
                     );
                     Self {
                         tag: node.as_opaque(),

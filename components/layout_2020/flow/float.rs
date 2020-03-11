@@ -9,6 +9,7 @@ use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
+use style::values::specified::text::TextDecorationLine;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct FloatBox {
@@ -43,6 +44,8 @@ impl FloatBox {
                 display_inside,
                 contents,
                 content_sizes,
+                // Text decorations are not propagated to any out-of-flow descendants
+                TextDecorationLine::NONE,
             ),
         }
     }

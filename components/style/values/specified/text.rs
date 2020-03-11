@@ -244,6 +244,12 @@ bitflags! {
     }
 }
 
+impl Default for TextDecorationLine {
+    fn default() -> Self {
+        TextDecorationLine::NONE
+    }
+}
+
 impl Parse for TextDecorationLine {
     /// none | [ underline || overline || line-through || blink ]
     fn parse<'i, 't>(
