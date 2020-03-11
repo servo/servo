@@ -11,10 +11,13 @@
 
     var db, db_got_versionchange, db2,
         events = [],
-        t = async_test();
+        t = async_test(),
+        dbname = location + '-' + t.name;
 
     t.step(function() {
-        var openrq = indexedDB.open('db', 3);
+        indexedDB.deleteDatabase(dbname);
+
+        var openrq = indexedDB.open(dbname, 3);
 
         // 1
         openrq.onupgradeneeded = t.step_func(function(e) {
@@ -55,7 +58,7 @@
         assert_equals(db + "", "[object IDBDatabase]");
         assert_array_equals(db.objectStoreNames, [ "store" ]);
 
-        var openrq2 = indexedDB.open('db', 4);
+        var openrq2 = indexedDB.open(dbname, 4);
 
         // 4
         openrq2.onblocked = t.step_func(function(e) {
@@ -102,7 +105,7 @@
     // Cleanup
     add_completion_callback(function(tests) {
         if (db2) db2.close();
-        indexedDB.deleteDatabase('db');
+        indexedDB.deleteDatabase(dbname);
     })
 
 </script>

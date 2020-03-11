@@ -6,7 +6,7 @@
 .pytest_cache/
 .tox/
 .virtualenv/
-_venv/
+_venv*/
 _virtualenv/
 
 # Node

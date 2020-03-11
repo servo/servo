@@ -16,6 +16,7 @@ test(() => {
 
   // Bluetooth implements BluetoothDiscovery;
   assert_true('requestDevice' in navigator.bluetooth);
+  assert_true('getDevices' in navigator.bluetooth);
   assert_equals(navigator.bluetooth.requestDevice.length, 0);
 }, test_desc);
 </script>

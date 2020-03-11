@@ -232,4 +232,28 @@ async_test(t => {
   document.body.append(frame);
 }, 'navigation CORP is checked with the parent frame, not the navigation source - to be blocked');
 
+async_test(t => {
+  const bc = new BroadcastChannel(token());
+  let loaded = false;
+  bc.onmessage = t.step_func((event) => {
+    loaded = true;
+  });
+  t.step_timeout(() => {
+    // Make sure the iframe didn't load. See
+    // https://github.com/whatwg/html/issues/125 for why a timeout is used
+    // here. Long term all network error handling should be similar and have a
+    // reliable event.
+    assert_false(loaded);
+    t.done();
+  }, 2000);
+
+  const dest = `${HOST.ORIGIN}${BASE}/navigate-require-corp.sub.html?channelName=${bc.name}`;
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  // |dest| is a same-origin URL and hence not blocked by CORP but reidirect.py
+  // is a cross-origin (actually cross-site) URL, so blocked by CORP.
+  frame.src = `${HOST.HTTPS_NOTSAMESITE_ORIGIN}/common/redirect.py?location=${encodeURIComponent(dest)}`;
+  document.body.append(frame);
+}, 'navigation CORP is checked for each redirect');
+
 </script>

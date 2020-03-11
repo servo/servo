@@ -9,11 +9,14 @@
 
 <script>
 
-    var t = async_test("Delete an existing database");
+    var t = async_test("Delete an existing database"),
+        dbname = location + '-' + t.name;
 
     t.step(function() {
+        indexedDB.deleteDatabase(dbname);
+
         var db;
-        var openrq = indexedDB.open('db', 3);
+        var openrq = indexedDB.open(dbname, 3);
 
         openrq.onupgradeneeded = function(e) {
             e.target.result.createObjectStore('store');
@@ -36,7 +39,7 @@
     });
 
     function Second(e) {
-        var deleterq = indexedDB.deleteDatabase('db');
+        var deleterq = indexedDB.deleteDatabase(dbname);
 
         deleterq.onsuccess = function(e) { t.done(); }
 

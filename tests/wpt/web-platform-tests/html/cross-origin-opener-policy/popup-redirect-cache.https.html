@@ -13,13 +13,11 @@ function url_test_cache(t, url, channelName, hasOpener) {
   const bc = new BroadcastChannel(channelName);
   bc.onmessage = t.step_func(event => {
     const payload = event.data;
-    assert_equals(payload.name, hasOpener ? channelName : "");
-    assert_equals(payload.opener, hasOpener);
-    assert_equals(w.closed, !hasOpener);
-    bc.close()
-
-    // test the same url for cache
-    url_test(t, url, channelName, hasOpener);
+    validate_results(() => {
+      bc.close()
+      // test the same url for cache
+      url_test(t, url, channelName, hasOpener);
+    }, t, w, channelName, hasOpener, undefined /* OpenerDomAccess */, payload)
   });
 
   const w = window.open(url, channelName);

@@ -1,0 +1,28 @@
+{
+  "ids": [
+    "my-policy-1",
+    ["my-policy-array"],
+    5,
+    null,
+    { "id": "my-policy-object" },
+    "my-policy-2",
+    true,
+    "~",
+    " ",
+    "\u0000",
+    "\t",
+    "my\tpolicy",
+    "!\"#$%&'()*+,-./:;<=>?@{|}~",
+    "my\u007Fpolicy",
+    "azAZ",
+    "my\u0080policy",
+    "my~policy",
+    "my\u1234policy"
+  ],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'",
+      "img-src 'none'"
+    ]
+  }
+}

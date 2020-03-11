@@ -108,13 +108,15 @@ def create_complete_parser():
 
     return parser
 
+def venv_dir():
+    return "_venv" + str(sys.version_info[0])
 
 def setup_virtualenv(path, skip_venv_setup, props):
     if skip_venv_setup and path is None:
         raise ValueError("Must set --venv when --skip-venv-setup is used")
     should_skip_setup = path is not None and skip_venv_setup
     if path is None:
-        path = os.path.join(wpt_root, "_venv")
+        path = os.path.join(wpt_root, venv_dir())
     venv = virtualenv.Virtualenv(path, should_skip_setup)
     if not should_skip_setup:
         venv.start()

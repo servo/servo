@@ -19,7 +19,7 @@ def main(request, response):
 <!doctype html>
 <meta charset=utf-8>
 <script src="/common/get-host-info.sub.js"></script>
-<iframe></iframe>
+<body></body>
 <script>
   const params = new URL(location).searchParams;
   const navHistory = params.get("navHistory");
@@ -57,13 +57,14 @@ def main(request, response):
         close();
       }
     });
-    const iframe = document.querySelector("iframe");
+    iframe = document.createElement("iframe");
     iframe.onload = () => {
       const payload = { name: self.name, opener: !!self.opener, openerDOMAccess: openerDOMAccessAllowed };
       iframe.contentWindow.postMessage(payload, "*");
     };
     const channelName = new URL(location).searchParams.get("channel");
     iframe.src = `${get_host_info().HTTPS_ORIGIN}/html/cross-origin-opener-policy/resources/postback.html?channel=${channelName}`;
+    document.body.appendChild(iframe);
   }
 </script>
 """

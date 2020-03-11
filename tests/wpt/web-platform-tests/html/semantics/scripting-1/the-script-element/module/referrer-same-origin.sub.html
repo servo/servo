@@ -54,22 +54,21 @@ test(t => {
    "script with the same-origin policy.");
 
 test(t => {
+  const scriptURL = new URL(
+    "html/semantics/scripting-1/the-script-element/module/resources/" +
+    "import-referrer-checker.sub.js", remoteOrigin);
   assert_equals(
-      referrerRemoteRemote, "",
-      "Referrer should not be sent for the remote-origin descendant script " +
-      "even if it is imported from the script in the same remote-origin.");
+      referrerRemoteRemote, scriptURL + "?name=remote_remote",
+      "Referrer should be sent for the remote-origin descendant script " +
+      "when it is imported from a top-level script in the same remote-origin.");
 }, "Importing a remote-origin descendant script from a remote-origin " +
    "top-level script with the same-origin policy.");
 
 test(t => {
-  const scriptURL = new URL(
-    "html/semantics/scripting-1/the-script-element/module/resources/" +
-    "import-same-origin-referrer-checker-from-remote-origin.sub.js",
-    remoteOrigin);
   assert_equals(
-      referrerRemoteSame, scriptURL + "?name=remote_same",
-      "Referrer should be sent for the same-origin descendant script " +
-      "even if it is imported from the script in the remote-origin.");
+      referrerRemoteSame, "",
+      "Referrer should not be sent for the same-origin descendant script " +
+      "when it is imported from a top-level remote-origin script.");
 }, "Importing a same-origin descendant script from a remote-origin " +
    "top-level script with the same-origin policy.");
 
