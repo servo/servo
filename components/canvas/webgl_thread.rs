@@ -1555,7 +1555,7 @@ impl WebGLImpl {
             WebGLCommand::TexImage2D {
                 target,
                 level,
-                effective_internal_format,
+                internal_format,
                 size,
                 format,
                 data_type,
@@ -1567,7 +1567,7 @@ impl WebGLImpl {
                 ref data,
             } => {
                 let pixels = prepare_pixels(
-                    format,
+                    internal_format,
                     data_type,
                     size,
                     unpacking_alignment,
@@ -1581,7 +1581,7 @@ impl WebGLImpl {
                 gl.tex_image_2d(
                     target,
                     level as i32,
-                    effective_internal_format as i32,
+                    internal_format.as_gl_constant() as i32,
                     size.width as i32,
                     size.height as i32,
                     0,
@@ -1666,6 +1666,23 @@ impl WebGLImpl {
                     &*data,
                 );
             },
+            WebGLCommand::TexStorage2D(target, levels, internal_format, width, height) => gl
+                .tex_storage_2d(
+                    target,
+                    levels as i32,
+                    internal_format.as_gl_constant(),
+                    width as i32,
+                    height as i32,
+                ),
+            WebGLCommand::TexStorage3D(target, levels, internal_format, width, height, depth) => gl
+                .tex_storage_3d(
+                    target,
+                    levels as i32,
+                    internal_format.as_gl_constant(),
+                    width as i32,
+                    height as i32,
+                    depth as i32,
+                ),
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
                     .context_surface_info(&ctx)

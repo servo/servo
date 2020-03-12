@@ -111,7 +111,7 @@ pub struct WebGLCreateContextResult {
 }
 
 /// Defines the WebGL version
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, PartialOrd, Serialize)]
 pub enum WebGLVersion {
     /// https://www.khronos.org/registry/webgl/specs/1.0.2/
     /// Conforms closely to the OpenGL ES 2.0 API
@@ -384,8 +384,7 @@ pub enum WebGLCommand {
     TexImage2D {
         target: u32,
         level: u32,
-        // FIXME(nox): This should be computed on the WebGL thread.
-        effective_internal_format: u32,
+        internal_format: TexFormat,
         size: Size2D<u32>,
         format: TexFormat,
         data_type: TexDataType,
@@ -453,6 +452,8 @@ pub enum WebGLCommand {
     GetInternalFormatIntVec(u32, u32, InternalFormatIntVec, WebGLSender<Vec<i32>>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
+    TexStorage2D(u32, u32, TexFormat, u32, u32),
+    TexStorage3D(u32, u32, TexFormat, u32, u32, u32),
     DrawArrays {
         mode: u32,
         first: i32,
@@ -872,11 +873,33 @@ parameters! {
     TexParameter {
         Float(TexParameterFloat {
             TextureMaxAnisotropyExt = gl::TEXTURE_MAX_ANISOTROPY_EXT,
+            TextureMaxLod = gl::TEXTURE_MAX_LOD,
+            TextureMinLod = gl::TEXTURE_MIN_LOD,
         }),
         Int(TexParameterInt {
             TextureWrapS = gl::TEXTURE_WRAP_S,
             TextureWrapT = gl::TEXTURE_WRAP_T,
+            TextureWrapR = gl::TEXTURE_WRAP_R,
+            TextureBaseLevel = gl::TEXTURE_BASE_LEVEL,
+            TextureMinFilter = gl::TEXTURE_MIN_FILTER,
+            TextureMagFilter = gl::TEXTURE_MAG_FILTER,
+            TextureMaxLevel = gl::TEXTURE_MAX_LEVEL,
+            TextureCompareFunc = gl::TEXTURE_COMPARE_FUNC,
+            TextureCompareMode = gl::TEXTURE_COMPARE_MODE,
+            TextureImmutableFormat = gl::TEXTURE_IMMUTABLE_FORMAT,
+            TextureImmutableLevels = gl::TEXTURE_IMMUTABLE_LEVELS,
         }),
+    }
+}
+
+impl TexParameter {
+    pub fn required_webgl_version(self) -> WebGLVersion {
+        match self {
+            Self::Float(TexParameterFloat::TextureMaxAnisotropyExt) |
+            Self::Int(TexParameterInt::TextureWrapS) |
+            Self::Int(TexParameterInt::TextureWrapT) => WebGLVersion::WebGL1,
+            _ => WebGLVersion::WebGL2,
+        }
     }
 }
 
@@ -936,9 +959,16 @@ mod gl_ext_constants {
 gl_enums! {
     pub enum TexFormat {
         DepthComponent = gl::DEPTH_COMPONENT,
+        DepthStencil = gl::DEPTH_STENCIL,
         Alpha = gl::ALPHA,
+        Red = gl::RED,
+        RedInteger = gl::RED_INTEGER,
+        RG = gl::RG,
+        RGInteger = gl::RG_INTEGER,
         RGB = gl::RGB,
+        RGBInteger = gl::RGB_INTEGER,
         RGBA = gl::RGBA,
+        RGBAInteger = gl::RGBA_INTEGER,
         Luminance = gl::LUMINANCE,
         LuminanceAlpha = gl::LUMINANCE_ALPHA,
         CompressedRgbS3tcDxt1 = gl_ext_constants::COMPRESSED_RGB_S3TC_DXT1_EXT,
@@ -946,15 +976,79 @@ gl_enums! {
         CompressedRgbaS3tcDxt3 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT3_EXT,
         CompressedRgbaS3tcDxt5 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT5_EXT,
         CompressedRgbEtc1 = gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL,
+        R8 = gl::R8,
+        R8SNorm = gl::R8_SNORM,
+        R16f = gl::R16F,
+        R32f = gl::R32F,
+        R8ui = gl::R8UI,
+        R8i = gl::R8I,
+        R16ui = gl::R16UI,
+        R16i = gl::R16I,
+        R32ui = gl::R32UI,
+        R32i = gl::R32I,
+        RG8 = gl::RG8,
+        RG8SNorm = gl::RG8_SNORM,
+        RG16f = gl::RG16F,
+        RG32f = gl::RG32F,
+        RG8ui = gl::RG8UI,
+        RG8i = gl::RG8I,
+        RG16ui = gl::RG16UI,
+        RG16i = gl::RG16I,
+        RG32ui = gl::RG32UI,
+        RG32i = gl::RG32I,
+        RGB8 = gl::RGB8,
+        SRGB8 = gl::SRGB8,
+        RGB565 = gl::RGB565,
+        RGB8SNorm = gl::RGB8_SNORM,
+        R11fG11fB10f = gl::R11F_G11F_B10F,
+        RGB9E5 = gl::RGB9_E5,
+        RGB16f = gl::RGB16F,
+        RGB32f = gl::RGB32F,
+        RGB8ui = gl::RGB8UI,
+        RGB8i = gl::RGB8I,
+        RGB16ui = gl::RGB16UI,
+        RGB16i = gl::RGB16I,
+        RGB32ui = gl::RGB32UI,
+        RGB32i = gl::RGB32I,
+        RGBA8 = gl::RGBA8,
+        SRGB8Alpha8 = gl::SRGB8_ALPHA8,
+        RGBA8SNorm = gl::RGBA8_SNORM,
+        RGB5A1 = gl::RGB5_A1,
+        RGBA4 = gl::RGBA4,
+        RGB10A2 = gl::RGB10_A2,
+        RGBA16f = gl::RGBA16F,
+        RGBA32f = gl::RGBA32F,
+        RGBA8ui = gl::RGBA8UI,
+        RGBA8i = gl::RGBA8I,
+        RGB10A2ui = gl::RGB10_A2UI,
+        RGBA16ui = gl::RGBA16UI,
+        RGBA16i = gl::RGBA16I,
+        RGBA32i = gl::RGBA32I,
+        RGBA32ui = gl::RGBA32UI,
+        DepthComponent16 = gl::DEPTH_COMPONENT16,
+        DepthComponent24 = gl::DEPTH_COMPONENT24,
+        DepthComponent32f = gl::DEPTH_COMPONENT32F,
+        Depth24Stencil8 = gl::DEPTH24_STENCIL8,
+        Depth32fStencil8 = gl::DEPTH32F_STENCIL8,
     }
 
     pub enum TexDataType {
+        Byte = gl::BYTE,
+        Int = gl::INT,
+        Short = gl::SHORT,
         UnsignedByte = gl::UNSIGNED_BYTE,
+        UnsignedInt = gl::UNSIGNED_INT,
+        UnsignedInt10f11f11fRev = gl::UNSIGNED_INT_10F_11F_11F_REV,
+        UnsignedInt2101010Rev = gl::UNSIGNED_INT_2_10_10_10_REV,
+        UnsignedInt5999Rev = gl::UNSIGNED_INT_5_9_9_9_REV,
+        UnsignedInt248 = gl::UNSIGNED_INT_24_8,
+        UnsignedShort = gl::UNSIGNED_SHORT,
         UnsignedShort4444 = gl::UNSIGNED_SHORT_4_4_4_4,
         UnsignedShort5551 = gl::UNSIGNED_SHORT_5_5_5_1,
         UnsignedShort565 = gl::UNSIGNED_SHORT_5_6_5,
         Float = gl::FLOAT,
         HalfFloat = gl::HALF_FLOAT_OES,
+        Float32UnsignedInt248Rev = gl::FLOAT_32_UNSIGNED_INT_24_8_REV,
     }
 }
 
@@ -962,13 +1056,12 @@ impl TexFormat {
     /// Returns how many components does this format need. For example, RGBA
     /// needs 4 components, while RGB requires 3.
     pub fn components(&self) -> u32 {
-        match *self {
-            TexFormat::DepthComponent => 1,
-            TexFormat::Alpha => 1,
-            TexFormat::Luminance => 1,
+        match self.to_unsized() {
+            TexFormat::DepthStencil => 2,
             TexFormat::LuminanceAlpha => 2,
-            TexFormat::RGB => 3,
-            TexFormat::RGBA => 4,
+            TexFormat::RG | TexFormat::RGInteger => 2,
+            TexFormat::RGB | TexFormat::RGBInteger => 3,
+            TexFormat::RGBA | TexFormat::RGBAInteger => 4,
             _ => 1,
         }
     }
@@ -977,6 +1070,189 @@ impl TexFormat {
     pub fn is_compressed(&self) -> bool {
         gl_ext_constants::COMPRESSIONS.contains(&self.as_gl_constant())
     }
+
+    /// Returns whether this format is a known sized or unsized format.
+    pub fn is_sized(&self) -> bool {
+        match self {
+            TexFormat::DepthComponent |
+            TexFormat::DepthStencil |
+            TexFormat::Alpha |
+            TexFormat::Red |
+            TexFormat::RG |
+            TexFormat::RGB |
+            TexFormat::RGBA |
+            TexFormat::Luminance |
+            TexFormat::LuminanceAlpha => false,
+            _ => true,
+        }
+    }
+
+    pub fn to_unsized(self) -> TexFormat {
+        match self {
+            TexFormat::R8 => TexFormat::Red,
+            TexFormat::R8SNorm => TexFormat::Red,
+            TexFormat::R16f => TexFormat::Red,
+            TexFormat::R32f => TexFormat::Red,
+            TexFormat::R8ui => TexFormat::RedInteger,
+            TexFormat::R8i => TexFormat::RedInteger,
+            TexFormat::R16ui => TexFormat::RedInteger,
+            TexFormat::R16i => TexFormat::RedInteger,
+            TexFormat::R32ui => TexFormat::RedInteger,
+            TexFormat::R32i => TexFormat::RedInteger,
+            TexFormat::RG8 => TexFormat::RG,
+            TexFormat::RG8SNorm => TexFormat::RG,
+            TexFormat::RG16f => TexFormat::RG,
+            TexFormat::RG32f => TexFormat::RG,
+            TexFormat::RG8ui => TexFormat::RGInteger,
+            TexFormat::RG8i => TexFormat::RGInteger,
+            TexFormat::RG16ui => TexFormat::RGInteger,
+            TexFormat::RG16i => TexFormat::RGInteger,
+            TexFormat::RG32ui => TexFormat::RGInteger,
+            TexFormat::RG32i => TexFormat::RGInteger,
+            TexFormat::RGB8 => TexFormat::RGB,
+            TexFormat::SRGB8 => TexFormat::RGB,
+            TexFormat::RGB565 => TexFormat::RGB,
+            TexFormat::RGB8SNorm => TexFormat::RGB,
+            TexFormat::R11fG11fB10f => TexFormat::RGB,
+            TexFormat::RGB9E5 => TexFormat::RGB,
+            TexFormat::RGB16f => TexFormat::RGB,
+            TexFormat::RGB32f => TexFormat::RGB,
+            TexFormat::RGB8ui => TexFormat::RGBInteger,
+            TexFormat::RGB8i => TexFormat::RGBInteger,
+            TexFormat::RGB16ui => TexFormat::RGBInteger,
+            TexFormat::RGB16i => TexFormat::RGBInteger,
+            TexFormat::RGB32ui => TexFormat::RGBInteger,
+            TexFormat::RGB32i => TexFormat::RGBInteger,
+            TexFormat::RGBA8 => TexFormat::RGBA,
+            TexFormat::SRGB8Alpha8 => TexFormat::RGBA,
+            TexFormat::RGBA8SNorm => TexFormat::RGBA,
+            TexFormat::RGB5A1 => TexFormat::RGBA,
+            TexFormat::RGBA4 => TexFormat::RGBA,
+            TexFormat::RGB10A2 => TexFormat::RGBA,
+            TexFormat::RGBA16f => TexFormat::RGBA,
+            TexFormat::RGBA32f => TexFormat::RGBA,
+            TexFormat::RGBA8ui => TexFormat::RGBAInteger,
+            TexFormat::RGBA8i => TexFormat::RGBAInteger,
+            TexFormat::RGB10A2ui => TexFormat::RGBAInteger,
+            TexFormat::RGBA16ui => TexFormat::RGBAInteger,
+            TexFormat::RGBA16i => TexFormat::RGBAInteger,
+            TexFormat::RGBA32i => TexFormat::RGBAInteger,
+            TexFormat::RGBA32ui => TexFormat::RGBAInteger,
+            TexFormat::DepthComponent16 => TexFormat::DepthComponent,
+            TexFormat::DepthComponent24 => TexFormat::DepthComponent,
+            TexFormat::DepthComponent32f => TexFormat::DepthComponent,
+            TexFormat::Depth24Stencil8 => TexFormat::DepthStencil,
+            TexFormat::Depth32fStencil8 => TexFormat::DepthStencil,
+            _ => self,
+        }
+    }
+
+    pub fn compatible_data_types(self) -> &'static [TexDataType] {
+        match self {
+            TexFormat::RGB => &[TexDataType::UnsignedByte, TexDataType::UnsignedShort565][..],
+            TexFormat::RGBA => &[
+                TexDataType::UnsignedByte,
+                TexDataType::UnsignedShort4444,
+                TexDataType::UnsignedShort5551,
+            ][..],
+            TexFormat::LuminanceAlpha => &[TexDataType::UnsignedByte][..],
+            TexFormat::Luminance => &[TexDataType::UnsignedByte][..],
+            TexFormat::Alpha => &[TexDataType::UnsignedByte][..],
+            TexFormat::R8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::R8SNorm => &[TexDataType::Byte][..],
+            TexFormat::R16f => &[TexDataType::HalfFloat, TexDataType::Float][..],
+            TexFormat::R32f => &[TexDataType::Float][..],
+            TexFormat::R8ui => &[TexDataType::UnsignedByte][..],
+            TexFormat::R8i => &[TexDataType::Byte][..],
+            TexFormat::R16ui => &[TexDataType::UnsignedShort][..],
+            TexFormat::R16i => &[TexDataType::Short][..],
+            TexFormat::R32ui => &[TexDataType::UnsignedInt][..],
+            TexFormat::R32i => &[TexDataType::Int][..],
+            TexFormat::RG8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::RG8SNorm => &[TexDataType::Byte][..],
+            TexFormat::RG16f => &[TexDataType::HalfFloat, TexDataType::Float][..],
+            TexFormat::RG32f => &[TexDataType::Float][..],
+            TexFormat::RG8ui => &[TexDataType::UnsignedByte][..],
+            TexFormat::RG8i => &[TexDataType::Byte][..],
+            TexFormat::RG16ui => &[TexDataType::UnsignedShort][..],
+            TexFormat::RG16i => &[TexDataType::Short][..],
+            TexFormat::RG32ui => &[TexDataType::UnsignedInt][..],
+            TexFormat::RG32i => &[TexDataType::Int][..],
+            TexFormat::RGB8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::SRGB8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::RGB565 => &[TexDataType::UnsignedByte, TexDataType::UnsignedShort565][..],
+            TexFormat::RGB8SNorm => &[TexDataType::Byte][..],
+            TexFormat::R11fG11fB10f => &[
+                TexDataType::UnsignedInt10f11f11fRev,
+                TexDataType::HalfFloat,
+                TexDataType::Float,
+            ][..],
+            TexFormat::RGB9E5 => &[
+                TexDataType::UnsignedInt5999Rev,
+                TexDataType::HalfFloat,
+                TexDataType::Float,
+            ][..],
+            TexFormat::RGB16f => &[TexDataType::HalfFloat, TexDataType::Float][..],
+            TexFormat::RGB32f => &[TexDataType::Float][..],
+            TexFormat::RGB8ui => &[TexDataType::UnsignedByte][..],
+            TexFormat::RGB8i => &[TexDataType::Byte][..],
+            TexFormat::RGB16ui => &[TexDataType::UnsignedShort][..],
+            TexFormat::RGB16i => &[TexDataType::Short][..],
+            TexFormat::RGB32ui => &[TexDataType::UnsignedInt][..],
+            TexFormat::RGB32i => &[TexDataType::Int][..],
+            TexFormat::RGBA8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::SRGB8Alpha8 => &[TexDataType::UnsignedByte][..],
+            TexFormat::RGBA8SNorm => &[TexDataType::Byte][..],
+            TexFormat::RGB5A1 => &[
+                TexDataType::UnsignedByte,
+                TexDataType::UnsignedShort5551,
+                TexDataType::UnsignedInt2101010Rev,
+            ][..],
+            TexFormat::RGBA4 => &[TexDataType::UnsignedByte, TexDataType::UnsignedShort4444][..],
+            TexFormat::RGB10A2 => &[TexDataType::UnsignedInt2101010Rev][..],
+            TexFormat::RGBA16f => &[TexDataType::HalfFloat, TexDataType::Float][..],
+            TexFormat::RGBA32f => &[TexDataType::Float][..],
+            TexFormat::RGBA8ui => &[TexDataType::UnsignedByte][..],
+            TexFormat::RGBA8i => &[TexDataType::Byte][..],
+            TexFormat::RGB10A2ui => &[TexDataType::UnsignedInt2101010Rev][..],
+            TexFormat::RGBA16ui => &[TexDataType::UnsignedShort][..],
+            TexFormat::RGBA16i => &[TexDataType::Short][..],
+            TexFormat::RGBA32i => &[TexDataType::Int][..],
+            TexFormat::RGBA32ui => &[TexDataType::UnsignedInt][..],
+            TexFormat::DepthComponent16 => {
+                &[TexDataType::UnsignedShort, TexDataType::UnsignedInt][..]
+            },
+            TexFormat::DepthComponent24 => &[TexDataType::UnsignedInt][..],
+            TexFormat::DepthComponent32f => &[TexDataType::Float][..],
+            TexFormat::Depth24Stencil8 => &[TexDataType::UnsignedInt248][..],
+            TexFormat::Depth32fStencil8 => &[TexDataType::Float32UnsignedInt248Rev][..],
+            TexFormat::CompressedRgbS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt3 |
+            TexFormat::CompressedRgbaS3tcDxt5 => &[TexDataType::UnsignedByte][..],
+            _ => &[][..],
+        }
+    }
+
+    pub fn required_webgl_version(self) -> WebGLVersion {
+        match self {
+            TexFormat::DepthComponent |
+            TexFormat::Alpha |
+            TexFormat::RGB |
+            TexFormat::RGBA |
+            TexFormat::Luminance |
+            TexFormat::LuminanceAlpha |
+            TexFormat::CompressedRgbS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt3 |
+            TexFormat::CompressedRgbaS3tcDxt5 => WebGLVersion::WebGL1,
+            _ => WebGLVersion::WebGL2,
+        }
+    }
+
+    pub fn usable_as_internal(self) -> bool {
+        !self.compatible_data_types().is_empty()
+    }
 }
 
 impl TexDataType {
@@ -984,12 +1260,21 @@ impl TexDataType {
     pub fn element_size(&self) -> u32 {
         use self::*;
         match *self {
-            TexDataType::UnsignedByte => 1,
+            TexDataType::Byte | TexDataType::UnsignedByte => 1,
+            TexDataType::Short |
+            TexDataType::UnsignedShort |
             TexDataType::UnsignedShort4444 |
             TexDataType::UnsignedShort5551 |
             TexDataType::UnsignedShort565 => 2,
+            TexDataType::Int |
+            TexDataType::UnsignedInt |
+            TexDataType::UnsignedInt10f11f11fRev |
+            TexDataType::UnsignedInt2101010Rev |
+            TexDataType::UnsignedInt5999Rev => 4,
+            TexDataType::UnsignedInt248 => 4,
             TexDataType::Float => 4,
             TexDataType::HalfFloat => 2,
+            TexDataType::Float32UnsignedInt248Rev => 4,
         }
     }
 
@@ -997,12 +1282,34 @@ impl TexDataType {
     /// UnsignedShort4444 holds four components, each with 4 bits of data.
     pub fn components_per_element(&self) -> u32 {
         match *self {
+            TexDataType::Byte => 1,
             TexDataType::UnsignedByte => 1,
+            TexDataType::Short => 1,
+            TexDataType::UnsignedShort => 1,
             TexDataType::UnsignedShort565 => 3,
             TexDataType::UnsignedShort5551 => 4,
             TexDataType::UnsignedShort4444 => 4,
+            TexDataType::Int => 1,
+            TexDataType::UnsignedInt => 1,
+            TexDataType::UnsignedInt10f11f11fRev => 3,
+            TexDataType::UnsignedInt2101010Rev => 4,
+            TexDataType::UnsignedInt5999Rev => 4,
+            TexDataType::UnsignedInt248 => 2,
             TexDataType::Float => 1,
             TexDataType::HalfFloat => 1,
+            TexDataType::Float32UnsignedInt248Rev => 2,
+        }
+    }
+
+    pub fn required_webgl_version(self) -> WebGLVersion {
+        match self {
+            TexDataType::UnsignedByte |
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 |
+            TexDataType::Float |
+            TexDataType::HalfFloat => WebGLVersion::WebGL1,
+            _ => WebGLVersion::WebGL2,
         }
     }
 }

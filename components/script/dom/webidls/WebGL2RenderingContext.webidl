@@ -310,10 +310,10 @@ interface mixin WebGL2RenderingContextBase
                                       GLsizei width, GLsizei height);
 
   /* Texture objects */
-  // void texStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width,
-  //                   GLsizei height);
-  // void texStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width,
-  //                   GLsizei height, GLsizei depth);
+  void texStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width,
+                    GLsizei height);
+  void texStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width,
+                    GLsizei height, GLsizei depth);
 
   //[Throws]
   //void texImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
