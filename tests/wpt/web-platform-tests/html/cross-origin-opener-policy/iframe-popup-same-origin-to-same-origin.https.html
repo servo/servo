@@ -8,18 +8,21 @@
 
 <div id=log></div>
 <script>
+// This document has COOP "same-origin". The popup has COOP "same-origin". Therefore there should
+// only be an opener and name if the frameOrigin and popupOrigin are same-origin with this document.
 [
-[SAME_ORIGIN, SAME_ORIGIN, "same-origin", true, true],
-[SAME_SITE, SAME_ORIGIN, "same-origin", false, false],
-[CROSS_ORIGIN, SAME_ORIGIN, "same-origin", false, false],
-[SAME_ORIGIN, SAME_SITE, "same-origin", false, false],
-[SAME_SITE, SAME_SITE, "same-origin", false, false],
-[CROSS_ORIGIN, SAME_SITE, "same-origin", false, false],
-[SAME_ORIGIN, CROSS_ORIGIN, "same-origin", false, false],
-[SAME_SITE, CROSS_ORIGIN, "same-origin", false, false],
-[CROSS_ORIGIN, CROSS_ORIGIN, "same-origin", false, false],
-].forEach( value => {
-    run_coop_test_iframe("same-origin", value[0], value[1], value[2], value[3], value[4]);
+[SAME_ORIGIN, SAME_ORIGIN, true],
+[SAME_SITE, SAME_ORIGIN, false],
+[CROSS_ORIGIN, SAME_ORIGIN, false],
+[SAME_ORIGIN, SAME_SITE, false],
+[SAME_SITE, SAME_SITE, false],
+[CROSS_ORIGIN, SAME_SITE, false],
+[SAME_ORIGIN, CROSS_ORIGIN, false],
+[SAME_SITE, CROSS_ORIGIN, false],
+[CROSS_ORIGIN, CROSS_ORIGIN, false],
+].forEach(([frameOrigin, popupOrigin, popupHasOpenerAndName]) => {
+    const testTitleStart = "same-origin";
+    const popupCOOP = "same-origin";
+    run_coop_test_iframe(testTitleStart, frameOrigin, popupOrigin, popupCOOP, popupHasOpenerAndName, popupHasOpenerAndName);
 });
-
 </script>

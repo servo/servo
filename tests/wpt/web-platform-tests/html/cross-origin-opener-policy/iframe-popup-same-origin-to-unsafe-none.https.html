@@ -8,18 +8,22 @@
 
 <div id=log></div>
 <script>
+// This document has COOP "same-origin". The popup has no COOP. Therefore there should be no
+// opener or name.
 [
-[SAME_ORIGIN, SAME_ORIGIN, "", false, false],
-[SAME_SITE, SAME_ORIGIN, "", false, true],
-[CROSS_ORIGIN, SAME_ORIGIN, "", false, true],
-[SAME_ORIGIN, SAME_SITE, "", false, false],
-[SAME_SITE, SAME_SITE, "", false, true],
-[CROSS_ORIGIN, SAME_SITE, "", false, true],
-[SAME_ORIGIN, CROSS_ORIGIN, "", false, false],
-[SAME_SITE, CROSS_ORIGIN, "", false, true],
-[CROSS_ORIGIN, CROSS_ORIGIN, "", false, true],
-].forEach( value => {
-    run_coop_test_iframe("same-origin", value[0], value[1], value[2], value[3], value[4]);
+[SAME_ORIGIN, SAME_ORIGIN],
+[SAME_SITE, SAME_ORIGIN],
+[CROSS_ORIGIN, SAME_ORIGIN],
+[SAME_ORIGIN, SAME_SITE],
+[SAME_SITE, SAME_SITE],
+[CROSS_ORIGIN, SAME_SITE],
+[SAME_ORIGIN, CROSS_ORIGIN],
+[SAME_SITE, CROSS_ORIGIN],
+[CROSS_ORIGIN, CROSS_ORIGIN],
+].forEach(([frameOrigin, popupOrigin]) => {
+    const testTitleStart = "same-origin";
+    const popupCOOP = "";
+    const popupHasOpenerAndName = false;
+    run_coop_test_iframe(testTitleStart, frameOrigin, popupOrigin, popupCOOP, popupHasOpenerAndName, popupHasOpenerAndName);
 });
-
 </script>

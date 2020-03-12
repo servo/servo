@@ -988,17 +988,15 @@ promise_test(async t => {
 }, 'Queues all remove events before running them');
 
 promise_test(async t => {
-  const outerIframe = createElement(t, 'iframe');
+  const outerIframe = document.createElement('iframe');
+  insertFrameAndAwaitLoad(t, outerIframe, document);
   outerIframe.width = 10;
   outerIframe.height = 10;
 
-  await new Promise(resolve => outerIframe.addEventListener('load', resolve));
-
-  const innerIframe = createElement(t, 'iframe', outerIframe.contentDocument);
+  const innerIframe = document.createElement('iframe');
+  insertFrameAndAwaitLoad(t, innerIframe, outerIframe.contentDocument);
   innerIframe.width = 10;
   innerIframe.height = 10;
-
-  await new Promise(resolve => innerIframe.addEventListener('load', resolve));
 
   const div = createDiv(t, innerIframe.contentDocument);
 

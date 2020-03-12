@@ -6,7 +6,7 @@ export const description = `
 createBindGroup validation tests.
 `;
 import { C, TestGroup, pcombine, poptions, unreachable } from '../../../framework/index.js';
-import { bindingTypes } from '../format_info.js';
+import { kBindingTypes } from '../capability_info.js';
 import { BindingResourceType, ValidationTest, resourceBindingMatches } from './validation_test.js';
 
 function clone(descriptor) {
@@ -107,7 +107,7 @@ g.test('buffer binding must contain exactly one buffer of its type', t => {
       }]
     });
   }, shouldError);
-}).params(pcombine(poptions('bindingType', bindingTypes), poptions('resourceType', Object.keys(BindingResourceType))));
+}).params(pcombine(poptions('bindingType', kBindingTypes), poptions('resourceType', Object.keys(BindingResourceType))));
 g.test('texture binding must have correct usage', async t => {
   const type = t.params.type;
   const usage = t.params._usage;
@@ -389,11 +389,6 @@ g.test('buffer offset and size for bind groups match', async t => {
   offset: 1024,
   size: 1,
   _success: false
-}, // offset+size is OOB
-{
-  offset: 256,
-  size: -256,
-  _success: false
-} // offset+size overflows to be 0
+} // offset+size is OOB
 ]);
 //# sourceMappingURL=createBindGroup.spec.js.map

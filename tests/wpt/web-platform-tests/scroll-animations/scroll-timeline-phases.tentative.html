@@ -22,13 +22,165 @@
 
   promise_test(async t => {
     const timeline = createScrollTimeline(t);
-    assert_equals(timeline.phase, "inactive");
-  }, 'Scroll timeline starts in "inactive" phase.');
-
-  promise_test(async t => {
-    const timeline = createScrollTimeline(t);
     assert_throws_js(TypeError, () => {
       timeline.phase = "after";
     });
   }, 'Setting scroll timeline phase (which is readonly) throws TypeError.');
+
+  const test_cases = {
+    before_start: {
+      name: "before start",
+      scroll_percent: 0.1,
+      timeline_phase: "before"
+    },
+    at_start: {
+      name: "at start",
+      scroll_percent: 0.2,
+      timeline_phase: "active"
+    },
+    in_range: {
+      name: "in range",
+      scroll_percent: 0.5,
+      timeline_phase: "active"
+    },
+    at_end: {
+      name: "at end",
+      scroll_percent: 0.8,
+      timeline_phase: "after"
+    },
+    after_end: {
+      name: "after end",
+      scroll_percent: 0.9,
+      timeline_phase: "after"
+    }
+  }
+
+  for (const test_case_key in test_cases){
+    const test_case = test_cases[test_case_key];
+    test(t => {
+      const timeline = createScrollTimelineWithOffsets(t, "20%", "80%");
+      const scroller = timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+      scroller.scrollTop = test_case.scroll_percent * maxScroll;
+
+      assert_equals(
+        timeline.phase,
+        test_case.timeline_phase,
+        "timeline.phase"
+      );
+    }, "Timeline phase while scroll offset is " + test_case.name);
+  }
+
+  // TODO(crbug.com/1060384): Spec is unclear in this case, revisit this when
+  // desired results have been established.
+  // These test cases are worded strangely because they test an edge case
+  // where startScrollOffset is GREATER THAN endScrollOffset
+  const test_cases_start_offset_greater_than_end_offset = {
+    before_end: {
+      name: "before end",
+      scroll_percent: 0.1,
+      timeline_phase: "before"
+    },
+    at_end: {
+      name: "at end",
+      scroll_percent: 0.2,
+      timeline_phase: "before"
+    },
+    before_start: {
+      name: "before start",
+      scroll_percent: 0.5,
+      timeline_phase: "before"
+    },
+    at_start: {
+      name: "at start",
+      scroll_percent: 0.8,
+      timeline_phase: "after"
+    },
+    after_start: {
+      name: "after start",
+      scroll_percent: 0.9,
+      timeline_phase: "after"
+    }
+  }
+
+  for (const test_case_key in test_cases_start_offset_greater_than_end_offset){
+    const test_case =
+      test_cases_start_offset_greater_than_end_offset[test_case_key];
+    test(t => {
+      const timeline = createScrollTimelineWithOffsets(t, "80%", "20%");
+      const scroller = timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+      scroller.scrollTop = test_case.scroll_percent * maxScroll;
+
+      assert_equals(
+        timeline.phase,
+        test_case.timeline_phase,
+        "timeline.phase"
+      );
+    }, "Timeline phase while start offset is greater than end offset and" +
+    " scroll offset is " + test_case.name);
+  }
+
+  // TODO(crbug.com/1060384): Spec is unclear in this case, revisit this when
+  // desired results have been established.
+  // Test cases where startScrollOffset is EQUAL TO endScrollOffset
+  const test_cases_start_offset_equal_to_end_offset = {
+    before_end: {
+      name: "before start",
+      scroll_percent: 0.3,
+      timeline_phase: "before"
+    },
+    at_end: {
+      name: "at both",
+      scroll_percent: 0.5,
+      timeline_phase: "after"
+    },
+    before_start: {
+      name: "after end",
+      scroll_percent: 0.7,
+      timeline_phase: "after"
+    }
+  }
+
+  for (const test_case_key in test_cases_start_offset_equal_to_end_offset){
+    const test_case =
+      test_cases_start_offset_equal_to_end_offset[test_case_key];
+    test(t => {
+      const timeline = createScrollTimelineWithOffsets(t, "50%", "50%");
+      const scroller = timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+      scroller.scrollTop = test_case.scroll_percent * maxScroll;
+
+      assert_equals(
+        timeline.phase,
+        test_case.timeline_phase,
+        "timeline.phase"
+      );
+    }, "Timeline phase while start offset is equal to end offset and scroll" +
+    " offset is " + test_case.name);
+  }
+
+  test(t => {
+    const timeline = createScrollTimeline(t);
+    const scroller = timeline.scrollSource;
+    // Timeline should be inactive since layout hasn't updated yet
+    assert_equals(timeline.phase, "inactive");
+
+    // Accessing scroller.scrollHeight forces the scroller to update
+    scroller.scrollHeight;
+    assert_equals(timeline.phase, "active");
+
+    // Setting the scroller to display none should make the timeline inactive
+    scroller.style.display = "none"
+
+    // Force another layout
+    scroller.scrollHeight;
+
+    assert_equals(timeline.phase, "inactive");
+  }, 'Scroll timeline starts inactive, can transition to active, and then' +
+  ' back to inactive.');
+
 </script>

@@ -25,7 +25,8 @@ function clone(descriptor) {
 
 class F extends ValidationTest {
   async init() {
-    await Promise.all([super.init(), this.initGLSL()]);
+    await super.init();
+    await this.initGLSL();
   }
 
   getDescriptor(vertexState, vertexShaderCode) {
