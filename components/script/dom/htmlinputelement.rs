@@ -2488,6 +2488,9 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
+                if !self.upcast::<Node>().is_connected() {
+                    return ();
+                }
                 let target = self.upcast::<EventTarget>();
                 target.fire_bubbling_event(atom!("input"));
                 target.fire_bubbling_event(atom!("change"));
