@@ -27,7 +27,7 @@
       window.onmessage = e => {
         try {
           assert_not_equals(e.data.header, "", "The `Sec-CH-UA` header is delivered.");
-          assert_not_equals(e.data.header, minor, "The `Sec-CH-UA` header is different after the opt-in than before.");
+          assert_equals(e.data.header, minor, "The `Sec-CH-UA` header did not change after the opt-in.");
         } catch (ex) {
           reject(ex);
         }

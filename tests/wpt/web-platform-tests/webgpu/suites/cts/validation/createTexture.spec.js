@@ -6,7 +6,7 @@ export const description = `
 createTexture validation tests.
 `;
 import { TestGroup, poptions } from '../../../framework/index.js';
-import { textureFormatInfo, textureFormats } from '../format_info.js';
+import { kTextureFormatInfo, kTextureFormats } from '../capability_info.js';
 import { ValidationTest } from './validation_test.js';
 
 class F extends ValidationTest {
@@ -223,7 +223,7 @@ g.test('it is invalid to submit a destroyed texture before and after encode', as
 }]);
 g.test('it is invalid to have an output attachment texture with non renderable format', async t => {
   const format = t.params.format;
-  const info = textureFormatInfo[format];
+  const info = kTextureFormatInfo[format];
   const descriptor = t.getDescriptor({
     width: 1,
     height: 1,
@@ -232,5 +232,5 @@ g.test('it is invalid to have an output attachment texture with non renderable f
   t.expectValidationError(() => {
     t.device.createTexture(descriptor);
   }, !info.renderable);
-}).params(poptions('format', textureFormats)); // TODO: Add tests for compressed texture formats
+}).params(poptions('format', kTextureFormats)); // TODO: Add tests for compressed texture formats
 //# sourceMappingURL=createTexture.spec.js.map

@@ -13,16 +13,6 @@
 
 const gKeyFrames = { 'marginLeft': ['100px', '200px'] };
 
-async function insert_frame_and_await_load(test, iframe, document) {
-  const eventWatcher = new EventWatcher(test, iframe, ['load']);
-  const event_promise = eventWatcher.wait_for('load');
-
-  document.body.appendChild(iframe);
-  test.add_cleanup(() => { document.body.removeChild(iframe); });
-
-  await event_promise;
-}
-
 test(t => {
   assert_equals(document.getAnimations().length, 0,
                 'getAnimations returns an empty sequence for a document ' +
@@ -78,7 +68,7 @@ test(t => {
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  insert_frame_and_await_load(t, iframe, document)
+  insertFrameAndAwaitLoad(t, iframe, document)
 
   const div = createDiv(t, iframe.contentDocument)
   const effect = new KeyframeEffect(div, null, 100 * MS_PER_SEC);
@@ -98,8 +88,8 @@ promise_test(async t => {
   const iframe1 = document.createElement('iframe');
   const iframe2 = document.createElement('iframe');
 
-  insert_frame_and_await_load(t, iframe1, document);
-  insert_frame_and_await_load(t, iframe2, document);
+  insertFrameAndAwaitLoad(t, iframe1, document);
+  insertFrameAndAwaitLoad(t, iframe2, document);
 
   const div_frame1 = createDiv(t, iframe1.contentDocument)
   const div_main_frame = createDiv(t)
@@ -197,6 +187,20 @@ test(t => {
     + ' trees'
   );
 }, 'Document.getAnimations() does NOT return animations in shadow trees');
+
+test(t => {
+  const div = createDiv(t);
+  const shadow = div.attachShadow({ mode: 'open' });
+
+  div.animate(gKeyFrames, 100 * MS_PER_SEC)
+
+  assert_array_equals(
+    div.shadowRoot.getAnimations(),
+    [],
+    'getAnimations() called on ShadowRoot does not return animations from'
+    + ' Document'
+  );
+}, 'ShadowRoot.getAnimations() does NOT return animations in parent document');
 
 promise_test(async t => {
   const div = createDiv(t);

@@ -7,6 +7,48 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 import { getGPU } from '../../framework/gpu/implementation.js';
 import { Fixture, assert, unreachable } from '../../framework/index.js';
 let glslangInstance;
+
+class DevicePool {
+  constructor() {
+    _defineProperty(this, "device", undefined);
+
+    _defineProperty(this, "state", 'uninitialized');
+  }
+
+  async initialize() {
+    try {
+      const gpu = getGPU();
+      const adapter = await gpu.requestAdapter();
+      this.device = await adapter.requestDevice();
+    } catch (ex) {
+      this.state = 'failed';
+      throw ex;
+    }
+  }
+
+  async acquire() {
+    assert(this.state !== 'acquired', 'Device was in use');
+    assert(this.state !== 'failed', 'Failed to initialize WebGPU device');
+    const state = this.state;
+    this.state = 'acquired';
+
+    if (state === 'uninitialized') {
+      await this.initialize();
+    }
+
+    assert(!!this.device);
+    return this.device;
+  }
+
+  release(device) {
+    assert(this.state === 'acquired');
+    assert(device === this.device, 'Released device was the wrong device');
+    this.state = 'free';
+  }
+
+}
+
+const devicePool = new DevicePool();
 export class GPUTest extends Fixture {
   constructor(...args) {
     super(...args);
@@ -21,10 +63,8 @@ export class GPUTest extends Fixture {
   }
 
   async init() {
-    super.init();
-    const gpu = getGPU();
-    const adapter = await gpu.requestAdapter();
-    this.device = await adapter.requestDevice();
+    await super.init();
+    this.device = await devicePool.acquire();
     this.queue = this.device.defaultQueue;
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
@@ -43,7 +83,7 @@ export class GPUTest extends Fixture {
   }
 
   async finalize() {
-    super.finalize();
+    await super.finalize();
 
     if (this.initialized) {
       const gpuValidationError = await this.device.popErrorScope();
@@ -59,6 +99,10 @@ export class GPUTest extends Fixture {
         assert(gpuOutOfMemoryError instanceof GPUOutOfMemoryError);
         this.fail('Unexpected out-of-memory error occurred');
       }
+    }
+
+    if (this.device) {
+      devicePool.release(this.device);
     }
   }
 

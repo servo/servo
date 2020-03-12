@@ -42,9 +42,9 @@ promise_test(async t => {
   const animA = div.animate({margin: ["100px","100px"]}, 100000);
   assert_equals(getComputedStyle(div).marginLeft, '100px');
   div.style.animation = 'margin50 100s';
-  assert_equals(getComputedStyle(div).marginLeft, '50px');
   // Wait for animation starts
-  await waitForAnimationFrames(2);
+  await animA.ready;
+  await waitForAnimationFrames(1);
   assert_equals(getComputedStyle(div).marginLeft, '100px',
                 "A higher-priority animation is not overriden by a more recent"
                 + "one.");

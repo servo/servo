@@ -396,7 +396,6 @@ g.test('it is invalid to use a texture view created from a destroyed texture', a
   const texture = t.createTexture({
     arrayLayerCount: 1
   });
-  texture.destroy();
   const commandEncoder = t.device.createCommandEncoder();
   const renderPass = commandEncoder.beginRenderPass({
     colorAttachments: [{
@@ -410,6 +409,7 @@ g.test('it is invalid to use a texture view created from a destroyed texture', a
     }]
   });
   renderPass.endPass();
+  texture.destroy();
   t.expectValidationError(() => {
     commandEncoder.finish();
   });

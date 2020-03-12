@@ -6,7 +6,7 @@ export const description = `
 createBindGroupLayout validation tests.
 `;
 import { C, TestGroup, poptions } from '../../../framework/index.js';
-import { bindingTypeInfo, bindingTypes } from '../format_info.js';
+import { kBindingTypeInfo, kBindingTypes, kMaxBindingsPerBindGroup, kPerStageBindingLimits, kShaderStages } from '../capability_info.js';
 import { ValidationTest } from './validation_test.js';
 
 function clone(descriptor) {
@@ -31,23 +31,6 @@ g.test('some binding index was specified more than once', async t => {
   const badDescriptor = clone(goodDescriptor);
   badDescriptor.bindings[1].binding = 0; // Binding index 0 can't be specified twice.
 
-  t.expectValidationError(() => {
-    t.device.createBindGroupLayout(badDescriptor);
-  });
-});
-g.test('negative binding index', async t => {
-  const goodDescriptor = {
-    bindings: [{
-      binding: 0,
-      visibility: GPUShaderStage.COMPUTE,
-      type: C.BindingType.StorageBuffer
-    }]
-  }; // Control case
-
-  t.device.createBindGroupLayout(goodDescriptor); // Negative binding index can't be specified.
-
-  const badDescriptor = clone(goodDescriptor);
-  badDescriptor.bindings[0].binding = -1;
   t.expectValidationError(() => {
     t.device.createBindGroupLayout(badDescriptor);
   });
@@ -102,7 +85,7 @@ g.test('number of dynamic buffers exceeds the maximum value', async t => {
 }]);
 g.test('dynamic set to true is allowed only for buffers', async t => {
   const type = t.params.type;
-  const success = bindingTypeInfo[type].type === 'buffer';
+  const success = kBindingTypeInfo[type].type === 'buffer';
   const descriptor = {
     bindings: [{
       binding: 0,
@@ -114,5 +97,133 @@ g.test('dynamic set to true is allowed only for buffers', async t => {
   t.expectValidationError(() => {
     t.device.createBindGroupLayout(descriptor);
   }, !success);
-}).params(poptions('type', bindingTypes));
+}).params(poptions('type', kBindingTypes));
+let kCasesForMaxResourcesPerStageTests;
+{
+  // One bind group layout will be filled with kPerStageBindingLimit[...] of the type |type|.
+  // For each item in the array returned here, a case will be generated which tests a pipeline
+  // layout with one extra bind group layout with one extra binding. That extra binding will have:
+  //
+  //   - If extraTypeSame, any of the binding types which counts toward the same limit as |type|.
+  //     (i.e. 'storage-buffer' <-> 'readonly-storage-buffer').
+  //   - Otherwise, an arbitrary other type.
+  function pickExtraBindingTypes(type, extraTypeSame) {
+    if (extraTypeSame) {
+      switch (type) {
+        case 'storage-buffer':
+        case 'readonly-storage-buffer':
+          return ['storage-buffer', 'readonly-storage-buffer'];
+
+        default:
+          return [type];
+      }
+    } else {
+      return type === 'sampler' ? ['sampled-texture'] : ['sampler'];
+    }
+  }
+
+  kCasesForMaxResourcesPerStageTests = [];
+
+  for (const maxedType of kBindingTypes) {
+    for (const maxedVisibility of kShaderStages) {
+      // Don't generate a case where maxedType isn't valid in maxedVisibility.
+      if (!(kBindingTypeInfo[maxedType].validStages & maxedVisibility)) continue;
+
+      for (const extraTypeSame of [true, false]) {
+        for (const extraType of pickExtraBindingTypes(maxedType, extraTypeSame)) {
+          for (const extraVisibility of kShaderStages) {
+            // Don't generate a case where extraType isn't valid in extraVisibility.
+            if (!(kBindingTypeInfo[extraType].validStages & extraVisibility)) continue;
+            kCasesForMaxResourcesPerStageTests.push({
+              maxedType,
+              maxedVisibility,
+              extraType,
+              extraVisibility
+            });
+          }
+        }
+      }
+    }
+  }
+} // Should never fail unless kMaxBindingsPerBindGroup is exceeded, because the validation for
+// resources-of-type-per-stage is in pipeline layout creation.
+
+g.test('max resources per stage/in bind group layout', async t => {
+  const maxedType = t.params.maxedType;
+  const extraType = t.params.extraType;
+  const {
+    maxedVisibility,
+    extraVisibility
+  } = t.params;
+  const maxedCount = kPerStageBindingLimits[kBindingTypeInfo[maxedType].perStageLimitType];
+  const maxResourceBindings = [];
+
+  for (let i = 0; i < maxedCount; i++) {
+    maxResourceBindings.push({
+      binding: i,
+      visibility: maxedVisibility,
+      type: maxedType
+    });
+  }
+
+  const goodDescriptor = {
+    bindings: maxResourceBindings
+  }; // Control
+
+  t.device.createBindGroupLayout(goodDescriptor);
+  const newDescriptor = clone(goodDescriptor);
+  newDescriptor.bindings.push({
+    binding: maxedCount,
+    visibility: extraVisibility,
+    type: extraType
+  });
+  const shouldError = maxedCount >= kMaxBindingsPerBindGroup;
+  t.expectValidationError(() => {
+    t.device.createBindGroupLayout(newDescriptor);
+  }, shouldError);
+}).params(kCasesForMaxResourcesPerStageTests); // One pipeline layout can have a maximum number of each type of binding *per stage* (which is
+// different for each type). Test that the max works, then add one more binding of same-or-different
+// type and same-or-different visibility.
+
+g.test('max resources per stage/in pipeline layout', async t => {
+  const maxedType = t.params.maxedType;
+  const extraType = t.params.extraType;
+  const {
+    maxedVisibility,
+    extraVisibility
+  } = t.params;
+  const maxedCount = kPerStageBindingLimits[kBindingTypeInfo[maxedType].perStageLimitType];
+  const maxResourceBindings = [];
+
+  for (let i = 0; i < maxedCount; i++) {
+    maxResourceBindings.push({
+      binding: i,
+      visibility: maxedVisibility,
+      type: maxedType
+    });
+  }
+
+  const goodLayout = t.device.createBindGroupLayout({
+    bindings: maxResourceBindings
+  }); // Control
+
+  t.device.createPipelineLayout({
+    bindGroupLayouts: [goodLayout]
+  });
+  const extraLayout = t.device.createBindGroupLayout({
+    bindings: [{
+      binding: 0,
+      visibility: extraVisibility,
+      type: extraType
+    }]
+  }); // Some binding types use the same limit, e.g. 'storage-buffer' and 'readonly-storage-buffer'.
+
+  const newBindingCountsTowardSamePerStageLimit = (maxedVisibility & extraVisibility) !== 0 && kBindingTypeInfo[maxedType].perStageLimitType === kBindingTypeInfo[extraType].perStageLimitType;
+  const layoutExceedsPerStageLimit = newBindingCountsTowardSamePerStageLimit;
+  t.expectValidationError(() => {
+    t.device.createPipelineLayout({
+      bindGroupLayouts: [goodLayout, extraLayout]
+    });
+  }, layoutExceedsPerStageLimit);
+}).params(kCasesForMaxResourcesPerStageTests);
 //# sourceMappingURL=createBindGroupLayout.spec.js.map

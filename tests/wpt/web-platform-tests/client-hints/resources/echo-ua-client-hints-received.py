@@ -13,6 +13,7 @@ def main(request, response):
         "sec-ch-ua-arch",
         "sec-ch-ua-platform",
         "sec-ch-ua-model",
+        "sec-ch-ua-full-version",
     ]
 
     request_client_hints = {i: request.headers.get(i) for i in client_hint_headers}

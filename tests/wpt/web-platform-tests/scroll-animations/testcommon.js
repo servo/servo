@@ -12,6 +12,16 @@ function createScrollTimeline(test) {
   });
 }
 
+function createScrollTimelineWithOffsets(test, startOffset, endOffset) {
+  return new ScrollTimeline({
+    scrollSource: createScroller(test),
+    orientation: "vertical",
+    startScrollOffset: startOffset,
+    endScrollOffset: endOffset,
+    timeRange: 1000
+  });
+}
+
 function createScrollLinkedAnimation(test, timeline) {
   if(timeline === undefined)
     timeline = createScrollTimeline(test);
