@@ -14,7 +14,8 @@ use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
-    webgl_channel, GlType, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult, WebGLVersion,
+    webgl_channel, GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId,
+    WebGLResult, WebGLVersion,
 };
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -133,11 +134,13 @@ impl WebGLRenderbuffer {
     pub fn storage(
         &self,
         api_type: GlType,
+        sample_count: i32,
         internal_format: u32,
         width: i32,
         height: i32,
     ) -> WebGLResult<()> {
         let is_gles = api_type == GlType::Gles;
+        let webgl_version = self.upcast().context().webgl_version();
 
         // Validate the internal_format, and save it for completeness
         // validation.
@@ -173,7 +176,7 @@ impl WebGLRenderbuffer {
             constants::DEPTH_COMPONENT24 |
             constants::DEPTH_COMPONENT32F |
             constants::DEPTH24_STENCIL8 |
-            constants::DEPTH32F_STENCIL8 => match self.upcast().context().webgl_version() {
+            constants::DEPTH32F_STENCIL8 => match webgl_version {
                 WebGLVersion::WebGL1 => return Err(WebGLError::InvalidEnum),
                 _ => internal_format,
             },
@@ -221,6 +224,22 @@ impl WebGLRenderbuffer {
             _ => return Err(WebGLError::InvalidEnum),
         };
 
+        if webgl_version != WebGLVersion::WebGL1 {
+            let (sender, receiver) = webgl_channel().unwrap();
+            self.upcast::<WebGLObject>().context().send_command(
+                WebGLCommand::GetInternalFormatIntVec(
+                    constants::RENDERBUFFER,
+                    internal_format,
+                    InternalFormatIntVec::Samples,
+                    sender,
+                ),
+            );
+            let samples = receiver.recv().unwrap();
+            if sample_count < 0 || sample_count as usize > samples.len() {
+                return Err(WebGLError::InvalidOperation);
+            }
+        }
+
         self.internal_format.set(Some(internal_format));
         self.is_initialized.set(false);
 
@@ -228,17 +247,24 @@ impl WebGLRenderbuffer {
             fb.update_status();
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::RenderbufferStorage(
+        let command = match sample_count {
+            0 => WebGLCommand::RenderbufferStorage(
                 constants::RENDERBUFFER,
                 actual_format,
                 width,
                 height,
-            ));
+            ),
+            _ => WebGLCommand::RenderbufferStorageMultisample(
+                constants::RENDERBUFFER,
+                sample_count,
+                actual_format,
+                width,
+                height,
+            ),
+        };
+        self.upcast::<WebGLObject>().context().send_command(command);
 
         self.size.set(Some((width, height)));
-
         Ok(())
     }
 

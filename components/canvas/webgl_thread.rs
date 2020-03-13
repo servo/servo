@@ -13,6 +13,7 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::GLContextAttributes;
 use canvas_traits::webgl::GLLimits;
 use canvas_traits::webgl::GlType;
+use canvas_traits::webgl::InternalFormatIntVec;
 use canvas_traits::webgl::ProgramLinkInfo;
 use canvas_traits::webgl::SwapChainId;
 use canvas_traits::webgl::TexDataType;
@@ -1211,6 +1212,13 @@ impl WebGLImpl {
             WebGLCommand::RenderbufferStorage(target, format, width, height) => {
                 gl.renderbuffer_storage(target, format, width, height)
             },
+            WebGLCommand::RenderbufferStorageMultisample(
+                target,
+                samples,
+                format,
+                width,
+                height,
+            ) => gl.renderbuffer_storage_multisample(target, samples, format, width, height),
             WebGLCommand::SampleCoverage(value, invert) => gl.sample_coverage(value, invert),
             WebGLCommand::Scissor(x, y, width, height) => {
                 // FIXME(nox): Kinda unfortunate that some u32 values could
@@ -1665,6 +1673,29 @@ impl WebGLImpl {
                 sender
                     .send(gl.get_tex_parameter_iv(target, param as u32))
                     .unwrap();
+            },
+            WebGLCommand::GetInternalFormatIntVec(target, internal_format, param, ref sender) => {
+                match param {
+                    InternalFormatIntVec::Samples => {
+                        let mut count = [0; 1];
+                        gl.get_internal_format_iv(
+                            target,
+                            internal_format,
+                            gl::NUM_SAMPLE_COUNTS,
+                            &mut count,
+                        );
+                        assert!(count[0] >= 0);
+
+                        let mut values = vec![0; count[0] as usize];
+                        gl.get_internal_format_iv(
+                            target,
+                            internal_format,
+                            param as u32,
+                            &mut values,
+                        );
+                        sender.send(values).unwrap()
+                    },
+                }
             },
             WebGLCommand::TexParameteri(target, param, value) => {
                 gl.tex_parameter_i(target, param as u32, value)

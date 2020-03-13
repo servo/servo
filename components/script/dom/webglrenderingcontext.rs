@@ -1476,6 +1476,40 @@ impl WebGLRenderingContext {
         }
         slot.set(framebuffer);
     }
+
+    pub fn renderbuffer_storage(
+        &self,
+        target: u32,
+        samples: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+    ) {
+        if target != constants::RENDERBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
+        let max = self.limits.max_renderbuffer_size;
+
+        if samples < 0 || width < 0 || width as u32 > max || height < 0 || height as u32 > max {
+            return self.webgl_error(InvalidValue);
+        }
+
+        let rb = handle_potential_webgl_error!(
+            self,
+            self.bound_renderbuffer.get().ok_or(InvalidOperation),
+            return
+        );
+        handle_potential_webgl_error!(
+            self,
+            rb.storage(self.api_type, samples, internal_format, width, height)
+        );
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
+            fb.invalidate_renderbuffer(&*rb);
+        }
+
+        // FIXME: https://github.com/servo/servo/issues/13710
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -4336,30 +4370,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn RenderbufferStorage(&self, target: u32, internal_format: u32, width: i32, height: i32) {
-        if target != constants::RENDERBUFFER {
-            return self.webgl_error(InvalidEnum);
-        }
-
-        let max = self.limits.max_renderbuffer_size;
-
-        if width < 0 || width as u32 > max || height < 0 || height as u32 > max {
-            return self.webgl_error(InvalidValue);
-        }
-
-        let rb = handle_potential_webgl_error!(
-            self,
-            self.bound_renderbuffer.get().ok_or(InvalidOperation),
-            return
-        );
-        handle_potential_webgl_error!(
-            self,
-            rb.storage(self.api_type, internal_format, width, height)
-        );
-        if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_renderbuffer(&*rb);
-        }
-
-        // FIXME: https://github.com/servo/servo/issues/13710
+        self.renderbuffer_storage(target, 0, internal_format, width, height)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
