@@ -34,7 +34,7 @@ pub(crate) struct InlineFormattingContext {
 pub(crate) enum InlineLevelBox {
     InlineBox(InlineBox),
     TextRun(TextRun),
-    OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
+    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
     Atomic(IndependentFormattingContext),
 }
@@ -77,7 +77,7 @@ struct PartialInlineBoxFragment<'box_tree> {
 }
 
 struct InlineFormattingContextState<'box_tree, 'a, 'b> {
-    positioning_context: &'a mut PositioningContext<'box_tree>,
+    positioning_context: &'a mut PositioningContext,
     containing_block: &'b ContainingBlock<'b>,
     lines: Lines,
     inline_position: Length,
@@ -204,10 +204,10 @@ impl InlineFormattingContext {
         computation.paragraph
     }
 
-    pub(super) fn layout<'a>(
-        &'a self,
+    pub(super) fn layout(
+        &self,
         layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext<'a>,
+        positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
     ) -> FlowLayout {

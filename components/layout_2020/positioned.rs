@@ -36,19 +36,18 @@ pub(crate) struct AbsolutelyPositionedBox {
     pub contents: IndependentFormattingContext,
 }
 
-pub(crate) struct PositioningContext<'box_tree> {
-    for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox<'box_tree>>>,
+pub(crate) struct PositioningContext {
+    for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox>>,
 
     // For nearest `containing block for all descendants` as defined by the CSS transforms
     // spec.
     // https://www.w3.org/TR/css-transforms-1/#containing-block-for-all-descendants
-    for_nearest_containing_block_for_all_descendants:
-        Vec<HoistedAbsolutelyPositionedBox<'box_tree>>,
+    for_nearest_containing_block_for_all_descendants: Vec<HoistedAbsolutelyPositionedBox>,
 }
 
 #[derive(Debug)]
-pub(crate) struct HoistedAbsolutelyPositionedBox<'box_tree> {
-    absolutely_positioned_box: &'box_tree AbsolutelyPositionedBox,
+pub(crate) struct HoistedAbsolutelyPositionedBox {
+    absolutely_positioned_box: Arc<AbsolutelyPositionedBox>,
 
     /// The rank of the child from which this absolutely positioned fragment
     /// came from, when doing the layout of a block container. Used to compute
@@ -110,7 +109,7 @@ impl AbsolutelyPositionedBox {
     }
 
     pub(crate) fn to_hoisted(
-        &self,
+        self: Arc<Self>,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> HoistedAbsolutelyPositionedBox {
@@ -150,7 +149,7 @@ impl AbsolutelyPositionedBox {
     }
 }
 
-impl<'box_tree> PositioningContext<'box_tree> {
+impl PositioningContext {
     pub(crate) fn new_for_containing_block_for_all_descendants() -> Self {
         Self {
             for_nearest_positioned_ancestor: None,
@@ -220,9 +219,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
     fn create_and_layout_positioned(
         layout_context: &LayoutContext,
         style: &ComputedValues,
-        for_nearest_containing_block_for_all_descendants: &mut Vec<
-            HoistedAbsolutelyPositionedBox<'box_tree>,
-        >,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         if style.establishes_containing_block_for_all_descendants() {
@@ -296,7 +293,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
         new_fragment
     }
 
-    pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox<'box_tree>) {
+    pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox) {
         if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
             match box_
                 .absolutely_positioned_box
@@ -412,14 +409,12 @@ impl<'box_tree> PositioningContext<'box_tree> {
     }
 }
 
-impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
+impl HoistedAbsolutelyPositionedBox {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         boxes: &[Self],
         fragments: &mut Vec<Fragment>,
-        for_nearest_containing_block_for_all_descendants: &mut Vec<
-            HoistedAbsolutelyPositionedBox<'box_tree>,
-        >,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
@@ -449,9 +444,7 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
-        for_nearest_containing_block_for_all_descendants: &mut Vec<
-            HoistedAbsolutelyPositionedBox<'box_tree>,
-        >,
+        for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
         let style = &self.absolutely_positioned_box.contents.style;

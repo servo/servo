@@ -525,7 +525,7 @@ where
                 kind,
             });
         } else {
-            let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+            let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
                 AbsolutelyPositionedBox::construct(
                     self.context,
                     node,
@@ -533,7 +533,7 @@ where
                     display_inside,
                     contents,
                 ),
-            ));
+            )));
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
@@ -687,13 +687,13 @@ where
                 contents,
             } => {
                 let block_level_box = Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    AbsolutelyPositionedBox::construct(
+                    Arc::new(AbsolutelyPositionedBox::construct(
                         context,
                         node,
                         style,
                         display_inside,
                         contents,
-                    ),
+                    )),
                 ));
                 (block_level_box, ContainsFloats::No)
             },
