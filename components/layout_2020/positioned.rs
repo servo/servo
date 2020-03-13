@@ -5,7 +5,7 @@
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
@@ -13,10 +13,23 @@ use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
+
+static HOISTED_FRAGMENT_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
+pub(crate) struct HoistedFragmentId(u16);
+
+impl HoistedFragmentId {
+    pub fn new() -> HoistedFragmentId {
+        let new_id = HOISTED_FRAGMENT_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16;
+        HoistedFragmentId(new_id)
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -43,6 +56,11 @@ pub(crate) struct HoistedAbsolutelyPositionedBox<'box_tree> {
     pub(crate) tree_rank: usize,
 
     box_offsets: Vec2<AbsoluteBoxOffsets>,
+
+    /// The id which is shared between this HoistedAbsolutelyPositionedBox and its
+    /// placeholder AbsoluteOrFixedPositionedFragment in its original tree position.
+    /// This will be used later in order to paint this hoisted box in tree order.
+    pub fragment_id: HoistedFragmentId,
 }
 
 #[derive(Clone, Debug)]
@@ -127,6 +145,7 @@ impl AbsolutelyPositionedBox {
                     box_offsets.block_end.clone(),
                 ),
             },
+            fragment_id: HoistedFragmentId::new(),
         }
     }
 }
@@ -273,14 +292,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
             )
         }
 
-        new_fragment
-            .children
-            .push(Fragment::Anonymous(AnonymousFragment::new(
-                padding_rect,
-                new_child_fragments,
-                new_fragment.style.writing_mode,
-            )));
-
+        new_fragment.children.extend(new_child_fragments);
         new_fragment
     }
 
@@ -395,13 +407,7 @@ impl<'box_tree> PositioningContext<'box_tree> {
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 &containing_block,
             );
-            positioned_box_fragment
-                .children
-                .push(Fragment::Anonymous(AnonymousFragment::new(
-                    padding_rect,
-                    children,
-                    positioned_box_fragment.style.writing_mode,
-                )))
+            positioned_box_fragment.children.extend(children);
         }
     }
 }
@@ -599,6 +605,7 @@ impl<'box_tree> HoistedAbsolutelyPositionedBox<'box_tree> {
                     border,
                     margin,
                     CollapsedBlockMargins::zero(),
+                    Some(self.fragment_id),
                 )
             },
         )
@@ -715,13 +722,15 @@ fn adjust_static_positions(
     tree_rank_in_parent: usize,
 ) {
     for abspos_fragment in absolutely_positioned_fragments {
-        let child_fragment_rect = match &child_fragments[abspos_fragment.tree_rank] {
+        let original_tree_rank = abspos_fragment.tree_rank;
+        abspos_fragment.tree_rank = tree_rank_in_parent;
+
+        let child_fragment_rect = match &child_fragments[original_tree_rank] {
             Fragment::Box(b) => &b.content_rect,
+            Fragment::AbsoluteOrFixedPositioned(_) => continue,
             Fragment::Anonymous(a) => &a.rect,
             _ => unreachable!(),
         };
-
-        abspos_fragment.tree_rank = tree_rank_in_parent;
 
         if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.inline {
             *start += child_fragment_rect.start_corner.inline;

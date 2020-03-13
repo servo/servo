@@ -56,6 +56,7 @@ pub(crate) trait ComputedValuesExt {
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_stacking_context(&self) -> bool;
+    fn establishes_containing_block(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
 }
 
@@ -231,6 +232,14 @@ impl ComputedValuesExt for ComputedValues {
         // context if there is a z-index set.
         // See https://www.w3.org/TR/CSS2/visuren.html#z-index
         !self.get_position().z_index.is_auto()
+    }
+
+    fn establishes_containing_block(&self) -> bool {
+        if self.establishes_containing_block_for_all_descendants() {
+            return true;
+        }
+
+        self.clone_position() != ComputedPosition::Static
     }
 
     /// Returns true if this style establishes a containing block for all descendants

@@ -4,10 +4,14 @@
 
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
+use crate::fragments::{
+    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, Fragment,
+};
 use crate::geom::PhysicalRect;
+use crate::positioned::HoistedFragmentId;
 use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
+use fnv::FnvHashMap;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use std::cmp::Ordering;
 use std::mem;
@@ -21,6 +25,90 @@ use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
+
+#[derive(Clone)]
+pub(crate) struct ContainingBlock<'a> {
+    /// The SpaceAndClipInfo that contains the children of the fragment that
+    /// established this containing block.
+    space_and_clip: wr::SpaceAndClipInfo,
+
+    /// The physical rect of this containing block.
+    rect: PhysicalRect<Length>,
+
+    /// Fragments for positioned descendants (including direct children) that were
+    /// hoisted into this containing block. They have hashed based on the
+    /// HoistedFragmentId that is generated during hoisting.
+    hoisted_children: FnvHashMap<HoistedFragmentId, &'a Fragment>,
+}
+
+impl<'a> ContainingBlock<'a> {
+    pub(crate) fn new(
+        rect: &PhysicalRect<Length>,
+        space_and_clip: wr::SpaceAndClipInfo,
+        children: &'a Vec<Fragment>,
+    ) -> Self {
+        let mut hoisted_children = FnvHashMap::default();
+        for child in children {
+            if let Some(hoisted_fragment_id) = child.hoisted_fragment_id() {
+                hoisted_children.insert(*hoisted_fragment_id, child);
+            }
+        }
+
+        ContainingBlock {
+            space_and_clip,
+            rect: *rect,
+            hoisted_children,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct ContainingBlockInfo<'a> {
+    /// The positioning rectangle established by the parent. This is sometimes
+    /// called the "containing block" in layout_2020.
+    pub rect: PhysicalRect<Length>,
+
+    /// The nearest real containing block at this point in the construction of
+    /// the stacking context tree.
+    pub nearest_containing_block: Option<ContainingBlock<'a>>,
+
+    /// The nearest containing block for all descendants at this point in the
+    /// stacking context tree. This containing blocks contains fixed position
+    /// elements.
+    pub containing_block_for_all_descendants: ContainingBlock<'a>,
+}
+
+pub(crate) struct StackingContextBuilder<'a> {
+    /// The current SpatialId and ClipId information for this `DisplayListBuilder`.
+    pub current_space_and_clip: wr::SpaceAndClipInfo,
+
+    /// The id of the nearest ancestor reference frame for this `DisplayListBuilder`.
+    nearest_reference_frame: wr::SpatialId,
+
+    wr: &'a mut wr::DisplayListBuilder,
+}
+
+impl<'a> StackingContextBuilder<'a> {
+    pub fn new(wr: &'a mut wr::DisplayListBuilder) -> Self {
+        Self {
+            current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id),
+            nearest_reference_frame: wr::SpatialId::root_reference_frame(wr.pipeline_id),
+            wr,
+        }
+    }
+
+    fn clipping_and_scrolling_scope<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        let previous_space_and_clip = self.current_space_and_clip;
+        let previous_nearest_reference_frame = self.nearest_reference_frame;
+
+        let result = f(self);
+
+        self.current_space_and_clip = previous_space_and_clip;
+        self.nearest_reference_frame = previous_nearest_reference_frame;
+
+        result
+    }
+}
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum StackingContextSection {
@@ -228,28 +316,52 @@ impl<'a> StackingContext<'a> {
     }
 }
 
+#[derive(PartialEq)]
+pub(crate) enum StackingContextBuildMode {
+    IncludeHoisted,
+    SkipHoisted,
+}
+
 impl Fragment {
     pub(crate) fn build_stacking_context_tree<'a>(
         &'a self,
-        builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
         stacking_context: &mut StackingContext<'a>,
+        mode: StackingContextBuildMode,
     ) {
+        if mode == StackingContextBuildMode::SkipHoisted && self.is_hoisted() {
+            return;
+        }
+
         match self {
-            Fragment::Box(fragment) => fragment.build_stacking_context_tree(
-                self,
-                builder,
-                containing_block,
-                stacking_context,
-            ),
+            Fragment::Box(fragment) => {
+                fragment.build_stacking_context_tree(
+                    self,
+                    builder,
+                    containing_block_info,
+                    stacking_context,
+                );
+            },
+            Fragment::AbsoluteOrFixedPositioned(fragment) => {
+                fragment.build_stacking_context_tree(
+                    builder,
+                    containing_block_info,
+                    stacking_context,
+                );
+            },
             Fragment::Anonymous(fragment) => {
-                fragment.build_stacking_context_tree(builder, containing_block, stacking_context)
+                fragment.build_stacking_context_tree(
+                    builder,
+                    containing_block_info,
+                    stacking_context,
+                );
             },
             Fragment::Text(_) | Fragment::Image(_) => {
                 stacking_context.fragments.push(StackingContextFragment {
                     section: StackingContextSection::Content,
                     space_and_clip: builder.current_space_and_clip,
-                    containing_block: *containing_block,
+                    containing_block: containing_block_info.rect,
                     fragment: self,
                 });
             },
@@ -291,11 +403,35 @@ impl BoxFragment {
         StackingContextSection::BlockBackgroundsAndBorders
     }
 
+    fn build_containing_block<'a>(
+        &'a self,
+        builder: &mut StackingContextBuilder,
+        padding_rect: &PhysicalRect<Length>,
+        containing_block_info: &mut ContainingBlockInfo<'a>,
+    ) {
+        if !self.style.establishes_containing_block() {
+            return;
+        }
+
+        let new_containing_block =
+            ContainingBlock::new(padding_rect, builder.current_space_and_clip, &self.children);
+
+        if self
+            .style
+            .establishes_containing_block_for_all_descendants()
+        {
+            containing_block_info.nearest_containing_block = None;
+            containing_block_info.containing_block_for_all_descendants = new_containing_block;
+        } else {
+            containing_block_info.nearest_containing_block = Some(new_containing_block);
+        }
+    }
+
     fn build_stacking_context_tree<'a>(
         &'a self,
         fragment: &'a Fragment,
-        builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
         stacking_context: &mut StackingContext<'a>,
     ) {
         builder.clipping_and_scrolling_scope(|builder| {
@@ -307,7 +443,7 @@ impl BoxFragment {
                     self.build_stacking_context_tree_for_children(
                         fragment,
                         builder,
-                        *containing_block,
+                        containing_block_info,
                         stacking_context,
                     );
                     return;
@@ -318,7 +454,7 @@ impl BoxFragment {
             self.build_stacking_context_tree_for_children(
                 fragment,
                 builder,
-                *containing_block,
+                containing_block_info,
                 &mut child_stacking_context,
             );
 
@@ -343,46 +479,65 @@ impl BoxFragment {
     fn build_stacking_context_tree_for_children<'a>(
         &'a self,
         fragment: &'a Fragment,
-        builder: &mut DisplayListBuilder,
-        mut containing_block: PhysicalRect<Length>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
         stacking_context: &mut StackingContext<'a>,
     ) {
         let relative_border_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block);
-        let border_rect = relative_border_rect.translate(containing_block.origin.to_vector());
+            .to_physical(self.style.writing_mode, &containing_block_info.rect);
+        let border_rect =
+            relative_border_rect.translate(containing_block_info.rect.origin.to_vector());
         let established_reference_frame =
             self.build_reference_frame_if_necessary(builder, &border_rect);
+
+        let mut new_containing_block_info = containing_block_info.clone();
 
         // WebRender reference frames establish a new coordinate system at their origin
         // (the border box of the fragment). We need to ensure that any coordinates we
         // give to WebRender in this reference frame are relative to the fragment border
         // box. We do this by adjusting the containing block origin.
         if established_reference_frame {
-            containing_block.origin = (-relative_border_rect.origin.to_vector()).to_point();
+            new_containing_block_info.rect.origin =
+                (-relative_border_rect.origin.to_vector()).to_point();
         }
 
         stacking_context.fragments.push(StackingContextFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
-            containing_block: containing_block,
+            containing_block: new_containing_block_info.rect,
             fragment,
         });
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        self.build_scroll_frame_if_necessary(builder, &containing_block);
+        self.build_scroll_frame_if_necessary(builder, &new_containing_block_info);
 
-        let new_containing_block = self
+        let padding_rect = self
+            .padding_rect()
+            .to_physical(self.style.writing_mode, &new_containing_block_info.rect)
+            .translate(new_containing_block_info.rect.origin.to_vector());
+        new_containing_block_info.rect = self
             .content_rect
-            .to_physical(self.style.writing_mode, &containing_block)
-            .translate(containing_block.origin.to_vector());
+            .to_physical(self.style.writing_mode, &new_containing_block_info.rect)
+            .translate(new_containing_block_info.rect.origin.to_vector());
+
+        // If we establish a containing block we use the padding rect as the offset. This is
+        // because for all but the initial containing block, the padding rect determines
+        // the size and position of the containing block.
+        self.build_containing_block(builder, &padding_rect, &mut new_containing_block_info);
+
         for child in &self.children {
-            child.build_stacking_context_tree(builder, &new_containing_block, stacking_context);
+            child.build_stacking_context_tree(
+                builder,
+                &new_containing_block_info,
+                stacking_context,
+                StackingContextBuildMode::SkipHoisted,
+            );
         }
     }
 
-    fn adjust_spatial_id_for_positioning(&self, builder: &mut DisplayListBuilder) {
+    fn adjust_spatial_id_for_positioning(&self, builder: &mut StackingContextBuilder) {
         if self.style.get_box().position != ComputedPosition::Fixed {
             return;
         }
@@ -393,10 +548,10 @@ impl BoxFragment {
         builder.current_space_and_clip.spatial_id = builder.nearest_reference_frame;
     }
 
-    fn build_scroll_frame_if_necessary(
+    fn build_scroll_frame_if_necessary<'a>(
         &self,
-        builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
     ) {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
@@ -419,8 +574,8 @@ impl BoxFragment {
 
             let padding_rect = self
                 .padding_rect()
-                .to_physical(self.style.writing_mode, containing_block)
-                .translate(containing_block.origin.to_vector())
+                .to_physical(self.style.writing_mode, &containing_block_info.rect)
+                .translate(containing_block_info.rect.origin.to_vector())
                 .to_webrender();
             builder.current_space_and_clip = builder.wr.define_scroll_frame(
                 &original_scroll_and_clip_info,
@@ -439,7 +594,7 @@ impl BoxFragment {
     /// a reference was built and `false` otherwise.
     fn build_reference_frame_if_necessary(
         &self,
-        builder: &mut DisplayListBuilder,
+        builder: &mut StackingContextBuilder,
         border_rect: &PhysicalRect<Length>,
     ) -> bool {
         if !self.style.has_transform_or_perspective() {
@@ -562,16 +717,63 @@ impl BoxFragment {
 impl AnonymousFragment {
     fn build_stacking_context_tree<'a>(
         &'a self,
-        builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
         stacking_context: &mut StackingContext<'a>,
     ) {
-        let new_containing_block = self
+        let mut new_containing_block_info = containing_block_info.clone();
+        new_containing_block_info.rect = self
             .rect
-            .to_physical(self.mode, containing_block)
-            .translate(containing_block.origin.to_vector());
+            .to_physical(self.mode, &containing_block_info.rect)
+            .translate(containing_block_info.rect.origin.to_vector());
         for child in &self.children {
-            child.build_stacking_context_tree(builder, &new_containing_block, stacking_context);
+            child.build_stacking_context_tree(
+                builder,
+                &new_containing_block_info,
+                stacking_context,
+                StackingContextBuildMode::SkipHoisted,
+            );
+        }
+    }
+}
+
+impl AbsoluteOrFixedPositionedFragment {
+    fn build_stacking_context_tree<'a>(
+        &'a self,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo<'a>,
+        stacking_context: &mut StackingContext<'a>,
+    ) {
+        let mut build_for_containing_block = |containing_block: &ContainingBlock<'a>| {
+            let hoisted_child = match containing_block.hoisted_children.get(&self.0) {
+                Some(hoisted_child) => hoisted_child,
+                None => return false,
+            };
+
+            builder.clipping_and_scrolling_scope(|builder| {
+                let mut new_containing_block_info = containing_block_info.clone();
+                new_containing_block_info.rect = containing_block.rect;
+                builder.current_space_and_clip = containing_block.space_and_clip;
+                hoisted_child.build_stacking_context_tree(
+                    builder,
+                    &new_containing_block_info,
+                    stacking_context,
+                    StackingContextBuildMode::IncludeHoisted,
+                );
+            });
+
+            return true;
+        };
+
+        if let Some(containing_block) = containing_block_info.nearest_containing_block.as_ref() {
+            if build_for_containing_block(containing_block) {
+                return;
+            }
+        }
+
+        if !build_for_containing_block(&containing_block_info.containing_block_for_all_descendants)
+        {
+            warn!("Could not find containing block of hoisted positioned child!");
         }
     }
 }

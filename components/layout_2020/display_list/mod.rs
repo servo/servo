@@ -40,9 +40,6 @@ pub struct DisplayListBuilder<'a> {
     /// The current SpatialId and ClipId information for this `DisplayListBuilder`.
     current_space_and_clip: wr::SpaceAndClipInfo,
 
-    /// The id of the nearest ancestor reference frame for this `DisplayListBuilder`.
-    nearest_reference_frame: wr::SpatialId,
-
     pub context: &'a LayoutContext<'a>,
     pub wr: wr::DisplayListBuilder,
 
@@ -61,7 +58,6 @@ impl<'a> DisplayListBuilder<'a> {
     ) -> Self {
         Self {
             current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(pipeline_id),
-            nearest_reference_frame: wr::SpatialId::root_reference_frame(pipeline_id),
             is_contentful: false,
             context,
             wr: wr::DisplayListBuilder::new(pipeline_id, viewport_size),
@@ -71,18 +67,6 @@ impl<'a> DisplayListBuilder<'a> {
     fn common_properties(&self, clip_rect: units::LayoutRect) -> wr::CommonItemProperties {
         // TODO(gw): Make use of the WR backface visibility functionality.
         wr::CommonItemProperties::new(clip_rect, self.current_space_and_clip)
-    }
-
-    fn clipping_and_scrolling_scope<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        let previous_space_and_clip = self.current_space_and_clip;
-        let previous_nearest_reference_frame = self.nearest_reference_frame;
-
-        let result = f(self);
-
-        self.current_space_and_clip = previous_space_and_clip;
-        self.nearest_reference_frame = previous_nearest_reference_frame;
-
-        result
     }
 }
 
@@ -94,6 +78,7 @@ impl Fragment {
     ) {
         match self {
             Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
+            Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
             Fragment::Text(t) => {
                 builder.is_contentful = true;

@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::display_list::stacking_context::StackingContext;
+use crate::display_list::stacking_context::{
+    ContainingBlock, ContainingBlockInfo, StackingContext, StackingContextBuildMode,
+    StackingContextBuilder,
+};
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
@@ -186,12 +189,26 @@ impl BoxTreeRoot {
 impl FragmentTreeRoot {
     pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
         let mut stacking_context = StackingContext::create_root();
-        for fragment in &self.children {
-            fragment.build_stacking_context_tree(
-                builder,
-                &self.initial_containing_block,
-                &mut stacking_context,
-            );
+        {
+            let mut stacking_context_builder = StackingContextBuilder::new(&mut builder.wr);
+            let containing_block_info = ContainingBlockInfo {
+                rect: self.initial_containing_block,
+                nearest_containing_block: None,
+                containing_block_for_all_descendants: ContainingBlock::new(
+                    &self.initial_containing_block,
+                    stacking_context_builder.current_space_and_clip,
+                    &self.children,
+                ),
+            };
+
+            for fragment in &self.children {
+                fragment.build_stacking_context_tree(
+                    &mut stacking_context_builder,
+                    &containing_block_info,
+                    &mut stacking_context,
+                    StackingContextBuildMode::SkipHoisted,
+                );
+            }
         }
 
         stacking_context.sort();
@@ -268,6 +285,7 @@ impl FragmentTreeRoot {
                 Fragment::Box(fragment) if fragment.tag == requested_node => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, &containing_block),
+                Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
                 Fragment::Text(fragment) if fragment.tag == requested_node => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
@@ -301,6 +319,7 @@ impl FragmentTreeRoot {
                 Fragment::Box(fragment) if fragment.tag == requested_node => {
                     (&fragment.style, fragment.padding_rect())
                 },
+                Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Box(_) |
                 Fragment::Text(_) |
                 Fragment::Image(_) |

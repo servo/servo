@@ -6,8 +6,10 @@ use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::CollapsedBlockMargins;
-use crate::fragments::{AnonymousFragment, BoxFragment, DebugId, Fragment, TextFragment};
+use crate::fragments::{
+    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
+    DebugId, Fragment, TextFragment,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
@@ -254,8 +256,14 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        ifc.positioning_context
-                            .push(box_.to_hoisted(initial_start_corner, tree_rank));
+                        let hoisted_fragment = box_.to_hoisted(initial_start_corner, tree_rank);
+                        let hoisted_fragment_id = hoisted_fragment.fragment_id;
+                        ifc.positioning_context.push(hoisted_fragment);
+                        ifc.lines
+                            .fragments
+                            .push(Fragment::AbsoluteOrFixedPositioned(
+                                AbsoluteOrFixedPositionedFragment(hoisted_fragment_id),
+                            ));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO
@@ -333,7 +341,7 @@ impl Lines {
         };
         if move_by > Length::zero() {
             for fragment in &mut line_contents {
-                fragment.position_mut().inline += move_by;
+                fragment.offset_inline(&move_by);
             }
         }
         let start_corner = Vec2 {
@@ -426,6 +434,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.border.clone(),
             self.margin.clone(),
             CollapsedBlockMargins::zero(),
+            None, // hoisted_fragment_id
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
         if last_fragment {
@@ -488,6 +497,7 @@ fn layout_atomic<'box_tree>(
                 border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                None, // hoisted_fragment_id
             )
         },
         Err(non_replaced) => {
@@ -563,6 +573,7 @@ fn layout_atomic<'box_tree>(
                 border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                None, // hoisted_fragment_id
             )
         },
     };
