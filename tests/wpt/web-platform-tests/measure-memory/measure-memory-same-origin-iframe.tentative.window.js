@@ -4,11 +4,19 @@
 'use strict';
 
 promise_test(async testCase => {
-  const frame = document.createElement("iframe");
-  const child = getUrl(SAME_ORIGIN, "resources/child.sub.html");
-  const grandchild = getUrl(SAME_ORIGIN, "resources/grandchild.sub.html");
+  const grandchildLoaded = new Promise(resolve => {
+    window.onmessage = function(message) {
+      if (message.data === 'grandchild-loaded') {
+        resolve(message);
+      }
+    }
+  });
+  const frame = document.createElement('iframe');
+  const child = getUrl(SAME_ORIGIN, 'resources/child.sub.html');
+  const grandchild = getUrl(SAME_ORIGIN, 'resources/grandchild.sub.html');
   frame.src = child;
   document.body.append(frame);
+  await grandchildLoaded;
   try {
     let result = await performance.measureMemory();
     checkMeasureMemory(result, {

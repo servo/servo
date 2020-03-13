@@ -121,7 +121,7 @@ class PolicyDelivery(object):
         elif obj == "anotherPolicy":
             policy_delivery = target_policy_delivery.get_another_policy(
                 supported_delivery_types[0])
-        elif type(obj) == dict:
+        elif isinstance(obj, dict):
             policy_delivery = PolicyDelivery(obj['deliveryType'], obj['key'],
                                              obj['value'])
         else:
@@ -148,6 +148,16 @@ class PolicyDelivery(object):
                 return PolicyDelivery(delivery_type, self.key, 'unsafe-url')
             else:
                 return PolicyDelivery(delivery_type, self.key, 'no-referrer')
+        elif self.key == 'mixedContent':
+            if self.value == 'opt-in':
+                return PolicyDelivery(delivery_type, self.key, None)
+            else:
+                return PolicyDelivery(delivery_type, self.key, 'opt-in')
+        elif self.key == 'upgradeInsecureRequests':
+            if self.value == 'upgrade':
+                return PolicyDelivery(delivery_type, self.key, None)
+            else:
+                return PolicyDelivery(delivery_type, self.key, 'upgrade')
         else:
             raise Exception('delivery key is invalid: ' + self.key)
 

@@ -64,7 +64,7 @@ let testFunctionGenerator = function(ray, expectedPoses, refSpaceName) {
             assert_equals(hitTestResults.length, expectedPoses.length, "Results length should match expected results length");
             for(const [index, expectedPose] of expectedPoses.entries()) {
               const pose = hitTestResults[index].getPose(localRefSpace);
-              assert_true(pose != null, "Each hit test result should have a pose in viewer space");
+              assert_true(pose != null, "Each hit test result should have a pose in local space");
               if(expectedPose != null) {
                 assert_transform_approx_equals(pose.transform, expectedPose);
               }

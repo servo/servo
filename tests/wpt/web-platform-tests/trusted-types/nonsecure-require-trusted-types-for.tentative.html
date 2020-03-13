@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+  const testCases = [
+    ["script", "src"],
+    ["div", "innerHTML"],
+    ["script", "text"],
+  ];
+
+  testCases.forEach(c => {
+    const name = `${c[0]}.${c[1]} `;
+    test(t => {
+      s = document.createElement(c[0]);
+      s[c[1]] = "https://example.com/";
+      assert_equals("https://example.com/", s[c[1]].toString());
+    }, name + "without trusted types is not blocked by require-trusted-types-for on non-secure pages");
+  });
+</script>
+</body>

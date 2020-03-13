@@ -182,12 +182,6 @@
   "source_context_list_schema": {
     // Warning: Currently, some nested patterns of contexts have different
     // inheritance rules for different kinds of policies.
-    // For example, an HTTP(S) dedicated worker inherits parent's CSP but not
-    // parent's referrer policy, and "worker-classic" source_context_list
-    // value here reflects the referrer policy spec, not CSP.
-    // Perhaps we have to introduce separate source_context_list entries,
-    // e.g. "worker-classic-CSP" to test the same nested contexts with
-    // different policy inheritance expectations.
     // The generated tests will be used to test/investigate the policy
     // inheritance rules, and eventually the policy inheritance rules will
     // be unified (https://github.com/w3ctag/design-principles/issues/111).
@@ -284,8 +278,8 @@
       "subresourcePolicyDeliveries": []
     },
     "worker-classic": {
-      // Warning: This is incompatible with the current CSP spec,
-      // so is not applicable to upgrade-insecure-requests and mixed-content tests.
+      // This is applicable to referrer-policy tests.
+      // Use "worker-classic-inherit" for CSP (mixed-content, etc.).
       "description": "dedicated workers shouldn't inherit its parent's policy.",
       "sourceContextList": [
         {
@@ -298,6 +292,26 @@
           "sourceContextType": "worker-classic",
           "policyDeliveries": [
             "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-classic-inherit": {
+      // This is applicable to upgrade-insecure-requests and mixed-content tests.
+      // Use "worker-classic" for referrer-policy.
+      "description": "dedicated workers should inherit its parent's policy.",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-classic",
+          "policyDeliveries": [
+            "anotherPolicy"
           ]
         }
       ],
@@ -320,8 +334,8 @@
       "subresourcePolicyDeliveries": []
     },
     "worker-module": {
-      // Warning: This is incompatible with the current CSP spec,
-      // so is not applicable to upgrade-insecure-requests and mixed-content tests.
+      // This is applicable to referrer-policy tests.
+      // Use "worker-module-inherit" for CSP (mixed-content, etc.).
       "description": "dedicated workers shouldn't inherit its parent's policy.",
       "sourceContextList": [
         {
@@ -334,6 +348,26 @@
           "sourceContextType": "worker-module",
           "policyDeliveries": [
             "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "worker-module-inherit": {
+      // This is applicable to upgrade-insecure-requests and mixed-content tests.
+      // Use "worker-module" for referrer-policy.
+      "description": "dedicated workers should inherit its parent's policy.",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "worker-module",
+          "policyDeliveries": [
+            "anotherPolicy"
           ]
         }
       ],
@@ -355,6 +389,24 @@
       ],
       "subresourcePolicyDeliveries": []
     },
+    "sharedworker-classic": {
+      "description": "shared workers shouldn't inherit its parent's policy.",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-classic",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
     "sharedworker-classic-data": {
       "description": "data: shared workers should inherit its parent's policy.",
       "sourceContextList": [
@@ -367,6 +419,24 @@
         {
           "sourceContextType": "sharedworker-classic-data",
           "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "sharedworker-module": {
+      "description": "shared workers shouldn't inherit its parent's policy.",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "anotherPolicy"
+          ]
+        },
+        {
+          "sourceContextType": "sharedworker-module",
+          "policyDeliveries": [
+            "policy"
+          ]
         }
       ],
       "subresourcePolicyDeliveries": []
@@ -405,10 +475,14 @@
       "iframe",
       "iframe-blank-inherit",
       "worker-classic",
+      "worker-classic-inherit",
       "worker-classic-data",
       "worker-module",
+      "worker-module-inherit",
       "worker-module-data",
+      "sharedworker-classic",
       "sharedworker-classic-data",
+      "sharedworker-module",
       "sharedworker-module-data"
     ],
     "redirection": [

@@ -859,7 +859,7 @@ class MockRuntime {
     const numerator = dot(sub(point_A, origin), normal);
     const denominator = dot(direction, normal);
 
-    if (Math.abs(denominator) < 0.0001) {
+    if (Math.abs(denominator) < XRMathHelper.EPSILON) {
       // Planes are nearly parallel - there's either infinitely many intersection points or 0.
       // Both cases signify a "no hit" for us.
       return null;
@@ -878,13 +878,13 @@ class MockRuntime {
 
         let z_axis = null;
         const cos_direction_and_y_axis = dot(direction, y_axis);
-        if (Math.abs(cos_direction_and_y_axis) > 0.9999) {
+        if (Math.abs(cos_direction_and_y_axis) > (1 - XRMathHelper.EPSILON)) {
           // Ray and the hit test normal are co-linear - try using the 'up' or 'right' vector's projection on the face plane as the Z axis.
           // Note: this edge case is currently not covered by the spec.
           const up = {x: 0.0, y: 1.0, z: 0.0, w: 0.0};
-          const right = {x:1.0, y: 0.0, z: 0.0, w: 0.0};
+          const right = {x: 1.0, y: 0.0, z: 0.0, w: 0.0};
 
-          z_axis = Math.abs(dot(up, y_axis)) > 0.9999
+          z_axis = Math.abs(dot(up, y_axis)) > (1 - XRMathHelper.EPSILON)
                         ? sub(up, mul(dot(right, y_axis), y_axis))  // `up is also co-linear with hit test normal, use `right`
                         : sub(up, mul(dot(up, y_axis), y_axis));    // `up` is not co-linear with hit test normal, use it
         } else {
@@ -932,6 +932,29 @@ class MockRuntime {
     }
   }
 
+  _getMojoFromInputSource(mojo_from_viewer, input_source) {
+    if(input_source.target_ray_mode_ === 'gaze') {  // XRTargetRayMode::GAZING
+      // If the pointer origin is gaze, then the result is
+      // just mojo_from_viewer.
+      return mojo_from_viewer;
+    } else if(input_source.target_ray_mode_ === 'tracked-pointer') {  // XRTargetRayMode:::POINTING
+      // If the pointer origin is tracked-pointer, the result is just
+      // mojo_from_input*input_from_pointer.
+      return XRMathHelper.mul4x4(
+        input_source.mojo_from_input_.matrix,
+        input_source.input_from_pointer_.matrix);
+    } else if(input_source.target_ray_mode_ === 'screen') { // XRTargetRayMode::TAPPING
+      // If the pointer origin is screen, the input_from_pointer is
+      // equivalent to viewer_from_pointer and the result is
+      // mojo_from_viewer*viewer_from_pointer.
+      return XRMathHelper.mul4x4(
+        mojo_from_viewer,
+        input_source.input_from_pointer_.matrix);
+    } else {
+      return null
+    }
+  }
+
   _getMojoFromNativeOrigin(nativeOriginInformation) {
     const identity = function() {
       return [
@@ -942,12 +965,26 @@ class MockRuntime {
       ];
     };
 
+    const transform = {
+      position: [
+        this.pose_.position.x,
+        this.pose_.position.y,
+        this.pose_.position.z],
+      orientation: [
+        this.pose_.orientation.x,
+        this.pose_.orientation.y,
+        this.pose_.orientation.z,
+        this.pose_.orientation.w],
+    };
+
+    const mojo_from_viewer = getMatrixFromTransform(transform)
+
     if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.inputSourceId) {
       if (!this.input_sources_.has(nativeOriginInformation.inputSourceId)) {
         return null;
       } else {
         const inputSource = this.input_sources_.get(nativeOriginInformation.inputSourceId);
-        return inputSource.mojo_from_input_.matrix;
+        return this._getMojoFromInputSource(mojo_from_viewer, inputSource);
       }
     } else if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.referenceSpaceCategory) {
       switch (nativeOriginInformation.referenceSpaceCategory) {
@@ -961,18 +998,7 @@ class MockRuntime {
           // this.stageParameters_.standingTransform = floor_from_mojo aka native_origin_from_mojo
           return XRMathHelper.inverse(this.stageParameters_.standingTransform.matrix);
         case device.mojom.XRReferenceSpaceCategory.VIEWER:
-          const transform = {
-            position: [
-              this.pose_.position.x,
-              this.pose_.position.y,
-              this.pose_.position.z],
-            orientation: [
-              this.pose_.orientation.x,
-              this.pose_.orientation.y,
-              this.pose_.orientation.z,
-              this.pose_.orientation.w],
-          };
-          return getMatrixFromTransform(transform);  // this.pose_ = mojo_from_viewer
+          return mojo_from_viewer;
         case device.mojom.XRReferenceSpaceCategory.BOUNDED_FLOOR:
           return null;
         case device.mojom.XRReferenceSpaceCategory.UNBOUNDED:
@@ -999,6 +1025,11 @@ class MockXRInputSource {
     this.pairedDevice_ = pairedDevice;
     this.handedness_ = fakeInputSourceInit.handedness;
     this.target_ray_mode_ = fakeInputSourceInit.targetRayMode;
+
+    if(fakeInputSourceInit.pointerOrigin == null) {
+      throw new TypeError("FakeXRInputSourceInit.pointerOrigin is required.");
+    }
+
     this.setPointerOrigin(fakeInputSourceInit.pointerOrigin);
     this.setProfiles(fakeInputSourceInit.profiles);
 

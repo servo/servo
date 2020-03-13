@@ -14,9 +14,9 @@
   testCases.forEach(c => {
     const name = `${c[0]}.${c[1]} `;
     test(t => {
-      s = document.createElement("script");
-      s.innerText = "1";
-      assert_equals("1", s.innerText.toString());
+      s = document.createElement(c[0]);
+      s[c[1]] = "https://example.com/";
+      assert_equals("https://example.com/", s[c[1]].toString());
     }, name + "without trusted types");
   });
 

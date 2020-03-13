@@ -54,7 +54,6 @@ function run_fp_tests_disabled(sensorName) {
 }
 
 function run_fp_tests_enabled(sensorName) {
-  const sensorType = self[sensorName];
   const featureNameList = feature_policies[sensorName];
   const header = "Feature-Policy header " + featureNameList.join(" *;") + " *";
   const desc = "'new " + sensorName + "()'";
@@ -85,7 +84,6 @@ function run_fp_tests_enabled(sensorName) {
 }
 
 function run_fp_tests_enabled_by_attribute(sensorName) {
-  const sensorType = self[sensorName];
   const featureNameList = feature_policies[sensorName];
   const header = "Feature-Policy allow='" + featureNameList.join(" ") + "' attribute";
   const desc = "'new " + sensorName + "()'";
@@ -114,7 +112,6 @@ function run_fp_tests_enabled_by_attribute(sensorName) {
 }
 
 function run_fp_tests_enabled_by_attribute_redirect_on_load(sensorName) {
-  const sensorType = self[sensorName];
   const featureNameList = feature_policies[sensorName];
   const header = "Feature-Policy allow='" + featureNameList.join(" ") + "' attribute";
   const desc = "'new " + sensorName + "()'";
@@ -143,7 +140,6 @@ function run_fp_tests_enabled_by_attribute_redirect_on_load(sensorName) {
 }
 
 function run_fp_tests_enabled_on_self_origin(sensorName) {
-  const sensorType = self[sensorName];
   const featureNameList = feature_policies[sensorName];
   const header = "Feature-Policy header " + featureNameList.join(" 'self';") + " 'self'";
   const desc = "'new " + sensorName + "()'";

@@ -219,4 +219,25 @@ class XRMathHelper {
     // Actual inverse is `1/det * transposed(comatrix)`:
     return XRMathHelper.transpose(result2);
   }
+
+  static mul4x4(m1, m2) {
+    if (m1 == null || m2 == null) {
+      return null;
+    }
+
+    const result = Array(16);
+
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        result[4 * col + row] = 0;
+        for(let i = 0; i < 4; i++) {
+          result[4 * col + row] += m1[4 * i + row] * m2[4 * col + i];
+        }
+      }
+    }
+
+    return result;
+  }
 }
+
+XRMathHelper.EPSILON = 0.001;
