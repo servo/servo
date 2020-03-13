@@ -1,6 +1,11 @@
 <!doctype html>
 <meta charset=utf-8>
 <html>
+<script>
+window.onload = function () {
+  window.parent.postMessage('grandchild-loaded', '*');
+}
+</script>
 <body>
   Hello from grandchild iframe.
 </body>

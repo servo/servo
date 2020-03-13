@@ -23,6 +23,10 @@ def main(request, response):
     elif delivery['deliveryType'] == 'http-rp':
       if delivery['key'] == 'referrerPolicy':
         maybe_additional_headers['Referrer-Policy'] = delivery['value']
+      elif delivery['key'] == 'mixedContent' and delivery['value'] == 'opt-in':
+        maybe_additional_headers['Content-Security-Policy'] = 'block-all-mixed-content'
+      elif delivery['key'] == 'upgradeInsecureRequests' and delivery['value'] == 'upgrade':
+        maybe_additional_headers['Content-Security-Policy'] = 'upgrade-insecure-requests'
       else:
         error = 'invalid delivery key for http-rp: %s' % delivery['key']
     else:

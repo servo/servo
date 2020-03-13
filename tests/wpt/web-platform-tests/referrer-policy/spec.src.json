@@ -690,7 +690,9 @@
       "source_scheme": "*",
       "source_context_list": [
         "iframe-blank-inherit",
+        "sharedworker-classic",
         "sharedworker-classic-data",
+        "sharedworker-module",
         "sharedworker-module-data",
         "worker-classic-data",
         "worker-module-data"
@@ -702,6 +704,21 @@
       "origin": "*",
       "expectation": "*"
     },
+    {
+      "name": "source_context_list values not for referrer-policy tests",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "worker-classic-inherit",
+        "worker-module-inherit"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    }
   ],
   "source_context_schema": {
     "supported_delivery_type": {

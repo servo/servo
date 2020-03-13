@@ -1111,19 +1111,19 @@ function invokeRequest(subresource, sourceContextList) {
       invoker: invokeFromWorker.bind(undefined, "worker", true, {type: 'module'}),
     },
     "sharedworker-classic": {
-      // Classic dedicated worker loaded from same-origin.
+      // Classic shared worker loaded from same-origin.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", false, {}),
     },
     "sharedworker-classic-data": {
-      // Classic dedicated worker loaded from data: URL.
+      // Classic shared worker loaded from data: URL.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", true, {}),
     },
     "sharedworker-module": {
-      // Module dedicated worker loaded from same-origin.
+      // Module shared worker loaded from same-origin.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", false, {type: 'module'}),
     },
     "sharedworker-module-data": {
-      // Module dedicated worker loaded from data: URL.
+      // Module shared worker loaded from data: URL.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", true, {type: 'module'}),
     },
   };
@@ -1182,7 +1182,7 @@ function invokeFromWorker(workerType, isDataUrl, workerOptions,
       if (workerType === "worker") {
         const worker = new Worker(url, workerOptions);
         worker.postMessage({subresource: subresource,
-                           sourceContextList: sourceContextList.slice(1)});
+                            sourceContextList: sourceContextList.slice(1)});
         return bindEvents2(worker, "message", worker, "error", window, "error");
       } else if (workerType === "sharedworker") {
         const worker = new SharedWorker(url, workerOptions);

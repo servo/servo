@@ -1,5 +1,5 @@
-const SAME_ORIGIN = {origin: get_host_info().HTTPS_ORIGIN, name: "SAME_ORIGIN"};
-const CROSS_ORIGIN = {origin: get_host_info().HTTPS_NOTSAMESITE_ORIGIN, name: "CROSS_ORIGIN"}
+const SAME_ORIGIN = {origin: get_host_info().HTTP_ORIGIN, name: "SAME_ORIGIN"};
+const CROSS_ORIGIN = {origin: get_host_info().HTTP_REMOTE_ORIGIN, name: "CROSS_ORIGIN"}
 
 function checkMeasureMemoryBreakdown(breakdown, options) {
   let allowed = new Set(options.allowed);
@@ -31,5 +31,5 @@ function checkMeasureMemory(result, options) {
 
 function getUrl(host, relativePath) {
   const path = new URL(relativePath, window.location).pathname;
-  return `${host.origin}/${path}`;
+  return `${host.origin}${path}`;
 }

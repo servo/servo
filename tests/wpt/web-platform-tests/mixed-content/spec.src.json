@@ -291,9 +291,22 @@
         "srcdoc-inherit",
         "srcdoc",
         "iframe",
-        "iframe-blank-inherit",
+        "iframe-blank-inherit"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "source_context_list values not for CSP tests",
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
         "worker-classic",
-        "worker-module",
+        "worker-module"
       ],
       "delivery_type": "*",
       "delivery_value": "*",

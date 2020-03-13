@@ -96,11 +96,11 @@ function wait(ms) {
 
 async function fetchReport() {
   const fetch_report_path = resource_path + `/report.py?key=${report_token}`;
-  for(let i = 0; i<10; ++i) {
+  for(let i = 0; i<20; ++i) {
     const response = await fetch(encode(fetch_report_path));
     const reports = await response.json();
     if (reports.length == 0) {
-      wait(100);
+      wait(200);
       continue;
     }
     if (reports.length != 1)

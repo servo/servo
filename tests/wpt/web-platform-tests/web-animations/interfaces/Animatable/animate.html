@@ -317,15 +317,17 @@ test(t => {
 for (const pseudo of [
   '',
   'before',
+  ':abc',
   '::abc',
   '::placeholder',
 ]) {
   test(t => {
     const div = createDiv(t);
-    assert_throws_js(TypeError, () => {
+    assert_throws_dom("SyntaxError", () => {
       div.animate(null, {pseudoElement: pseudo});
     });
-  }, `animate() with the invalid pseudoElement '${pseudo}' throws a TypeError`);
+  }, `animate() with a non-null invalid pseudoElement '${pseudo}' throws a ` +
+     `SyntaxError`);
 }
 
 </script>

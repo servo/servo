@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that reports are sent when report-endpoint points to path-absolute-url</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+<body>
+  <script>
+    var t = async_test("Test that image does not load");
+    const base_url = `${location.protocol}//${location.host}`;
+    async_test(function(t) {
+    window.addEventListener("securitypolicyviolation", t.step_func(function(e) {
+        assert_equals(e.blockedURI, `${base_url}/reporting/resources/fail.png`);
+        assert_equals(e.violatedDirective, "img-src");
+        t.done();
+      }));
+    }, "Event is fired");
+
+    async_test(function(t) {
+      var observer = new ReportingObserver(function(reports, observer) {
+        t.step(function() {
+          assert_equals(reports.length, 1);
+
+          // Ensure that the contents of the report are valid.
+
+          assert_equals(reports[0].type, "csp-violation");
+          assert_equals(reports[0].url, location.href);
+          assert_equals(reports[0].body.documentURL, location.href);
+          assert_equals(reports[0].body.referrer, null);
+          assert_equals(reports[0].body.blockedURL,
+                        `${base_url}/reporting/resources/fail.png`);
+          assert_equals(reports[0].body.effectiveDirective, "img-src");
+          assert_equals(reports[0].body.originalPolicy,
+                        "script-src 'self' 'unsafe-inline'; img-src 'none'; report-to csp-group");
+          assert_equals(reports[0].body.sourceFile, location.href);
+          assert_equals(reports[0].body.sample, null);
+          assert_equals(reports[0].body.disposition, "enforce");
+          assert_equals(reports[0].body.statusCode, 0);
+          assert_equals(reports[0].body.lineNumber, 66);
+          assert_equals(reports[0].body.columnNumber, 0);
+        });
+
+        t.done();
+      });
+      observer.observe();
+    }, "Report is observable to ReportingObserver");
+  </script>
+  <img src='/reporting/resources/fail.png'
+    onload='t.unreached_func("The image should not have loaded");'
+    onerror='t.done();'>
+  <script>
+    async_test(async (t) => {
+      try {
+        const endpoint = `${base_url}/reporting/resources/report.py`;
+        const id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
+        await wait(3000);
+        const reports = await pollReports(endpoint, id);
+        checkReportExists(reports, 'csp-violation', location.href);
+        t.done();
+      } catch (e) {
+        t.step(() => { throw e; });
+      }
+    }, "Reporting endpoints received reports.");
+  </script>
+
+</body>
+</html>
