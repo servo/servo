@@ -28,6 +28,17 @@ impl<T> Clone for ArcRefCell<T> {
     }
 }
 
+impl<T> Default for ArcRefCell<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self {
+            value: Arc::new(AtomicRefCell::new(Default::default())),
+        }
+    }
+}
+
 impl<T> Deref for ArcRefCell<T> {
     type Target = AtomicRefCell<T>;
 
