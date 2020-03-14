@@ -348,33 +348,53 @@ where
         if !text.starts_with(|c: char| c.is_ascii_whitespace()) {
             return (false, text);
         }
-        let mut inline_level_boxes = self.current_inline_level_boxes().iter().rev();
-        let mut stack = Vec::new();
-        let preserved = loop {
-            let inline_box = match inline_level_boxes.next() {
-                Some(box_) => box_,
-                None => match stack.pop() {
-                    Some(iter) => {
-                        inline_level_boxes = iter;
-                        continue;
-                    },
-                    None => break false,
-                },
-            };{
-            match &*inline_box.borrow() {
-                InlineLevelBox::TextRun(r) => break !r.text.ends_with(' '),
-                InlineLevelBox::Atomic { .. } => break false,
-                InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
-                InlineLevelBox::OutOfFlowFloatBox(_) => {},
-                InlineLevelBox::InlineBox(b) => {
-                    stack.push(inline_level_boxes);
-                    inline_level_boxes = b.children.iter().rev()
-                },
-            };}
-            ()
+
+        let preserved = match whitespace_is_preserved(self.current_inline_level_boxes()) {
+            WhitespacePreservedResult::Unknown => {
+                // Paragraph start.
+                false
+            },
+            WhitespacePreservedResult::NotPreserved => false,
+            WhitespacePreservedResult::Preserved => true,
         };
+
         let text = text.trim_start_matches(|c: char| c.is_ascii_whitespace());
-        (preserved, text)
+        return (preserved, text);
+
+        fn whitespace_is_preserved(
+            inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
+        ) -> WhitespacePreservedResult {
+            for inline_level_box in inline_level_boxes.iter().rev() {
+                match *inline_level_box.borrow() {
+                    InlineLevelBox::TextRun(ref r) => {
+                        if r.text.ends_with(' ') {
+                            return WhitespacePreservedResult::NotPreserved;
+                        }
+                        return WhitespacePreservedResult::Preserved;
+                    },
+                    InlineLevelBox::Atomic { .. } => {
+                        return WhitespacePreservedResult::NotPreserved;
+                    },
+                    InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
+                    InlineLevelBox::OutOfFlowFloatBox(_) => {},
+                    InlineLevelBox::InlineBox(ref b) => {
+                        match whitespace_is_preserved(&b.children) {
+                            WhitespacePreservedResult::Unknown => {},
+                            result => return result,
+                        }
+                    },
+                }
+            }
+
+            WhitespacePreservedResult::Unknown
+        }
+
+        #[derive(Clone, Copy, PartialEq)]
+        enum WhitespacePreservedResult {
+            Preserved,
+            NotPreserved,
+            Unknown,
+        }
     }
 
     fn handle_inline_level_element(
