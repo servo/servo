@@ -427,17 +427,6 @@ class CGMethodCall(CGThing):
                                    (s[1][distinguishingIndex].type.isSequence() or
                                     s[1][distinguishingIndex].type.isObject()))
 
-            # Check for Date objects
-            # XXXbz Do we need to worry about security wrappers around the Date?
-            pickFirstSignature("%s.get().is_object() && "
-                               "{ rooted!(in(*cx) let obj = %s.get().to_object()); "
-                               "let mut is_date = false; "
-                               "assert!(ObjectIsDate(*cx, obj.handle(), &mut is_date)); "
-                               "is_date }" %
-                               (distinguishingArg, distinguishingArg),
-                               lambda s: (s[1][distinguishingIndex].type.isDate() or
-                                          s[1][distinguishingIndex].type.isObject()))
-
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
             pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object(), *cx)" %
@@ -596,8 +585,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # We should not have a defaultValue if we know we're an object
     assert not isDefinitelyObject or defaultValue is None
 
-    isEnforceRange = type.enforceRange
-    isClamp = type.clamp
+    isEnforceRange = type.hasEnforceRange()
+    isClamp = type.hasClamp()
     if type.treatNullAsEmpty:
         treatNullAs = "EmptyString"
     else:
@@ -4162,8 +4151,6 @@ class CGMemberJITInfo(CGThing):
                                     u.flatMemberTypes, "")
         if t.isDictionary():
             return "JSVAL_TYPE_OBJECT"
-        if t.isDate():
-            return "JSVAL_TYPE_OBJECT"
         if not t.isPrimitive():
             raise TypeError("No idea what type " + str(t) + " is.")
         tag = t.tag()
@@ -4232,8 +4219,6 @@ class CGMemberJITInfo(CGThing):
             return functools.reduce(CGMemberJITInfo.getSingleArgType,
                                     u.flatMemberTypes, type)
         if t.isDictionary():
-            return "JSJitInfo_ArgType::Object as i32"
-        if t.isDate():
             return "JSJitInfo_ArgType::Object as i32"
         if not t.isPrimitive():
             raise TypeError("No idea what type " + str(t) + " is.")
@@ -4540,13 +4525,6 @@ class CGUnionConversionStruct(CGThing):
         else:
             arrayObject = None
 
-        dateObjectMemberTypes = filter(lambda t: t.isDate(), memberTypes)
-        if len(dateObjectMemberTypes) > 0:
-            assert len(dateObjectMemberTypes) == 1
-            raise TypeError("Can't handle dates in unions.")
-        else:
-            dateObject = None
-
         callbackMemberTypes = filter(lambda t: t.isCallback() or t.isCallbackInterface(), memberTypes)
         if len(callbackMemberTypes) > 0:
             assert len(callbackMemberTypes) == 1
@@ -4582,10 +4560,10 @@ class CGUnionConversionStruct(CGThing):
         else:
             mozMapObject = None
 
-        hasObjectTypes = object or interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject
+        hasObjectTypes = object or interfaceObject or arrayObject or callbackObject or mozMapObject
         if hasObjectTypes:
             # "object" is not distinguishable from other types
-            assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject)
+            assert not object or not (interfaceObject or arrayObject or callbackObject or mozMapObject)
             templateBody = CGList([], "\n")
             if object:
                 templateBody.append(object)
@@ -6848,7 +6826,7 @@ def type_needs_tracing(t):
 def is_typed_array(t):
     assert isinstance(t, IDLObject), (t, type(t))
 
-    return t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer()
+    return t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView()
 
 
 def type_needs_auto_root(t):

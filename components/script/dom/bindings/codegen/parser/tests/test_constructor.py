@@ -11,9 +11,9 @@ def WebIDLTest(parser, harness):
         harness.check(argument.variadic, variadic, "Argument has the right variadic value")
 
     def checkMethod(method, QName, name, signatures,
-                    static=True, getter=False, setter=False,
-                    deleter=False, legacycaller=False, stringifier=False,
-                    chromeOnly=False, htmlConstructor=False):
+                    static=True, getter=False, setter=False, deleter=False,
+                    legacycaller=False, stringifier=False, chromeOnly=False,
+                    htmlConstructor=False, secureContext=False, pref=None, func=None):
         harness.ok(isinstance(method, WebIDL.IDLMethod),
                    "Should be an IDLMethod")
         harness.ok(method.isMethod(), "Method is a method")
@@ -30,6 +30,9 @@ def WebIDLTest(parser, harness):
         harness.check(method.getExtendedAttribute("ChromeOnly") is not None, chromeOnly, "Method has the correct value for ChromeOnly")
         harness.check(method.isHTMLConstructor(), htmlConstructor, "Method has the correct htmlConstructor value")
         harness.check(len(method.signatures()), len(signatures), "Method has the correct number of signatures")
+        harness.check(method.getExtendedAttribute("Pref"), pref, "Method has the correct pref value")
+        harness.check(method.getExtendedAttribute("Func"), func, "Method has the correct func value")
+        harness.check(method.getExtendedAttribute("SecureContext") is not None, secureContext, "Method has the correct SecureContext value")
 
         sigpairs = zip(method.signatures(), signatures)
         for (gotSignature, expectedSignature) in sigpairs:
@@ -90,6 +93,21 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
+        interface TestPrefConstructor {
+            [Pref="dom.webidl.test1"] constructor();
+        };
+    """)
+    results = parser.finish()
+    harness.check(len(results), 1, "Should be one production")
+    harness.ok(isinstance(results[0], WebIDL.IDLInterface),
+               "Should be an IDLInterface")
+
+    checkMethod(results[0].ctor(), "::TestPrefConstructor::constructor",
+                "constructor", [("TestPrefConstructor (Wrapper)", [])],
+                pref=["dom.webidl.test1"])
+
+    parser = parser.reset()
+    parser.parse("""
         interface TestChromeOnlyConstructor {
           [ChromeOnly] constructor();
         };
@@ -102,6 +120,53 @@ def WebIDLTest(parser, harness):
     checkMethod(results[0].ctor(), "::TestChromeOnlyConstructor::constructor",
                 "constructor", [("TestChromeOnlyConstructor (Wrapper)", [])],
                 chromeOnly=True)
+
+    parser = parser.reset()
+    parser.parse("""
+        interface TestSCConstructor {
+            [SecureContext] constructor();
+        };
+    """)
+    results = parser.finish()
+    harness.check(len(results), 1, "Should be one production")
+    harness.ok(isinstance(results[0], WebIDL.IDLInterface),
+               "Should be an IDLInterface")
+
+    checkMethod(results[0].ctor(), "::TestSCConstructor::constructor",
+                "constructor", [("TestSCConstructor (Wrapper)", [])],
+                secureContext=True)
+
+    parser = parser.reset()
+    parser.parse("""
+        interface TestFuncConstructor {
+            [Func="Document::IsWebAnimationsEnabled"] constructor();
+        };
+    """)
+    results = parser.finish()
+    harness.check(len(results), 1, "Should be one production")
+    harness.ok(isinstance(results[0], WebIDL.IDLInterface),
+               "Should be an IDLInterface")
+
+    checkMethod(results[0].ctor(), "::TestFuncConstructor::constructor",
+                "constructor", [("TestFuncConstructor (Wrapper)", [])],
+                func=["Document::IsWebAnimationsEnabled"])
+
+    parser = parser.reset()
+    parser.parse("""
+        interface TestPrefChromeOnlySCFuncConstructor {
+            [ChromeOnly, Pref="dom.webidl.test1", SecureContext, Func="Document::IsWebAnimationsEnabled"]
+            constructor();
+        };
+    """)
+    results = parser.finish()
+    harness.check(len(results), 1, "Should be one production")
+    harness.ok(isinstance(results[0], WebIDL.IDLInterface),
+               "Should be an IDLInterface")
+
+    checkMethod(results[0].ctor(), "::TestPrefChromeOnlySCFuncConstructor::constructor",
+                "constructor", [("TestPrefChromeOnlySCFuncConstructor (Wrapper)", [])],
+                func=["Document::IsWebAnimationsEnabled"], pref=["dom.webidl.test1"],
+                chromeOnly=True, secureContext=True)
 
     parser = parser.reset()
     parser.parse("""
