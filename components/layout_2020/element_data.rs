@@ -5,19 +5,17 @@
 use crate::cell::ArcRefCell;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::BlockLevelBox;
-use atomic_refcell::AtomicRefCell;
-use servo_arc::Arc;
 
 #[derive(Default)]
 pub struct LayoutDataForElement {
-    pub(super) self_box: Arc<AtomicRefCell<Option<LayoutBox>>>,
+    pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_elements: Option<Box<PseudoElementBoxes>>,
 }
 
 #[derive(Default)]
 pub(super) struct PseudoElementBoxes {
-    pub before: Arc<AtomicRefCell<Option<LayoutBox>>>,
-    pub after: Arc<AtomicRefCell<Option<LayoutBox>>>,
+    pub before: ArcRefCell<Option<LayoutBox>>,
+    pub after: ArcRefCell<Option<LayoutBox>>,
 }
 
 pub(super) enum LayoutBox {
