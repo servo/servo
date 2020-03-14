@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>CSSStyleSheet Disallow Import Rules</title>
+<link rel="author" title="Erik Nordin" href="mailto:enordin@mozilla.com">
+<link rel="help" href="https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-597733392">
+<div id="target"></div>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script>
+
+const greenStyleText = ".green { color: green; }";
+const import_text = '@import url("support/constructable-import.css");';
+
+function attachShadowDiv(host) {
+  const shadowRoot = host.attachShadow({mode: 'open'});
+  const shadowDiv = document.createElement("div");
+  shadowRoot.appendChild(shadowDiv);
+  return shadowDiv;
+}
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => { (new CSSStyleSheet).insertRule(import_text) });
+}, 'Inserting an @import rule through insertRule on a constructed stylesheet throws an exception');
+
+async_test(async t => {
+    const importUrl = "support/constructable-import.css";
+    const sheet = new CSSStyleSheet();
+
+    sheet.replaceSync(import_text);
+    await sheet.replace(import_text);
+    assert_throws_dom("SyntaxError", () => { sheet.insertRule(import_text) });
+
+    const timeAfterImportsInvoked = performance.now();
+
+    let link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = importUrl;
+
+    link.addEventListener("error", t.unreached_func("Load shouldn't fail"));
+    link.addEventListener("load", t.step_func_done(event => {
+      let entries = window.performance.getEntriesByType('resource').filter(entry => entry.name.includes(importUrl));
+      assert_equals(entries.length, 1, "There should be only one entry for the import URL");
+      assert_greater_than_equal(entries[0].startTime, timeAfterImportsInvoked, "The entry's start time should be after all throws");
+      link.remove();
+    }));
+    document.body.appendChild(link);
+}, "@import rules should not trigger any loads.")
+
+promise_test(() => {
+  const span = document.createElement("span");
+  target.appendChild(span);
+  const shadowDiv = attachShadowDiv(span);
+  shadowDiv.classList.add("green");
+  const sheet = new CSSStyleSheet();
+  span.shadowRoot.adoptedStyleSheets = [sheet];
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+  const sheet_promise = sheet.replace(`${import_text} ${greenStyleText}`);
+  return sheet_promise.then((sheet) => {
+    assert_equals(sheet.cssRules.length, 1);
+    assert_equals(sheet.cssRules[0].cssText, greenStyleText);
+    assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 128, 0)");
+  }).catch((reason) => {
+    assert_unreached(`Promise was rejected (${reason}) when it should have been resolved`);
+  });
+}, '@import rules are not parsed in CSSStyleSheet.replace');
+
+test(() => {
+  const span = document.createElement("span");
+  target.appendChild(span);
+  const shadowDiv = attachShadowDiv(span);
+  shadowDiv.classList.add("green");
+  const sheet = new CSSStyleSheet();
+  span.shadowRoot.adoptedStyleSheets = [sheet];
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+  // Replace and assert that the imported rule is applied.
+  const sheet_promise = sheet.replaceSync(`${import_text} ${greenStyleText}`);
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(sheet.cssRules[0].cssText, greenStyleText);
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 128, 0)");
+}, '@import rules are not parsed in CSSStyleSheet.replaceSync');
+
+</script>

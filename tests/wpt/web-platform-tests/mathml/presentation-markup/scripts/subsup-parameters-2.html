@@ -20,6 +20,10 @@
     font-family: largeop-displayoperatorminheight2000-2AFF-italiccorrection3000;
     src: url("/fonts/math/largeop-displayoperatorminheight2000-2AFF-italiccorrection3000.woff");
   }
+  @font-face {
+    font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;
+    src: url("/fonts/math/largeop-displayoperatorminheight7000-2AFF-italiccorrection5000.woff");
+  }
 </style>
 <script>
   function getBox(aId) {
@@ -38,6 +42,7 @@
     - In mmultiscripts, prescript pairs are vertically aligned.
   */
   var epsilon = 1;
+  var emToPx = 10 / 1000; // font-size: 10px, font.em = 1000
   function runTests() {
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
@@ -52,14 +57,23 @@
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
 
-      var emToPx = 10 / 1000; // font-size: 10px, font.em = 1000
       var v = 3000 * emToPx;
       assert_approx_equals(getBox("base011").right - getBox("sub011").left, v, epsilon, "msub");
       assert_approx_equals(getBox("sup012").left, getBox("base012").right, epsilon, "msup");
       assert_approx_equals(getBox("sup013").left - getBox("sub013").left, v, epsilon, "msubsup");
       assert_approx_equals(getBox("sup014").left - getBox("sub014").left, v, epsilon, "mmultiscripts postscripts");
       assert_approx_equals(getBox("sup015").left - getBox("sub015").left, 0, epsilon, "mmultiscripts prescripts");
-    }, "NonNull Italic Correction");
+    }, "NonNull Italic Correction (MathGlyphVariantRecord)");
+    test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
+      var v = 5000 * emToPx;
+      assert_approx_equals(getBox("base021").right - getBox("sub021").left, v, epsilon, "msub");
+      assert_approx_equals(getBox("sup022").left, getBox("base022").right, epsilon, "msup");
+      assert_approx_equals(getBox("sup023").left - getBox("sub023").left, v, epsilon, "msubsup");
+      assert_approx_equals(getBox("sup024").left - getBox("sub024").left, v, epsilon, "mmultiscripts postscripts");
+      assert_approx_equals(getBox("sup025").left - getBox("sub025").left, 0, epsilon, "mmultiscripts prescripts");
+    }, "NonNull Italic Correction (GlyphAssembly)");
     done();
   }
 </script>
@@ -98,7 +112,7 @@
       </mmultiscripts>
     </math>
   </p>
-  <h2>NonNull Italic Correction</h2>
+  <h2>NonNull Italic Correction (MathGlyphVariantRecord)</h2>
   <p>
     <math displaystyle="true" style="font-family: largeop-displayoperatorminheight2000-2AFF-italiccorrection3000;">
       <msub>
@@ -127,6 +141,38 @@
         <mprescripts/>
         <mspace id="sub015" height="1em" width="1em" style="background: magenta"/>
         <mspace id="sup015" height="1em" width="1em" style="background: cyan"/>
+      </mmultiscripts>
+    </math>
+  </p>
+  <h2>NonNull Italic Correction (GlyphAssembly)</h2>
+  <p>
+    <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
+      <msub>
+        <mo id="base021" lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mspace id="sub021" height="1em" width="1em" style="background: blue"/>
+      </msub>
+    </math>
+    <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
+      <msup>
+        <mo id="base022" lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mspace id="sup022" height="1em" width="1em" style="background: blue"/>
+      </msup>
+    </math>
+    <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
+      <msubsup>
+        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mspace id="sub023" height="1em" width="1em" style="background: blue"/>
+        <mspace id="sup023" height="1em" width="1em" style="background: green"/>
+      </msubsup>
+    </math>
+    <math displaystyle="true" style="font-family: largeop-displayoperatorminheight7000-2AFF-italiccorrection5000;">
+      <mmultiscripts>
+        <mo lspace="0px" rspace="0px">&#x2AFF;</mo>
+        <mspace id="sub024" height="1em" width="1em" style="background: blue"/>
+        <mspace id="sup024" height="1em" width="1em" style="background: green"/>
+        <mprescripts/>
+        <mspace id="sub025" height="1em" width="1em" style="background: magenta"/>
+        <mspace id="sup025" height="1em" width="1em" style="background: cyan"/>
       </mmultiscripts>
     </math>
   </p>

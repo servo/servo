@@ -256,6 +256,18 @@ class TypeData(TypeDataType):
         """
         json_rv = self._json_data.copy()
 
+        def safe_sorter(element):
+            # type: (Tuple[str,str]) -> Tuple[str,str]
+            """ key function to sort lists with None values.
+
+            Python3 is more strict typewise. Comparing None and str for example is valid
+            in python2 but throws an exception in python3.
+            """
+            if element and not element[0]:
+                return ("", element[1])
+            else:
+                return element
+
         stack = [(self._data, json_rv, tuple())]  # type: List[Tuple[Dict[Text, Any], Dict[Text, Any], Tuple[Text, ...]]]
         while stack:
             data_node, json_node, par_full_key = stack.pop()
@@ -263,7 +275,8 @@ class TypeData(TypeDataType):
                 full_key = par_full_key + (k,)
                 if isinstance(v, set):
                     assert k not in json_node
-                    json_node[k] = [self._hashes.get(full_key)] + [t for t in sorted(test.to_json() for test in v)]
+                    json_node[k] = [self._hashes.get(
+                        full_key)] + [t for t in sorted((test.to_json() for test in v), key=safe_sorter)]
                 else:
                     json_node[k] = json_node.get(k, {}).copy()
                     stack.append((v, json_node[k], full_key))

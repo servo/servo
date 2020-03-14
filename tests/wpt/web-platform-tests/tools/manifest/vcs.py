@@ -63,7 +63,7 @@ class GitHasher(object):
         assert self.git is not None
         # note that git runs the command with tests_root as the cwd, which may
         # not be the root of the git repo (e.g., within a browser repo)
-        cmd = [b"diff-index", b"--relative", b"--no-renames", b"--name-only", b"-z", b"HEAD"]
+        cmd = ["diff-index", "--relative", "--no-renames", "--name-only", "-z", "HEAD"]
         data = self.git(*cmd)
         return set(data.split("\0"))
 
