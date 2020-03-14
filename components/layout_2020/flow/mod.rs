@@ -4,6 +4,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
@@ -38,7 +39,7 @@ pub(crate) struct BlockFormattingContext {
 
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockContainer {
-    BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
+    BlockLevelBoxes(Vec<ArcRefCell<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
@@ -133,7 +134,7 @@ impl BlockContainer {
 fn layout_block_level_children(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
-    child_boxes: &[Arc<BlockLevelBox>],
+    child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
     tree_rank: usize,
     mut float_context: Option<&mut FloatContext>,
@@ -204,7 +205,7 @@ fn layout_block_level_children(
                 .iter()
                 .enumerate()
                 .map(|(tree_rank, box_)| {
-                    let mut fragment = box_.layout(
+                    let mut fragment = box_.borrow().layout(
                         layout_context,
                         positioning_context,
                         containing_block,
@@ -224,7 +225,7 @@ fn layout_block_level_children(
                 .mapfold_reduce_into(
                     positioning_context,
                     |positioning_context, (tree_rank, box_)| {
-                        box_.layout(
+                        box_.borrow().layout(
                             layout_context,
                             positioning_context,
                             containing_block,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
@@ -27,7 +28,7 @@ use webrender_api::FontInstanceKey;
 
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct InlineFormattingContext {
-    pub(super) inline_level_boxes: Vec<Arc<InlineLevelBox>>,
+    pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -46,7 +47,7 @@ pub(crate) struct InlineBox {
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
     pub last_fragment: bool,
-    pub children: Vec<Arc<InlineLevelBox>>,
+    pub children: Vec<ArcRefCell<InlineLevelBox>>,
 }
 
 /// https://www.w3.org/TR/css-display-3/#css-text-run
@@ -59,7 +60,7 @@ pub(crate) struct TextRun {
 }
 
 struct InlineNestingLevelState<'box_tree> {
-    remaining_boxes: std::slice::Iter<'box_tree, Arc<InlineLevelBox>>,
+    remaining_boxes: std::slice::Iter<'box_tree, ArcRefCell<InlineLevelBox>>,
     fragments_so_far: Vec<Fragment>,
     inline_start: Length,
     max_block_size_of_fragments_so_far: Length,
@@ -105,10 +106,10 @@ impl InlineFormattingContext {
             fn traverse(
                 &mut self,
                 layout_context: &LayoutContext,
-                inline_level_boxes: &[Arc<InlineLevelBox>],
+                inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
             ) {
                 for inline_level_box in inline_level_boxes {
-                    match &**inline_level_box {
+                    match &*inline_level_box.borrow() {
                         InlineLevelBox::InlineBox(inline_box) => {
                             let padding = inline_box.style.padding();
                             let border = inline_box.style.border_width();
@@ -229,7 +230,7 @@ impl InlineFormattingContext {
         };
         loop {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
-                match &**child {
+                match &*child.borrow() {
                     InlineLevelBox::InlineBox(inline) => {
                         let partial = inline.start_layout(&mut ifc);
                         ifc.partial_inline_boxes_stack.push(partial)

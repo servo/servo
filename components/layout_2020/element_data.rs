@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::BlockLevelBox;
 use atomic_refcell::AtomicRefCell;
@@ -21,6 +22,6 @@ pub(super) struct PseudoElementBoxes {
 
 pub(super) enum LayoutBox {
     DisplayContents,
-    BlockLevel(Arc<BlockLevelBox>),
-    InlineLevel(Arc<InlineLevelBox>),
+    BlockLevel(ArcRefCell<BlockLevelBox>),
+    InlineLevel(ArcRefCell<InlineLevelBox>),
 }
