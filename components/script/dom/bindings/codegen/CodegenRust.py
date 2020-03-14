@@ -1654,6 +1654,8 @@ class MethodDefiner(PropertyDefiner):
             (maplikeOrSetlikeOrIterable and
              maplikeOrSetlikeOrIterable.isIterable() and
              maplikeOrSetlikeOrIterable.isValueIterator())):
+            m = maplikeOrSetlikeOrIterable
+
             # Add our keys/values/entries/forEach
             self.regular.append({
                 "name": "keys",
