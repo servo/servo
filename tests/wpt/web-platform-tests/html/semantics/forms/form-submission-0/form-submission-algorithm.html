@@ -143,5 +143,14 @@ async_test(t => {
   assert_false(wasLoaded, 'Make sure the first loading is ongoing.');
   form.submit();
 }, 'Cannot navigate (after constructing the entry list)');
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit>');
+  let iframe = form.previousSibling;
+  let event;
+  form.submit();
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.href.includes("?"));
+}, 'Submission URL should always have a non-null query part');
 </script>
 </body>
