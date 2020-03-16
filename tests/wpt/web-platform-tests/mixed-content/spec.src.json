@@ -3,13 +3,13 @@
   "test_page_title_template": "Mixed-Content: %(title)s",
   "specification": [
     {
-      "name": "optionally-blockable",
+      // optionally-blockable
       "title": "Optionally-blockable content",
       "description": "Test behavior of optionally-blockable content",
       "specification_url": "http://www.w3.org/TR/mixed-content/#category-optionally-blockable",
       "test_expansion": [
         {
-          "name": "opt-in-blocks",
+          // opt-in-blocks
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -28,7 +28,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "opt-in-blocks-redirects",
+          // opt-in-blocks-redirects
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -47,7 +47,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "no-opt-in-allows",
+          // no-opt-in-allows
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -68,13 +68,13 @@
       ]
     },
     {
-      "name": "blockable",
+      // blockable
       "title": "Blockable content",
       "description": "Test behavior of blockable content.",
       "specification_url": "http://www.w3.org/TR/mixed-content/#category-blockable",
       "test_expansion": [
         {
-          "name": "opt-in-blocks",
+          // opt-in-blocks
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -114,7 +114,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "opt-in-blocks-redirects",
+          // opt-in-blocks-redirects
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -154,7 +154,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "no-opt-in-blocks",
+          // no-opt-in-blocks
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -194,7 +194,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "ws-downgrade-blocks",
+          // ws-downgrade-blocks
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -211,13 +211,13 @@
       ]
     },
     {
-      "name": "allowed",
+      // allowed
       "title": "Allowed content",
       "description": "Test behavior of allowed content.",
       "specification_url": "http://www.w3.org/TR/mixed-content/",
       "test_expansion": [
         {
-          "name": "allowed",
+          // allowed
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -234,7 +234,7 @@
           "expectation": "allowed"
         },
         {
-          "name": "websocket-allowed",
+          // websocket-allowed
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -256,7 +256,7 @@
   "delivery_key": "mixedContent",
   "excluded_tests": [
     {
-      "name": "Skip-redundant-no-opt-in",
+      // Skip-redundant-no-opt-in
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -268,7 +268,7 @@
       "expectation": "*"
     },
     {
-      "name": "Skip-redundant-for-opt-in-method",
+      // Skip-redundant-for-opt-in-method
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -283,7 +283,7 @@
       "expectation": "*"
     },
     {
-      "name": "source_context_list values not yet tested",
+      // source_context_list values not yet tested
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
@@ -301,7 +301,7 @@
       "expectation": "*"
     },
     {
-      "name": "source_context_list values not for CSP tests",
+      // source_context_list values not for CSP tests
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
@@ -316,7 +316,7 @@
       "expectation": "*"
     },
     {
-      "name": "subresource values not yet tested",
+      // subresource values not yet tested
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -332,7 +332,7 @@
       "expectation": "*"
     },
     {
-      "name": "redirections that mixed-content tests don't care",
+      // redirections that mixed-content tests don't care
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",

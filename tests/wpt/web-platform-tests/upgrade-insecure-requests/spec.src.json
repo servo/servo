@@ -3,13 +3,13 @@
   "test_page_title_template": "Upgrade-Insecure-Requests: %(title)s",
   "specification": [
     {
-      "name": "No upgrade-insecure-request",
+      // No upgrade-insecure-request
       "title": "No upgrade-insecure-request",
       "description": "No upgrade-insecure-request",
       "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
       "test_expansion": [
         {
-          "name": "Without upgrade-insecure-request, all requests are blocked ...",
+          // Without upgrade-insecure-request, all requests are blocked ...
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -21,7 +21,7 @@
           "expectation": "blocked"
         },
         {
-          "name": "... except for the secure requests listed here",
+          // ... except for the secure requests listed here
           "expansion": "override",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -40,13 +40,13 @@
       ]
     },
     {
-      "name": "With upgrade-insecure-request",
+      // With upgrade-insecure-request
       "title": "With upgrade-insecure-request",
       "description": "With upgrade-insecure-request",
       "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
       "test_expansion": [
         {
-          "name": "With upgrade-insecure-request, all insecure requests are upgraded and allowed.",
+          // With upgrade-insecure-request, all insecure requests are upgraded and allowed.
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
@@ -63,7 +63,7 @@
   "delivery_key": "upgradeInsecureRequests",
   "excluded_tests": [
     {
-      "name": "Omit secure requests",
+      // Omit secure requests
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -80,7 +80,7 @@
       "expectation": "allowed"
     },
     {
-      "name": "For inheriting tests skip http-rp because we already have <meta> tests",
+      // For inheriting tests skip http-rp because we already have <meta> tests
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
@@ -96,7 +96,7 @@
       "expectation": "*"
     },
     {
-      "name": "source_context_list values not yet tested",
+      // source_context_list values not yet tested
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
@@ -115,7 +115,7 @@
       "expectation": "*"
     },
     {
-      "name": "source_context_list values not for CSP tests",
+      // source_context_list values not for CSP tests
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
@@ -130,7 +130,7 @@
       "expectation": "*"
     },
     {
-      "name": "subresource values not yet tested",
+      // subresource values not yet tested
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -153,7 +153,7 @@
       "expectation": "*"
     },
     {
-      "name": "origins that upgrade-insecure-requests tests don't care",
+      // origins that upgrade-insecure-requests tests don't care
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -170,7 +170,7 @@
       "expectation": "*"
     },
     {
-      "name": "redirections that upgrade-insecure-requests tests don't care",
+      // redirections that upgrade-insecure-requests tests don't care
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",

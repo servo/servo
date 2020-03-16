@@ -1,0 +1,83 @@
+<html class="reftest-wait">
+<title>Scroll timeline shared by two animation, one gets cancelled</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations/">
+<meta name="assert" content="Cancelling animations should not affect other
+                   animation that is attached to the same timeline.">
+<link rel="match" href="animation-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform; /* force compositing */
+  }
+
+  #contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+<div id="scroller">
+  <div id="contents"></div>
+</div>
+
+<script>
+  const box = document.getElementById('box');
+  const effect = new KeyframeEffect(box,
+    [
+    { transform: 'translateY(0)', opacity: 1},
+    { transform: 'translateY(200px)', opacity: 0}
+    ], {
+      duration: 1000,
+    }
+  );
+  const temporary_effect = new KeyframeEffect(box,
+    [
+    { transform: 'translateX(0)'},
+    { transform: 'translateX(200px)'}
+    ], {
+      duration: 1000,
+    }
+  );
+
+  const scroller = document.getElementById('scroller');
+  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const animation = new Animation(effect, timeline);
+  const temporary_animation = new Animation(temporary_effect, timeline);
+  animation.play();
+  temporary_animation.play();
+
+  Promise.all([animation.ready, temporary_animation.ready]).then(() => {
+    temporary_animation.cancel();
+    temporary_animation.ready.then(() => {
+      waitForAnimationFrames(2).then(_ => {
+        // Move the scroller to the halfway point.
+        const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+        scroller.scrollTop = 0.5 * maxScroll;
+
+        waitForAnimationFrames(2).then(_ => {
+            takeScreenshot();
+        });
+      });
+    });
+  });
+</script>

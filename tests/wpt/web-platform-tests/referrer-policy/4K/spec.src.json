@@ -1,7 +1,7 @@
 {
   "excluded_tests": [
     {
-      "name": "expectation=stripped-referrer only",
+      // expectation=stripped-referrer only
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "name": "Only on the top context",
+      // Only on the top context
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [

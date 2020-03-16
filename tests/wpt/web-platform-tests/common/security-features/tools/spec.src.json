@@ -3,7 +3,7 @@
   "test_file_path_pattern": "gen/%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s.html",
   "excluded_tests": [
     {
-      "name": "Workers are same-origin only",
+      // Workers are same-origin only
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -27,7 +27,7 @@
       "expectation": "*"
     },
     {
-      "name": "Workers are same-origin only (redirects)",
+      // Workers are same-origin only (redirects)
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -47,7 +47,7 @@
       "expectation": "*"
     },
     {
-      "name": "Websockets are ws/wss-only",
+      // Websockets are ws/wss-only
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -68,7 +68,7 @@
     {
       // Redirects are intentionally forbidden in browsers:
       // https://fetch.spec.whatwg.org/#concept-websocket-establish
-      "name": "Websockets are no-redirect only",
+      // Websockets are no-redirect only
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
@@ -86,7 +86,7 @@
       "expectation": "*"
     },
     {
-      "name": "ws/wss are websocket-only",
+      // ws/wss are websocket-only
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": "*",
