@@ -95,6 +95,7 @@ public:
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
   virtual void OnServoIMEStateChanged(bool) = 0;
+  virtual void OnServoDevtoolsStarted(bool, unsigned int) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;

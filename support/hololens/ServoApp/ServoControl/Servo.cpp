@@ -67,6 +67,12 @@ void prompt_alert(const char *message, bool trusted) {
   sServo->Delegate().OnServoPromptAlert(char2hstring(message), trusted);
 }
 
+void on_devtools_started(Servo::DevtoolsServerState result,
+                         const unsigned int port) {
+  sServo->Delegate().OnServoDevtoolsStarted(
+      result == Servo::DevtoolsServerState::Started, port);
+}
+
 Servo::PromptResult prompt_ok_cancel(const char *message, bool trusted) {
   return sServo->Delegate().OnServoPromptOkCancel(char2hstring(message),
                                                   trusted);
@@ -87,17 +93,12 @@ const char *prompt_input(const char *message, const char *default,
   }
 }
 
-void on_devtools_started(Servo::DevtoolsServerState result,
-                         const unsigned int port) {
-  // FIXME
-}
-
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
 
   capi::CInitOptions o;
-  hstring defaultPrefs = L" --pref dom.webxr.enabled";
+  hstring defaultPrefs = L" --pref dom.webxr.enabled --devtools";
   o.args = *hstring2char(args + defaultPrefs);
   o.url = *hstring2char(url);
   o.width = mWindowWidth;
