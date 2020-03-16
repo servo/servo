@@ -706,9 +706,9 @@ def daily_tasks_setup():
     # the commit hash is not known until we clone the repository.
     CONFIG.git_sha_is_current_head()
 
-    # On failure, notify a few people on IRC
-    # https://docs.taskcluster.net/docs/reference/core/taskcluster-notify/docs/usage
-    notify_route = "notify.irc-channel.#servo.on-failed"
+    # On failure, notify a few people on Matrix
+    # https://docs.taskcluster.net/docs/reference/core/notify/usage
+    notify_route = "notify.matrix-room.!crXxRMedJXFPxKffWI:mozilla.org.on-failed"
     CONFIG.routes_for_all_subtasks.append(notify_route)
     CONFIG.scopes_for_all_subtasks.append("queue:route:" + notify_route)
     CONFIG.task_name_template = "Servo daily: %s. On failure, ping: " + ping_on_daily_task_failure
