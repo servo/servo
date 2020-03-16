@@ -832,4 +832,4 @@ def test_reftest_fuzzy_multi(fuzzy, expected):
 
 def test_hash():
     s = SourceFile("/", "foo", "/", contents=b"Hello, World!")
-    assert b"b45ef6fec89518d314f546fd6c3025367b721684" == s.hash
+    assert "b45ef6fec89518d314f546fd6c3025367b721684" == s.hash

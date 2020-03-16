@@ -2746,10 +2746,19 @@ IdlInterface.prototype.test_object = function(desc)
         exception = e;
     }
 
-    var expected_typeof =
-        this.members.some(function(member) { return member.legacycaller; })
-        ? "function"
-        : "object";
+    var expected_typeof;
+    if (this.name == "HTMLAllCollection")
+    {
+        // Willful violation of JS.  :(
+        expected_typeof = "undefined";
+    } else if (this.members.some(function(member) { return member.legacycaller; }))
+    {
+        expected_typeof = "function";
+    }
+    else
+    {
+        expected_typeof = "object";
+    }
 
     this.test_primary_interface_of(desc, obj, exception, expected_typeof);
 
@@ -2911,7 +2920,15 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
                         }
                         if (!thrown)
                         {
-                            this.array.assert_type_is(property, member.idlType);
+                            if (this.name == "Document" && member.name == "all")
+                            {
+                                // Willful violation of JS :(
+                                assert_equals(typeof property, "undefined");
+                            }
+                            else
+                            {
+                                this.array.assert_type_is(property, member.idlType);
+                            }
                         }
                     }
                     if (member.type == "operation")

@@ -23,7 +23,7 @@ runPropertyTests('line-height', [
   {
     syntax: '<number>',
     specified: assert_is_equal_with_range_handling,
-    computed: (_, result) => assert_is_unit('px', result)
+    computed: (_, result) => assert_is_unit('number', result)
   },
   {
     syntax: '<percentage>',

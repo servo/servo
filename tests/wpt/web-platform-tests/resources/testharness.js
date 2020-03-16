@@ -1483,7 +1483,9 @@ policies and contribution forms [3].
     function _assert_inherits(name) {
         return function (object, property_name, description)
         {
-            assert(typeof object === "object" || typeof object === "function",
+            assert(typeof object === "object" || typeof object === "function" ||
+                   // Willful violation of JS.  :(
+                   String(object) === "[object HTMLAllCollection]",
                    name, description,
                    "provided value is not an object");
 
