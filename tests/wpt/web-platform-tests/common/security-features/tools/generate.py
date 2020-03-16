@@ -54,11 +54,7 @@ def permute_expansion(expansion,
 
 
 # Dumps the test config `selection` into a serialized JSON string.
-# We omit `name` parameter because it is not used by tests.
 def dump_test_parameters(selection):
-    selection = dict(selection)
-    del selection['name']
-
     return json.dumps(
         selection,
         indent=2,
@@ -178,7 +174,6 @@ def generate_selection(spec_directory, test_helper_filenames, spec_json,
     selection['scenario'] = dump_test_parameters(selection).replace(
         "\n", indent)
 
-    selection['spec_name'] = spec['name']
     selection['test_page_title'] = spec_json['test_page_title_template'] % spec
     selection['spec_description'] = spec['description']
     selection['spec_specification_url'] = spec['specification_url']
@@ -256,7 +251,7 @@ def generate_test_source_files(spec_directory, test_helper_filenames,
     # Choose a debug/release template depending on the target.
     html_template = "test.%s.html.template" % target
 
-    artifact_order = test_expansion_schema.keys() + ['name']
+    artifact_order = test_expansion_schema.keys()
     artifact_order.remove('expansion')
 
     # Create list of excluded tests.
@@ -282,10 +277,11 @@ def generate_test_source_files(spec_directory, test_helper_filenames,
                 selection_path = spec_json['selection_pattern'] % selection
                 if selection_path in output_dict:
                     if expansion_pattern['expansion'] != 'override':
-                        print(
-                            "Error: %s's expansion is default but overrides %s"
-                            % (selection['name'],
-                               output_dict[selection_path]['name']))
+                        print("Error: expansion is default in:")
+                        print(dump_test_parameters(selection))
+                        print("but overrides:")
+                        print(dump_test_parameters(
+                            output_dict[selection_path]))
                         sys.exit(1)
                 output_dict[selection_path] = copy.deepcopy(selection)
 
@@ -361,7 +357,8 @@ def main():
         return
 
     # Load the default spec JSON file, ...
-    default_spec_filename = os.path.join(util.script_directory, 'spec.src.json')
+    default_spec_filename = os.path.join(util.script_directory,
+                                         'spec.src.json')
     spec_json = collections.OrderedDict()
     if os.path.exists(default_spec_filename):
         spec_json = util.load_spec_json(default_spec_filename)
