@@ -101,6 +101,8 @@ pub struct WebGLFramebuffer {
     depth: DomRefCell<Option<WebGLFramebufferAttachment>>,
     stencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
     depthstencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    color_read_buffer: DomRefCell<u32>,
+    color_draw_buffers: DomRefCell<Vec<u32>>,
     is_initialized: Cell<bool>,
     // Framebuffers for XR keep a reference to the XR session.
     // https://github.com/immersive-web/webxr/issues/856
@@ -121,6 +123,8 @@ impl WebGLFramebuffer {
             depth: DomRefCell::new(None),
             stencil: DomRefCell::new(None),
             depthstencil: DomRefCell::new(None),
+            color_read_buffer: DomRefCell::new(constants::COLOR_ATTACHMENT0),
+            color_draw_buffers: DomRefCell::new(vec![constants::COLOR_ATTACHMENT0]),
             is_initialized: Cell::new(false),
             xr_session: Default::default(),
         }
@@ -912,6 +916,55 @@ impl WebGLFramebuffer {
         self.with_matching_textures(texture, |_att, _name| {
             self.update_status();
         });
+    }
+
+    pub fn set_read_buffer(&self, buffer: u32) -> WebGLResult<()> {
+        let context = self.upcast::<WebGLObject>().context();
+
+        match buffer {
+            constants::NONE => {},
+            _ if context.valid_color_attachment_enum(buffer) => {},
+            _ => return Err(WebGLError::InvalidOperation),
+        };
+
+        *self.color_read_buffer.borrow_mut() = buffer;
+        context.send_command(WebGLCommand::ReadBuffer(buffer));
+        Ok(())
+    }
+
+    pub fn set_draw_buffers(&self, buffers: Vec<u32>) -> WebGLResult<()> {
+        let context = self.upcast::<WebGLObject>().context();
+
+        if buffers.len() > context.limits().max_draw_buffers as usize {
+            return Err(WebGLError::InvalidValue);
+        }
+
+        let enums_valid = buffers
+            .iter()
+            .all(|&val| val == constants::NONE || context.valid_color_attachment_enum(val));
+        if !enums_valid {
+            return Err(WebGLError::InvalidEnum);
+        }
+
+        let values_valid = buffers.iter().enumerate().all(|(i, &val)| {
+            val == constants::NONE || val == (constants::COLOR_ATTACHMENT0 + i as u32)
+        });
+        if !values_valid {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        *self.color_draw_buffers.borrow_mut() = buffers.clone();
+        context.send_command(WebGLCommand::DrawBuffers(buffers));
+        Ok(())
+    }
+
+    pub fn read_buffer(&self) -> u32 {
+        *self.color_read_buffer.borrow()
+    }
+
+    pub fn draw_buffer_i(&self, index: usize) -> u32 {
+        let buffers = &*self.color_draw_buffers.borrow();
+        *buffers.get(index).unwrap_or(&constants::NONE)
     }
 
     pub fn target(&self) -> Option<u32> {
