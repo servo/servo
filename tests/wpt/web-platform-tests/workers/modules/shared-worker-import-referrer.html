@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <title>SharedWorker: Referrer</title>
+<meta name="timeout" content="long" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+
+// This Set is for checking a shared worker in each test is newly created.
+const existingWorkers = new Set();
 
 async function openWindow(url) {
   const win = window.open(url, '_blank');
@@ -77,7 +81,17 @@ function import_referrer_test(settings, description) {
     }
 
     const win = await openWindow(windowURL);
-    win.postMessage(scriptURL, '*');
+    // Construct a unique name for SharedWorker.
+    const name = `${settings.scriptURL}_` +
+        `${settings.windowReferrerPolicy ? settings.windowReferrerPolicy
+                                         : settings.workerReferrerPolicy}` +
+        `_${settings.fetchType}`;
+    const workerProperties = { scriptURL, name };
+    // Check if this shared worker is newly created.
+    assert_false(existingWorkers.has(workerProperties));
+    existingWorkers.add(workerProperties);
+
+    win.postMessage(workerProperties, '*');
     const msgEvent = await new Promise(resolve => window.onmessage = resolve);
 
     // Generate the expected referrer, given:

@@ -76,8 +76,8 @@ On Linux, macOS or other UNIX-like system:
 
 And on Windows (this must be run in a PowerShell session with Administrator privileges):
 
-```bash
-python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
+```
+python wpt make-hosts-file | Out-File $env:SystemRoot\System32\drivers\etc\hosts -Encoding ascii -Append
 ```
 
 If you are behind a proxy, you also need to make sure the domains above are

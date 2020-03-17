@@ -1,10 +1,28 @@
-// NOTE: This method only strips the fragment and is not in accordance to the
-// recommended draft specification:
-// https://w3c.github.io/webappsec/specs/referrer-policy/#null
-// TODO(kristijanburnik): Implement this helper as defined by spec once added
-// scenarios for URLs containing username/password/etc.
-function stripUrlForUseAsReferrer(url) {
-  return url.replace(/#.*$/, "");
+// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+function stripUrlForUseAsReferrer(url, originOnly) {
+  // Step 2. If url’s scheme is a local scheme, then return no referrer.
+  const parsedUrl = new URL(url);
+
+  if (["about:", "blob:", "data:"].includes(parsedUrl.protocol))
+    return undefined;
+
+  // Step 3. Set url’s username to the empty string.
+  parsedUrl.username = '';
+
+  // Step 4. Set url’s password to null.
+  parsedUrl.password = '';
+
+  // Step 5. Set url’s fragment to null.
+  parsedUrl.hash = '';
+
+  //  Step 6. If the origin-only flag is true, then:
+  if (originOnly) {
+    // Step 6.1. Set url’s path to null.
+    parsedUrl.pathname = '';
+    // Step 6.2. Set url’s query to null.
+    parsedUrl.search = '';
+  }
+  return parsedUrl.href;
 }
 
 function invokeScenario(scenario) {
@@ -27,10 +45,10 @@ const referrerUrlResolver = {
     return undefined;
   },
   "origin": function(sourceUrl) {
-    return new URL(sourceUrl).origin + "/";
+    return stripUrlForUseAsReferrer(sourceUrl, true);
   },
   "stripped-referrer": function(sourceUrl) {
-    return stripUrlForUseAsReferrer(sourceUrl);
+    return stripUrlForUseAsReferrer(sourceUrl, false);
   }
 };
 

@@ -259,7 +259,20 @@
       // Skip-redundant-no-opt-in
       "expansion": "*",
       "source_scheme": "*",
-      "source_context_list": "*",
+      "source_context_list": [
+        // In certain source_context_lists (workers),
+        // this is not redundant because <meta> is not supported.
+        "top",
+        "srcdoc-inherit",
+        "iframe",
+        "iframe-blank-inherit",
+        "worker-classic-inherit",
+        "worker-classic-data",
+        "worker-module-inherit",
+        "worker-module-data",
+        "sharedworker-classic-data",
+        "sharedworker-module-data"
+      ],
       "delivery_type": "http-rp",
       "delivery_value": null,
       "redirection": "*",

@@ -28,23 +28,29 @@ test(() => {
     <template data-mode="open" data-slot-assignment="auto">
       <slot id="s1"></slot>
     </template>
+    <div id="c1"></div>
   </div>
   <div id="host2">
     <template data-mode="open" data-slot-assignment="manual">
       <slot id="s2"></slot>
     </template>
   </div>
-  <div id="c1" slot="slot1"></div>
+  <div id="c2"></div>
 </div>
 <script>
 test(() => {
   let tTree = createTestTree(test_errors);
+  assert_array_equals(tTree.s1.assignedElements(), [tTree.c1]);
+  assert_equals(tTree.c1.assignedSlot, tTree.s1);
+
   assert_throws_dom('NotAllowedError', () => { tTree.s1.assign([]); });
+  assert_array_equals(tTree.s1.assignedElements(), [tTree.c1]);
+  assert_equals(tTree.c1.assignedSlot, tTree.s1);
 }, 'Imperative slot API throws exception when not slotAssignment != \'manual\'.');
 
 test(() => {
   let tTree = createTestTree(test_errors);
-  assert_throws_dom('NotAllowedError', () => { tTree.s2.assign([tTree.c1]); });
+  assert_throws_dom('NotAllowedError', () => { tTree.s2.assign([tTree.c2]); });
 
   assert_throws_dom('NotAllowedError', () => { tTree.s2.assign([tTree.host1]); });
 }, 'Imperative slot API throws exception when slotable parentNode != slot\'s host.');
@@ -52,7 +58,7 @@ test(() => {
 
 <div id="test_assign">
   <div id="host">
-    <template id="shadow_root" data-mode="open" data--slot-assignment="manual">
+    <template id="shadow_root" data-mode="open" data-slot-assignment="manual">
       <slot id="s1"></slot>
       <slot id="s2"></slot>
       <slot id="s3"></slot>
