@@ -85,7 +85,7 @@ def WebIDLTest(parser, harness):
 
     JsonTypes = [ "byte", "octet", "short", "unsigned short", "long", "unsigned long", "long long",
                   "unsigned long long", "float", "unrestricted float", "double", "unrestricted double", "boolean",
-                  "DOMString", "ByteString", "USVString", "Enum", "InterfaceWithToJSON", "object" ]
+                  "DOMString", "ByteString", "UTF8String", "USVString", "Enum", "InterfaceWithToJSON", "object" ]
 
     nonJsonTypes = [ "InterfaceWithoutToJSON", "any", "Int8Array", "Int16Array", "Int32Array","Uint8Array",
                      "Uint16Array", "Uint32Array", "Uint8ClampedArray", "Float32Array", "Float64Array", "ArrayBuffer" ]
@@ -129,8 +129,11 @@ def WebIDLTest(parser, harness):
         doTest("interface Test { record<DOMString, %s> toJSON(); };" % type, False,
                "record<DOMString, %s> should be a JSON type" % type)
 
-        doTest("interface Test { record<ByteString, %s> toJSON(); };" % type, False, 
+        doTest("interface Test { record<ByteString, %s> toJSON(); };" % type, False,
                "record<ByteString, %s> should be a JSON type" % type)
+
+        doTest("interface Test { record<UTF8String, %s> toJSON(); };" % type, False,
+               "record<UTF8String, %s> should be a JSON type" % type)
 
         doTest("interface Test { record<USVString, %s> toJSON(); };" % type, False,
                "record<USVString, %s> should be a JSON type" % type)
@@ -174,12 +177,12 @@ def WebIDLTest(parser, harness):
 
         doTest("interface Test { record<USVString, %s> toJSON(); };" % type, True,
                "record<USVString, %s> should not be a JSON type" % type)
-        
+
         if type != "any":
             doTest("interface Foo { object toJSON(); }; "
                    "interface Test { (Foo or %s) toJSON(); };" % type, True,
                    "union containing a non-JSON type (%s) should not be a JSON type" % type)
-        
+
             doTest("interface test { %s? toJSON(); };" % type, True,
                    "Nullable type (%s) should not be a JSON type" % type)
 
