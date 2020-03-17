@@ -596,3 +596,4 @@ pub mod xrview;
 pub mod xrviewerpose;
 pub mod xrviewport;
 pub mod xrwebgllayer;
+pub mod imagebitmap;
