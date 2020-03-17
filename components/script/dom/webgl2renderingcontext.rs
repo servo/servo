@@ -349,7 +349,11 @@ impl WebGL2RenderingContext {
         }
 
         let fb_slot = self.base.get_draw_framebuffer_slot();
-        if fb_slot.get().is_none() && self.default_fb_readbuffer.get() == constants::NONE {
+        let fb_readbuffer_valid = match fb_slot.get() {
+            Some(fb) => fb.attachment(fb.read_buffer()).is_some(),
+            None => self.default_fb_readbuffer.get() != constants::NONE,
+        };
+        if !fb_readbuffer_valid {
             return self.base.webgl_error(InvalidOperation);
         }
 
