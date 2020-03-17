@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Testing behavior OfflineAudioContext after execution context is detached
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      const audit = Audit.createTaskRunner();
+
+      audit.define('decoding-on-detached-iframe', async (task, should) => {
+        const iframe =
+            document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+        document.body.appendChild(iframe);
+
+        // Use the lowest value possible for the faster test.
+        let context =
+            new iframe.contentWindow.OfflineAudioContext(1, 1, 3000);
+
+        document.body.removeChild(iframe);
+
+        // TODO(crbug.com/1060315): This assertion needs to be revised when the
+        // spec behavior is clarified for the case of a non-existent
+        // ExecutionContext.
+        should(context.decodeAudioData(new ArrayBuffer(1)),
+               'decodeAudioData() upon a detached iframe')
+            .beRejectedWith('NotAllowedError')
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

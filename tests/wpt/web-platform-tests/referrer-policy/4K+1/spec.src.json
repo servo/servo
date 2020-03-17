@@ -35,6 +35,18 @@
       "origin": "*",
       "subresource": "*",
       "expectation": "*"
+    },
+    {
+      // subresources not yet tested.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "redirection": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "origin": "*",
+      "subresource": "sharedworker-module",
+      "expectation": "*"
     }
   ]
 }

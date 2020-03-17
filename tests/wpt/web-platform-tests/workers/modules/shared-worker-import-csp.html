@@ -4,6 +4,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
+// This Set is for checking a shared worker in each test is newly created.
+const existingWorkers = new Set();
+
 async function openWindow(url) {
   const win = window.open(url, '_blank');
   add_result_callback(() => win.close());
@@ -29,10 +32,17 @@ function import_csp_test(
   promise_test(async () => {
     // Open a window that has the given CSP header.
     const win = await openWindow(windowURL);
+    // Construct a unique name for SharedWorker.
+    const name = `${cspHeader}_${importType}`;
+    const workerProperties = { scriptURL, name };
+    // Check if this shared worker is newly created.
+    assert_false(existingWorkers.has(workerProperties));
+    existingWorkers.add(workerProperties);
+
     // Ask the window to start a shared worker with the given CSP header.
     // The shared worker doesn't inherits the window's CSP header.
     // https://w3c.github.io/webappsec-csp/#initialize-global-object-csp
-    win.postMessage(scriptURL, '*');
+    win.postMessage(workerProperties, '*');
     const msg_event = await new Promise(resolve => window.onmessage = resolve);
     assert_array_equals(msg_event.data, expectedImportedModules);
   }, description);

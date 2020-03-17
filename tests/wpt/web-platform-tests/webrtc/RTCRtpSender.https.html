@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const t1 = pc.addTransceiver("audio");
+    const t2 = pc.addTransceiver("video");
+
+    assert_not_equals(t1.sender.dtmf, null);
+    assert_equals(t2.sender.dtmf, null);
+}, "Video sender @dtmf is null");
+
+</script>

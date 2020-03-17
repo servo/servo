@@ -254,15 +254,19 @@ def generate_test_source_files(spec_directory, test_helper_filenames,
     artifact_order = test_expansion_schema.keys()
     artifact_order.remove('expansion')
 
+    excluded_selection_pattern = ''
+    for key in artifact_order:
+        excluded_selection_pattern += '%(' + key + ')s/'
+
     # Create list of excluded tests.
-    exclusion_dict = {}
+    exclusion_dict = set()
     for excluded_pattern in spec_json['excluded_tests']:
         excluded_expansion = \
             expand_pattern(excluded_pattern, test_expansion_schema)
         for excluded_selection in permute_expansion(excluded_expansion,
                                                     artifact_order):
             excluded_selection['delivery_key'] = spec_json['delivery_key']
-            exclusion_dict[dump_test_parameters(excluded_selection)] = True
+            exclusion_dict.add(excluded_selection_pattern % excluded_selection)
 
     for spec in specification:
         # Used to make entries with expansion="override" override preceding
@@ -287,7 +291,7 @@ def generate_test_source_files(spec_directory, test_helper_filenames,
 
         for selection_path in output_dict:
             selection = output_dict[selection_path]
-            if dump_test_parameters(selection) in exclusion_dict:
+            if (excluded_selection_pattern % selection) in exclusion_dict:
                 print('Excluding selection:', selection_path)
                 continue
             try:
