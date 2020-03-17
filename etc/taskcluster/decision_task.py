@@ -369,8 +369,11 @@ def windows_unit(cached=True):
             "mach fetch",
 
             "mach build --dev",
-            "mach test-unit",
-            "mach smoketest --angle",
+
+            # https://github.com/servo/servo/issues/25961
+            #"mach test-unit",
+            #"mach smoketest --angle",
+
             "mach package --dev",
             "mach build --dev --libsimpleservo",
             # The GStreamer plugin currently doesn't support Windows
