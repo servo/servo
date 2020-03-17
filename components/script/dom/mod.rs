@@ -281,6 +281,7 @@ pub mod document;
 pub mod documentfragment;
 pub mod documentorshadowroot;
 pub mod documenttype;
+pub mod doge;
 pub mod domexception;
 pub mod domimplementation;
 pub mod dommatrix;
