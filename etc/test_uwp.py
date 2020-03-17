@@ -59,6 +59,7 @@ def start_httpd(port):
             return
     server = HTTPServer(('', port), handler)
     thread = Thread(target=server.serve_forever)
+    print "Starting HTTP server."
     thread.start()
     return server, thread
 
@@ -91,7 +92,7 @@ url = "http://localhost:" + str(port)
 
 run_powershell_cmd('Start-Process -ArgumentList ' + url + ' shell:AppsFolder\\' + app_family + '!App')
 
-http_thread.join(timeout=20)
+http_thread.join(timeout=120)
 success = True
 if http_thread.is_alive():
     http_server.shutdown()
