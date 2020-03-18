@@ -931,7 +931,7 @@ def get_manifest(metadata_root, test_path, url_base, run_info_properties, update
     :param url_base: Base url for serving the tests in this manifest"""
     manifest_path = expected.expected_path(metadata_root, test_path)
     try:
-        with open(manifest_path) as f:
+        with open(manifest_path, "rb") as f:
             rv = compile(f, test_path, url_base,
                          run_info_properties, update_intermittent, remove_intermittent)
     except IOError:

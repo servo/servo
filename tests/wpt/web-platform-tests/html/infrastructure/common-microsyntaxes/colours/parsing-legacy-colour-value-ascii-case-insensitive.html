@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#rules-for-parsing-a-legacy-colour-value">
+<link rel="match" href="parsing-legacy-colour-value-ascii-case-insensitive-ref.html">
+<meta name="assert" content="special legacy color value “transparent” is ASCII case-insensitive">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<p>This square should be black: <font face="Ahem" color="transparent">X</font>
+<p>This square should be black: <font face="Ahem" color="TrAnSpArEnT">X</font>
+<p>This square should be blue: <font face="Ahem" color="tranſparent">X</font>
+<!--
+  Following the rules for parsing a legacy color value should yield a shade of
+  blue, because only the following steps apply, not step 4:
+
+  1.    tranſparent
+  10.   00a000a0e00
+  11.   00a000a0e000
+  12.   00a0 00a0 e000 (length = 4)
+  15.   00   00   e0
+  20.   #0000E0
+-->

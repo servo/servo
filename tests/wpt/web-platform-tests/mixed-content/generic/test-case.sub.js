@@ -15,24 +15,24 @@
  *     Run {@code ./tools/generate.py -h} for info on test generating modes.
  * @return {object} Object wrapping the start method used to run the test.
  */
-function TestCase(scenario, description, sanityChecker) {
-  sanityChecker.checkScenario(scenario, subresourceMap);
+function TestCase(scenarios, sanityChecker) {
+  function runTest(scenario) {
+    sanityChecker.checkScenario(scenario, subresourceMap);
 
-  const urls = getRequestURLs(scenario.subresource,
-                              scenario.origin,
-                              scenario.redirection);
-  const checkResult = _ => {
-    // Send request to check if the key has been torn down.
-    return xhrRequest(urls.assertUrl)
-      .then(assertResult => {
-          // Now check if the value has been torn down. If it's still there,
-          // we have blocked the request to mixed-content.
-          assert_equals(assertResult.status, scenario.expectation,
-            "The resource request should be '" + scenario.expectation + "'.");
-        });
-  };
+    const urls = getRequestURLs(scenario.subresource,
+                                scenario.origin,
+                                scenario.redirection);
+    const checkResult = _ => {
+      // Send request to check if the key has been torn down.
+      return xhrRequest(urls.assertUrl)
+        .then(assertResult => {
+            // Now check if the value has been torn down. If it's still there,
+            // we have blocked the request to mixed-content.
+            assert_equals(assertResult.status, scenario.expectation,
+              "The resource request should be '" + scenario.expectation + "'.");
+          });
+    };
 
-  function runTest() {
     /** @type {Subresource} */
     const subresource = {
       subresourceType: scenario.subresource,
@@ -48,8 +48,14 @@ function TestCase(scenario, description, sanityChecker) {
         // We check the key state, regardless of whether the main request
         // succeeded or failed.
         .then(checkResult, checkResult);
-      }, description);
+      }, scenario.test_description);
   }  // runTest
 
-  return {start: runTest};
+  function runTests() {
+    for (const scenario of scenarios) {
+      runTest(scenario);
+    }
+  }
+
+  return {start: runTests};
 }
