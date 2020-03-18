@@ -494,6 +494,35 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// <textarea>'s editor root needs to inherit the overflow value from its
+    /// parent, but we need to make sure it's still scrollable.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_text_control_editing_root(&mut self) {
+        use crate::selector_parser::PseudoElement;
+
+        if self.style.pseudo != Some(&PseudoElement::MozTextControlEditingRoot) {
+            return;
+        }
+
+        let box_style = self.style.get_box();
+        let overflow_x = box_style.clone_overflow_x();
+        let overflow_y = box_style.clone_overflow_y();
+
+        fn scrollable(v: Overflow) -> bool {
+            v != Overflow::MozHiddenUnscrollable && v != Overflow::Visible
+        }
+
+        // If at least one is scrollable we'll adjust the other one in
+        // adjust_for_overflow if needed.
+        if scrollable(overflow_x) || scrollable(overflow_y) {
+            return;
+        }
+
+        let box_style = self.style.mutate_box();
+        box_style.set_overflow_x(Overflow::Auto);
+        box_style.set_overflow_y(Overflow::Auto);
+    }
+
     /// If a <fieldset> has grid/flex display type, we need to inherit
     /// this type into its ::-moz-fieldset-content anonymous box.
     ///
@@ -502,9 +531,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// normal cascading process.
     #[cfg(feature = "gecko")]
     fn adjust_for_fieldset_content(&mut self, layout_parent_style: &ComputedValues) {
-        match self.style.pseudo {
-            Some(ref p) if p.is_fieldset_content() => {},
-            _ => return,
+        use crate::selector_parser::PseudoElement;
+
+        if self.style.pseudo != Some(&PseudoElement::FieldsetContent) {
+            return;
         }
 
         debug_assert_eq!(self.style.get_box().clone_display(), Display::Block);
@@ -786,6 +816,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         {
             self.adjust_for_prohibited_display_contents(element);
             self.adjust_for_fieldset_content(layout_parent_style);
+            // NOTE: It's important that this happens before
+            // adjust_for_overflow.
+            self.adjust_for_text_control_editing_root();
         }
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style, element);
