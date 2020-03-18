@@ -12,7 +12,10 @@ use crate::fragments::{
     DebugId, Fragment, TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{relative_adjustement, AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::{
+    relative_adjustement, AbsolutelyPositionedBox, HoistedAbsolutelyPositionedBox,
+    PositioningContext,
+};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::ContainingBlock;
@@ -64,6 +67,7 @@ struct InlineNestingLevelState<'box_tree> {
     fragments_so_far: Vec<Fragment>,
     inline_start: Length,
     max_block_size_of_fragments_so_far: Length,
+    positioning_context: Option<PositioningContext>,
 }
 
 struct PartialInlineBoxFragment<'box_tree> {
@@ -84,6 +88,31 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
+}
+
+impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
+    fn push_hoisted_box_to_positioning_context(
+        &mut self,
+        hoisted_box: HoistedAbsolutelyPositionedBox,
+    ) {
+        if let Some(context) = self.current_nesting_level.positioning_context.as_mut() {
+            context.push(hoisted_box);
+            return;
+        }
+
+        for nesting_level in self.partial_inline_boxes_stack.iter_mut().rev() {
+            if let Some(context) = nesting_level
+                .parent_nesting_level
+                .positioning_context
+                .as_mut()
+            {
+                context.push(hoisted_box);
+                return;
+            }
+        }
+
+        self.positioning_context.push(hoisted_box);
+    }
 }
 
 struct Lines {
@@ -226,6 +255,7 @@ impl InlineFormattingContext {
                 fragments_so_far: Vec::with_capacity(self.inline_level_boxes.len()),
                 inline_start: Length::zero(),
                 max_block_size_of_fragments_so_far: Length::zero(),
+                positioning_context: None,
             },
         };
         loop {
@@ -257,15 +287,14 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        let hoisted_fragment =
-                            box_.clone().to_hoisted(initial_start_corner, tree_rank);
-                        let hoisted_fragment_id = hoisted_fragment.fragment_id;
-                        ifc.positioning_context.push(hoisted_fragment);
-                        ifc.lines
-                            .fragments
-                            .push(Fragment::AbsoluteOrFixedPositioned(
-                                AbsoluteOrFixedPositionedFragment(hoisted_fragment_id),
-                            ));
+                        let hoisted_box = box_.clone().to_hoisted(initial_start_corner, tree_rank);
+                        let hoisted_fragment_id = hoisted_box.fragment_id;
+                        ifc.push_hoisted_box_to_positioning_context(hoisted_box);
+                        ifc.current_nesting_level.fragments_so_far.push(
+                            Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment(
+                                hoisted_fragment_id,
+                            )),
+                        );
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO
@@ -275,6 +304,7 @@ impl InlineFormattingContext {
             // Reached the end of ifc.remaining_boxes
             if let Some(mut partial) = ifc.partial_inline_boxes_stack.pop() {
                 partial.finish_layout(
+                    layout_context,
                     &mut ifc.current_nesting_level,
                     &mut ifc.inline_position,
                     false,
@@ -392,6 +422,7 @@ impl InlineBox {
         if style.clone_position().is_relative() {
             start_corner += &relative_adjustement(&style, ifc.containing_block)
         }
+        let positioning_context = PositioningContext::new_for_style(&style);
         PartialInlineBoxFragment {
             tag: self.tag,
             style,
@@ -409,6 +440,7 @@ impl InlineBox {
                     fragments_so_far: Vec::with_capacity(self.children.len()),
                     inline_start: ifc.inline_position,
                     max_block_size_of_fragments_so_far: Length::zero(),
+                    positioning_context,
                 },
             ),
         }
@@ -418,6 +450,7 @@ impl InlineBox {
 impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
     fn finish_layout(
         &mut self,
+        layout_context: &LayoutContext,
         nesting_level: &mut InlineNestingLevelState,
         inline_position: &mut Length,
         at_line_break: bool,
@@ -459,6 +492,11 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
                     fragment.border.block_sum() +
                     fragment.margin.block_sum(),
             );
+
+        if let Some(context) = nesting_level.positioning_context.as_mut() {
+            context.layout_collected_children(layout_context, &mut fragment);
+        }
+
         self.parent_nesting_level
             .fragments_so_far
             .push(Fragment::Box(fragment));
@@ -748,7 +786,12 @@ impl TextRun {
                 ifc.current_nesting_level.inline_start = Length::zero();
                 let mut nesting_level = &mut ifc.current_nesting_level;
                 for partial in ifc.partial_inline_boxes_stack.iter_mut().rev() {
-                    partial.finish_layout(nesting_level, &mut ifc.inline_position, true);
+                    partial.finish_layout(
+                        layout_context,
+                        nesting_level,
+                        &mut ifc.inline_position,
+                        true,
+                    );
                     partial.start_corner.inline = Length::zero();
                     partial.padding.inline_start = Length::zero();
                     partial.border.inline_start = Length::zero();
