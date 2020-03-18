@@ -15,6 +15,7 @@
 # a httpd server is started and runs until a request is made by Servo.
 
 import os
+import time
 from subprocess import check_call, CalledProcessError
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
@@ -92,12 +93,18 @@ url = "http://localhost:" + str(port)
 
 run_powershell_cmd('Start-Process -ArgumentList ' + url + ' shell:AppsFolder\\' + app_family + '!App')
 
+run_powershell_cmd('Get-Process ServoApp  | Format-List *')
+time.sleep(5)
+run_powershell_cmd('Get-Process ServoApp  | Format-List *')
+
 http_thread.join(timeout=120)
 success = True
 if http_thread.is_alive():
     http_server.shutdown()
     print "Error: Timeout"
     success = False
+
+run_powershell_cmd('Get-Process ServoApp  | Format-List *')
 
 # Resetting localhost access permissions
 run_powershell_cmd(checknetisolation.format('-d'))
