@@ -960,7 +960,11 @@ impl WebGLRenderingContext {
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
-            constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
+            constants::UNSIGNED_INT => match self.webgl_version() {
+                WebGLVersion::WebGL1 if self.extension_manager.is_element_index_uint_enabled() => 4,
+                WebGLVersion::WebGL2 => 4,
+                _ => return Err(InvalidEnum),
+            },
             _ => return Err(InvalidEnum),
         };
         if offset % type_size != 0 {

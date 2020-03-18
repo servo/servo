@@ -572,6 +572,11 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidValue);
         }
 
+        let mut active_uniforms = self.active_uniforms.borrow_mut();
+        if active_uniforms.len() > block_binding as usize {
+            active_uniforms[block_binding as usize].bind_index = Some(block_binding);
+        }
+
         self.upcast::<WebGLObject>()
             .context()
             .send_command(WebGLCommand::UniformBlockBinding(

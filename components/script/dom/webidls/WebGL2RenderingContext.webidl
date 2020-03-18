@@ -461,7 +461,7 @@ interface mixin WebGL2RenderingContextBase
   void vertexAttribDivisor(GLuint index, GLuint divisor);
   void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instanceCount);
   void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, GLintptr offset, GLsizei instanceCount);
-  // void drawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, GLintptr offset);
+  void drawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, GLintptr offset);
 
   /* Reading back pixels */
   // WebGL1:
