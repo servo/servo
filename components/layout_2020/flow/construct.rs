@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{BoxSlot, Contents, NodeExt, NonReplacedContents, TraversalHandler};
 use crate::element_data::LayoutBox;
@@ -282,54 +283,48 @@ where
             // context with the parent style of that builder.
             let inlines = self.current_inline_level_boxes();
 
-            fn last_text(inlines: &mut [Arc<InlineLevelBox>]) -> Option<&mut String> {
-                let last = inlines.last_mut()?;
-                if let InlineLevelBox::TextRun(_) = &**last {
-                    // We never clone text run boxes, so the refcount is 1 and unwrap succeeds:
-                    let last = Arc::get_mut(last).unwrap();
-                    if let InlineLevelBox::TextRun(TextRun { text, .. }) = last {
-                        Some(text)
-                    } else {
-                        unreachable!()
-                    }
-                } else {
-                    None
-                }
-            }
-
             let mut new_text_run_contents;
             let output;
-            if let Some(text) = last_text(inlines) {
-                // Append to the existing text run
-                new_text_run_contents = None;
-                output = text;
-            } else {
-                new_text_run_contents = Some(String::new());
-                output = new_text_run_contents.as_mut().unwrap();
-            }
 
-            if leading_whitespace {
-                output.push(' ')
-            }
-            loop {
-                if let Some(i) = input.bytes().position(|b| b.is_ascii_whitespace()) {
-                    let (non_whitespace, rest) = input.split_at(i);
-                    output.push_str(non_whitespace);
-                    output.push(' ');
-                    if let Some(i) = rest.bytes().position(|b| !b.is_ascii_whitespace()) {
-                        input = &rest[i..];
+            {
+                let mut last_box = inlines.last_mut().map(|last| last.borrow_mut());
+                let last_text = last_box.as_mut().and_then(|last| match &mut **last {
+                    InlineLevelBox::TextRun(last) => Some(&mut last.text),
+                    _ => None,
+                });
+
+                if let Some(text) = last_text {
+                    // Append to the existing text run
+                    new_text_run_contents = None;
+                    output = text;
+                } else {
+                    new_text_run_contents = Some(String::new());
+                    output = new_text_run_contents.as_mut().unwrap();
+                }
+
+                if leading_whitespace {
+                    output.push(' ')
+                }
+                loop {
+                    if let Some(i) = input.bytes().position(|b| b.is_ascii_whitespace()) {
+                        let (non_whitespace, rest) = input.split_at(i);
+                        output.push_str(non_whitespace);
+                        output.push(' ');
+                        if let Some(i) = rest.bytes().position(|b| !b.is_ascii_whitespace()) {
+                            input = &rest[i..];
+                        } else {
+                            break;
+                        }
                     } else {
+                        output.push_str(input);
                         break;
                     }
-                } else {
-                    output.push_str(input);
-                    break;
                 }
             }
 
             if let Some(text) = new_text_run_contents {
                 let parent_style = parent_style.clone();
-                inlines.push(Arc::new(InlineLevelBox::TextRun(TextRun {
+                inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
                     tag: node.as_opaque(),
                     parent_style,
                     text,
@@ -353,29 +348,53 @@ where
         if !text.starts_with(|c: char| c.is_ascii_whitespace()) {
             return (false, text);
         }
-        let mut inline_level_boxes = self.current_inline_level_boxes().iter().rev();
-        let mut stack = Vec::new();
-        let preserved = loop {
-            match inline_level_boxes.next().map(|b| &**b) {
-                Some(InlineLevelBox::TextRun(r)) => break !r.text.ends_with(' '),
-                Some(InlineLevelBox::Atomic { .. }) => break false,
-                Some(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_)) |
-                Some(InlineLevelBox::OutOfFlowFloatBox(_)) => {},
-                Some(InlineLevelBox::InlineBox(b)) => {
-                    stack.push(inline_level_boxes);
-                    inline_level_boxes = b.children.iter().rev()
-                },
-                None => {
-                    if let Some(iter) = stack.pop() {
-                        inline_level_boxes = iter
-                    } else {
-                        break false; // Paragraph start
-                    }
-                },
-            }
+
+        let preserved = match whitespace_is_preserved(self.current_inline_level_boxes()) {
+            WhitespacePreservedResult::Unknown => {
+                // Paragraph start.
+                false
+            },
+            WhitespacePreservedResult::NotPreserved => false,
+            WhitespacePreservedResult::Preserved => true,
         };
+
         let text = text.trim_start_matches(|c: char| c.is_ascii_whitespace());
-        (preserved, text)
+        return (preserved, text);
+
+        fn whitespace_is_preserved(
+            inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
+        ) -> WhitespacePreservedResult {
+            for inline_level_box in inline_level_boxes.iter().rev() {
+                match *inline_level_box.borrow() {
+                    InlineLevelBox::TextRun(ref r) => {
+                        if r.text.ends_with(' ') {
+                            return WhitespacePreservedResult::NotPreserved;
+                        }
+                        return WhitespacePreservedResult::Preserved;
+                    },
+                    InlineLevelBox::Atomic { .. } => {
+                        return WhitespacePreservedResult::NotPreserved;
+                    },
+                    InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
+                    InlineLevelBox::OutOfFlowFloatBox(_) => {},
+                    InlineLevelBox::InlineBox(ref b) => {
+                        match whitespace_is_preserved(&b.children) {
+                            WhitespacePreservedResult::Unknown => {},
+                            result => return result,
+                        }
+                    },
+                }
+            }
+
+            WhitespacePreservedResult::Unknown
+        }
+
+        #[derive(Clone, Copy, PartialEq)]
+        enum WhitespacePreservedResult {
+            Preserved,
+            NotPreserved,
+            Unknown,
+        }
     }
 
     fn handle_inline_level_element(
@@ -384,7 +403,7 @@ where
         style: &Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents,
-    ) -> Arc<InlineLevelBox> {
+    ) -> ArcRefCell<InlineLevelBox> {
         let box_ = if display_inside == DisplayInside::Flow && !contents.is_replaced() {
             // We found un inline box.
             // Whatever happened before, all we need to do before recurring
@@ -410,9 +429,9 @@ where
                 .pop()
                 .expect("no ongoing inline level box found");
             inline_box.last_fragment = true;
-            Arc::new(InlineLevelBox::InlineBox(inline_box))
+            ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
-            Arc::new(InlineLevelBox::Atomic(
+            ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
                     node,
@@ -466,13 +485,13 @@ where
             for mut fragmented_parent_inline_box in fragmented_inline_boxes {
                 fragmented_parent_inline_box
                     .children
-                    .push(Arc::new(fragmented_inline));
+                    .push(ArcRefCell::new(fragmented_inline));
                 fragmented_inline = InlineLevelBox::InlineBox(fragmented_parent_inline_box);
             }
 
             self.ongoing_inline_formatting_context
                 .inline_level_boxes
-                .push(Arc::new(fragmented_inline));
+                .push(ArcRefCell::new(fragmented_inline));
         }
 
         // We found a block level element, so the ongoing inline formatting
@@ -525,7 +544,7 @@ where
                 kind,
             });
         } else {
-            let box_ = Arc::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+            let box_ = ArcRefCell::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
                 AbsolutelyPositionedBox::construct(
                     self.context,
                     node,
@@ -533,7 +552,7 @@ where
                     display_inside,
                     contents,
                 ),
-            ));
+            )));
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
@@ -561,7 +580,7 @@ where
                 kind,
             });
         } else {
-            let box_ = Arc::new(InlineLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+            let box_ = ArcRefCell::new(InlineLevelBox::OutOfFlowFloatBox(FloatBox::construct(
                 self.context,
                 node,
                 style,
@@ -610,7 +629,7 @@ where
         });
     }
 
-    fn current_inline_level_boxes(&mut self) -> &mut Vec<Arc<InlineLevelBox>> {
+    fn current_inline_level_boxes(&mut self) -> &mut Vec<ArcRefCell<InlineLevelBox>> {
         match self.ongoing_inline_boxes_stack.last_mut() {
             Some(last) => &mut last.children,
             None => &mut self.ongoing_inline_formatting_context.inline_level_boxes,
@@ -634,7 +653,7 @@ where
         self,
         context: &LayoutContext,
         max_assign_in_flow_outer_content_sizes_to: Option<&mut ContentSizes>,
-    ) -> (Arc<BlockLevelBox>, ContainsFloats) {
+    ) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
         let node = self.node;
         let style = self.style;
         let (block_level_box, contains_floats) = match self.kind {
@@ -651,7 +670,7 @@ where
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
                     to.max_assign(&box_content_sizes.outer_inline(&style))
                 }
-                let block_level_box = Arc::new(BlockLevelBox::SameFormattingContextBlock {
+                let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     tag: node.as_opaque(),
                     contents,
                     style,
@@ -678,7 +697,7 @@ where
                     to.max_assign(&contents.content_sizes.outer_inline(&contents.style))
                 }
                 (
-                    Arc::new(BlockLevelBox::Independent(contents)),
+                    ArcRefCell::new(BlockLevelBox::Independent(contents)),
                     ContainsFloats::No,
                 )
             },
@@ -686,22 +705,23 @@ where
                 display_inside,
                 contents,
             } => {
-                let block_level_box = Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    AbsolutelyPositionedBox::construct(
-                        context,
-                        node,
-                        style,
-                        display_inside,
-                        contents,
-                    ),
-                ));
+                let block_level_box =
+                    ArcRefCell::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+                        AbsolutelyPositionedBox::construct(
+                            context,
+                            node,
+                            style,
+                            display_inside,
+                            contents,
+                        ),
+                    )));
                 (block_level_box, ContainsFloats::No)
             },
             BlockLevelCreator::OutOfFlowFloatBox {
                 display_inside,
                 contents,
             } => {
-                let block_level_box = Arc::new(BlockLevelBox::OutOfFlowFloatBox(
+                let block_level_box = ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(
                     FloatBox::construct(context, node, style, display_inside, contents),
                 ));
                 (block_level_box, ContainsFloats::Yes)

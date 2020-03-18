@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![feature(arbitrary_self_types)]
 #![feature(exact_size_is_empty)]
 
 #[macro_use]
@@ -10,6 +11,7 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
+mod cell;
 pub mod context;
 pub mod data;
 pub mod display_list;

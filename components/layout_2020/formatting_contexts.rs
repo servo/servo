@@ -104,11 +104,11 @@ impl IndependentFormattingContext {
     }
 }
 
-impl<'a> NonReplacedIFC<'a> {
+impl NonReplacedIFC<'_> {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext<'a>,
+        positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
     ) -> IndependentLayout {
