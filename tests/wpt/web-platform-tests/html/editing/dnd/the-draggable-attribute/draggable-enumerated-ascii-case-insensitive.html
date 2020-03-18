@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#the-draggable-attribute">
+<link rel="help" href="https://html.spec.whatwg.org/#enumerated-attribute">
+<meta name="assert" content="@draggable values are ASCII case-insensitive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+  We use <img> elements here so the invalid value default (auto) can be
+  distinguished from false through the IDL attribute. Most other elements
+  return false from the IDL attribute for the auto state too.
+-->
+<img draggable="false">
+<img draggable="FaLsE">
+<img draggable="falſe">
+<script>
+const img = document.querySelectorAll("img");
+
+test(() => {
+  assert_equals(img[0].draggable, false, "lowercase valid");
+  assert_equals(img[1].draggable, false, "mixed case valid");
+  assert_equals(img[2].draggable, true, "non-ASCII invalid");
+}, "keyword false");
+</script>

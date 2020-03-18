@@ -9,7 +9,7 @@
   Features:
   - can queue multiple notification steps in a test
   - handles timeouts
-  - returns Promise that is fullfilled when test completes.
+  - returns Promise that is fulfilled when test completes.
     Use to chain tests (since parallel async ResizeObserver tests
     would conflict if reusing same DOM elements).
 

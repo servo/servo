@@ -496,6 +496,46 @@ function test15() {
   return helper.start();
 }
 
+function test16() {
+  let target = document.querySelector('#g_rect');
+  let helper = new ResizeTestHelper(
+    "test16: observe g:rect content, border and device-pixel-content boxes",
+  [
+    {
+      setup: observer => {
+        observer.observe(target, {box: "device-pixel-content-box"});
+        target.setAttribute('width', 50);
+        document.body.style.zoom = 0.1;
+      },
+      notify: (entries, observer) => {
+        // Ensure zoom does not impact the sizes
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 50);
+        assert_equals(entries[0].contentRect.height, 20);
+        assert_equals(entries[0].contentBoxSize.inlineSize, 50);
+        assert_equals(entries[0].contentBoxSize.blockSize, 20);
+        assert_equals(entries[0].borderBoxSize.inlineSize, 50);
+        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+        assert_equals(entries[0].devicePixelContentBoxSize.inlineSize, 50);
+        assert_equals(entries[0].devicePixelContentBoxSize.blockSize, 20);
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        document.body.style.zoom = 10;
+      },
+      notify: (entries, observer) => {
+
+      },
+      timeout: () => {
+        // SVG computed size is always bounding box inline and block lengths
+      }
+    }
+  ]);
+  return helper.start();
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -518,6 +558,7 @@ test0()
   .then(() => { return test13(); })
   .then(() => { return test14(); })
   .then(() => { return test15(); })
+  .then(() => { return test16(); })
   .then(() => { guard.done(); });
 
 </script>

@@ -716,7 +716,6 @@ function test16() {
 
 }
 
-
 function test17() {
   // <div id="outer">
   //   <div id="nested">
@@ -847,6 +846,66 @@ function test17() {
   return helper.start(() => nested.remove());
 }
 
+function test18() {
+  let t = createAndAppendElement("div");
+  t.style.height = "100px";
+  t.style.width = "50px";
+
+  let helper = new ResizeTestHelper(
+    "test18: an observation is fired when device-pixel-content-box is being " +
+    "observed",
+  [
+    {
+      setup: observer => {
+        observer.observe(t, {box: "device-pixel-content-box"});
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 50, "target width");
+        assert_equals(entries[0].contentRect.height, 100, "target height");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 50,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 100,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 50,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 100,
+                      "target border-box block size");
+        assert_equals(entries[0].devicePixelContentBoxSize.inlineSize, 50,
+                      "target device-pixel-content-box inline size");
+        assert_equals(entries[0].devicePixelContentBoxSize.blockSize, 100,
+                      "target device-pixel-content-box block size");
+      }
+    },
+    {
+      setup: observer => {
+        document.body.style.zoom = 3;
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 50, "target width");
+        assert_equals(entries[0].contentRect.height, 100, "target height");
+        assert_equals(entries[0].contentBoxSize.inlineSize, 50,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize.blockSize, 100,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize.inlineSize, 50,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize.blockSize, 100,
+                      "target border-box block size");
+        assert_equals(entries[0].devicePixelContentBoxSize.inlineSize, 150,
+                      "target device-pixel-content-box inline size");
+        assert_equals(entries[0].devicePixelContentBoxSize.blockSize, 300,
+                      "target device-pixel-content-box block size");
+      }
+    }
+  ]);
+
+  return helper.start(() => t.remove());
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -871,6 +930,7 @@ test0()
   .then(() => test15())
   .then(() => test16())
   .then(() => test17())
+  .then(() => test18())
   .then(() => guard.done());
 
 </script>

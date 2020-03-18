@@ -68,6 +68,9 @@ class PolicyDelivery(object):
         self.key = key
         self.value = value
 
+    def __eq__(self, other):
+        return type(self) is type(other) and self.__dict__ == other.__dict__
+
     @classmethod
     def list_from_json(cls, list, target_policy_delivery,
                        supported_delivery_types):
@@ -167,6 +170,9 @@ class SourceContext(object):
         # type: (unicode, typing.List[PolicyDelivery]) -> None
         self.source_context_type = source_context_type
         self.policy_deliveries = policy_deliveries
+
+    def __eq__(self, other):
+        return type(self) is type(other) and self.__dict__ == other.__dict__
 
     @classmethod
     def from_json(cls, obj, target_policy_delivery, source_context_schema):

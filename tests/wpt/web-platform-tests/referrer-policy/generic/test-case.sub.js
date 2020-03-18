@@ -102,16 +102,22 @@ function runLengthTest(scenario, urlLength, expectation, testDescription) {
   }, testDescription);
 }
 
-function TestCase(scenario, testDescription, sanityChecker) {
-  // This check is A NOOP in release.
-  sanityChecker.checkScenario(scenario);
+function TestCase(scenarios, sanityChecker) {
+  function runTest(scenario) {
+    // This check is A NOOP in release.
+    sanityChecker.checkScenario(scenario);
 
-  function runTest() {
     promise_test(_ => {
       return invokeScenario(scenario)
         .then(result => checkResult(scenario, scenario.expectation, result));
-    }, testDescription);
+    }, scenario.test_description);
   }
 
-  return {start: runTest};
+  function runTests() {
+    for (const scenario of scenarios) {
+      runTest(scenario);
+    }
+  }
+
+  return {start: runTests};
 }

@@ -1,6 +1,6 @@
 {
   "selection_pattern": "%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s",
-  "test_file_path_pattern": "gen/%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s/%(origin)s.%(redirection)s.%(source_scheme)s.html",
+  "test_file_path_pattern": "gen/%(source_context_list)s.%(delivery_type)s/%(delivery_value)s/%(subresource)s.%(source_scheme)s.html",
   "excluded_tests": [
     {
       // Workers are same-origin only
