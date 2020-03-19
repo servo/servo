@@ -108,5 +108,13 @@ impl Serializable for ImageBitMap{
 }
 
 // uncomment when working on it
-//impl ImageBitMapMethods for ImageBitMap{
-//}
+impl ImageBitMapMethods for ImageBitMap{
+	fn Height(&self) -> u64 {
+        return self.height.get();
+    }
+
+	fn Width(&self) -> u64 {
+        return self.width.get();
+    }
+
+}
