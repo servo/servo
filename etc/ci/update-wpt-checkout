@@ -83,8 +83,10 @@ function unsafe_run_tests() {
 # last commit with the new results.
 function unsafe_update_metadata() {
     ./mach update-wpt "${1}" "${2}" "${3}" || return 1
+    # Hope that any test result changes from layout-2013 are also applicable to layout-2020.
+    ./mach update-wpt --layout-2020 "${1}" "${2}" "${3}" || return 2
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
+    git add tests/wpt/metadata tests/wpt/metadata-layout-2020 tests/wpt/mozilla/meta || return 3
     # Merge all changes with the existing commit.
     git commit -a --amend --no-edit || return 3
 }
