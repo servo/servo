@@ -6,6 +6,8 @@
 use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use crate::dom::bindings::error::Error;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::bindings::cell::DOMRefCell;
+use crate::dom::bindings::ImageBitMapBinding::{ImageBitMapMethods}
 //use crate::dom::bindings::serializable::Serializable;
 //use crate::dom::bindings::transferable::Transferable;
 // There should be an implmentation under this like in blob.rs
@@ -14,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate dom::domexception::DOMException;
 use crate::dom::bindings::callback::ExceptionHandling;
 // for the reflector to be used
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 //not sure if these two work
 use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding;
 use crate::dom::bindings::codegen::Bindings::ImageBitMapBinding;
@@ -29,12 +31,15 @@ use crate::dom::bindings::codegen::Bindings::ImageBitMapBinding;
 use dom_struct::dom_struct; 
 use std::vec::Vec;
 
+//as mentioned in bluetoothuuid.rs
+//pub type ImageBitMapSource = 
 
 #[dom_struct]
 pub struct ImageBitMap{
 	reflector_:Reflector,
 	width: u64,
 	height: u64,
+	ibm_vector: DOMRefCell
 }
 
 //#[allow (dead_code)]
@@ -61,5 +66,6 @@ impl ImageBitMapMethods for ImageBitMap{
 		//to do: add a condition to check detached internal slot
         return self.width.get();
     }
+
 
 }
