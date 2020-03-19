@@ -105,7 +105,6 @@ def mocked_only():
     windows_release()
     magicleap_dev()
     magicleap_nightly()
-    decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"

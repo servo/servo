@@ -279,7 +279,7 @@ class Task:
         print("Found task %s indexed at %s" % (task_id, full_index_path))
         return task_id
 
-    def find_or_create(self, index_path=None):
+    def find_or_create(self, index_path):
         """
         Try to find a task in the Index and return its ID.
 
@@ -292,11 +292,6 @@ class Task:
 
         <https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api#findTask>
         """
-        if not index_path:
-            worker_type = self.worker_type
-            index_by = json.dumps([worker_type, self.build_worker_payload()]).encode("utf-8")
-            index_path = "by-task-definition." + hashlib.sha256(index_by).hexdigest()
-
         task_id = SHARED.found_or_created_indexed_tasks.get(index_path)
         if task_id is not None:
             return task_id
