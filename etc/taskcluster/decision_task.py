@@ -27,10 +27,6 @@ def tasks(task_for):
         # https://github.com/taskcluster/taskcluster/blob/21f257dc8/services/github/config.yml#L14
         CONFIG.routes_for_all_subtasks.append("statuses")
 
-    # The magicleap build is broken until there's a surfman back end
-    magicleap_dev = lambda: None
-    magicleap_nightly = lambda: None
-
     if task_for == "github-push":
         all_tests = [
             linux_tidy_unit,
@@ -39,7 +35,6 @@ def tasks(task_for):
             windows_arm64,
             windows_uwp_x64,
             macos_unit,
-            magicleap_dev,
             linux_wpt,
             linux_wpt_layout_2020,
             linux_release,
@@ -61,7 +56,6 @@ def tasks(task_for):
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
-            "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-2020": [linux_wpt_layout_2020],
@@ -95,16 +89,7 @@ def tasks(task_for):
         windows_nightly()
         macos_nightly()
         update_wpt()
-        magicleap_nightly()
         uwp_nightly()
-
-
-# These are disabled in a "real" decision task,
-# but should still run when testing this Python code. (See `mock.py`.)
-def mocked_only():
-    windows_release()
-    magicleap_dev()
-    magicleap_nightly()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -387,18 +372,6 @@ def windows_unit(cached=True):
         return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
     else:
         return task.create()
-
-
-def windows_release():
-    return (
-        windows_build_task("Release build")
-        .with_treeherder("Windows x64", "Release")
-        .with_script("mach build --release",
-                     "mach package --release")
-        .with_artifacts("repo/target/release/msi/Servo.exe",
-                        "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_release." + CONFIG.task_id())
-    )
 
 
 def windows_nightly():
@@ -874,60 +847,6 @@ def macos_build_task(name):
             time brew install openssl@1.1
             export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
         """)
-    )
-
-
-def magicleap_build_task(name, build_type):
-    return (
-        macos_build_task(name)
-        .with_treeherder("MagicLeap aarch64", build_type)
-        .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.20.0%2Bndk19c.tar.gz",
-            sha256="d5890cc7612694d79e60247a5d5fe4d8bdeb797095f098d56f3069be33426781",
-            path="magicleap"
-        )
-        .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-25.zip",
-            sha256="33f9d07b89c206e671f6a5020e52265b131e83aede8fa474be323a8e3345d760",
-            path="magicleap"
-        )
-        # Early script in order to run with the initial $PWD
-        .with_early_script("""
-            export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
-            export MLCERT="$PWD/magicleap/servocimlcert.cert"
-        """)
-        .with_script("""
-            unset OPENSSL_INCLUDE_DIR
-            unset OPENSSL_LIB_DIR
-            export HOST_CC=$(brew --prefix llvm)/bin/clang
-            export HOST_CXX=$(brew --prefix llvm)/bin/clang++
-        """)
-    )
-
-
-def magicleap_dev():
-    return (
-        magicleap_build_task("Dev build", "Dev")
-        .with_script("""
-            ./mach build --magicleap --dev
-            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --dev
-        """)
-        .find_or_create("build.magicleap_dev." + CONFIG.task_id())
-    )
-
-
-def magicleap_nightly():
-    return (
-        magicleap_build_task("Nightly build and upload", "Release")
-        .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
-        .with_script("""
-            ./mach build --magicleap --release
-            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
-            ./mach upload-nightly magicleap --secret-from-taskcluster
-        """)
-        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo.mpk")
-        .find_or_create("build.magicleap_nightly." + CONFIG.task_id())
     )
 
 

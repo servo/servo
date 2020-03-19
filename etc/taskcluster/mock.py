@@ -56,9 +56,6 @@ decision_task.main("github-push")
 print("\n# Push with hot caches:")
 decision_task.main("github-push")
 
-print("\n# Mocked only:")
-decision_task.mocked_only()
-
 print("\n# Push to master:")
 decision_task.CONFIG.git_ref = "refs/heads/master"
 decision_task.main("github-push")
