@@ -165,6 +165,7 @@ ${helpers.single_keyword(
     "mask-composite",
     "add subtract intersect exclude",
     engines="gecko",
+    gecko_enum_prefix="StyleMaskComposite",
     vector=True,
     extra_prefixes="webkit",
     animation_value_type="discrete",
