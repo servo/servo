@@ -65,23 +65,12 @@ class Config:
 
 
     def task_id(self):
-        if hasattr(self, "_task_id"):
-            return self._task_id
-        # If the head commit is a merge, we want to generate a unique task id which incorporates
-        # the merge parents rather that the actual sha of the merge commit. This ensures that tasks
-        # can be reused if the tree is in an identical state. Otherwise, if the head commit is
-        # not a merge, we can rely on the head commit sha for that purpose.
-        raw_commit = subprocess.check_output(["git", "cat-file", "commit", "HEAD"])
-        parent_commits = [
-            value.decode("utf8")
-            for line in raw_commit.split(b"\n")
-            for key, _, value in [line.partition(b" ")]
-            if key == b"parent"
-        ]
-        if len(parent_commits) > 1:
-            self._task_id = "-".join(parent_commits) # pragma: no cover
-        else:
-            self._task_id = self.git_sha # pragma: no cover
+        if not hasattr(self, "_task_id"):
+            # Use the SHA-1 hash of the git "tree" object rather than the commit.
+            # A `@bors-servo retry` command creates a new merge commit with a different commit hash
+            # but with the same tree hash.
+            output = subprocess.check_output(["git", "show", "-s", "--format=%T", "HEAD"])
+            self._task_id = output.decode("utf-8").strip()
         return self._task_id
 
     def git_sha_is_current_head(self):
