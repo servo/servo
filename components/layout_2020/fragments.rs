@@ -55,7 +55,9 @@ pub(crate) struct BoxFragment {
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
 
-    /// XXX Add thsi
+    /// If this fragment was laid out from a hoisted box, this id corresponds to the id stored in
+    /// the AbsoluteOrFixedPositionedFragment left as a placeholder in the tree position of the
+    /// box.
     pub hoisted_fragment_id: Option<HoistedFragmentId>,
 }
 
