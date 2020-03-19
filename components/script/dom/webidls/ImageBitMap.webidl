@@ -9,11 +9,12 @@
  * You are granted a license to use, reproduce and create derivative works of this document.
  */
 
-[Exposed=(Window,Worker), Serializable, Transferable]
+//[Exposed=(Window,Worker), Serializable, Transferable]
+[Exposed=(Window,Worker)]
 interface ImageBitmap {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
-  void close();
+  //void close();
 };
 
 typedef (CanvasImageSource or
