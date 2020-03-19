@@ -7,7 +7,11 @@ use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use crate::dom::bindings::error::Error;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::bindings::cell::DOMRefCell;
-use crate::dom::bindings::ImageBitMapBinding::{ImageBitMapMethods}
+use crate::dom::bindings::ImageBitMapBinding::{ImageBitMapMethods, ImageBitMapInit, Wrap as ImageBitMapWrap}
+// for the datatype
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
+use crate::dom::imagedata::ImageData;
+use crate::dom::blob::Blob;
 //use crate::dom::bindings::serializable::Serializable;
 //use crate::dom::bindings::transferable::Transferable;
 // There should be an implmentation under this like in blob.rs
@@ -18,8 +22,8 @@ use crate::dom::bindings::callback::ExceptionHandling;
 // for the reflector to be used
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 //not sure if these two work
-use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding;
-use crate::dom::bindings::codegen::Bindings::ImageBitMapBinding;
+use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding; //--don't know why I did this!
+//use crate::dom::bindings::codegen::Bindings::ImageBitMapBinding;
 // in the serializable with the imagebitmap_impls
 //use crate::dom::bindings::structuredclone::StructuredDataHolder;
 // dom_struct things
@@ -32,26 +36,30 @@ use dom_struct::dom_struct;
 use std::vec::Vec;
 
 //as mentioned in bluetoothuuid.rs
-//pub type ImageBitMapSource = 
+pub type ImageBitMapSource = CanvasImageSourceorImageDataorBlob;
 
 #[dom_struct]
 pub struct ImageBitMap{
 	reflector_:Reflector,
 	width: u64,
 	height: u64,
-	ibm_vector: DOMRefCell
+	ibm_vector: DOMRefCell<Vec<u8>>,
 }
 
 //#[allow (dead_code)]
 impl ImageBitMap {
-	pub fn new_inherited(width: u64, height: u64) -> ImageBitMap {
+	pub fn new_inherited(width_arg: u64, height_arg: u64) -> ImageBitMap {
 		ImageBitMap{
 			reflector_: Reflector::new(),
+			width: width_arg,
+			height: height_arg,
+			ibm_vector: DOMRefCell::new(vec![]),
 		}
 	}
 
-	pub fn new (global: &GlobalScope, width: u64, height :u64) -> DOMRoot<ImageBitMap> {
-		reflect_dom_object(box ImageBitMap::new_inherited(width, height), global, ImageBitMapBinding::Wrap);
+	pub fn new (global: &GlobalScope, width: u64, height: u64) -> DOMRoot<ImageBitMap> {
+		//reflect_dom_object(box ImageBitMap::new_inherited(width, height), global, ImageBitMapBinding::Wrap);
+		reflect_dom_object(box ImageBitMap::new_inherited(width, height), global, ImageBitMapWrap);
 	}
 }
 
@@ -66,6 +74,4 @@ impl ImageBitMapMethods for ImageBitMap{
 		//to do: add a condition to check detached internal slot
         return self.width.get();
     }
-
-
 }
