@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title> WorkerNavigator.userAgentData </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+  promise_test(async () => {
+    const e = await new Promise((resolve, reject) => {
+      const worker = new Worker("./support/WorkerNavigator.js");
+      worker.onmessage = resolve;
+    });
+
+    assert_equals(e.data.uaList.length, navigator.userAgentData.uaList.length);
+    for (let i = 0; i < e.data.uaList.length; ++i) {
+      const workerUA = e.data.uaList[i];
+      const windowUA = navigator.userAgentData.uaList[i];
+      assert_equals(workerUA.brand, windowUA.brand);
+      assert_equals(workerUA.version, windowUA.version);
+    }
+    assert_equals(e.data.mobile, navigator.userAgentData.mobile);
+    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "architecture", "model", "uaFullVersion"]);
+    assert_equals(e.data.model, highEntropyValues.model);
+    assert_equals(e.data.platform, highEntropyValues.platform);
+    assert_equals(e.data.platformVersion, highEntropyValues.platformVersion);
+    assert_equals(e.data.architecture, highEntropyValues.architecture);
+    assert_equals(e.data.uaFullVersion, highEntropyValues.uaFullVersion);
+    assert_equals(e.data.NavigatorUADataExposed, true);
+  }, "Test that userAgentData is available in workers in secure contexts");
+</script>

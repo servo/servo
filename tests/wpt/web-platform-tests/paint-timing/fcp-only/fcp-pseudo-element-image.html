@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to pseudo-element image</title>
+<style>
+    #main {
+        position: relative;
+        width: 100px;
+        height: 100px;
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful:after {
+        content: url(../resources/circles.png);
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main">
+</div>
+<script>
+    test_fcp("First contentful paint fires due to pseudo-element image.")
+</script>
+</body>
+
+</html>

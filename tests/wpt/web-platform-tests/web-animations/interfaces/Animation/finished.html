@@ -395,5 +395,22 @@ promise_test(t => {
   return Promise.race([timeout, testSuccess]);
 }, 'Finished promise should be rejected after the ready promise is rejected');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  // Ensure the finished promise is created
+  const finished = animation.finished;
+
+  window.addEventListener(
+    'unhandledrejection',
+    t.unreached_func('Should not get an unhandled rejection')
+  );
+
+  animation.cancel();
+
+  // Wait a moment to allow a chance for the event to be dispatched.
+  await waitForAnimationFrames(2);
+}, 'Finished promise does not report an unhandledrejection when rejected');
+
 </script>
 </body>

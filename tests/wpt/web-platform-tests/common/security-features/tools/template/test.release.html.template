@@ -11,7 +11,9 @@
   <body>
     <script>
       TestCase(
-        %(scenarios)s,
+        [
+          %(scenarios)s
+        ],
         new SanityChecker()
       ).start();
     </script>

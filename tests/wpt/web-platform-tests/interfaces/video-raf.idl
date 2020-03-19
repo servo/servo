@@ -4,8 +4,8 @@
 // Source: HTMLVideoElement.requestAnimationFrame() (https://wicg.github.io/video-raf/)
 
 dictionary VideoFrameMetadata {
-  required DOMHighResTimeStamp presentationTime;
-  required DOMHighResTimeStamp expectedPresentationTime;
+  required DOMHighResTimeStamp timePresented;
+  required DOMHighResTimeStamp expectedDisplayTime;
 
   required unsigned long width;
   required unsigned long height;
@@ -18,7 +18,7 @@ dictionary VideoFrameMetadata {
   unsigned long rtpTimestamp;
 };
 
-callback VideoFrameRequestCallback = void(DOMHighResTimeStamp time, VideoFrameMetadata metadata);
+callback VideoFrameRequestCallback = void(DOMHighResTimeStamp now, VideoFrameMetadata metadata);
 
 partial interface HTMLVideoElement {
     unsigned long requestAnimationFrame(VideoFrameRequestCallback callback);

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to background image in image-set</title>
+<style>
+    #main {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful {
+        background-image: -webkit-image-set(url(../resources/circles.png) 1x);
+        background-image: image-set(url(../resources/circles.png) 1x);
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main"></div>
+<script>
+    test_fcp("First contentful paint fires due to background image in image-set.");
+</script>
+</body>
+</html>
