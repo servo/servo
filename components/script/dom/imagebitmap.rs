@@ -62,3 +62,51 @@ impl ImageBitMap {
 		dom_imagebitmap
 	}
 }
+
+
+impl Serializable for ImageBitMap{
+	// https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html
+	fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()>{
+		//first point
+		if !self.origin_clean{
+			let _ = callback.Call__(
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
+                                ExceptionHandling::Report);
+		}
+
+		let imagebitmap_impls = match sc_holder{
+			StructuredDataHolder::Write{ ImageBitMaps, .. } => imagebitmaps,
+			_ => panic!("Unexpected variant of StructuredDataHolder"),
+		};
+
+		let imagebitmap_id = self.imagebitmap_id.clone();
+		
+		let imagebitmap_serialized = self.global().serialize_imagebitmap(&imagebitmap_id);
+
+		let new_imagebitmap_id = imagebitmap_impl.blob_id();
+
+		let imagebitmaps = imagebitmap_impls.get_or_insert_with(|| HashMap::new());
+		imagebitmap.insert(new_imagebitmap_id.clone(), imagebitmap_impl);
+
+		let PipelineNamespaceId(name_space) = new_imagebitmap_id.namespace_id;
+        let ImageBitMapIndex(index) = new_imagebitmap_id.index;
+        let index = index.get();
+
+        let name_space = name_space.to_ne_bytes();
+        let index = index.to_ne_bytes();
+
+        let storage_key = StorageKey {
+            index: u32::from_ne_bytes(index),
+            name_space: u32::from_ne_bytes(name_space),
+        };
+
+        Ok(storage_key)
+	}
+
+	//fn deserialize(){	
+	//}
+}
+
+// uncomment when working on it
+//impl ImageBitMapMethods for ImageBitMap{
+//}
