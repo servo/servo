@@ -26,7 +26,8 @@ promise_test(async t => {
   div.style.animation = 'anim 100s';
 
   const watcher = new EventWatcher(t, div, [ 'animationend',
-                                             'animationcancel' ]);
+                                             'animationcancel' ],
+                                   fastEventsTimeout);
   const animation = div.getAnimations()[0];
   await animation.ready;
 
@@ -90,7 +91,8 @@ promise_test(async t => {
   const div1 = addDiv(t);
   const div2 = addDiv(t);
 
-  const watcher1 = new EventWatcher(t, div1, 'animationstart');
+  const watcher1 = new EventWatcher(t, div1, 'animationstart',
+                                    fastEventsTimeout);
   // Watch |div2| as well to ensure it does *not* get events.
   const watcher2 = new EventWatcher(t, div2, 'animationstart');
 
@@ -114,7 +116,8 @@ promise_test(async t => {
   const div = addDiv(t);
   const watcher = new EventWatcher(t, div, [ 'animationstart',
                                              'animationend',
-                                             'animationcancel' ]);
+                                             'animationcancel' ],
+                                   fastEventsTimeout);
   div.style.animation = 'anim 100s';
   const animation = div.getAnimations()[0];
   animation.finish();

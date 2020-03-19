@@ -198,8 +198,13 @@ def generate_test_file(spec_directory, test_helper_filenames,
 
     parameters = {}
 
-    parameters['scenarios'] = dump_test_parameters(scenarios).replace(
-        "\n", "\n" + " " * 8)
+    # Sort scenarios, to avoid unnecessary diffs due to different orders in
+    # `scenarios`.
+    serialized_scenarios = sorted(
+        [dump_test_parameters(scenario) for scenario in scenarios])
+
+    parameters['scenarios'] = ",\n".join(serialized_scenarios).replace(
+        "\n", "\n" + " " * 10)
 
     test_directory = os.path.dirname(test_filename)
 

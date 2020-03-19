@@ -96,9 +96,9 @@ interface KeyframeEffect : AnimationEffect {
                 object? keyframes,
                 optional (unrestricted double or KeyframeEffectOptions) options = {});
     constructor(KeyframeEffect source);
-    attribute Element? target;
-    attribute CSSOMString? pseudoElement;
-    attribute CompositeOperation             composite;
+    attribute Element?           target;
+    attribute CSSOMString?       pseudoElement;
+    attribute CompositeOperation composite;
     sequence<object> getKeyframes();
     void             setKeyframes(object? keyframes);
 };

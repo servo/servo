@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/webrtc/dictionary-helper.js"></script>
 <script>
   test(t => {
     assert_true("userAgentData" in navigator);
+    assert_true("NavigatorUAData" in window);
+    assert_equals(typeof self.NavigatorUAData, "function")
   }, "navigator.userAgentData is exposed.");
 
   promise_test(async t => {

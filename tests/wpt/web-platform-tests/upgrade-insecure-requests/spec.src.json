@@ -102,10 +102,7 @@
       "source_context_list": [
         "req",
         "srcdoc",
-        "iframe",
-        "worker-module-data",
-        "sharedworker-classic-data",
-        "sharedworker-module-data"
+        "iframe"
       ],
       "delivery_type": "*",
       "delivery_value": "*",
