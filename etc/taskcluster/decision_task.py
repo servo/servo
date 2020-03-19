@@ -664,19 +664,6 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
 
 
 def daily_tasks_setup():
-    # ':' is not accepted in an index namepspace:
-    # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
-    now = SHARED.now.strftime("%Y-%m-%d_%H-%M-%S")
-    index_path = "%s.daily.%s" % (CONFIG.index_prefix, now)
-    # Index this task manually rather than with a route,
-    # so that it is indexed even if it fails.
-    SHARED.index_service.insertTask(index_path, {
-        "taskId": CONFIG.decision_task_id,
-        "rank": 0,
-        "data": {},
-        "expires": SHARED.from_now_json(log_artifacts_expire_in),
-    })
-
     # Unlike when reacting to a GitHub push event,
     # the commit hash is not known until we clone the repository.
     CONFIG.git_sha_is_current_head()
