@@ -172,7 +172,7 @@ impl PositioningContext {
         self.for_nearest_positioned_ancestor.is_some()
     }
 
-    fn new_for_style(style: &ComputedValues) -> Option<Self> {
+    pub(crate) fn new_for_style(style: &ComputedValues) -> Option<Self> {
         if style.establishes_containing_block_for_all_descendants() {
             Some(Self::new_for_containing_block_for_all_descendants())
         } else if style.establishes_containing_block() {
@@ -243,7 +243,7 @@ impl PositioningContext {
 
     // Lay out the hoisted boxes collected into this `PositioningContext` and add them
     // to the given `BoxFragment`.
-    fn layout_collected_children(
+    pub fn layout_collected_children(
         &mut self,
         layout_context: &LayoutContext,
         new_fragment: &mut BoxFragment,
