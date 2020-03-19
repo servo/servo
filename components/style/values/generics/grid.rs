@@ -696,14 +696,6 @@ impl Parse for LineNameList {
                             .take(num.value() as usize * names_list.len()),
                     ),
                     RepeatCount::AutoFill if fill_data.is_none() => {
-                        // `repeat(autof-fill, ..)` should have just one line name.
-                        // FIXME(bug 1341507) the above comment is wrong per:
-                        // https://drafts.csswg.org/css-grid-2/#typedef-name-repeat
-                        if names_list.len() != 1 {
-                            return Err(
-                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                            );
-                        }
                         let fill_idx = line_names.len();
                         let fill_len = names_list.len();
                         fill_data = Some((fill_idx, fill_len));
