@@ -64,14 +64,14 @@ class Config:
         self.default_provisioner_id = "proj-example"
 
 
-    def task_id(self):
-        if not hasattr(self, "_task_id"):
+    def tree_hash(self):
+        if not hasattr(self, "_tree_hash"):
             # Use the SHA-1 hash of the git "tree" object rather than the commit.
             # A `@bors-servo retry` command creates a new merge commit with a different commit hash
             # but with the same tree hash.
             output = subprocess.check_output(["git", "show", "-s", "--format=%T", "HEAD"])
-            self._task_id = output.decode("utf-8").strip()
-        return self._task_id
+            self._tree_hash = output.decode("utf-8").strip()
+        return self._tree_hash
 
     def git_sha_is_current_head(self):
         output = subprocess.check_output(["git", "rev-parse", "HEAD"])
