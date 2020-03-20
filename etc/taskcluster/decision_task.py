@@ -48,6 +48,7 @@ def tasks(task_for):
             ],
             "master": [
                 upload_docs,
+                layout_2020_regressions_report,
             ],
 
             # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
@@ -186,7 +187,7 @@ def linux_tidy_unit():
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
         """)
-        .find_or_create("linux_unit." + CONFIG.task_id())
+        .find_or_create("linux_unit." + CONFIG.tree_hash())
     )
 
 
@@ -216,12 +217,12 @@ def linux_docs_check():
             ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
-        .find_or_create("docs." + CONFIG.task_id())
+        .find_or_create("docs." + CONFIG.tree_hash())
     )
 
 
 def upload_docs():
-    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.task_id())
+    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.tree_hash())
     return (
         linux_task("Upload docs to GitHub Pages")
         .with_treeherder("Linux x64", "DocUpload")
@@ -247,6 +248,21 @@ def upload_docs():
     )
 
 
+def layout_2020_regressions_report():
+    return (
+        linux_task("Layout 2020 regressions report")
+        .with_treeherder("Linux x64", "RegressionsReport")
+        .with_dockerfile(dockerfile_path("base"))
+        .with_repo_bundle()
+        .with_script(
+            "python3 etc/layout-2020-regressions/gen.py %s %s"
+            % (CONFIG.tree_hash(), CONFIG.git_sha)
+        )
+        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+        .with_artifacts("/repo/etc/layout-2020-regressions/regressions.html")
+        .find_or_create("layout-2020-regressions-report")
+    )
+
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
@@ -257,7 +273,7 @@ def macos_unit():
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
         """)
-        .find_or_create("macos_unit." + CONFIG.task_id())
+        .find_or_create("macos_unit." + CONFIG.tree_hash())
     )
 
 
@@ -302,7 +318,7 @@ def windows_arm64():
             "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
         .with_artifacts(appx_artifact(debug=True))
-        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.tree_hash())
     )
 
 
@@ -318,7 +334,7 @@ def windows_uwp_x64():
             "python mach test-tidy --force-cpp --no-wpt",
         )
         .with_artifacts(appx_artifact(debug=True))
-        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())
     )
 
 
@@ -339,7 +355,7 @@ def uwp_nightly():
         )
         .with_artifacts(appx_artifact(debug=False))
         .with_max_run_time_minutes(3 * 60)
-        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.tree_hash())
     )
 
 
@@ -368,7 +384,7 @@ def windows_unit(cached=True):
                         "repo/target/debug/msi/Servo.zip")
     )
     if cached:
-        return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
+        return task.find_or_create("build.windows_x64_dev." + CONFIG.tree_hash())
     else:
         return task.create()
 
@@ -385,7 +401,7 @@ def windows_nightly():
                      "mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_nightly." + CONFIG.task_id())
+        .find_or_create("build.windows_x64_nightly." + CONFIG.tree_hash())
     )
 
 
@@ -402,7 +418,7 @@ def linux_nightly():
             "./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
-        .find_or_create("build.linux_x64_nightly" + CONFIG.task_id())
+        .find_or_create("build.linux_x64_nightly" + CONFIG.tree_hash())
     )
 
 
@@ -414,7 +430,7 @@ def linux_release():
             "./mach build --release",
             "./mach package --release",
         )
-        .find_or_create("build.linux_x64_release" + CONFIG.task_id())
+        .find_or_create("build.linux_x64_release" + CONFIG.tree_hash())
     )
 
 
@@ -433,7 +449,7 @@ def macos_nightly():
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
-        .find_or_create("build.mac_x64_nightly." + CONFIG.task_id())
+        .find_or_create("build.mac_x64_nightly." + CONFIG.tree_hash())
     )
 
 
@@ -476,7 +492,7 @@ def macos_release_build_with_debug_assertions(priority=None):
             " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
         ]))
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
+        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.tree_hash())
     )
 
 
@@ -508,7 +524,7 @@ def linux_release_build_with_debug_assertions(layout_2020):
         .with_artifacts("/target.tar.gz")
         .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
             index_key_suffix,
-            CONFIG.task_id(),
+            CONFIG.tree_hash(),
         ))
     )
 
@@ -658,7 +674,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             platform.replace(" ", "_").lower(),
             job_id_prefix.replace("-", "_"),
             this_chunk,
-            CONFIG.task_id(),
+            CONFIG.tree_hash(),
         ))
 
 

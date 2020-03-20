@@ -6,6 +6,7 @@
 /.vs
 /android-toolchains
 /target
+/etc/layout-2020-regressions/regressions.html
 /ports/android/bin
 /ports/android/libs
 /ports/android/local.properties
