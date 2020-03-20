@@ -31,7 +31,22 @@
           },
           {
             "expectation": "allowed",
-            "origin": "same-https",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "cross-https",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -42,7 +57,7 @@
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-https origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -76,7 +91,7 @@
           },
           {
             "expectation": "allowed",
-            "origin": "cross-https",
+            "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -87,22 +102,7 @@
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

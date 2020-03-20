@@ -14,54 +14,24 @@
       TestCase(
         [
           {
-            "expectation": "blocked",
-            "origin": "cross-http",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worker-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-http origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "blocked",
+            "expectation": "allowed",
             "origin": "same-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worker-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-https origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worker-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-https origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http",
-            "redirection": "swap-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worker-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-http origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "same-http",
             "redirection": "keep-scheme",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "worker-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-http origin and keep-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects allowed for worker-import-data to same-https origin and keep-scheme redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worker-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for worker-import-data to same-https origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -75,13 +45,43 @@
           },
           {
             "expectation": "blocked",
-            "origin": "same-http",
+            "origin": "cross-http",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worker-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-http origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-http",
             "redirection": "swap-scheme",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "worker-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-http origin and swap-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-http origin and swap-scheme redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-https",
+            "redirection": "swap-scheme",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worker-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to cross-https origin and swap-scheme redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "same-http",
+            "redirection": "keep-scheme",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worker-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-http origin and keep-scheme redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -94,24 +94,24 @@
             "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-http origin and no-redirect redirection from https context."
           },
           {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "no-redirect",
+            "expectation": "blocked",
+            "origin": "same-http",
+            "redirection": "swap-scheme",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "worker-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for worker-import-data to same-https origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-http origin and swap-scheme redirection from https context."
           },
           {
-            "expectation": "allowed",
+            "expectation": "blocked",
             "origin": "same-https",
-            "redirection": "keep-scheme",
+            "redirection": "swap-scheme",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "worker-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for worker-import-data to same-https origin and keep-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for worker-import-data to same-https origin and swap-scheme redirection from https context."
           }
         ],
         new SanityChecker()

@@ -31,8 +31,8 @@
           },
           {
             "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "downgrade",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -42,22 +42,7 @@
             "source_scheme": "https",
             "subresource": "worklet-layout",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-http-downgrade",
-            "redirection": "downgrade",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "iframe-blank"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worklet-layout",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to same-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to cross-http-downgrade origin and no-redirect redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -76,8 +61,8 @@
           },
           {
             "expectation": "allowed",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
+            "origin": "same-http-downgrade",
+            "redirection": "downgrade",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -87,7 +72,7 @@
             "source_scheme": "https",
             "subresource": "worklet-layout",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -103,6 +88,21 @@
             "subresource": "worklet-layout",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to same-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "downgrade",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "iframe-blank"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worklet-layout",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-layout to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

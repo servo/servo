@@ -36,8 +36,8 @@
             "test_description": "Referrer Policy: Expects origin for a-tag to cross-http origin and no-redirect redirection from http context."
           },
           {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
+            "expectation": "origin",
+            "origin": "cross-https",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -54,7 +54,7 @@
             "source_scheme": "http",
             "subresource": "a-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for a-tag to same-http origin and no-redirect redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for a-tag to cross-https origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
@@ -78,8 +78,8 @@
             "test_description": "Referrer Policy: Expects origin for a-tag to same-https origin and no-redirect redirection from http context."
           },
           {
-            "expectation": "origin",
-            "origin": "cross-https",
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -96,7 +96,7 @@
             "source_scheme": "http",
             "subresource": "a-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for a-tag to cross-https origin and no-redirect redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for a-tag to same-http origin and no-redirect redirection from http context."
           }
         ],
         new SanityChecker()

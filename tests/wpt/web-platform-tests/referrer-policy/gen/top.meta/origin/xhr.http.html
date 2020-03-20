@@ -16,23 +16,13 @@
         [
           {
             "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "swap-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to cross-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-https",
+            "origin": "cross-http",
             "redirection": "keep-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to same-https origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for xhr to cross-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -46,33 +36,13 @@
           },
           {
             "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to cross-https origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-https",
+            "origin": "cross-http",
             "redirection": "swap-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to same-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-http",
-            "redirection": "keep-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to same-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for xhr to cross-http origin and swap-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -86,33 +56,33 @@
           },
           {
             "expectation": "origin",
-            "origin": "cross-http",
+            "origin": "cross-https",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for xhr to cross-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-https",
             "redirection": "swap-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to cross-http origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for xhr to cross-https origin and swap-origin redirection from http context."
           },
           {
             "expectation": "origin",
-            "origin": "cross-http",
+            "origin": "same-http",
             "redirection": "keep-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to cross-http origin and keep-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-http",
-            "redirection": "swap-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for xhr to same-http origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for xhr to same-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -126,6 +96,26 @@
           },
           {
             "expectation": "origin",
+            "origin": "same-http",
+            "redirection": "swap-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for xhr to same-http origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "same-https",
+            "redirection": "keep-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for xhr to same-https origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "origin",
             "origin": "same-https",
             "redirection": "no-redirect",
             "source_context_list": [],
@@ -133,6 +123,16 @@
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects origin for xhr to same-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "same-https",
+            "redirection": "swap-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for xhr to same-https origin and swap-origin redirection from http context."
           }
         ],
         new SanityChecker()

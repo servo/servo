@@ -15,38 +15,8 @@
         [
           {
             "expectation": "stripped-referrer",
-            "origin": "same-https",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "iframe-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "cross-https",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "iframe-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-https origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
             "origin": "cross-http",
-            "redirection": "swap-origin",
+            "redirection": "keep-origin",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -56,52 +26,7 @@
             "source_scheme": "http",
             "subresource": "iframe-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-http origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "iframe-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-http origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "same-https",
-            "redirection": "swap-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "iframe-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
-            "redirection": "swap-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "iframe-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-http origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -120,7 +45,7 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "cross-https",
+            "origin": "cross-http",
             "redirection": "swap-origin",
             "source_context_list": [
               {
@@ -131,7 +56,7 @@
             "source_scheme": "http",
             "subresource": "iframe-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-https origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-http origin and swap-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -150,8 +75,8 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "same-https",
-            "redirection": "keep-origin",
+            "origin": "cross-https",
+            "redirection": "no-redirect",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -161,12 +86,12 @@
             "source_scheme": "http",
             "subresource": "iframe-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-https origin and no-redirect redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "cross-http",
-            "redirection": "keep-origin",
+            "origin": "cross-https",
+            "redirection": "swap-origin",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -176,7 +101,7 @@
             "source_scheme": "http",
             "subresource": "iframe-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to cross-https origin and swap-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -192,6 +117,81 @@
             "subresource": "iframe-tag",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-http origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "iframe-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-http origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
+            "redirection": "swap-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "iframe-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-http origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-https",
+            "redirection": "keep-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "iframe-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-https",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "iframe-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-https",
+            "redirection": "swap-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "iframe-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for iframe-tag to same-https origin and swap-origin redirection from http context."
           }
         ],
         new SanityChecker()

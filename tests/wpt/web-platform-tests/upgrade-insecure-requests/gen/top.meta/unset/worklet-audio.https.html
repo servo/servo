@@ -15,6 +15,36 @@
         [
           {
             "expectation": "blocked",
+            "origin": "cross-http-downgrade",
+            "redirection": "downgrade",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worklet-audio",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-http-downgrade origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worklet-audio",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-https",
+            "redirection": "downgrade",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "worklet-audio",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-https origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "blocked",
             "origin": "same-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [],
@@ -35,16 +65,6 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-https",
-            "redirection": "downgrade",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worklet-audio",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
             "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [],
@@ -52,26 +72,6 @@
             "subresource": "worklet-audio",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "downgrade",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worklet-audio",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-http-downgrade origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "worklet-audio",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-audio to cross-http-downgrade origin and no-redirect redirection from https context."
           }
         ],
         new SanityChecker()

@@ -14,6 +14,48 @@
       TestCase(
         [
           {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "keep-scheme",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "mixedContent",
+                    "value": "opt-in"
+                  }
+                ],
+                "sourceContextType": "sharedworker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and keep-scheme redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "mixedContent",
+                    "value": "opt-in"
+                  }
+                ],
+                "sourceContextType": "sharedworker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and no-redirect redirection from https context."
+          },
+          {
             "expectation": "blocked",
             "origin": "cross-http",
             "redirection": "keep-scheme",
@@ -54,6 +96,27 @@
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
             "test_description": "Mixed-Content: Expects blocked for xhr to cross-http origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-http",
+            "redirection": "swap-scheme",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "mixedContent",
+                    "value": "opt-in"
+                  }
+                ],
+                "sourceContextType": "sharedworker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for xhr to cross-http origin and swap-scheme redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -120,48 +183,6 @@
           },
           {
             "expectation": "blocked",
-            "origin": "same-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "mixedContent",
-                    "value": "opt-in"
-                  }
-                ],
-                "sourceContextType": "sharedworker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for xhr to same-https origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http",
-            "redirection": "swap-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "mixedContent",
-                    "value": "opt-in"
-                  }
-                ],
-                "sourceContextType": "sharedworker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for xhr to cross-http origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
             "origin": "same-http",
             "redirection": "swap-scheme",
             "source_context_list": [
@@ -182,9 +203,9 @@
             "test_description": "Mixed-Content: Expects blocked for xhr to same-http origin and swap-scheme redirection from https context."
           },
           {
-            "expectation": "allowed",
+            "expectation": "blocked",
             "origin": "same-https",
-            "redirection": "no-redirect",
+            "redirection": "swap-scheme",
             "source_context_list": [
               {
                 "policyDeliveries": [
@@ -200,28 +221,7 @@
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "keep-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "mixedContent",
-                    "value": "opt-in"
-                  }
-                ],
-                "sourceContextType": "sharedworker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and keep-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for xhr to same-https origin and swap-scheme redirection from https context."
           }
         ],
         new SanityChecker()

@@ -16,21 +16,6 @@
         [
           {
             "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "downgrade",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worker-module",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worker-module to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
             "origin": "same-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [
@@ -58,6 +43,21 @@
             "subresource": "worker-module",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects allowed for worker-module to same-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "downgrade",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worker-module",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worker-module to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

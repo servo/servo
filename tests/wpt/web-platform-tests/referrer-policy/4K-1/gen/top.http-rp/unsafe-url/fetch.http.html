@@ -16,26 +16,6 @@
         [
           {
             "expectation": "stripped-referrer",
-            "origin": "cross-https",
-            "redirection": "swap-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "same-https",
-            "redirection": "swap-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
             "origin": "cross-http",
             "redirection": "keep-origin",
             "source_context_list": [],
@@ -56,13 +36,13 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "same-http",
-            "redirection": "keep-origin",
+            "origin": "cross-http",
+            "redirection": "swap-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-http origin and swap-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -76,13 +56,33 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "same-https",
+            "origin": "cross-https",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "cross-https",
+            "redirection": "swap-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-https origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
             "redirection": "keep-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-https origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -96,16 +96,6 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "cross-http",
-            "redirection": "swap-origin",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-http origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
             "origin": "same-http",
             "redirection": "swap-origin",
             "source_context_list": [],
@@ -116,13 +106,13 @@
           },
           {
             "expectation": "stripped-referrer",
-            "origin": "cross-https",
-            "redirection": "no-redirect",
+            "origin": "same-https",
+            "redirection": "keep-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to cross-https origin and no-redirect redirection from http context."
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-https origin and keep-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",
@@ -133,6 +123,16 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-https",
+            "redirection": "swap-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for fetch to same-https origin and swap-origin redirection from http context."
           }
         ],
         new SanityChecker()

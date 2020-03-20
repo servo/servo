@@ -16,48 +16,6 @@
         [
           {
             "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "swap-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "meta",
-                    "key": "referrerPolicy",
-                    "value": "origin"
-                  }
-                ],
-                "sourceContextType": "iframe"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "keep-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "meta",
-                    "key": "referrerPolicy",
-                    "value": "origin"
-                  }
-                ],
-                "sourceContextType": "iframe"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and keep-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
             "origin": "cross-http",
             "redirection": "keep-origin",
             "source_context_list": [
@@ -79,8 +37,8 @@
           },
           {
             "expectation": "origin",
-            "origin": "same-https",
-            "redirection": "swap-origin",
+            "origin": "cross-http",
+            "redirection": "no-redirect",
             "source_context_list": [
               {
                 "policyDeliveries": [
@@ -96,7 +54,7 @@
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
@@ -122,6 +80,27 @@
           {
             "expectation": "origin",
             "origin": "cross-https",
+            "redirection": "keep-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "meta",
+                    "key": "referrerPolicy",
+                    "value": "origin"
+                  }
+                ],
+                "sourceContextType": "iframe"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-https",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -139,6 +118,27 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-https",
+            "redirection": "swap-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "meta",
+                    "key": "referrerPolicy",
+                    "value": "origin"
+                  }
+                ],
+                "sourceContextType": "iframe"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and swap-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -181,27 +181,6 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects origin for fetch to same-http origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "cross-http",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "meta",
-                    "key": "referrerPolicy",
-                    "value": "origin"
-                  }
-                ],
-                "sourceContextType": "iframe"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
@@ -265,6 +244,27 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "same-https",
+            "redirection": "swap-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "meta",
+                    "key": "referrerPolicy",
+                    "value": "origin"
+                  }
+                ],
+                "sourceContextType": "iframe"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and swap-origin redirection from http context."
           }
         ],
         new SanityChecker()

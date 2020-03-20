@@ -15,7 +15,7 @@
         [
           {
             "expectation": "blocked",
-            "origin": "same-https",
+            "origin": "same-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -32,7 +32,7 @@
             "source_scheme": "https",
             "subresource": "worker-classic",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -57,7 +57,7 @@
           },
           {
             "expectation": "blocked",
-            "origin": "same-http-downgrade",
+            "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -74,7 +74,7 @@
             "source_scheme": "https",
             "subresource": "worker-classic",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

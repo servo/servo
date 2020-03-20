@@ -30,8 +30,8 @@
           },
           {
             "expectation": "blocked",
-            "origin": "same-http-downgrade",
-            "redirection": "downgrade",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -41,7 +41,7 @@
             "source_scheme": "https",
             "subresource": "worklet-layout-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-layout-import-data to same-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-layout-import-data to cross-http-downgrade origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -60,8 +60,8 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
+            "origin": "same-http-downgrade",
+            "redirection": "downgrade",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -71,7 +71,7 @@
             "source_scheme": "https",
             "subresource": "worklet-layout-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-layout-import-data to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-layout-import-data to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "blocked",
