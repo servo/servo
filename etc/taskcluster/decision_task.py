@@ -354,9 +354,8 @@ def windows_unit(cached=True):
 
             "mach build --dev",
 
-            # https://github.com/servo/servo/issues/25961
-            #"mach test-unit",
-            #"mach smoketest --angle",
+            "mach test-unit",
+            "mach smoketest --angle",
 
             "mach package --dev",
             "mach build --dev --libsimpleservo",
