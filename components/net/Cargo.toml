@@ -18,7 +18,7 @@ doctest = false
 base64 = "0.10.1"
 brotli = "3"
 bytes = "0.4"
-content-security-policy = {version = "0.3.0", features = ["serde"]}
+content-security-policy = {version = "0.4.0", features = ["serde"]}
 cookie_rs = {package = "cookie", version = "0.11"}
 crossbeam-channel = "0.4"
 data-url = "0.1.0"
