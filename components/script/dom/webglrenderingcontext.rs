@@ -1317,7 +1317,7 @@ impl WebGLRenderingContext {
 
         self.send_command(WebGLCommand::BindBuffer(target, buffer.map(|b| b.id())));
         if let Some(old) = slot.get() {
-            old.decrement_attached_counter();
+            old.decrement_attached_counter(false);
         }
 
         slot.set(buffer);
@@ -2565,7 +2565,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .map_or(false, |b| buffer == &*b)
         {
             self.bound_buffer_array.set(None);
-            buffer.decrement_attached_counter();
+            buffer.decrement_attached_counter(false);
         }
         buffer.mark_for_deletion(false);
     }

@@ -166,7 +166,7 @@ impl WebGLBuffer {
         );
     }
 
-    pub fn decrement_attached_counter(&self) {
+    pub fn decrement_attached_counter(&self, fallible: bool) {
         self.attached_counter.set(
             self.attached_counter
                 .get()
@@ -174,7 +174,7 @@ impl WebGLBuffer {
                 .expect("refcount underflowed"),
         );
         if self.is_deleted() {
-            self.delete(false);
+            self.delete(fallible);
         }
     }
 
