@@ -14,24 +14,24 @@
       TestCase(
         [
           {
-            "expectation": "blocked",
-            "origin": "same-http",
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "keep-scheme",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for fetch to same-https origin and keep-scheme redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
             "redirection": "no-redirect",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to same-http origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http",
-            "redirection": "swap-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to cross-http origin and swap-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects allowed for fetch to same-https origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -45,6 +45,26 @@
           },
           {
             "expectation": "blocked",
+            "origin": "cross-http",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for fetch to cross-http origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-http",
+            "redirection": "swap-scheme",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects blocked for fetch to cross-http origin and swap-scheme redirection from https context."
+          },
+          {
+            "expectation": "blocked",
             "origin": "cross-https",
             "redirection": "swap-scheme",
             "source_context_list": [],
@@ -52,16 +72,6 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Mixed-Content: Expects blocked for fetch to cross-https origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "same-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to same-https origin and swap-scheme redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -75,13 +85,13 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-http",
+            "origin": "same-http",
             "redirection": "no-redirect",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to cross-http origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for fetch to same-http origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -94,24 +104,14 @@
             "test_description": "Mixed-Content: Expects blocked for fetch to same-http origin and swap-scheme redirection from https context."
           },
           {
-            "expectation": "allowed",
+            "expectation": "blocked",
             "origin": "same-https",
-            "redirection": "no-redirect",
+            "redirection": "swap-scheme",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for fetch to same-https origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "keep-scheme",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for fetch to same-https origin and keep-scheme redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for fetch to same-https origin and swap-scheme redirection from https context."
           }
         ],
         new SanityChecker()

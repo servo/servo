@@ -16,16 +16,6 @@
         [
           {
             "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "img-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for img-tag to cross-https origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "origin",
             "origin": "cross-http",
             "redirection": "keep-origin",
             "source_context_list": [],
@@ -45,24 +35,14 @@
             "test_description": "Referrer Policy: Expects origin for img-tag to cross-http origin and no-redirect redirection from http context."
           },
           {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "img-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for img-tag to same-http origin and no-redirect redirection from http context."
-          },
-          {
             "expectation": "origin",
-            "origin": "cross-https",
+            "origin": "cross-http",
             "redirection": "swap-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for img-tag to cross-https origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for img-tag to cross-http origin and swap-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -76,23 +56,23 @@
           },
           {
             "expectation": "origin",
-            "origin": "same-https",
-            "redirection": "keep-origin",
+            "origin": "cross-https",
+            "redirection": "no-redirect",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for img-tag to same-https origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for img-tag to cross-https origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
-            "origin": "cross-http",
+            "origin": "cross-https",
             "redirection": "swap-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for img-tag to cross-http origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for img-tag to cross-https origin and swap-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -105,14 +85,14 @@
             "test_description": "Referrer Policy: Expects origin for img-tag to same-http origin and swap-origin redirection from http context."
           },
           {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
+            "expectation": "origin",
+            "origin": "same-https",
             "redirection": "keep-origin",
             "source_context_list": [],
             "source_scheme": "http",
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for img-tag to same-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for img-tag to same-https origin and keep-origin redirection from http context."
           },
           {
             "expectation": "origin",
@@ -133,6 +113,26 @@
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects origin for img-tag to same-https origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
+            "redirection": "keep-origin",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "img-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for img-tag to same-http origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "img-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for img-tag to same-http origin and no-redirect redirection from http context."
           }
         ],
         new SanityChecker()

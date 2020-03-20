@@ -15,8 +15,8 @@
       TestCase(
         [
           {
-            "expectation": "blocked",
-            "origin": "same-http",
+            "expectation": "allowed",
+            "origin": "same-https",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -27,7 +27,7 @@
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for xhr to same-http origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -45,8 +45,8 @@
             "test_description": "Mixed-Content: Expects blocked for xhr to cross-http origin and no-redirect redirection from https context."
           },
           {
-            "expectation": "allowed",
-            "origin": "same-https",
+            "expectation": "blocked",
+            "origin": "same-http",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -57,7 +57,7 @@
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for xhr to same-https origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for xhr to same-http origin and no-redirect redirection from https context."
           }
         ],
         new SanityChecker()

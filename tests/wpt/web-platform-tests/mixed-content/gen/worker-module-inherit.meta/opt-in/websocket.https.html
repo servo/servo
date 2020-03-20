@@ -15,8 +15,8 @@
       TestCase(
         [
           {
-            "expectation": "blocked",
-            "origin": "same-ws",
+            "expectation": "allowed",
+            "origin": "same-wss",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -27,7 +27,7 @@
             "source_scheme": "https",
             "subresource": "websocket",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for websocket to same-ws origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects allowed for websocket to same-wss origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -45,8 +45,8 @@
             "test_description": "Mixed-Content: Expects blocked for websocket to cross-ws origin and no-redirect redirection from https context."
           },
           {
-            "expectation": "allowed",
-            "origin": "same-wss",
+            "expectation": "blocked",
+            "origin": "same-ws",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -57,7 +57,7 @@
             "source_scheme": "https",
             "subresource": "websocket",
             "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for websocket to same-wss origin and no-redirect redirection from https context."
+            "test_description": "Mixed-Content: Expects blocked for websocket to same-ws origin and no-redirect redirection from https context."
           }
         ],
         new SanityChecker()

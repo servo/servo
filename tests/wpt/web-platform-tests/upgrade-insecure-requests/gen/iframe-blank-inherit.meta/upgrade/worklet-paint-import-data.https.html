@@ -31,8 +31,8 @@
           },
           {
             "expectation": "allowed",
-            "origin": "same-http-downgrade",
-            "redirection": "downgrade",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -42,7 +42,7 @@
             "source_scheme": "https",
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to same-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to cross-http-downgrade origin and no-redirect redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -61,7 +61,7 @@
           },
           {
             "expectation": "allowed",
-            "origin": "same-https",
+            "origin": "same-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -72,7 +72,7 @@
             "source_scheme": "https",
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to same-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -91,8 +91,8 @@
           },
           {
             "expectation": "allowed",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
+            "origin": "same-https",
+            "redirection": "downgrade",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -102,7 +102,7 @@
             "source_scheme": "https",
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for worklet-paint-import-data to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

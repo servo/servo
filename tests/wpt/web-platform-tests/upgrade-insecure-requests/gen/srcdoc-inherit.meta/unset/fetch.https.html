@@ -15,7 +15,7 @@
         [
           {
             "expectation": "blocked",
-            "origin": "same-https",
+            "origin": "cross-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -26,7 +26,37 @@
             "source_scheme": "https",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to same-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-http-downgrade origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "cross-https",
+            "redirection": "downgrade",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-https origin and downgrade redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -60,7 +90,7 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-https",
+            "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -71,37 +101,7 @@
             "source_scheme": "https",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "downgrade",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-http-downgrade origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for fetch to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

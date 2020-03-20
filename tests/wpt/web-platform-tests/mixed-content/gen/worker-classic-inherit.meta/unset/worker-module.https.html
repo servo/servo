@@ -14,6 +14,48 @@
       TestCase(
         [
           {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "keep-scheme",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "mixedContent",
+                    "value": "opt-in"
+                  }
+                ],
+                "sourceContextType": "worker-classic"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worker-module",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for worker-module to same-https origin and keep-scheme redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "mixedContent",
+                    "value": "opt-in"
+                  }
+                ],
+                "sourceContextType": "worker-classic"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worker-module",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for worker-module to same-https origin and no-redirect redirection from https context."
+          },
+          {
             "expectation": "blocked",
             "origin": "same-http",
             "redirection": "keep-scheme",
@@ -54,48 +96,6 @@
             "subresource": "worker-module",
             "subresource_policy_deliveries": [],
             "test_description": "Mixed-Content: Expects blocked for worker-module to same-http origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "mixedContent",
-                    "value": "opt-in"
-                  }
-                ],
-                "sourceContextType": "worker-classic"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worker-module",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for worker-module to same-https origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "keep-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "mixedContent",
-                    "value": "opt-in"
-                  }
-                ],
-                "sourceContextType": "worker-classic"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worker-module",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for worker-module to same-https origin and keep-scheme redirection from https context."
           }
         ],
         new SanityChecker()

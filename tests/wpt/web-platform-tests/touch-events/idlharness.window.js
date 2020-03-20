@@ -7,7 +7,7 @@
 
 idl_test(
   ['touch-events'],
-  ['uievents', 'dom', 'html'],
+  ['uievents', 'html', 'dom'],
   idl_array => {
     idl_array.add_objects({
       Document: ['document'],

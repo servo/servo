@@ -17,7 +17,7 @@
           {
             "expectation": "omitted",
             "origin": "cross-http",
-            "redirection": "swap-origin",
+            "redirection": "keep-origin",
             "source_context_list": [
               {
                 "policyDeliveries": [],
@@ -27,7 +27,7 @@
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects omitted for xhr to cross-http origin and swap-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects omitted for xhr to cross-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "omitted",
@@ -46,7 +46,7 @@
           },
           {
             "expectation": "omitted",
-            "origin": "same-https",
+            "origin": "cross-http",
             "redirection": "swap-origin",
             "source_context_list": [
               {
@@ -57,37 +57,7 @@
             "source_scheme": "http",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects omitted for xhr to same-https origin and swap-origin redirection from http context."
-          },
-          {
-            "expectation": "stripped-referrer",
-            "origin": "same-http",
-            "redirection": "keep-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects stripped-referrer for xhr to same-http origin and keep-origin redirection from http context."
-          },
-          {
-            "expectation": "omitted",
-            "origin": "cross-http",
-            "redirection": "keep-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects omitted for xhr to cross-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects omitted for xhr to cross-http origin and swap-origin redirection from http context."
           },
           {
             "expectation": "omitted",
@@ -148,6 +118,36 @@
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
             "test_description": "Referrer Policy: Expects omitted for xhr to same-http origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "omitted",
+            "origin": "same-https",
+            "redirection": "swap-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects omitted for xhr to same-https origin and swap-origin redirection from http context."
+          },
+          {
+            "expectation": "stripped-referrer",
+            "origin": "same-http",
+            "redirection": "keep-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects stripped-referrer for xhr to same-http origin and keep-origin redirection from http context."
           },
           {
             "expectation": "stripped-referrer",

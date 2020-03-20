@@ -15,7 +15,7 @@
         [
           {
             "expectation": "blocked",
-            "origin": "cross-https",
+            "origin": "cross-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -26,7 +26,7 @@
             "source_scheme": "https",
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to cross-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to cross-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -45,7 +45,7 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-http-downgrade",
+            "origin": "cross-https",
             "redirection": "downgrade",
             "source_context_list": [
               {
@@ -56,7 +56,22 @@
             "source_scheme": "https",
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to cross-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to cross-https origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "same-http-downgrade",
+            "redirection": "downgrade",
+            "source_context_list": [
+              {
+                "policyDeliveries": [],
+                "sourceContextType": "srcdoc"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worklet-paint-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "blocked",
@@ -87,21 +102,6 @@
             "subresource": "worklet-paint-import-data",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "same-http-downgrade",
-            "redirection": "downgrade",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "srcdoc"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worklet-paint-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worklet-paint-import-data to same-http-downgrade origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

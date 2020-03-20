@@ -17,6 +17,16 @@
           {
             "expectation": "allowed",
             "origin": "cross-http-downgrade",
+            "redirection": "downgrade",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "sharedworker-import-data",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for sharedworker-import-data to cross-http-downgrade origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "cross-http-downgrade",
             "redirection": "no-redirect",
             "source_context_list": [],
             "source_scheme": "https",
@@ -63,16 +73,6 @@
             "subresource": "sharedworker-import-data",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects allowed for sharedworker-import-data to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "cross-http-downgrade",
-            "redirection": "downgrade",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "sharedworker-import-data",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for sharedworker-import-data to cross-http-downgrade origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

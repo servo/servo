@@ -16,6 +16,26 @@
         [
           {
             "expectation": "allowed",
+            "origin": "cross-http-downgrade",
+            "redirection": "downgrade",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "img-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to cross-http-downgrade origin and downgrade redirection from https context."
+          },
+          {
+            "expectation": "allowed",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "img-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to cross-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "allowed",
             "origin": "cross-https",
             "redirection": "downgrade",
             "source_context_list": [],
@@ -23,16 +43,6 @@
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to cross-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "downgrade",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "img-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to same-https origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -56,23 +66,13 @@
           },
           {
             "expectation": "allowed",
-            "origin": "cross-http-downgrade",
+            "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "img-tag",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to cross-http-downgrade origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "img-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to cross-http-downgrade origin and no-redirect redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for img-tag to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

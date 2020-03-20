@@ -15,6 +15,16 @@
       TestCase(
         [
           {
+            "expectation": "allowed",
+            "origin": "same-https",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "https",
+            "subresource": "video-tag",
+            "subresource_policy_deliveries": [],
+            "test_description": "Mixed-Content: Expects allowed for video-tag to same-https origin and no-redirect redirection from https context."
+          },
+          {
             "expectation": "blocked",
             "origin": "cross-http",
             "redirection": "no-redirect",
@@ -33,16 +43,6 @@
             "subresource": "video-tag",
             "subresource_policy_deliveries": [],
             "test_description": "Mixed-Content: Expects blocked for video-tag to same-http origin and no-redirect redirection from https context."
-          },
-          {
-            "expectation": "allowed",
-            "origin": "same-https",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "https",
-            "subresource": "video-tag",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects allowed for video-tag to same-https origin and no-redirect redirection from https context."
           }
         ],
         new SanityChecker()

@@ -17,6 +17,48 @@
           {
             "expectation": "origin",
             "origin": "cross-http",
+            "redirection": "keep-origin",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "referrerPolicy",
+                    "value": "strict-origin"
+                  }
+                ],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-http",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "referrerPolicy",
+                    "value": "strict-origin"
+                  }
+                ],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-http",
             "redirection": "swap-origin",
             "source_context_list": [
               {
@@ -37,7 +79,7 @@
           },
           {
             "expectation": "origin",
-            "origin": "cross-http",
+            "origin": "cross-https",
             "redirection": "keep-origin",
             "source_context_list": [
               {
@@ -54,7 +96,28 @@
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and keep-origin redirection from http context."
+          },
+          {
+            "expectation": "origin",
+            "origin": "cross-https",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "referrerPolicy",
+                    "value": "strict-origin"
+                  }
+                ],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "http",
+            "subresource": "fetch",
+            "subresource_policy_deliveries": [],
+            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
@@ -100,7 +163,7 @@
           },
           {
             "expectation": "origin",
-            "origin": "same-https",
+            "origin": "same-http",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -117,49 +180,7 @@
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "keep-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "referrerPolicy",
-                    "value": "strict-origin"
-                  }
-                ],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and keep-origin redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-https",
-            "redirection": "keep-origin",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "referrerPolicy",
-                    "value": "strict-origin"
-                  }
-                ],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and keep-origin redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for fetch to same-http origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",
@@ -184,8 +205,8 @@
           },
           {
             "expectation": "origin",
-            "origin": "cross-https",
-            "redirection": "no-redirect",
+            "origin": "same-https",
+            "redirection": "keep-origin",
             "source_context_list": [
               {
                 "policyDeliveries": [
@@ -201,11 +222,11 @@
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-https origin and no-redirect redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and keep-origin redirection from http context."
           },
           {
             "expectation": "origin",
-            "origin": "cross-http",
+            "origin": "same-https",
             "redirection": "no-redirect",
             "source_context_list": [
               {
@@ -222,28 +243,7 @@
             "source_scheme": "http",
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to cross-http origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "origin",
-            "origin": "same-http",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "referrerPolicy",
-                    "value": "strict-origin"
-                  }
-                ],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "http",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Referrer Policy: Expects origin for fetch to same-http origin and no-redirect redirection from http context."
+            "test_description": "Referrer Policy: Expects origin for fetch to same-https origin and no-redirect redirection from http context."
           },
           {
             "expectation": "origin",

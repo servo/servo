@@ -36,27 +36,6 @@
           },
           {
             "expectation": "blocked",
-            "origin": "same-https",
-            "redirection": "downgrade",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "upgradeInsecureRequests",
-                    "value": "upgrade"
-                  }
-                ],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "worker-classic",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-https origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
             "origin": "same-http-downgrade",
             "redirection": "no-redirect",
             "source_context_list": [
@@ -75,6 +54,27 @@
             "subresource": "worker-classic",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
+            "origin": "same-https",
+            "redirection": "downgrade",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "upgradeInsecureRequests",
+                    "value": "upgrade"
+                  }
+                ],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "worker-classic",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for worker-classic to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

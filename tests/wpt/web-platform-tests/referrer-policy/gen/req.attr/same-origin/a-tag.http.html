@@ -16,6 +16,22 @@
         [
           {
             "expectation": "omitted",
+            "origin": "cross-http",
+            "redirection": "no-redirect",
+            "source_context_list": [],
+            "source_scheme": "http",
+            "subresource": "a-tag",
+            "subresource_policy_deliveries": [
+              {
+                "deliveryType": "attr",
+                "key": "referrerPolicy",
+                "value": "same-origin"
+              }
+            ],
+            "test_description": "Referrer Policy: Expects omitted for a-tag to cross-http origin and no-redirect redirection from http context."
+          },
+          {
+            "expectation": "omitted",
             "origin": "cross-https",
             "redirection": "no-redirect",
             "source_context_list": [],
@@ -45,22 +61,6 @@
               }
             ],
             "test_description": "Referrer Policy: Expects stripped-referrer for a-tag to same-http origin and no-redirect redirection from http context."
-          },
-          {
-            "expectation": "omitted",
-            "origin": "cross-http",
-            "redirection": "no-redirect",
-            "source_context_list": [],
-            "source_scheme": "http",
-            "subresource": "a-tag",
-            "subresource_policy_deliveries": [
-              {
-                "deliveryType": "attr",
-                "key": "referrerPolicy",
-                "value": "same-origin"
-              }
-            ],
-            "test_description": "Referrer Policy: Expects omitted for a-tag to cross-http origin and no-redirect redirection from http context."
           }
         ],
         new SanityChecker()

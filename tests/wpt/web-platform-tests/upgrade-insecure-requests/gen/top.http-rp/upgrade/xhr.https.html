@@ -15,13 +15,13 @@
         [
           {
             "expectation": "allowed",
-            "origin": "same-http-downgrade",
+            "origin": "cross-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -45,13 +45,13 @@
           },
           {
             "expectation": "allowed",
-            "origin": "same-https",
+            "origin": "same-http-downgrade",
             "redirection": "downgrade",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-https origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-http-downgrade origin and downgrade redirection from https context."
           },
           {
             "expectation": "allowed",
@@ -65,13 +65,13 @@
           },
           {
             "expectation": "allowed",
-            "origin": "cross-http-downgrade",
+            "origin": "same-https",
             "redirection": "downgrade",
             "source_context_list": [],
             "source_scheme": "https",
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to cross-http-downgrade origin and downgrade redirection from https context."
+            "test_description": "Upgrade-Insecure-Requests: Expects allowed for xhr to same-https origin and downgrade redirection from https context."
           }
         ],
         new SanityChecker()

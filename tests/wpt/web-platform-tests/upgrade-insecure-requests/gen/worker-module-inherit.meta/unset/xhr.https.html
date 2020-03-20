@@ -36,6 +36,27 @@
           },
           {
             "expectation": "blocked",
+            "origin": "cross-http-downgrade",
+            "redirection": "no-redirect",
+            "source_context_list": [
+              {
+                "policyDeliveries": [
+                  {
+                    "deliveryType": "http-rp",
+                    "key": "upgradeInsecureRequests",
+                    "value": "upgrade"
+                  }
+                ],
+                "sourceContextType": "worker-module"
+              }
+            ],
+            "source_scheme": "https",
+            "subresource": "xhr",
+            "subresource_policy_deliveries": [],
+            "test_description": "Upgrade-Insecure-Requests: Expects blocked for xhr to cross-http-downgrade origin and no-redirect redirection from https context."
+          },
+          {
+            "expectation": "blocked",
             "origin": "cross-https",
             "redirection": "downgrade",
             "source_context_list": [
@@ -75,27 +96,6 @@
             "subresource": "xhr",
             "subresource_policy_deliveries": [],
             "test_description": "Upgrade-Insecure-Requests: Expects blocked for xhr to same-http-downgrade origin and downgrade redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "cross-http-downgrade",
-            "redirection": "no-redirect",
-            "source_context_list": [
-              {
-                "policyDeliveries": [
-                  {
-                    "deliveryType": "http-rp",
-                    "key": "upgradeInsecureRequests",
-                    "value": "upgrade"
-                  }
-                ],
-                "sourceContextType": "worker-module"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "xhr",
-            "subresource_policy_deliveries": [],
-            "test_description": "Upgrade-Insecure-Requests: Expects blocked for xhr to cross-http-downgrade origin and no-redirect redirection from https context."
           },
           {
             "expectation": "blocked",
