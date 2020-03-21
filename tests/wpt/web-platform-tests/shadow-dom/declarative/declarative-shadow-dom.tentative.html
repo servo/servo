@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Shadow DOM</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://github.com/whatwg/dom/issues/831">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host">
+  <template shadowroot="open">
+    <slot id="s1" name="slot1"></slot>
+  </template>
+  <div id="c1" slot="slot1"></div>
+</div>
+
+<script>
+test(() => {
+  const host = document.querySelector('#host');
+  const c1 = host.querySelector('#c1');
+  assert_true(!!c1);
+  assert_equals(host.querySelector('#s1'), null, "Should be inside shadow root");
+  assert_equals(host.querySelector('template'), null, "No leftover template node");
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  const s1 = host.shadowRoot.querySelector('#s1');
+  assert_equals(c1.assignedSlot, s1);
+  assert_array_equals(s1.assignedNodes(), [c1]);
+}, 'Declarative Shadow DOM: Basic test');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="open">
+        <slot id="s1" name="slot1"></slot>
+      </template>
+      <div id="c1" slot="slot1"></div>
+    </div>
+    `;
+  const host = div.querySelector('#host');
+  const c1 = host.querySelector('#c1');
+  assert_true(!!c1);
+  assert_equals(host.querySelector('#s1'), null, "Should be inside shadow root");
+  assert_equals(host.querySelector('template'), null, "No leftover template node");
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  const s1 = host.shadowRoot.querySelector('#s1');
+  assert_equals(c1.assignedSlot, s1);
+  assert_array_equals(s1.assignedNodes(), [c1]);
+}, 'Declarative Shadow DOM: Fragment parser basic test');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="invalid">
+      </template>
+    </div>
+    `;
+  const host = div.querySelector('#host');
+  assert_equals(host.shadowRoot, null, "Shadow root was found");
+  const tmpl = host.querySelector('template');
+  assert_true(!!tmpl,"Template should still be present");
+  const shadowrootAttr = tmpl.getAttribute('shadowroot');
+  assert_equals(shadowrootAttr,"invalid","'shadowroot' attribute should still be present");
+}, 'Declarative Shadow DOM: Invalid shadow root attribute');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="closed">
+      </template>
+    </div>
+    `;
+  const host = div.querySelector('#host');
+  assert_equals(host.shadowRoot, null, "Closed shadow root");
+  assert_equals(host.querySelector('template'), null, "No template - converted to shadow root");
+}, 'Declarative Shadow DOM: Closed shadow root attribute');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="open">
+        <slot id="s1" name="slot1"></slot>
+    </div>
+    `;
+  const host = div.querySelector('#host');
+  assert_equals(host.querySelector('#s1'), null, "Should be inside shadow root");
+  assert_equals(host.querySelector('template'), null, "No leftover template node");
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  const s1 = host.shadowRoot.querySelector('#s1');
+  assert_true(!!s1,"Slot should be inside the shadow root");
+}, 'Declarative Shadow DOM: Missing closing tag');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="open" shadowrootdelegatesfocus>
+      </template>
+    </div>
+    `;
+  var host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_true(host.shadowRoot.delegatesFocus,"delegatesFocus should be true");
+  div.innerHTML = `
+    <div id="host">
+      <template shadowroot="open">
+      </template>
+    </div>
+    `;
+  host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
+}, 'Declarative Shadow DOM: delegates focus attribute');
+
+</script>

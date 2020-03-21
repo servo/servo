@@ -65,7 +65,7 @@
     function observeSizes() {
       let ro = new ResizeObserver( entries => {
         for (entry of entries) {
-          let size = entry.devicePixelContentBoxSize;
+          let size = entry.devicePixelContentBoxSize[0];
           if (entry.target == canvas2D) {
             let canvas2D = document.querySelector("#canvas2D");
             let ctx = canvas2D.getContext("2d");

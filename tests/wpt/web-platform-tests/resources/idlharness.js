@@ -2749,7 +2749,7 @@ IdlInterface.prototype.test_object = function(desc)
     var expected_typeof;
     if (this.name == "HTMLAllCollection")
     {
-        // Willful violation of JS.  :(
+        // Result of [[IsHTMLDDA]] slot
         expected_typeof = "undefined";
     } else if (this.members.some(function(member) { return member.legacycaller; }))
     {
@@ -2922,7 +2922,7 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
                         {
                             if (this.name == "Document" && member.name == "all")
                             {
-                                // Willful violation of JS :(
+                                // Result of [[IsHTMLDDA]] slot
                                 assert_equals(typeof property, "undefined");
                             }
                             else

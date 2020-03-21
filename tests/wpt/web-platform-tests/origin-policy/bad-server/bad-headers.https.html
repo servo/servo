@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Origin-Policy malformed headers must cause network errors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+[
+  ``,
+  `latest`,
+  `allowed, preferred`,
+  `"1"`,
+  `allowed="1"`,
+  `allowed=latest`,
+  `allowed=()`,
+  `allowed=("")`,
+  `allowed=("1" ?0)`,
+  `allowed=("1" 42)`,
+  `allowed=("1" 2.5)`,
+  `allowed=("1" :cHJldGVuZCB0aGlzIGlzIGJpbmFyeSBjb250ZW50Lg==:)`,
+  `preferred=("1")`,
+  `preferred=latest`,
+  `preferred=""`,
+  `preferred=?0, allowed=(latest)`,
+  `preferred=latest-from-network, allowed=("1" ?0)`,
+  `preferred="", allowed=(latest)`,
+  `preferred=latest-from-network, allowed=("1", "")`,
+].forEach(runTest);
+
+function runTest(header) {
+  async_test(t => {
+    const iframe = document.createElement("iframe");
+    iframe.src = "resources/subframe-with-bad-header.py?header=" + encodeURIComponent(header);
+
+    iframe.onload = t.step_func_done(() => {
+      // The loaded result must be cross-origin since it's a network error.
+      // Accessing the document property of a cross-origin Window throws a
+      // "SecurityError" DOMException.
+      assert_throws_dom("SecurityError", () => iframe.contentWindow.document);
+    });
+    iframe.onerror = t.unreached_func("Iframe loads must not error");
+
+    document.body.append(iframe);
+  }, header);
+}
+</script>

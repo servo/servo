@@ -1,16 +1,15 @@
 from __future__ import print_function
 import fontforge
-from misc import MathMLAssociationCopyright
 
 em = 1000
 
-def create(aName):
+def create(aName, aCopyRight):
     print("Generating %s.woff..." % aName, end="")
     mathFont = fontforge.font()
     mathFont.fontname = aName
     mathFont.familyname = aName
     mathFont.fullname = aName
-    mathFont.copyright = MathMLAssociationCopyright
+    mathFont.copyright = aCopyRight
     mathFont.encoding = "UnicodeFull"
 
     # Create a space character. Also force the creation of some MATH subtables

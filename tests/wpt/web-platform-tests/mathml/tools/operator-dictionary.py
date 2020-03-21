@@ -96,7 +96,7 @@ for form in ["infix", "prefix", "suffix"]:
     operatorDictionary[key] = value
 
 # Create a WOFF font with glyphs for all the operator strings.
-font = mathfont.create("operators")
+font = mathfont.create("operators", "Copyright (c) 2019 Igalia S.L.")
 
 # Set parameters for largeop and stretchy tests.
 font.math.DisplayOperatorMinHeight = 2 * mathfont.em
