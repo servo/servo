@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use crate::dom::bindings::error::Error;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::bindings::cell::DOMRefCell;
-use crate::dom::bindings::ImageBitMapBinding::{ImageBitMapMethods, ImageBitMapInit, Wrap as ImageBitMapWrap}
+use crate::dom::bindings::ImageBitMapBinding::{ImageBitMapMethods, ImageBitMapInit, Wrap as ImageBitMapWrap};
 // for the datatype
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::imagedata::ImageData;
@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding; //--don't kno
 // use crate::dom::bindings::ColorSpaceConversion;
 // use crate::dom::bindings::ResizeQuality;
 // use dom_struct::dom_struct;
-use dom_struct::dom_struct; 
+use dom_struct::dom_struct;
 use std::vec::Vec;
 
 //as mentioned in bluetoothuuid.rs
