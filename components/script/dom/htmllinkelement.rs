@@ -5,7 +5,6 @@
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -100,7 +99,6 @@ impl HTMLLinkElement {
                 local_name, prefix, document, creator,
             )),
             document,
-            HTMLLinkElementBinding::Wrap,
         )
     }
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -49,7 +48,6 @@ impl HTMLOptGroupElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLOptGroupElementBinding::Wrap,
         )
     }
 }

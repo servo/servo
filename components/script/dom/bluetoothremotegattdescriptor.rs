@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
-use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
@@ -64,7 +63,6 @@ impl BluetoothRemoteGATTDescriptor {
                 instance_id,
             )),
             global,
-            BluetoothRemoteGATTDescriptorBinding::Wrap,
         )
     }
 

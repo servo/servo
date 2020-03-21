@@ -4,9 +4,7 @@
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{
-    self, OESVertexArrayObjectMethods,
-};
+use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -57,7 +55,6 @@ impl WebGLExtension for OESVertexArrayObject {
         reflect_dom_object(
             Box::new(OESVertexArrayObject::new_inherited(ctx)),
             &*ctx.global(),
-            OESVertexArrayObjectBinding::Wrap,
         )
     }
 

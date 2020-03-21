@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleValueBinding::CSSStyleValueMethods;
-use crate::dom::bindings::codegen::Bindings::CSSStyleValueBinding::Wrap;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
@@ -29,7 +28,7 @@ impl CSSStyleValue {
     }
 
     pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
-        reflect_dom_object(Box::new(CSSStyleValue::new_inherited(value)), global, Wrap)
+        reflect_dom_object(Box::new(CSSStyleValue::new_inherited(value)), global)
     }
 }
 

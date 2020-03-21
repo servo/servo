@@ -5,7 +5,6 @@
 use super::{
     constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
 };
-use crate::dom::bindings::codegen::Bindings::OESTextureFloatBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -28,11 +27,7 @@ impl OESTextureFloat {
 impl WebGLExtension for OESTextureFloat {
     type Extension = OESTextureFloat;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloat> {
-        reflect_dom_object(
-            Box::new(OESTextureFloat::new_inherited()),
-            &*ctx.global(),
-            OESTextureFloatBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(OESTextureFloat::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {

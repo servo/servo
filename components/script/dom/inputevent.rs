@@ -37,7 +37,6 @@ impl InputEvent {
                 is_composing: is_composing,
             }),
             window,
-            InputEventBinding::Wrap,
         );
         ev.uievent
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);

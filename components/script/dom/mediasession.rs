@@ -7,7 +7,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaPositionState;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
 use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
@@ -60,11 +59,7 @@ impl MediaSession {
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
-        reflect_dom_object(
-            Box::new(MediaSession::new_inherited()),
-            window,
-            MediaSessionBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(MediaSession::new_inherited()), window)
     }
 
     pub fn register_media_instance(&self, media_instance: &HTMLMediaElement) {

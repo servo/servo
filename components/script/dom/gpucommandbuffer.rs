@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::GPUCommandBufferBinding::{
-    self, GPUCommandBufferMethods,
-};
+use crate::dom::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommandBufferMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
@@ -62,7 +60,6 @@ impl GPUCommandBuffer {
                 buffers,
             )),
             global,
-            GPUCommandBufferBinding::Wrap,
         )
     }
 }

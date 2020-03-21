@@ -6,7 +6,7 @@ use crate::dom::audionode::AudioNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
-    self, AnalyserNodeMethods, AnalyserOptions,
+    AnalyserNodeMethods, AnalyserOptions,
 };
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
@@ -96,7 +96,7 @@ impl AnalyserNode {
         options: &AnalyserOptions,
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
-        let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
+        let object = reflect_dom_object(Box::new(node), window);
         let (source, canceller) = window
             .task_manager()
             .dom_manipulation_task_source_with_canceller();

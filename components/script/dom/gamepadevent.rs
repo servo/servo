@@ -43,11 +43,7 @@ impl GamepadEvent {
         cancelable: bool,
         gamepad: &Gamepad,
     ) -> DomRoot<GamepadEvent> {
-        let ev = reflect_dom_object(
-            Box::new(GamepadEvent::new_inherited(&gamepad)),
-            global,
-            GamepadEventBinding::Wrap,
-        );
+        let ev = reflect_dom_object(Box::new(GamepadEvent::new_inherited(&gamepad)), global);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -70,7 +70,6 @@ impl Attr {
                 document, local_name, value, name, namespace, prefix, owner,
             )),
             document,
-            AttrBinding::Wrap,
         )
     }
 

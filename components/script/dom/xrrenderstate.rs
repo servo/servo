@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{self, XRRenderStateMethods};
+use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -52,7 +52,6 @@ impl XRRenderState {
                 layer,
             )),
             global,
-            XRRenderStateBinding::Wrap,
         )
     }
 

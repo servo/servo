@@ -6,7 +6,6 @@
 use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -59,7 +58,6 @@ impl WebGLRenderbuffer {
         reflect_dom_object(
             Box::new(WebGLRenderbuffer::new_inherited(context, id)),
             &*context.global(),
-            WebGLRenderbufferBinding::Wrap,
         )
     }
 }

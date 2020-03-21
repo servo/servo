@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRViewBinding;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -59,7 +58,6 @@ impl XRView {
         let ret = reflect_dom_object(
             Box::new(XRView::new_inherited(session, &transform, eye)),
             global,
-            XRViewBinding::Wrap,
         );
 
         // row_major since euclid uses row vectors

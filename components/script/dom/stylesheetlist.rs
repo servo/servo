@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -83,11 +82,7 @@ impl StyleSheetList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
-        reflect_dom_object(
-            Box::new(StyleSheetList::new_inherited(doc_or_sr)),
-            window,
-            StyleSheetListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(StyleSheetList::new_inherited(doc_or_sr)), window)
     }
 }
 

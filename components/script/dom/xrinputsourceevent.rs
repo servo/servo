@@ -47,7 +47,6 @@ impl XRInputSourceEvent {
         let trackevent = reflect_dom_object(
             Box::new(XRInputSourceEvent::new_inherited(frame, source)),
             global,
-            XRInputSourceEventBinding::Wrap,
         );
         {
             let event = trackevent.upcast::<Event>();

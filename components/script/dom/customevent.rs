@@ -37,11 +37,7 @@ impl CustomEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CustomEvent> {
-        reflect_dom_object(
-            Box::new(CustomEvent::new_inherited()),
-            global,
-            CustomEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(CustomEvent::new_inherited()), global)
     }
     pub fn new(
         global: &GlobalScope,

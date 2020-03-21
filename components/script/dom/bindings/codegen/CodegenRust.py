@@ -2858,6 +2858,50 @@ impl PartialEq for %(name)s {
 """ % {'check': check, 'name': name}
 
 
+class CGDomObjectWrap(CGThing):
+    """
+    Class for codegen of an implementation of the DomObjectWrap trait.
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+
+    def define(self):
+        name = self.descriptor.concreteType
+        name = "dom::%s::%s" % (name.lower(), name)
+        return """\
+impl DomObjectWrap for %s {
+    const WRAP: unsafe fn(
+        SafeJSContext,
+        &GlobalScope,
+        Box<Self>,
+    ) -> Root<Dom<Self>> = Wrap;
+}
+""" % (name)
+
+
+class CGDomObjectIteratorWrap(CGThing):
+    """
+    Class for codegen of an implementation of the DomObjectIteratorWrap trait.
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+
+    def define(self):
+        assert self.descriptor.interface.isIteratorInterface()
+        name = self.descriptor.interface.iterableInterface.identifier.name
+        return """\
+impl DomObjectIteratorWrap for %s {
+    const ITER_WRAP: unsafe fn(
+        SafeJSContext,
+        &GlobalScope,
+        Box<IterableIterator<Self>>,
+    ) -> Root<Dom<IterableIterator<Self>>> = Wrap;
+}
+""" % (name)
+
+
 class CGAbstractExternMethod(CGAbstractMethod):
     """
     Abstract base class for codegen of implementation-only (no
@@ -6067,6 +6111,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::namespace::create_namespace_object',
         'crate::dom::bindings::reflector::MutDomObject',
         'crate::dom::bindings::reflector::DomObject',
+        'crate::dom::bindings::reflector::DomObjectWrap',
+        'crate::dom::bindings::reflector::DomObjectIteratorWrap',
         'crate::dom::bindings::root::Dom',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::root::DomSlice',
@@ -6286,6 +6332,10 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGWrapGlobalMethod(descriptor, properties))
             else:
                 cgThings.append(CGWrapMethod(descriptor))
+                if descriptor.interface.isIteratorInterface():
+                    cgThings.append(CGDomObjectIteratorWrap(descriptor))
+                else:
+                    cgThings.append(CGDomObjectWrap(descriptor))
             reexports.append('Wrap')
 
         haveUnscopables = False
@@ -7445,9 +7495,7 @@ class CGIterableMethodGenerator(CGGeneric):
             return
         CGGeneric.__init__(self, fill(
             """
-            let result = ${iterClass}::new(&*this,
-                                           IteratorType::${itrMethod},
-                                           super::${ifaceName}IteratorBinding::Wrap);
+            let result = ${iterClass}::new(&*this, IteratorType::${itrMethod});
             """,
             iterClass=iteratorNativeType(descriptor, True),
             ifaceName=descriptor.interface.identifier.name,

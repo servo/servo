@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::{
-    FileReaderSyncBinding, FileReaderSyncMethods,
-};
+use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -33,11 +31,7 @@ impl FileReaderSync {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<FileReaderSync> {
-        reflect_dom_object(
-            Box::new(FileReaderSync::new_inherited()),
-            global,
-            FileReaderSyncBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(FileReaderSync::new_inherited()), global)
     }
 
     #[allow(non_snake_case)]

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding::HTMLMenuElementMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
@@ -36,7 +35,6 @@ impl HTMLMenuElement {
         Node::reflect_node(
             Box::new(HTMLMenuElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLMenuElementBinding::Wrap,
         )
     }
 }

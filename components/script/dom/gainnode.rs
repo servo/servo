@@ -9,9 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{
-    self, GainNodeMethods, GainOptions,
-};
+use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{GainNodeMethods, GainOptions};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -69,11 +67,7 @@ impl GainNode {
         options: &GainOptions,
     ) -> Fallible<DomRoot<GainNode>> {
         let node = GainNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            GainNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

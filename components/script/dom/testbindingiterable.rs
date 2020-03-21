@@ -5,9 +5,7 @@
 // check-tidy: no specs after this line
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::{
-    self, TestBindingIterableMethods,
-};
+use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::TestBindingIterableMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -29,7 +27,6 @@ impl TestBindingIterable {
                 vals: DomRefCell::new(vec![]),
             }),
             global,
-            TestBindingIterableBinding::Wrap,
         )
     }
 

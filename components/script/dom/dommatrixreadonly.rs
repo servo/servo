@@ -4,9 +4,7 @@
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
-use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{
-    DOMMatrixReadOnlyMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
 use crate::dom::bindings::error;
@@ -45,7 +43,7 @@ impl DOMMatrixReadOnly {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object(Box::new(dommatrix), global, Wrap)
+        reflect_dom_object(Box::new(dommatrix), global)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {

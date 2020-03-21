@@ -38,11 +38,7 @@ impl PopStateEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<PopStateEvent> {
-        reflect_dom_object(
-            Box::new(PopStateEvent::new_inherited()),
-            window,
-            PopStateEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(PopStateEvent::new_inherited()), window)
     }
 
     pub fn new(

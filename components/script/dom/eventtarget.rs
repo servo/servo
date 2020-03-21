@@ -15,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::Wrap;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
 use crate::dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
@@ -340,7 +339,7 @@ impl EventTarget {
     }
 
     fn new(global: &GlobalScope) -> DomRoot<EventTarget> {
-        reflect_dom_object(Box::new(EventTarget::new_inherited()), global, Wrap)
+        reflect_dom_object(Box::new(EventTarget::new_inherited()), global)
     }
 
     #[allow(non_snake_case)]

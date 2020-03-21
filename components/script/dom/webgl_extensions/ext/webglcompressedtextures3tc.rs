@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::WEBGLCompressedTextureS3TCBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -30,7 +29,6 @@ impl WebGLExtension for WEBGLCompressedTextureS3TC {
         reflect_dom_object(
             Box::new(WEBGLCompressedTextureS3TC::new_inherited()),
             &*ctx.global(),
-            WEBGLCompressedTextureS3TCBinding::Wrap,
         )
     }
 

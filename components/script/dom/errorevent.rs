@@ -46,11 +46,7 @@ impl ErrorEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
-        reflect_dom_object(
-            Box::new(ErrorEvent::new_inherited()),
-            global,
-            ErrorEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(ErrorEvent::new_inherited()), global)
     }
 
     pub fn new(

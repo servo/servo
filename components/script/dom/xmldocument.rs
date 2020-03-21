@@ -4,7 +4,7 @@
 
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
+use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::XMLDocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -85,7 +85,6 @@ impl XMLDocument {
                 doc_loader,
             )),
             window,
-            XMLDocumentBinding::Wrap,
         );
         {
             let node = doc.upcast::<Node>();

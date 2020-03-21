@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
-use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::ErrorResult;
@@ -45,7 +44,6 @@ impl BluetoothRemoteGATTServer {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
             global,
-            BluetoothRemoteGATTServerBinding::Wrap,
         )
     }
 

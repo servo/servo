@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -28,11 +27,7 @@ impl XMLSerializer {
     }
 
     pub fn new(window: &Window) -> DomRoot<XMLSerializer> {
-        reflect_dom_object(
-            Box::new(XMLSerializer::new_inherited(window)),
-            window,
-            XMLSerializerBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XMLSerializer::new_inherited(window)), window)
     }
 
     #[allow(non_snake_case)]

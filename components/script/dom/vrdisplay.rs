@@ -6,7 +6,6 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::VRDisplayBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VREye;
 use crate::dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
@@ -162,11 +161,7 @@ impl VRDisplay {
     }
 
     pub fn new(global: &Window, display: WebVRDisplayData) -> DomRoot<VRDisplay> {
-        reflect_dom_object(
-            Box::new(VRDisplay::new_inherited(&global, display)),
-            global,
-            VRDisplayBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(VRDisplay::new_inherited(&global, display)), global)
     }
 }
 

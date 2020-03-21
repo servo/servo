@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::{MessageChannelMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::MessageChannelMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -44,7 +44,6 @@ impl MessageChannel {
         reflect_dom_object(
             Box::new(MessageChannel::new_inherited(&*port1, &*port2)),
             incumbent,
-            Wrap,
         )
     }
 

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaDevicesMethods;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaStreamConstraints;
-use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{self, MediaDevicesMethods};
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrMediaTrackConstraints;
 use crate::dom::bindings::codegen::UnionTypes::ClampedUnsignedLongOrConstrainULongRange as ConstrainULong;
 use crate::dom::bindings::codegen::UnionTypes::DoubleOrConstrainDoubleRange as ConstrainDouble;
@@ -35,11 +35,7 @@ impl MediaDevices {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object(
-            Box::new(MediaDevices::new_inherited()),
-            global,
-            MediaDevicesBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(MediaDevices::new_inherited()), global)
     }
 }
 

@@ -26,7 +26,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, DomObjectWrap};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
@@ -39,7 +39,6 @@ use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
@@ -64,7 +63,6 @@ use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use app_units::Au;
 use crossbeam_channel::Sender;
@@ -1741,16 +1739,12 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 }
 
 impl Node {
-    pub fn reflect_node<N>(
-        node: Box<N>,
-        document: &Document,
-        wrap_fn: unsafe fn(JSContext, &GlobalScope, Box<N>) -> DomRoot<N>,
-    ) -> DomRoot<N>
+    pub fn reflect_node<N>(node: Box<N>, document: &Document) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
         let window = document.window();
-        reflect_dom_object(node, window, wrap_fn)
+        reflect_dom_object(node, window)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {

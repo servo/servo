@@ -5,7 +5,8 @@
 //! The `Reflector` struct.
 
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::iterable::{Iterable, IterableIterator};
+use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -15,17 +16,13 @@ use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(
-    obj: Box<T>,
-    global: &U,
-    wrap_fn: unsafe fn(JSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
-) -> DomRoot<T>
+pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U) -> DomRoot<T>
 where
-    T: DomObject,
+    T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { wrap_fn(global_scope.get_cx(), global_scope, obj) }
+    unsafe { T::WRAP(global_scope.get_cx(), global_scope, obj) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -105,4 +102,21 @@ impl MutDomObject for Reflector {
     unsafe fn init_reflector(&self, obj: *mut JSObject) {
         self.set_jsobject(obj)
     }
+}
+
+/// A trait to provide a function pointer to wrap function for DOM objects.
+pub trait DomObjectWrap: Sized + DomObject {
+    /// Function pointer to the general wrap function type
+    const WRAP: unsafe fn(JSContext, &GlobalScope, Box<Self>) -> Root<Dom<Self>>;
+}
+
+/// A trait to provide a function pointer to wrap function for
+/// DOM iterator interfaces.
+pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
+    /// Function pointer to the wrap function for IterableIterator<T>
+    const ITER_WRAP: unsafe fn(
+        JSContext,
+        &GlobalScope,
+        Box<IterableIterator<Self>>,
+    ) -> Root<Dom<IterableIterator<Self>>>;
 }

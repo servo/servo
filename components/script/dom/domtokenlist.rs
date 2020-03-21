@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -37,7 +36,6 @@ impl DOMTokenList {
         reflect_dom_object(
             Box::new(DOMTokenList::new_inherited(element, local_name.clone())),
             &*window,
-            DOMTokenListBinding::Wrap,
         )
     }
 

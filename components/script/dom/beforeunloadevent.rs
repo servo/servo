@@ -5,7 +5,6 @@
 #![allow(dead_code)]
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -33,11 +32,7 @@ impl BeforeUnloadEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object(
-            Box::new(BeforeUnloadEvent::new_inherited()),
-            window,
-            BeforeUnloadEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window)
     }
 
     pub fn new(

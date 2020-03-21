@@ -48,7 +48,6 @@ impl ProgressEvent {
                 total,
             )),
             global,
-            ProgressEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();

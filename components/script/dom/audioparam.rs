@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioParamBinding;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };
@@ -75,7 +74,7 @@ impl AudioParam {
             min_value,
             max_value,
         );
-        reflect_dom_object(Box::new(audio_param), window, AudioParamBinding::Wrap)
+        reflect_dom_object(Box::new(audio_param), window)
     }
 
     fn message_node(&self, message: AudioNodeMessage) {

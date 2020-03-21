@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
-    self, TextTrackKind, TextTrackMethods, TextTrackMode,
+    TextTrackKind, TextTrackMethods, TextTrackMode,
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -65,7 +65,6 @@ impl TextTrack {
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            TextTrackBinding::Wrap,
         )
     }
 

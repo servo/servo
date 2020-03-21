@@ -6,7 +6,6 @@ use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
-use crate::dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use crate::dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -50,7 +49,6 @@ impl TreeWalker {
         reflect_dom_object(
             Box::new(TreeWalker::new_inherited(root_node, what_to_show, filter)),
             document.window(),
-            TreeWalkerBinding::Wrap,
         )
     }
 

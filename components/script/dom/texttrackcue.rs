@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::{self, TextTrackCueMethods};
+use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -52,7 +52,6 @@ impl TextTrackCue {
         reflect_dom_object(
             Box::new(TextTrackCue::new_inherited(id, start_time, end_time, track)),
             window,
-            TextTrackCueBinding::Wrap,
         )
     }
 

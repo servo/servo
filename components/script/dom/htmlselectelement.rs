@@ -7,7 +7,6 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
@@ -97,7 +96,6 @@ impl HTMLSelectElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLSelectElementBinding::Wrap,
         )
     }
 

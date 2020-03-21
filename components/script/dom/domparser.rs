@@ -37,11 +37,7 @@ impl DOMParser {
     }
 
     pub fn new(window: &Window) -> DomRoot<DOMParser> {
-        reflect_dom_object(
-            Box::new(DOMParser::new_inherited(window)),
-            window,
-            DOMParserBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(DOMParser::new_inherited(window)), window)
     }
 
     #[allow(non_snake_case)]

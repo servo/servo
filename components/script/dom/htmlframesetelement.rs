@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding::HTMLFrameSetElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -39,7 +38,6 @@ impl HTMLFrameSetElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLFrameSetElementBinding::Wrap,
         )
     }
 }

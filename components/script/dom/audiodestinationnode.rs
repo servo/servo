@@ -4,9 +4,7 @@
 
 use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::{
-    self, AudioDestinationNodeMethods,
-};
+use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
@@ -46,7 +44,7 @@ impl AudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> DomRoot<AudioDestinationNode> {
         let node = AudioDestinationNode::new_inherited(context, options);
-        reflect_dom_object(Box::new(node), global, AudioDestinationNodeBinding::Wrap)
+        reflect_dom_object(Box::new(node), global)
     }
 }
 

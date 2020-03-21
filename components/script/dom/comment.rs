@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CommentBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
@@ -27,11 +26,7 @@ impl Comment {
     }
 
     pub fn new(text: DOMString, document: &Document) -> DomRoot<Comment> {
-        Node::reflect_node(
-            Box::new(Comment::new_inherited(text, document)),
-            document,
-            CommentBinding::Wrap,
-        )
+        Node::reflect_node(Box::new(Comment::new_inherited(text, document)), document)
     }
 
     #[allow(non_snake_case)]

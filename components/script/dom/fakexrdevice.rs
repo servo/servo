@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
-    self, FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
+    FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
 };
 use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputSourceInit;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -51,11 +51,7 @@ impl FakeXRDevice {
     }
 
     pub fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
-        reflect_dom_object(
-            Box::new(FakeXRDevice::new_inherited(sender)),
-            global,
-            FakeXRDeviceBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(FakeXRDevice::new_inherited(sender)), global)
     }
 
     pub fn disconnect(&self, sender: IpcSender<()>) {

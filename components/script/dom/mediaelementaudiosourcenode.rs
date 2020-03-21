@@ -4,7 +4,6 @@
 
 use crate::dom::audiocontext::AudioContext;
 use crate::dom::audionode::AudioNode;
-use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::MediaElementAudioSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::MediaElementAudioSourceOptions;
 use crate::dom::bindings::error::Fallible;
@@ -56,11 +55,7 @@ impl MediaElementAudioSourceNode {
         media_element: &HTMLMediaElement,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         let node = MediaElementAudioSourceNode::new_inherited(context, media_element)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            MediaElementAudioSourceNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

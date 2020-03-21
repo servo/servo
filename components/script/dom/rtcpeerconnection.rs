@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
-use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
@@ -166,11 +165,7 @@ impl RTCPeerConnection {
     }
 
     pub fn new(global: &GlobalScope, config: &RTCConfiguration) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object(
-            Box::new(RTCPeerConnection::new_inherited()),
-            global,
-            RTCPeerConnectionBinding::Wrap,
-        );
+        let this = reflect_dom_object(Box::new(RTCPeerConnection::new_inherited()), global);
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {

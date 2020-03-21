@@ -7,7 +7,6 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -83,7 +82,6 @@ impl WebGLTexture {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(context, id)),
             &*context.global(),
-            WebGLTextureBinding::Wrap,
         )
     }
 }

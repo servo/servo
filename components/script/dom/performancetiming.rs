@@ -44,7 +44,7 @@ impl PerformanceTiming {
             navigation_start_precise,
             &window.Document(),
         );
-        reflect_dom_object(Box::new(timing), window, PerformanceTimingBinding::Wrap)
+        reflect_dom_object(Box::new(timing), window)
     }
 }
 

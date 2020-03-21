@@ -38,7 +38,6 @@ impl FormDataEvent {
                 form_data: Dom::from_ref(form_data),
             }),
             global,
-            FormDataEventBinding::Wrap,
         );
 
         {

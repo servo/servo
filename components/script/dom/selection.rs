@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::{SelectionMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -50,7 +50,6 @@ impl Selection {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            Wrap,
         )
     }
 

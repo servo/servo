@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding;
 use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -58,11 +57,7 @@ impl VRFrameData {
         ];
         let pose = VRPose::new(&global, &Default::default());
 
-        let root = reflect_dom_object(
-            Box::new(VRFrameData::new_inherited(&pose)),
-            global,
-            VRFrameDataBinding::Wrap,
-        );
+        let root = reflect_dom_object(Box::new(VRFrameData::new_inherited(&pose)), global);
         let cx = global.get_cx();
         create_typed_array(cx, &matrix, &root.left_proj);
         create_typed_array(cx, &matrix, &root.left_view);

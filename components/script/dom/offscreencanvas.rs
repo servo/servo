@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
-    OffscreenCanvasMethods, OffscreenRenderingContext, Wrap as OffscreenCanvasWrap,
+    OffscreenCanvasMethods, OffscreenRenderingContext,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -65,7 +65,6 @@ impl OffscreenCanvas {
         reflect_dom_object(
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
-            OffscreenCanvasWrap,
         )
     }
 

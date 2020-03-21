@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MutationObserverBinding;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
@@ -67,7 +66,7 @@ pub struct ObserverOptions {
 impl MutationObserver {
     fn new(global: &Window, callback: Rc<MutationCallback>) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object(boxed_observer, global, MutationObserverBinding::Wrap)
+        reflect_dom_object(boxed_observer, global)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {

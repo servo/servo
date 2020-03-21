@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::FakeXRRigidTransformInit;
-use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::{
-    self, FakeXRInputControllerMethods,
-};
+use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputControllerMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRTargetRayMode,
 };
@@ -47,7 +45,6 @@ impl FakeXRInputController {
         reflect_dom_object(
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
-            FakeXRInputControllerBinding::Wrap,
         )
     }
 

@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::{
-    self, BluetoothPermissionResultMethods,
-};
+use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionResultMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusBinding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -51,7 +49,6 @@ impl BluetoothPermissionResult {
         reflect_dom_object(
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
-            BluetoothPermissionResultBinding::Wrap,
         )
     }
 

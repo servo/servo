@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
@@ -54,7 +53,6 @@ impl XRInputSource {
         let source = reflect_dom_object(
             Box::new(XRInputSource::new_inherited(session, info)),
             global,
-            XRInputSourceBinding::Wrap,
         );
 
         let _ac = enter_realm(&*global);

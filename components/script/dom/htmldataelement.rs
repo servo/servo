@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLDataElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLDataElementBinding::HTMLDataElementMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -37,7 +36,6 @@ impl HTMLDataElement {
         Node::reflect_node(
             Box::new(HTMLDataElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLDataElementBinding::Wrap,
         )
     }
 }

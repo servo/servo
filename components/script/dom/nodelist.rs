@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -45,11 +44,7 @@ impl NodeList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(
-            Box::new(NodeList::new_inherited(list_type)),
-            window,
-            NodeListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window)
     }
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>

@@ -63,7 +63,6 @@ impl TextDecoder {
         reflect_dom_object(
             Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
             global,
-            TextDecoderBinding::Wrap,
         )
     }
 

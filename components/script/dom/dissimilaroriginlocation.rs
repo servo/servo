@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -42,7 +41,6 @@ impl DissimilarOriginLocation {
         reflect_dom_object(
             Box::new(DissimilarOriginLocation::new_inherited(window)),
             window,
-            DissimilarOriginLocationBinding::Wrap,
         )
     }
 }

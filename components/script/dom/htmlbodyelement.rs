@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{
-    self, HTMLBodyElementMethods,
-};
+use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
@@ -52,7 +50,6 @@ impl HTMLBodyElement {
         Node::reflect_node(
             Box::new(HTMLBodyElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLBodyElementBinding::Wrap,
         )
     }
 

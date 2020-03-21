@@ -38,11 +38,7 @@ impl WheelEvent {
     }
 
     pub fn new_unintialized(window: &Window) -> DomRoot<WheelEvent> {
-        reflect_dom_object(
-            Box::new(WheelEvent::new_inherited()),
-            window,
-            WheelEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(WheelEvent::new_inherited()), window)
     }
 
     pub fn new(

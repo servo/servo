@@ -6,7 +6,6 @@ use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::TexImageSource;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -264,11 +263,7 @@ impl WebGLRenderingContext {
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
-            Ok(ctx) => Some(reflect_dom_object(
-                Box::new(ctx),
-                window,
-                WebGLRenderingContextBinding::Wrap,
-            )),
+            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(

@@ -4,7 +4,6 @@
 
 use crate::canvas_state::{CanvasContextState, CanvasState};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
@@ -67,7 +66,7 @@ impl CanvasRenderingContext2D {
             Some(canvas),
             size,
         ));
-        reflect_dom_object(boxed, global, CanvasRenderingContext2DBinding::Wrap)
+        reflect_dom_object(boxed, global)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions

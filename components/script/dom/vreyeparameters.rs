@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -57,7 +56,6 @@ impl VREyeParameters {
         let eye_parameters = reflect_dom_object(
             Box::new(VREyeParameters::new_inherited(parameters, &fov)),
             global,
-            VREyeParametersBinding::Wrap,
         );
         eye_parameters.offset.set(array.get());
 

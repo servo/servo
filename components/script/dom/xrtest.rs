@@ -9,9 +9,7 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::XRTestBinding::{
-    self, FakeXRDeviceInit, XRTestMethods,
-};
+use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -42,11 +40,7 @@ impl XRTest {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object(
-            Box::new(XRTest::new_inherited()),
-            global,
-            XRTestBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRTest::new_inherited()), global)
     }
 
     fn device_obtained(

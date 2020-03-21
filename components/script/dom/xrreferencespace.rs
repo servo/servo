@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::inheritance::Castable;
@@ -56,7 +55,6 @@ impl XRReferenceSpace {
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, &offset, ty)),
             global,
-            XRReferenceSpaceBinding::Wrap,
         )
     }
 }

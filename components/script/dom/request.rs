@@ -5,7 +5,6 @@
 use crate::body::{consume_body, BodyOperations, BodyType};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use crate::dom::bindings::codegen::Bindings::RequestBinding;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
@@ -66,11 +65,7 @@ impl Request {
     }
 
     pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object(
-            Box::new(Request::new_inherited(global, url)),
-            global,
-            RequestBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Request::new_inherited(global, url)), global)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request

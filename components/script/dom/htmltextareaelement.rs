@@ -6,7 +6,6 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
@@ -170,7 +169,6 @@ impl HTMLTextAreaElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLTextAreaElementBinding::Wrap,
         )
     }
 

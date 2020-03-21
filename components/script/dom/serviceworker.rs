@@ -6,7 +6,7 @@ use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
-    ServiceWorkerMethods, ServiceWorkerState, Wrap,
+    ServiceWorkerMethods, ServiceWorkerState,
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -62,7 +62,6 @@ impl ServiceWorker {
                 scope_url,
             )),
             global,
-            Wrap,
         )
     }
 

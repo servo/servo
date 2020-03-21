@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
-    ServiceWorkerContainerMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::ServiceWorkerContainerMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -42,7 +40,7 @@ impl ServiceWorkerContainer {
     pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
-        reflect_dom_object(Box::new(container), global, Wrap)
+        reflect_dom_object(Box::new(container), global)
     }
 }
 

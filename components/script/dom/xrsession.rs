@@ -9,7 +9,6 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::Windo
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
@@ -130,7 +129,6 @@ impl XRSession {
                 mode,
             )),
             global,
-            XRSessionBinding::Wrap,
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);

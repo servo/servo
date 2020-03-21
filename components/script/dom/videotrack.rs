@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::{self, VideoTrackMethods};
+use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -55,7 +55,6 @@ impl VideoTrack {
                 id, kind, label, language, track_list,
             )),
             window,
-            VideoTrackBinding::Wrap,
         )
     }
 

@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    self, GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor,
+    GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor,
 };
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -48,7 +48,6 @@ impl GPUCommandEncoder {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(channel, encoder)),
             global,
-            GPUCommandEncoderBinding::Wrap,
         )
     }
 }

@@ -66,7 +66,6 @@ impl VTTCue {
         reflect_dom_object(
             Box::new(Self::new_inherited(start_time, end_time, text)),
             global,
-            VTTCueBinding::Wrap,
         )
     }
 

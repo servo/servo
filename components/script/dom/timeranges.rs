@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::TimeRangesBinding;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -138,11 +137,7 @@ impl TimeRanges {
     }
 
     pub fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
-        reflect_dom_object(
-            Box::new(TimeRanges::new_inherited(ranges)),
-            window,
-            TimeRangesBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window)
     }
 }
 

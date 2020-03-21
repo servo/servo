@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -47,7 +46,6 @@ impl HTMLSourceElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLSourceElementBinding::Wrap,
         )
     }
 

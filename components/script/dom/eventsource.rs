@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
-    EventSourceInit, EventSourceMethods, Wrap,
+    EventSourceInit, EventSourceMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -463,7 +463,6 @@ impl EventSource {
         reflect_dom_object(
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,
-            Wrap,
         )
     }
 
