@@ -6,7 +6,8 @@ import fontforge
 verticalArrowCodePoint = 0x21A8
 v1 = 5 * mathfont.em
 v2 = 14 * mathfont.em
-f = mathfont.create("axisheight%d-verticalarrow%d" % (v1, v2))
+f = mathfont.create("axisheight%d-verticalarrow%d" % (v1, v2),
+                    "Copyright (c) 2016 MathML Association")
 f.math.AxisHeight = v1
 f.math.MinConnectorOverlap = 0
 mathfont.createSquareGlyph(f, verticalArrowCodePoint)

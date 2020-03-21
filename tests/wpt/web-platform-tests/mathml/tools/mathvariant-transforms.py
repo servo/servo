@@ -64,7 +64,7 @@ mathvariantTransforms["auto"] = mathvariantTransforms["italic"]
 for mathvariant in mathvariantTransforms:
     if mathvariant == "auto":
         continue
-    font = mathfont.create("mathvariant-%s" % mathvariant)
+    font = mathfont.create("mathvariant-%s" % mathvariant, "Copyright (c) 2016 MathML Association")
     for baseChar in mathvariantTransforms[mathvariant]:
         if baseChar not in font:
             mathfont.createGlyphFromValue(font, baseChar)

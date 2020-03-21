@@ -592,3 +592,17 @@ structuredCloneBatteryOfTests.push({
   },
   requiresDocument: true
 });
+
+check('ObjectPrototype must lose its exotic-ness when cloned',
+  () => Object.prototype,
+  (copy, original) => {
+    assert_not_equals(copy, original);
+    assert_true(copy instanceof Object);
+
+    const newProto = { some: 'proto' };
+    // Must not throw:
+    Object.setPrototypeOf(copy, newProto);
+
+    assert_equals(Object.getPrototypeOf(copy), newProto);
+  }
+);

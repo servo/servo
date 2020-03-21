@@ -387,8 +387,8 @@ function test12() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 45);
         assert_equals(entries[0].contentRect.height, 10);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 45);
-        assert_equals(entries[0].contentBoxSize.blockSize, 10);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 45);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 10);
       }
     }
   ]);
@@ -417,10 +417,10 @@ function test13() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 20);
         assert_equals(entries[0].contentRect.height, 20);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 20);
-        assert_equals(entries[0].contentBoxSize.blockSize, 20);
-        assert_equals(entries[0].borderBoxSize.inlineSize, 20);
-        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 20);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 20);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 20);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 20);
       }
     }
   ]);
@@ -440,10 +440,10 @@ function test14() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 50);
         assert_equals(entries[0].contentRect.height, 20);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 50);
-        assert_equals(entries[0].contentBoxSize.blockSize, 20);
-        assert_equals(entries[0].borderBoxSize.inlineSize, 50);
-        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 20);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 20);
         return true;  // Delay next step
       }
     },
@@ -455,10 +455,10 @@ function test14() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 15);
         assert_equals(entries[0].contentRect.height, 20);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 15);
-        assert_equals(entries[0].contentBoxSize.blockSize, 20);
-        assert_equals(entries[0].borderBoxSize.inlineSize, 15);
-        assert_equals(entries[0].borderBoxSize.blockSize, 20);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 15);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 20);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 15);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 20);
       }
     }
   ]);
@@ -486,10 +486,10 @@ function test15() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 360);
         assert_equals(entries[0].contentRect.height, 30);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 360);
-        assert_equals(entries[0].contentBoxSize.blockSize, 30);
-        assert_equals(entries[0].borderBoxSize.inlineSize, 360);
-        assert_equals(entries[0].borderBoxSize.blockSize, 30);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 360);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 30);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 360);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 30);
       }
     }
   ]);
@@ -512,12 +512,12 @@ function test16() {
         assert_equals(entries.length, 1);
         assert_equals(entries[0].contentRect.width, 50);
         assert_equals(entries[0].contentRect.height, 20);
-        assert_equals(entries[0].contentBoxSize.inlineSize, 50);
-        assert_equals(entries[0].contentBoxSize.blockSize, 20);
-        assert_equals(entries[0].borderBoxSize.inlineSize, 50);
-        assert_equals(entries[0].borderBoxSize.blockSize, 20);
-        assert_equals(entries[0].devicePixelContentBoxSize.inlineSize, 50);
-        assert_equals(entries[0].devicePixelContentBoxSize.blockSize, 20);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 20);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 20);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 20);
         return true;  // Delay next step
       }
     },

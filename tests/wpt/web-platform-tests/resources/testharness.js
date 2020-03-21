@@ -1484,7 +1484,7 @@ policies and contribution forms [3].
         return function (object, property_name, description)
         {
             assert(typeof object === "object" || typeof object === "function" ||
-                   // Willful violation of JS.  :(
+                   // Or has [[IsHTMLDDA]] slot
                    String(object) === "[object HTMLAllCollection]",
                    name, description,
                    "provided value is not an object");

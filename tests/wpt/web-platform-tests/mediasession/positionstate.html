@@ -42,16 +42,12 @@ test(() => {
 }, 'Test setPositionState with zero duration');
 
 test(() => {
-  assert_throws_js(
-      TypeError,
-      _ => {
-        window.navigator.mediaSession.setPositionState({
-          duration: 60.9,
-          position: 10.1,
-          playbackRate: -2.0
-        });
-      });
-}, 'Test setPositionState throws a TypeError if playback rate is negative');
+  window.navigator.mediaSession.setPositionState({
+    duration: 60.9,
+    position: 10.1,
+    playbackRate: -2.0
+  });
+}, 'Test setPositionState with negative playback rate');
 
 test(() => {
   assert_throws_js(

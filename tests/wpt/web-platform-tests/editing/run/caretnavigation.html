@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Caret navigation</title>
+
+<link rel="stylesheet" href="../support/reset.css">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<script>
+const KEY_CODE_MAP = {
+  'ArrowLeft':  '\uE012',
+  'ArrowUp':    '\uE013',
+  'ArrowRight': '\uE014',
+  'ArrowDown':  '\uE015',
+};
+
+/**
+ * Send key event to the target element using test driver. Supports human
+ * friendly key names for common keyboard scroll operations e.g., arrow keys,
+ * page keys, etc.
+ * @param {Node} target
+ * @param {string} key
+ * @returns {Promise}
+ */
+function keyPress(target, key) {
+  const code = KEY_CODE_MAP[key];
+
+  let actions = new test_driver.Actions()
+    .keyDown(code)
+    .keyUp(code);
+
+  return actions.send();
+}
+</script>
+
+<div id="container">
+  <div contenteditable data-title="Move with ArrowLeft to BR following a div">
+    <div>line 1</div>
+    <br>
+    <div class="caret">line 2</div>
+  </div>
+  <div contenteditable data-title="Move with ArrowLeft to BR following an img">
+    <img style="display:block;width:100px;height:100px">
+    <br>
+    <div class="caret">line 2</div>
+  </div>
+</div>
+
+<script>
+const container = document.getElementById("container");
+
+for (const test of container.children) {
+  promise_test(async t => {
+    test.focus();
+    getSelection().collapse(test.querySelector(".caret"));
+    await keyPress(test, "ArrowLeft");
+
+    const range = getSelection().getRangeAt(0);
+
+    assert_equals(range.commonAncestorContainer.localName, "div");
+    assert_equals(range.startOffset, 3);
+    assert_equals(range.commonAncestorContainer.childNodes[range.startOffset].localName, "br");
+  }, test.dataset.title);
+}
+</script>
