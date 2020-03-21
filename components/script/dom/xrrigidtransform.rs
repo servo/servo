@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
-use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
@@ -46,11 +45,7 @@ impl XRRigidTransform {
     }
 
     pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object(
-            Box::new(XRRigidTransform::new_inherited(transform)),
-            global,
-            XRRigidTransformBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRRigidTransform::new_inherited(transform)), global)
     }
 
     pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {

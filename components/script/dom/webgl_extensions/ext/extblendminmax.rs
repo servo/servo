@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -27,11 +26,7 @@ impl WebGLExtension for EXTBlendMinmax {
     type Extension = Self;
 
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited()),
-            &*ctx.global(),
-            EXTBlendMinmaxBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Self::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {

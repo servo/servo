@@ -5,7 +5,7 @@
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
-    self, AudioBufferMethods, AudioBufferOptions,
+    AudioBufferMethods, AudioBufferOptions,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -84,7 +84,7 @@ impl AudioBuffer {
         initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
-        let buffer = reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap);
+        let buffer = reflect_dom_object(Box::new(buffer), global);
         buffer.set_initial_data(initial_data);
         buffer
     }

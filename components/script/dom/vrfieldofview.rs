@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VRFieldOfViewBinding;
 use crate::dom::bindings::codegen::Bindings::VRFieldOfViewBinding::VRFieldOfViewMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -30,11 +29,7 @@ impl VRFieldOfView {
     }
 
     pub fn new(global: &Window, fov: WebVRFieldOfView) -> DomRoot<VRFieldOfView> {
-        reflect_dom_object(
-            Box::new(VRFieldOfView::new_inherited(fov)),
-            global,
-            VRFieldOfViewBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(VRFieldOfView::new_inherited(fov)), global)
     }
 }
 

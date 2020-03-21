@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -60,7 +59,6 @@ impl HTMLMetaElement {
         Node::reflect_node(
             Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLMetaElementBinding::Wrap,
         )
     }
 

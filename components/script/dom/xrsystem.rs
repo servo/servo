@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
-use crate::dom::bindings::codegen::Bindings::XRSystemBinding;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionInit;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{XRSessionMode, XRSystemMethods};
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
@@ -74,7 +73,6 @@ impl XRSystem {
                 window.webvr_thread(),
             )),
             window,
-            XRSystemBinding::Wrap,
         );
         root.register();
         root

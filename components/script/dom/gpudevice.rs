@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
-    self, GPUCommandEncoderDescriptor, GPUDeviceMethods,
+    GPUCommandEncoderDescriptor, GPUDeviceMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
@@ -100,7 +100,6 @@ impl GPUDevice {
                 channel, adapter, extensions, limits, device, &queue,
             )),
             global,
-            GPUDeviceBinding::Wrap,
         )
     }
 }

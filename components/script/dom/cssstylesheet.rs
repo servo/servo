@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -61,7 +60,6 @@ impl CSSStyleSheet {
                 owner, type_, href, title, stylesheet,
             )),
             window,
-            CSSStyleSheetBinding::Wrap,
         )
     }
 

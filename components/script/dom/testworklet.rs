@@ -4,7 +4,6 @@
 
 // check-tidy: no specs after this line
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
-use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
@@ -38,11 +37,7 @@ impl TestWorklet {
 
     fn new(window: &Window) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
-        reflect_dom_object(
-            Box::new(TestWorklet::new_inherited(&*worklet)),
-            window,
-            Wrap,
-        )
+        reflect_dom_object(Box::new(TestWorklet::new_inherited(&*worklet)), window)
     }
 
     #[allow(non_snake_case)]

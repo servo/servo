@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use crate::dom::bindings::codegen::Bindings::WebGLActiveInfoBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -34,7 +33,6 @@ impl WebGLActiveInfo {
         reflect_dom_object(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
-            WebGLActiveInfoBinding::Wrap,
         )
     }
 }

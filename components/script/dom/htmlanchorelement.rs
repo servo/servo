@@ -5,7 +5,6 @@
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -66,7 +65,6 @@ impl HTMLAnchorElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLAnchorElementBinding::Wrap,
         )
     }
 

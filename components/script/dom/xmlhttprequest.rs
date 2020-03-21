@@ -6,7 +6,6 @@ use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
@@ -216,11 +215,7 @@ impl XMLHttpRequest {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
-        reflect_dom_object(
-            Box::new(XMLHttpRequest::new_inherited(global)),
-            global,
-            XMLHttpRequestBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XMLHttpRequest::new_inherited(global)), global)
     }
 
     // https://xhr.spec.whatwg.org/#constructors

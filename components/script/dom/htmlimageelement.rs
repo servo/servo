@@ -8,7 +8,6 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
@@ -1261,7 +1260,6 @@ impl HTMLImageElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLImageElementBinding::Wrap,
         )
     }
 

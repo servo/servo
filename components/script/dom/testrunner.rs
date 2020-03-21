@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::TestRunnerBinding;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -28,11 +27,7 @@ impl TestRunner {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object(
-            Box::new(TestRunner::new_inherited()),
-            global,
-            TestRunnerBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TestRunner::new_inherited()), global)
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

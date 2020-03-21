@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::error::Error;
@@ -78,7 +77,6 @@ impl XRWebGLLayer {
                 framebuffer,
             )),
             global,
-            XRWebGLLayerBinding::Wrap,
         )
     }
 

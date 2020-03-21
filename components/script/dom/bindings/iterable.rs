@@ -9,8 +9,10 @@
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::{
+    reflect_dom_object, DomObjectIteratorWrap, DomObjectWrap, Reflector,
+};
+use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -51,27 +53,23 @@ pub trait Iterable {
 /// An iterator over the iterable entries of a given DOM interface.
 //FIXME: #12811 prevents dom_struct with type parameters
 #[dom_struct]
-pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
+pub struct IterableIterator<T: DomObjectIteratorWrap + JSTraceable + Iterable> {
     reflector: Reflector,
     iterable: Dom<T>,
     type_: IteratorType,
     index: Cell<u32>,
 }
 
-impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
+impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
-    pub fn new(
-        iterable: &T,
-        type_: IteratorType,
-        wrap: unsafe fn(JSContext, &GlobalScope, Box<IterableIterator<T>>) -> DomRoot<Self>,
-    ) -> DomRoot<Self> {
+    pub fn new(iterable: &T, type_: IteratorType) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_: type_,
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         });
-        reflect_dom_object(iterator, &*iterable.global(), wrap)
+        reflect_dom_object(iterator, &*iterable.global())
     }
 
     /// Return the next value from the iterable object.
@@ -117,6 +115,10 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
         self.index.set(index + 1);
         result.map(|_| NonNull::new(rval.get()).expect("got a null pointer"))
     }
+}
+
+impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> DomObjectWrap for IterableIterator<T> {
+    const WRAP: unsafe fn(JSContext, &GlobalScope, Box<Self>) -> Root<Dom<Self>> = T::ITER_WRAP;
 }
 
 fn dict_return(

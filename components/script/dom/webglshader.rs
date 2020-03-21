@@ -4,7 +4,6 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
@@ -76,7 +75,6 @@ impl WebGLShader {
         reflect_dom_object(
             Box::new(WebGLShader::new_inherited(context, id, shader_type)),
             &*context.global(),
-            WebGLShaderBinding::Wrap,
         )
     }
 }

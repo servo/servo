@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -45,7 +44,6 @@ impl HTMLDialogElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLDialogElementBinding::Wrap,
         )
     }
 }

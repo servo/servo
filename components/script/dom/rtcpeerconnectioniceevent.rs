@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::RTCPeerConnectionIceEventInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::RTCPeerConnectionIceEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -48,7 +47,6 @@ impl RTCPeerConnectionIceEvent {
         let e = reflect_dom_object(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             global,
-            RTCPeerConnectionIceEventBinding::Wrap,
         );
         let evt = e.upcast::<Event>();
         evt.init_event(ty, false, false); // XXXManishearth bubbles/cancelable?

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::{self, MediaStreamMethods};
+use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -31,11 +31,7 @@ impl MediaStream {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
-        reflect_dom_object(
-            Box::new(MediaStream::new_inherited()),
-            global,
-            MediaStreamBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(MediaStream::new_inherited()), global)
     }
 
     pub fn Constructor(global: &Window) -> Fallible<DomRoot<MediaStream>> {

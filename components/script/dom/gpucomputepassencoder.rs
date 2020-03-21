@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::{
-    self, GPUComputePassEncoderMethods,
-};
+use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -53,7 +51,6 @@ impl GPUComputePassEncoder {
         reflect_dom_object(
             Box::new(GPUComputePassEncoder::new_inherited(channel, parent)),
             global,
-            GPUComputePassEncoderBinding::Wrap,
         )
     }
 }

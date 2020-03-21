@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl_extensions::ext::oestexturefloat::OESTextureFloat;
@@ -30,7 +29,6 @@ impl WebGLExtension for WEBGLColorBufferFloat {
         reflect_dom_object(
             Box::new(WEBGLColorBufferFloat::new_inherited()),
             &*ctx.global(),
-            WEBGLColorBufferFloatBinding::Wrap,
         )
     }
 

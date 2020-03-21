@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::WebSocketBinding;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::conversions::ToJSValConvertible;
@@ -135,11 +134,7 @@ impl WebSocket {
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
     ) -> DomRoot<WebSocket> {
-        reflect_dom_object(
-            Box::new(WebSocket::new_inherited(url, sender)),
-            global,
-            WebSocketBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(WebSocket::new_inherited(url, sender)), global)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>

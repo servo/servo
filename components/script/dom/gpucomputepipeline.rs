@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::{
-    GPUComputePipelineBinding, GPUComputePipelineMethods,
-};
+use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
@@ -37,7 +35,6 @@ impl GPUComputePipeline {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(compute_pipeline)),
             global,
-            GPUComputePipelineBinding::Wrap,
         )
     }
 }

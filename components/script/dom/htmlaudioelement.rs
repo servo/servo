@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -44,7 +43,6 @@ impl HTMLAudioElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLAudioElementBinding::Wrap,
         )
     }
 

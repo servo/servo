@@ -4,7 +4,7 @@
 
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::{self, AudioListenerMethods};
+use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::AudioListenerMethods;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
@@ -143,7 +143,7 @@ impl AudioListener {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
         let node = AudioListener::new_inherited(window, context);
-        reflect_dom_object(Box::new(node), window, AudioListenerBinding::Wrap)
+        reflect_dom_object(Box::new(node), window)
     }
 }
 

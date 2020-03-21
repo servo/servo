@@ -4,10 +4,8 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerRegistrationMethods;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerUpdateViaCache;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
-    ServiceWorkerRegistrationMethods, Wrap,
-};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
@@ -69,7 +67,6 @@ impl ServiceWorkerRegistration {
                 scope,
             )),
             global,
-            Wrap,
         )
     }
 

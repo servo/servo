@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -46,7 +45,7 @@ impl PerformanceEntry {
         duration: f64,
     ) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, start_time, duration);
-        reflect_dom_object(Box::new(entry), global, PerformanceEntryBinding::Wrap)
+        reflect_dom_object(Box::new(entry), global)
     }
 
     pub fn entry_type(&self) -> &DOMString {

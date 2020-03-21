@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CryptoBinding;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -37,11 +36,7 @@ impl Crypto {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
-        reflect_dom_object(
-            Box::new(Crypto::new_inherited()),
-            global,
-            CryptoBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Crypto::new_inherited()), global)
     }
 }
 

@@ -12,10 +12,10 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
-    self, PannerNodeMethods, PannerOptions,
+    DistanceModelType, PanningModelType,
 };
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
-    DistanceModelType, PanningModelType,
+    PannerNodeMethods, PannerOptions,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -177,11 +177,7 @@ impl PannerNode {
         options: &PannerOptions,
     ) -> Fallible<DomRoot<PannerNode>> {
         let node = PannerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            PannerNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

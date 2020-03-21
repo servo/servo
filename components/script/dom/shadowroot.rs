@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{self, ShadowRootMode};
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -73,7 +73,6 @@ impl ShadowRoot {
         reflect_dom_object(
             Box::new(ShadowRoot::new_inherited(host, document)),
             document.window(),
-            ShadowRootBinding::Wrap,
         )
     }
 

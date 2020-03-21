@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -42,7 +41,6 @@ impl DocumentFragment {
         Node::reflect_node(
             Box::new(DocumentFragment::new_inherited(document)),
             document,
-            DocumentFragmentBinding::Wrap,
         )
     }
 

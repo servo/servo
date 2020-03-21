@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{
-    DOMPointInit, DOMPointMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -28,7 +26,7 @@ impl DOMPoint {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
-        reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, Wrap)
+        reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global)
     }
 
     pub fn Constructor(

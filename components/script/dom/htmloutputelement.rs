@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -53,7 +52,6 @@ impl HTMLOutputElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLOutputElementBinding::Wrap,
         )
     }
 

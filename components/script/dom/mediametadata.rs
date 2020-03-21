@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
 use crate::dom::bindings::error::Fallible;
@@ -35,11 +34,7 @@ impl MediaMetadata {
     }
 
     pub fn new(global: &Window, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
-        reflect_dom_object(
-            Box::new(MediaMetadata::new_inherited(init)),
-            global,
-            MediaMetadataBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(MediaMetadata::new_inherited(init)), global)
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata

@@ -4,7 +4,7 @@
 
 use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::{self, AudioTrackMethods};
+use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::AudioTrackMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -55,7 +55,6 @@ impl AudioTrack {
                 id, kind, label, language, track_list,
             )),
             window,
-            AudioTrackBinding::Wrap,
         )
     }
 

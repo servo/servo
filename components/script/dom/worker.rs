@@ -5,7 +5,6 @@
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
-use crate::dom::bindings::codegen::Bindings::WorkerBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -68,11 +67,7 @@ impl Worker {
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
     ) -> DomRoot<Worker> {
-        reflect_dom_object(
-            Box::new(Worker::new_inherited(sender, closing)),
-            global,
-            WorkerBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)), global)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker

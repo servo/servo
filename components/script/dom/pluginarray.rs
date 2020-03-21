@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PluginArrayBinding;
 use crate::dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -24,11 +23,7 @@ impl PluginArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
-        reflect_dom_object(
-            Box::new(PluginArray::new_inherited()),
-            global,
-            PluginArrayBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(PluginArray::new_inherited()), global)
     }
 }
 

@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
-use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{
-    DOMPointReadOnlyMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -39,7 +37,6 @@ impl DOMPointReadOnly {
         reflect_dom_object(
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,
-            Wrap,
         )
     }
 

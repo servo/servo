@@ -73,7 +73,7 @@ impl ExtendableMessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
+        let ev = reflect_dom_object(ev, global);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

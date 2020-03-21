@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::{self, TextTrackListMethods};
+use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::TextTrackListMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -33,11 +33,7 @@ impl TextTrackList {
     }
 
     pub fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
-        reflect_dom_object(
-            Box::new(TextTrackList::new_inherited(tracks)),
-            window,
-            TextTrackListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TextTrackList::new_inherited(tracks)), window)
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRFrameBinding;
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -40,11 +39,7 @@ impl XRFrame {
     }
 
     pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
-        reflect_dom_object(
-            Box::new(XRFrame::new_inherited(session, data)),
-            global,
-            XRFrameBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global)
     }
 
     /// https://immersive-web.github.io/webxr/#xrframe-active

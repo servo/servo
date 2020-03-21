@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLHtmlElementBinding;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
@@ -36,7 +35,6 @@ impl HTMLHtmlElement {
         Node::reflect_node(
             Box::new(HTMLHtmlElement::new_inherited(localName, prefix, document)),
             document,
-            HTMLHtmlElementBinding::Wrap,
         )
     }
 }

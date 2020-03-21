@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ImageDataBinding;
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -91,11 +90,7 @@ impl ImageData {
 
         (*imagedata).data.set(jsobject);
 
-        Ok(reflect_dom_object(
-            imagedata,
-            global,
-            ImageDataBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(imagedata, global))
     }
 
     #[allow(unsafe_code)]
@@ -121,11 +116,7 @@ impl ImageData {
         Uint8ClampedArray::create(*cx, CreateWith::Length(len), array.handle_mut()).unwrap();
         (*imagedata).data.set(array.get());
 
-        Ok(reflect_dom_object(
-            imagedata,
-            global,
-            ImageDataBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(imagedata, global))
     }
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
     #[allow(unsafe_code, non_snake_case)]

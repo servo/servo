@@ -5,7 +5,6 @@
 #![allow(dead_code)]
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -41,7 +40,6 @@ impl WebGLShaderPrecisionFormat {
                 range_min, range_max, precision,
             )),
             window,
-            WebGLShaderPrecisionFormatBinding::Wrap,
         )
     }
 }

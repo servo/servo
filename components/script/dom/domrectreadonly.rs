@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
-    DOMRectReadOnlyMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -42,7 +40,6 @@ impl DOMRectReadOnly {
         reflect_dom_object(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
-            Wrap,
         )
     }
 

@@ -36,7 +36,6 @@ impl HashChangeEvent {
         reflect_dom_object(
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
-            HashChangeEventBinding::Wrap,
         )
     }
 
@@ -51,7 +50,6 @@ impl HashChangeEvent {
         let ev = reflect_dom_object(
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
-            HashChangeEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding;
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
     AudioContextLatencyCategory, AudioContextMethods,
 };
@@ -77,7 +76,7 @@ impl AudioContext {
     pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id);
-        let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
+        let context = reflect_dom_object(Box::new(context), window);
         context.resume();
         context
     }

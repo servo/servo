@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::BluetoothAdvertisingEventInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::BluetoothAdvertisingEventMethods;
-use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::{
-    self, BluetoothAdvertisingEventInit,
-};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -65,7 +63,6 @@ impl BluetoothAdvertisingEvent {
                 device, name, appearance, txPower, rssi,
             )),
             global,
-            BluetoothAdvertisingEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();

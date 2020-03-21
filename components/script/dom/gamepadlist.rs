@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GamepadListBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -27,11 +26,7 @@ impl GamepadList {
     }
 
     pub fn new(global: &GlobalScope, list: &[&Gamepad]) -> DomRoot<GamepadList> {
-        reflect_dom_object(
-            Box::new(GamepadList::new_inherited(list)),
-            global,
-            GamepadListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(GamepadList::new_inherited(list)), global)
     }
 
     pub fn add_if_not_exists(&self, gamepads: &[DomRoot<Gamepad>]) {

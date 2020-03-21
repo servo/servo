@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::Permission
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
-use crate::dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
+use crate::dom::bindings::codegen::Bindings::PermissionsBinding::PermissionsMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -69,11 +69,7 @@ impl Permissions {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(
-            Box::new(Permissions::new_inherited()),
-            global,
-            PermissionsBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Permissions::new_inherited()), global)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-query

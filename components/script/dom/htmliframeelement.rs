@@ -5,7 +5,6 @@
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -429,7 +428,6 @@ impl HTMLIFrameElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLIFrameElementBinding::Wrap,
         )
     }
 

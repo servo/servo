@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -28,11 +27,7 @@ impl WorkerLocation {
     }
 
     pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(
-            Box::new(WorkerLocation::new_inherited(url)),
-            global,
-            WorkerLocationBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin

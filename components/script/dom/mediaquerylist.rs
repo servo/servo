@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
-use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
+use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -45,7 +45,6 @@ impl MediaQueryList {
         reflect_dom_object(
             Box::new(MediaQueryList::new_inherited(document, media_query_list)),
             document.window(),
-            MediaQueryListBinding::Wrap,
         )
     }
 }

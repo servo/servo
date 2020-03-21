@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -28,11 +27,7 @@ impl WebGLExtension for EXTTextureFilterAnisotropic {
     type Extension = EXTTextureFilterAnisotropic;
 
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited()),
-            &*ctx.global(),
-            EXTTextureFilterAnisotropicBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Self::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {

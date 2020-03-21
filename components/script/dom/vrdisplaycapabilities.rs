@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding;
 use crate::dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding::VRDisplayCapabilitiesMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -35,7 +34,6 @@ impl VRDisplayCapabilities {
         reflect_dom_object(
             Box::new(VRDisplayCapabilities::new_inherited(capabilities)),
             global,
-            VRDisplayCapabilitiesBinding::Wrap,
         )
     }
 }

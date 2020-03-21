@@ -115,7 +115,7 @@ impl MessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
+        let ev = reflect_dom_object(ev, global);
         ev.data.set(data.get());
 
         ev

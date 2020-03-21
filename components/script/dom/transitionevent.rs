@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::TransitionEventBinding;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::{
     TransitionEventInit, TransitionEventMethods,
 };
@@ -41,11 +40,7 @@ impl TransitionEvent {
         type_: Atom,
         init: &TransitionEventInit,
     ) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object(
-            Box::new(TransitionEvent::new_inherited(init)),
-            window,
-            TransitionEventBinding::Wrap,
-        );
+        let ev = reflect_dom_object(Box::new(TransitionEvent::new_inherited(init)), window);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, init.parent.bubbles, init.parent.cancelable);

@@ -9,7 +9,6 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -324,7 +323,6 @@ impl HTMLInputElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLInputElementBinding::Wrap,
         )
     }
 

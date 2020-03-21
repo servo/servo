@@ -38,11 +38,8 @@ impl XRSessionEvent {
         cancelable: bool,
         session: &XRSession,
     ) -> DomRoot<XRSessionEvent> {
-        let trackevent = reflect_dom_object(
-            Box::new(XRSessionEvent::new_inherited(&session)),
-            global,
-            XRSessionEventBinding::Wrap,
-        );
+        let trackevent =
+            reflect_dom_object(Box::new(XRSessionEvent::new_inherited(&session)), global);
         {
             let event = trackevent.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

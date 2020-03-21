@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementConstructor;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
@@ -96,7 +95,6 @@ impl CustomElementRegistry {
         reflect_dom_object(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
-            CustomElementRegistryBinding::Wrap,
         )
     }
 

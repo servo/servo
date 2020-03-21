@@ -7,7 +7,6 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Ca
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
-use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding;
 use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::ErrorResult;
@@ -53,7 +52,6 @@ impl PaintRenderingContext2D {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
-            PaintRenderingContext2DBinding::Wrap,
         )
     }
 

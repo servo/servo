@@ -9,7 +9,7 @@ use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSeque
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit};
+use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothDataFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
@@ -144,11 +144,7 @@ impl Bluetooth {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
-        reflect_dom_object(
-            Box::new(Bluetooth::new_inherited()),
-            global,
-            BluetoothBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global)
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -76,7 +75,6 @@ impl HTMLTableElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLTableElementBinding::Wrap,
         )
     }
 

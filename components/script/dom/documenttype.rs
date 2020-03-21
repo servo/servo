@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use crate::dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::ErrorResult;
@@ -49,7 +48,6 @@ impl DocumentType {
                 name, public_id, system_id, document,
             )),
             document,
-            DocumentTypeBinding::Wrap,
         )
     }
 

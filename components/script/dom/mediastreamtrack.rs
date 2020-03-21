@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::{
-    self, MediaStreamTrackMethods,
-};
+use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::MediaStreamTrackMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -37,11 +35,7 @@ impl MediaStreamTrack {
         id: MediaStreamId,
         ty: MediaStreamType,
     ) -> DomRoot<MediaStreamTrack> {
-        reflect_dom_object(
-            Box::new(MediaStreamTrack::new_inherited(id, ty)),
-            global,
-            MediaStreamTrackBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(MediaStreamTrack::new_inherited(id, ty)), global)
     }
 
     pub fn id(&self) -> MediaStreamId {

@@ -57,7 +57,6 @@ impl XRInputSourcesChangeEvent {
         let changeevent = reflect_dom_object(
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             global,
-            XRInputSourcesChangeEventBinding::Wrap,
         );
         {
             let event = changeevent.upcast::<Event>();

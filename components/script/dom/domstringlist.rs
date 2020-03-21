@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMStringListBinding;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -27,11 +26,7 @@ impl DOMStringList {
 
     #[allow(unused)]
     pub fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
-        reflect_dom_object(
-            Box::new(DOMStringList::new_inherited(strings)),
-            window,
-            DOMStringListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(DOMStringList::new_inherited(strings)), window)
     }
 }
 

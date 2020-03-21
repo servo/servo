@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding;
 use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -30,7 +29,6 @@ impl WebGLExtension for OESStandardDerivatives {
         reflect_dom_object(
             Box::new(OESStandardDerivatives::new_inherited()),
             &*ctx.global(),
-            OESStandardDerivativesBinding::Wrap,
         )
     }
 

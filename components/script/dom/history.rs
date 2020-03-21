@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HistoryBinding;
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -59,11 +58,7 @@ impl History {
     }
 
     pub fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(
-            Box::new(History::new_inherited(window)),
-            window,
-            HistoryBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(History::new_inherited(window)), window)
     }
 }
 

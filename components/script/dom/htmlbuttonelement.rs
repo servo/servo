@@ -4,7 +4,6 @@
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -74,7 +73,6 @@ impl HTMLButtonElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLButtonElementBinding::Wrap,
         )
     }
 }

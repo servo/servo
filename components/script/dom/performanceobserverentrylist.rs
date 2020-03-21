@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -33,11 +32,7 @@ impl PerformanceObserverEntryList {
         entries: PerformanceEntryList,
     ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(
-            Box::new(observer_entry_list),
-            global,
-            PerformanceObserverEntryListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(observer_entry_list), global)
     }
 }
 

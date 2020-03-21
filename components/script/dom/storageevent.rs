@@ -50,7 +50,6 @@ impl StorageEvent {
         reflect_dom_object(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
-            StorageEventBinding::Wrap,
         )
     }
 
@@ -74,7 +73,6 @@ impl StorageEvent {
                 storageArea,
             )),
             global,
-            StorageEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();

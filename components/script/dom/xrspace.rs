@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRSpaceBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -55,7 +54,6 @@ impl XRSpace {
         reflect_dom_object(
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
-            XRSpaceBinding::Wrap,
         )
     }
 }

@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding;
 use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -33,11 +32,7 @@ impl RadioNodeList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
-        reflect_dom_object(
-            Box::new(RadioNodeList::new_inherited(list_type)),
-            window,
-            RadioNodeListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)), window)
     }
 
     pub fn new_controls_except_image_inputs(

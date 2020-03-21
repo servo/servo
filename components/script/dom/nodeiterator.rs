@@ -6,7 +6,6 @@ use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
-use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -52,7 +51,6 @@ impl NodeIterator {
         reflect_dom_object(
             Box::new(NodeIterator::new_inherited(root_node, what_to_show, filter)),
             document.window(),
-            NodeIteratorBinding::Wrap,
         )
     }
 

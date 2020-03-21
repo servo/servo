@@ -14,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
@@ -95,7 +94,6 @@ impl Worklet {
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
-            Wrap,
         )
     }
 

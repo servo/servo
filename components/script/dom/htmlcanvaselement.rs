@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
 };
@@ -86,7 +85,6 @@ impl HTMLCanvasElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLCanvasElementBinding::Wrap,
         )
     }
 

@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -43,11 +42,7 @@ impl FormData {
     }
 
     pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
-        reflect_dom_object(
-            Box::new(FormData::new_inherited(form_datums)),
-            global,
-            FormDataWrap,
-        )
+        reflect_dom_object(Box::new(FormData::new_inherited(form_datums)), global)
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata

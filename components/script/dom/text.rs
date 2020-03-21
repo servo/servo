@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
+use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -31,11 +31,7 @@ impl Text {
     }
 
     pub fn new(text: DOMString, document: &Document) -> DomRoot<Text> {
-        Node::reflect_node(
-            Box::new(Text::new_inherited(text, document)),
-            document,
-            TextBinding::Wrap,
-        )
+        Node::reflect_node(Box::new(Text::new_inherited(text, document)), document)
     }
 
     #[allow(non_snake_case)]

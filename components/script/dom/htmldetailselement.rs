@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -48,7 +47,6 @@ impl HTMLDetailsElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLDetailsElementBinding::Wrap,
         )
     }
 }
