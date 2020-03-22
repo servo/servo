@@ -245,7 +245,9 @@ impl ComputedValuesExt for ComputedValues {
     /// Returns true if this style establishes a containing block for all descendants
     /// including fixed and absolutely positioned ones.
     fn establishes_containing_block_for_all_descendants(&self) -> bool {
-        if self.has_transform_or_perspective() {
+        if self.get_box().display.outside() != stylo::DisplayOutside::Inline &&
+            self.has_transform_or_perspective()
+        {
             return true;
         }
 

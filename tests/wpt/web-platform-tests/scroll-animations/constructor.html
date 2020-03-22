@@ -233,32 +233,4 @@ for (let timeRange of gInvalidTimeRangeValues) {
     assert_throws_js(TypeError, constructorFunc);
   }, '\'' + timeRange + '\' is an invalid timeRange value');
 }
-
-// fill
-
-test(function() {
-  assert_equals(new ScrollTimeline({timeRange: 100}).fill, 'none');
-}, 'A ScrollTimeline created with the default fill should default to \'none\'');
-
-const gValidFillValues = [
-  'none',
-  'forwards',
-  'backwards',
-  'both',
-  'auto',
-];
-
-for (let fill of gValidFillValues) {
-  test(function() {
-    const scrollTimeline = new ScrollTimeline({fill: fill, timeRange: 100});
-    assert_equals(scrollTimeline.fill, fill);
-  }, '\'' + fill + '\' is a valid fill value');
-}
-
-test(t => {
-  let constructorFunc = function() {
-    new ScrollTimeline({fill: 'nonsense', timeRange: 100})
-  };
-  assert_throws_js(TypeError, constructorFunc);
-}, 'Creating a ScrollTimeline with an invalid fill value should throw');
 </script>

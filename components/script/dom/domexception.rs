@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use crate::dom::bindings::error::Error;
@@ -134,11 +133,7 @@ impl DOMException {
     pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object(
-            Box::new(DOMException::new_inherited(message, name)),
-            global,
-            DOMExceptionBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global)
     }
 
     #[allow(non_snake_case)]
@@ -150,7 +145,6 @@ impl DOMException {
         Ok(reflect_dom_object(
             Box::new(DOMException::new_inherited(message, name)),
             global,
-            DOMExceptionBinding::Wrap,
         ))
     }
 

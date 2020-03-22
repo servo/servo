@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PerformancePaintTimingBinding;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -46,6 +45,6 @@ impl PerformancePaintTiming {
         start_time: u64,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
-        reflect_dom_object(Box::new(entry), global, PerformancePaintTimingBinding::Wrap)
+        reflect_dom_object(Box::new(entry), global)
     }
 }

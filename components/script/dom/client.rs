@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::ClientBinding::ClientMethods;
 use crate::dom::bindings::codegen::Bindings::ClientBinding::FrameType;
-use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, Wrap};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -36,11 +36,7 @@ impl Client {
     }
 
     pub fn new(window: &Window) -> DomRoot<Client> {
-        reflect_dom_object(
-            Box::new(Client::new_inherited(window.get_url())),
-            window,
-            Wrap,
-        )
+        reflect_dom_object(Box::new(Client::new_inherited(window.get_url())), window)
     }
 
     pub fn creation_url(&self) -> ServoUrl {

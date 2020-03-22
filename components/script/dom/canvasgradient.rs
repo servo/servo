@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
@@ -42,11 +41,7 @@ impl CanvasGradient {
     }
 
     pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
-        reflect_dom_object(
-            Box::new(CanvasGradient::new_inherited(style)),
-            global,
-            CanvasGradientBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)), global)
     }
 }
 

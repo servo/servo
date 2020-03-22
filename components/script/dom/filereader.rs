@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
-    self, FileReaderConstants, FileReaderMethods,
+    FileReaderConstants, FileReaderMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::StringOrObject;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -152,11 +152,7 @@ impl FileReader {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
-        reflect_dom_object(
-            Box::new(FileReader::new_inherited()),
-            global,
-            FileReaderBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(FileReader::new_inherited()), global)
     }
 
     #[allow(non_snake_case)]

@@ -362,6 +362,22 @@ def get_linux_distribution():
             raise Exception('unsupported version of %s: %s' % (distrib, version))
 
         distrib, version = 'Ubuntu', base_version
+    elif distrib == 'Pop!_OS':
+        if '.' in version:
+            major, _ = version.split('.', 1)
+        else:
+            major = version
+
+        if major == '19':
+            base_version = '18.04'
+        elif major == '18':
+            base_version = '16.04'
+        elif major == '17':
+            base_version = '14.04'
+        else:
+            raise Exception('unsupported version of %s: %s' % (distrib, version))
+
+        distrib, version = 'Ubuntu', base_version
     elif distrib.lower() == 'elementary':
         if version == '5.0':
             base_version = '18.04'

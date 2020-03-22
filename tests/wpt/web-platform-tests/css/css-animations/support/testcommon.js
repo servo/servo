@@ -192,6 +192,15 @@ function waitForAnimationFrames(frameCount, onFrame) {
 }
 
 /**
+ * Timeout function used for tests with EventWatchers when all animation events
+ * should be received on the next animation frame. If two frames pass before
+ * receiving the expected events, then we can immediate fail the test.
+ */
+function fastEventsTimeout() {
+  return waitForAnimationFrames(2);
+};
+
+/**
  * Wrapper that takes a sequence of N animations and returns:
  *
  *   Promise.all([animations[0].ready, animations[1].ready, ... animations[N-1].ready]);

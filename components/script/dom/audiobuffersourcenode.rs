@@ -6,7 +6,6 @@ use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
@@ -100,11 +99,7 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            AudioBufferSourceNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

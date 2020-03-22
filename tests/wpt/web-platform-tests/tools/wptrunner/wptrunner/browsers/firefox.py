@@ -86,6 +86,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
             "enable_webrender": kwargs["enable_webrender"],
+            "enable_fission": kwargs["enable_fission"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
             "timeout_multiplier": get_timeout_multiplier(test_type,
@@ -174,7 +175,7 @@ def run_info_extras(**kwargs):
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "sw-e10s": True,
-          "fission": get_bool_pref("fission.autostart")}
+          "fission": kwargs.get("enable_fission") or get_bool_pref("fission.autostart")}
 
     # The value of `sw-e10s` defaults to whether the "parent_intercept"
     # implementation is enabled for the current build. This value, however,
@@ -502,13 +503,14 @@ class OutputHandler(object):
 
 class ProfileCreator(object):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
-                 browser_channel, binary, certutil_binary, ca_certificate_path):
+                 enable_fission, browser_channel, binary, certutil_binary, ca_certificate_path):
         self.logger = logger
         self.prefs_root = prefs_root
         self.config = config
         self.test_type = test_type
         self.extra_prefs = extra_prefs
         self.e10s = e10s
+        self.enable_fission = enable_fission
         self.browser_channel = browser_channel
         self.ca_certificate_path = ca_certificate_path
         self.binary = binary
@@ -578,6 +580,9 @@ class ProfileCreator(object):
         if self.e10s:
             profile.set_preferences({"browser.tabs.remote.autostart": True})
 
+        if self.enable_fission:
+            profile.set_preferences({"fission.autostart": True})
+
         if self.test_type == "reftest":
             profile.set_preferences({"layout.interruptible-reflow.enabled": False})
 
@@ -645,10 +650,10 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, enable_webrender=False, stackfix_dir=None,
-                 binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
-                 stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly",
-                 headless=None, preload_browser=False, **kwargs):
+                 ca_certificate_path=None, e10s=False, enable_webrender=False, enable_fission=False,
+                 stackfix_dir=None, binary_args=None, timeout_multiplier=None, leak_check=False,
+                 asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
+                 browser_channel="nightly", headless=None, preload_browser=False, **kwargs):
         Browser.__init__(self, logger)
 
         self.logger = logger
@@ -671,6 +676,7 @@ class FirefoxBrowser(Browser):
                                          test_type,
                                          extra_prefs,
                                          e10s,
+                                         enable_fission,
                                          browser_channel,
                                          binary,
                                          certutil_binary,

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRPoseBinding;
 use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -28,11 +27,7 @@ impl XRPose {
     #[allow(unused)]
     pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRPose> {
         let transform = XRRigidTransform::new(global, transform);
-        reflect_dom_object(
-            Box::new(XRPose::new_inherited(&transform)),
-            global,
-            XRPoseBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), global)
     }
 }
 

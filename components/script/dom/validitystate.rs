@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ValidityStateBinding;
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -60,11 +59,7 @@ impl ValidityState {
     }
 
     pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
-        reflect_dom_object(
-            Box::new(ValidityState::new_inherited(element)),
-            window,
-            ValidityStateBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(ValidityState::new_inherited(element)), window)
     }
 }
 

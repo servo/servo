@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
@@ -34,11 +33,7 @@ impl GamepadButtonList {
         rooted_vec!(let list <- buttons.iter()
                                        .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
-        reflect_dom_object(
-            Box::new(GamepadButtonList::new_inherited(list.r())),
-            global,
-            GamepadButtonListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list.r())), global)
     }
 
     pub fn sync_from_vr(&self, vr_buttons: &[WebVRGamepadButton]) {

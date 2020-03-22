@@ -14,7 +14,7 @@ def remove_logging_args(args):
 
     :param args: Dictionary of command line arguments.
     """
-    for name in args.keys():
+    for name in list(args.keys()):
         if name.startswith("log_"):
             args.pop(name)
 

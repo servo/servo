@@ -4,6 +4,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
@@ -38,7 +39,7 @@ pub(crate) struct BlockFormattingContext {
 
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockContainer {
-    BlockLevelBoxes(Vec<Arc<BlockLevelBox>>),
+    BlockLevelBoxes(Vec<ArcRefCell<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
 }
 
@@ -50,7 +51,7 @@ pub(crate) enum BlockLevelBox {
         style: Arc<ComputedValues>,
         contents: BlockContainer,
     },
-    OutOfFlowAbsolutelyPositionedBox(AbsolutelyPositionedBox),
+    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
     Independent(IndependentFormattingContext),
 }
@@ -65,10 +66,10 @@ struct FlowLayout {
 struct CollapsibleWithParentStartMargin(bool);
 
 impl BlockFormattingContext {
-    pub(super) fn layout<'a>(
-        &'a self,
+    pub(super) fn layout(
+        &self,
         layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext<'a>,
+        positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
     ) -> IndependentLayout {
@@ -101,10 +102,10 @@ impl BlockFormattingContext {
 }
 
 impl BlockContainer {
-    fn layout<'a>(
-        &'a self,
+    fn layout(
+        &self,
         layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext<'a>,
+        positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         float_context: Option<&mut FloatContext>,
@@ -130,10 +131,10 @@ impl BlockContainer {
     }
 }
 
-fn layout_block_level_children<'a>(
+fn layout_block_level_children(
     layout_context: &LayoutContext,
-    positioning_context: &mut PositioningContext<'a>,
-    child_boxes: &'a [Arc<BlockLevelBox>],
+    positioning_context: &mut PositioningContext,
+    child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
     tree_rank: usize,
     mut float_context: Option<&mut FloatContext>,
@@ -204,7 +205,7 @@ fn layout_block_level_children<'a>(
                 .iter()
                 .enumerate()
                 .map(|(tree_rank, box_)| {
-                    let mut fragment = box_.layout(
+                    let mut fragment = box_.borrow().layout(
                         layout_context,
                         positioning_context,
                         containing_block,
@@ -224,7 +225,7 @@ fn layout_block_level_children<'a>(
                 .mapfold_reduce_into(
                     positioning_context,
                     |positioning_context, (tree_rank, box_)| {
-                        box_.layout(
+                        box_.borrow().layout(
                             layout_context,
                             positioning_context,
                             containing_block,
@@ -256,10 +257,10 @@ fn layout_block_level_children<'a>(
 }
 
 impl BlockLevelBox {
-    fn layout<'a>(
-        &'a self,
+    fn layout(
+        &self,
         layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext<'a>,
+        positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
         float_context: Option<&mut FloatContext>,
@@ -314,7 +315,7 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                let hoisted_fragment = box_.to_hoisted(Vec2::zero(), tree_rank);
+                let hoisted_fragment = box_.clone().to_hoisted(Vec2::zero(), tree_rank);
                 let hoisted_fragment_id = hoisted_fragment.fragment_id.clone();
                 positioning_context.push(hoisted_fragment);
                 Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment(
@@ -338,13 +339,13 @@ enum NonReplacedContents<'a> {
 
 /// https://drafts.csswg.org/css2/visudet.html#blockwidth
 /// https://drafts.csswg.org/css2/visudet.html#normal-block
-fn layout_in_flow_non_replaced_block_level<'a>(
+fn layout_in_flow_non_replaced_block_level(
     layout_context: &LayoutContext,
-    positioning_context: &mut PositioningContext<'a>,
+    positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
     tag: OpaqueNode,
     style: &Arc<ComputedValues>,
-    block_level_kind: NonReplacedContents<'a>,
+    block_level_kind: NonReplacedContents,
     tree_rank: usize,
     float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {

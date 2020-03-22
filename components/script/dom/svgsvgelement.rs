@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::SVGSVGElementBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
@@ -45,7 +44,6 @@ impl SVGSVGElement {
         Node::reflect_node(
             Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
-            SVGSVGElementBinding::Wrap,
         )
     }
 }

@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::{
-    BroadcastChannelMethods, Wrap,
-};
+use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
@@ -35,11 +33,7 @@ impl BroadcastChannel {
     }
 
     pub fn new(global: &GlobalScope, name: DOMString) -> DomRoot<BroadcastChannel> {
-        let channel = reflect_dom_object(
-            Box::new(BroadcastChannel::new_inherited(name)),
-            global,
-            Wrap,
-        );
+        let channel = reflect_dom_object(Box::new(BroadcastChannel::new_inherited(name)), global);
         global.track_broadcast_channel(&*channel);
         channel
     }

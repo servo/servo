@@ -5,7 +5,6 @@
 use crate::document_loader::LoadType;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -114,7 +113,6 @@ impl HTMLScriptElement {
                 local_name, prefix, document, creator,
             )),
             document,
-            HTMLScriptElementBinding::Wrap,
         )
     }
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -75,7 +74,6 @@ impl HTMLStyleElement {
                 local_name, prefix, document, creator,
             )),
             document,
-            HTMLStyleElementBinding::Wrap,
         )
     }
 

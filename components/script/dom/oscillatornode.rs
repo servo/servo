@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNodeMethods;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
-    self, OscillatorOptions, OscillatorType,
+    OscillatorOptions, OscillatorType,
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -88,11 +88,7 @@ impl OscillatorNode {
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
         let node = OscillatorNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            OscillatorNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

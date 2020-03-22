@@ -295,9 +295,9 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 
 ## Ask questions
 
-### IRC channels (irc.mozilla.org)
+### [Matrix](https://wiki.mozilla.org/Matrix)
 
-- #servo
+- [Servo room](https://chat.mozilla.org/#/room/#servo:mozilla.org)
 
 ### Discord servers
 

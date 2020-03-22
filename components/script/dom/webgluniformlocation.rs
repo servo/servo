@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use crate::dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
@@ -61,7 +60,6 @@ impl WebGLUniformLocation {
                 type_,
             )),
             window,
-            WebGLUniformLocationBinding::Wrap,
         )
     }
 

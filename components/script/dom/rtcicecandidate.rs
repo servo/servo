@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
-use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
-    self, RTCIceCandidateMethods,
-};
+use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
@@ -55,7 +53,6 @@ impl RTCIceCandidate {
                 username_fragment,
             )),
             global,
-            RTCIceCandidateBinding::Wrap,
         )
     }
 

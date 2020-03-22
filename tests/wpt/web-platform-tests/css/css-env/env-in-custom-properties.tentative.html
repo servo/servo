@@ -6,18 +6,30 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <style>
-      body {
+      #parent {
+        --var1: inherited;
+      }
+      #child {
         --my-width: env(test, 100px);
         width: var(--my-width);
+        --var1: env(nonexistent);
       }
     </style>
   </head>
   <body>
+    <div id="parent">
+      <div id="child"></div>
+    </div>
     <script>
     test(() => {
-      const style = window.getComputedStyle(document.body);
+      const style = window.getComputedStyle(child);
       assert_equals(style.getPropertyValue("width"), "100px");
-    });
+    }, 'env() is substituted into a custom property');
+
+    test(() => {
+      const style = window.getComputedStyle(child);
+      assert_equals(style.getPropertyValue("--var1"), " inherited");
+    }, 'Substitution of unrecognized env() causes unset');
     </script>
   </body>
 </html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<link rel="match" href="reference/subpixel-borders-with-child-ref.html">
+<meta name="assert" content="Sub-pixel borders should always appear, and not be
+    overdrawn by child content." />
+<head>
+  <style>
+    .outer {
+        border: solid .5px black;
+        background: red;
+        width: 100px;
+        height: 100px;
+        margin: 5px;
+    }
+    .inner {
+        background: lightgreen
+    }
+    #inner1 {
+        width: 100px;
+        height: 100px;
+    }
+    #inner2 {
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="outer">
+    <div class="inner" id="inner1"></div>
+  </div>
+
+  <div class="outer">
+    <div class="inner" id="inner2"></div>
+  </div>
+</body>

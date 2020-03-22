@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::{self, GPUQueueMethods};
+use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -33,11 +33,7 @@ impl GPUQueue {
     }
 
     pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<GPUQueue> {
-        reflect_dom_object(
-            Box::new(GPUQueue::new_inherited(channel, queue)),
-            global,
-            GPUQueueBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global)
     }
 }
 

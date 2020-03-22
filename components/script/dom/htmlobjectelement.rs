@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -55,7 +54,6 @@ impl HTMLObjectElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLObjectElementBinding::Wrap,
         )
     }
 }

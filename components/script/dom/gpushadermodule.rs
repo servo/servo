@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::{
-    self, GPUShaderModuleMethods,
-};
+use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -36,7 +34,6 @@ impl GPUShaderModule {
         reflect_dom_object(
             Box::new(GPUShaderModule::new_inherited(shader_module)),
             global,
-            GPUShaderModuleBinding::Wrap,
         )
     }
 }

@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{
-    self, CSSKeyframeRuleMethods,
-};
+use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -50,7 +48,6 @@ impl CSSKeyframeRule {
                 keyframerule,
             )),
             window,
-            CSSKeyframeRuleBinding::Wrap,
         )
     }
 }

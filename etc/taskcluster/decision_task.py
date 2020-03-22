@@ -27,10 +27,6 @@ def tasks(task_for):
         # https://github.com/taskcluster/taskcluster/blob/21f257dc8/services/github/config.yml#L14
         CONFIG.routes_for_all_subtasks.append("statuses")
 
-    # The magicleap build is broken until there's a surfman back end
-    magicleap_dev = lambda: None
-    magicleap_nightly = lambda: None
-
     if task_for == "github-push":
         all_tests = [
             linux_tidy_unit,
@@ -39,7 +35,6 @@ def tasks(task_for):
             windows_arm64,
             windows_uwp_x64,
             macos_unit,
-            magicleap_dev,
             linux_wpt,
             linux_wpt_layout_2020,
             linux_release,
@@ -53,6 +48,7 @@ def tasks(task_for):
             ],
             "master": [
                 upload_docs,
+                layout_2020_regressions_report,
             ],
 
             # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
@@ -61,7 +57,6 @@ def tasks(task_for):
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
-            "try-magicleap": [magicleap_dev],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-2020": [linux_wpt_layout_2020],
@@ -95,17 +90,7 @@ def tasks(task_for):
         windows_nightly()
         macos_nightly()
         update_wpt()
-        magicleap_nightly()
         uwp_nightly()
-
-
-# These are disabled in a "real" decision task,
-# but should still run when testing this Python code. (See `mock.py`.)
-def mocked_only():
-    windows_release()
-    magicleap_dev()
-    magicleap_nightly()
-    decisionlib.DockerWorkerTask("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -202,7 +187,7 @@ def linux_tidy_unit():
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
         """)
-        .find_or_create("linux_unit." + CONFIG.task_id())
+        .find_or_create("linux_unit." + CONFIG.tree_hash())
     )
 
 
@@ -232,12 +217,12 @@ def linux_docs_check():
             ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
-        .find_or_create("docs." + CONFIG.task_id())
+        .find_or_create("docs." + CONFIG.tree_hash())
     )
 
 
 def upload_docs():
-    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.task_id())
+    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.tree_hash())
     return (
         linux_task("Upload docs to GitHub Pages")
         .with_treeherder("Linux x64", "DocUpload")
@@ -263,6 +248,21 @@ def upload_docs():
     )
 
 
+def layout_2020_regressions_report():
+    return (
+        linux_task("Layout 2020 regressions report")
+        .with_treeherder("Linux x64", "RegressionsReport")
+        .with_dockerfile(dockerfile_path("base"))
+        .with_repo_bundle()
+        .with_script(
+            "python3 etc/layout-2020-regressions/gen.py %s %s"
+            % (CONFIG.tree_hash(), CONFIG.git_sha)
+        )
+        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+        .with_artifacts("/repo/etc/layout-2020-regressions/regressions.html")
+        .find_or_create("layout-2020-regressions-report")
+    )
+
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
@@ -273,7 +273,7 @@ def macos_unit():
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
         """)
-        .find_or_create("macos_unit." + CONFIG.task_id())
+        .find_or_create("macos_unit." + CONFIG.tree_hash())
     )
 
 
@@ -318,7 +318,7 @@ def windows_arm64():
             "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
         .with_artifacts(appx_artifact(debug=True))
-        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.tree_hash())
     )
 
 
@@ -334,7 +334,7 @@ def windows_uwp_x64():
             "python mach test-tidy --force-cpp --no-wpt",
         )
         .with_artifacts(appx_artifact(debug=True))
-        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())
     )
 
 
@@ -355,7 +355,7 @@ def uwp_nightly():
         )
         .with_artifacts(appx_artifact(debug=False))
         .with_max_run_time_minutes(3 * 60)
-        .find_or_create("build.windows_uwp_nightlies." + CONFIG.task_id())
+        .find_or_create("build.windows_uwp_nightlies." + CONFIG.tree_hash())
     )
 
 
@@ -369,8 +369,10 @@ def windows_unit(cached=True):
             "mach fetch",
 
             "mach build --dev",
+
             "mach test-unit",
             "mach smoketest --angle",
+
             "mach package --dev",
             "mach build --dev --libsimpleservo",
             # The GStreamer plugin currently doesn't support Windows
@@ -382,21 +384,9 @@ def windows_unit(cached=True):
                         "repo/target/debug/msi/Servo.zip")
     )
     if cached:
-        return task.find_or_create("build.windows_x64_dev." + CONFIG.task_id())
+        return task.find_or_create("build.windows_x64_dev." + CONFIG.tree_hash())
     else:
         return task.create()
-
-
-def windows_release():
-    return (
-        windows_build_task("Release build")
-        .with_treeherder("Windows x64", "Release")
-        .with_script("mach build --release",
-                     "mach package --release")
-        .with_artifacts("repo/target/release/msi/Servo.exe",
-                        "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_release." + CONFIG.task_id())
-    )
 
 
 def windows_nightly():
@@ -411,7 +401,7 @@ def windows_nightly():
                      "mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
-        .find_or_create("build.windows_x64_nightly." + CONFIG.task_id())
+        .find_or_create("build.windows_x64_nightly." + CONFIG.tree_hash())
     )
 
 
@@ -428,7 +418,7 @@ def linux_nightly():
             "./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
-        .find_or_create("build.linux_x64_nightly" + CONFIG.task_id())
+        .find_or_create("build.linux_x64_nightly" + CONFIG.tree_hash())
     )
 
 
@@ -440,7 +430,7 @@ def linux_release():
             "./mach build --release",
             "./mach package --release",
         )
-        .find_or_create("build.linux_x64_release" + CONFIG.task_id())
+        .find_or_create("build.linux_x64_release" + CONFIG.tree_hash())
     )
 
 
@@ -459,7 +449,7 @@ def macos_nightly():
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
-        .find_or_create("build.mac_x64_nightly." + CONFIG.task_id())
+        .find_or_create("build.mac_x64_nightly." + CONFIG.tree_hash())
     )
 
 
@@ -502,7 +492,7 @@ def macos_release_build_with_debug_assertions(priority=None):
             " target/release/build/osmesa-src-*/out/src/mapi/shared-glapi/.libs",
         ]))
         .with_artifacts("repo/target.tar.gz")
-        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.task_id())
+        .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.tree_hash())
     )
 
 
@@ -534,7 +524,7 @@ def linux_release_build_with_debug_assertions(layout_2020):
         .with_artifacts("/target.tar.gz")
         .find_or_create("build.linux_x64%s_release_w_assertions.%s" % (
             index_key_suffix,
-            CONFIG.task_id(),
+            CONFIG.tree_hash(),
         ))
     )
 
@@ -684,24 +674,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             platform.replace(" ", "_").lower(),
             job_id_prefix.replace("-", "_"),
             this_chunk,
-            CONFIG.task_id(),
+            CONFIG.tree_hash(),
         ))
 
 
 def daily_tasks_setup():
-    # ':' is not accepted in an index namepspace:
-    # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
-    now = SHARED.now.strftime("%Y-%m-%d_%H-%M-%S")
-    index_path = "%s.daily.%s" % (CONFIG.index_prefix, now)
-    # Index this task manually rather than with a route,
-    # so that it is indexed even if it fails.
-    SHARED.index_service.insertTask(index_path, {
-        "taskId": CONFIG.decision_task_id,
-        "rank": 0,
-        "data": {},
-        "expires": SHARED.from_now_json(log_artifacts_expire_in),
-    })
-
     # Unlike when reacting to a GitHub push event,
     # the commit hash is not known until we clone the repository.
     CONFIG.git_sha_is_current_head()
@@ -872,60 +849,6 @@ def macos_build_task(name):
             time brew install openssl@1.1
             export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
         """)
-    )
-
-
-def magicleap_build_task(name, build_type):
-    return (
-        macos_build_task(name)
-        .with_treeherder("MagicLeap aarch64", build_type)
-        .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/macos-sdk-v0.20.0%2Bndk19c.tar.gz",
-            sha256="d5890cc7612694d79e60247a5d5fe4d8bdeb797095f098d56f3069be33426781",
-            path="magicleap"
-        )
-        .with_directory_mount(
-            "https://servo-deps.s3.amazonaws.com/magicleap/ServoCICert-expires-2020-08-25.zip",
-            sha256="33f9d07b89c206e671f6a5020e52265b131e83aede8fa474be323a8e3345d760",
-            path="magicleap"
-        )
-        # Early script in order to run with the initial $PWD
-        .with_early_script("""
-            export MAGICLEAP_SDK="$PWD/magicleap/v0.20.0+ndk19c"
-            export MLCERT="$PWD/magicleap/servocimlcert.cert"
-        """)
-        .with_script("""
-            unset OPENSSL_INCLUDE_DIR
-            unset OPENSSL_LIB_DIR
-            export HOST_CC=$(brew --prefix llvm)/bin/clang
-            export HOST_CXX=$(brew --prefix llvm)/bin/clang++
-        """)
-    )
-
-
-def magicleap_dev():
-    return (
-        magicleap_build_task("Dev build", "Dev")
-        .with_script("""
-            ./mach build --magicleap --dev
-            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --dev
-        """)
-        .find_or_create("build.magicleap_dev." + CONFIG.task_id())
-    )
-
-
-def magicleap_nightly():
-    return (
-        magicleap_build_task("Nightly build and upload", "Release")
-        .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/s3-upload-credentials")
-        .with_script("""
-            ./mach build --magicleap --release
-            env -u DYLD_LIBRARY_PATH ./mach package --magicleap --release
-            ./mach upload-nightly magicleap --secret-from-taskcluster
-        """)
-        .with_artifacts("repo/target/magicleap/aarch64-linux-android/release/Servo.mpk")
-        .find_or_create("build.magicleap_nightly." + CONFIG.task_id())
     )
 
 

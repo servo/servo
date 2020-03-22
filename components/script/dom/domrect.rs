@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMRectBinding;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
@@ -28,7 +27,6 @@ impl DOMRect {
         reflect_dom_object(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
-            DOMRectBinding::Wrap,
         )
     }
 

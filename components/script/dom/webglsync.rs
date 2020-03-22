@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGLSyncBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -43,7 +42,6 @@ impl WebGLSync {
         reflect_dom_object(
             Box::new(WebGLSync::new_inherited(context, sync_id)),
             &*context.global(),
-            WebGLSyncBinding::Wrap,
         )
     }
 }

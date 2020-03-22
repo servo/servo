@@ -20,6 +20,8 @@ const loadChromiumResources = async () => {
     '/gen/mojo/public/mojom/base/string16.mojom.js',
     '/gen/services/device/public/mojom/sensor.mojom.js',
     '/gen/services/device/public/mojom/sensor_provider.mojom.js',
+    '/resources/testdriver.js',
+    '/resources/testdriver-vendor.js',
     '/resources/chromium/generic_sensor_mocks.js',
   ];
 

@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -46,7 +45,6 @@ impl HTMLLegendElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLLegendElementBinding::Wrap,
         )
     }
 }

@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
-use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
 use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
@@ -37,11 +36,7 @@ impl URLSearchParams {
     }
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        reflect_dom_object(
-            Box::new(URLSearchParams::new_inherited(url)),
-            global,
-            URLSearchParamsWrap,
-        )
+        reflect_dom_object(Box::new(URLSearchParams::new_inherited(url)), global)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams

@@ -64,11 +64,7 @@ impl TrackEvent {
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
     ) -> DomRoot<TrackEvent> {
-        let te = reflect_dom_object(
-            Box::new(TrackEvent::new_inherited(&track)),
-            global,
-            TrackEventBinding::Wrap,
-        );
+        let te = reflect_dom_object(Box::new(TrackEvent::new_inherited(&track)), global);
         {
             let event = te.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

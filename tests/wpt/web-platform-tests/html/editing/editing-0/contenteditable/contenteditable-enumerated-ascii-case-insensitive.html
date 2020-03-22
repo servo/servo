@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-contenteditable">
+<link rel="help" href="https://html.spec.whatwg.org/#enumerated-attribute">
+<meta name="assert" content="@contenteditable values are ASCII case-insensitive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable="false"></div>
+<div contenteditable="FaLsE"></div>
+<div contenteditable="falſe"></div>
+<div></div>
+<script>
+const div = document.querySelectorAll("div");
+
+test(() => {
+  assert_equals(div[0].contentEditable, "false", "lowercase valid");
+  assert_equals(div[1].contentEditable, "false", "mixed case valid");
+  assert_equals(div[2].contentEditable, "inherit", "non-ASCII invalid");
+
+  assert_throws_dom("SyntaxError", () => {
+    div[3].contentEditable = "falſe";
+  }, "non-ASCII rejected by IDL");
+}, "keyword false");
+</script>

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::VRPoseBinding;
 use crate::dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -82,11 +81,7 @@ impl VRPose {
     }
 
     pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> DomRoot<VRPose> {
-        let root = reflect_dom_object(
-            Box::new(VRPose::new_inherited()),
-            global,
-            VRPoseBinding::Wrap,
-        );
+        let root = reflect_dom_object(Box::new(VRPose::new_inherited()), global);
         root.update(&pose);
         root
     }

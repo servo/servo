@@ -205,7 +205,7 @@ class TestharnessTest(URLManifestItem):
         if self.jsshell:
             rv[-1]["jsshell"] = True
         if self.script_metadata:
-            rv[-1]["script_metadata"] = self.script_metadata
+            rv[-1]["script_metadata"] = [(k.decode('utf8'), v.decode('utf8')) for (k,v) in self.script_metadata]
         return rv
 
 

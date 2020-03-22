@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::element_data::{LayoutBox, LayoutDataForElement};
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::wrapper::GetRawData;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::AtomicRefMut;
 use html5ever::LocalName;
 use net_traits::image::base::Image as NetImage;
 use script_layout_interface::wrapper_traits::{
@@ -317,12 +318,12 @@ where
 }
 
 pub struct BoxSlot<'dom> {
-    slot: Option<ServoArc<AtomicRefCell<Option<LayoutBox>>>>,
+    slot: Option<ArcRefCell<Option<LayoutBox>>>,
     marker: marker<&'dom ()>,
 }
 
 impl BoxSlot<'_> {
-    pub(crate) fn new(slot: ServoArc<AtomicRefCell<Option<LayoutBox>>>) -> Self {
+    pub(crate) fn new(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
         *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self { slot, marker }

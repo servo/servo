@@ -14,6 +14,7 @@ using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
 using namespace winrt::Windows::ApplicationModel::Core;
+using namespace winrt::Windows::UI::Notifications;
 
 namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
@@ -109,7 +110,10 @@ void BrowserPage::SetTransientMode(bool transient) {
 
 void BrowserPage::SetArgs(hstring args) { servoControl().SetArgs(args); }
 
-void BrowserPage::Shutdown() { servoControl().Shutdown(); }
+void BrowserPage::Shutdown() {
+  ToastNotificationManager::History().Clear();
+  servoControl().Shutdown();
+}
 
 /**** USER INTERACTIONS WITH UI ****/
 

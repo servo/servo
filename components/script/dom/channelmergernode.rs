@@ -7,9 +7,7 @@ use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
-use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
-    self, ChannelMergerOptions,
-};
+use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -61,11 +59,7 @@ impl ChannelMergerNode {
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let node = ChannelMergerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            ChannelMergerNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

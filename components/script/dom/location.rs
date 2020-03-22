@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::LocationBinding;
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -33,11 +32,7 @@ impl Location {
     }
 
     pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(
-            Box::new(Location::new_inherited(window)),
-            window,
-            LocationBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Location::new_inherited(window)), window)
     }
 
     /// https://html.spec.whatwg.org/multipage/#location-object-navigate

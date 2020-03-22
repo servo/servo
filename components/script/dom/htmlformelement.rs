@@ -9,7 +9,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
@@ -115,7 +114,6 @@ impl HTMLFormElement {
         Node::reflect_node(
             Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLFormElementBinding::Wrap,
         )
     }
 

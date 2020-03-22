@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
-use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding;
 use crate::dom::bindings::codegen::Bindings::XRViewerPoseBinding::XRViewerPoseMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -60,11 +59,7 @@ impl XRViewerPose {
             },
         });
         let transform = XRRigidTransform::new(global, cast_transform(pose));
-        let pose = reflect_dom_object(
-            Box::new(XRViewerPose::new_inherited(&transform)),
-            global,
-            XRViewerPoseBinding::Wrap,
-        );
+        let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 
         let cx = global.get_cx();
         unsafe {

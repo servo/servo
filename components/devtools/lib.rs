@@ -154,7 +154,20 @@ fn run_server(
     port: u16,
     embedder: EmbedderProxy,
 ) {
-    let listener = TcpListener::bind(&("0.0.0.0", port)).unwrap();
+    let bound = TcpListener::bind(&("0.0.0.0", port)).ok().and_then(|l| {
+        l.local_addr()
+            .map(|addr| addr.port())
+            .ok()
+            .map(|port| (l, port))
+    });
+
+    let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
+    embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port)));
+
+    let listener = match bound {
+        Some((l, _)) => l,
+        None => return,
+    };
 
     let mut registry = ActorRegistry::new();
 

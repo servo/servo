@@ -4,7 +4,6 @@
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -31,11 +30,7 @@ impl NamedNodeMap {
     }
 
     pub fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object(
-            Box::new(NamedNodeMap::new_inherited(elem)),
-            window,
-            NamedNodeMapBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)), window)
     }
 }
 

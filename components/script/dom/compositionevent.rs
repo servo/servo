@@ -29,11 +29,7 @@ impl CompositionEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
-        reflect_dom_object(
-            Box::new(CompositionEvent::new_inherited()),
-            window,
-            CompositionEventBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window)
     }
 
     pub fn new(
@@ -51,7 +47,6 @@ impl CompositionEvent {
                 data: data,
             }),
             window,
-            CompositionEventBinding::Wrap,
         );
         ev.uievent
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);

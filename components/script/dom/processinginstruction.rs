@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -38,7 +37,6 @@ impl ProcessingInstruction {
         Node::reflect_node(
             Box::new(ProcessingInstruction::new_inherited(target, data, document)),
             document,
-            ProcessingInstructionBinding::Wrap,
         )
     }
 }

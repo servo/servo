@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::Ref;
-use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::vertexarrayobject::{VertexArrayObject, VertexAttribData};
@@ -31,7 +30,6 @@ impl WebGLVertexArrayObjectOES {
         reflect_dom_object(
             Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
             &*context.global(),
-            WebGLVertexArrayObjectOESBinding::Wrap,
         )
     }
 

@@ -31,6 +31,7 @@ public:
   typedef capi::CPromptResult PromptResult;
   typedef capi::CMediaSessionActionType MediaSessionActionType;
   typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
+  typedef capi::CDevtoolsServerState DevtoolsServerState;
 
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }
@@ -94,6 +95,7 @@ public:
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
   virtual void OnServoIMEStateChanged(bool) = 0;
+  virtual void OnServoDevtoolsStarted(bool, unsigned int) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;

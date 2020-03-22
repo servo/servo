@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationBinding::{
-    self, PerformanceNavigationConstants, PerformanceNavigationMethods,
+    PerformanceNavigationConstants, PerformanceNavigationMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -24,11 +24,7 @@ impl PerformanceNavigation {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<PerformanceNavigation> {
-        reflect_dom_object(
-            Box::new(PerformanceNavigation::new_inherited()),
-            global,
-            PerformanceNavigationBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(PerformanceNavigation::new_inherited()), global)
     }
 }
 

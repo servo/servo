@@ -34,13 +34,15 @@
     <div id="item2">XXXXX</div>
 </div>
 <script>
+document.fonts.ready.then(() => {
     item1.setAttribute("data-offset-y", "95");
     item2.setAttribute("data-offset-y", "345");
-    checkLayout('#grid');
+    checkLayout('#grid', false);
 
     grid.style.fontSize = "40px";
 
     item1.setAttribute("data-offset-y", "80");
     item2.setAttribute("data-offset-y", "330");
-    checkLayout('#grid');
+    checkLayout('#grid', true);
+});
 </script>

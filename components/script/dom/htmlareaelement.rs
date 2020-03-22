@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -257,7 +256,6 @@ impl HTMLAreaElement {
         Node::reflect_node(
             Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLAreaElementBinding::Wrap,
         )
     }
 

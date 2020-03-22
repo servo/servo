@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -31,11 +30,7 @@ impl WorkerNavigator {
     }
 
     pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(
-            Box::new(WorkerNavigator::new_inherited()),
-            global,
-            WorkerNavigatorBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global)
     }
 }
 

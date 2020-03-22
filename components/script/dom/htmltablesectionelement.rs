@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{
-    self, HTMLTableSectionElementMethods,
-};
+use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -49,7 +47,6 @@ impl HTMLTableSectionElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLTableSectionElementBinding::Wrap,
         )
     }
 }

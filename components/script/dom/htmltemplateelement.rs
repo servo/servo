@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -47,7 +46,6 @@ impl HTMLTemplateElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLTemplateElementBinding::Wrap,
         )
     }
 }

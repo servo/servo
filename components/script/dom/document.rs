@@ -8,7 +8,6 @@ use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -3044,7 +3043,6 @@ impl Document {
                 canceller,
             )),
             window,
-            DocumentBinding::Wrap,
         );
         {
             let node = document.upcast::<Node>();

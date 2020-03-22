@@ -7,7 +7,8 @@ let worker;
 
 // Create a new shared worker for a given script url.
 window.onmessage = e => {
-  worker = new SharedWorker(e.data, { type: 'module' });
+  worker = new SharedWorker(e.data.scriptURL,
+                            { name: e.data.name, type: 'module' });
   worker.port.onmessage = msg => window.opener.postMessage(msg.data, '*');
   worker.onerror = err => {
     window.opener.postMessage(['ERROR'], '*');

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::MediaListBinding;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -50,7 +49,6 @@ impl MediaList {
         reflect_dom_object(
             Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
             window,
-            MediaListBinding::Wrap,
         )
     }
 

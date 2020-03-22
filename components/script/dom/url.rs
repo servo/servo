@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
+use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -43,7 +43,7 @@ impl URL {
     }
 
     pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object(Box::new(URL::new_inherited(url)), global, URLBinding::Wrap)
+        reflect_dom_object(Box::new(URL::new_inherited(url)), global)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {

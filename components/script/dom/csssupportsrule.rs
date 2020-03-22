@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
@@ -52,7 +51,6 @@ impl CSSSupportsRule {
                 supportsrule,
             )),
             window,
-            CSSSupportsRuleBinding::Wrap,
         )
     }
 

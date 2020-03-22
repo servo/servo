@@ -196,16 +196,16 @@ test(function() {
     startScrollOffset: 'calc(20% - 5px)'
   });
 
-  // Unscrolled, all timelines should read a current time of unresolved, since
+  // Unscrolled, all timelines should read a current time of 0, since
   // the current offset (0) will be less than the startScrollOffset.
   assert_equals(
-      lengthScrollTimeline.currentTime, null,
+      lengthScrollTimeline.currentTime, 0,
       'Unscrolled length-based timeline');
   assert_equals(
-      percentageScrollTimeline.currentTime, null,
+      percentageScrollTimeline.currentTime, 0,
       'Unscrolled percentage-based timeline');
   assert_equals(
-      calcScrollTimeline.currentTime, null, 'Unscrolled calc-based timeline');
+      calcScrollTimeline.currentTime, 0, 'Unscrolled calc-based timeline');
 
   // With direction rtl offsets are inverted, such that scrollLeft == 0
   // is the 'zero' point for currentTime. However the
@@ -215,7 +215,7 @@ test(function() {
   // Check the length-based ScrollTimeline.
   scroller.scrollLeft = 0;
   assert_equals(
-      lengthScrollTimeline.currentTime, null,
+      lengthScrollTimeline.currentTime, 0,
       'Length-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -20;
   assert_equals(
@@ -230,7 +230,7 @@ test(function() {
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = -(0.19 * scrollerSize);
   assert_equals(
-      percentageScrollTimeline.currentTime, null,
+      percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.20 * scrollerSize);
   assert_equals(
@@ -246,7 +246,7 @@ test(function() {
   // Check the calc-based ScrollTimeline.
   scroller.scrollLeft = -(0.2 * scrollerSize - 10);
   assert_equals(
-      calcScrollTimeline.currentTime, null,
+      calcScrollTimeline.currentTime, 0,
       'Calc-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize - 5);
   assert_equals(
@@ -296,11 +296,11 @@ test(function() {
   // Check the length-based ScrollTimeline.
   scroller.scrollLeft = -scrollerSize;
   assert_equals(
-      lengthScrollTimeline.currentTime, null,
+      lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 20 - scrollerSize;
   assert_equals(
-      lengthScrollTimeline.currentTime, null,
+      lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 50 - scrollerSize;
   assert_times_equal(
@@ -312,11 +312,11 @@ test(function() {
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = 0.19 * scrollerSize - scrollerSize;
   assert_equals(
-      percentageScrollTimeline.currentTime, null,
+      percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 0.20 * scrollerSize - scrollerSize;
   assert_equals(
-      percentageScrollTimeline.currentTime, null,
+      percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.4 * scrollerSize - scrollerSize;
   assert_times_equal(
@@ -328,11 +328,11 @@ test(function() {
   // Check the calc-based ScrollTimeline. 80% + 5px
   scroller.scrollLeft = -0.8 * scrollerSize - 10;
   assert_equals(
-      calcScrollTimeline.currentTime, null,
+      calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline after the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize - 5;
   assert_equals(
-      calcScrollTimeline.currentTime, null,
+      calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize;
   assert_times_equal(

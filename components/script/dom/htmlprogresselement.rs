@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::{
-    self, HTMLProgressElementMethods,
-};
+use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::HTMLProgressElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
@@ -43,7 +41,6 @@ impl HTMLProgressElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLProgressElementBinding::Wrap,
         )
     }
 }

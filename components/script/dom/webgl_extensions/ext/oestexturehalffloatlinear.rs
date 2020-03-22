@@ -4,7 +4,6 @@
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
-use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatLinearBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -29,7 +28,6 @@ impl WebGLExtension for OESTextureHalfFloatLinear {
         reflect_dom_object(
             Box::new(OESTextureHalfFloatLinear::new_inherited()),
             &*ctx.global(),
-            OESTextureHalfFloatLinearBinding::Wrap,
         )
     }
 

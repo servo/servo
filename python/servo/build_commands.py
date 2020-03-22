@@ -675,11 +675,12 @@ class MachCommands(CommandBase):
                 if not dev and not libsimpleservo:
                     call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                          verbose=verbose)
-                # on msvc, we need to copy in some DLLs in to the servo.exe dir
+                # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
                 for ssl_lib in ["libssl.dll", "libcrypto.dll"]:
-                    shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin", ssl_lib),
-                                servo_exe_dir)
-                # Search for the generated nspr4.dll
+                    ssl_path = path.join(env['OPENSSL_LIB_DIR'], "../bin", ssl_lib)
+                    shutil.copy(ssl_path, servo_exe_dir)
+                    shutil.copy(ssl_path, path.join(servo_exe_dir, "deps"))
+
                 build_path = path.join(servo_exe_dir, "build")
                 assert os.path.exists(build_path)
 

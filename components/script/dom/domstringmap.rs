@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding;
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -28,11 +27,7 @@ impl DOMStringMap {
 
     pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
         let window = window_from_node(element);
-        reflect_dom_object(
-            Box::new(DOMStringMap::new_inherited(element)),
-            &*window,
-            DOMStringMapBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)), &*window)
     }
 }
 

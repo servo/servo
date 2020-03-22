@@ -273,6 +273,10 @@ scheme host and port.""")
                              help="Enable the WebRender compositor in Gecko (defaults to disabled).")
     gecko_group.add_argument("--no-enable-webrender", dest="enable_webrender", action="store_false",
                              help="Disable the WebRender compositor in Gecko.")
+    gecko_group.add_argument("--enable-fission", dest="enable_fission", action="store_true", default=None,
+                             help="Enable fission in Gecko (defaults to disabled).")
+    gecko_group.add_argument("--no-enable-fission", dest="enable_fission", action="store_false",
+                             help="Disable fission in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
     gecko_group.add_argument("--setpref", dest="extra_prefs", action='append',

@@ -23,7 +23,7 @@ use simpleservo::{
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
 use std::mem;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_uint, c_void};
 use std::panic::{self, UnwindSafe};
 use std::slice;
 use std::str::FromStr;
@@ -229,6 +229,7 @@ pub struct CHostCallbacks {
         default: *const c_char,
         trusted: bool,
     ) -> *const c_char,
+    pub on_devtools_started: extern "C" fn(result: CDevtoolsServerState, port: c_uint),
 }
 
 /// Servo options
@@ -284,6 +285,12 @@ pub enum CMediaSessionPlaybackState {
     None = 1,
     Playing,
     Paused,
+}
+
+#[repr(C)]
+pub enum CDevtoolsServerState {
+    Started,
+    Error,
 }
 
 impl From<MediaSessionPlaybackState> for CMediaSessionPlaybackState {
@@ -853,5 +860,18 @@ impl HostTrait for HostCallbacks {
         let c_str = unsafe { CStr::from_ptr(raw_contents) };
         let contents_str = c_str.to_str().expect("Can't create str");
         Some(contents_str.to_owned())
+    }
+
+    fn on_devtools_started(&self, port: Result<u16, ()>) {
+        match port {
+            Ok(p) => {
+                info!("Devtools Server running on port {}", p);
+                (self.0.on_devtools_started)(CDevtoolsServerState::Started, p.into());
+            },
+            Err(()) => {
+                error!("Error running devtools server");
+                (self.0.on_devtools_started)(CDevtoolsServerState::Error, 0);
+            },
+        }
     }
 }

@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::NavigationPreloadManagerMethods;
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::NavigationPreloadState;
-use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
-    NavigationPreloadManagerMethods, Wrap,
-};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::ByteString;
@@ -38,7 +36,7 @@ impl NavigationPreloadManager {
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(&*registration);
-        reflect_dom_object(Box::new(manager), global, Wrap)
+        reflect_dom_object(Box::new(manager), global)
     }
 }
 

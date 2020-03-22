@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VideoTrackListBinding::{self, VideoTrackListMethods};
+use crate::dom::bindings::codegen::Bindings::VideoTrackListBinding::VideoTrackListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -44,7 +44,6 @@ impl VideoTrackList {
         reflect_dom_object(
             Box::new(VideoTrackList::new_inherited(tracks, media_element)),
             window,
-            VideoTrackListBinding::Wrap,
         )
     }
 

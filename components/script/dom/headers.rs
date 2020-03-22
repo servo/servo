@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HeadersBinding::{
-    HeadersInit, HeadersMethods, HeadersWrap,
-};
+use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -46,7 +44,7 @@ impl Headers {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        reflect_dom_object(Box::new(Headers::new_inherited()), global, HeadersWrap)
+        reflect_dom_object(Box::new(Headers::new_inherited()), global)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers

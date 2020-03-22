@@ -21,7 +21,8 @@ const setupAnimation = (t, animationStyle) => {
   const watcher = new EventWatcher(t, div, [ 'animationstart',
                                              'animationiteration',
                                              'animationend',
-                                             'animationcancel' ]);
+                                             'animationcancel' ],
+                                   fastEventsTimeout);
   const animation = div.getAnimations()[0];
 
   return { animation, watcher, div };

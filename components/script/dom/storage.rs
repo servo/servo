@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::StorageBinding;
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -37,11 +36,7 @@ impl Storage {
     }
 
     pub fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
-        reflect_dom_object(
-            Box::new(Storage::new_inherited(storage_type)),
-            global,
-            StorageBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Storage::new_inherited(storage_type)), global)
     }
 
     fn get_url(&self) -> ServoUrl {

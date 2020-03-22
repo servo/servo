@@ -56,9 +56,9 @@ def WebIDLTest(parser, harness):
     results = parser.finish()
     # Pull out the first argument out of the arglist of the first (and
     # only) signature.
-    harness.ok(results[0].members[0].signatures()[0][1][0].type.clamp,
+    harness.ok(results[0].members[0].signatures()[0][1][0].type.hasClamp(),
                "Should be clamped")
-    harness.ok(not results[0].members[1].signatures()[0][1][0].type.clamp,
+    harness.ok(not results[0].members[1].signatures()[0][1][0].type.hasClamp(),
                "Should not be clamped")
 
     parser = parser.reset()
@@ -86,9 +86,9 @@ def WebIDLTest(parser, harness):
     results = parser.finish()
     # Pull out the first argument out of the arglist of the first (and
     # only) signature.
-    harness.ok(results[0].members[0].signatures()[0][1][0].type.enforceRange,
+    harness.ok(results[0].members[0].signatures()[0][1][0].type.hasEnforceRange(),
                "Should be enforceRange")
-    harness.ok(not results[0].members[1].signatures()[0][1][0].type.enforceRange,
+    harness.ok(not results[0].members[1].signatures()[0][1][0].type.hasEnforceRange(),
                "Should not be enforceRange")
 
     parser = parser.reset()

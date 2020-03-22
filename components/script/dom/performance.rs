@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceMethods,
@@ -170,7 +169,6 @@ impl Performance {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start_precise)),
             global,
-            PerformanceBinding::Wrap,
         )
     }
 

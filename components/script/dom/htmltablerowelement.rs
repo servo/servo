@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{
-    self, HTMLTableRowElementMethods,
-};
+use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::HTMLTableRowElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -64,7 +62,6 @@ impl HTMLTableRowElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLTableRowElementBinding::Wrap,
         )
     }
 

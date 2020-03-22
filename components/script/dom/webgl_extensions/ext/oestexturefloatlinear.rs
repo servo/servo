@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{constants as webgl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::codegen::Bindings::OESTextureFloatLinearBinding;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -28,7 +27,6 @@ impl WebGLExtension for OESTextureFloatLinear {
         reflect_dom_object(
             Box::new(OESTextureFloatLinear::new_inherited()),
             &*ctx.global(),
-            OESTextureFloatLinearBinding::Wrap,
         )
     }
 

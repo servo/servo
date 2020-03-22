@@ -7,8 +7,8 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeConstants;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -86,7 +86,6 @@ impl Range {
                 end_offset,
             )),
             document.window(),
-            RangeBinding::Wrap,
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to intersection with document</title>
+<style>
+    #main {
+        width: 100px;
+        height: 100px;
+        left: -1000px;
+        position: relative;
+        top: 0;
+        background-image: url(../resources/circles.png);
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful {
+        left: 0px;
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main"></div>
+<script>
+    test_fcp("First contentful paint fires due to intersection with document.")
+</script>
+</body>
+</html>

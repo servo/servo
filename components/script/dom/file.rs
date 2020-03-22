@@ -51,7 +51,6 @@ impl File {
         let file = reflect_dom_object(
             Box::new(File::new_inherited(&blob_impl, name, modified)),
             global,
-            FileBinding::Wrap,
         );
         global.track_file(&file, blob_impl);
         file

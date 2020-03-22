@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+    Check ServiceWorkers can set COOP/COEP headers for documents's responses
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js">
+  </script>
+  <script src="./resources/popup-coop-by-sw.js"> </script>
+</head>
+<body>
+<script>
+
+// The current document do not have COOP/COEP defined. A popup will be opened.
+// Its response will be provided by a ServiceWorker. A browsing context group
+// swap must happen if the popup's headers contains COOP/COEP headers.
+
+popupCoopBySwTest("sw_normal, popup_normal",
+                   sw_normal, popup_normal,
+                   keep_browsing_context_group)
+
+popupCoopBySwTest("sw_normal, popup_coop",
+                   sw_normal, popup_coop,
+                   swap_browsing_context_group)
+
+popupCoopBySwTest("sw_coop, popup_normal",
+                   sw_coop, popup_normal,
+                   keep_browsing_context_group)
+
+popupCoopBySwTest("sw_coop, popup_coop",
+                   sw_coop, popup_coop,
+                   swap_browsing_context_group)
+
+</script>
+</body>
+</html>

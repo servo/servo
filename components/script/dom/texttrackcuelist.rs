@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::{
-    self, TextTrackCueListMethods,
-};
+use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -28,11 +26,7 @@ impl TextTrackCueList {
     }
 
     pub fn new(window: &Window, cues: &[&TextTrackCue]) -> DomRoot<TextTrackCueList> {
-        reflect_dom_object(
-            Box::new(TextTrackCueList::new_inherited(cues)),
-            window,
-            TextTrackCueListBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TextTrackCueList::new_inherited(cues)), window)
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrackCue>> {

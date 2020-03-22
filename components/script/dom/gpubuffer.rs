@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{
-    self, GPUBufferMethods, GPUBufferSize,
-};
+use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUBufferSize};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -98,7 +96,6 @@ impl GPUBuffer {
                 channel, buffer, device, state, size, usage, valid, mapping,
             )),
             global,
-            GPUBufferBinding::Wrap,
         )
     }
 }

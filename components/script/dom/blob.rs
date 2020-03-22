@@ -40,7 +40,6 @@ impl Blob {
                 blob_id: blob_impl.blob_id(),
             }),
             global,
-            BlobBinding::Wrap,
         );
         global.track_blob(&dom_blob, blob_impl);
         dom_blob

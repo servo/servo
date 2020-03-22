@@ -601,7 +601,6 @@ macro_rules! rooted_vec {
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
-        use crate::dom::bindings::codegen::Bindings::$binding;
         use crate::dom::bindings::reflector::reflect_dom_object;
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
@@ -631,7 +630,7 @@ macro_rules! impl_performance_entry_struct(
                        start_time: f64,
                        duration: f64) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
-                reflect_dom_object(Box::new(entry), global, $binding::Wrap)
+                reflect_dom_object(Box::new(entry), global)
             }
         }
     );

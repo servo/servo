@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VRStageParametersBinding;
 use crate::dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParametersMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -52,7 +51,6 @@ impl VRStageParameters {
         let stage_parameters = reflect_dom_object(
             Box::new(VRStageParameters::new_inherited(parameters)),
             global,
-            VRStageParametersBinding::Wrap,
         );
 
         stage_parameters.transform.set(array.get());

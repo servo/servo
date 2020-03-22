@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, ElementCreationOptions,
@@ -46,11 +45,7 @@ impl DOMImplementation {
 
     pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object(
-            Box::new(DOMImplementation::new_inherited(document)),
-            window,
-            DOMImplementationBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(DOMImplementation::new_inherited(document)), window)
     }
 }
 

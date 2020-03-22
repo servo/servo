@@ -7,7 +7,7 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::SimpleCallback;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     TestBindingMethods, TestDictionary,
 };
@@ -82,11 +82,7 @@ impl TestBinding {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestBinding> {
-        reflect_dom_object(
-            Box::new(TestBinding::new_inherited()),
-            global,
-            TestBindingBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TestBinding::new_inherited()), global)
     }
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBinding>> {

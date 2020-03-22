@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{
-    self, PerformanceResourceTimingMethods,
-};
+use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -152,7 +150,6 @@ impl PerformanceResourceTiming {
                 resource_timing,
             )),
             global,
-            PerformanceResourceTimingBinding::Wrap,
         )
     }
 }

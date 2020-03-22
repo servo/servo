@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -41,7 +40,6 @@ impl CSSImportRule {
         reflect_dom_object(
             Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
             window,
-            CSSImportRuleBinding::Wrap,
         )
     }
 }

@@ -5,7 +5,6 @@
 use crate::body::{consume_body, BodyOperations, BodyType};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use crate::dom::bindings::codegen::Bindings::RequestBinding;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
@@ -66,11 +65,7 @@ impl Request {
     }
 
     pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object(
-            Box::new(Request::new_inherited(global, url)),
-            global,
-            RequestBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Request::new_inherited(global, url)), global)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
@@ -848,6 +843,7 @@ impl Into<MsgReferrerPolicy> for ReferrerPolicy {
             ReferrerPolicy::Origin => MsgReferrerPolicy::Origin,
             ReferrerPolicy::Origin_when_cross_origin => MsgReferrerPolicy::OriginWhenCrossOrigin,
             ReferrerPolicy::Unsafe_url => MsgReferrerPolicy::UnsafeUrl,
+            ReferrerPolicy::Same_origin => MsgReferrerPolicy::SameOrigin,
             ReferrerPolicy::Strict_origin => MsgReferrerPolicy::StrictOrigin,
             ReferrerPolicy::Strict_origin_when_cross_origin => {
                 MsgReferrerPolicy::StrictOriginWhenCrossOrigin
@@ -864,9 +860,9 @@ impl Into<ReferrerPolicy> for MsgReferrerPolicy {
                 ReferrerPolicy::No_referrer_when_downgrade
             },
             MsgReferrerPolicy::Origin => ReferrerPolicy::Origin,
-            MsgReferrerPolicy::SameOrigin => ReferrerPolicy::Origin,
             MsgReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicy::Origin_when_cross_origin,
             MsgReferrerPolicy::UnsafeUrl => ReferrerPolicy::Unsafe_url,
+            MsgReferrerPolicy::SameOrigin => ReferrerPolicy::Same_origin,
             MsgReferrerPolicy::StrictOrigin => ReferrerPolicy::Strict_origin,
             MsgReferrerPolicy::StrictOriginWhenCrossOrigin => {
                 ReferrerPolicy::Strict_origin_when_cross_origin

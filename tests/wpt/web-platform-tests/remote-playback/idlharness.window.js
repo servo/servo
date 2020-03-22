@@ -1,6 +1,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: script=/common/media.js
+// META: timeout=long
 
 'use strict';
 

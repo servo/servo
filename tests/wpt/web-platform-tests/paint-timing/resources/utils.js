@@ -23,45 +23,34 @@ function waitForAnimationFrames(count) {
 }
 
 // Asserts that there is currently no FCP reported, even after some wait.
-function assertNoFirstContentfulPaint(t) {
-  return waitTime(t).then(() => {
-    return waitForAnimationFrames(numFramesWaiting);
-  }).then(() => {
-    return new Promise((resolve, reject) => {
-      const observer = new PerformanceObserver(entryList =>{
-        const entries = entryList.getEntriesByName('first-contentful-paint');
-        observer.disconnect();
-        if (entries.length > 0)
-          reject('Received a first contentful paint entry.');
-        else
-          resolve();
-      });
-      observer.observe({type: 'paint', buffered: true});
-      observer.observe({type: 'mark'});
-      performance.mark('flush');
-    });
-  });
+async function assertNoFirstContentfulPaint(t) {
+  if (t)
+    await waitTime(t);
+
+  await waitForAnimationFrames(numFramesWaiting);
+  assert_equals(performance.getEntriesByName('first-contentful-paint').length, 0, 'First contentful paint marked too early. ');
 }
 
 // Asserts that FCP is reported, possibly after some wait. The wait is needed
 // because sometimes the FCP relies on some CSS resources to finish loading.
-function assertFirstContentfulPaint(t) {
-  return waitTime(t).then(() => {
-    return waitForAnimationFrames(numFramesWaiting);
-  }).then(() => {
-    return new Promise((resolve, reject) => {
-      const observer = new PerformanceObserver(entryList =>{
-        const entries = entryList.getEntriesByName('first-contentful-paint');
-        observer.disconnect();
-        if (entries.length === 0)
-          reject('Did not receive a first contentful paint entry.');
-        else {
-          resolve();
-        }
-      });
-      observer.observe({type: 'paint', buffered: true});
-      observer.observe({type: 'mark'});
-      performance.mark('flush');
-    });
-  });
+async function assertFirstContentfulPaint(t) {
+  if (t)
+    await waitTime(t);
+  await waitForAnimationFrames(numFramesWaiting);
+  assert_equals(performance.getEntriesByName('first-contentful-paint').length, 1, 'Expected first contentful paint not found. ');
+}
+
+async function test_fcp(label) {
+  const style = document.createElement('style');
+  document.head.appendChild(style);
+  await promise_test(async t => {
+    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    const main = document.getElementById('main');
+    await new Promise(r => window.addEventListener('load', r));
+    await assertNoFirstContentfulPaint();
+    main.className = 'preFCP';
+    await assertNoFirstContentfulPaint();
+    main.className = 'contentful';
+    await assertFirstContentfulPaint();
+  }, label);
 }

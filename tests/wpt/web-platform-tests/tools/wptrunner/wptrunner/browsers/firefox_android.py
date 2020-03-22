@@ -87,10 +87,10 @@ def env_options():
 
 class ProfileCreator(FirefoxProfileCreator):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
-                 browser_channel, certutil_binary, ca_certificate_path):
+                 enable_fission, browser_channel, certutil_binary, ca_certificate_path):
         super(ProfileCreator, self).__init__(logger, prefs_root, config, test_type, extra_prefs,
-                                             e10s, browser_channel, None, certutil_binary,
-                                             ca_certificate_path)
+                                             e10s, enable_fission, browser_channel, None,
+                                             certutil_binary, ca_certificate_path)
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({
@@ -162,6 +162,7 @@ class FirefoxAndroidBrowser(Browser):
                                               test_type,
                                               extra_prefs,
                                               e10s,
+                                              False,
                                               browser_channel,
                                               certutil_binary,
                                               ca_certificate_path)

@@ -5,7 +5,6 @@
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -90,7 +89,6 @@ impl HTMLVideoElement {
                 local_name, prefix, document,
             )),
             document,
-            HTMLVideoElementBinding::Wrap,
         )
     }
 

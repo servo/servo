@@ -313,7 +313,7 @@ interface mixin WebGL2RenderingContextBase
   void invalidateFramebuffer(GLenum target, sequence<GLenum> attachments);
   void invalidateSubFramebuffer(GLenum target, sequence<GLenum> attachments,
                                 GLint x, GLint y, GLsizei width, GLsizei height);
-  // void readBuffer(GLenum src);
+  void readBuffer(GLenum src);
 
   /* Renderbuffer objects */
   any getInternalformatParameter(GLenum target, GLenum internalformat, GLenum pname);
@@ -475,7 +475,7 @@ interface mixin WebGL2RenderingContextBase
                   /*[AllowShared]*/ ArrayBufferView dstData, GLuint dstOffset);
 
   /* Multiple Render Targets */
-  // void drawBuffers(sequence<GLenum> buffers);
+  void drawBuffers(sequence<GLenum> buffers);
 
   void clearBufferfv(GLenum buffer, GLint drawbuffer, Float32List values,
                      optional GLuint srcOffset = 0);

@@ -7,7 +7,6 @@ use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
-use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding;
 use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextMethods;
 use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextOptions;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -86,11 +85,7 @@ impl OfflineAudioContext {
         let pipeline_id = window.pipeline_id();
         let context =
             OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
-        Ok(reflect_dom_object(
-            Box::new(context),
-            window,
-            OfflineAudioContextBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(context), window))
     }
 
     pub fn Constructor(

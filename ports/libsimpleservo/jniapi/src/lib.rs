@@ -603,6 +603,13 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+
+    fn on_devtools_started(&self, port: Result<u16, ()>) {
+        match port {
+            Ok(p) => info!("Devtools Server running on port {}", p),
+            Err(()) => error!("Error running devtools server"),
+        }
+    }
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {

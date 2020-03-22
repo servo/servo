@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
-use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -42,11 +42,7 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object(
-            Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
-            global,
-            Wrap,
-        )
+        reflect_dom_object(Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)), global)
     }
 
     pub fn Constructor(

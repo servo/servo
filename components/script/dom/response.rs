@@ -74,11 +74,7 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        reflect_dom_object(
-            Box::new(Response::new_inherited()),
-            global,
-            ResponseBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Response::new_inherited()), global)
     }
 
     pub fn Constructor(

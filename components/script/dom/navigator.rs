@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -58,11 +57,7 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(
-            Box::new(Navigator::new_inherited()),
-            window,
-            NavigatorBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window)
     }
 }
 

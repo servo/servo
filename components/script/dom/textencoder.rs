@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::TextEncoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -29,11 +28,7 @@ impl TextEncoder {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TextEncoder> {
-        reflect_dom_object(
-            Box::new(TextEncoder::new_inherited()),
-            global,
-            TextEncoderBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(TextEncoder::new_inherited()), global)
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder

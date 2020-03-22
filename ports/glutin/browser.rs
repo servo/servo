@@ -515,6 +515,12 @@ where
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for Glutin based browsers.
                 },
+                EmbedderMsg::OnDevtoolsStarted(port) => {
+                    match port {
+                        Ok(p) => info!("Devtools Server running on port {}", p),
+                        Err(()) => error!("Error running devtools server"),
+                    }
+                },
             }
         }
     }

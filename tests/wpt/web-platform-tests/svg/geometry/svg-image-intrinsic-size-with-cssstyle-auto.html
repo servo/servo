@@ -43,6 +43,8 @@
   <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 400 100'></svg>" style='width:auto'/>
   <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 400 100'></svg>" style='height:auto'/>
   <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 400 100'></svg>" style='width:auto; height:auto'/>
+  <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'></svg>" style='height:auto'/>
+  <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'></svg>" style='width:auto'/>
 </svg>
 <script>
 var expectedBoxes = [
@@ -76,6 +78,8 @@ var expectedBoxes = [
   { dimensions: [120, 60], description: "200x100 svg image viewBox='0 0 400 100', attributes width='60' height='60' and CSS 'width:auto'"},
   { dimensions: [60, 30], description: "200x100 svg image viewBox='0 0 400 100', attributes width='60' height='60' and CSS 'height:auto'"},
   { dimensions: [200, 100], description: "200x100 svg image viewBox='0 0 400 100', attributes width='60' height='60' and CSS 'width:auto; height:auto'"},
+  { dimensions: [60, 150], description: "default sized svg image, attributes width='60' height='60' and CSS 'height:auto'"},
+  { dimensions: [300, 60], description: "default sized svg image, attributes width='60' height='60' and CSS 'width:auto'"}
 ];
 
 var images = document.getElementsByTagName('image');

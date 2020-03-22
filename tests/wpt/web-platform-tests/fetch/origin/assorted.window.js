@@ -118,7 +118,6 @@ function navigationReferrerPolicy(referrerPolicy, destination, expectedOrigin) {
 function fetchReferrerPolicy(referrerPolicy, destination, fetchMode, expectedOrigin) {
   return async function () {
     const stash = token();
-    const referrerPolicyPath = "/fetch/origin/resources/referrer-policy.py";
     const redirectPath = "/fetch/origin/resources/redirect-and-stash.py";
 
     let fetchUrl =

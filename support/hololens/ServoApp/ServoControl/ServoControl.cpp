@@ -11,6 +11,8 @@ using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::System;
 using namespace winrt::Windows::Devices::Input;
+using namespace winrt::Windows::UI::Notifications;
+using namespace winrt::Windows::Data::Xml::Dom;
 using namespace concurrency;
 using namespace winrt::servo;
 
@@ -554,6 +556,22 @@ std::optional<hstring> ServoControl::OnServoPromptInput(winrt::hstring message,
   auto title = trusted ? L"" : mCurrentUrl + L" says:";
   auto [button, string] = PromptSync(title, message, L"Ok", L"Cancel", default);
   return string;
+}
+
+void ServoControl::OnServoDevtoolsStarted(bool success,
+                                          const unsigned int port) {
+  auto toastTemplate = ToastTemplateType::ToastText01;
+  auto toastXml = ToastNotificationManager::GetTemplateContent(toastTemplate);
+  auto toastTextElements = toastXml.GetElementsByTagName(L"text");
+  std::wstring message;
+  if (success) {
+    message = L"DevTools server has started on port " + std::to_wstring(port);
+  } else {
+    message = L"Error: could not start DevTools";
+  }
+  toastTextElements.Item(0).InnerText(message);
+  auto toast = ToastNotification(toastXml);
+  ToastNotificationManager::CreateToastNotifier().Show(toast);
 }
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PaintSizeBinding;
 use crate::dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -33,11 +32,7 @@ impl PaintSize {
         global: &PaintWorkletGlobalScope,
         size: Size2D<f32, CSSPixel>,
     ) -> DomRoot<PaintSize> {
-        reflect_dom_object(
-            Box::new(PaintSize::new_inherited(size)),
-            global,
-            PaintSizeBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(PaintSize::new_inherited(size)), global)
     }
 }
 

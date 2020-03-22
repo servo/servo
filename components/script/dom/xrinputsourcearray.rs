@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -31,11 +30,7 @@ impl XRInputSourceArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object(
-            Box::new(XRInputSourceArray::new_inherited()),
-            global,
-            XRInputSourceArrayBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRInputSourceArray::new_inherited()), global)
     }
 
     pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource]) {

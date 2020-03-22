@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::NavigationType;
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
-use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{
-    self, NavigationType,
-};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -61,7 +59,6 @@ impl PerformanceNavigationTiming {
                 document,
             )),
             global,
-            PerformanceNavigationTimingBinding::Wrap,
         )
     }
 }

@@ -9,7 +9,6 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
@@ -294,7 +293,6 @@ impl Element {
                 local_name, namespace, prefix, document,
             )),
             document,
-            ElementBinding::Wrap,
         )
     }
 

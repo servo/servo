@@ -546,6 +546,8 @@ pub enum WebGLCommand {
     InvalidateFramebuffer(u32, Vec<u32>),
     InvalidateSubFramebuffer(u32, Vec<u32>, i32, i32, i32, i32),
     FramebufferTextureLayer(u32, u32, Option<WebGLTextureId>, i32, i32),
+    ReadBuffer(u32),
+    DrawBuffers(Vec<u32>),
 }
 
 macro_rules! nonzero_type {

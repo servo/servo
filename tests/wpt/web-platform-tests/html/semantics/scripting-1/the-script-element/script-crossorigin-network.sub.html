@@ -1,0 +1,120 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLScriptElement: crossorigin attribute network test</title>
+<link rel="author" title="KiChjang" href="mailto:kungfukeith11@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#cors-settings-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script type="text/javascript">
+  var test1 = async_test("same-origin use-credentials");
+  var test2 = async_test("same-origin invalid");
+  var test3 = async_test("same-origin missing");
+  var test4 = async_test("cross-origin use-credentials");
+  var test5 = async_test("cross-origin invalid");
+  var test6 = async_test("cross-origin missing");
+  var test7 = async_test("cross-origin use-credentials mixed case");
+  var test8 = async_test("cross-origin use-credentials non-ASCII");
+
+  var same = "resources/cross-origin.py";
+  var cross = new URL(same, location);
+  cross.port = {{ports[http][1]}};
+
+  var script1 = document.createElement("script");
+  script1.src = same;
+  script1.crossOrigin = "use-credentials";
+
+  var script2 = document.createElement("script");
+  script2.src = same;
+  script2.crossOrigin = "gibberish";
+
+  var script3 = document.createElement("script");
+  script3.src = same;
+
+  var script4 = document.createElement("script");
+  script4.src = cross;
+  script4.crossOrigin = "use-credentials";
+
+  var script5 = document.createElement("script");
+  script5.src = cross;
+  script5.crossOrigin = "gibberish";
+
+  var script6 = document.createElement("script");
+  script6.src = cross;
+
+  var script7 = document.createElement("script");
+  script7.src = cross;
+  script7.crossOrigin = "UsE-cReDenTiAlS";
+
+  var script8 = document.createElement("script");
+  script8.src = cross;
+  script8.crossOrigin = "uſe-credentialſ";
+
+  document.cookie = "milk=yes";
+
+  document.body.appendChild(script1);
+  script1.onload = function() {
+    test1.step(function() {
+      assert_true(included, "credentials included (credentialsMode include)");
+      test1.done();
+    });
+  };
+
+  document.body.appendChild(script2);
+  script2.onload = function() {
+    test2.step(function() {
+      assert_true(included, "credentials included (credentialsMode same-origin)");
+      test2.done();
+    });
+  };
+
+  document.body.appendChild(script3);
+  script3.onload = function() {
+    test3.step(function() {
+      assert_true(included, "credentials included (credentialsMode include)");
+      test3.done();
+    });
+  };
+
+  document.body.appendChild(script4);
+  script4.onload = function() {
+    test4.step(function() {
+      assert_true(included, "credentials included (credentialsMode include)");
+      test4.done();
+    });
+  };
+
+  document.body.appendChild(script5);
+  script5.onload = function() {
+    test5.step(function() {
+      assert_false(included, "credentials excluded (credentialsMode same-origin)");
+      test5.done();
+    });
+  };
+
+  document.body.appendChild(script6);
+  script6.onload = function() {
+    test6.step(function() {
+      assert_true(included, "credentials included (credentialsMode include)");
+      test6.done();
+    });
+  };
+
+  document.body.appendChild(script7);
+  script7.onload = function() {
+    test7.step(function() {
+      assert_true(included, "credentials included (credentialsMode include)");
+      test7.done();
+    });
+  };
+
+  document.body.appendChild(script8);
+  script8.onload = function() {
+    test8.step(function() {
+      assert_false(included, "credentials excluded (credentialsMode same-origin)");
+      test8.done();
+    });
+  };
+  </script>
+</body>

@@ -5,9 +5,7 @@
 use super::{
     constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
 };
-use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::{
-    self, OESTextureHalfFloatConstants,
-};
+use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -33,7 +31,6 @@ impl WebGLExtension for OESTextureHalfFloat {
         reflect_dom_object(
             Box::new(OESTextureHalfFloat::new_inherited()),
             &*ctx.global(),
-            OESTextureHalfFloatBinding::Wrap,
         )
     }
 

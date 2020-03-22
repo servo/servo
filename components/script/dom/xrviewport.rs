@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRViewportBinding;
 use crate::dom::bindings::codegen::Bindings::XRViewportBinding::XRViewportMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -26,11 +25,7 @@ impl XRViewport {
     }
 
     pub fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
-        reflect_dom_object(
-            Box::new(XRViewport::new_inherited(viewport)),
-            global,
-            XRViewportBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(XRViewport::new_inherited(viewport)), global)
     }
 }
 

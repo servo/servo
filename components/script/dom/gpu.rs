@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::GPUBinding::GPURequestAdapterOptions;
-use crate::dom::bindings::codegen::Bindings::GPUBinding::{self, GPUMethods, GPUPowerPreference};
+use crate::dom::bindings::codegen::Bindings::GPUBinding::{GPUMethods, GPUPowerPreference};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -36,7 +36,7 @@ impl GPU {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global, GPUBinding::Wrap)
+        reflect_dom_object(Box::new(GPU::new_inherited()), global)
     }
 }
 

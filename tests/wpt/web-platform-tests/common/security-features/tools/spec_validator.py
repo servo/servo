@@ -101,7 +101,7 @@ def validate(spec_json, details):
     test_expansion_schema = spec_json['test_expansion_schema']
     excluded_tests = spec_json['excluded_tests']
 
-    valid_test_expansion_fields = ['name'] + test_expansion_schema.keys()
+    valid_test_expansion_fields = test_expansion_schema.keys()
 
     # Should be consistent with `sourceContextMap` in
     # `/common/security-features/resources/common.sub.js`.
@@ -136,24 +136,15 @@ def validate(spec_json, details):
 
         # Validate required fields for a single spec.
         assert_contains_only_fields(spec, [
-            'name', 'title', 'description', 'specification_url',
-            'test_expansion'
+            'title', 'description', 'specification_url', 'test_expansion'
         ])
-        assert_non_empty_string(spec, 'name')
         assert_non_empty_string(spec, 'title')
         assert_non_empty_string(spec, 'description')
         assert_non_empty_string(spec, 'specification_url')
         assert_non_empty_list(spec, 'test_expansion')
 
-        # Validate spec's test expansion.
-        used_spec_names = {}
-
         for spec_exp in spec['test_expansion']:
             details['object'] = spec_exp
-            assert_non_empty_string(spec_exp, 'name')
-            # The name is unique in same expansion group.
-            assert_value_unique_in((spec_exp['expansion'], spec_exp['name']),
-                                   used_spec_names)
             assert_contains_only_fields(spec_exp, valid_test_expansion_fields)
 
             for artifact in test_expansion_schema:

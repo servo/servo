@@ -5,7 +5,6 @@
 // check-tidy: no specs after this line
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding;
 use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::iterable::Iterable;
@@ -55,7 +54,6 @@ impl TestBindingPairIterable {
                 map: DomRefCell::new(vec![]),
             }),
             global,
-            TestBindingPairIterableBinding::TestBindingPairIterableWrap,
         )
     }
 

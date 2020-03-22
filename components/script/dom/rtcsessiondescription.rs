@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding;
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::RTCSessionDescriptionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
@@ -40,7 +39,6 @@ impl RTCSessionDescription {
         reflect_dom_object(
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
             global,
-            RTCSessionDescriptionBinding::Wrap,
         )
     }
 

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::display_list::stacking_context::{
     ContainingBlock, ContainingBlockInfo, StackingContext, StackingContextBuildMode,
@@ -62,7 +63,7 @@ impl BoxTreeRoot {
 fn construct_for_root_element<'dom>(
     context: &LayoutContext,
     root_element: impl NodeExt<'dom>,
-) -> (ContainsFloats, Vec<Arc<BlockLevelBox>>) {
+) -> (ContainsFloats, Vec<ArcRefCell<BlockLevelBox>>) {
     let style = root_element.style(context);
     let replaced = ReplacedContent::for_element(root_element);
     let box_style = style.get_box();
@@ -83,27 +84,29 @@ fn construct_for_root_element<'dom>(
     if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                AbsolutelyPositionedBox::construct(
-                    context,
-                    root_element,
-                    style,
-                    display_inside,
-                    contents,
-                ),
-            ))],
+            vec![ArcRefCell::new(
+                BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+                    AbsolutelyPositionedBox::construct(
+                        context,
+                        root_element,
+                        style,
+                        display_inside,
+                        contents,
+                    ),
+                )),
+            )],
         )
     } else if box_style.float.is_floating() {
         (
             ContainsFloats::Yes,
-            vec![Arc::new(BlockLevelBox::OutOfFlowFloatBox(
+            vec![ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(
                 FloatBox::construct(context, root_element, style, display_inside, contents),
             ))],
         )
     } else {
         (
             ContainsFloats::No,
-            vec![Arc::new(BlockLevelBox::Independent(
+            vec![ArcRefCell::new(BlockLevelBox::Independent(
                 IndependentFormattingContext::construct(
                     context,
                     root_element,

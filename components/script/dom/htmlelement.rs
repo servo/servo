@@ -5,7 +5,6 @@
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::HTMLElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
@@ -85,7 +84,6 @@ impl HTMLElement {
         Node::reflect_node(
             Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLElementBinding::Wrap,
         )
     }
 

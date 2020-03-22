@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -52,7 +51,6 @@ impl WebGLContextEvent {
         let event = reflect_dom_object(
             Box::new(WebGLContextEvent::new_inherited(status_message)),
             window,
-            WebGLContextEventBinding::Wrap,
         );
 
         {

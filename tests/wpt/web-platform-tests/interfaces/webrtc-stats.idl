@@ -130,6 +130,7 @@ dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
 };
 
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
+             unsigned long        rtxSsrc;
              DOMString            trackId;
              DOMString            mediaSourceId;
              DOMString            senderId;

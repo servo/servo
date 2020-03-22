@@ -5,7 +5,6 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
@@ -71,7 +70,7 @@ impl PerformanceObserver {
         entries: DOMPerformanceEntryList,
     ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object(Box::new(observer), global, PerformanceObserverBinding::Wrap)
+        reflect_dom_object(Box::new(observer), global)
     }
 
     #[allow(non_snake_case)]

@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
-    self, PermissionDescriptor, PermissionName,
+    PermissionDescriptor, PermissionName,
 };
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -36,7 +36,6 @@ impl PermissionStatus {
         reflect_dom_object(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
-            PermissionStatusBinding::Wrap,
         )
     }
 

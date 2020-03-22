@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -53,7 +52,6 @@ impl CSSMediaRule {
         reflect_dom_object(
             Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
             window,
-            CSSMediaRuleBinding::Wrap,
         )
     }
 

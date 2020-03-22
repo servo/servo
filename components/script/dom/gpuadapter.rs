@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
-    self, GPUAdapterMethods, GPUDeviceDescriptor,
+    GPUAdapterMethods, GPUDeviceDescriptor,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -61,7 +61,6 @@ impl GPUAdapter {
                 channel, name, extensions, adapter,
             )),
             global,
-            GPUAdapterBinding::Wrap,
         )
     }
 }

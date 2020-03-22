@@ -363,10 +363,8 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
 
     fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
 
-    fn nested_visit_map<'this>(
-        &'this mut self,
-    ) -> hir::intravisit::NestedVisitorMap<'this, Self::Map> {
-        hir::intravisit::NestedVisitorMap::OnlyBodies(&self.cx.tcx.hir())
+    fn nested_visit_map(&mut self) -> hir::intravisit::NestedVisitorMap<Self::Map> {
+        hir::intravisit::NestedVisitorMap::OnlyBodies(self.cx.tcx.hir())
     }
 }
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding;
 use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryListEventInit;
 use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryListEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -37,7 +36,7 @@ impl MediaQueryListEvent {
             media: media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object(ev, global, MediaQueryListEventBinding::Wrap)
+        reflect_dom_object(ev, global)
     }
 
     pub fn new(

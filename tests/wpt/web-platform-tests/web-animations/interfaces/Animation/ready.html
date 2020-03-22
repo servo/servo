@@ -57,5 +57,22 @@ promise_test(t => {
   });
 }, 'The ready promise is fulfilled with its Animation');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  // Ensure the ready promise is created
+  const ready = animation.ready;
+
+  window.addEventListener(
+    'unhandledrejection',
+    t.unreached_func('Should not get an unhandled rejection')
+  );
+
+  animation.cancel();
+
+  // Wait a moment to allow a chance for the event to be dispatched.
+  await waitForAnimationFrames(2);
+}, 'The ready promise does not report an unhandledrejection when rejected');
+
 </script>
 </body>

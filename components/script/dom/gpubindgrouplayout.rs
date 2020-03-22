@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
-    self, GPUBindGroupLayoutBindings, GPUBindGroupLayoutMethods,
+    GPUBindGroupLayoutBindings, GPUBindGroupLayoutMethods,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -58,7 +58,6 @@ impl GPUBindGroupLayout {
                 valid,
             )),
             global,
-            GPUBindGroupLayoutBinding::Wrap,
         )
     }
 }

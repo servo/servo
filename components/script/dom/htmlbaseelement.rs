@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -42,7 +41,6 @@ impl HTMLBaseElement {
         Node::reflect_node(
             Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
             document,
-            HTMLBaseElementBinding::Wrap,
         )
     }
 

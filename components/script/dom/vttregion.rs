@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{
-    self, ScrollSetting, VTTRegionMethods,
-};
+use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, VTTRegionMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -45,11 +43,7 @@ impl VTTRegion {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited()),
-            global,
-            VTTRegionBinding::Wrap,
-        )
+        reflect_dom_object(Box::new(Self::new_inherited()), global)
     }
 
     #[allow(non_snake_case)]

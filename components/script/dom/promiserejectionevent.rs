@@ -53,7 +53,6 @@ impl PromiseRejectionEvent {
         let ev = reflect_dom_object(
             Box::new(PromiseRejectionEvent::new_inherited(promise)),
             global,
-            PromiseRejectionEventBinding::Wrap,
         );
 
         {

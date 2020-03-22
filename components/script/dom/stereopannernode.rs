@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerNodeMethods;
-use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{self, StereoPannerOptions};
+use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -76,11 +76,7 @@ impl StereoPannerNode {
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
         let node = StereoPannerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(
-            Box::new(node),
-            window,
-            StereoPannerNodeBinding::Wrap,
-        ))
+        Ok(reflect_dom_object(Box::new(node), window))
     }
 
     #[allow(non_snake_case)]

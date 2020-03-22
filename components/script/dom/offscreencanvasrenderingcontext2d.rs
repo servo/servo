@@ -8,7 +8,6 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Ca
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::ErrorResult;
@@ -60,11 +59,7 @@ impl OffscreenCanvasRenderingContext2D {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
             global, canvas, htmlcanvas,
         ));
-        reflect_dom_object(
-            boxed,
-            global,
-            OffscreenCanvasRenderingContext2DBinding::Wrap,
-        )
+        reflect_dom_object(boxed, global)
     }
     /*
     pub fn get_canvas_state(&self) -> Ref<CanvasState> {

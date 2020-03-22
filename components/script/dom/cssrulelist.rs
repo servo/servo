@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -86,7 +85,6 @@ impl CSSRuleList {
         reflect_dom_object(
             Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
             window,
-            CSSRuleListBinding::Wrap,
         )
     }
 

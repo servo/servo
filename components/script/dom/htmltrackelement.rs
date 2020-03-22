@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::{
-    self, HTMLTrackElementConstants, HTMLTrackElementMethods,
+    HTMLTrackElementConstants, HTMLTrackElementMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -66,7 +66,6 @@ impl HTMLTrackElement {
                 local_name, prefix, document, &track,
             )),
             document,
-            HTMLTrackElementBinding::Wrap,
         )
     }
 }
