@@ -615,7 +615,7 @@ impl WindowMethods for Window {
             let mut stderr = stderr.lock();
             let stdout = stdout();
             let mut stdout = stdout.lock();
-            writeln!(&mut stdout, "ALERT: {}", s).unwrap();
+            writeln!(&mut stdout, "\nALERT: {}", s).unwrap();
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
