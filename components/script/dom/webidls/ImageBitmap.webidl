@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#imagebitmap
+ * https://html.spec.whatwg.org/multipage/#imagebitmap
  *
  * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and Opera Software ASA.
  * You are granted a license to use, reproduce and create derivative works of this document.
