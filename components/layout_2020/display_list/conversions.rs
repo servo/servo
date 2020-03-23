@@ -4,6 +4,7 @@
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::computed::Length;
@@ -98,5 +99,18 @@ impl ToWebRender for PhysicalSides<Length> {
             self.bottom.px(),
             self.left.px(),
         )
+    }
+}
+
+impl ToWebRender for ComputedTextDecorationStyle {
+    type Type = webrender_api::LineStyle;
+    fn to_webrender(&self) -> Self::Type {
+        match *self {
+            ComputedTextDecorationStyle::Solid => wr::LineStyle::Solid,
+            ComputedTextDecorationStyle::Dotted => wr::LineStyle::Dotted,
+            ComputedTextDecorationStyle::Dashed => wr::LineStyle::Dashed,
+            ComputedTextDecorationStyle::Wavy => wr::LineStyle::Wavy,
+            _ => wr::LineStyle::Solid,
+        }
     }
 }

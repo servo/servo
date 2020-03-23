@@ -7,6 +7,7 @@ use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
 use crate::positioned::HoistedFragmentId;
+use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 #[cfg(not(debug_assertions))]
@@ -18,6 +19,7 @@ use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
+use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
@@ -86,6 +88,29 @@ pub(crate) struct AnonymousFragment {
     pub scrollable_overflow: PhysicalRect<Length>,
 }
 
+#[derive(Clone, Copy, Serialize)]
+pub(crate) struct FontMetrics {
+    pub ascent: Length,
+    pub line_gap: Length,
+    pub underline_offset: Length,
+    pub underline_size: Length,
+    pub strikeout_offset: Length,
+    pub strikeout_size: Length,
+}
+
+impl From<&GfxFontMetrics> for FontMetrics {
+    fn from(metrics: &GfxFontMetrics) -> FontMetrics {
+        FontMetrics {
+            ascent: metrics.ascent.into(),
+            line_gap: metrics.line_gap.into(),
+            underline_offset: metrics.underline_offset.into(),
+            underline_size: metrics.underline_size.into(),
+            strikeout_offset: metrics.strikeout_offset.into(),
+            strikeout_size: metrics.strikeout_size.into(),
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct TextFragment {
     pub debug_id: DebugId,
@@ -93,10 +118,12 @@ pub(crate) struct TextFragment {
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
-    pub ascent: Length,
+    pub font_metrics: FontMetrics,
     #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
+    /// A flag that represents the _used_ value of the text-decoration property.
+    pub text_decoration_line: TextDecorationLine,
 }
 
 #[derive(Serialize)]

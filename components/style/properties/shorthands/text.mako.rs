@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="text-decoration"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020"
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="text-decoration-line
                     ${' text-decoration-style text-decoration-color text-decoration-thickness' if engine == 'gecko' else ''}"

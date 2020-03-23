@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
-use crate::fragments::{BoxFragment, Fragment};
+use crate::fragments::{BoxFragment, Fragment, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use embedder_traits::Cursor;
@@ -13,10 +13,11 @@ use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
+use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
+use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use webrender_api::{self as wr, units};
 
@@ -80,30 +81,6 @@ impl Fragment {
             Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
-            Fragment::Text(t) => {
-                builder.is_contentful = true;
-                let rect = t
-                    .rect
-                    .to_physical(t.parent_style.writing_mode, containing_block)
-                    .translate(containing_block.origin.to_vector());
-                let mut baseline_origin = rect.origin.clone();
-                baseline_origin.y += t.ascent;
-                let glyphs = glyphs(&t.glyphs, baseline_origin);
-                if glyphs.is_empty() {
-                    return;
-                }
-                let mut common = builder.common_properties(rect.clone().to_webrender());
-                common.hit_info = hit_info(&t.parent_style, t.tag, Cursor::Text);
-                let color = t.parent_style.clone_color();
-                builder.wr.push_text(
-                    &common,
-                    rect.to_webrender(),
-                    &glyphs,
-                    t.font_key,
-                    rgba(color),
-                    None,
-                );
-            },
             Fragment::Image(i) => {
                 builder.is_contentful = true;
                 let rect = i
@@ -120,7 +97,110 @@ impl Fragment {
                     wr::ColorF::WHITE,
                 );
             },
+            Fragment::Text(t) => {
+                self.build_display_list_for_text_fragment(t, builder, containing_block)
+            },
         }
+    }
+
+    fn build_display_list_for_text_fragment(
+        &self,
+        fragment: &TextFragment,
+        builder: &mut DisplayListBuilder,
+        containing_block: &PhysicalRect<Length>,
+    ) {
+        // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
+        // shadows, underline, overline, text, text-emphasis, and then line-through.
+
+        builder.is_contentful = true;
+
+        let rect = fragment
+            .rect
+            .to_physical(fragment.parent_style.writing_mode, containing_block)
+            .translate(containing_block.origin.to_vector());
+        let mut baseline_origin = rect.origin.clone();
+        baseline_origin.y += fragment.font_metrics.ascent;
+        let glyphs = glyphs(&fragment.glyphs, baseline_origin);
+        if glyphs.is_empty() {
+            return;
+        }
+
+        let mut common = builder.common_properties(rect.to_webrender());
+        common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
+
+        let color = fragment.parent_style.clone_color();
+        let font_metrics = &fragment.font_metrics;
+
+        // Underline.
+        if fragment
+            .text_decoration_line
+            .contains(TextDecorationLine::UNDERLINE)
+        {
+            let mut rect = rect;
+            rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
+            rect.size.height = font_metrics.underline_size;
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+        }
+
+        // Overline.
+        if fragment
+            .text_decoration_line
+            .contains(TextDecorationLine::OVERLINE)
+        {
+            let mut rect = rect;
+            rect.size.height = font_metrics.underline_size;
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+        }
+
+        // Text.
+        builder.wr.push_text(
+            &common,
+            rect.to_webrender(),
+            &glyphs,
+            fragment.font_key,
+            rgba(color),
+            None,
+        );
+
+        // Line-through.
+        if fragment
+            .text_decoration_line
+            .contains(TextDecorationLine::LINE_THROUGH)
+        {
+            let mut rect = rect;
+            rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
+            // XXX(ferjm) This does not work on MacOS #942
+            rect.size.height = font_metrics.strikeout_size;
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+        }
+    }
+
+    fn build_display_list_for_text_decoration(
+        &self,
+        fragment: &TextFragment,
+        builder: &mut DisplayListBuilder,
+        rect: &PhysicalRect<Length>,
+        color: cssparser::RGBA,
+    ) {
+        let rect = rect.to_webrender();
+        let wavy_line_thickness = (0.33 * rect.size.height).ceil();
+        let text_decoration_color = fragment
+            .parent_style
+            .clone_text_decoration_color()
+            .to_rgba(color);
+        let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
+        if text_decoration_style == ComputedTextDecorationStyle::MozNone {
+            return;
+        }
+        builder.wr.push_line(
+            &builder.common_properties(rect),
+            &rect,
+            wavy_line_thickness,
+            wr::LineOrientation::Horizontal,
+            &rgba(text_decoration_color),
+            text_decoration_style.to_webrender(),
+        );
+        // XXX(ferjm) support text-decoration-style: double
     }
 }
 
