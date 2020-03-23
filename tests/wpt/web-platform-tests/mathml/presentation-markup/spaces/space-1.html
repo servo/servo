@@ -63,9 +63,25 @@
       }
     }, "Various combinations of height, depth and width.");
 
+    test(function() {
+      var container = document.getElementById("containerForPreferredWidth");
+      var mspace = container.getElementsByTagName("mspace")[0];
+      var containerWidth = container.getBoundingClientRect().width;
+      var mspaceWidth = mspace.getBoundingClientRect().width;
+      assert_approx_equals(containerWidth, mspaceWidth, epsilon);
+    }, "Preferred width");
+
     done();
   }
 </script>
+<style>
+div.shrink-wrap {
+  background: yellow;
+  display: inline-block;
+  margin-top: 5px;
+  padding-top: 5px;
+}
+</style>
 </head>
 <body>
   <div id="log"></div>
@@ -87,5 +103,10 @@
       <mspace id="mspace2" width="75px" height="25px" depth="50px" style="background: green"/>
     </math>
   </p>
+  <div>
+    <div id="containerForPreferredWidth" class="shrink-wrap">
+      <math><mspace width="75px" height="25px" depth="50px" style="background: green"/></math>
+    </div>
+  </div>
 </body>
 </html>

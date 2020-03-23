@@ -55,7 +55,7 @@
       var emToPx = 25;
 
       ["msub", "msup", "msubsup", "munder", "mover", "munderover",
-       "mmultiscripts", "mfrac", "maction", "semantics"].forEach(tag => {
+       "mmultiscripts", "mfrac"].forEach(tag => {
            test(function() {
                assert_true(MathMLFeatureDetection.has_operator_spacing());
                var element = document.getElementsByTagName(tag)[0];
@@ -87,7 +87,7 @@
 <body>
   <div id="log"></div>
   <!-- <msub>, <msup>, <msubsup>, <munder>, <mover>, <munderover>,
-       <mmultiscripts>, <mfrac>, <semantics> or <maction> are embellished
+       <mmultiscripts>, <mfrac> are embellished
        operators if their first in-flow
        child exists and is an embellished operator -->
   <p>
@@ -174,27 +174,6 @@
       <mn>X</mn>
     </math>
   </p>
-  <p>
-    <math>
-      <mn>X</mn>
-      <maction class="testedElement" actiontype="statusline">
-        <mo lspace="2em" rspace="0em">X</mo>
-        <mn>STATUS MESSAGE</mn>
-      </maction>
-      <mn>X</mn>
-    </math>
-  </p>
-  <p>
-    <math>
-      <mn>X</mn>
-      <semantics class="testedElement">
-        <mo lspace="2em" rspace="0em">X</mo>
-        <annotation>TEXT ANNOTATION</annotation>
-        <mn>X</mn>
-      </semantics>
-      <mn>X</mn>
-    </math>
-  </p>
 
   <!-- Only in-flow children affect determination of embellished operators. -->
   <p>
@@ -341,43 +320,9 @@
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
     </math>
   </p>
-  <p>
-    <math>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <maction class="testedElement" actiontype="statusline">
-        <mo lspace="2em" rspace="0em">X</mo>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        <mn>STATUS MESSAGE</mn>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      </maction>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-    </math>
-  </p>
-  <p>
-    <math>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <semantics class="testedElement">
-        <mo lspace="2em" rspace="0em">X</mo>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        <annotation>TEXT ANNOTATION</annotation>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        <mn>X</mn>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      </semantics>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-    </math>
-  </p>
 
   <!-- <msub>, <msup>, <msubsup>, <munder>, <mover>, <munderover>,
-       <mmultiscripts>, <mfrac>, <semantics> or <maction> are not embellished
+       <mmultiscripts>, <mfrac> are not embellished
        operators if their first in-flow child is not an embellished operator -->
   <p>
     <math>
@@ -463,29 +408,6 @@
       <mn>X</mn>
     </math>
   </p>
-  <p>
-    <math>
-      <mn>X</mn>
-      <maction class="testedElement" actiontype="statusline">
-        <mn>X</mn>
-        <mo lspace="2em" rspace="0em">STATUS MESSAGE</mo>
-      </maction>
-      <mn>X</mn>
-    </math>
-  </p>
-  <p>
-    <math>
-      <mn>X</mn>
-      <semantics class="testedElement">
-        <mrow>
-          <mn>X</mn>
-          <mo lspace="2em" rspace="0em">X</mo>
-        </mrow>
-        <annotation>TEXT ANNOTATION</annotation>
-      </semantics>
-      <mn>X</mn>
-    </math>
-  </p>
 
   <!-- Only in-flow children affect determination of embellished operators. -->
   <p>
@@ -627,44 +549,6 @@
         <mo lspace="2em" rspace="0em">X</mo>
         <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       </mfrac>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-    </math>
-  </p>
-  <p>
-    <math>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <maction class="testedElement" actiontype="statusline">
-        <mn>X</mn>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        <mo lspace="2em" rspace="0em">STATUS MESSAGE</mo>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      </maction>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-    </math>
-  </p>
-  <p>
-    <math>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <mn>X</mn>
-      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      <semantics class="testedElement">
-        <mrow>
-          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-          <mn>X</mn>
-          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-          <mo lspace="2em" rspace="0em">X</mo>
-          <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        </mrow>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-        <annotation>TEXT ANNOTATION</annotation>
-        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
-      </semantics>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       <mn>X</mn>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
