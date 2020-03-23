@@ -187,19 +187,6 @@ partial interface Document {
   // readonly attribute HTMLAllCollection all;
 };
 
-// http://w3c.github.io/touch-events/#idl-def-Document
-partial interface Document {
-      Touch createTouch(Window/*Proxy*/ view,
-                        EventTarget target,
-                        long identifier,
-                        double pageX,
-                        double pageY,
-                        double screenX,
-                        double screenY);
-
-      TouchList createTouchList(Touch... touches);
-};
-
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
   [LenientSetter] readonly attribute boolean fullscreenEnabled;

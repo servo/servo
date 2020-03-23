@@ -4091,29 +4091,6 @@ impl DocumentMethods for Document {
         NodeIterator::new(self, root, what_to_show, filter)
     }
 
-    // https://w3c.github.io/touch-events/#idl-def-Document
-    fn CreateTouch(
-        &self,
-        window: &Window,
-        target: &EventTarget,
-        identifier: i32,
-        page_x: Finite<f64>,
-        page_y: Finite<f64>,
-        screen_x: Finite<f64>,
-        screen_y: Finite<f64>,
-    ) -> DomRoot<Touch> {
-        let client_x = Finite::wrap(*page_x - window.PageXOffset() as f64);
-        let client_y = Finite::wrap(*page_y - window.PageYOffset() as f64);
-        Touch::new(
-            window, identifier, target, screen_x, screen_y, client_x, client_y, page_x, page_y,
-        )
-    }
-
-    // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
-    fn CreateTouchList(&self, touches: &[&Touch]) -> DomRoot<TouchList> {
-        TouchList::new(&self.window, &touches)
-    }
-
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(
         &self,
