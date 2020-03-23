@@ -53,7 +53,7 @@ impl ImageBitmap {
         Ok(reflect_dom_object(
             imagebitmap,
             global,
-            ImageBitmapBinding::Wrap,
+            //ImageBitmapBinding::Wrap,
         ))
     }
 }
