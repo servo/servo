@@ -58,7 +58,7 @@
       var epsilon = 1;
       var emToPx = 25;
 
-      ["mrow", "mstyle", "mphantom", "mpadded"].forEach(tag => {
+      ["mrow", "mstyle", "mphantom", "mpadded", "merror", "mprescripts", "none", "unknown"].forEach(tag => {
           test(function() {
               assert_true(MathMLFeatureDetection.has_operator_spacing());
               assert_approx_equals(spaceBeforeElement(`${tag}-op-1`), 2 * emToPx, epsilon);
@@ -252,7 +252,7 @@
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
     </math>
   </p>
-  <!-- mpadded is an embellished operator if its children consist
+  <!-- mpadded is an embellished operator if its in-flow children consist
        of one embellished operator and zero or more space-like elements. -->
   <p>
     <math>
@@ -300,6 +300,218 @@
         <mn>X</mn> <!-- "mn" is not space-like -->
         <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       </mpadded>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- merror is an embellished operator if its in-flow children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <merror id="merror-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </merror>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <merror id="merror-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </merror>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <merror id="merror-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </merror>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <merror id="merror-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </merror>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- mprescripts is an embellished operator if its in-flow children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <mprescripts id="mprescripts-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </mprescripts>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mprescripts id="mprescripts-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </mprescripts>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mprescripts id="mprescripts-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mprescripts>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mprescripts id="mprescripts-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </mprescripts>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- none is an embellished operator if its in-flow children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <none id="none-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </none>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <none id="none-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </none>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <none id="none-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </none>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <none id="none-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </none>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <!-- unknown is an embellished operator if its in-flow children consist
+       of one embellished operator and zero or more space-like elements. -->
+  <p>
+    <math>
+      <mn>X</mn>
+      <unknown id="unknown-op-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+      </unknown>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <unknown id="unknown-nonop-1" class="testedElement">
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+      </unknown>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <unknown id="unknown-op-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </unknown>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <mn>X</mn>
+      <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      <unknown id="unknown-nonop-2" class="testedElement">
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mo lspace="2em" rspace="0em">X</mo>
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+        <mn>X</mn> <!-- "mn" is not space-like -->
+        <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
+      </unknown>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>
       <mn>X</mn>
       <mn class="oof1">0</mn><mn class="oof2">1</mn><mn class="nobox">2</mn>

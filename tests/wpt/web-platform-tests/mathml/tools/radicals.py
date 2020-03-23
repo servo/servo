@@ -12,8 +12,9 @@ def createStretchyRadical(aFont):
     mathfont.drawRectangleGlyph(g, mathfont.em, 3 * mathfont.em, 0)
     g = aFont.createChar(-1, "size3")
     mathfont.drawRectangleGlyph(g, mathfont.em, 4 * mathfont.em, 0)
-    overlap = mathfont.em / 2
     aFont[radicalCodePoint].verticalVariants = "radical size1 size2 size3"
+    # Part: (glyphName, isExtender, startConnector, endConnector, fullAdvance)
+    aFont.math.MinConnectorOverlap = 0
     aFont[radicalCodePoint].verticalComponents = \
         (("size2", False, 0, mathfont.em, 3 * mathfont.em), \
          ("size1", True, mathfont.em, mathfont.em, 2 * mathfont.em))

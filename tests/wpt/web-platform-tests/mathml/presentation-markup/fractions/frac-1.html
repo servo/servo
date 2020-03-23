@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <title>Fraction</title>
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fraction-with-nonzero-line-thickness">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fraction-with-zero-line-thickness">
 <meta name="assert" content="Verify fraction metrics for different sizes of numerator and denominator.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -11,6 +13,12 @@
 <style>
   math, mspace {
     font-size: 10px;
+  }
+  div.shrink-wrap {
+    background: yellow;
+    display: inline-block;
+    margin-top: 5px;
+    padding-top: 5px;
   }
 </style>
 <script>
@@ -83,6 +91,21 @@
       }
     }, "Dimension of mfrac elements");
 
+    test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+      assert_true(MathMLFeatureDetection.has_mfrac());
+
+      Array.from(document.getElementsByClassName("shrink-wrap")).forEach((container) => {
+        var marginPx = 2; // By default fractions have 1px margin on each side.
+        var epsilon = 1;
+        var containerWidth = container.getBoundingClientRect().width;
+        var children = container.getElementsByTagName("mspace");
+        var numWidth = children[0].getBoundingClientRect().width;
+        var denWidth = children[1].getBoundingClientRect().width;
+        assert_approx_equals(containerWidth, marginPx + Math.max(numWidth, denWidth), epsilon, "Should be the maximum preferred width of numerator/denominator.");
+      });
+    }, "Preferred width of mfrac elements");
+
     done();
   }
 </script>
@@ -134,5 +157,37 @@
       </mfrac>
     </math>
   </p>
+  <div class="shrink-wrap">
+    <math>
+      <mfrac>
+        <mspace width="30px" height="15px" style="background: blue"/>
+        <mspace width="15px" height="15px" style="background: green"/>
+      </mfrac>
+    </math>
+  </div>
+  <div class="shrink-wrap">
+    <math>
+      <mfrac>
+        <mspace width="15px" height="15px" style="background: blue"/>
+        <mspace width="30px" height="15px" style="background: green"/>
+      </mfrac>
+    </math>
+  </div>
+  <div class="shrink-wrap">
+    <math>
+      <mfrac linethickness="0px">
+        <mspace width="30px" height="15px" style="background: blue"/>
+        <mspace width="15px" height="15px" style="background: green"/>
+      </mfrac>
+    </math>
+  </div>
+  <div class="shrink-wrap">
+    <math>
+      <mfrac linethickness="0px">
+        <mspace width="15px" height="15px" style="background: blue"/>
+        <mspace width="30px" height="15px" style="background: green"/>
+      </mfrac>
+    </math>
+  </div>
 </body>
 </html>
