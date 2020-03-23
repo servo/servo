@@ -18,9 +18,11 @@ pub struct VSLogger;
 impl log::Log for VSLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         let modules = LOG_MODULE_FILTERS.lock().unwrap();
-        let is_module_enabled =
-            modules.contains(&String::from(metadata.target())) || modules.is_empty();
-        return is_module_enabled;
+        modules.is_empty() ||
+            modules.iter().any(|module| {
+                metadata.target() == module ||
+                    metadata.target().starts_with(&format!("{}::", module))
+            })
     }
 
     fn log(&self, record: &Record) {
