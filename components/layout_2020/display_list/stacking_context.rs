@@ -580,7 +580,8 @@ impl BoxFragment {
             builder.current_space_and_clip = builder.wr.define_scroll_frame(
                 &original_scroll_and_clip_info,
                 Some(external_id),
-                self.scrollable_overflow().to_webrender(),
+                self.scrollable_overflow(&containing_block_info.rect)
+                    .to_webrender(),
                 padding_rect,
                 vec![], // complex_clips
                 None,   // image_mask
