@@ -56,15 +56,15 @@ gleam = "0.9"
 glutin = "0.21.0"
 keyboard-types = "0.4.3"
 lazy_static = "1"
-libservo = {path = "../../components/servo"}
 libc = "0.2"
+libservo = {path = "../../components/servo"}
 log = "0.4"
 rust-webvr = { version = "0.19", features = ["glwindow"] }
 servo-media = {git = "https://github.com/servo/media"}
 shellwords = "1.0.0"
 tinyfiledialogs = "3.0"
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.23"

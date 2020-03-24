@@ -19,14 +19,14 @@ compositing = {path = "../compositing"}
 crossbeam-channel = "0.4"
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.20"
 embedder_traits = { path = "../embedder_traits" }
+euclid = "0.20"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 http = "0.1"
 ipc-channel = "0.14"
-layout_traits = {path = "../layout_traits"}
 keyboard-types = "0.4.3"
+layout_traits = {path = "../layout_traits"}
 log = "0.4"
 media = {path = "../media"}
 metrics = {path = "../metrics"}
@@ -36,15 +36,15 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"
-style_traits = {path = "../style_traits"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
+style_traits = {path = "../style_traits"}
 webgpu = {path = "../webgpu"}
-webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender"}
+webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
