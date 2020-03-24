@@ -44,4 +44,3 @@ webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
 surfman = { version = "0.1", features = ["sm-angle", "sm-osmesa"] }
 surfman-chains = "0.3"
 surfman-chains-api = "0.2"
-font-kit = "0.5.0"

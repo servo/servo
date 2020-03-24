@@ -13,9 +13,6 @@ use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
-use font_kit::family_name::FamilyName;
-use font_kit::properties::Properties;
-use font_kit::source::SystemSource;
 use lyon_geom::Arc;
 use raqote::PathOp;
 use std::marker::PhantomData;
@@ -541,84 +538,6 @@ impl GenericDrawTarget for raqote::DrawTarget {
             pattern,
             &DrawOptions::Raqote(draw_options),
         );
-    }
-    // TODO
-    // This should eventually use the same infrastructure as layout
-    // (i.e. layout should be updated to use font-kit as well).
-    // Need to implement .font .
-    fn fill_text(
-        &mut self,
-        text: String,
-        x: f32,
-        y: f32,
-        max_width: Option<f64>,
-        pattern: canvas_data::Pattern,
-        draw_options: &DrawOptions,
-    ) {
-        // Replace all ASCII whitespace in text with U+0020 SPACE characters.
-        fn replace_whitespace(text: String) -> String {
-            text.chars()
-                .map(|c| match c {
-                    '\x09'..='\x0D' => '\x20',
-                    _ => c,
-                })
-                .collect()
-        }
-
-        // Compute the width of the text
-        fn get_text_width(text: &str, font: &font_kit::font::Font) -> f64 {
-            let point_size = 24.;
-            let mut length = 0.;
-            for c in text.chars() {
-                let id = font.glyph_for_char(c).unwrap();
-                length += (font.advance(id).unwrap() * point_size / 24. / 96.).x;
-            }
-            length as f64
-        }
-
-        let font = SystemSource::new()
-            .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-            .unwrap()
-            .load()
-            .unwrap();
-
-        // text preparation algorithm
-        let (scale_factor, replaced_text) = match max_width {
-            Some(value) => {
-                if value <= 0. || !value.is_finite() {
-                    return;
-                } else {
-                    let replaced_text = replace_whitespace(text);
-                    let text_width = get_text_width(&replaced_text, &font);
-                    if value > text_width {
-                        (1., replaced_text)
-                    } else {
-                        (value / text_width, replaced_text)
-                    }
-                }
-            },
-            _ => (1., replace_whitespace(text)),
-        };
-
-        // Text scaling
-        let old_transform = self.get_transform().clone();
-        let new_transform = old_transform
-            .pre_translate(Vector2D::new(x as f32, 0.))
-            .pre_scale(scale_factor as f32, 1.)
-            .pre_translate(Vector2D::new(-x as f32, 0.));
-        self.set_transform(&new_transform);
-
-        self.draw_text(
-            &font,
-            24.,
-            &replaced_text,
-            Point2D::new(x, y),
-            &pattern.source(),
-            draw_options.as_raqote(),
-        );
-
-        // Restore the transform
-        self.set_transform(&old_transform);
     }
     fn get_format(&self) -> SurfaceFormat {
         SurfaceFormat::Raqote(())

@@ -266,15 +266,6 @@ pub trait GenericDrawTarget {
     );
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
     fn fill_rect(&mut self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
-    fn fill_text(
-        &mut self,
-        text: String,
-        x: f32,
-        y: f32,
-        max_width: Option<f64>,
-        pattern: Pattern,
-        draw_options: &DrawOptions,
-    );
     fn get_format(&self) -> SurfaceFormat;
     fn get_size(&self) -> Size2D<i32>;
     fn get_transform(&self) -> Transform2D<f32>;
@@ -467,19 +458,10 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn fill_text(&mut self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        // If any of the arguments are infinite or NaN, then return.
-        if !x.is_finite() || !y.is_finite() {
-            return;
-        }
-
-        self.drawtarget.fill_text(
-            text,
-            x as f32,
-            y as f32,
-            max_width,
-            self.state.fill_style.clone(),
-            &self.state.draw_options,
+    pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
+        error!(
+            "Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.",
+            text, x, y, max_width
         );
     }
 
