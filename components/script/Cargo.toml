@@ -32,7 +32,7 @@ serde_json = "1.0"
 [dependencies]
 accountable-refcell = {version = "0.2.0", optional = true}
 app_units = "0.7"
-backtrace = {version = "0.3", optional = true}
+backtrace = {version = "0.3.46", optional = true}
 base64 = "0.10.1"
 bincode = "1"
 bitflags = "1.0"

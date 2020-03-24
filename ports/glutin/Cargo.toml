@@ -48,7 +48,7 @@ vslatestinstalled = ["libservo/vslatestinstalled"]
 xr-profile = ["libservo/xr-profile"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-backtrace = "0.3"
+backtrace = "0.3.46"
 clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"

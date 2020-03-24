@@ -12,7 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor"}
-backtrace = "0.3"
+backtrace = "0.3.46"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}

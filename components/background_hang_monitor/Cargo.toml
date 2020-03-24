@@ -13,7 +13,7 @@ test = false
 doctest = false
 
 [dependencies]
-backtrace = "0.3"
+backtrace = "0.3.46"
 ipc-channel = "0.14"
 libc = "0.2"
 log = "0.4"
