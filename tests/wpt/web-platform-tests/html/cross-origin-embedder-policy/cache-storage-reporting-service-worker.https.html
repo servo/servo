@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+    Check COEP report are send for CacheStorage requests in ServiceWorker.
+  </title>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js">
+  </script>
+  <script src="./resources/cache-storage-reporting.js"></script>
+</head>
+<script>
+
+promise_test(async (t) => {
+  const worker_url = local(encode(
+    worker_path + header_coep + header_report_to + header_service_worker_allowed
+  ));
+  const reg =
+    await service_worker_unregister_and_register(t, worker_url, SW_SCOPE);
+  add_completion_callback(() => reg.unregister());
+  const worker = reg.installing || reg.waiting || reg.active;
+  reports = fetchReport();
+  worker.postMessage(eval_script);
+  const report = await reports;
+  assert_equals(report["body"]["blocked-url"], image_url.toString());
+  assert_equals(report["body"]["type"], "corp");
+  assert_equals(report["type"], "coep");
+  assert_equals(normalize(report["url"]), normalize(worker_url.toString()));
+}, "COEP support on ServiceWorker.")
+
+promise_test(async (t) => {
+  const worker_url = local(encode(
+    worker_path + header_coep_report_only + header_report_to + header_service_worker_allowed
+  ))
+  const reg =
+    await service_worker_unregister_and_register(t, worker_url, SW_SCOPE);
+  add_completion_callback(() => reg.unregister());
+  const worker = reg.installing || reg.waiting || reg.active;
+  reports = fetchReport();
+  worker.postMessage(eval_script);
+  const report = await reports;
+  assert_equals(report["body"]["blocked-url"], image_url.toString());
+  assert_equals(report["body"]["type"], "corp");
+  assert_equals(report["type"], "coep");
+  assert_equals(normalize(report["url"]), normalize(worker_url.toString()));
+}, "COEP-Report-Only support on ServiceWorker.")
+
+</script>
+</html>

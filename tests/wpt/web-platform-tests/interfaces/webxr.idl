@@ -267,6 +267,7 @@ dictionary XRPermissionDescriptor: PermissionDescriptor {
   sequence<any> optionalFeatures;
 };
 
+[Exposed=Window]
 interface XRPermissionStatus: PermissionStatus {
   attribute FrozenArray<any> granted;
 };

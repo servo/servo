@@ -11,6 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer
   //   generateAnswer
   //   generateAudioReceiveOnlyOffer
   //   test_never_resolve
@@ -193,38 +194,75 @@
     t.add_cleanup(() => pc.close());
 
     pc.addTransceiver('audio');
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     let fired = false;
     pc.onnegotiationneeded = e => fired = true;
     pc.createDataChannel('test');
-    const answer = await generateAnswer(offer);
-    pc.setRemoteDescription(answer);
-    assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after returning to stable");
+    await pc.setRemoteDescription(await generateAnswer(offer));
+    await undefined;
+    assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after SRD success");
     await new Promise(resolve => pc.onnegotiationneeded = resolve);
-  }, 'negotiationneeded event should fire only after signaling state go back to stable after setRemoteDescription');
+  }, 'negotiationneeded event should fire only after signaling state goes back to stable after setRemoteDescription');
 
   promise_test(async t => {
-    const callee = new RTCPeerConnection();
-    t.add_cleanup(() => callee.close());
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
-    const caller = new RTCPeerConnection();
-    t.add_cleanup(() => caller.close());
+    pc.addTransceiver('audio');
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
 
-    callee.addTransceiver('audio');
-
-    const offer = await caller.createOffer();
     let fired = false;
-    callee.onnegotiationneeded = e => fired = true;
-    await callee.setRemoteDescription(offer);
-    callee.createDataChannel('test');
+    pc.onnegotiationneeded = e => fired = true;
+    await pc.setRemoteDescription(await generateOffer());
+    pc.createDataChannel('test');
+    await pc.setLocalDescription(await pc.createAnswer());
+    await undefined;
+    assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after SLD success");
 
-    const answer = await callee.createAnswer(offer);
-    callee.setLocalDescription(answer);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'negotiationneeded event should fire only after signaling state goes back to stable after setLocalDescription');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    pc.addTransceiver('audio');
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    let fired = false;
+    pc.onnegotiationneeded = e => fired = true;
+    pc.createDataChannel('test');
+    const p = pc.setRemoteDescription(await generateAnswer(offer));
+    await new Promise(resolve => pc.onsignalingstatechange = resolve);
+    assert_false(fired, "negotiationneeded should not fire before signalingstatechange fires");
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+    await p;
+  }, 'negotiationneeded event should fire only after signalingstatechange event fires from setRemoteDescription');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    pc.addTransceiver('audio');
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    let fired = false;
+    pc.onnegotiationneeded = e => fired = true;
+    await pc.setRemoteDescription(await generateOffer());
+    pc.createDataChannel('test');
+
+    const p = pc.setLocalDescription(await pc.createAnswer());
+    await new Promise(resolve => pc.onsignalingstatechange = resolve);
     assert_false(fired, "negotiationneeded should not fire until the next iteration of the event loop after returning to stable");
-
-    await new Promise(resolve => callee.onnegotiationneeded = resolve);
-  }, 'negotiationneeded event should fire only after signaling state go back to stable after setLocalDescription');
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+    await p;
+  }, 'negotiationneeded event should fire only after signalingstatechange event fires from setLocalDescription');
 
   /*
     5.1.  RTCPeerConnection Interface Extensions
@@ -299,7 +337,7 @@
         assert_unreached('onnegotiationneeded misfired');
       });
       await callee.setRemoteDescription(offer);
-      const answer = await callee.createAnswer(offer);
+      const answer = await callee.createAnswer();
       callee.setLocalDescription(answer);
 
       callee.removeTrack(sender);

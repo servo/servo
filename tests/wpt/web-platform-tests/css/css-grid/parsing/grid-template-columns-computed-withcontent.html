@@ -80,6 +80,12 @@ test_computed_value("grid-template-columns", 'repeat(auto-fill, minmax(100px, 5f
                     '100px [two] 100px [two] 100px [two]');
 test_computed_value("grid-template-columns", 'repeat(auto-fit, [three] minmax(max-content, 6em) [four])',
                     '[three] 240px [four]');
+test_computed_value('grid-template-columns', '[a] 21px [b] repeat(auto-fill, [c] 22px [d] 23px [e]) [f] 24px [g]',
+                    '[a] 21px [b c] 22px [d] 23px [e c] 22px [d] 23px [e c] 22px [d] 23px [e c] 22px [d] 23px [e c] 22px [d] 23px [e f] 24px [g]');
+test_computed_value('grid-template-columns', '[a] 21px [b c] repeat(auto-fill, [d e] 22px [f g h] 23px [i j k l]) [m n] 24px [o]',
+                    '[a] 21px [b c d e] 22px [f g h] 23px [i j k l d e] 22px [f g h] 23px [i j k l d e] 22px [f g h] 23px [i j k l d e] 22px [f g h] 23px [i j k l d e] 22px [f g h] 23px [i j k l m n] 24px [o]');
+test_computed_value('grid-template-columns', '[a] repeat(2, [b] 20px [c d] 21px [e f g]) [h i] repeat(auto-fit, [j] 22px [k l m] 23px [n o p q]) [r s]',
+                    '[a b] 20px [c d] 21px [e f g b] 20px [c d] 21px [e f g h i j] 0px [k l m] 0px [n o p q j] 0px [k l m] 0px [n o p q j] 0px [k l m] 0px [n o p q j] 0px [k l m] 0px [n o p q r s]');
 
 // <auto-track-list> =
 // [ <line-names>? [ <fixed-size> | <fixed-repeat> ] ]* <line-names>?

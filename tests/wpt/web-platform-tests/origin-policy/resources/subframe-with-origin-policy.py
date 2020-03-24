@@ -20,7 +20,6 @@ def main(request, response):
     <title>Origin policy subframe</title>
 
     <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
 
     <div id="log"></div>
 

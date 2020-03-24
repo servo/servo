@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>item's min/max cross sizes</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes" title="Bullet 1">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="flags" content="" />
+<meta name="assert" content="specified min cross size on stretched items is honored pre-flexing" />
+
+<style>
+.inline-block {
+  display: inline-block;
+  width: 1px;
+  height: 100px;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display:flex; flex-direction: column; width: 0px;">
+  <div style="background: green; min-width: 100px; line-height: 0px;">
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>

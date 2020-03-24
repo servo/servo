@@ -3,10 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Geolocation Sensor (https://w3c.github.io/geolocation-sensor/)
 
-[Constructor(optional GeolocationSensorOptions options = {}),
- SecureContext,
+[SecureContext,
  Exposed=(DedicatedWorker, Window)]
 interface GeolocationSensor : Sensor {
+  constructor(optional GeolocationSensorOptions options = {});
   static Promise<GeolocationSensorReading> read(optional ReadOptions readOptions = {});
   readonly attribute unrestricted double? latitude;
   readonly attribute unrestricted double? longitude;

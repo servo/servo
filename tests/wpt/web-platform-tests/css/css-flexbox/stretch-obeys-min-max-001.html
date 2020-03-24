@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>item's min/max cross sizes</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes" title="Bullet 1">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="" />
+<meta name="assert" content="specified max cross size on stretched items is honored pre-flexing" />
+
+<style>
+.inline-block {
+  display: inline-block;
+  width: 40px;
+  height: 50px;
+}
+
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+
+<div style="display:flex; flex-direction: column; width: 100px; background: green">
+  <div style="max-width: 50px; line-height: 0px;">
+    <!-- An engine where these inline blocks don't wrap will give green height 50px. -->
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>

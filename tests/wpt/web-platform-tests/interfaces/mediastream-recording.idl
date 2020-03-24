@@ -4,7 +4,7 @@
 // Source: MediaStream Recording (https://w3c.github.io/mediacapture-record/)
 
 [Exposed=Window,
- Constructor(MediaStream stream, optional MediaRecorderOptions options)]
+ Constructor(MediaStream stream, optional MediaRecorderOptions options = {})]
 interface MediaRecorder : EventTarget {
   readonly attribute MediaStream stream;
   readonly attribute DOMString mimeType;
@@ -17,6 +17,7 @@ interface MediaRecorder : EventTarget {
   attribute EventHandler onerror;
   readonly attribute unsigned long videoBitsPerSecond;
   readonly attribute unsigned long audioBitsPerSecond;
+  readonly attribute BitrateMode audioBitrateMode;
 
   void start(optional unsigned long timeslice);
   void stop();
@@ -32,6 +33,12 @@ dictionary MediaRecorderOptions {
   unsigned long audioBitsPerSecond;
   unsigned long videoBitsPerSecond;
   unsigned long bitsPerSecond;
+  BitrateMode audioBitrateMode = "vbr";
+};
+
+enum BitrateMode {
+  "cbr",
+  "vbr"
 };
 
 enum RecordingState {

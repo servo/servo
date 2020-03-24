@@ -170,6 +170,13 @@ promise_test(async t => {
   });
 }, 'HTMLScriptElement fetches with a "script" Request.destination');
 
+// audioworklet destination
+//////////////////////
+promise_test(async t => {
+  let audioContext = new frame.contentWindow.AudioContext();
+  await audioContext.audioWorklet.addModule("dummy?dest=audioworklet");
+}, 'AudioWorklet module fetches with a "audioworklet" Request.destination');
+
 // Style destination
 ////////////////////
 

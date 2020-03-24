@@ -9,8 +9,9 @@
   promise_test(t => {
     const origins = get_host_info();
     const id = `tut mir leid ${type}`;
-    const blob = new Blob([createScript(origins.ORIGIN, origins.HTTPS_REMOTE_ORIGIN, "opener", id)], {type: "text/html"});
+    const blob = new Blob([createScript(origins.ORIGIN, origins.HTTPS_REMOTE_ORIGIN, "channel", id)], {type: "text/html"});
     const blobURL = URL.createObjectURL(blob);
+    const bc = new BroadcastChannel(id);
 
     if (type === "window.open()") {
       const popup = window.open(blobURL);
@@ -32,13 +33,18 @@
     }
 
     return new Promise(resolve => {
-      window.addEventListener("message", t.step_func(({ data }) => {
+      bc.onmessage = t.step_func(({ data }) => {
         assert_equals(data.id, id);
         assert_equals(data.origin, window.origin);
         assert_true(data.sameOriginNoCORPSuccess, "Same-origin without CORP did not succeed");
         assert_true(data.crossOriginNoCORPFailure, "Cross-origin without CORP did not fail");
+        if (type === "<a rel=noopener>") {
+          assert_false(data.opener);
+        } else {
+          assert_true(data.opener);
+        }
         resolve();
-      }));
+      });
     });
   }, `COOP+COEP blob URL popup: ${type}`);
 });
