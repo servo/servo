@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#typedef-auto-repeat">
+<link rel="match" href="grid-auto-repeat-multiple-values-003-ref.html">
+<head>
+  <style>
+
+.holder {
+  height: 30px;
+  width: 300px;
+  border-bottom: 2px solid #cfbfcf;
+}
+
+.wide-holder {
+  height: 30px;
+  width: 650px;
+  border-bottom: 2px solid #cfbfcf;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 10px 20px repeat(auto-fit, 30px 40px) 50px 60px;
+  grid-template-rows: repeat(auto-fill, minmax(30px, auto));
+}
+
+.grid-container > :nth-child(2n)   {  background: sienna; }
+.grid-container > :nth-child(2n+1) {  background: orange; }
+  </style>
+</head>
+
+<body>
+  <p>The test passes if it has the same visual effect as reference.</p>
+  <div class="holder">
+    <div class="grid-container">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+
+  <div class="holder">
+    <div class="grid-container">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div style="grid-column: 7;"></div>
+    </div>
+  </div>
+  <!-- Test correct tracking of collapsed tracks -->
+  <div class="holder" style="width: 650px">
+    <div class="grid-container">
+      <div style="grid-column: 2;"></div>
+      <div></div>
+      <div style="grid-column: 6;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="holder" style="width: 650px">
+    <div class="grid-container">
+      <div style="grid-column: 2;"></div>
+      <div></div>
+      <div style="grid-column: 10;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="holder" style="width: 650px">
+    <div class="grid-container">
+      <div style="grid-column: 2;"></div>
+      <div></div>
+      <div style="grid-column: 12;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="holder">
+    <div class="grid-container">
+      <div style="grid-column: 2;"></div>
+      <div></div>
+      <div style="grid-column: 5;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="holder">
+    <div class="grid-container">
+      <div></div>
+      <div></div>
+      <div style="grid-column: 5;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <!-- Test correct tracking of collapsed tracks when the grid begins in the middle of the repeat. -->
+  <div class="holder">
+    <div class="grid-container">
+      <div style="grid-column: 4;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <!-- Test grid span with correct tracking of collapsed tracks. -->
+  <div class="holder" style="width: 510px">
+    <div class="grid-container">
+      <div></div>
+      <div style="grid-column: 4 / 7;"></div>
+      <div></div>
+    </div>
+  </div>
+</body>
+
+</html>

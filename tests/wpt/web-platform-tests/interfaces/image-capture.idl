@@ -3,9 +3,10 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: MediaStream Image Capture (https://w3c.github.io/mediacapture-image/)
 
-[Exposed=Window, Constructor(MediaStreamTrack videoTrack)]
+[Exposed=Window]
 interface ImageCapture {
-   Promise<Blob>              takePhoto(optional PhotoSettings photoSettings);
+   constructor(MediaStreamTrack videoTrack);
+   Promise<Blob>              takePhoto(optional PhotoSettings photoSettings = {});
    Promise<PhotoCapabilities> getPhotoCapabilities();
    Promise<PhotoSettings>     getPhotoSettings();
 

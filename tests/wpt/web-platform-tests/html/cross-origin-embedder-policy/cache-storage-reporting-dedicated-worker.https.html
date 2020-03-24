@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+    Check COEP report are send for CacheStorage requests in DedicatedWorker
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js">
+  </script>
+  <script src="./resources/cache-storage-reporting.js"> </script>
+</head>
+<script>
+
+promise_test(async (t) => {
+  const worker_url = local(encode(worker_path));
+  const iframe_url =
+    local(encode(iframe_path + header_coep + header_report_to));
+  dedicated_worker_script = `
+    (async function() {
+      const w = new Worker('${worker_url}');
+      w.postMessage(\`${eval_script}\`);
+    })();
+  `;
+  const iframe = await makeIframe(t, iframe_url);
+  iframe.contentWindow.postMessage(dedicated_worker_script);
+  const report = await fetchReport();
+  assert_equals(report["body"]["blocked-url"], image_url.toString());
+  assert_equals(report["body"]["type"], "corp");
+  assert_equals(report["type"], "coep");
+  assert_equals(normalize(report["url"]), normalize(worker_url.toString()));
+}, "COEP support on DedicatedWorker.")
+
+promise_test(async (t) => {
+  const worker_url = local(encode(worker_path));
+  const iframe_url =
+    local(encode(iframe_path + header_coep_report_only + header_report_to));
+  dedicated_worker_script = `
+    (async function() {
+      const w = new Worker('${worker_url}');
+      w.postMessage(\`${eval_script}\`);
+    })();
+  `;
+  const iframe = await makeIframe(t, iframe_url);
+  iframe.contentWindow.postMessage(dedicated_worker_script);
+  const report = await fetchReport();
+  assert_equals(report["body"]["blocked-url"], image_url.toString());
+  assert_equals(report["body"]["type"], "corp");
+  assert_equals(report["type"], "coep");
+  assert_equals(normalize(report["url"]), normalize(worker_url.toString()));
+}, "COEP-Report-Only support on DedicatedWorker.")
+
+</script>
+</html>

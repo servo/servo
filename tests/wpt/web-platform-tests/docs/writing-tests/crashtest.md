@@ -19,3 +19,7 @@ root. At the time when the test would otherwise have ended a `TestRendered`
 event is emitted; test authors can use this event to perform modifications that
 are guaranteed not to be batched with the initial paint. This matches the
 behaviour of [reftests](reftests).
+
+Note that crash tests **do not** need to include `testharness.js` or use any of
+the [testharness API](testharness-api.md) (e.g. they do not need to declare a
+`test(..)`).

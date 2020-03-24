@@ -140,6 +140,15 @@ async function generateAnswer(offer) {
   return answer;
 }
 
+// Helper function to generate offer using a freshly
+// created RTCPeerConnection object
+async function generateOffer() {
+  const pc = new RTCPeerConnection();
+  const offer = await pc.createOffer();
+  pc.close();
+  return offer;
+}
+
 // Run a test function that return a promise that should
 // never be resolved. For lack of better options,
 // we wait for a time out and pass the test if the

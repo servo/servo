@@ -80,13 +80,17 @@ interface BluetoothDevice : EventTarget {
   readonly attribute DOMString? name;
   readonly attribute BluetoothRemoteGATTServer? gatt;
 
-  Promise<void> watchAdvertisements();
-  void unwatchAdvertisements();
+  Promise<void> watchAdvertisements(
+      optional WatchAdvertisementsOptions options = {});
   readonly attribute boolean watchingAdvertisements;
 };
 BluetoothDevice includes BluetoothDeviceEventHandlers;
 BluetoothDevice includes CharacteristicEventHandlers;
 BluetoothDevice includes ServiceEventHandlers;
+
+dictionary WatchAdvertisementsOptions {
+  AbortSignal signal;
+};
 
 [Exposed=Window, SecureContext]
 interface BluetoothManufacturerDataMap {
