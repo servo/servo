@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
@@ -39,7 +40,7 @@ pub(crate) struct BoxFragment {
     pub debug_id: DebugId,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub children: Vec<Fragment>,
+    pub children: Vec<ArcRefCell<Fragment>>,
 
     /// From the containing block’s start corner…?
     /// This might be broken when the containing block is in a different writing mode:
@@ -79,7 +80,7 @@ pub(crate) struct CollapsedMargin {
 pub(crate) struct AnonymousFragment {
     pub debug_id: DebugId,
     pub rect: Rect<Length>,
-    pub children: Vec<Fragment>,
+    pub children: Vec<ArcRefCell<Fragment>>,
     pub mode: WritingMode,
 
     /// The scrollable overflow of this anonymous fragment's children.
@@ -162,6 +163,40 @@ impl Fragment {
             _ => None,
         }
     }
+
+    pub(crate) fn find<T>(
+        &self,
+        containing_block: &PhysicalRect<Length>,
+        process_func: &mut impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
+    ) -> Option<T> {
+        if let Some(result) = process_func(self, containing_block) {
+            return Some(result);
+        }
+
+        match self {
+            Fragment::Box(fragment) => {
+                let new_containing_block = fragment
+                    .content_rect
+                    .to_physical(fragment.style.writing_mode, containing_block)
+                    .translate(containing_block.origin.to_vector());
+                fragment
+                    .children
+                    .iter()
+                    .find_map(|child| child.borrow().find(&new_containing_block, process_func))
+            },
+            Fragment::Anonymous(fragment) => {
+                let new_containing_block = fragment
+                    .rect
+                    .to_physical(fragment.mode, containing_block)
+                    .translate(containing_block.origin.to_vector());
+                fragment
+                    .children
+                    .iter()
+                    .find_map(|child| child.borrow().find(&new_containing_block, process_func))
+            },
+            _ => None,
+        }
+    }
 }
 
 impl AbsoluteOrFixedPositionedFragment {
@@ -193,7 +228,10 @@ impl AnonymousFragment {
         AnonymousFragment {
             debug_id: DebugId::new(),
             rect,
-            children,
+            children: children
+                .into_iter()
+                .map(|fragment| ArcRefCell::new(fragment))
+                .collect(),
             mode,
             scrollable_overflow,
         }
@@ -208,7 +246,7 @@ impl AnonymousFragment {
         ));
 
         for child in &self.children {
-            child.print(tree);
+            child.borrow().print(tree);
         }
         tree.end_level();
     }
@@ -234,7 +272,10 @@ impl BoxFragment {
             tag,
             debug_id: DebugId::new(),
             style,
-            children,
+            children: children
+                .into_iter()
+                .map(|fragment| ArcRefCell::new(fragment))
+                .collect(),
             content_rect,
             padding,
             border,
@@ -292,7 +333,7 @@ impl BoxFragment {
         ));
 
         for child in &self.children {
-            child.print(tree);
+            child.borrow().print(tree);
         }
         tree.end_level();
     }

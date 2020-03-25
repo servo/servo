@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -282,7 +283,11 @@ impl PositioningContext {
             hoisted_boxes = take_hoisted_boxes_pending_layout(self);
         }
 
-        new_fragment.children.extend(laid_out_child_fragments);
+        new_fragment.children.extend(
+            laid_out_child_fragments
+                .into_iter()
+                .map(|fragment| ArcRefCell::new(fragment)),
+        );
     }
 
     pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox) {
