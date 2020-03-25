@@ -3,6 +3,13 @@ namespace ServoApp {
   delegate void EventDelegate();
   delegate void HistoryChangedDelegate(Boolean back, Boolean forward);
   delegate void MediaSessionMetadataDelegate(String title, String artist, String album);
+  delegate void DevtoolsStatusChangedDelegate(DevtoolsStatus status, UInt32 port);
+
+  enum DevtoolsStatus {
+    Running = 0,
+    Stopped,
+    Failed,
+  };
 
   runtimeclass ServoControl : Windows.UI.Xaml.Controls.Control {
       ServoControl();
@@ -20,6 +27,7 @@ namespace ServoApp {
       event EventDelegate OnLoadEnded;
       event EventDelegate OnCaptureGesturesStarted;
       event EventDelegate OnCaptureGesturesEnded;
+      event DevtoolsStatusChangedDelegate OnDevtoolsStatusChanged;
       event HistoryChangedDelegate OnHistoryChanged;
       event Windows.Foundation.EventHandler<String> OnTitleChanged;
       event Windows.Foundation.EventHandler<String> OnURLChanged;

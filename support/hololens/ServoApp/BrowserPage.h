@@ -26,6 +26,8 @@ public:
                            Windows::UI::Xaml::RoutedEventArgs const &);
   void OnHomeButtonClicked(Windows::Foundation::IInspectable const &,
                            Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnDevtoolsButtonClicked(Windows::Foundation::IInspectable const &,
+                               Windows::UI::Xaml::RoutedEventArgs const &);
   void OnURLEdited(Windows::Foundation::IInspectable const &,
                    Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
   void OnURLFocused(Windows::Foundation::IInspectable const &);
@@ -43,6 +45,8 @@ public:
 
 private:
   void BindServoEvents();
+  DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
+  unsigned int mDevtoolsPort = 0;
 };
 } // namespace winrt::ServoApp::implementation
 

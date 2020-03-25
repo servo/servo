@@ -125,7 +125,12 @@
                     <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="OnURLKeyboardAccelerator"/>
                 </TextBox.KeyboardAccelerators>
             </TextBox>
-            <ProgressRing x:Name="urlbarLoadingIndicator" Grid.Column="2" Margin="10,0"/>
+            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                <Button Style="{StaticResource NavigationBarButton}" x:Name="devtoolsButton" IsTabStop="true" Click="OnDevtoolsButtonClicked" AutomationProperties.Name="Devtools" ToolTipService.ToolTip="Devtools">
+                    <Image Source="Assets/UI/devtools.png" Height="18"></Image>
+                </Button>
+                <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
+            </StackPanel>
         </Grid>
         <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
         <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="2"/>

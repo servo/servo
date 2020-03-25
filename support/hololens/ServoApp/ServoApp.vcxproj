@@ -903,6 +903,7 @@
     <Image Include="Assets\StoreLogo.scale-200.png" />
     <Image Include="Assets\StoreLogo.scale-400.png" />
     <Image Include="Assets\UI\back.png" />
+    <Image Include="Assets\UI\devtools.png" />
     <Image Include="Assets\UI\forward.png" />
     <Image Include="Assets\UI\home.png" />
     <Image Include="Assets\UI\reload.png" />
