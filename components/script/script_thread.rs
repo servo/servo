@@ -145,6 +145,7 @@ use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
 use script_traits::{UpdatePipelineIdReason, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
+use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -2907,6 +2908,12 @@ impl ScriptThread {
         self.background_hang_monitor
             .as_ref()
             .map(|bhm| bhm.unregister());
+
+        // If we're in multiprocess mode, shut-down the IPC router for this process.
+        if opts::multiprocess() {
+            debug!("Exiting IPC router thread in script thread.");
+            ROUTER.shutdown();
+        }
 
         debug!("Exited script thread.");
     }

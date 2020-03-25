@@ -2833,6 +2833,9 @@ where
         debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy
             .send(ToCompositorMsg::ShutdownComplete);
+
+        debug!("Shutting-down IPC router thread in constellation.");
+        ROUTER.shutdown();
     }
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
