@@ -458,6 +458,7 @@ impl HTMLScriptElement {
                 &text,
             ) == csp::CheckResult::Blocked
         {
+            warn!("Blocking inline script due to CSP");
             return;
         }
 

@@ -240,6 +240,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
+name = "base64"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d5ca2cd0adc3f48f9e9ea5a6bbdf9ccc0bfade884847e484d452414c7ccffb3"
+
+[[package]]
 name = "binary-space-partition"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -822,15 +828,17 @@ dependencies = [
 
 [[package]]
 name = "content-security-policy"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f30ee9967a875968e66f6690e299f06781ed109cb82d10e0d60a126a38d61947"
+checksum = "e9c6953cf3a032666719b6c432617652532bdeb6015c93473cbbd432d9657600"
 dependencies = [
+ "base64 0.12.0",
  "bitflags",
  "lazy_static",
  "percent-encoding",
  "regex",
  "serde",
+ "sha2",
  "url",
 ]
 
