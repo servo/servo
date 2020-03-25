@@ -33,7 +33,8 @@ registerLayout('fallback-sab', class {
   async layout(children, edges, constraints, styleMap) {
     const childFragments = await Promise.all(children.map(child => child.layoutNextFragment()));
 
-    return {autoBlockSize: 0, childFragments, data: {sab: new SharedArrayBuffer(4) }};
+    // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+    return {autoBlockSize: 0, childFragments, data: {sab: new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer }};
   }
 });
 </script>

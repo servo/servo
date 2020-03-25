@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>XPathNSResolver implements callback interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://heycam.github.io/webidl/#call-a-user-objects-operation">
+<div id=log></div>
+<script>
+"use strict";
+setup({ allow_uncaught_exception: true });
+
+test(() => {
+  let resolverCalls = 0;
+  document.evaluate("/foo:bar", document.documentElement, () => {
+    resolverCalls++;
+    return "";
+  });
+
+  assert_equals(resolverCalls, 1);
+}, "callable resolver");
+
+test(() => {
+  let resolverCalls = 0;
+  const resolver = () => {
+    resolverCalls++;
+    return "";
+  };
+
+  document.evaluate("/foo:bar", document.documentElement, resolver);
+  document.evaluate("/foo:bar", document.documentElement, resolver);
+
+  assert_equals(resolverCalls, 2);
+}, "callable resolver: result is not cached");
+
+const uncaught_error_test = async (t, resolver) => {
+  const timeout = () => {
+    return new Promise(resolve => {
+      t.step_timeout(resolve, 0);
+    });
+  };
+
+  const eventWatcher = new EventWatcher(t, window, "error", timeout);
+  const errorPromise = eventWatcher.wait_for("error");
+
+  assert_throws_dom("NAMESPACE_ERR", () => {
+    document.evaluate("/foo:bar", document.documentElement, resolver);
+  });
+
+  const event = await errorPromise;
+  throw event.error;
+};
+
+promise_test(t => {
+  const testError = { name: "test" };
+  const resolver = () => {
+    throw testError;
+  };
+
+  return promise_rejects_exactly(t, testError,
+    uncaught_error_test(t, resolver)
+  );
+}, "callable resolver: abrupt completion from Call");
+
+test(() => {
+  let resolverCalls = 0;
+  const resolver = () => {
+    resolverCalls++;
+    return "";
+  };
+
+  let resolverGets = 0;
+  Object.defineProperty(resolver, "lookupNamespaceURI", {
+    get() {
+      resolverGets++;
+    },
+  });
+
+  document.evaluate("/foo:bar", document.documentElement, resolver);
+
+  assert_equals(resolverCalls, 1);
+  assert_equals(resolverGets, 0);
+}, "callable resolver: no 'lookupNamespaceURI' lookups");
+
+test(() => {
+  let resolverCalls = 0;
+  document.evaluate("/foo:bar", document.documentElement, {
+    lookupNamespaceURI() {
+      resolverCalls++;
+      return "";
+    },
+  });
+
+  assert_equals(resolverCalls, 1);
+}, "object resolver");
+
+test(() => {
+  let resolverCalls = 0;
+  const lookupNamespaceURI = () => {
+    resolverCalls++;
+    return "";
+  };
+
+  let resolverGets = 0;
+  const resolver = {
+    get lookupNamespaceURI() {
+      resolverGets++;
+      return lookupNamespaceURI;
+    },
+  };
+
+  document.evaluate("/foo:bar", document.documentElement, resolver);
+  document.evaluate("/foo:bar", document.documentElement, resolver);
+
+  assert_equals(resolverCalls, 2);
+  assert_equals(resolverGets, 2);
+}, "object resolver: 'lookupNamespaceURI' is not cached");
+
+promise_test(t => {
+  const testError = { name: "test" };
+  const resolver = {
+    get lookupNamespaceURI() {
+      throw testError;
+    },
+  };
+
+  return promise_rejects_exactly(t, testError,
+    uncaught_error_test(t, resolver)
+  );
+}, "object resolver: abrupt completion from Get");
+
+promise_test(t => {
+  const resolver = {
+    lookupNamespaceURI: {},
+  };
+
+  return promise_rejects_js(t, TypeError,
+    uncaught_error_test(t, resolver)
+  );
+}, "object resolver: 'lookupNamespaceURI' is thruthy and not callable");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError,
+    uncaught_error_test(t, {})
+  );
+}, "object resolver: 'lookupNamespaceURI' is falsy and not callable");
+</script>
+</body>

@@ -29,6 +29,7 @@
 <script src="/resources/check-layout-th.js"></script>
 <script src="support/style-change.js"></script>
 <script>
+setup({ explicit_done: true });
 function runTest() {
   evaluateStyleChange(item, "before", "data-expected-height", 80);
   grid.style.alignItems = "start";
@@ -36,7 +37,7 @@ function runTest() {
   done();
 }
 </script>
-<body onload="runTest()">
+<body onload="document.fonts.ready.then(() => { runTest(); })">
 <div class="grid" id="grid">
   <div data-expected-width="100" id="item">XX X<br>X XXX<br>X<br>XX XXX</div>
 </div>

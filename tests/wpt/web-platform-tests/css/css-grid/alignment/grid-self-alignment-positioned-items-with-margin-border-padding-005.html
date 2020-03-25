@@ -71,7 +71,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<body onload="checkLayout('.grid')">
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
 <div class="grid">
   <div data-offset-x="23"  data-offset-y="3"   data-expected-width="76" data-expected-height="20" class="firstRowFirstColumn">X XX X</div>
   <div data-offset-x="137" data-offset-y="105" data-expected-width="86" data-expected-height="40" class="firstRowSecondColumn">XX X<br>X XXX X<br>XX XXX</div>

@@ -1,10 +1,13 @@
+// META: global=window,worker
+// META: script=/common/sab.js
+
 ["ArrayBuffer", "SharedArrayBuffer"].forEach(arrayBufferOrSharedArrayBuffer => {
   test(() => {
-    const buf = new self[arrayBufferOrSharedArrayBuffer](2),
-          view = new Uint8Array(buf),
-          buf2 = new self[arrayBufferOrSharedArrayBuffer](2),
-          view2 = new Uint8Array(buf2),
-          decoder = new TextDecoder("utf-8");
+    const buf = createBuffer(arrayBufferOrSharedArrayBuffer, 2);
+    const view = new Uint8Array(buf);
+    const buf2 = createBuffer(arrayBufferOrSharedArrayBuffer, 2);
+    const view2 = new Uint8Array(buf2);
+    const decoder = new TextDecoder("utf-8");
     view[0] = 0xEF;
     view[1] = 0xBB;
     view2[0] = 0xBF;

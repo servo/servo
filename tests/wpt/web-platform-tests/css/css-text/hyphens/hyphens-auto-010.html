@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+  <link rel="match" href="reference/hyphens-auto-010-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="When 'hyphens' is set to 'auto' and when 'lang' attribute is also set to a valid value, then words may be broken at hyphenation opportunities determined automatically by an hyphenation resource appropriate to the language of the text involved.">
+
+  <style>
+  div
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      margin-bottom: 0.25em;
+      width: 6ch;
+    }
+
+  div#test
+    {
+      hyphens: auto;
+    }
+
+  div#reference
+    {
+      hyphens: none;
+    }
+  </style>
+
+ <body lang="en">
+
+  <p>Test passes if each black-bordered rectangles have identical inside content.
+
+  <div id="test">regulation implementation</div>
+
+  <div id="reference">regu-lation imple-menta-tion</div>

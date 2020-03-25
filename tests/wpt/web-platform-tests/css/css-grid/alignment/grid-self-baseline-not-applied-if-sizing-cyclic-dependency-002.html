@@ -51,7 +51,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<body onload="checkLayout('.inline-grid')">
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.inline-grid'); })">
 
 <pre>auto-sized rows - horizonal grid and verticalLR item - column-axis baseline</pre>
 <div class="inline-grid alignItemsBaseline columns height200">

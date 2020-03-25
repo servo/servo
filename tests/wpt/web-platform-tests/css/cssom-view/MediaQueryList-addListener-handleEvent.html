@@ -72,21 +72,26 @@ promise_test(async t => {
 }, "doesn't look up handleEvent method on callable event listeners");
 
 const uncaught_error_test = async (t, mql, getHandleEvent) => {
+    const eventWatcher = new EventWatcher(t, window, "error", waitForChangesReported);
+    const errorPromise = eventWatcher.wait_for("error");
+
     let calls = 0;
-    mql.addListener({
+    const listener = {
         get handleEvent() {
             calls++;
             return getHandleEvent();
         },
-    });
+    };
 
-    const eventWatcher = new EventWatcher(t, window, "error", waitForChangesReported);
-    const errorPromise = eventWatcher.wait_for("error");
-    triggerMQLEvent(mql);
+    try {
+        mql.addListener(listener);
+        triggerMQLEvent(mql);
 
-    const event = await errorPromise;
-    assert_equals(calls, 1, "handleEvent property was not looked up");
-    throw event.error;
+        const event = await errorPromise;
+        throw event.error;
+    } finally {
+        assert_equals(calls, 1, "handleEvent property was not looked up");
+    }
 };
 
 promise_test(async t => {

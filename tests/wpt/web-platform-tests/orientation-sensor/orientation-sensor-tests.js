@@ -42,7 +42,9 @@ async function checkPopulateMatrix(t, sensorProvider, sensorType) {
 
   // Throws if passed SharedArrayBuffer view.
   assert_throws_js(TypeError,
-      () => sensor.populateMatrix(new Float32Array(new SharedArrayBuffer(16))));
+      // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+      // WebAssembly.Memory's size is in multiples of 64 KiB
+      () => sensor.populateMatrix(new Float32Array(new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer)));
 
   sensor.start();
 

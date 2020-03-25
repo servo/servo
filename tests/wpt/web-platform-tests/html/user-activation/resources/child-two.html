@@ -8,7 +8,8 @@
     }), "*");
 
     window.addEventListener("message", event => {
-        if (event.data == "report") {
+        var msg = JSON.parse(event.data);
+        if (msg.type == "report") {
             window.top.postMessage(JSON.stringify({
                 "type": "child-two-report",
                 "isActive": navigator.userActivation.isActive,

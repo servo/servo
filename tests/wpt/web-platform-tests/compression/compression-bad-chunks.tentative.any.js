@@ -28,13 +28,15 @@ const badChunks = [
     // Use a getter to postpone construction so that all tests don't fail where
     // SharedArrayBuffer is not yet implemented.
     get value() {
-      return new SharedArrayBuffer();
+      // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+      return new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer;
     }
   },
   {
     name: 'shared Uint8Array',
     get value() {
-      return new Uint8Array(new SharedArrayBuffer())
+      // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+      return new Uint8Array(new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer)
     }
   },
 ];

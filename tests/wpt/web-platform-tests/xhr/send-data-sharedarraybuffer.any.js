@@ -1,8 +1,9 @@
 // META: title=XMLHttpRequest.send(sharedarraybuffer)
 
 test(() => {
-    var xhr = new XMLHttpRequest();
-    var buf = new SharedArrayBuffer();
+    const xhr = new XMLHttpRequest();
+    // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+    const buf = new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer;
 
     xhr.open("POST", "./resources/content.py", true);
     assert_throws_js(TypeError, function() {
@@ -13,8 +14,9 @@ test(() => {
 ["Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
  "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "DataView"].forEach((type) => {
     test(() => {
-        var xhr = new XMLHttpRequest();
-        var arr = new self[type](new SharedArrayBuffer());
+        const xhr = new XMLHttpRequest();
+        // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+        const arr = new self[type](new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer);
 
         xhr.open("POST", "./resources/content.py", true);
         assert_throws_js(TypeError, function() {

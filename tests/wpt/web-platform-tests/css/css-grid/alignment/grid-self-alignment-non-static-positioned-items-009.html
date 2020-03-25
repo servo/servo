@@ -67,7 +67,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<body onload="checkLayout('.grid')">
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
 <!-- The test cases with vertical-rl wirting-mode will fail becauuse of bug 779105 -->
 <div class="grid">
   <div data-offset-x="5"   data-offset-y="0"   data-expected-width="40" data-expected-height="80" class="firstRowFirstColumn verticalLR">X XX X</div>
