@@ -15,6 +15,7 @@ using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::UI::Notifications;
+using namespace winrt::Windows::Data::Xml::Dom;
 
 namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
@@ -71,6 +72,11 @@ void BrowserPage::BindServoEvents() {
             state == servo::Servo::MediaSessionPlaybackState::Paused
                 ? Visibility::Collapsed
                 : Visibility::Visible);
+      });
+  servoControl().OnDevtoolsStatusChanged(
+      [=](DevtoolsStatus status, unsigned int port) {
+        mDevtoolsStatus = status;
+        mDevtoolsPort = port;
       });
   Window::Current().VisibilityChanged(
       [=](const auto &, const VisibilityChangedEventArgs &args) {
@@ -140,6 +146,25 @@ void BrowserPage::OnStopButtonClicked(IInspectable const &,
 void BrowserPage::OnHomeButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
   servoControl().LoadURIOrSearch(DEFAULT_URL);
+}
+
+void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
+                                          RoutedEventArgs const &) {
+  auto toastTemplate = ToastTemplateType::ToastText01;
+  auto toastXml = ToastNotificationManager::GetTemplateContent(toastTemplate);
+  auto toastTextElements = toastXml.GetElementsByTagName(L"text");
+  std::wstring message;
+  if (mDevtoolsStatus == DevtoolsStatus::Stopped) {
+    message = L"Devtools server hasn't started";
+  } else if (mDevtoolsStatus == DevtoolsStatus::Running) {
+    message = L"DevTools server has started on port " +
+              std::to_wstring(mDevtoolsPort);
+  } else if (mDevtoolsStatus == DevtoolsStatus::Failed) {
+    message = L"Error: could not start DevTools";
+  }
+  toastTextElements.Item(0).InnerText(message);
+  auto toast = ToastNotification(toastXml);
+  ToastNotificationManager::CreateToastNotifier().Show(toast);
 }
 
 void BrowserPage::OnURLEdited(IInspectable const &,

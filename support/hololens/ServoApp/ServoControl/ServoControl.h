@@ -44,6 +44,14 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
     mOnHistoryChangedEvent.remove(token);
   }
 
+  winrt::event_token
+  OnDevtoolsStatusChanged(DevtoolsStatusChangedDelegate const &handler) {
+    return mOnDevtoolsStatusChangedEvent.add(handler);
+  };
+  void OnDevtoolsStatusChanged(winrt::event_token const &token) noexcept {
+    mOnDevtoolsStatusChangedEvent.remove(token);
+  }
+
   winrt::event_token OnLoadStarted(EventDelegate const &handler) {
     return mOnLoadStartedEvent.add(handler);
   };
@@ -116,10 +124,13 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
                                                     winrt::hstring, bool);
   virtual void OnServoDevtoolsStarted(bool success, const unsigned int port);
 
+  DevtoolsStatus GetDevtoolsStatus();
+
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnTitleChangedEvent;
   winrt::event<HistoryChangedDelegate> mOnHistoryChangedEvent;
+  winrt::event<DevtoolsStatusChangedDelegate> mOnDevtoolsStatusChangedEvent;
   winrt::event<EventDelegate> mOnLoadStartedEvent;
   winrt::event<EventDelegate> mOnLoadEndedEvent;
   winrt::event<EventDelegate> mOnCaptureGesturesStartedEvent;
