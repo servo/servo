@@ -147,48 +147,47 @@ impl BoxTreeRoot {
         let dummy_tree_rank = 0;
         let mut positioning_context =
             PositioningContext::new_for_containing_block_for_all_descendants();
-        let mut independent_layout = self.0.layout(
+        let independent_layout = self.0.layout(
             layout_context,
             &mut positioning_context,
             &(&initial_containing_block).into(),
             dummy_tree_rank,
         );
 
+        let mut children = independent_layout
+            .fragments
+            .into_iter()
+            .map(|fragment| ArcRefCell::new(fragment))
+            .collect();
         positioning_context.layout_initial_containing_block_children(
             layout_context,
             &initial_containing_block,
-            &mut independent_layout.fragments,
+            &mut children,
         );
 
-        let scrollable_overflow =
-            independent_layout
-                .fragments
-                .iter()
-                .fold(PhysicalRect::zero(), |acc, child| {
-                    let child_overflow = child.scrollable_overflow(&physical_containing_block);
+        let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
+            let child_overflow = child
+                .borrow()
+                .scrollable_overflow(&physical_containing_block);
 
-                    // https://drafts.csswg.org/css-overflow/#scrolling-direction
-                    // We want to clip scrollable overflow on box-start and inline-start
-                    // sides of the scroll container.
-                    //
-                    // FIXME(mrobinson, bug 25564): This should take into account writing
-                    // mode.
-                    let child_overflow = PhysicalRect::new(
-                        euclid::Point2D::zero(),
-                        euclid::Size2D::new(
-                            child_overflow.size.width + child_overflow.origin.x,
-                            child_overflow.size.height + child_overflow.origin.y,
-                        ),
-                    );
-                    acc.union(&child_overflow)
-                });
+            // https://drafts.csswg.org/css-overflow/#scrolling-direction
+            // We want to clip scrollable overflow on box-start and inline-start
+            // sides of the scroll container.
+            //
+            // FIXME(mrobinson, bug 25564): This should take into account writing
+            // mode.
+            let child_overflow = PhysicalRect::new(
+                euclid::Point2D::zero(),
+                euclid::Size2D::new(
+                    child_overflow.size.width + child_overflow.origin.x,
+                    child_overflow.size.height + child_overflow.origin.y,
+                ),
+            );
+            acc.union(&child_overflow)
+        });
 
         FragmentTreeRoot {
-            children: independent_layout
-                .fragments
-                .into_iter()
-                .map(|fragment| ArcRefCell::new(fragment))
-                .collect(),
+            children,
             scrollable_overflow,
             initial_containing_block: physical_containing_block,
         }
@@ -206,7 +205,6 @@ impl FragmentTreeRoot {
                 containing_block_for_all_descendants: ContainingBlock::new(
                     &self.initial_containing_block,
                     stacking_context_builder.current_space_and_clip,
-                    &self.children,
                 ),
             };
 
