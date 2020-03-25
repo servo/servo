@@ -149,7 +149,9 @@
           buffer.copyFromChannel(x, 3);
         }, '7: buffer.copyFromChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
-        let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
+        // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+        // WebAssembly.Memory's size is in multiples of 64 KiB
+        const shared_buffer = new Float32Array(new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer);
         should(
             () => {
               buffer.copyFromChannel(shared_buffer, 0);
@@ -202,7 +204,9 @@
           buffer.copyToChannel(x, 3);
         }, '6: buffer.copyToChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
-        let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
+        // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+        // WebAssembly.Memory's size is in multiples of 64 KiB
+        const shared_buffer = new Float32Array(new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer);
         should(
             () => {
               buffer.copyToChannel(shared_buffer, 0);

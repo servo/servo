@@ -87,8 +87,11 @@ div.gridWithPaddingBorder > div.cell {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
 
-<body onload="checkLayout('.grid')">
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
 
 <!-- Check that gutters do not interfere with self alignment computation. -->
 <div class="container">

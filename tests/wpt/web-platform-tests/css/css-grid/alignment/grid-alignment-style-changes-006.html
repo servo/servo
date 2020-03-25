@@ -37,6 +37,7 @@
 <script src="/resources/check-layout-th.js"></script>
 <script src="support/style-change.js"></script>
 <script>
+setup({ explicit_done: true });
 function runTest() {
     let before = {
         item1: {"data-offset-y": 8  },
@@ -56,7 +57,7 @@ function runTest() {
     done();
 }
 </script>
-<body onload="runTest()">
+<body onload="document.fonts.ready.then(() => { runTest(); })">
     <div id="container">
         <div id="item1" data-expected-width="50" data-expected-height="20" data-offset-x="0">É</div>
         <div id="item2" data-expected-width="50" data-expected-height="40" data-offset-x="50">É</div>

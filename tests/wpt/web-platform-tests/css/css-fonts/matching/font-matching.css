@@ -1,6 +1,7 @@
 body {
     font-family: variable_axes, sans-serif;
     font-size: 80px;
+    font-synthesis: none;
 }
 
 #stretch_style_weight_1 {

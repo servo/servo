@@ -74,7 +74,8 @@ promise_test(async t => {
   const w = await openBlankPortalHost();
   await promise_rejects_dom(
       t, 'DataCloneError', w.DOMException,
-      openPortalAndActivate('', {data: new SharedArrayBuffer}, w));
+      // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+      openPortalAndActivate('', {data: new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer}, w));
 }, "A SharedArrayBuffer cannot be passed through activate data.");
 
 promise_test(async t => {

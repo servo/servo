@@ -1,15 +1,14 @@
-// META: global=worker
+// META: global=window,worker
 // META: script=resources/readable-stream-from-array.js
 // META: script=resources/readable-stream-to-array.js
-
+// META: script=/common/sab.js
 'use strict';
 
 ["ArrayBuffer", "SharedArrayBuffer"].forEach((arrayBufferOrSharedArrayBuffer) => {
-  const inputChunkData = [73, 32, 240, 159, 146, 153, 32, 115, 116,
-                          114, 101, 97, 109, 115]
+  const inputChunkData = [73, 32, 240, 159, 146, 153, 32, 115, 116, 114, 101, 97, 109, 115];
 
-  const emptyChunk = new Uint8Array(new self[arrayBufferOrSharedArrayBuffer](0));
-  const inputChunk = new Uint8Array(new self[arrayBufferOrSharedArrayBuffer](inputChunkData.length));
+  const emptyChunk = new Uint8Array(createBuffer(arrayBufferOrSharedArrayBuffer, 0));
+  const inputChunk = new Uint8Array(createBuffer(arrayBufferOrSharedArrayBuffer, inputChunkData.length));
 
   inputChunk.set(inputChunkData);
 

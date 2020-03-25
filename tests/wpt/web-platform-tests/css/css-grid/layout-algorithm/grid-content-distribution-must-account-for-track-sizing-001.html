@@ -26,8 +26,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
 
-<body onload="checkLayout('.grid')">
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
     <div class="grid justifyContentSpaceBetween" data-expected-width="200" data-expected-height="40">
         <div class="item" data-expected-width="200" data-expected-height="40">XXX XX X XX X XXX</div>
     </div>

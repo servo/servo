@@ -25,6 +25,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+setup({explicit_done: true});
 var {style} = document.getElementById("grid");
 
 function testGridTemplateColumnsRows(assignedValue, expectedValue = assignedValue) {
@@ -36,31 +37,34 @@ function testGridTemplateColumnsRows(assignedValue, expectedValue = assignedValu
   }, `grid-template-columns: ${assignedValue}; and grid-template-rows: ${assignedValue};`);
 }
 
-// Valid values.
-testGridTemplateColumnsRows("repeat(1, auto)");
-testGridTemplateColumnsRows("repeat(2, auto)");
-testGridTemplateColumnsRows("repeat(2, minmax(50px, calc(50% + 50px)))");
-testGridTemplateColumnsRows("repeat(5, 10%)");
-testGridTemplateColumnsRows("max-content repeat(2, 25%) 1fr");
-testGridTemplateColumnsRows("repeat(2, min-content 50px)");
-testGridTemplateColumnsRows("repeat(2, [a] minmax(50px, 100px) [b] 25em [c])");
-testGridTemplateColumnsRows("[a] repeat(2, auto [b] 100px) [c]");
-testGridTemplateColumnsRows("[a] auto repeat(2, [b] 100px) [c]");
-testGridTemplateColumnsRows("[a] repeat(2, auto [b]) 100px [c]");
-testGridTemplateColumnsRows("[a] repeat(2, [b] 100px)");
-testGridTemplateColumnsRows("[a] repeat(2, [b] auto [c]) [d]");
-testGridTemplateColumnsRows("[a] min-content repeat(2, [b] 1fr [c] calc(10% + 20px)) [d] minmax(30em, 50em) [e]");
+document.fonts.ready.then(() => {
+  // Valid values.
+  testGridTemplateColumnsRows("repeat(1, auto)");
+  testGridTemplateColumnsRows("repeat(2, auto)");
+  testGridTemplateColumnsRows("repeat(2, minmax(50px, calc(50% + 50px)))");
+  testGridTemplateColumnsRows("repeat(5, 10%)");
+  testGridTemplateColumnsRows("max-content repeat(2, 25%) 1fr");
+  testGridTemplateColumnsRows("repeat(2, min-content 50px)");
+  testGridTemplateColumnsRows("repeat(2, [a] minmax(50px, 100px) [b] 25em [c])");
+  testGridTemplateColumnsRows("[a] repeat(2, auto [b] 100px) [c]");
+  testGridTemplateColumnsRows("[a] auto repeat(2, [b] 100px) [c]");
+  testGridTemplateColumnsRows("[a] repeat(2, auto [b]) 100px [c]");
+  testGridTemplateColumnsRows("[a] repeat(2, [b] 100px)");
+  testGridTemplateColumnsRows("[a] repeat(2, [b] auto [c]) [d]");
+  testGridTemplateColumnsRows("[a] min-content repeat(2, [b] 1fr [c] calc(10% + 20px)) [d] minmax(30em, 50em) [e]");
 
-// Reset values.
-style.gridTemplateColumns = "";
-style.gridTemplateRows = "";
+  // Reset values.
+  style.gridTemplateColumns = "";
+  style.gridTemplateRows = "";
 
-// Wrong values.
-testGridTemplateColumnsRows("repeat(-1, auto)", "");
-testGridTemplateColumnsRows("repeat(auto, 2)", "");
-testGridTemplateColumnsRows("repeat 2, auto", "");
-testGridTemplateColumnsRows("repeat(2 auto)", "");
-testGridTemplateColumnsRows("100px (repeat 2, auto)", "");
-testGridTemplateColumnsRows("repeat(2, 50px repeat(2, 100px))", "");
-testGridTemplateColumnsRows("100px repeat(2, [a])", "");
+  // Wrong values.
+  testGridTemplateColumnsRows("repeat(-1, auto)", "");
+  testGridTemplateColumnsRows("repeat(auto, 2)", "");
+  testGridTemplateColumnsRows("repeat 2, auto", "");
+  testGridTemplateColumnsRows("repeat(2 auto)", "");
+  testGridTemplateColumnsRows("100px (repeat 2, auto)", "");
+  testGridTemplateColumnsRows("repeat(2, 50px repeat(2, 100px))", "");
+  testGridTemplateColumnsRows("100px repeat(2, [a])", "");
+  done();
+});
 </script>

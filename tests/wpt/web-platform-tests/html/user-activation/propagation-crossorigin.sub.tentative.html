@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+   https://github.com/whatwg/html/issues/1983
+-->
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+    // Frame layout:
+    // top=origin0:this-file [
+    //   child1=origin1:child-one.html,
+    //   child-xo=origin2:propagation-crossorigin-child.html [
+    //     gchild=origin3:child-two.html
+    //   ]
+    // ]
+    let test_parent_initial = async_test("Parent frame initial state");
+    let test_parent_final = async_test("Parent frame final state");
+
+    let test_child1_initial = async_test("Child1 frame initial state");
+    let test_child1_final = async_test("Child1 frame final state");
+
+    let test_child_xo_initial = async_test("Child2 frame initial state");
+    let test_child_xo_final = async_test("Child2 frame final state");
+
+    let test_gchild_initial = async_test("Grandchild frame initial state");
+    let test_gchild_final = async_test("Grand child frame final state");
+
+    let num_children_to_load = 3;
+    let num_children_to_report = 3;
+
+    function finishLoadPhase() {
+        test_parent_initial.step(() => {
+            assert_true(num_children_to_load == 0);
+            assert_false(navigator.userActivation.isActive);
+            assert_false(navigator.userActivation.hasBeenActive);
+        });
+        test_parent_initial.done();
+
+        test_driver.click(document.getElementById("child-xo"));
+    }
+
+    function finishReportPhase() {
+        test_parent_final.step(() => {
+            assert_true(num_children_to_report == 0);
+            assert_true(navigator.userActivation.isActive);
+            assert_true(navigator.userActivation.hasBeenActive);
+        });
+        test_parent_final.done();
+        // End of all tests.
+    }
+
+    window.addEventListener("message", event => {
+        var msg = JSON.parse(event.data);
+
+        if (msg.type == 'child-one-loaded') {
+            test_child1_initial.step(() => {
+                assert_false(msg.isActive);
+                assert_false(msg.hasBeenActive);
+            });
+            test_child1_initial.done();
+        } else if (msg.type == 'child-crossorigin-loaded') {
+            test_child_xo_initial.step(() => {
+                assert_false(msg.isActive);
+                assert_false(msg.hasBeenActive);
+            });
+            test_child_xo_initial.done();
+        } else if (msg.type == 'child-two-loaded') {
+            test_gchild_initial.step(() => {
+                assert_false(msg.isActive);
+                assert_false(msg.hasBeenActive);
+            });
+            test_gchild_initial.done();
+        } else if (msg.type == 'child-one-report') {
+            test_child1_final.step(() => {
+                assert_false(msg.isActive);
+                assert_false(msg.hasBeenActive);
+            });
+            test_child1_final.done();
+        } else if (msg.type == 'child-crossorigin-report') {
+            // This msg was triggered by a user click.
+            test_child_xo_final.step(() => {
+                assert_true(msg.isActive);
+                assert_true(msg.hasBeenActive);
+            });
+            test_child_xo_final.done();
+
+            // Ask remaining frames to report states.
+            let ask_report = JSON.stringify({"type": "report"});
+            frames[0].postMessage(ask_report, "*");
+            frames[1].frames[0].postMessage(ask_report, "*");
+        } else if (msg.type == 'child-two-report') {
+            test_gchild_final.step(() => {
+                assert_false(msg.isActive);
+                assert_false(msg.hasBeenActive);
+            });
+            test_gchild_final.done();
+        }
+
+        // Phase switching.
+        if (msg.type.endsWith("-loaded")) {
+            if (--num_children_to_load == 0)
+                finishLoadPhase();
+        } else if (msg.type.endsWith("-report")) {
+            if (--num_children_to_report == 0)
+                finishReportPhase();
+        }
+    });
+  </script>
+</head>
+<body>
+  <h1>User activation propagation across cross-origin frame boundary</h1>
+  <p>Tests that user activation does not propagate across cross-origin frame boundary.</p>
+  <ol id="instructions">
+    <li>Click anywhere on the green area (child frame).
+  </ol>
+  <iframe id="child1" width="300px" height="40px"
+          src="http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html">
+  </iframe>
+  <iframe id="child-xo" width="300px" height="140px"
+          src="http://{{domains[www2]}}:{{ports[http][0]}}/html/user-activation/resources/propagation-crossorigin-child.sub.html">
+  </iframe>
+</body>
+</html>

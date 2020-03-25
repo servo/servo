@@ -1,5 +1,7 @@
 // META: title=Encoding API: Streaming decode
+// META: global=window,worker
 // META: script=resources/encodings.js
+// META: script=/common/sab.js
 
 var string = '\x00123ABCabc\x80\xFF\u0100\u1000\uFFFD\uD800\uDC00\uDBFF\uDFFF';
 var octets = {
@@ -28,7 +30,7 @@ var octets = {
                     var sub = [];
                     for (var j = i; j < encoded.length && j < i + len; ++j)
                         sub.push(encoded[j]);
-                        var uintArray = new Uint8Array(new self[arrayBufferOrSharedArrayBuffer](sub.length));
+                        var uintArray = new Uint8Array(createBuffer(arrayBufferOrSharedArrayBuffer, sub.length));
                         uintArray.set(sub);
                     out += decoder.decode(uintArray, {stream: true});
                 }

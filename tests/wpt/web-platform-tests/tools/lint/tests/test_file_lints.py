@@ -633,8 +633,11 @@ def test_late_timeout():
             ]
 
 
+# Note: This test checks the print *statement* (which doesn't exist in python 3).
+#       The print *function* is checked in test_print_function below.
+@pytest.mark.skipif(six.PY3, reason="Cannot parse print statements from python 3")
 def test_print_statement():
-    error_map = check_with_files(b"def foo():\n  print('statement')\n  print\n")
+    error_map = check_with_files(b"def foo():\n  print 'statement'\n  print\n")
 
     for (filename, (errors, kind)) in error_map.items():
         check_errors(errors)

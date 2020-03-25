@@ -1,6 +1,6 @@
 from setuptools import setup
 
-PACKAGE_VERSION = '2.0'
+PACKAGE_VERSION = '3.0'
 deps = ["six>=1.8", "h2==3.0.1"]
 
 setup(name='wptserve',

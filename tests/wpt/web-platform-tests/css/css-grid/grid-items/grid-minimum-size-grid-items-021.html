@@ -70,7 +70,6 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", runTests);
 
   function runTests() {
     checkGridSizeTracksAndImageSize("grid-1", "img-1", "200px", "200px", "200px", "200px", "200px", "200px");
@@ -102,6 +101,7 @@
   }
 </script>
 
+<body onload="document.fonts.ready.then(() => { runTests(); })">
 <div id=log></div>
 
 <!-- Grids with only a 50x50 image as grid item. -->
@@ -219,3 +219,4 @@
   <img id="img-24" class="width100percent" src="support/500x500-green.png">
   <div>ITEM</div>
 </div>
+</body>
