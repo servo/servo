@@ -2013,27 +2013,45 @@ where
     input.skip_whitespace();
 
     let mut empty = true;
-    if !parse_type_selector(parser, input, builder)? {
-        if let Some(url) = parser.default_namespace() {
-            // If there was no explicit type selector, but there is a
-            // default namespace, there is an implicit "<defaultns>|*" type
-            // selector.
-            builder.push_simple_selector(Component::DefaultNamespace(url))
-        }
-    } else {
+    if parse_type_selector(parser, input, builder)? {
         empty = false;
     }
 
     let mut state = SelectorParsingState::empty();
     loop {
-        let parse_result = match parse_one_simple_selector(parser, input, state)? {
+        let result = match parse_one_simple_selector(parser, input, state)? {
             None => break,
             Some(result) => result,
         };
 
+        if empty {
+            if let Some(url) = parser.default_namespace() {
+                // If there was no explicit type selector, but there is a
+                // default namespace, there is an implicit "<defaultns>|*" type
+                // selector. Except for :host, where we ignore it.
+                //
+                // https://drafts.csswg.org/css-scoping/#host-element-in-tree:
+                //
+                //     When considered within its own shadow trees, the shadow
+                //     host is featureless. Only the :host, :host(), and
+                //     :host-context() pseudo-classes are allowed to match it.
+                //
+                // https://drafts.csswg.org/selectors-4/#featureless:
+                //
+                //     A featureless element does not match any selector at all,
+                //     except those it is explicitly defined to match. If a
+                //     given selector is allowed to match a featureless element,
+                //     it must do so while ignoring the default namespace.
+                //
+                if !matches!(result, SimpleSelectorParseResult::SimpleSelector(Component::Host(..))) {
+                    builder.push_simple_selector(Component::DefaultNamespace(url));
+                }
+            }
+        }
+
         empty = false;
 
-        match parse_result {
+        match result {
             SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
             },
