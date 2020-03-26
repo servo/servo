@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<title>Ensure flexbox content-size excludes scrollbar.</title>
+<link href="support/flexbox.css" rel="stylesheet">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-4/#classic-scrollbars">
+<link rel="match" href="reference/content-height-with-scrollbars-ref.html">
+<meta name="assert" content="This test ensures that content-size of a flexbox with scrollbars looks correct."/>
+<style>
+.flexbox {
+    height: 100px;
+    overflow: scroll;
+}
+.flexbox > div {
+    flex: none;
+}
+.flexbox > :nth-child(1) {
+    background-color: lightgreen;
+}
+.flexbox > :nth-child(2) {
+    background-color: lightblue;
+}
+</style>
+<body>
+<p>This tests that when setting the height of a flex item to a percentage
+height, we use the content height with scrollbars. The content should not be
+scrollable in any of the test cases below.</p>
+
+<div class="flexbox column">
+  <div style="height: 100%"></div>
+</div>
+
+<div class="flexbox column">
+  <div style="height: 100%; box-sizing: border-box; border: 5px solid green"></div>
+</div>
+
+<div class="flexbox column wrap">
+  <div style="height: 50px; width: 50%;"></div>
+  <div style="height: 50px; width: 50%; background-color: lightblue"></div>
+</div>
+
+<div class="flexbox column wrap align-content-flex-start" style="height: auto; max-height: 100px; padding: 10px;">
+  <div style="height: 50px; width: 300px;"></div>
+  <div style="height: 50px; width: 300px; background-color: lightblue"></div>
+</div>
+</body>
+</html>

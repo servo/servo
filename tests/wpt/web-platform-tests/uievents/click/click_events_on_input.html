@@ -37,10 +37,7 @@
         // Inject mouse click events.
         var actions = new test_driver.Actions();
         document.getElementById("other").focus();
-        var bounds = target.getBoundingClientRect();
-        actions.pointerMove(Math.floor(bounds.width / 5),
-                            Math.floor(bounds.height / 2),
-                            {origin: target})
+        actions.pointerMove(0, 0, {origin: target})
                .pointerDown({button: mouseButton})
                .pointerUp({button: mouseButton})
                .send()

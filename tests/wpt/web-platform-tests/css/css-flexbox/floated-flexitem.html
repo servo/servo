@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: Ensure flex item proper formatting context.</title>
+<link rel="match" href="reference/floated-flexitem-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-items">
+<meta name="assert" content="This test checks that the flex items of a flex container participate in their container’s flex formatting context, not in a block formatting context.">
+<style>
+#flexbox {
+  background-color: lightgrey;
+  align-items: flex-start;
+}
+#flexbox > * {
+  border: 1px solid green;
+}
+</style>
+<body>
+<p>
+This example is from the spec. There should be four flex items. Anonymous item 3 shouldn't have
+a green border because the anonymous block is the flex item.
+</p>
+<div id="flexbox" style="display: flex">
+
+    <!-- flex item: block child -->
+    <div id="item1">block</div>
+
+    <!-- flex item: floated element; floating is ignored -->
+    <div id="item2" style="float: left;">float</div>
+
+    <!-- flex item: anonymous block box around inline content -->
+    anonymous item 3
+
+    <!-- flex item: inline child -->
+    <span>
+        item 4
+        <!-- flex items do not split around blocks -->
+        <div id=not-an-item>item 4</div>
+        item 4
+    </span>
+</div>
+</body>
+</html>

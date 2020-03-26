@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>'textLength' on &#x3c;textPath&#x3e; with 'text-anchor' adjustments</title>
+  <html:script src="/resources/testharness.js"/>
+  <html:script src="/resources/testharnessreport.js"/>
+  <html:link rel="stylesheet" href="/fonts/ahem.css"/>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElement"/>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextElementTextLengthAttribute"/>
+  <defs>
+    <path id="p" d="M0,25h100"/>
+  </defs>
+  <g font-family="Ahem" font-size="20px">
+    <text expected-x="0">
+      <textPath href="#p" textLength="25" lengthAdjust="spacing"
+                text-anchor="start">XXXX</textPath>
+    </text>
+    <text expected-x="0" transform="translate(0 50)">
+      <textPath href="#p" textLength="25" lengthAdjust="spacingAndGlyphs"
+                text-anchor="start">XXXX</textPath>
+    </text>
+
+    <text expected-x="37.5">
+      <textPath href="#p" textLength="25" lengthAdjust="spacing"
+                text-anchor="middle" startOffset="50%">XXXX</textPath>
+    </text>
+    <text expected-x="37.5" transform="translate(0 50)">
+      <textPath href="#p" textLength="25" lengthAdjust="spacingAndGlyphs"
+                text-anchor="middle" startOffset="50%">XXXX</textPath>
+    </text>
+
+    <text expected-x="75">
+      <textPath href="#p" textLength="25" lengthAdjust="spacing"
+                text-anchor="end" startOffset="100%">XXXX</textPath>
+    </text>
+    <text expected-x="75" transform="translate(0 50)">
+      <textPath href="#p" textLength="25" lengthAdjust="spacingAndGlyphs"
+                text-anchor="end" startOffset="100%">XXXX</textPath>
+    </text>
+  </g>
+  <script>
+    test(t => {
+      let texts = Array.from(document.getElementsByTagName('text'));
+      for (let text of texts) {
+        let bbox = text.getBBox();
+        let textpath = text.firstElementChild;
+        let description = 'text-anchor=' + textpath.getAttribute('text-anchor');
+        assert_approx_equals(bbox.x, parseFloat(text.getAttribute('expected-x')), 0.5,
+                             'x, ' + description);
+        assert_approx_equals(bbox.width, 25, 0.5,
+                             'width, ' + description);
+      }
+    });
+  </script>
+</svg>

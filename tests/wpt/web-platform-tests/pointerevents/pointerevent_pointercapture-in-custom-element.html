@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PointerCapture for Custome Shadow DOM</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="help" href= "https://bugs.chromium.org/p/chromium/issues/detail?id=810882">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script>
+       class WC extends HTMLElement{
+        constructor(){
+          super();
+          let template = document.getElementById('template-wc');
+          let node = template.content.cloneNode(true) ;
+
+          let shadowRoot = this.attachShadow({mode: 'open'});
+          shadowRoot.appendChild(node);
+        }
+       }
+       customElements.define("wc-wc", WC);
+    </script>
+    </head>
+  <body onload="onLoad()">
+    <template id="template-wc">
+      <style>
+          #content{
+              height:50px;
+              width:50px;
+              background-color: magenta;
+          }
+      </style>
+      <div id="content"></div>
+    </template>
+    <h4>PointerCapture by Custom Element's Shadow DOM</h4>
+      The magenta box below is part of a custom element's Shadow DOM.
+    <ul>
+      <li> Click left mouse button inside the box and keep mouse button depressed</li>
+      <li> Move the mouse</li>
+      <li> There should be a message stating <em>Pointer was captured by custom element's Shadow DOM!</em></li>
+      <li> Release left mouse button</li>
+      <li> There should be a message stating <em>Pointer was released by custom element's Shadow DOM!</em></li>
+    </ul>
+
+    <wc-wc id="wc-wc"></wc-wc>
+    <div id="log"></div>
+    <script>
+      var logDiv = document.getElementById("log");
+      function logMessage(message){
+        var log = document.createElement("div");
+        var messageNode = document.createTextNode(message);
+        log.appendChild(messageNode);
+        logDiv.appendChild(log);
+      }
+      var events = [];
+
+      var content = document.getElementById("wc-wc")
+         .shadowRoot.getElementById("content");
+
+      content.addEventListener("pointerdown", function(e){
+        content.setPointerCapture(e.pointerId);
+        events.push("pointerdown@content");
+      });
+      content.addEventListener("gotpointercapture", function(e){
+        logMessage("Pointer was captured by custom element's Shadow DOM!");
+        events.push("gotpointercapture@content");
+      });
+      content.addEventListener("pointerup", function(e){
+        content.releasePointerCapture(e.pointerId);
+        events.push("pointerup@content");
+      });
+      content.addEventListener("lostpointercapture", function(e){
+        logMessage("Pointer was released by custom element's Shadow DOM!");
+        events.push("lostpointercapture@content");
+        if(window.promise_test && wc_shadow_dom_test){
+          wc_shadow_dom_test.step(function(){
+            assert_array_equals(events, ["pointerdown@content",
+              "gotpointercapture@content", "pointerup@content",
+              "lostpointercapture@content"]);
+            resolve_test();
+            wc_shadow_dom_test.done();
+          });
+        }
+      });
+
+      var wc_shadow_dom_test = null;
+      var resolve_test = null;
+      var reject_test = null;
+
+      function cleanup(){
+        events = [];
+        shadow_dom_test = null;
+        resolve_test = null;
+        reject_test = null;
+      }
+
+      function onLoad(){
+        if(window.promise_test){
+          promise_test(function(t){
+            return new Promise(function(resolve, reject){
+              wc_shadow_dom_test = t;
+              resolve_test = resolve;
+              reject_test = reject;
+              t.add_cleanup(function(){
+                cleanup();
+              });
+              var contentRect = content.getBoundingClientRect();
+              var actions = new test_driver.Actions();
+              var actions_promise = actions
+                  .pointerMove(contentRect.x, contentRect.y)
+                  .pointerDown({button: actions.ButtonType.LEFT})
+                  .pointerUp({button: actions.ButtonType.LEFT})
+                  .send();
+            });
+          }, "PointerCapture works for custom element Shadow DOM.");
+        }
+      }
+    </script>
+  </body>
+</html>

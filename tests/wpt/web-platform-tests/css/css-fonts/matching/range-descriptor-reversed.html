@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Fonts Module Level 3: Property descriptor ranges</title>
+<link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-prop-desc">
+<link rel="match" href="range-descriptor-reversed-ref.html">
+<meta name="assert" content="User agents must swap the computed value of the startpoint and endpoint of the range in order to forbid decreasing ranges.">
+</head>
+<link rel="stylesheet" href="font-matching.css">
+<style>
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    font-stretch: 200% 50%;
+    font-style: oblique 90deg -90deg;
+    font-weight: 900 100;
+    }
+</style>
+<link rel="match" href="stretch-distance-over-weight-distance-ref.html">
+<span id="stretch_style_weight_1">MNOP</span>
+<span id="stretch_style_weight_9">MNOP</span>
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>
