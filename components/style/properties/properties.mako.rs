@@ -750,6 +750,52 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 };
 </%def>
 
+<%
+    logical_groups = defaultdict(list)
+    for prop in data.longhands:
+        if prop.logical_group:
+            logical_groups[prop.logical_group].append(prop)
+
+    for group, props in logical_groups.iteritems():
+        logical_count = sum(1 for p in props if p.logical)
+        if logical_count * 2 != len(props):
+            raise RuntimeError("Logical group {} has ".format(group) +
+                               "unbalanced logical / physical properties")
+
+    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
+    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
+    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
+    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
+    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
+
+    def restriction_flags(property):
+        name = property.name
+        flags = []
+        if name in FIRST_LINE_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LINE")
+        if name in FIRST_LETTER_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LETTER")
+        if name in PLACEHOLDER_RESTRICTIONS:
+            flags.append("APPLIES_TO_PLACEHOLDER")
+        if name in MARKER_RESTRICTIONS:
+            flags.append("APPLIES_TO_MARKER")
+        if name in CUE_RESTRICTIONS:
+            flags.append("APPLIES_TO_CUE")
+        return flags
+
+%>
+
+/// A group for properties which may override each other
+/// via logical resolution.
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub enum LogicalGroup {
+    % for group in logical_groups.iterkeys():
+    /// ${group}
+    ${to_camel_case(group)},
+    % endfor
+}
+
+
 /// A set of longhand properties
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct LonghandIdSet {
@@ -835,6 +881,29 @@ impl LonghandIdSet {
             lambda p: p.has_effect_on_gecko_scrollbars is False
         )}
         &HAS_NO_EFFECT_ON_SCROLLBARS
+    }
+
+    /// Returns the set of padding properties for the purpose of disabling
+    /// native appearance.
+    #[inline]
+    pub fn padding_properties() -> &'static Self {
+        <% assert "padding" in logical_groups %>
+        ${static_longhand_id_set(
+            "PADDING_PROPERTIES",
+            lambda p: p.logical_group == "padding"
+        )}
+        &PADDING_PROPERTIES
+    }
+
+    /// Returns the set of border properties for the purpose of disabling native
+    /// appearance.
+    #[inline]
+    pub fn border_background_properties() -> &'static Self {
+        ${static_longhand_id_set(
+            "BORDER_BACKGROUND_PROPERTIES",
+            lambda p: (p.logical_group and p.logical_group.startswith("border")) or p.name in ["background-color", "background-image"]
+        )}
+        &BORDER_BACKGROUND_PROPERTIES
     }
 
     /// Iterate over the current longhand id set.
@@ -996,51 +1065,6 @@ bitflags! {
         /// This shorthand property is accessible from getComputedStyle.
         const SHORTHAND_IN_GETCS = 0;
     }
-}
-
-<%
-    logical_groups = defaultdict(list)
-    for prop in data.longhands:
-        if prop.logical_group:
-            logical_groups[prop.logical_group].append(prop)
-
-    for group, props in logical_groups.iteritems():
-        logical_count = sum(1 for p in props if p.logical)
-        if logical_count * 2 != len(props):
-            raise RuntimeError("Logical group {} has ".format(group) +
-                               "unbalanced logical / physical properties")
-
-    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
-    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
-    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
-    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
-    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
-
-    def restriction_flags(property):
-        name = property.name
-        flags = []
-        if name in FIRST_LINE_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LINE")
-        if name in FIRST_LETTER_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LETTER")
-        if name in PLACEHOLDER_RESTRICTIONS:
-            flags.append("APPLIES_TO_PLACEHOLDER")
-        if name in MARKER_RESTRICTIONS:
-            flags.append("APPLIES_TO_MARKER")
-        if name in CUE_RESTRICTIONS:
-            flags.append("APPLIES_TO_CUE")
-        return flags
-
-%>
-
-/// A group for properties which may override each other
-/// via logical resolution.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-pub enum LogicalGroup {
-    % for group in logical_groups.iterkeys():
-    /// ${group}
-    ${to_camel_case(group)},
-    % endfor
 }
 
 /// An identifier for a given longhand property.

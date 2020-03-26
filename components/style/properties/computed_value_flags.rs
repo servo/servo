@@ -70,6 +70,20 @@ bitflags! {
 
         /// Whether this element is inside an `opacity: 0` subtree.
         const IS_IN_OPACITY_ZERO_SUBTREE = 1 << 12;
+
+        /// Whether there are author-specified rules for border-* properties
+        /// (except border-image-*), background-color, or background-image.
+        ///
+        /// TODO(emilio): Maybe do include border-image, see:
+        ///
+        /// https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-604424845
+        const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 13;
+
+        /// Whether there are author-specified rules for padding-* properties.
+        ///
+        /// FIXME(emilio): Try to merge this with BORDER_BACKGROUND, see
+        /// https://github.com/w3c/csswg-drafts/issues/4777
+        const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 14;
     }
 }
 
