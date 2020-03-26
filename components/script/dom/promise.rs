@@ -19,19 +19,21 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsapi::{JSAutoRealm, JSContext, JSObject, JS_GetFunctionObject};
-use js::jsapi::{JS_NewFunction, NewFunctionWithReserved, PromiseState};
+use js::jsapi::{JS_NewFunction, NewFunctionWithReserved};
+use js::jsapi::{PromiseState, PromiseUserInputEventHandlingState};
 use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
 };
-use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
-use js::rust::wrappers::{NewPromiseObject, RejectPromise, ResolvePromise};
+use js::rust::wrappers::{GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise};
+use js::rust::wrappers::{ResolvePromise, SetPromiseUserInputEventHandlingState};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use std::ptr;
 use std::rc::Rc;
@@ -131,6 +133,12 @@ impl Promise {
             assert!(!do_nothing_obj.is_null());
             obj.set(NewPromiseObject(*cx, do_nothing_obj.handle()));
             assert!(!obj.is_null());
+            let is_user_interacting = if ScriptThread::is_user_interacting() {
+                PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
+            } else {
+                PromiseUserInputEventHandlingState::DidntHaveUserInteractionAtCreation
+            };
+            SetPromiseUserInputEventHandlingState(obj.handle(), is_user_interacting);
         }
     }
 
