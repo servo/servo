@@ -1,10 +1,10 @@
 # CSS Metadata
 
-CSS tests have some additional requirements for metadata.
+CSS tests have some additional metadata.
 
 ### Specification Links
 
-Specification Links
+Each test **requires** at least one link to specifications:
 
 ``` html
 <link rel="help" href="RELEVANT_SPEC_SECTION" />
@@ -45,6 +45,9 @@ href="https://www.w3.org/TR/CSS21/colors.html#background-properties" />
 ```
 
 ### Requirement Flags
+
+If a test has any of the following requirements, a meta element can be added
+to include the corresponding flags (tokens):
 
 <table>
 <tr>
@@ -144,12 +147,6 @@ Example 2 (multiple tokens apply):
 <meta name="flags" content="asis HTMLonly may" />
 ```
 
-Example 3 (no tokens apply):
-
-``` html
-<meta name="flags" content="" />
-```
-
 ### Test Assertions
 
 ``` html
@@ -169,7 +166,7 @@ The assertion should not be:
 * A line or reference from the CSS specification unless that line is
   a complete assertion when taken out of context.
 
-The test assertion is **optional**, but is is highly recommended to include one.
+The test assertion is **optional**, but is highly recommended.
 It helps the reviewer understand
 the goal of the test so that he or she can make sure it is being
 tested correctly. Also, in case a problem is found with the test

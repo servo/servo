@@ -330,6 +330,9 @@ dictionary RTCIceCandidatePairStats : RTCStats {
              DOMHighResTimeStamp           consentExpiredTimestamp;
              unsigned long                 packetsDiscardedOnSend;
              unsigned long long            bytesDiscardedOnSend;
+             unsigned long long            requestBytesSent;
+             unsigned long long            consentRequestBytesSent;
+             unsigned long long            responseBytesSent;
 };
 
 enum RTCStatsIceCandidatePairState {

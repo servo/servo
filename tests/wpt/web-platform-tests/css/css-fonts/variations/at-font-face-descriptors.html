@@ -88,7 +88,7 @@
             { value: "calc(100 + 100) 400",             isValid: true,  expectedValue: "200 400", description: "Lower bound calc()" },
             { value: "200 calc(200 + 200)",             isValid: true,  expectedValue: "200 400", description: "Upper bound calc()" },
             { value: "calc(100 + 100) calc(200 + 200)", isValid: true,  expectedValue: "200 400", description: "Both bounds are calc()" },
-            { value: "400 200",                         isValid: true,  expectedValue: "200 400", description: "Bounds out of order are valid" },
+            { value: "400 200",                         isValid: true,  expectedValue: "400 200", description: "Bounds out of order are valid" },
             { value: "100 200 300",                     isValid: false, description: "Extra content after upper bound" },
         ]);
 
@@ -130,7 +130,7 @@
             { value: "calc(10% + 10%) 30%",             isValid: true,  expectedValue: "20% 30%", description: "Lower bound calc()" },
             { value: "10% calc(10% + 10%)",             isValid: true,  expectedValue: "10% 20%", description: "Upper bound calc()" },
             { value: "calc(10% + 10%) calc(20% + 20%)", isValid: true,  expectedValue: "20% 40%", description: "Both bounds are calc()" },
-            { value: "200% 100%",                       isValid: true,  expectedValue: "100% 200%", description: "Bounds out of order" },
+            { value: "200% 100%",                       isValid: true,  expectedValue: "200% 100%", description: "Bounds out of order" },
             { value: "100% 200% 300%",                  isValid: false, description: "Extra content after upper bound" },
         ]);
 
@@ -161,7 +161,7 @@
             { value: "oblique 10deg 20deg",         isValid: true,  description: "Simple range" },
             { value: "oblique 10deg 10deg",         isValid: true,  expectedValue: "oblique 10deg", description: "Simple range with equal upper and lower bounds" },
             { value: "oblique 20deg 20deg",         isValid: true,  expectedValue: "oblique", description: "Simple range with  default angle for both bounds" },
-            { value: "oblique 20deg 10deg",         isValid: true,  expectedValue: "oblique 10deg 20deg", description: "Bounds out of order" },
+            { value: "oblique 20deg 10deg",         isValid: true,  expectedValue: "oblique 20deg 10deg", description: "Bounds out of order" },
             { value: "oblique -100deg 20deg",       isValid: false, description: "Lower bound out of range" },
             { value: "oblique 20deg 100deg",        isValid: false, description: "Upper bound out of range" },
             { value: "oblique 10deg 20deg 30deg",   isValid: false, description: "Extra content after upper bound" },

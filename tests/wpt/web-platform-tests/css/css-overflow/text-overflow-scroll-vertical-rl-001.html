@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow: ellipsis and scrolling vertical-rl</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#ellipsis-scrolling">
+<link rel="match" href="reference/text-overflow-scroll-vertical-lr-001-ref.html">
+<meta name="flags" content="should">
+<meta name="assert" content="If you scroll an element with 'text-overflow: ellipsis', the ellipsis should move to the new position. This should work in vertical-rl writing mode too.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  div {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    font: 100px/1 Ahem;
+    white-space: pre;
+    height: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+
+<p>The test passes if it matches the reference.</p>
+
+<div id="test1">ppp pp p</div>
+<div id="test2">ppp pp p</div>
+<div id="test3"><span style="padding-inline-start: 400px;">ppp pp p</span></div>
+<div id="test4"><span style="padding-inline-start: 600px;">ppp pp p</span></div>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    test1.scrollTop = 200;
+    test2.scrollTop = 400;
+    test3.scrollTop = 200;
+    test4.scrollTop = 1000;
+    document.documentElement.className = "";
+  }));
+</script>
