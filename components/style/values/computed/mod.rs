@@ -21,10 +21,11 @@ use crate::media_queries::Device;
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
-use crate::Atom;
+use crate::{ArcSlice, Atom};
 #[cfg(feature = "servo")]
 use crate::Prefix;
 use euclid::default::Size2D;
+use servo_arc::Arc;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
@@ -450,6 +451,46 @@ where
     }
 }
 
+// NOTE(emilio): This is implementable more generically, but it's unlikely
+// what you want there, as it forces you to have an extra allocation.
+//
+// We could do that if needed, ideally with specialization for the case where
+// ComputedValue = T. But we don't need it for now.
+impl<T> ToComputedValue for Arc<T>
+where
+    T: ToComputedValue<ComputedValue = T>,
+{
+    type ComputedValue = Self;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self {
+        self.clone()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self) -> Self {
+        computed.clone()
+    }
+}
+
+// Same caveat as above applies.
+impl<T> ToComputedValue for ArcSlice<T>
+where
+    T: ToComputedValue<ComputedValue = T>,
+{
+    type ComputedValue = Self;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self {
+        self.clone()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self) -> Self {
+        computed.clone()
+    }
+}
+
 trivial_to_computed_value!(());
 trivial_to_computed_value!(bool);
 trivial_to_computed_value!(f32);
@@ -464,6 +505,7 @@ trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);
+trivial_to_computed_value!(style_traits::values::specified::AllowedNumericType);
 
 #[allow(missing_docs)]
 #[derive(

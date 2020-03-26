@@ -12,10 +12,8 @@ pub fn derive(input: DeriveInput) -> TokenStream {
     let trait_impl = |from_body, to_body| {
         quote! {
              #[inline]
-             fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-                 match resolved {
-                     #from_body
-                 }
+             fn from_resolved_value(from: Self::ResolvedValue) -> Self {
+                 #from_body
              }
 
              #[inline]
@@ -23,30 +21,9 @@ pub fn derive(input: DeriveInput) -> TokenStream {
                  self,
                  context: &crate::values::resolved::Context,
              ) -> Self::ResolvedValue {
-                 match self {
-                     #to_body
-                 }
+                 #to_body
              }
         }
-    };
-
-    let non_generic_implementation = || {
-        Some(quote! {
-            type ResolvedValue = Self;
-
-            #[inline]
-            fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-                resolved
-            }
-
-            #[inline]
-            fn to_resolved_value(
-                self,
-                context: &crate::values::resolved::Context,
-            ) -> Self {
-                self
-            }
-        })
     };
 
     to_computed_value::derive_to_value(
@@ -54,11 +31,16 @@ pub fn derive(input: DeriveInput) -> TokenStream {
         parse_quote!(crate::values::resolved::ToResolvedValue),
         parse_quote!(ResolvedValue),
         BindStyle::Move,
-        |binding| cg::parse_field_attrs::<ResolvedValueAttrs>(&binding.ast()).field_bound,
+        |binding| {
+            let attrs = cg::parse_field_attrs::<ResolvedValueAttrs>(&binding.ast());
+            to_computed_value::ToValueAttrs {
+                field_bound: attrs.field_bound,
+                no_field_bound: attrs.no_field_bound,
+            }
+        },
         |binding| quote!(crate::values::resolved::ToResolvedValue::from_resolved_value(#binding)),
         |binding| quote!(crate::values::resolved::ToResolvedValue::to_resolved_value(#binding, context)),
         trait_impl,
-        non_generic_implementation,
     )
 }
 
@@ -66,4 +48,5 @@ pub fn derive(input: DeriveInput) -> TokenStream {
 #[derive(Default, FromField)]
 struct ResolvedValueAttrs {
     field_bound: bool,
+    no_field_bound: bool,
 }

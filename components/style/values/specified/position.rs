@@ -539,7 +539,7 @@ impl TemplateAreas {
         Ok(TemplateAreas {
             areas: areas.into(),
             strings: strings.into(),
-            width: width,
+            width,
         })
     }
 }
@@ -589,7 +589,16 @@ impl Parse for TemplateAreasArc {
 /// A range of rows or columns. Using this instead of std::ops::Range for FFI
 /// purposes.
 #[repr(C)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct UnsignedRange {
     /// The start of the range.
     pub start: u32,
@@ -597,7 +606,16 @@ pub struct UnsignedRange {
     pub end: u32,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C)]
 /// Not associated with any particular grid item, but can be referenced from the
 /// grid-placement properties.

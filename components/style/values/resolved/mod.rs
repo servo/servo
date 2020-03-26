@@ -6,7 +6,9 @@
 //! there are used values.
 
 use crate::properties::ComputedValues;
+use crate::ArcSlice;
 use cssparser;
+use servo_arc::Arc;
 use smallvec::SmallVec;
 
 mod color;
@@ -79,6 +81,7 @@ trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
 trivial_to_resolved_value!(html5ever::Prefix);
 trivial_to_resolved_value!(computed::LengthPercentage);
+trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
 
 impl<A, B> ToResolvedValue for (A, B)
 where
@@ -212,5 +215,45 @@ where
     #[inline]
     fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
         Self::from(Box::from_resolved_value(resolved.into_box()))
+    }
+}
+
+// NOTE(emilio): This is implementable more generically, but it's unlikely what
+// you want there, as it forces you to have an extra allocation.
+//
+// We could do that if needed, ideally with specialization for the case where
+// ResolvedValue = T. But we don't need it for now.
+impl<T> ToResolvedValue for Arc<T>
+where
+    T: ToResolvedValue<ResolvedValue = T>,
+{
+    type ResolvedValue = Self;
+
+    #[inline]
+    fn to_resolved_value(self, _: &Context) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_resolved_value(resolved: Self) -> Self {
+        resolved
+    }
+}
+
+// Same caveat as above applies.
+impl<T> ToResolvedValue for ArcSlice<T>
+where
+    T: ToResolvedValue<ResolvedValue = T>,
+{
+    type ResolvedValue = Self;
+
+    #[inline]
+    fn to_resolved_value(self, _: &Context) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_resolved_value(resolved: Self) -> Self {
+        resolved
     }
 }
