@@ -9,6 +9,8 @@ use crate::dom::customelementregistry::{
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::window::LayoutValue;
+use euclid::default::Rect;
 use servo_atoms::Atom;
 use std::rc::Rc;
 
@@ -46,4 +48,6 @@ pub struct ElementRareData {
     /// The "name" content attribute; not used as frequently as id, but used
     /// in named getter loops so it's worth looking up quickly when present
     pub name_attribute: Option<Atom>,
+    /// The client rect reported by layout.
+    pub client_rect: Option<LayoutValue<Rect<i32>>>,
 }

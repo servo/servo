@@ -3709,7 +3709,7 @@ impl ScriptThread {
             new_size
         );
         window.set_window_size(new_size);
-        window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize);
+        window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize, None);
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
