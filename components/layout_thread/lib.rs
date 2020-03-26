@@ -1039,7 +1039,7 @@ impl LayoutThread {
         self.stylist.set_quirks_mode(quirks_mode);
     }
 
-    fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
+    fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
         let result = node.mutate_layout_data()?.flow_construction_result.get();
 
         let mut flow = match result {

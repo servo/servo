@@ -688,9 +688,9 @@ pub fn process_client_rect_query(
     iterator.client_rect
 }
 
-pub fn process_node_scroll_id_request<N: LayoutNode>(
+pub fn process_node_scroll_id_request<'dom>(
     id: PipelineId,
-    requested_node: N,
+    requested_node: impl LayoutNode<'dom>,
 ) -> ExternalScrollId {
     let layout_node = requested_node.to_threadsafe();
     layout_node.generate_scroll_id(id)
@@ -747,16 +747,13 @@ pub fn process_node_scroll_area_request(
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
-pub fn process_resolved_style_request<'a, N>(
+pub fn process_resolved_style_request<'dom>(
     context: &LayoutContext,
-    node: N,
+    node: impl LayoutNode<'dom>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
     layout_root: &mut dyn Flow,
-) -> String
-where
-    N: LayoutNode,
-{
+) -> String {
     use style::stylist::RuleInclusion;
     use style::traversal::resolve_style;
 
@@ -797,15 +794,12 @@ where
 }
 
 /// The primary resolution logic, which assumes that the element is styled.
-fn process_resolved_style_request_internal<'a, N>(
-    requested_node: N,
+fn process_resolved_style_request_internal<'dom>(
+    requested_node: impl LayoutNode<'dom>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
     layout_root: &mut dyn Flow,
-) -> String
-where
-    N: LayoutNode,
-{
+) -> String {
     let layout_el = requested_node.to_threadsafe().as_element().unwrap();
     let layout_el = match *pseudo {
         Some(PseudoElement::Before) => layout_el.get_before_pseudo(),
@@ -851,12 +845,15 @@ where
     // There are probably other quirks.
     let applies = true;
 
-    fn used_value_for_position_property<N: LayoutNode>(
-        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
+    fn used_value_for_position_property<'dom, N>(
+        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode<'dom>>::ConcreteThreadSafeLayoutElement,
         layout_root: &mut dyn Flow,
         requested_node: N,
         longhand_id: LonghandId,
-    ) -> String {
+    ) -> String
+    where
+        N: LayoutNode<'dom>,
+    {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
@@ -969,7 +966,7 @@ pub fn process_offset_parent_query(
     }
 }
 
-pub fn process_style_query<N: LayoutNode>(requested_node: N) -> StyleResponse {
+pub fn process_style_query<'dom>(requested_node: impl LayoutNode<'dom>) -> StyleResponse {
     let element = requested_node.as_element().unwrap();
     let data = element.borrow_data();
 
@@ -982,8 +979,8 @@ enum InnerTextItem {
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<N: LayoutNode>(
-    node: N,
+pub fn process_element_inner_text_query<'dom>(
+    node: impl LayoutNode<'dom>,
     indexable_text: &IndexableText,
 ) -> String {
     // Step 1.
@@ -1027,8 +1024,8 @@ pub fn process_element_inner_text_query<N: LayoutNode>(
 
 // https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 #[allow(unsafe_code)]
-fn inner_text_collection_steps<N: LayoutNode>(
-    node: N,
+fn inner_text_collection_steps<'dom>(
+    node: impl LayoutNode<'dom>,
     indexable_text: &IndexableText,
     results: &mut Vec<InnerTextItem>,
 ) {

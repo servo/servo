@@ -50,7 +50,7 @@ pub struct FragmentTreeRoot {
 impl BoxTreeRoot {
     pub fn construct<'dom, Node>(context: &LayoutContext, root_element: Node) -> Self
     where
-        Node: 'dom + Copy + LayoutNode + Send + Sync,
+        Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
         let (contains_floats, boxes) = construct_for_root_element(&context, root_element);
         Self(BlockFormattingContext {

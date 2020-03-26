@@ -308,7 +308,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
+impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
 
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
@@ -342,25 +342,25 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> GetLayoutData for ServoLayoutNode<'ln> {
+impl<'ln> GetLayoutData<'ln> for ServoLayoutNode<'ln> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         unsafe { self.get_jsmanaged().get_style_and_layout_data() }
     }
 }
 
-impl<'le> GetLayoutData for ServoLayoutElement<'le> {
+impl<'le> GetLayoutData<'le> for ServoLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.as_node().get_style_and_layout_data()
     }
 }
 
-impl<'ln> GetLayoutData for ServoThreadSafeLayoutNode<'ln> {
+impl<'ln> GetLayoutData<'ln> for ServoThreadSafeLayoutNode<'ln> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
 }
 
-impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
+impl<'le> GetLayoutData<'le> for ServoThreadSafeLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.element.as_node().get_style_and_layout_data()
     }
@@ -1049,7 +1049,7 @@ impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
     }
 }
 
-impl<'ln> DangerousThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
+impl<'ln> DangerousThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_first_child(&self) -> Option<Self> {
         self.get_jsmanaged()
             .first_child_ref()
@@ -1099,7 +1099,7 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
     }
 }
 
-impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
+impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteNode = ServoLayoutNode<'ln>;
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
@@ -1255,14 +1255,14 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 }
 
-pub struct ThreadSafeLayoutNodeChildrenIterator<ConcreteNode: ThreadSafeLayoutNode> {
+pub struct ThreadSafeLayoutNodeChildrenIterator<ConcreteNode> {
     current_node: Option<ConcreteNode>,
     parent_node: ConcreteNode,
 }
 
-impl<ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
+impl<'dom, ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
 where
-    ConcreteNode: DangerousThreadSafeLayoutNode,
+    ConcreteNode: DangerousThreadSafeLayoutNode<'dom>,
 {
     pub fn new(parent: ConcreteNode) -> Self {
         let first_child: Option<ConcreteNode> = match parent.get_pseudo_element_type() {
@@ -1282,9 +1282,9 @@ where
     }
 }
 
-impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
+impl<'dom, ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
 where
-    ConcreteNode: DangerousThreadSafeLayoutNode,
+    ConcreteNode: DangerousThreadSafeLayoutNode<'dom>,
 {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
@@ -1366,7 +1366,7 @@ pub struct ServoThreadSafeLayoutElement<'le> {
     pseudo: PseudoElementType,
 }
 
-impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
+impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'le>;
     type ConcreteElement = ServoLayoutElement<'le>;
 

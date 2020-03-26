@@ -192,9 +192,9 @@ pub fn process_node_geometry_request(
     fragment_tree_root.get_border_dimensions_for_node(requested_node)
 }
 
-pub fn process_node_scroll_id_request<N: LayoutNode>(
+pub fn process_node_scroll_id_request<'dom>(
     id: PipelineId,
-    requested_node: N,
+    requested_node: impl LayoutNode<'dom>,
 ) -> ExternalScrollId {
     let layout_node = requested_node.to_threadsafe();
     layout_node.generate_scroll_id(id)
@@ -207,15 +207,12 @@ pub fn process_node_scroll_area_request(_requested_node: OpaqueNode) -> Rect<i32
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
-pub fn process_resolved_style_request<'a, N>(
+pub fn process_resolved_style_request<'dom>(
     _context: &LayoutContext,
-    _node: N,
+    _node: impl LayoutNode<'dom>,
     _pseudo: &Option<PseudoElement>,
     _property: &PropertyId,
-) -> String
-where
-    N: LayoutNode,
-{
+) -> String {
     "".to_owned()
 }
 
@@ -223,12 +220,12 @@ pub fn process_offset_parent_query(_requested_node: OpaqueNode) -> OffsetParentR
     OffsetParentResponse::empty()
 }
 
-pub fn process_style_query<N: LayoutNode>(_requested_node: N) -> StyleResponse {
+pub fn process_style_query<'dom>(_requested_node: impl LayoutNode<'dom>) -> StyleResponse {
     StyleResponse(None)
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<N: LayoutNode>(_node: N) -> String {
+pub fn process_element_inner_text_query<'dom>(_node: impl LayoutNode<'dom>) -> String {
     "".to_owned()
 }
 

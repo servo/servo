@@ -47,7 +47,10 @@ pub trait LayoutNodeLayoutData {
     fn flow_debug_id(self) -> usize;
 }
 
-impl<T: GetLayoutData> LayoutNodeLayoutData for T {
+impl<'dom, T> LayoutNodeLayoutData for T
+where
+    T: GetLayoutData<'dom>,
+{
     fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>> {
         self.get_raw_data().map(|d| d.layout_data.borrow())
     }
@@ -66,7 +69,10 @@ pub trait GetRawData {
     fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
 }
 
-impl<T: GetLayoutData> GetRawData for T {
+impl<'dom, T> GetRawData for T
+where
+    T: GetLayoutData<'dom>,
+{
     fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
         self.get_style_and_layout_data().map(|opaque| {
             let container = opaque.ptr.as_ptr() as *mut StyleAndLayoutData;
@@ -98,7 +104,10 @@ pub trait ThreadSafeLayoutNodeHelpers {
     fn restyle_damage(self) -> RestyleDamage;
 }
 
-impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
+impl<'dom, T> ThreadSafeLayoutNodeHelpers for T
+where
+    T: ThreadSafeLayoutNode<'dom>,
+{
     fn flags(self) -> LayoutDataFlags {
         self.borrow_layout_data().as_ref().unwrap().flags
     }
