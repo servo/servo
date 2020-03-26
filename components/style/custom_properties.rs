@@ -579,9 +579,10 @@ impl<'a> CustomPropertiesBuilder<'a> {
                     match result {
                         Ok(new_value) => Arc::new(new_value),
                         Err(..) => {
-                            map.remove(name);
+                            // Don't touch the map, this has the same effect as
+                            // making it compute to the inherited one.
                             return;
-                        },
+                        }
                     }
                 } else {
                     (*unparsed_value).clone()
@@ -653,16 +654,22 @@ impl<'a> CustomPropertiesBuilder<'a> {
             None => return self.inherited.cloned(),
         };
         if self.may_have_cycles {
-            substitute_all(&mut map, self.device);
+            let inherited = self.inherited.as_ref().map(|m| &***m);
+            substitute_all(&mut map, inherited, self.device);
         }
         Some(Arc::new(map))
     }
 }
 
-/// Resolve all custom properties to either substituted or invalid.
+/// Resolve all custom properties to either substituted, invalid, or unset
+/// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Device) {
+fn substitute_all(
+    custom_properties_map: &mut CustomPropertiesMap,
+    inherited: Option<&CustomPropertiesMap>,
+    device: &Device,
+) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -698,6 +705,9 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
         /// all unfinished strong connected components.
         stack: SmallVec<[usize; 5]>,
         map: &'a mut CustomPropertiesMap,
+        /// The inherited variables. We may need to restore some if we fail
+        /// substitution.
+        inherited: Option<&'a CustomPropertiesMap>,
         /// to resolve the environment to substitute `env()` variables.
         device: &'a Device,
     }
@@ -831,18 +841,26 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
             return None;
         }
 
-        // Now we have shown that this variable is not in a loop, and
-        // all of its dependencies should have been resolved. We can
-        // start substitution now.
+        // Now we have shown that this variable is not in a loop, and all of its
+        // dependencies should have been resolved. We can start substitution
+        // now.
         let result = substitute_references_in_value(&value, &context.map, &context.device);
-
         match result {
             Ok(computed_value) => {
                 context.map.insert(name, Arc::new(computed_value));
-            },
+            }
             Err(..) => {
-                context.map.remove(&name);
-            },
+                // This is invalid, reset it to the unset (inherited) value.
+                let inherited = context.inherited.and_then(|m| m.get(&name)).cloned();
+                match inherited {
+                    Some(computed_value) => {
+                        context.map.insert(name, computed_value);
+                    },
+                    None => {
+                        context.map.remove(&name);
+                    },
+                };
+            }
         }
 
         // All resolved, so return the signal value.
@@ -859,6 +877,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
             stack: SmallVec::new(),
             var_info: SmallVec::new(),
             map: custom_properties_map,
+            inherited,
             device,
         };
         traverse(name, &mut context);
