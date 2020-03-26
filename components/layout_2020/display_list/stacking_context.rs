@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
 use crate::fragments::{
@@ -13,12 +14,14 @@ use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
 use fnv::FnvHashMap;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
+use servo_arc::Arc as ServoArc;
 use std::cmp::Ordering;
 use std::mem;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
+use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
@@ -27,7 +30,7 @@ use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
 
 #[derive(Clone)]
-pub(crate) struct ContainingBlock<'a> {
+pub(crate) struct ContainingBlock {
     /// The SpaceAndClipInfo that contains the children of the fragment that
     /// established this containing block.
     space_and_clip: wr::SpaceAndClipInfo,
@@ -38,19 +41,19 @@ pub(crate) struct ContainingBlock<'a> {
     /// Fragments for positioned descendants (including direct children) that were
     /// hoisted into this containing block. They have hashed based on the
     /// HoistedFragmentId that is generated during hoisting.
-    hoisted_children: FnvHashMap<HoistedFragmentId, &'a Fragment>,
+    hoisted_children: FnvHashMap<HoistedFragmentId, ArcRefCell<Fragment>>,
 }
 
-impl<'a> ContainingBlock<'a> {
+impl ContainingBlock {
     pub(crate) fn new(
         rect: &PhysicalRect<Length>,
         space_and_clip: wr::SpaceAndClipInfo,
-        children: &'a Vec<Fragment>,
+        children: &[ArcRefCell<Fragment>],
     ) -> Self {
         let mut hoisted_children = FnvHashMap::default();
         for child in children {
-            if let Some(hoisted_fragment_id) = child.hoisted_fragment_id() {
-                hoisted_children.insert(*hoisted_fragment_id, child);
+            if let Some(hoisted_fragment_id) = child.borrow().hoisted_fragment_id() {
+                hoisted_children.insert(*hoisted_fragment_id, child.clone());
             }
         }
 
@@ -63,19 +66,19 @@ impl<'a> ContainingBlock<'a> {
 }
 
 #[derive(Clone)]
-pub(crate) struct ContainingBlockInfo<'a> {
+pub(crate) struct ContainingBlockInfo {
     /// The positioning rectangle established by the parent. This is sometimes
     /// called the "containing block" in layout_2020.
     pub rect: PhysicalRect<Length>,
 
     /// The nearest real containing block at this point in the construction of
     /// the stacking context tree.
-    pub nearest_containing_block: Option<ContainingBlock<'a>>,
+    pub nearest_containing_block: Option<ContainingBlock>,
 
     /// The nearest containing block for all descendants at this point in the
     /// stacking context tree. This containing blocks contains fixed position
     /// elements.
-    pub containing_block_for_all_descendants: ContainingBlock<'a>,
+    pub containing_block_for_all_descendants: ContainingBlock,
 }
 
 pub(crate) struct StackingContextBuilder<'a> {
@@ -117,17 +120,18 @@ pub(crate) enum StackingContextSection {
     Content,
 }
 
-pub(crate) struct StackingContextFragment<'a> {
+pub(crate) struct StackingContextFragment {
     space_and_clip: wr::SpaceAndClipInfo,
     section: StackingContextSection,
     containing_block: PhysicalRect<Length>,
-    fragment: &'a Fragment,
+    fragment: ArcRefCell<Fragment>,
 }
 
-impl<'a> StackingContextFragment<'a> {
+impl StackingContextFragment {
     fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         builder.current_space_and_clip = self.space_and_clip;
         self.fragment
+            .borrow()
             .build_display_list(builder, &self.containing_block);
     }
 }
@@ -140,31 +144,31 @@ pub(crate) enum StackingContextType {
     PseudoAtomicInline,
 }
 
-pub(crate) struct StackingContext<'a> {
+pub(crate) struct StackingContext {
     /// The fragment that established this stacking context.
-    initializing_fragment: Option<&'a BoxFragment>,
+    initializing_fragment_style: Option<ServoArc<ComputedValues>>,
 
     /// The type of this StackingContext. Used for collecting and sorting.
     context_type: StackingContextType,
 
     /// Fragments that make up the content of this stacking context.
-    fragments: Vec<StackingContextFragment<'a>>,
+    fragments: Vec<StackingContextFragment>,
 
     /// All non-float stacking context and pseudo stacking context children
     /// of this stacking context.
-    stacking_contexts: Vec<StackingContext<'a>>,
+    stacking_contexts: Vec<StackingContext>,
 
     /// All float pseudo stacking context children of this stacking context.
-    float_stacking_contexts: Vec<StackingContext<'a>>,
+    float_stacking_contexts: Vec<StackingContext>,
 }
 
-impl<'a> StackingContext<'a> {
+impl StackingContext {
     pub(crate) fn new(
-        initializing_fragment: &'a BoxFragment,
+        initializing_fragment_style: ServoArc<ComputedValues>,
         context_type: StackingContextType,
     ) -> Self {
         Self {
-            initializing_fragment: Some(initializing_fragment),
+            initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
             fragments: vec![],
             stacking_contexts: vec![],
@@ -174,7 +178,7 @@ impl<'a> StackingContext<'a> {
 
     pub(crate) fn create_root() -> Self {
         Self {
-            initializing_fragment: None,
+            initializing_fragment_style: None,
             context_type: StackingContextType::Real,
             fragments: vec![],
             stacking_contexts: vec![],
@@ -183,10 +187,9 @@ impl<'a> StackingContext<'a> {
     }
 
     fn z_index(&self) -> i32 {
-        match self.initializing_fragment {
-            Some(fragment) => fragment.style.effective_z_index(),
-            None => 0,
-        }
+        self.initializing_fragment_style
+            .as_ref()
+            .map_or(0, |style| style.effective_z_index())
     }
 
     pub(crate) fn sort(&mut self) {
@@ -210,18 +213,17 @@ impl<'a> StackingContext<'a> {
         });
     }
 
-    fn push_webrender_stacking_context_if_necessary(
+    fn push_webrender_stacking_context_if_necessary<'a>(
         &self,
         builder: &'a mut DisplayListBuilder,
     ) -> bool {
-        let fragment = match self.initializing_fragment {
-            Some(fragment) => fragment,
+        let effects = match self.initializing_fragment_style.as_ref() {
+            Some(style) => style.get_effects(),
             None => return false,
         };
 
         // WebRender only uses the stacking context to apply certain effects. If we don't
         // actually need to create a stacking context, just avoid creating one.
-        let effects = fragment.style.get_effects();
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal
@@ -261,7 +263,7 @@ impl<'a> StackingContext<'a> {
         true
     }
 
-    pub(crate) fn build_display_list(&'a self, builder: &'a mut DisplayListBuilder) {
+    pub(crate) fn build_display_list<'a>(&self, builder: &'a mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 
         // Properly order display items that make up a stacking context. "Steps" here
@@ -323,11 +325,12 @@ pub(crate) enum StackingContextBuildMode {
 }
 
 impl Fragment {
-    pub(crate) fn build_stacking_context_tree<'a>(
-        &'a self,
+    pub(crate) fn build_stacking_context_tree(
+        &self,
+        fragment_ref: &ArcRefCell<Fragment>,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
-        stacking_context: &mut StackingContext<'a>,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
     ) {
         if mode == StackingContextBuildMode::SkipHoisted && self.is_hoisted() {
@@ -337,7 +340,7 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) => {
                 fragment.build_stacking_context_tree(
-                    self,
+                    fragment_ref,
                     builder,
                     containing_block_info,
                     stacking_context,
@@ -362,7 +365,7 @@ impl Fragment {
                     section: StackingContextSection::Content,
                     space_and_clip: builder.current_space_and_clip,
                     containing_block: containing_block_info.rect,
-                    fragment: self,
+                    fragment: fragment_ref.clone(),
                 });
             },
         }
@@ -407,7 +410,7 @@ impl BoxFragment {
         &'a self,
         builder: &mut StackingContextBuilder,
         padding_rect: &PhysicalRect<Length>,
-        containing_block_info: &mut ContainingBlockInfo<'a>,
+        containing_block_info: &mut ContainingBlockInfo,
     ) {
         if !self.style.establishes_containing_block() {
             return;
@@ -427,12 +430,12 @@ impl BoxFragment {
         }
     }
 
-    fn build_stacking_context_tree<'a>(
-        &'a self,
-        fragment: &'a Fragment,
+    fn build_stacking_context_tree(
+        &self,
+        fragment: &ArcRefCell<Fragment>,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
-        stacking_context: &mut StackingContext<'a>,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
     ) {
         builder.clipping_and_scrolling_scope(|builder| {
             self.adjust_spatial_id_for_positioning(builder);
@@ -450,7 +453,7 @@ impl BoxFragment {
                 },
             };
 
-            let mut child_stacking_context = StackingContext::new(self, context_type);
+            let mut child_stacking_context = StackingContext::new(self.style.clone(), context_type);
             self.build_stacking_context_tree_for_children(
                 fragment,
                 builder,
@@ -478,10 +481,10 @@ impl BoxFragment {
 
     fn build_stacking_context_tree_for_children<'a>(
         &'a self,
-        fragment: &'a Fragment,
+        fragment: &ArcRefCell<Fragment>,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
-        stacking_context: &mut StackingContext<'a>,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
     ) {
         let relative_border_rect = self
             .border_rect()
@@ -506,7 +509,7 @@ impl BoxFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
             containing_block: new_containing_block_info.rect,
-            fragment,
+            fragment: fragment.clone(),
         });
 
         // We want to build the scroll frame after the background and border, because
@@ -528,7 +531,8 @@ impl BoxFragment {
         self.build_containing_block(builder, &padding_rect, &mut new_containing_block_info);
 
         for child in &self.children {
-            child.build_stacking_context_tree(
+            child.borrow().build_stacking_context_tree(
+                child,
                 builder,
                 &new_containing_block_info,
                 stacking_context,
@@ -551,7 +555,7 @@ impl BoxFragment {
     fn build_scroll_frame_if_necessary<'a>(
         &self,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
+        containing_block_info: &ContainingBlockInfo,
     ) {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
@@ -716,11 +720,11 @@ impl BoxFragment {
 }
 
 impl AnonymousFragment {
-    fn build_stacking_context_tree<'a>(
-        &'a self,
+    fn build_stacking_context_tree(
+        &self,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
-        stacking_context: &mut StackingContext<'a>,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
     ) {
         let mut new_containing_block_info = containing_block_info.clone();
         new_containing_block_info.rect = self
@@ -728,7 +732,8 @@ impl AnonymousFragment {
             .to_physical(self.mode, &containing_block_info.rect)
             .translate(containing_block_info.rect.origin.to_vector());
         for child in &self.children {
-            child.build_stacking_context_tree(
+            child.borrow().build_stacking_context_tree(
+                child,
                 builder,
                 &new_containing_block_info,
                 stacking_context,
@@ -739,13 +744,13 @@ impl AnonymousFragment {
 }
 
 impl AbsoluteOrFixedPositionedFragment {
-    fn build_stacking_context_tree<'a>(
-        &'a self,
+    fn build_stacking_context_tree(
+        &self,
         builder: &mut StackingContextBuilder,
-        containing_block_info: &ContainingBlockInfo<'a>,
-        stacking_context: &mut StackingContext<'a>,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
     ) {
-        let mut build_for_containing_block = |containing_block: &ContainingBlock<'a>| {
+        let mut build_for_containing_block = |containing_block: &ContainingBlock| {
             let hoisted_child = match containing_block.hoisted_children.get(&self.0) {
                 Some(hoisted_child) => hoisted_child,
                 None => return false,
@@ -755,7 +760,8 @@ impl AbsoluteOrFixedPositionedFragment {
                 let mut new_containing_block_info = containing_block_info.clone();
                 new_containing_block_info.rect = containing_block.rect;
                 builder.current_space_and_clip = containing_block.space_and_clip;
-                hoisted_child.build_stacking_context_tree(
+                hoisted_child.borrow().build_stacking_context_tree(
+                    hoisted_child,
                     builder,
                     &new_containing_block_info,
                     stacking_context,

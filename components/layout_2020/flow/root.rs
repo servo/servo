@@ -38,7 +38,7 @@ pub struct BoxTreeRoot(BlockFormattingContext);
 #[derive(Serialize)]
 pub struct FragmentTreeRoot {
     /// The children of the root of the fragment tree.
-    children: Vec<Fragment>,
+    children: Vec<ArcRefCell<Fragment>>,
 
     /// The scrollable overflow of the root of the fragment tree.
     scrollable_overflow: PhysicalRect<Length>,
@@ -184,7 +184,11 @@ impl BoxTreeRoot {
                 });
 
         FragmentTreeRoot {
-            children: independent_layout.fragments,
+            children: independent_layout
+                .fragments
+                .into_iter()
+                .map(|fragment| ArcRefCell::new(fragment))
+                .collect(),
             scrollable_overflow,
             initial_containing_block: physical_containing_block,
         }
@@ -207,7 +211,8 @@ impl FragmentTreeRoot {
             };
 
             for fragment in &self.children {
-                fragment.build_stacking_context_tree(
+                fragment.borrow().build_stacking_context_tree(
+                    fragment,
                     &mut stacking_context_builder,
                     &containing_block_info,
                     &mut stacking_context,
@@ -223,7 +228,7 @@ impl FragmentTreeRoot {
     pub fn print(&self) {
         let mut print_tree = PrintTree::new("Fragment Tree".to_string());
         for fragment in &self.children {
-            fragment.print(&mut print_tree);
+            fragment.borrow().print(&mut print_tree);
         }
     }
 
@@ -238,49 +243,11 @@ impl FragmentTreeRoot {
         &self,
         mut process_func: impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
-        fn recur<T>(
-            fragments: &[Fragment],
-            containing_block: &PhysicalRect<Length>,
-            process_func: &mut impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
-        ) -> Option<T> {
-            for fragment in fragments {
-                if let Some(result) = process_func(fragment, containing_block) {
-                    return Some(result);
-                }
-
-                match fragment {
-                    Fragment::Box(fragment) => {
-                        let new_containing_block = fragment
-                            .content_rect
-                            .to_physical(fragment.style.writing_mode, containing_block)
-                            .translate(containing_block.origin.to_vector());
-                        if let Some(result) =
-                            recur(&fragment.children, &new_containing_block, process_func)
-                        {
-                            return Some(result);
-                        }
-                    },
-                    Fragment::Anonymous(fragment) => {
-                        let new_containing_block = fragment
-                            .rect
-                            .to_physical(fragment.mode, containing_block)
-                            .translate(containing_block.origin.to_vector());
-                        if let Some(result) =
-                            recur(&fragment.children, &new_containing_block, process_func)
-                        {
-                            return Some(result);
-                        }
-                    },
-                    _ => {},
-                }
-            }
-            None
-        }
-        recur(
-            &self.children,
-            &self.initial_containing_block,
-            &mut process_func,
-        )
+        self.children.iter().find_map(|child| {
+            child
+                .borrow()
+                .find(&self.initial_containing_block, &mut process_func)
+        })
     }
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
