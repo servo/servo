@@ -12,6 +12,7 @@ use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use crate::script_thread::ScriptThread;
 use euclid::Length;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
@@ -367,6 +368,7 @@ pub struct JsTimerTask {
     is_interval: IsInterval,
     nesting_level: u32,
     duration: MsDuration,
+    is_user_interacting: bool,
 }
 
 // Enum allowing more descriptive values for the is_interval field
@@ -444,6 +446,7 @@ impl JsTimers {
             source: source,
             callback: callback,
             is_interval: is_interval,
+            is_user_interacting: ScriptThread::is_user_interacting(),
             nesting_level: 0,
             duration: Length::new(0),
         };
@@ -524,12 +527,13 @@ impl JsTimerTask {
         timers.nesting_level.set(self.nesting_level);
 
         // step 4.2
+        let was_user_interacting = ScriptThread::is_user_interacting();
+        ScriptThread::set_user_interacting(self.is_user_interacting);
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let global = this.global();
                 let cx = global.get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-
                 global.evaluate_js_on_global_with_result(code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
@@ -537,6 +541,7 @@ impl JsTimerTask {
                 let _ = function.Call_(this, arguments, Report);
             },
         };
+        ScriptThread::set_user_interacting(was_user_interacting);
 
         // reset nesting level (see above)
         timers.nesting_level.set(0);

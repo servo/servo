@@ -42,9 +42,11 @@ use js::glue::{
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::ContextOptionsRef;
+use js::jsapi::GetPromiseUserInputEventHandlingState;
 use js::jsapi::InitConsumeStreamCallback;
 use js::jsapi::InitDispatchToEventLoop;
 use js::jsapi::MimeType;
+use js::jsapi::PromiseUserInputEventHandlingState;
 use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
@@ -197,7 +199,7 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
 unsafe extern "C" fn enqueue_promise_job(
     extra: *const c_void,
     cx: *mut RawJSContext,
-    _promise: HandleObject,
+    promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
     incumbent_global: HandleObject,
@@ -208,10 +210,18 @@ unsafe extern "C" fn enqueue_promise_job(
             let microtask_queue = &*(extra as *const MicrotaskQueue);
             let global = GlobalScope::from_object(incumbent_global.get());
             let pipeline = global.pipeline_id();
+            let interaction = if promise.get().is_null() {
+                PromiseUserInputEventHandlingState::DontCare
+            } else {
+                GetPromiseUserInputEventHandlingState(promise)
+            };
+            let is_user_interacting =
+                interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
             microtask_queue.enqueue(
                 Microtask::Promise(EnqueuedPromiseCallback {
                     callback: PromiseJobCallback::new(cx, job.get()),
                     pipeline,
+                    is_user_interacting,
                 }),
                 cx,
             );

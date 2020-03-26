@@ -52,6 +52,7 @@ pub struct EnqueuedPromiseCallback {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
     pub pipeline: PipelineId,
+    pub is_user_interacting: bool,
 }
 
 /// A microtask that comes from a queueMicrotask() Javascript call,
@@ -105,7 +106,10 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
+                            let was_interacting = ScriptThread::is_user_interacting();
+                            ScriptThread::set_user_interacting(job.is_user_interacting);
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                            ScriptThread::set_user_interacting(was_interacting);
                         }
                     },
                     Microtask::User(ref job) => {
