@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use canvas_traits::webgl::{
-    ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId,
+    ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
 use std::cell::Cell;
 
@@ -85,6 +86,10 @@ impl VertexArrayObject {
         })
     }
 
+    pub fn set_vertex_attrib_type(&self, index: u32, type_: u32) {
+        self.vertex_attribs.borrow_mut()[index as usize].type_ = type_;
+    }
+
     pub fn vertex_attrib_pointer(
         &self,
         index: u32,
@@ -108,12 +113,27 @@ impl VertexArrayObject {
         if stride < 0 || stride > 255 || offset < 0 {
             return Err(WebGLError::InvalidValue);
         }
+
+        let is_webgl2 = match self.context.webgl_version() {
+            WebGLVersion::WebGL2 => true,
+            _ => false,
+        };
+
         let bytes_per_component: i32 = match type_ {
             constants::BYTE | constants::UNSIGNED_BYTE => 1,
             constants::SHORT | constants::UNSIGNED_SHORT => 2,
             constants::FLOAT => 4,
+            constants::INT | constants::UNSIGNED_INT if is_webgl2 => 4,
+            constants2::HALF_FLOAT if is_webgl2 => 2,
+            sparkle::gl::FIXED if is_webgl2 => 4,
+            constants2::INT_2_10_10_10_REV | constants2::UNSIGNED_INT_2_10_10_10_REV
+                if is_webgl2 && size == 4 =>
+            {
+                4
+            },
             _ => return Err(WebGLError::InvalidEnum),
         };
+
         if offset % bytes_per_component as i64 > 0 || stride % bytes_per_component > 0 {
             return Err(WebGLError::InvalidOperation);
         }
