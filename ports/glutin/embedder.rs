@@ -14,7 +14,7 @@ use glutin::EventsLoopClosed;
 use rust_webvr::GlWindowVRService;
 use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::EmbedderMethods;
-use servo::embedder_traits::EventLoopWaker;
+use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::{opts, pref};
 use servo::webvr::VRServiceManager;
 use servo::webvr_traits::WebVRMainThreadHeartbeat;
@@ -94,7 +94,8 @@ impl EmbedderMethods for EmbedderCallbacks {
         &mut self,
         xr: &mut webxr::MainThreadRegistry,
         _executor: WebGlExecutor,
-        _surface_provider_registration: SurfaceProviders
+        _surface_provider_registration: SurfaceProviders,
+        _embedder_proxy: EmbedderProxy,
     ) {
         if pref!(dom.webxr.test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
