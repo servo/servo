@@ -220,7 +220,7 @@ impl WebGL2RenderingContext {
 
     fn unbind_from(&self, slot: &MutNullableDom<WebGLBuffer>, buffer: &WebGLBuffer) {
         if slot.get().map_or(false, |b| buffer == &*b) {
-            buffer.decrement_attached_counter();
+            buffer.decrement_attached_counter(false);
             slot.set(None);
         }
     }
@@ -3403,7 +3403,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         for slot in &[&generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
-                old.decrement_attached_counter();
+                old.decrement_attached_counter(false);
             }
             slot.set(buffer);
         }
@@ -3481,7 +3481,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         for slot in &[&generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
-                old.decrement_attached_counter();
+                old.decrement_attached_counter(false);
             }
             slot.set(buffer);
         }

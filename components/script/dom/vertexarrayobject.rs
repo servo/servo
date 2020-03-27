@@ -59,11 +59,11 @@ impl VertexArrayObject {
 
         for attrib_data in &**self.vertex_attribs.borrow() {
             if let Some(buffer) = attrib_data.buffer() {
-                buffer.decrement_attached_counter();
+                buffer.decrement_attached_counter(fallible);
             }
         }
         if let Some(buffer) = self.element_array_buffer.get() {
-            buffer.decrement_attached_counter();
+            buffer.decrement_attached_counter(fallible);
         }
     }
 
@@ -136,7 +136,7 @@ impl VertexArrayObject {
             offset as u32,
         ));
         if let Some(old) = data.buffer() {
-            old.decrement_attached_counter();
+            old.decrement_attached_counter(false);
         }
 
         *data = VertexAttribData {
@@ -168,7 +168,7 @@ impl VertexArrayObject {
                 if b.id() != buffer.id() {
                     continue;
                 }
-                b.decrement_attached_counter();
+                b.decrement_attached_counter(false);
             }
             attrib.buffer = None;
         }
@@ -177,7 +177,7 @@ impl VertexArrayObject {
             .get()
             .map_or(false, |b| buffer == &*b)
         {
-            buffer.decrement_attached_counter();
+            buffer.decrement_attached_counter(false);
             self.element_array_buffer.set(None);
         }
     }
