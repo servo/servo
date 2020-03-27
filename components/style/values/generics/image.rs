@@ -13,6 +13,7 @@ use crate::Zero;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
+use values::generics::position::PositionComponent;
 
 /// An `<image> | none` value.
 ///
@@ -330,7 +331,7 @@ where
     LP: ToCss,
     NL: ToCss,
     NLP: ToCss,
-    P: ToCss,
+    P: PositionComponent + ToCss,
     A: ToCss,
     AoP: ToCss,
     C: ToCss,
@@ -379,36 +380,59 @@ where
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner)) => true,
                     _ => false,
                 };
+                let omit_position = position.is_center();
                 if compat_mode == GradientCompatMode::Modern {
                     if !omit_shape {
                         shape.to_css(dest)?;
-                        dest.write_str(" ")?;
+                        if !omit_position {
+                            dest.write_str(" ")?;
+                        }
                     }
-                    dest.write_str("at ")?;
-                    position.to_css(dest)?;
+                    if !omit_position {
+                        dest.write_str("at ")?;
+                        position.to_css(dest)?;
+                    }
                 } else {
-                    position.to_css(dest)?;
+                    if !omit_position {
+                        position.to_css(dest)?;
+                        if !omit_shape {
+                            dest.write_str(", ")?;
+                        }
+                    }
                     if !omit_shape {
-                        dest.write_str(", ")?;
                         shape.to_css(dest)?;
                     }
                 }
+                let mut skip_comma = omit_shape && omit_position;
                 for item in &**items {
-                    dest.write_str(", ")?;
+                    if !skip_comma {
+                        dest.write_str(", ")?;
+                    }
+                    skip_comma = false;
                     item.to_css(dest)?;
                 }
             },
             Gradient::Conic { ref angle, ref position, ref items, .. } => {
                 dest.write_str("conic-gradient(")?;
-                if !angle.is_zero() {
+                let omit_angle = angle.is_zero();
+                let omit_position = position.is_center();
+                if !omit_angle {
                     dest.write_str("from ")?;
                     angle.to_css(dest)?;
-                    dest.write_str(" ")?;
+                    if !omit_position {
+                        dest.write_str(" ")?;
+                    }
                 }
-                dest.write_str("at ")?;
-                position.to_css(dest)?;
+                if !omit_position {
+                    dest.write_str("at ")?;
+                    position.to_css(dest)?;
+                }
+                let mut skip_comma = omit_angle && omit_position;
                 for item in &**items {
-                    dest.write_str(", ")?;
+                    if !skip_comma {
+                        dest.write_str(", ")?;
+                    }
+                    skip_comma = false;
                     item.to_css(dest)?;
                 }
             },

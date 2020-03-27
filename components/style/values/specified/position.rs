@@ -13,6 +13,7 @@ use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
@@ -259,6 +260,18 @@ impl<S: Parse> PositionComponent<S> {
             .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
             .ok();
         Ok(PositionComponent::Side(keyword, lp))
+    }
+}
+
+impl<S> GenericPositionComponent for PositionComponent<S> {
+    fn is_center(&self) -> bool {
+        match *self {
+            PositionComponent::Center => true,
+            PositionComponent::Length(LengthPercentage::Percentage(ref per)) => per.0 == 0.5,
+            // 50% from any side is still the center.
+            PositionComponent::Side(_, Some(LengthPercentage::Percentage(ref per))) => per.0 == 0.5,
+            _ => false,
+        }
     }
 }
 
