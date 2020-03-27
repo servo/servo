@@ -451,11 +451,11 @@ interface mixin WebGL2RenderingContextBase
                           optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
   /* Vertex attribs */
-  // void vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w);
-  // void vertexAttribI4iv(GLuint index, Int32List values);
-  // void vertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w);
-  // void vertexAttribI4uiv(GLuint index, Uint32List values);
-  // void vertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset);
+  void vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w);
+  void vertexAttribI4iv(GLuint index, Int32List values);
+  void vertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w);
+  void vertexAttribI4uiv(GLuint index, Uint32List values);
+  void vertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset);
 
   /* Writing to the drawing buffer */
   void vertexAttribDivisor(GLuint index, GLuint divisor);

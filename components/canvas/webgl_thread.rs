@@ -1297,7 +1297,6 @@ impl WebGLImpl {
             WebGLCommand::GetFragDataLocation(program_id, ref name, ref sender) => {
                 let location =
                     gl.get_frag_data_location(program_id.get(), &to_name_in_compiled_shader(name));
-                assert!(location >= 0);
                 sender.send(location).unwrap();
             },
             WebGLCommand::GetUniformLocation(program_id, ref name, ref chan) => {
@@ -1401,6 +1400,12 @@ impl WebGLImpl {
             WebGLCommand::ValidateProgram(program_id) => gl.validate_program(program_id.get()),
             WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) => {
                 gl.vertex_attrib_4f(attrib_id, x, y, z, w)
+            },
+            WebGLCommand::VertexAttribI(attrib_id, x, y, z, w) => {
+                gl.vertex_attrib_4i(attrib_id, x, y, z, w)
+            },
+            WebGLCommand::VertexAttribU(attrib_id, x, y, z, w) => {
+                gl.vertex_attrib_4ui(attrib_id, x, y, z, w)
             },
             WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
                 gl.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset)

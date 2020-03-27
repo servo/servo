@@ -387,6 +387,8 @@ pub enum WebGLCommand {
     UseProgram(Option<WebGLProgramId>),
     ValidateProgram(WebGLProgramId),
     VertexAttrib(u32, f32, f32, f32, f32),
+    VertexAttribI(u32, i32, i32, i32, i32),
+    VertexAttribU(u32, u32, u32, u32, u32),
     VertexAttribPointer(u32, i32, u32, bool, i32, u32),
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     SetViewport(i32, i32, i32, i32),

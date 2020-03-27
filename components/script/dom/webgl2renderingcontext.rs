@@ -25,7 +25,7 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, Size2DExt,
+    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, Size2DExt, VertexAttrib,
     WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
@@ -227,6 +227,62 @@ impl WebGL2RenderingContext {
                         return;
                     }
                 }
+            }
+        }
+    }
+
+    fn validate_vertex_attribs_for_draw(&self) {
+        let program = match self.base.current_program() {
+            Some(program) => program,
+            None => return,
+        };
+        let groups = [
+            [
+                constants::INT,
+                constants::INT_VEC2,
+                constants::INT_VEC3,
+                constants::INT_VEC4,
+            ],
+            [
+                constants::UNSIGNED_INT,
+                constants::UNSIGNED_INT_VEC2,
+                constants::UNSIGNED_INT_VEC3,
+                constants::UNSIGNED_INT_VEC4,
+            ],
+            [
+                constants::FLOAT,
+                constants::FLOAT_VEC2,
+                constants::FLOAT_VEC3,
+                constants::FLOAT_VEC4,
+            ],
+        ];
+        let vao = self.current_vao();
+        for prog_attrib in program.active_attribs().iter() {
+            let attrib = handle_potential_webgl_error!(
+                self.base,
+                vao.get_vertex_attrib(prog_attrib.location as u32)
+                    .ok_or(InvalidOperation),
+                return
+            );
+
+            let current_vertex_attrib =
+                self.base.current_vertex_attribs()[prog_attrib.location as usize];
+            let attrib_data_base_type = if !attrib.enabled_as_array {
+                match current_vertex_attrib {
+                    VertexAttrib::Int(_, _, _, _) => constants::INT,
+                    VertexAttrib::Uint(_, _, _, _) => constants::UNSIGNED_INT,
+                    VertexAttrib::Float(_, _, _, _) => constants::FLOAT,
+                }
+            } else {
+                attrib.type_
+            };
+
+            let contains = groups
+                .iter()
+                .find(|g| g.contains(&attrib_data_base_type) && g.contains(&prog_attrib.type_));
+            if contains.is_none() {
+                self.base.webgl_error(InvalidOperation);
+                return;
             }
         }
     }
@@ -739,6 +795,28 @@ impl WebGL2RenderingContext {
         }
 
         true
+    }
+
+    fn vertex_attrib_i(&self, index: u32, x: i32, y: i32, z: i32, w: i32) {
+        if index >= self.base.limits().max_vertex_attribs {
+            return self.base.webgl_error(InvalidValue);
+        }
+        self.base.current_vertex_attribs()[index as usize] = VertexAttrib::Int(x, y, z, w);
+        self.current_vao()
+            .set_vertex_attrib_type(index, constants::INT);
+        self.base
+            .send_command(WebGLCommand::VertexAttribI(index, x, y, z, w));
+    }
+
+    fn vertex_attrib_u(&self, index: u32, x: u32, y: u32, z: u32, w: u32) {
+        if index >= self.base.limits().max_vertex_attribs {
+            return self.base.webgl_error(InvalidValue);
+        }
+        self.base.current_vertex_attribs()[index as usize] = VertexAttrib::Uint(x, y, z, w);
+        self.current_vao()
+            .set_vertex_attrib_type(index, constants::UNSIGNED_INT);
+        self.base
+            .send_command(WebGLCommand::VertexAttribU(index, x, y, z, w));
     }
 }
 
@@ -1570,12 +1648,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         self.validate_uniform_block_for_draw();
+        self.validate_vertex_attribs_for_draw();
         self.base.DrawArrays(mode, first, count)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
         self.validate_uniform_block_for_draw();
+        self.validate_vertex_attribs_for_draw();
         self.base.DrawElements(mode, count, type_, offset)
     }
 
@@ -2592,6 +2672,40 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.VertexAttrib4fv(indx, v)
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn VertexAttribI4i(&self, index: u32, x: i32, y: i32, z: i32, w: i32) {
+        self.vertex_attrib_i(index, x, y, z, w)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn VertexAttribI4iv(&self, index: u32, v: Int32ArrayOrLongSequence) {
+        let values = match v {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
+        if values.len() < 4 {
+            return self.base.webgl_error(InvalidValue);
+        }
+        self.vertex_attrib_i(index, values[0], values[1], values[2], values[3]);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn VertexAttribI4ui(&self, index: u32, x: u32, y: u32, z: u32, w: u32) {
+        self.vertex_attrib_u(index, x, y, z, w)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn VertexAttribI4uiv(&self, index: u32, v: Uint32ArrayOrUnsignedLongSequence) {
+        let values = match v {
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
+            Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
+        };
+        if values.len() < 4 {
+            return self.base.webgl_error(InvalidValue);
+        }
+        self.vertex_attrib_u(index, values[0], values[1], values[2], values[3]);
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttribPointer(
         &self,
@@ -2604,6 +2718,21 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     ) {
         self.base
             .VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    fn VertexAttribIPointer(&self, index: u32, size: i32, type_: u32, stride: i32, offset: i64) {
+        match type_ {
+            constants::BYTE |
+            constants::UNSIGNED_BYTE |
+            constants::SHORT |
+            constants::UNSIGNED_SHORT |
+            constants::INT |
+            constants::UNSIGNED_INT => {},
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        self.base
+            .VertexAttribPointer(index, size, type_, false, stride, offset)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -2821,6 +2950,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
     fn DrawArraysInstanced(&self, mode: u32, first: i32, count: i32, primcount: i32) {
         self.validate_uniform_block_for_draw();
+        self.validate_vertex_attribs_for_draw();
         handle_potential_webgl_error!(
             self.base,
             self.base
@@ -2838,6 +2968,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         primcount: i32,
     ) {
         self.validate_uniform_block_for_draw();
+        self.validate_vertex_attribs_for_draw();
         handle_potential_webgl_error!(
             self.base,
             self.base
@@ -2860,6 +2991,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             return;
         }
         self.validate_uniform_block_for_draw();
+        self.validate_vertex_attribs_for_draw();
         handle_potential_webgl_error!(
             self.base,
             self.base
