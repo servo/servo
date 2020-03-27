@@ -50,7 +50,6 @@ use script::layout_exports::{
     LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
     RawLayoutElementHelpers,
 };
-use script_layout_interface::message::PendingRestyle;
 use script_layout_interface::wrapper_traits::{
     DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
 };
@@ -410,14 +409,6 @@ impl<'ld> ServoLayoutDocument<'ld> {
             .dom_children()
             .flat_map(|n| n.as_element())
             .next()
-    }
-
-    pub fn drain_pending_restyles(&self) -> Vec<(ServoLayoutElement<'ld>, PendingRestyle)> {
-        let elements = unsafe { self.document.drain_pending_restyles() };
-        elements
-            .into_iter()
-            .map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot))
-            .collect()
     }
 
     pub fn needs_paint_from_layout(&self) {

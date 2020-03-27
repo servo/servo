@@ -219,6 +219,8 @@ pub struct ScriptReflow {
     pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
+    /// Restyle snapshot map.
+    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
 }
 
 pub struct LayoutThreadInit {
