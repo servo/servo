@@ -736,10 +736,7 @@ impl AbsoluteOrFixedPositionedFragment {
         let hoisted_fragment = self.hoisted_fragment.borrow();
         let fragment_ref = match hoisted_fragment.as_ref() {
             Some(fragment_ref) => fragment_ref,
-            None => {
-                warn!("Found hoisted box with missing fragment.");
-                return;
-            },
+            None => unreachable!("Found hoisted box with missing fragment."),
         };
 
         let containing_block = match self.position {
