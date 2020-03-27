@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: flex-flow auto margin with no available space</title>
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-shrink-property">
+<link rel="help" href="https://crbug.com/380201">
+<meta name="assert" content="This test checks that a flexbox doesn't shrink below border/padding
+when stretching children with no available space.">
+<style>
+* {
+    display: flex;
+    padding-bottom: 20pt;
+    min-height: 0.7%;
+    margin-top: 6000%;
+    flex-shrink: 0;
+    flex-basis: 7000%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<abbr data-expected-height=30210272>
+    <input></input>
+</abbr>
+<script>
+    window.checkLayout('abbr');
+</script>

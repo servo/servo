@@ -61,7 +61,7 @@ promise_test(async t => {
 
   const f = await with_iframe(PAGE);
   t.add_cleanup(() => {f.remove(); });
-  assert_throws_dom('SecurityError', () => {
+  assert_throws_dom('SecurityError', f.contentWindow.DOMException, () => {
     f.contentDocument.styleSheets[0].cssRules[0].cssText;
   });
   assert_equals(

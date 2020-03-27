@@ -1,7 +1,8 @@
 # META: timeout=long
+import copy
+from collections import defaultdict
 
 import pytest
-import copy
 
 from tests.perform_actions.support.keys import ALL_EVENTS, Keys, ALTERNATIVE_KEY_NAMES
 from tests.perform_actions.support.refine import filter_dict, get_events, get_keys
@@ -221,3 +222,21 @@ def test_special_key_sends_keydown(session, key_reporter, key_chain, name, expec
         assert entered_keys == expected["key"]
     else:
         assert len(entered_keys) == 0
+
+
+def test_space_char_equals_pua(session, key_reporter, key_chain):
+    key_chain \
+        .key_down(Keys.SPACE) \
+        .key_up(Keys.SPACE) \
+        .key_down(" ") \
+        .key_up(" ") \
+        .perform()
+    all_events = get_events(session)
+    by_type = defaultdict(list)
+    for event in all_events:
+        by_type[event["type"]].append(event)
+
+    for event_type in by_type:
+        events = by_type[event_type]
+        assert len(events) == 2
+        assert events[0] == events[1]

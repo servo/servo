@@ -17,29 +17,36 @@
 <iframe></iframe>
 </div>
 <script>
-const defaultList = [
-  ['a', false],
-  ['a[href]', true],
-  ['button', true],
-  ['input[type="hidden"]', false],
-  ['input[type="button"]', true],
-  ['select', true],
-  ['textarea', true],
-  ['#summary-out', false],
-  ['#summary-first', true],
-  ['#summary-second', false],
-  ['[contenteditable]', true],
-  ['iframe', true],
-];
-for (entry of defaultList) {
-  test(() => {
-    var element = document.querySelector('#default-samples ' + entry[0]);
-    element.focus();
-    if (entry[1])
-      assert_equals(document.activeElement, element);
-    else
-      assert_not_equals(document.activeElement, element);
-  }, entry[0] + ' should ' + (entry[1] ? '' : 'not ') + 'be focusable by default.');
+setup({ explicit_done: true });
+window.addEventListener("load", runTests);
+
+function runTests() {
+  const defaultList = [
+    ['a', false],
+    ['a[href]', true],
+    ['button', true],
+    ['input[type="hidden"]', false],
+    ['input[type="button"]', true],
+    ['select', true],
+    ['textarea', true],
+    ['#summary-out', false],
+    ['#summary-first', true],
+    ['#summary-second', false],
+    ['[contenteditable]', true],
+    ['iframe', true],
+  ];
+  for (entry of defaultList) {
+    test(() => {
+      var element = document.querySelector('#default-samples ' + entry[0]);
+      element.focus();
+      if (entry[1])
+        assert_equals(document.activeElement, element);
+      else
+        assert_not_equals(document.activeElement, element);
+    }, entry[0] + ' should ' + (entry[1] ? '' : 'not ') + 'be focusable by default.');
+  }
+
+  runTests_tabindex0();
 }
 </script>
 
@@ -49,14 +56,18 @@ for (entry of defaultList) {
 <details open><summary id="summary-first"></summary><summary tabindex="0" id="summary-second-tabindex0"></summary></details>
 </div>
 <script>
-for (element of document.querySelectorAll('#tabindex-0 [tabindex]')) {
-  var elementDesc = element.tagName;
-  if (element.id)
-    elementDesc += '#' + element.id;
-  test(() => {
-    element.focus();
-    assert_equals(document.activeElement, element);
-  }, elementDesc + ' with tabindex=0 should be focusable.');
+function runTests_tabindex0() {
+  for (element of document.querySelectorAll('#tabindex-0 [tabindex]')) {
+    var elementDesc = element.tagName;
+    if (element.id)
+      elementDesc += '#' + element.id;
+    test(() => {
+      element.focus();
+      assert_equals(document.activeElement, element);
+    }, elementDesc + ' with tabindex=0 should be focusable.');
+  }
+
+  done();
 }
 </script>
 </body>

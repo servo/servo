@@ -9,6 +9,7 @@
       #resultContainer { width: 600px; height: 60px; }
       .area { width: 100px; height: 50px; background-color: #ccc; }
       .block { width: 5px; height: 5px; border: solid 1px red; }
+      .box { display: flex;}
       #dragArea { position: relative; }
       #dragTarget { position: absolute; top:22px; left:47px;}
     </style>
@@ -167,8 +168,20 @@
           window.addEventListener("mousemove", move(pointer, 15, 15, 30));
           // drag and drop
           els.dragArea = document.getElementById("dragArea");
+          els.dragArea.addEventListener("dragstart", recordPointerEvent);
           els.dragTarget = document.getElementById("dragTarget");
           els.dragTarget.addEventListener("mousedown", grabOnce);
+
+          var draggable = document.getElementById("draggable");
+          draggable.addEventListener("dragstart", recordPointerEvent);
+          draggable.addEventListener("dragenter", recordPointerEvent);
+          draggable.addEventListener("dragend", recordPointerEvent);
+          draggable.addEventListener("dragleave", recordPointerEvent);
+          draggable.addEventListener("dragover", recordPointerEvent);
+          draggable.addEventListener("dragexit", recordPointerEvent);
+
+          var droppable = document.getElementById("droppable");
+          droppable.addEventListener("drop", recordPointerEvent);
         });
     </script>
 </head>
@@ -187,6 +200,13 @@
     <h2>DragReporter</h2>
     <div id="dragArea" class="area">
       <div id="dragTarget" class="block"></div>
+    </div>
+  </div>
+  <div>
+    <h2>draggable</h2>
+    <div class=box>
+      <div id=draggable draggable="true" class="area"></div>&nbsp;
+      <div id=droppable dropzone="true" class="area"></div>
     </div>
   </div>
   <div id="resultContainer">
