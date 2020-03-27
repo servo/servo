@@ -1,0 +1,581 @@
+(base) praty@praty-Inspiron-5559:~/Desktop/rgsoc/servo$ ./mach check
+   Compiling osmesa-src v0.1.1 (https://github.com/servo/osmesa-src#1a9519c3)
+    Checking rusttype v0.7.2
+    Checking num-rational v0.2.1
+    Checking num-iter v0.1.37
+    Checking chrono v0.4.9
+    Checking regex v1.3.4
+    Checking digest v0.8.0
+    Checking block-buffer v0.7.0
+    Checking tendril v0.4.1
+    Checking tokio-io v0.1.8
+    Checking http v0.1.20
+    Checking mio-uds v0.6.7
+    Checking tokio-buf v0.1.1
+    Checking string v0.2.1
+    Checking mio-extras v2.0.5
+    Checking rand_chacha v0.2.1
+    Checking rand_pcg v0.2.1
+    Checking rand_isaac v0.2.0
+    Checking xcb v0.8.2
+    Checking gstreamer-sys v0.8.0
+    Checking blurz v0.3.0
+    Checking tokio-timer v0.2.13
+    Checking tokio-current-thread v0.1.6
+    Checking memoffset v0.5.1
+    Checking andrew v0.2.1
+    Checking sha-1 v0.8.1
+    Checking sha2 v0.8.0
+    Checking serde v1.0.103
+    Checking peek-poke v0.2.0 (https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075#969bd7fe)
+    Checking cstr v0.1.7
+    Checking enum-iterator v0.3.1
+    Checking env_logger v0.7.1
+    Checking shellwords v1.0.0
+    Checking tokio-reactor v0.1.3
+    Checking tokio-codec v0.1.0
+    Checking rand v0.7.2
+    Checking http-body v0.1.0
+    Checking h2 v0.1.26
+    Checking headers-core v0.1.1
+   Compiling openssl-sys v0.9.53
+error: failed to run custom build command for `openssl-sys v0.9.53`
+
+Caused by:
+  process didn't exit successfully: `/home/praty/Desktop/rgsoc/servo/target/debug/build/openssl-sys-7f4169ac13f66804/build-script-main` (exit code: 101)
+--- stdout
+cargo:rustc-cfg=const_fn
+cargo:rerun-if-env-changed=X86_64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR
+X86_64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR unset
+cargo:rerun-if-env-changed=OPENSSL_LIB_DIR
+OPENSSL_LIB_DIR unset
+cargo:rerun-if-env-changed=X86_64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR
+X86_64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR unset
+cargo:rerun-if-env-changed=OPENSSL_INCLUDE_DIR
+OPENSSL_INCLUDE_DIR unset
+cargo:rerun-if-env-changed=X86_64_UNKNOWN_LINUX_GNU_OPENSSL_DIR
+X86_64_UNKNOWN_LINUX_GNU_OPENSSL_DIR unset
+cargo:rerun-if-env-changed=OPENSSL_DIR
+OPENSSL_DIR unset
+cargo:rustc-link-lib=ssl
+cargo:rustc-link-lib=crypto
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-unknown-linux-gnu")
+HOST = Some("x86_64-unknown-linux-gnu")
+CC_x86_64-unknown-linux-gnu = None
+CC_x86_64_unknown_linux_gnu = None
+HOST_CC = None
+CC = Some("/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc")
+CFLAGS_x86_64-unknown-linux-gnu = None
+CFLAGS_x86_64_unknown_linux_gnu = None
+HOST_CFLAGS = None
+CFLAGS = Some("-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -pipe")
+CRATE_CC_NO_DEFAULTS = None
+DEBUG = Some("true")
+CARGO_CFG_TARGET_FEATURE = Some("fxsr,mmx,sse,sse2")
+running: "/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc" "-O0" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-fno-omit-frame-pointer" "-m64" "-march=nocona" "-mtune=haswell" "-ftree-vectorize" "-fPIC" "-fstack-protector-strong" "-fno-plt" "-O2" "-pipe" "-E" "build/expando.c"
+cargo:warning=build/expando.c:1:10: fatal error: openssl/opensslv.h: No such file or directory
+cargo:warning= #include <openssl/opensslv.h>
+cargo:warning=          ^~~~~~~~~~~~~~~~~~~~
+cargo:warning=compilation terminated.
+exit code: 1
+
+--- stderr
+thread 'main' panicked at '
+Header expansion error:
+Error { kind: ToolExecError, message: "Command \"/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc\" \"-O0\" \"-ffunction-sections\" \"-fdata-sections\" \"-fPIC\" \"-g\" \"-fno-omit-frame-pointer\" \"-m64\" \"-march=nocona\" \"-mtune=haswell\" \"-ftree-vectorize\" \"-fPIC\" \"-fstack-protector-strong\" \"-fno-plt\" \"-O2\" \"-pipe\" \"-E\" \"build/expando.c\" with args \"x86_64-conda_cos6-linux-gnu-cc\" did not execute successfully (status code exit code: 1)." }
+
+Failed to find OpenSSL development headers.
+
+You can try fixing this setting the `OPENSSL_DIR` environment variable
+pointing to your OpenSSL installation or installing OpenSSL headers package
+specific to your distribution:
+
+    # On Ubuntu
+    sudo apt-get install libssl-dev
+    # On Arch Linux
+    sudo pacman -S openssl
+    # On Fedora
+    sudo dnf install openssl-devel
+
+See rust-openssl README for more information:
+
+    https://github.com/sfackler/rust-openssl#linux
+', /home/praty/.cargo/registry/src/github.com-1ecc6299db9ec823/openssl-sys-0.9.53/build/main.rs:126:13
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: build failed, waiting for other jobs to finish...
+error: failed to run custom build command for `osmesa-src v0.1.1 (https://github.com/servo/osmesa-src#1a9519c3)`
+
+Caused by:
+  process didn't exit successfully: `/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-04667aeb4b155bf5/build-script-build` (exit code: 101)
+--- stdout
+running: "touch" "configure.ac" "aclocal.m4" "configure" "Makefile.am" "Makefile.in" "src/compiler/glsl/glcpp/glcpp-lex.c" "src/mesa/program/lex.yy.c" "src/compiler/glsl/glcpp/glcpp-parse.c" "src/compiler/glsl/glsl_parser.cpp" "src/mesa/program/program_parse.tab.c" "src/compiler/glsl/glsl_lexer.cpp" "src/glx/indirect.h" "src/glx/indirect_init.c" "src/mapi/glapi/glapi_mapi_tmp.h"
+running: "/home/praty/.cargo/git/checkouts/osmesa-src-bf84ce2b80210dd7/1a9519c/mesa-src/configure" "--host=x86_64-unknown-linux-gnu" "--build=x86_64-unknown-linux-gnu" "--disable-dri" "--disable-driglx-direct" "--disable-dri3" "--disable-egl" "--disable-gbm" "--disable-gles1" "--disable-gles2" "--disable-glx" "--disable-glx-tls" "--with-platforms=" "--enable-gallium-osmesa" "--with-gallium-drivers=swrast"
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... x86_64-unknown-linux-gnu
+checking target system type... x86_64-unknown-linux-gnu
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+checking whether UID '1000' is supported by ustar format... yes
+checking whether GID '1000' is supported by ustar format... yes
+checking how to create a ustar tar archive... gnutar
+checking whether make supports nested variables... (cached) yes
+checking for style of include used by make... GNU
+checking for x86_64-unknown-linux-gnu-gcc... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc accepts -g... yes
+checking for /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc option to accept ISO C89... none needed
+checking whether /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc understands -c and -o together... yes
+checking dependency style of /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc... gcc3
+checking for x86_64-unknown-linux-gnu-ar... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ar
+checking the archiver (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ar) interface... ar
+checking how to run the C preprocessor... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cpp
+checking for x86_64-unknown-linux-gnu-gcc... (cached) /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc
+checking whether we are using the GNU C compiler... (cached) yes
+checking whether /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc accepts -g... (cached) yes
+checking for /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc option to accept ISO C89... (cached) none needed
+checking whether /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc understands -c and -o together... (cached) yes
+checking dependency style of /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc... (cached) gcc3
+checking whether we are using the GNU C++ compiler... yes
+checking whether /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ accepts -g... yes
+checking dependency style of /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++... gcc3
+checking for grep that handles long lines and -e... /bin/grep
+checking for BSD- or MS-compatible name lister (nm)... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-nm
+checking the name lister (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-nm) interface... BSD nm
+checking dependency style of /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc... gcc3
+checking for GNU make... make
+checking for a Python interpreter with version >= 2.7... python
+checking for python... /home/praty/Desktop/rgsoc/servo/python/_virtualenv2.7/bin/python
+checking for python version... 2.7
+checking for python platform... linux2
+checking for python script directory... ${prefix}/lib/python2.7/site-packages
+checking for python extension module directory... ${exec_prefix}/lib/python2.7/site-packages
+checking for a sed that does not truncate output... /bin/sed
+checking for special C compiler options needed for large files... no
+checking for _FILE_OFFSET_BITS value needed for large files... no
+checking how to print strings... printf
+checking for a sed that does not truncate output... (cached) /bin/sed
+checking for egrep... /bin/grep -E
+checking for fgrep... /bin/grep -F
+checking for ld used by /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld
+checking if the linker (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld) is GNU ld... yes
+checking whether ln -s works... yes
+checking the maximum length of command line arguments... 1572864
+checking how to convert x86_64-unknown-linux-gnu file names to x86_64-unknown-linux-gnu format... func_convert_file_noop
+checking how to convert x86_64-unknown-linux-gnu file names to toolchain format... func_convert_file_noop
+checking for /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld option to reload object files... -r
+checking for x86_64-unknown-linux-gnu-objdump... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-objdump
+checking how to recognize dependent libraries... pass_all
+checking for x86_64-unknown-linux-gnu-dlltool... no
+checking for dlltool... no
+checking how to associate runtime and link libraries... printf %s\n
+checking for x86_64-unknown-linux-gnu-ar... (cached) /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ar
+checking for archiver @FILE support... @
+checking for x86_64-unknown-linux-gnu-strip... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-strip
+checking for x86_64-unknown-linux-gnu-ranlib... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ranlib
+checking command to parse /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-nm output from /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc object... ok
+checking for sysroot... no
+checking for a working dd... /bin/dd
+checking how to truncate binary pipes... /bin/dd bs=4096 count=1
+checking for x86_64-unknown-linux-gnu-mt... no
+checking for mt... mt
+checking if mt is a manifest tool... no
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking for dlfcn.h... yes
+checking for objdir... .libs
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc supports -fno-rtti -fno-exceptions... no
+checking for /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc option to produce PIC... -fPIC -DPIC
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc PIC flag -fPIC -DPIC works... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc static flag -static works... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc supports -c -o file.o... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc supports -c -o file.o... (cached) yes
+checking whether the /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-cc linker (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld -m elf_x86_64) supports shared libraries... yes
+checking whether -lc should be explicitly linked in... no
+checking dynamic linker characteristics... GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking whether stripping libraries is possible... yes
+checking if libtool supports shared libraries... yes
+checking whether to build shared libraries... yes
+checking whether to build static libraries... no
+checking how to run the C++ preprocessor... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ -E
+checking for ld used by /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++... /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld -m elf_x86_64
+checking if the linker (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld -m elf_x86_64) is GNU ld... yes
+checking whether the /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ linker (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld -m elf_x86_64) supports shared libraries... yes
+checking for /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ option to produce PIC... -fPIC -DPIC
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ PIC flag -fPIC -DPIC works... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ static flag -static works... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ supports -c -o file.o... yes
+checking if /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ supports -c -o file.o... (cached) yes
+checking whether the /home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-c++ linker (/home/praty/anaconda3/bin/x86_64-conda_cos6-linux-gnu-ld -m elf_x86_64) supports shared libraries... yes
+checking dynamic linker characteristics... (cached) GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking for rm... rm -f
+checking for bison... bison -y
+checking if bison is the parser generator... yes
+checking for flex... flex
+checking lex output file root... lex.yy
+checking lex library... none needed
+checking whether yytext is a pointer... no
+checking if flex is the lexer generator... yes
+checking for indent... cat
+checking if module mako in python is installed... no
+checking if compiling with clang... no
+checking whether gcc version is sufficient... yes
+checking whether __SUNPRO_C is declared... no
+checking for __builtin_bswap32... yes
+checking for __builtin_bswap64... yes
+checking for __builtin_clz... yes
+checking for __builtin_clzll... yes
+checking for __builtin_ctz... yes
+checking for __builtin_expect... yes
+checking for __builtin_ffs... yes
+checking for __builtin_ffsll... yes
+checking for __builtin_popcount... yes
+checking for __builtin_popcountll... yes
+checking for __builtin_unreachable... yes
+checking for __attribute__((const))... yes
+checking for __attribute__((flatten))... yes
+checking for __attribute__((format))... yes
+checking for __attribute__((malloc))... yes
+checking for __attribute__((packed))... yes
+checking for __attribute__((pure))... yes
+checking for __attribute__((returns_nonnull))... yes
+checking for __attribute__((unused))... yes
+checking for __attribute__((visibility))... yes
+checking for __attribute__((warn_unused_result))... yes
+checking for __attribute__((weak))... yes
+checking for __attribute__((alias))... yes
+checking for __attribute__((noreturn))... yes
+checking for x86_64-unknown-linux-gnu-pkg-config... no
+checking for pkg-config... /usr/bin/pkg-config
+checking pkg-config is at least version 0.9.0... yes
+checking whether C compiler accepts -Wall... yes
+checking whether C compiler accepts -Werror=implicit-function-declaration... yes
+checking whether C compiler accepts -Werror=missing-prototypes... yes
+checking whether C compiler accepts -Wmissing-prototypes... yes
+checking whether C compiler accepts -Wmissing-field-initializers... yes
+checking whether C compiler accepts -Wformat-truncation... yes
+checking whether C compiler accepts -fno-math-errno... yes
+checking whether C compiler accepts -fno-trapping-math... yes
+checking whether C compiler accepts -fvisibility=hidden... yes
+checking whether C++ compiler accepts -Wall... yes
+checking whether C++ compiler accepts -fno-math-errno... yes
+checking whether C++ compiler accepts -fno-trapping-math... yes
+checking whether C++ compiler accepts -fvisibility=hidden... yes
+checking whether C++ compiler accepts -Wmissing-field-initializers... yes
+checking whether C++ compiler accepts -Wformat-truncation... yes
+checking whether C compiler accepts -Werror=pointer-arith... yes
+checking whether C compiler accepts -Werror=vla... yes
+checking whether C++ compiler accepts -Werror=pointer-arith... yes
+checking whether C++ compiler accepts -Werror=vla... yes
+checking whether c++11 is enabled by default... yes
+checking whether C compiler accepts -Woverride-init... yes
+checking whether C compiler accepts -Winitializer-overrides... no
+checking whether __atomic_load_n is supported... yes
+checking whether __sync_add_and_fetch_8 is supported... yes
+checking whether byte ordering is bigendian... no
+checking whether gcc supports -mpower8-vector... no
+checking if ld supports -Bsymbolic... yes
+checking whether ld supports --gc-sections... yes
+checking if the linker supports version-scripts... yes
+checking if the linker supports --dynamic-list... yes
+checking whether to enable assembly... yes, x86_64
+checking whether sys/types.h defines makedev... no
+checking sys/mkdev.h usability... no
+checking sys/mkdev.h presence... no
+checking for sys/mkdev.h... no
+checking sys/sysmacros.h usability... yes
+checking sys/sysmacros.h presence... yes
+checking for sys/sysmacros.h... yes
+checking xlocale.h usability... yes
+checking xlocale.h presence... yes
+checking for xlocale.h... yes
+checking sys/sysctl.h usability... yes
+checking sys/sysctl.h presence... yes
+checking for sys/sysctl.h... yes
+checking endian.h usability... yes
+checking endian.h presence... yes
+checking for endian.h... yes
+checking for dlfcn.h... (cached) yes
+checking for strtof... yes
+checking for mkostemp... yes
+checking for timespec_get... no
+checking for memfd_create... no
+checking whether strtod has locale support... yes
+checking for dlopen... no
+checking for dlopen in -ldl... yes
+checking for dladdr... yes
+checking for dl_iterate_phdr... yes
+checking for clock_gettime... no
+checking for clock_gettime in -lrt... yes
+checking for posix_memalign... yes
+checking for zlib >= 1.2.3... yes
+checking for the pthreads library -lpthreads... no
+checking whether pthreads work without any flags... no
+checking whether pthreads work with -Kthread... no
+checking whether pthreads work with -kthread... no
+checking for the pthreads library -llthread... no
+checking whether pthreads work with -pthread... yes
+checking for joinable pthread attribute... PTHREAD_CREATE_JOINABLE
+checking if more special flags are required for pthreads... no
+checking for PTHREAD_PRIO_INHERIT... no
+checking whether pthread_setaffinity_np is supported... yes
+checking linux/futex.h usability... yes
+checking linux/futex.h presence... yes
+checking for linux/futex.h... yes
+checking for libelf... no
+checking for elf_memory in -lelf... no
+checking for x86_64-unknown-linux-gnu-llvm-config... no
+checking for llvm-config... /usr/bin/llvm-config
+checking for libunwind... yes
+checking for libdrm >= 2.4.75... yes
+checking for expat... yes
+checking for valgrind... no
+checking whether to enable Valgrind support... no
+checking that generated files are newer than configure... done
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating src/Makefile
+config.status: creating src/amd/Makefile
+config.status: creating src/amd/vulkan/Makefile
+config.status: creating src/broadcom/Makefile
+config.status: creating src/compiler/Makefile
+config.status: creating src/egl/Makefile
+config.status: creating src/egl/main/egl.pc
+config.status: creating src/egl/wayland/wayland-drm/Makefile
+config.status: creating src/gallium/Makefile
+config.status: creating src/gallium/auxiliary/Makefile
+config.status: creating src/gallium/auxiliary/pipe-loader/Makefile
+config.status: creating src/gallium/drivers/freedreno/Makefile
+config.status: creating src/gallium/drivers/i915/Makefile
+config.status: creating src/gallium/drivers/llvmpipe/Makefile
+config.status: creating src/gallium/drivers/nouveau/Makefile
+config.status: creating src/gallium/drivers/pl111/Makefile
+config.status: creating src/gallium/drivers/r300/Makefile
+config.status: creating src/gallium/drivers/r600/Makefile
+config.status: creating src/gallium/drivers/radeonsi/Makefile
+config.status: creating src/gallium/drivers/softpipe/Makefile
+config.status: creating src/gallium/drivers/svga/Makefile
+config.status: creating src/gallium/drivers/swr/Makefile
+config.status: creating src/gallium/drivers/tegra/Makefile
+config.status: creating src/gallium/drivers/etnaviv/Makefile
+config.status: creating src/gallium/drivers/imx/Makefile
+config.status: creating src/gallium/drivers/v3d/Makefile
+config.status: creating src/gallium/drivers/vc4/Makefile
+config.status: creating src/gallium/drivers/virgl/Makefile
+config.status: creating src/gallium/state_trackers/clover/Makefile
+config.status: creating src/gallium/state_trackers/dri/Makefile
+config.status: creating src/gallium/state_trackers/glx/xlib/Makefile
+config.status: creating src/gallium/state_trackers/nine/Makefile
+config.status: creating src/gallium/state_trackers/omx/Makefile
+config.status: creating src/gallium/state_trackers/omx/bellagio/Makefile
+config.status: creating src/gallium/state_trackers/omx/tizonia/Makefile
+config.status: creating src/gallium/state_trackers/osmesa/Makefile
+config.status: creating src/gallium/state_trackers/va/Makefile
+config.status: creating src/gallium/state_trackers/vdpau/Makefile
+config.status: creating src/gallium/state_trackers/xa/Makefile
+config.status: creating src/gallium/state_trackers/xa/xa_tracker.h
+config.status: creating src/gallium/state_trackers/xvmc/Makefile
+config.status: creating src/gallium/targets/d3dadapter9/Makefile
+config.status: creating src/gallium/targets/d3dadapter9/d3d.pc
+config.status: creating src/gallium/targets/dri/Makefile
+config.status: creating src/gallium/targets/libgl-xlib/Makefile
+config.status: creating src/gallium/targets/omx/Makefile
+config.status: creating src/gallium/targets/opencl/Makefile
+config.status: creating src/gallium/targets/opencl/mesa.icd
+config.status: creating src/gallium/targets/osmesa/Makefile
+config.status: creating src/gallium/targets/osmesa/osmesa.pc
+config.status: creating src/gallium/targets/pipe-loader/Makefile
+config.status: creating src/gallium/targets/va/Makefile
+config.status: creating src/gallium/targets/vdpau/Makefile
+config.status: creating src/gallium/targets/xa/Makefile
+config.status: creating src/gallium/targets/xa/xatracker.pc
+config.status: creating src/gallium/targets/xvmc/Makefile
+config.status: creating src/gallium/tests/trivial/Makefile
+config.status: creating src/gallium/tests/unit/Makefile
+config.status: creating src/gallium/winsys/etnaviv/drm/Makefile
+config.status: creating src/gallium/winsys/imx/drm/Makefile
+config.status: creating src/gallium/winsys/freedreno/drm/Makefile
+config.status: creating src/gallium/winsys/i915/drm/Makefile
+config.status: creating src/gallium/winsys/nouveau/drm/Makefile
+config.status: creating src/gallium/winsys/pl111/drm/Makefile
+config.status: creating src/gallium/winsys/radeon/drm/Makefile
+config.status: creating src/gallium/winsys/amdgpu/drm/Makefile
+config.status: creating src/gallium/winsys/svga/drm/Makefile
+config.status: creating src/gallium/winsys/sw/dri/Makefile
+config.status: creating src/gallium/winsys/sw/kms-dri/Makefile
+config.status: creating src/gallium/winsys/sw/null/Makefile
+config.status: creating src/gallium/winsys/sw/wrapper/Makefile
+config.status: creating src/gallium/winsys/sw/xlib/Makefile
+config.status: creating src/gallium/winsys/tegra/drm/Makefile
+config.status: creating src/gallium/winsys/v3d/drm/Makefile
+config.status: creating src/gallium/winsys/vc4/drm/Makefile
+config.status: creating src/gallium/winsys/virgl/drm/Makefile
+config.status: creating src/gallium/winsys/virgl/vtest/Makefile
+config.status: creating src/gbm/Makefile
+config.status: creating src/gbm/main/gbm.pc
+config.status: creating src/glx/Makefile
+config.status: creating src/glx/apple/Makefile
+config.status: creating src/glx/tests/Makefile
+config.status: creating src/glx/windows/Makefile
+config.status: creating src/glx/windows/windowsdriproto.pc
+config.status: creating src/gtest/Makefile
+config.status: creating src/intel/Makefile
+config.status: creating src/loader/Makefile
+config.status: creating src/mapi/Makefile
+config.status: creating src/mapi/es1api/glesv1_cm.pc
+config.status: creating src/mapi/es2api/glesv2.pc
+config.status: creating src/mapi/glapi/gen/Makefile
+config.status: creating src/mesa/Makefile
+config.status: creating src/mesa/gl.pc
+config.status: creating src/mesa/drivers/dri/dri.pc
+config.status: creating src/mesa/drivers/dri/common/Makefile
+config.status: creating src/mesa/drivers/dri/i915/Makefile
+config.status: creating src/mesa/drivers/dri/i965/Makefile
+config.status: creating src/mesa/drivers/dri/Makefile
+config.status: creating src/mesa/drivers/dri/nouveau/Makefile
+config.status: creating src/mesa/drivers/dri/r200/Makefile
+config.status: creating src/mesa/drivers/dri/radeon/Makefile
+config.status: creating src/mesa/drivers/dri/swrast/Makefile
+config.status: creating src/mesa/drivers/osmesa/Makefile
+config.status: creating src/mesa/drivers/osmesa/osmesa.pc
+config.status: creating src/mesa/drivers/x11/Makefile
+config.status: creating src/mesa/main/tests/Makefile
+config.status: creating src/mesa/state_tracker/tests/Makefile
+config.status: creating src/util/Makefile
+config.status: creating src/util/tests/fast_idiv_by_const/Makefile
+config.status: creating src/util/tests/hash_table/Makefile
+config.status: creating src/util/tests/set/Makefile
+config.status: creating src/util/tests/string_buffer/Makefile
+config.status: creating src/util/tests/vma/Makefile
+config.status: creating src/util/xmlpool/Makefile
+config.status: creating src/vulkan/Makefile
+config.status: executing depfiles commands
+config.status: executing libtool commands
+
+        prefix:          /usr/local
+        exec_prefix:     ${prefix}
+        libdir:          ${exec_prefix}/lib
+        includedir:      ${prefix}/include
+
+        OpenGL:          yes (ES1: no ES2: no)
+
+        OSMesa:          libOSMesa (Gallium)
+
+        GLX:             no
+
+        EGL:             no
+        GBM:             no
+        EGL/Vulkan/VL platforms:   
+
+        Vulkan drivers:  no
+
+        llvm:            yes
+        llvm-config:     /usr/bin/llvm-config
+        llvm-version:    6.0.0
+
+        Gallium drivers: swrast
+        Gallium st:      mesa
+
+        HUD extra stats: no
+        HUD lmsensors:   no
+
+
+        Shared libs:     yes
+        Static libs:     no
+        Shared-glapi:    yes
+
+        CFLAGS:          -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -pipe -std=c99
+        CXXFLAGS:        -fvisibility-inlines-hidden -std=c++17 -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -pipe -Wall -fno-math-errno -fno-trapping-math -Wno-missing-field-initializers -Wno-format-truncation
+        CXX11_CXXFLAGS:  
+        LDFLAGS:         -Wl,-O2 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,--disable-new-dtags
+        Macros:          -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D_GNU_SOURCE -DUSE_SSE41 -DUSE_GCC_ATOMIC_BUILTINS -DNDEBUG -DUSE_X86_64_ASM -DHAVE_XLOCALE_H -DHAVE_SYS_SYSCTL_H -DHAVE_DLFCN_H -DHAVE_STRTOF -DHAVE_MKOSTEMP -DHAVE_STRTOD_L -DHAVE_DL_ITERATE_PHDR -DHAVE_POSIX_MEMALIGN -DHAVE_ZLIB -DHAVE_PTHREAD_SETAFFINITY -DHAVE_LINUX_FUTEX_H -DHAVE_LIBDRM -DENABLE_SHADER_CACHE -DMESA_EGL_NO_X11_HEADERS -DHAVE_LLVM=0x0600 -DMESA_LLVM_VERSION_PATCH=0
+
+        LLVM_CFLAGS:     -I/usr/lib/llvm-6.0/include -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+        LLVM_CXXFLAGS:   -I/usr/lib/llvm-6.0/include -std=c++0x -std=c++11 -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+        LLVM_CPPFLAGS:   -I/usr/lib/llvm-6.0/include -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+        LLVM_LDFLAGS:    -L/usr/lib/llvm-6.0/lib 
+
+        PYTHON2:         /home/praty/Desktop/rgsoc/servo/python/_virtualenv2.7/bin/python
+
+        Run 'make' to build Mesa
+
+running: "make"
+Making all in src
+make[1]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+updating git_sha1.h
+make  all-recursive
+make[2]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+Making all in .
+make[3]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+Making all in gtest
+make[3]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/gtest'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/gtest'
+Making all in util
+make[3]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+make  all-recursive
+make[4]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+Making all in .
+make[5]: Entering directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+  CC       libmesautil_la-crc32.lo
+  CC       libmesautil_la-disk_cache.lo
+  CC       libxmlconfig_la-xmlconfig.lo
+make[5]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+make[4]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+make[3]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src/util'
+make[2]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+make[1]: Leaving directory '/home/praty/Desktop/rgsoc/servo/target/debug/build/osmesa-src-17c3d21849a66ff1/out/src'
+
+--- stderr
+No module named mako
+Package libtizcore was not found in the pkg-config search path.
+Perhaps you should add the directory containing `libtizcore.pc'
+to the PKG_CONFIG_PATH environment variable
+No package 'libtizcore' found
+/home/praty/.cargo/git/checkouts/osmesa-src-bf84ce2b80210dd7/1a9519c/mesa-src/src/util/crc32.c:37:10: fatal error: zlib.h: No such file or directory
+ #include <zlib.h>
+          ^~~~~~~~
+compilation terminated.
+make[5]: *** [Makefile:1129: libmesautil_la-crc32.lo] Error 1
+make[5]: *** Waiting for unfinished jobs....
+/home/praty/.cargo/git/checkouts/osmesa-src-bf84ce2b80210dd7/1a9519c/mesa-src/src/util/xmlconfig.c:35:10: fatal error: expat.h: No such file or directory
+ #include <expat.h>
+          ^~~~~~~~~
+compilation terminated.
+make[5]: *** [Makefile:1325: libxmlconfig_la-xmlconfig.lo] Error 1
+/home/praty/.cargo/git/checkouts/osmesa-src-bf84ce2b80210dd7/1a9519c/mesa-src/src/util/disk_cache.c:40:10: fatal error: zlib.h: No such file or directory
+ #include "zlib.h"
+          ^~~~~~~~
+compilation terminated.
+make[5]: *** [Makefile:1143: libmesautil_la-disk_cache.lo] Error 1
+make[4]: *** [Makefile:1366: all-recursive] Error 1
+make[3]: *** [Makefile:966: all] Error 2
+make[2]: *** [Makefile:888: all-recursive] Error 1
+make[1]: *** [Makefile:679: all] Error 2
+make: *** [Makefile:696: all-recursive] Error 1
+thread 'main' panicked at 'failed with: exit code: 2', /home/praty/.cargo/git/checkouts/osmesa-src-bf84ce2b80210dd7/1a9519c/build.rs:76:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+

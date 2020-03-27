@@ -48,6 +48,7 @@ percent-encoding = "2.0"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
 rayon = "1"
+rand = "0.3"
 serde = "1.0"
 serde_json = "1.0"
 servo_allocator = {path = "../allocator"}
