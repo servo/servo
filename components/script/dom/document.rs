@@ -133,7 +133,7 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, ReflowGoal};
+use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{
     MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -157,7 +157,7 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaType};
-use style::selector_parser::{RestyleDamage, Snapshot};
+use style::selector_parser::Snapshot;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
@@ -199,29 +199,6 @@ impl FireMouseEventType {
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
-}
-
-#[derive(Debug, MallocSizeOf)]
-pub struct PendingRestyle {
-    /// If this element had a state or attribute change since the last restyle, track
-    /// the original condition of the element.
-    pub snapshot: Option<Snapshot>,
-
-    /// Any explicit restyles hints that have been accumulated for this element.
-    pub hint: RestyleHint,
-
-    /// Any explicit restyles damage that have been accumulated for this element.
-    pub damage: RestyleDamage,
-}
-
-impl PendingRestyle {
-    pub fn new() -> Self {
-        PendingRestyle {
-            snapshot: None,
-            hint: RestyleHint::empty(),
-            damage: RestyleDamage::empty(),
-        }
-    }
 }
 
 /// <https://dom.spec.whatwg.org/#document>

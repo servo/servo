@@ -39,7 +39,6 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script::layout_exports::NodeFlags;
-use script::layout_exports::PendingRestyle;
 use script::layout_exports::ShadowRoot;
 use script::layout_exports::{
     CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
@@ -51,6 +50,7 @@ use script::layout_exports::{
     LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
     RawLayoutElementHelpers,
 };
+use script_layout_interface::message::PendingRestyle;
 use script_layout_interface::wrapper_traits::{
     DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
 };
