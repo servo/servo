@@ -138,7 +138,7 @@ impl<'ln> ServoLayoutNode<'ln> {
         }
     }
 
-    pub unsafe fn new(address: &TrustedNodeAddress) -> ServoLayoutNode {
+    pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
         ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
     }
 
