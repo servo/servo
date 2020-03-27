@@ -17,7 +17,7 @@ use env_logger;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
+    ContextMenuResult, Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
     MediaSessionPlaybackState, MouseButton, PromptResult, VRInitOptions,
 };
 use std::ffi::{CStr, CString};
@@ -230,6 +230,7 @@ pub struct CHostCallbacks {
         trusted: bool,
     ) -> *const c_char,
     pub on_devtools_started: extern "C" fn(result: CDevtoolsServerState, port: c_uint),
+    pub show_context_menu: extern "C" fn(items_list: *const *const c_char, items_size: u32),
 }
 
 /// Servo options
@@ -328,6 +329,25 @@ impl CMediaSessionActionType {
             CMediaSessionActionType::SkipAd => MediaSessionActionType::SkipAd,
             CMediaSessionActionType::Stop => MediaSessionActionType::Stop,
             CMediaSessionActionType::SeekTo => MediaSessionActionType::SeekTo,
+        }
+    }
+}
+
+#[repr(C)]
+pub enum CContextMenuResult {
+    Ignored,
+    Selected,
+    // Can't use Dismissed. Already used by PromptResult. See:
+    // https://github.com/servo/servo/issues/25986
+    Dismissed_,
+}
+
+impl CContextMenuResult {
+    pub fn convert(&self, idx: u32) -> ContextMenuResult {
+        match self {
+            CContextMenuResult::Ignored => ContextMenuResult::Ignored,
+            CContextMenuResult::Dismissed_ => ContextMenuResult::Dismissed,
+            CContextMenuResult::Selected => ContextMenuResult::Selected(idx as usize),
         }
     }
 }
@@ -491,6 +511,14 @@ pub extern "C" fn set_batch_mode(batch: bool) {
     catch_any_panic(|| {
         debug!("set_batch_mode");
         call(|s| s.set_batch_mode(batch));
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn on_context_menu_closed(result: CContextMenuResult, item: u32) {
+    catch_any_panic(|| {
+        debug!("on_context_menu_closed");
+        call(|s| s.on_context_menu_closed(result.convert(item)));
     });
 }
 
@@ -873,5 +901,17 @@ impl HostTrait for HostCallbacks {
                 (self.0.on_devtools_started)(CDevtoolsServerState::Error, 0);
             },
         }
+    }
+
+    fn show_context_menu(&self, items: Vec<String>) {
+        debug!("show_context_menu");
+        let size = items.len() as u32;
+        let cstrs: Vec<CString> = items
+            .into_iter()
+            .map(|i| CString::new(i).expect("Can't create string"))
+            .collect();
+        let ptrs: Vec<*const c_char> = cstrs.iter().map(|cstr| cstr.as_ptr()).collect();
+        (self.0.show_context_menu)(ptrs.as_ptr(), size);
+        // let _ = cstrs; // Don't drop these too early
     }
 }

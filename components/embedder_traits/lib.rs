@@ -107,6 +107,13 @@ impl EmbedderReceiver {
 }
 
 #[derive(Deserialize, Serialize)]
+pub enum ContextMenuResult {
+    Dismissed,
+    Ignored,
+    Selected(usize),
+}
+
+#[derive(Deserialize, Serialize)]
 pub enum PromptDefinition {
     /// Show a message.
     Alert(String, IpcSender<()>),
@@ -149,6 +156,8 @@ pub enum EmbedderMsg {
     ResizeTo(DeviceIntSize),
     /// Show dialog to user
     Prompt(PromptDefinition, PromptOrigin),
+    /// Show a context menu to the user
+    ShowContextMenu(IpcSender<ContextMenuResult>, Vec<String>),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
@@ -235,6 +244,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
+            EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
         }
     }
 }

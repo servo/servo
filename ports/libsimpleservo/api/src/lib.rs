@@ -8,11 +8,12 @@ extern crate log;
 pub mod gl_glue;
 
 pub use servo::embedder_traits::{
-    MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
+    ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
 };
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 
 use getopts::Options;
+use ipc_channel::ipc::IpcSender;
 use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
@@ -103,6 +104,8 @@ pub trait HostTrait {
     fn prompt_ok_cancel(&self, msg: String, trusted: bool) -> PromptResult;
     /// Ask for string
     fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
+    /// Show context menu
+    fn show_context_menu(&self, items: Vec<String>);
     /// Page starts loading.
     /// "Reload button" should be disabled.
     /// "Stop button" should be enabled.
@@ -164,6 +167,7 @@ pub struct ServoGlue {
     browsers: Vec<BrowserId>,
     events: Vec<WindowEvent>,
     current_url: Option<ServoUrl>,
+    context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 }
 
 pub fn servo_version() -> String {
@@ -240,6 +244,7 @@ pub fn init(
             browsers: vec![],
             events: vec![],
             current_url: Some(url.clone()),
+            context_menu_sender: None,
         };
         let browser_id = BrowserId::new();
         let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, browser_id));
@@ -503,6 +508,18 @@ impl ServoGlue {
         }
     }
 
+    pub fn on_context_menu_closed(
+        &mut self,
+        result: ContextMenuResult,
+    ) -> Result<(), &'static str> {
+        if let Some(sender) = self.context_menu_sender.take() {
+            let _ = sender.send(result);
+        } else {
+            warn!("Trying to close a context menu when no context menu is active");
+        }
+        Ok(())
+    }
+
     fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
         self.events.push(event);
         if !self.batch_mode {
@@ -561,6 +578,17 @@ impl ServoGlue {
                 },
                 EmbedderMsg::AllowUnload(sender) => {
                     let _ = sender.send(true);
+                },
+                EmbedderMsg::ShowContextMenu(sender, items) => {
+                    if self.context_menu_sender.is_some() {
+                        warn!(
+                            "Trying to show a context menu when a context menu is already active"
+                        );
+                        let _ = sender.send(ContextMenuResult::Ignored);
+                    } else {
+                        self.context_menu_sender = Some(sender);
+                        self.callbacks.host_callbacks.show_context_menu(items);
+                    }
                 },
                 EmbedderMsg::Prompt(definition, origin) => {
                     let cb = &self.callbacks.host_callbacks;
