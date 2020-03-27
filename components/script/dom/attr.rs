@@ -241,7 +241,7 @@ pub trait AttrHelpersForLayout {
 }
 
 #[allow(unsafe_code)]
-impl AttrHelpersForLayout for LayoutDom<Attr> {
+impl AttrHelpersForLayout for LayoutDom<'_, Attr> {
     #[inline]
     unsafe fn value_forever(&self) -> &'static AttrValue {
         // This transmute is used to cheat the lifetime restriction.

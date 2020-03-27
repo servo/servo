@@ -486,7 +486,7 @@ pub trait HTMLIFrameElementLayoutMethods {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLIFrameElementLayoutMethods for LayoutDom<HTMLIFrameElement> {
+impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
     fn pipeline_id(&self) -> Option<PipelineId> {

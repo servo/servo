@@ -88,7 +88,7 @@ pub trait HTMLTableSectionElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement> {
+impl HTMLTableSectionElementLayoutHelpers for LayoutDom<'_, HTMLTableSectionElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

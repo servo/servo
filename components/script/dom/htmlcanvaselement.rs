@@ -120,7 +120,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_canvas_id_for_layout(&self) -> CanvasId;
 }
 
-impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
+impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLCanvasData {
         unsafe {

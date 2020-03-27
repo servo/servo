@@ -70,7 +70,7 @@ pub trait HTMLHRLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
+impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {
         unsafe {

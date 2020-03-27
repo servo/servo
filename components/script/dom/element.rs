@@ -567,11 +567,11 @@ pub trait RawLayoutElementHelpers {
 
 #[inline]
 #[allow(unsafe_code)]
-pub unsafe fn get_attr_for_layout<'a>(
-    elem: &'a Element,
+pub unsafe fn get_attr_for_layout<'dom>(
+    elem: &'dom Element,
     namespace: &Namespace,
     name: &LocalName,
-) -> Option<LayoutDom<Attr>> {
+) -> Option<LayoutDom<'dom, Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
     attrs
@@ -620,7 +620,7 @@ impl RawLayoutElementHelpers for Element {
     }
 }
 
-pub trait LayoutElementHelpers {
+pub trait LayoutElementHelpers<'dom> {
     #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     #[allow(unsafe_code)]
@@ -646,10 +646,10 @@ pub trait LayoutElementHelpers {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
     /// The shadow root this element is a host of.
     #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
+    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 }
 
-impl LayoutElementHelpers for LayoutDom<Element> {
+impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
@@ -1095,7 +1095,7 @@ impl LayoutElementHelpers for LayoutDom<Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
+    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         (*self.unsafe_get())
             .rare_data_for_layout()
             .as_ref()?

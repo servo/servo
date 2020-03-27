@@ -3884,7 +3884,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 }
 
-impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingContext> {
+impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         let this = &*self.unsafe_get();

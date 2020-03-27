@@ -412,7 +412,7 @@ pub trait HTMLTableElementLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLTableElementLayoutHelpers for LayoutDom<HTMLTableElement> {
+impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
