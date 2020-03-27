@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<title>label element focus forwarding via "for" attribute or nested labelable element</title>
+<link rel="author" title="yaycmyk" href="mailto:evan@yaycmyk.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#the-label-element:the-label-element-10">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="test">
+  <input id="input-a" type="checkbox">
+  <label id="label-a" for="input-a">a</label>
+
+  <label id="label-b">
+    <input id="input-b" type="checkbox" /> b
+  </label>
+
+  <label id="label-c" tabindex="0">
+    <input id="input-c" type="checkbox" /> c
+  </label>
+
+  <label id="label-d" tabindex="-1">
+    <input id="input-d" type="checkbox" /> d
+  </label>
+
+  <label id="label-e" tabindex="">
+    <input id="input-e" type="checkbox" /> e
+  </label>
+
+  <input id="input-f" type="checkbox">
+  <label id="label-f" for="input-f" tabindex="0" style="display:none">f</label>
+</form>
+<script>
+  "use strict";
+
+  async_test(t => {
+    const label = document.getElementById("label-a");
+    const input = document.getElementById("input-a");
+
+    input.addEventListener("focus", t.step_func_done());
+    label.addEventListener("focus", t.unreached_func("Label should not receive focus"));
+
+    label.focus();
+
+  }, "focusing a label with for attribute should forward focus to the associated element");
+
+  async_test(t => {
+    const label = document.getElementById("label-b");
+    const input = document.getElementById("input-b");
+
+    input.addEventListener("focus", t.step_func_done());
+    label.addEventListener("focus", t.unreached_func("Label should not receive focus"));
+
+    label.focus();
+
+  }, "focusing a label without for attribute should fowrad focus to the first labelable child");
+
+  async_test(t => {
+    const label = document.getElementById("label-c");
+    const input = document.getElementById("input-c");
+
+    input.addEventListener("focus", t.unreached_func("Input should not receive focus"));
+    label.addEventListener("focus", t.step_func_done());
+
+    label.focus();
+
+  }, "focusing a label with tabindex should not forward focus to the labelable element");
+
+  async_test(t => {
+    const label = document.getElementById("label-d");
+    const input = document.getElementById("input-d");
+
+    input.addEventListener("focus", t.unreached_func("Input should not receive focus"));
+    label.addEventListener("focus", t.step_func_done());
+
+    label.focus();
+
+  }, "focusing a label with negative tabindex should not forward focus to the labelable element");
+
+  async_test(t => {
+    const label = document.getElementById("label-e");
+    const input = document.getElementById("input-e");
+
+    label.addEventListener("focus", t.unreached_func("Label should not receive focus"));
+    input.addEventListener("focus", t.step_func_done());
+
+    label.focus();
+
+  }, "focusing a label with empty tabindex should forward focus to the labelable element");
+
+  async_test(t => {
+    const label = document.getElementById("label-f");
+    const input = document.getElementById("input-f");
+
+    label.addEventListener("focus", t.unreached_func("Label should not receive focus"));
+    input.addEventListener("focus", t.step_func_done());
+
+    label.focus();
+
+  }, "focusing a hidden label with tabindex should forward focus to the labelable element");
+</script>

@@ -45,6 +45,24 @@ test_pseudo_computed_value("::marker", "direction", "rtl");
 // ::marker supports `content`
 test_pseudo_computed_value("::marker", "content", "\"foo\"");
 
+// ::marker supports animation properties.
+test_pseudo_computed_value("::marker", "animation", "1s linear 2s infinite alternate forwards paused anim");
+test_pseudo_computed_value("::marker", "animation-delay", "1s");
+test_pseudo_computed_value("::marker", "animation-direction", "alternate");
+test_pseudo_computed_value("::marker", "animation-duration", "2s");
+test_pseudo_computed_value("::marker", "animation-fill-mode", "forwards");
+test_pseudo_computed_value("::marker", "animation-iteration-count", "infinite");
+test_pseudo_computed_value("::marker", "animation-name", "anim");
+test_pseudo_computed_value("::marker", "animation-play-state", "paused");
+test_pseudo_computed_value("::marker", "animation-timing-function", "linear");
+
+// ::marker supports transition properties.
+test_pseudo_computed_value("::marker", "transition", "display 1s linear 2s");
+test_pseudo_computed_value("::marker", "transition-delay", "1s");
+test_pseudo_computed_value("::marker", "transition-duration", "2s");
+test_pseudo_computed_value("::marker", "transition-property", "display");
+test_pseudo_computed_value("::marker", "transition-timing-function", "linear");
+
 // ::marker does NOT support layout properties
 test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
 test_pseudo_computed_value("::marker", "position", "absolute", "static");

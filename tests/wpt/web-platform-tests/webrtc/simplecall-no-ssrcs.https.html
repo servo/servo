@@ -45,10 +45,9 @@
   var onOfferCreated = test.step_func(function(offer) {
     gFirstConnection.setLocalDescription(offer);
 
-    // remove all a=ssrc: lines, the msid-semantic line and any a=msid:.
+    // remove all a=ssrc: lines and the (obsolete) msid-semantic line.
     var sdp = offer.sdp.replace(/^a=ssrc:.*$\r\n/gm, '')
-      .replace(/^a=msid-semantic.*$\r\n/gm, '')
-      .replace(/^a=msid:.*$\r\n/gm, '');
+      .replace(/^a=msid-semantic.*$\r\n/gm, '');
 
     // This would normally go across the application's signaling solution.
     // In our case, the "signaling" is to call this function.
@@ -101,9 +100,9 @@
 
   var onRemoteTrack = test.step_func(function(event) {
     var videoTag = document.getElementById('remote-view');
-    if (!videoTag.srcObject)
-      videoTag.srcObject = new MediaStream();
-    videoTag.srcObject.addTrack(event.track);
+    if (!videoTag.srcObject) {
+      videoTag.srcObject = event.streams[0];
+    }
   });
 
   // Returns a suitable error callback.
