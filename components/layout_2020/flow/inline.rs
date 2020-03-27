@@ -304,12 +304,15 @@ impl InlineFormattingContext {
                                 },
                             };
                         let hoisted_box = box_.clone().to_hoisted(initial_start_corner, tree_rank);
-                        let hoisted_fragment_id = hoisted_box.fragment_id;
+                        let hoisted_fragment = hoisted_box.fragment.clone();
                         ifc.push_hoisted_box_to_positioning_context(hoisted_box);
                         ifc.current_nesting_level.fragments_so_far.push(
-                            Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment(
-                                hoisted_fragment_id,
-                            )),
+                            Fragment::AbsoluteOrFixedPositioned(
+                                AbsoluteOrFixedPositionedFragment {
+                                    hoisted_fragment,
+                                    position: box_.contents.style.clone_position(),
+                                },
+                            ),
                         );
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
@@ -492,7 +495,6 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.border.clone(),
             self.margin.clone(),
             CollapsedBlockMargins::zero(),
-            None, // hoisted_fragment_id
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
         if last_fragment {
@@ -560,7 +562,6 @@ fn layout_atomic(
                 border,
                 margin,
                 CollapsedBlockMargins::zero(),
-                None, // hoisted_fragment_id
             )
         },
         Err(non_replaced) => {
@@ -636,7 +637,6 @@ fn layout_atomic(
                 border,
                 margin,
                 CollapsedBlockMargins::zero(),
-                None, // hoisted_fragment_id
             )
         },
     };

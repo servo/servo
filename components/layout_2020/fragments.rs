@@ -7,7 +7,6 @@ use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
-use crate::positioned::HoistedFragmentId;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
@@ -16,6 +15,7 @@ use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
+use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -34,7 +34,10 @@ pub(crate) enum Fragment {
 }
 
 #[derive(Serialize)]
-pub(crate) struct AbsoluteOrFixedPositionedFragment(pub HoistedFragmentId);
+pub(crate) struct AbsoluteOrFixedPositionedFragment {
+    pub position: ComputedPosition,
+    pub hoisted_fragment: ArcRefCell<Option<ArcRefCell<Fragment>>>,
+}
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
@@ -57,11 +60,6 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
-
-    /// If this fragment was laid out from a hoisted box, this id corresponds to the id stored in
-    /// the AbsoluteOrFixedPositionedFragment left as a placeholder in the tree position of the
-    /// box.
-    pub hoisted_fragment_id: Option<HoistedFragmentId>,
 }
 
 #[derive(Serialize)]
@@ -177,20 +175,6 @@ impl Fragment {
         }
     }
 
-    pub fn is_hoisted(&self) -> bool {
-        match self {
-            Fragment::Box(fragment) if fragment.hoisted_fragment_id.is_some() => true,
-            _ => false,
-        }
-    }
-
-    pub fn hoisted_fragment_id(&self) -> Option<&HoistedFragmentId> {
-        match self {
-            Fragment::Box(fragment) => fragment.hoisted_fragment_id.as_ref(),
-            _ => None,
-        }
-    }
-
     pub(crate) fn find<T>(
         &self,
         containing_block: &PhysicalRect<Length>,
@@ -228,7 +212,7 @@ impl Fragment {
 
 impl AbsoluteOrFixedPositionedFragment {
     pub fn print(&self, tree: &mut PrintTree) {
-        tree.add_item(format!("AbsoluteOrFixedPositionedFragment({:?})", self.0));
+        tree.add_item(format!("AbsoluteOrFixedPositionedFragment"));
     }
 }
 
@@ -292,7 +276,6 @@ impl BoxFragment {
         border: Sides<Length>,
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
-        hoisted_fragment_id: Option<HoistedFragmentId>,
     ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -315,7 +298,6 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
-            hoisted_fragment_id,
         }
     }
 
@@ -354,8 +336,7 @@ impl BoxFragment {
                 \nborder rect={:?}\
                 \nscrollable_overflow={:?}\
                 \noverflow={:?} / {:?}\
-                \nstyle={:p}\
-                \nhoisted_id={:?}",
+                \nstyle={:p}",
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
@@ -363,7 +344,6 @@ impl BoxFragment {
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
             self.style,
-            self.hoisted_fragment_id,
         ));
 
         for child in &self.children {

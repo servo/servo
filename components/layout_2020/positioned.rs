@@ -14,24 +14,11 @@ use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
-
-static HOISTED_FRAGMENT_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
-pub(crate) struct HoistedFragmentId(u16);
-
-impl HoistedFragmentId {
-    pub fn new() -> HoistedFragmentId {
-        let new_id = HOISTED_FRAGMENT_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16;
-        HoistedFragmentId(new_id)
-    }
-}
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -47,7 +34,6 @@ pub(crate) struct PositioningContext {
     for_nearest_containing_block_for_all_descendants: Vec<HoistedAbsolutelyPositionedBox>,
 }
 
-#[derive(Debug)]
 pub(crate) struct HoistedAbsolutelyPositionedBox {
     absolutely_positioned_box: Arc<AbsolutelyPositionedBox>,
 
@@ -58,10 +44,10 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
 
     box_offsets: Vec2<AbsoluteBoxOffsets>,
 
-    /// The id which is shared between this HoistedAbsolutelyPositionedBox and its
-    /// placeholder AbsoluteOrFixedPositionedFragment in its original tree position.
+    /// A reference to a Fragment which is shared between this `HoistedAbsolutelyPositionedBox`
+    /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
     /// This will be used later in order to paint this hoisted box in tree order.
-    pub fragment_id: HoistedFragmentId,
+    pub fragment: ArcRefCell<Option<ArcRefCell<Fragment>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -148,7 +134,7 @@ impl AbsolutelyPositionedBox {
                     box_offsets.block_end.clone(),
                 ),
             },
-            fragment_id: HoistedFragmentId::new(),
+            fragment: ArcRefCell::new(None),
         }
     }
 }
@@ -286,11 +272,7 @@ impl PositioningContext {
             hoisted_boxes = take_hoisted_boxes_pending_layout(self);
         }
 
-        new_fragment.children.extend(
-            laid_out_child_fragments
-                .into_iter()
-                .map(|fragment| ArcRefCell::new(fragment)),
-        );
+        new_fragment.children.extend(laid_out_child_fragments);
     }
 
     pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox) {
@@ -359,7 +341,7 @@ impl PositioningContext {
         &mut self,
         layout_context: &LayoutContext,
         initial_containing_block: &DefiniteContainingBlock,
-        fragments: &mut Vec<Fragment>,
+        fragments: &mut Vec<ArcRefCell<Fragment>>,
     ) {
         debug_assert!(self.for_nearest_positioned_ancestor.is_none());
 
@@ -384,7 +366,7 @@ impl HoistedAbsolutelyPositionedBox {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         boxes: &[Self],
-        fragments: &mut Vec<Fragment>,
+        fragments: &mut Vec<ArcRefCell<Fragment>>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
@@ -392,22 +374,27 @@ impl HoistedAbsolutelyPositionedBox {
             fragments.par_extend(boxes.par_iter().mapfold_reduce_into(
                 for_nearest_containing_block_for_all_descendants,
                 |for_nearest_containing_block_for_all_descendants, box_| {
-                    Fragment::Box(box_.layout(
+                    let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
                         layout_context,
                         for_nearest_containing_block_for_all_descendants,
                         containing_block,
-                    ))
+                    )));
+
+                    *box_.fragment.borrow_mut() = Some(new_fragment.clone());
+                    new_fragment
                 },
                 Vec::new,
                 vec_append_owned,
             ))
         } else {
             fragments.extend(boxes.iter().map(|box_| {
-                Fragment::Box(box_.layout(
+                let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
                     containing_block,
-                ))
+                )));
+                *box_.fragment.borrow_mut() = Some(new_fragment.clone());
+                new_fragment
             }))
         }
     }
@@ -567,7 +554,6 @@ impl HoistedAbsolutelyPositionedBox {
                     border,
                     margin,
                     CollapsedBlockMargins::zero(),
-                    Some(self.fragment_id),
                 )
             },
         )

@@ -9,10 +9,8 @@ use crate::fragments::{
     AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, Fragment,
 };
 use crate::geom::PhysicalRect;
-use crate::positioned::HoistedFragmentId;
 use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
-use fnv::FnvHashMap;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use servo_arc::Arc as ServoArc;
 use std::cmp::Ordering;
@@ -37,30 +35,13 @@ pub(crate) struct ContainingBlock {
 
     /// The physical rect of this containing block.
     rect: PhysicalRect<Length>,
-
-    /// Fragments for positioned descendants (including direct children) that were
-    /// hoisted into this containing block. They have hashed based on the
-    /// HoistedFragmentId that is generated during hoisting.
-    hoisted_children: FnvHashMap<HoistedFragmentId, ArcRefCell<Fragment>>,
 }
 
 impl ContainingBlock {
-    pub(crate) fn new(
-        rect: &PhysicalRect<Length>,
-        space_and_clip: wr::SpaceAndClipInfo,
-        children: &[ArcRefCell<Fragment>],
-    ) -> Self {
-        let mut hoisted_children = FnvHashMap::default();
-        for child in children {
-            if let Some(hoisted_fragment_id) = child.borrow().hoisted_fragment_id() {
-                hoisted_children.insert(*hoisted_fragment_id, child.clone());
-            }
-        }
-
+    pub(crate) fn new(rect: &PhysicalRect<Length>, space_and_clip: wr::SpaceAndClipInfo) -> Self {
         ContainingBlock {
             space_and_clip,
             rect: *rect,
-            hoisted_children,
         }
     }
 }
@@ -333,12 +314,14 @@ impl Fragment {
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
     ) {
-        if mode == StackingContextBuildMode::SkipHoisted && self.is_hoisted() {
-            return;
-        }
-
         match self {
             Fragment::Box(fragment) => {
+                if mode == StackingContextBuildMode::SkipHoisted &&
+                    fragment.style.clone_position().is_absolutely_positioned()
+                {
+                    return;
+                }
+
                 fragment.build_stacking_context_tree(
                     fragment_ref,
                     builder,
@@ -417,7 +400,7 @@ impl BoxFragment {
         }
 
         let new_containing_block =
-            ContainingBlock::new(padding_rect, builder.current_space_and_clip, &self.children);
+            ContainingBlock::new(padding_rect, builder.current_space_and_clip);
 
         if self
             .style
@@ -750,37 +733,39 @@ impl AbsoluteOrFixedPositionedFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
-        let mut build_for_containing_block = |containing_block: &ContainingBlock| {
-            let hoisted_child = match containing_block.hoisted_children.get(&self.0) {
-                Some(hoisted_child) => hoisted_child,
-                None => return false,
-            };
-
-            builder.clipping_and_scrolling_scope(|builder| {
-                let mut new_containing_block_info = containing_block_info.clone();
-                new_containing_block_info.rect = containing_block.rect;
-                builder.current_space_and_clip = containing_block.space_and_clip;
-                hoisted_child.borrow().build_stacking_context_tree(
-                    hoisted_child,
-                    builder,
-                    &new_containing_block_info,
-                    stacking_context,
-                    StackingContextBuildMode::IncludeHoisted,
-                );
-            });
-
-            return true;
+        let hoisted_fragment = self.hoisted_fragment.borrow();
+        let fragment_ref = match hoisted_fragment.as_ref() {
+            Some(fragment_ref) => fragment_ref,
+            None => {
+                warn!("Found hoisted box with missing fragment.");
+                return;
+            },
         };
 
-        if let Some(containing_block) = containing_block_info.nearest_containing_block.as_ref() {
-            if build_for_containing_block(containing_block) {
-                return;
-            }
-        }
+        let containing_block = match self.position {
+            ComputedPosition::Fixed => &containing_block_info.containing_block_for_all_descendants,
+            ComputedPosition::Absolute => containing_block_info
+                .nearest_containing_block
+                .as_ref()
+                .unwrap_or(&containing_block_info.containing_block_for_all_descendants),
+            ComputedPosition::Static | ComputedPosition::Relative => unreachable!(
+                "Found an AbsoluteOrFixedPositionedFragment for a \
+                              non-absolutely or fixed position fragment."
+            ),
+        };
 
-        if !build_for_containing_block(&containing_block_info.containing_block_for_all_descendants)
-        {
-            warn!("Could not find containing block of hoisted positioned child!");
-        }
+        builder.clipping_and_scrolling_scope(|builder| {
+            let mut new_containing_block_info = containing_block_info.clone();
+            new_containing_block_info.rect = containing_block.rect;
+            builder.current_space_and_clip = containing_block.space_and_clip;
+
+            fragment_ref.borrow().build_stacking_context_tree(
+                fragment_ref,
+                builder,
+                &new_containing_block_info,
+                stacking_context,
+                StackingContextBuildMode::IncludeHoisted,
+            );
+        });
     }
 }

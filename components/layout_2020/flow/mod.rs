@@ -315,12 +315,13 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                let hoisted_fragment = box_.clone().to_hoisted(Vec2::zero(), tree_rank);
-                let hoisted_fragment_id = hoisted_fragment.fragment_id.clone();
-                positioning_context.push(hoisted_fragment);
-                Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment(
-                    hoisted_fragment_id,
-                ))
+                let hoisted_box = box_.clone().to_hoisted(Vec2::zero(), tree_rank);
+                let hoisted_fragment = hoisted_box.fragment.clone();
+                positioning_context.push(hoisted_box);
+                Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
+                    hoisted_fragment,
+                    position: box_.contents.style.clone_position(),
+                })
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // FIXME: call layout_maybe_position_relative_fragment here
@@ -501,7 +502,6 @@ fn layout_in_flow_non_replaced_block_level(
         border,
         margin,
         block_margins_collapsed_with_children,
-        None, // hoisted_fragment_id
     )
 }
 
@@ -553,7 +553,6 @@ fn layout_in_flow_replaced_block_level<'a>(
         border,
         margin,
         block_margins_collapsed_with_children,
-        None, // hoisted_fragment_id
     )
 }
 
