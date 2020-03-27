@@ -235,9 +235,9 @@ void ServoControl::OnSurfaceWheelChanged(
 void ServoControl::OnSurfaceResized(IInspectable const &,
                                     SizeChangedEventArgs const &e) {
   auto size = e.NewSize();
-  auto w = size.Width * mDPI;
-  auto h = size.Height * mDPI;
-  RunOnGLThread([=] { mServo->SetSize(w, h); });
+  auto w = (size.Width * mDPI);
+  auto h = (size.Height * mDPI);
+  RunOnGLThread([=] { mServo->SetSize((GLsizei)w, (GLsizei)h); });
 }
 
 void ServoControl::GoBack() {
@@ -437,7 +437,7 @@ void ServoControl::OnServoAnimatingChanged(bool animating) {
   WakeConditionVariable(&mGLCondVar);
 }
 
-void ServoControl::OnServoIMEStateChanged(bool aShow) {
+void ServoControl::OnServoIMEStateChanged(bool) {
   // FIXME:
   // https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingtextandtextrange
 }
@@ -572,6 +572,30 @@ void ServoControl::OnServoDevtoolsStarted(bool success,
   toastTextElements.Item(0).InnerText(message);
   auto toast = ToastNotification(toastXml);
   ToastNotificationManager::CreateToastNotifier().Show(toast);
+}
+
+void ServoControl::OnServoShowContextMenu(std::vector<winrt::hstring> items) {
+  RunOnUIThread([=] {
+    MessageDialog msg{L"Menu"};
+    for (auto i = 0; i < items.size(); i++) {
+      UICommand cmd{items[i], [=](auto) {
+                      RunOnGLThread([=] {
+                        mServo->ContextMenuClosed(
+                            Servo::ContextMenuResult::Selected, i);
+                      });
+                    }};
+      msg.Commands().Append(cmd);
+    }
+    UICommand cancel{L"Cancel", [=](auto) {
+                       RunOnGLThread([=] {
+                         mServo->ContextMenuClosed(
+                             Servo::ContextMenuResult::Dismissed_, 0);
+                       });
+                     }};
+    msg.Commands().Append(cancel);
+    msg.CancelCommandIndex((uint32_t)items.size());
+    msg.ShowAsync();
+  });
 }
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {

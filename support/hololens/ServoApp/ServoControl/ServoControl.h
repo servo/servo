@@ -109,12 +109,13 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
                                            winrt::hstring);
   virtual void OnServoMediaSessionPlaybackStateChange(int);
   virtual void OnServoPromptAlert(winrt::hstring, bool);
+  virtual void OnServoShowContextMenu(std::vector<winrt::hstring>);
   virtual servo::Servo::PromptResult OnServoPromptOkCancel(winrt::hstring,
                                                            bool);
   virtual servo::Servo::PromptResult OnServoPromptYesNo(winrt::hstring, bool);
   virtual std::optional<hstring> OnServoPromptInput(winrt::hstring,
                                                     winrt::hstring, bool);
-  virtual void OnServoDevtoolsStarted(bool success, const unsigned int port);
+  virtual void OnServoDevtoolsStarted(bool, const unsigned int);
 
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
