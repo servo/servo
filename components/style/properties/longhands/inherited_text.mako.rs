@@ -374,7 +374,7 @@ ${helpers.single_keyword(
     "-moz-control-character-visibility",
     "hidden visible",
     engines="gecko",
-    gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
+    gecko_enum_prefix="StyleControlCharacterVisibility",
     animation_value_type="none",
     gecko_ffi_name="mControlCharacterVisibility",
     spec="Nonstandard",
