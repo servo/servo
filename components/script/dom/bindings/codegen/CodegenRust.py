@@ -2968,12 +2968,19 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
     def definition_body(self):
         ret = ''
         interface = self.descriptor.interface
+
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 name = m.identifier.name
+                conditions = MemberCondition(None, None, m.exposureSet)
+                ret_conditions = 'vec![' + ",".join(conditions) + "]"
                 ret += fill(
                     """
-                    rooted!(in(cx) let mut temp = UndefinedValue());
+                    let conditions = ${conditions};
+                    if !conditions.iter().any(|c| c.is_satisfied(SafeJSContext::from_ptr(cx), HandleObject::from_raw(obj), HandleObject::from_raw(obj))) {
+                      return false;
+                    }
+                    rooted!(in(cx) let mut temp = UndefinedValue()); 
                     if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                       return false;
                     }
@@ -2983,7 +2990,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                       return false;
                     }
                     """,
-                    name=name, nameAsArray=str_to_const_array(name))
+                    name=name, nameAsArray=str_to_const_array(name), conditions=ret_conditions)
         ret += 'return true;\n'
         return CGGeneric(ret)
 
