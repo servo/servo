@@ -2977,10 +2977,14 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 ret += fill(
                     """
                     let conditions = ${conditions};
-                    if !conditions.iter().any(|c| c.is_satisfied(SafeJSContext::from_ptr(cx), HandleObject::from_raw(obj), HandleObject::from_raw(obj))) {
+                    if !conditions.iter().any(|c|
+                         c.is_satisfied(
+                           SafeJSContext::from_ptr(cx),
+                           HandleObject::from_raw(obj),
+                           HandleObject::from_raw(obj))) {
                       return false;
                     }
-                    rooted!(in(cx) let mut temp = UndefinedValue()); 
+                    rooted!(in(cx) let mut temp = UndefinedValue());
                     if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                       return false;
                     }

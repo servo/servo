@@ -376,7 +376,7 @@ pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
         let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
         let dom_class = get_dom_class(unwrapped).unwrap();
         if (dom_class.global.is_empty()) && (!globals.is_empty()) {
-            return false
+            return false;
         }
         globals.contains(dom_class.global)
     }
