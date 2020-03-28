@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Flexbox: Change to auto-margin items in column flexbox</title>
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#valdef-flex-direction-column">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#propdef-align-self">
+<link rel="match" href="reference/columns-center-with-margins-001-ref.html">
+<meta name="assert" content="This test ensures that auto margins for column flows are correctly calculated"/>
+<link href="support/flexbox.css" rel="stylesheet">
+ <style>
+    .flexbox {
+      border: 1px solid black;
+      width: 400px;
+      height: 200px;
+    }
+    .item1 {
+      margin: 0 auto;
+      background: lightblue;
+    }
+    .item1v {
+      margin: auto 0;
+      background: lightblue;
+    }
+    .item2 {
+      background: lime;
+    }
+  </style>
+</head>
+<body>
+  <p>The test passes if the flex items are properly centered in each column</p>
+  <div class="flexbox column">
+    <div class="item1">centeredWithMargins</div>
+    <div class="item2 align-self-center">centeredWithAlignSelf</div>
+  </div>
+  <div style="writing-mode: vertical-lr;">
+    <div class="flexbox column">
+      <div class="item1v">centeredWithMargins</div>
+      <div class="item2 align-self-center">centeredWithAlignSelf</div>
+    </div>
+  </div>
+</body>
+</html>

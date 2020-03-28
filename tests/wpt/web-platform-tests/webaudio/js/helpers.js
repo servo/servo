@@ -216,3 +216,35 @@ function runTest(name)
 
   runTestFunction();
 }
+
+// Simpler than audit.js, but still logs the message. Requires
+// `setup("explicit_done": true)` if testing code that runs after the "load"
+// event.
+function equals(a, b, msg) {
+  test(function() {
+    assert_equals(a, b);
+  }, msg);
+}
+function is_true(a, msg) {
+  test(function() {
+    assert_true(a);
+  }, msg);
+}
+
+// This allows writing AudioWorkletProcessor code in the same file as the rest
+// of the test, for quick one off AudioWorkletProcessor testing.
+function URLFromScriptsElements(ids)
+{
+  var scriptTexts = [];
+  for (let id of ids) {
+
+    const e = document.querySelector("script#"+id)
+    if (!e) {
+      throw id+" is not the id of a <script> tag";
+    }
+    scriptTexts.push(e.innerText);
+  }
+  const blob = new Blob(scriptTexts, {type: "application/javascript"});
+
+  return URL.createObjectURL(blob);
+}
