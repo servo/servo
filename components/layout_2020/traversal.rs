@@ -30,10 +30,10 @@ impl<'a> RecalcStyle<'a> {
 }
 
 #[allow(unsafe_code)]
-impl<'a, E> DomTraversal<E> for RecalcStyle<'a>
+impl<'a, 'dom, E> DomTraversal<E> for RecalcStyle<'a>
 where
     E: TElement,
-    E::ConcreteNode: LayoutNode,
+    E::ConcreteNode: LayoutNode<'dom>,
     E::FontMetricsProvider: Send,
 {
     fn process_preorder<F>(

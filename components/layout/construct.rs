@@ -181,12 +181,15 @@ pub struct InlineBlockSplit {
 impl InlineBlockSplit {
     /// Flushes the given accumulator to the new split and makes a new accumulator to hold any
     /// subsequent fragments.
-    fn new<ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>(
+    fn new<'dom, ConcreteThreadSafeLayoutNode>(
         fragment_accumulator: &mut InlineFragmentsAccumulator,
         node: &ConcreteThreadSafeLayoutNode,
         style_context: &SharedStyleContext,
         flow: FlowRef,
-    ) -> InlineBlockSplit {
+    ) -> InlineBlockSplit
+    where
+        ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
+    {
         fragment_accumulator.enclosing_node.as_mut().expect(
             "enclosing_node is None; Are {ib} splits being generated outside of an inline node?"
         ).flags.remove(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT);
@@ -272,13 +275,10 @@ impl InlineFragmentsAccumulator {
         }
     }
 
-    fn from_inline_node<N>(
-        node: &N,
+    fn from_inline_node<'dom>(
+        node: &impl ThreadSafeLayoutNode<'dom>,
         style_context: &SharedStyleContext,
-    ) -> InlineFragmentsAccumulator
-    where
-        N: ThreadSafeLayoutNode,
-    {
+    ) -> InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: Some(InlineFragmentNodeInfo {
@@ -305,12 +305,12 @@ impl InlineFragmentsAccumulator {
             .push_descendants(fragments.absolute_descendants);
     }
 
-    fn to_intermediate_inline_fragments<N>(
+    fn to_intermediate_inline_fragments<'dom, N>(
         self,
         context: &SharedStyleContext,
     ) -> IntermediateInlineFragments
     where
-        N: ThreadSafeLayoutNode,
+        N: ThreadSafeLayoutNode<'dom>,
     {
         let InlineFragmentsAccumulator {
             mut fragments,
@@ -366,7 +366,7 @@ impl InlineFragmentsAccumulator {
 }
 
 /// An object that knows how to create flows.
-pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
+pub struct FlowConstructor<'a, N> {
     /// The layout context.
     pub layout_context: &'a LayoutContext<'a>,
     /// Satisfy the compiler about the unused parameters, which we use to improve the ergonomics of
@@ -374,8 +374,9 @@ pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
     phantom2: PhantomData<N>,
 }
 
-impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
-    FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+impl<'a, 'dom, ConcreteThreadSafeLayoutNode> FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+where
+    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {
     /// Creates a new flow constructor.
     pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
@@ -1792,10 +1793,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     }
 }
 
-impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode>
+impl<'a, 'dom, ConcreteThreadSafeLayoutNode>
+    PostorderNodeMutTraversal<'dom, ConcreteThreadSafeLayoutNode>
     for FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
 where
-    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode,
+    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {
     // Construct Flow based on 'display', 'position', and 'float' values.
     //
@@ -1988,9 +1990,9 @@ trait NodeUtils {
     fn get_construction_result(self) -> ConstructionResult;
 }
 
-impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
+impl<'dom, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
 where
-    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode,
+    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {

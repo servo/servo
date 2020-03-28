@@ -71,7 +71,7 @@ use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -133,7 +133,8 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, ReflowGoal};
+use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
+use script_layout_interface::TrustedNodeAddress;
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{
     MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -157,7 +158,7 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaType};
-use style::selector_parser::{RestyleDamage, Snapshot};
+use style::selector_parser::Snapshot;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
@@ -199,29 +200,6 @@ impl FireMouseEventType {
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
-}
-
-#[derive(Debug, MallocSizeOf)]
-pub struct PendingRestyle {
-    /// If this element had a state or attribute change since the last restyle, track
-    /// the original condition of the element.
-    pub snapshot: Option<Snapshot>,
-
-    /// Any explicit restyles hints that have been accumulated for this element.
-    pub hint: RestyleHint,
-
-    /// Any explicit restyles damage that have been accumulated for this element.
-    pub damage: RestyleDamage,
-}
-
-impl PendingRestyle {
-    pub fn new() -> Self {
-        PendingRestyle {
-            snapshot: None,
-            hint: RestyleHint::empty(),
-            damage: RestyleDamage::empty(),
-        }
-    }
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -2629,7 +2607,6 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutDom<Element>, PendingRestyle)>;
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
@@ -2640,26 +2617,10 @@ pub trait LayoutDocumentHelpers {
 }
 
 #[allow(unsafe_code)]
-impl LayoutDocumentHelpers for LayoutDom<Document> {
+impl LayoutDocumentHelpers for LayoutDom<'_, Document> {
     #[inline]
     unsafe fn is_html_document_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_html_document
-    }
-
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutDom<Element>, PendingRestyle)> {
-        let mut elements = (*self.unsafe_get())
-            .pending_restyles
-            .borrow_mut_for_layout();
-        // Elements were in a document when they were added to this list, but that
-        // may no longer be true when the next layout occurs.
-        let result = elements
-            .drain()
-            .map(|(k, v)| (k.to_layout(), v))
-            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED))
-            .collect();
-        result
     }
 
     #[inline]
@@ -3601,6 +3562,16 @@ impl Document {
             },
             (None, None) => ElementLookupResult::None,
         }
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
+        self.pending_restyles
+            .borrow_mut()
+            .drain()
+            .filter(|(k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED))
+            .map(|(k, v)| (k.upcast::<Node>().to_trusted_node_address(), v))
+            .collect()
     }
 }
 

@@ -2447,7 +2447,7 @@ pub trait LayoutHTMLMediaElementHelpers {
     fn data(&self) -> HTMLMediaData;
 }
 
-impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
+impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };

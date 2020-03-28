@@ -61,8 +61,8 @@ impl TableCellFlow {
         }
     }
 
-    pub fn from_node_fragment_and_visibility_flag<N: ThreadSafeLayoutNode>(
-        node: &N,
+    pub fn from_node_fragment_and_visibility_flag<'dom>(
+        node: &impl ThreadSafeLayoutNode<'dom>,
         fragment: Fragment,
         visible: bool,
     ) -> TableCellFlow {

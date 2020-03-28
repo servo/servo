@@ -726,11 +726,14 @@ unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMStri
         .get_content()
 }
 
-impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
+impl LayoutHTMLInputElementHelpers for LayoutDom<'_, HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {
         #[allow(unsafe_code)]
-        unsafe fn get_raw_attr_value(input: LayoutDom<HTMLInputElement>, default: &str) -> String {
+        unsafe fn get_raw_attr_value(
+            input: LayoutDom<'_, HTMLInputElement>,
+            default: &str,
+        ) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
                 .get_attr_val_for_layout(&ns!(), &local_name!("value"))

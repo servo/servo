@@ -1304,17 +1304,17 @@ pub unsafe fn from_untrusted_node_address(
 }
 
 #[allow(unsafe_code)]
-pub trait LayoutNodeHelpers {
+pub trait LayoutNodeHelpers<'dom> {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<Node>>;
-    unsafe fn first_child_ref(&self) -> Option<LayoutDom<Node>>;
-    unsafe fn last_child_ref(&self) -> Option<LayoutDom<Node>>;
-    unsafe fn prev_sibling_ref(&self) -> Option<LayoutDom<Node>>;
-    unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<Node>>;
+    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<'dom, Node>>;
+    unsafe fn first_child_ref(&self) -> Option<LayoutDom<'dom, Node>>;
+    unsafe fn last_child_ref(&self) -> Option<LayoutDom<'dom, Node>>;
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutDom<'dom, Node>>;
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<'dom, Node>>;
 
-    unsafe fn owner_doc_for_layout(&self) -> LayoutDom<Document>;
-    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>>;
+    unsafe fn owner_doc_for_layout(&self) -> LayoutDom<'dom, Document>;
+    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(&self, flag: NodeFlags) -> bool;
@@ -1339,7 +1339,7 @@ pub trait LayoutNodeHelpers {
     fn opaque(&self) -> OpaqueNode;
 }
 
-impl LayoutNodeHelpers for LayoutDom<Node> {
+impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
@@ -1354,7 +1354,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn composed_parent_node_ref(&self) -> Option<LayoutDom<'dom, Node>> {
         let parent = (*self.unsafe_get()).parent_node.get_inner_as_layout();
         if let Some(ref parent) = parent {
             if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
@@ -1366,31 +1366,31 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn first_child_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn first_child_ref(&self) -> Option<LayoutDom<'dom, Node>> {
         (*self.unsafe_get()).first_child.get_inner_as_layout()
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn last_child_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn last_child_ref(&self) -> Option<LayoutDom<'dom, Node>> {
         (*self.unsafe_get()).last_child.get_inner_as_layout()
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn prev_sibling_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutDom<'dom, Node>> {
         (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<Node>> {
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutDom<'dom, Node>> {
         (*self.unsafe_get()).next_sibling.get_inner_as_layout()
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn owner_doc_for_layout(&self) -> LayoutDom<Document> {
+    unsafe fn owner_doc_for_layout(&self) -> LayoutDom<'dom, Document> {
         (*self.unsafe_get())
             .owner_doc
             .get_inner_as_layout()
@@ -1399,7 +1399,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<ShadowRoot>> {
+    unsafe fn containing_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         (*self.unsafe_get())
             .rare_data_for_layout()
             .as_ref()?

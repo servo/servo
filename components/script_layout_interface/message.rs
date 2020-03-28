@@ -23,8 +23,9 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::PropertyId;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 
 /// Asynchronous messages that script can send to layout.
@@ -218,6 +219,8 @@ pub struct ScriptReflow {
     pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
+    /// Restyle snapshot map.
+    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
 }
 
 pub struct LayoutThreadInit {
@@ -233,4 +236,30 @@ pub struct LayoutThreadInit {
     pub paint_time_metrics: PaintTimeMetrics,
     pub layout_is_busy: Arc<AtomicBool>,
     pub window_size: WindowSizeData,
+}
+
+/// A pending restyle.
+#[derive(Debug, MallocSizeOf)]
+pub struct PendingRestyle {
+    /// If this element had a state or attribute change since the last restyle, track
+    /// the original condition of the element.
+    pub snapshot: Option<Snapshot>,
+
+    /// Any explicit restyles hints that have been accumulated for this element.
+    pub hint: RestyleHint,
+
+    /// Any explicit restyles damage that have been accumulated for this element.
+    pub damage: RestyleDamage,
+}
+
+impl PendingRestyle {
+    /// Creates a new empty pending restyle.
+    #[inline]
+    pub fn new() -> Self {
+        PendingRestyle {
+            snapshot: None,
+            hint: RestyleHint::empty(),
+            damage: RestyleDamage::empty(),
+        }
+    }
 }

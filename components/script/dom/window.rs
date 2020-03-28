@@ -1617,13 +1617,14 @@ impl Window {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document: self.Document().upcast::<Node>().to_trusted_node_address(),
+            document: document.upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
             window_size: self.window_size.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             script_join_chan: join_chan,
-            dom_count: self.Document().dom_count(),
+            dom_count: document.dom_count(),
+            pending_restyles: document.drain_pending_restyles(),
         };
 
         self.layout_chan

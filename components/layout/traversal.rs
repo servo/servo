@@ -38,10 +38,10 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 }
 
 #[allow(unsafe_code)]
-impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
+impl<'a, 'dom, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
 where
     E: TElement,
-    E::ConcreteNode: LayoutNode,
+    E::ConcreteNode: LayoutNode<'dom>,
     E::FontMetricsProvider: Send,
 {
     fn process_preorder<F>(
@@ -175,7 +175,10 @@ pub trait InorderFlowTraversal {
 }
 
 /// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode> {
+pub trait PostorderNodeMutTraversal<'dom, ConcreteThreadSafeLayoutNode>
+where
+    ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
+{
     /// The operation to perform. Return true to continue or false to stop.
     fn process(&mut self, node: &ConcreteThreadSafeLayoutNode);
 }
@@ -183,10 +186,7 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 /// The flow construction traversal, which builds flows for styled nodes.
 #[inline]
 #[allow(unsafe_code)]
-fn construct_flows_at<N>(context: &LayoutContext, node: N)
-where
-    N: LayoutNode,
-{
+fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>) {
     debug!("construct_flows_at: {:?}", node);
 
     // Construct flows for this node.

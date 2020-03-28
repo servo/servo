@@ -157,7 +157,7 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
     unsafe fn get_canvas_id(&self) -> CanvasId;
 }
 
-impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<CanvasRenderingContext2D> {
+impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get())

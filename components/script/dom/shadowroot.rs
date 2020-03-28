@@ -239,8 +239,8 @@ impl ShadowRootMethods for ShadowRoot {
 }
 
 #[allow(unsafe_code)]
-pub trait LayoutShadowRootHelpers {
-    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element>;
+pub trait LayoutShadowRootHelpers<'dom> {
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<'dom, Element>;
     unsafe fn get_style_data_for_layout<'a, E: TElement>(
         &self,
     ) -> &'a AuthorStyles<StyleSheetInDocument>;
@@ -252,10 +252,10 @@ pub trait LayoutShadowRootHelpers {
     );
 }
 
-impl LayoutShadowRootHelpers for LayoutDom<ShadowRoot> {
+impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_host_for_layout(&self) -> LayoutDom<Element> {
+    unsafe fn get_host_for_layout(&self) -> LayoutDom<'dom, Element> {
         (*self.unsafe_get())
             .host
             .get_inner_as_layout()

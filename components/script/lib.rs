@@ -130,7 +130,7 @@ pub mod layout_exports {
     pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId, TextTypeId};
     pub use crate::dom::bindings::root::LayoutDom;
     pub use crate::dom::characterdata::LayoutCharacterDataHelpers;
-    pub use crate::dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
+    pub use crate::dom::document::{Document, LayoutDocumentHelpers};
     pub use crate::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
     pub use crate::dom::node::NodeFlags;
     pub use crate::dom::node::{LayoutNodeHelpers, Node};

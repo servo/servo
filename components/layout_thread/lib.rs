@@ -1039,7 +1039,7 @@ impl LayoutThread {
         self.stylist.set_quirks_mode(quirks_mode);
     }
 
-    fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
+    fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
         let result = node.mutate_layout_data()?.flow_construction_result.get();
 
         let mut flow = match result {
@@ -1450,17 +1450,19 @@ impl LayoutThread {
             guards.author.clone(),
         );
 
-        let restyles = document.drain_pending_restyles();
+        let restyles = std::mem::take(&mut data.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
 
         let mut map = SnapshotMap::new();
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| r.0)
+            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
             .collect();
 
         for (el, restyle) in restyles {
+            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
+
             // Propagate the descendant bit up the ancestors. Do this before
             // the restyle calculation so that we can also do it for new
             // unstyled nodes, which the descendants bit helps us find.

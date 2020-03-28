@@ -4450,7 +4450,7 @@ pub trait LayoutCanvasWebGLRenderingContextHelpers {
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource;
 }
 
-impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContext> {
+impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         (*self.unsafe_get()).layout_handle()

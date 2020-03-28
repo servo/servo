@@ -1382,7 +1382,7 @@ pub trait LayoutHTMLImageElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
+impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
         (*self.unsafe_get())
