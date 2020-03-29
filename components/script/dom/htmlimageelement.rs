@@ -1367,24 +1367,20 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 
 pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn image(&self) -> Option<Arc<Image>>;
-
+    unsafe fn image(self) -> Option<Arc<Image>>;
     #[allow(unsafe_code)]
-    unsafe fn image_url(&self) -> Option<ServoUrl>;
-
+    unsafe fn image_url(self) -> Option<ServoUrl>;
     #[allow(unsafe_code)]
-    unsafe fn image_density(&self) -> Option<f64>;
-
+    unsafe fn image_density(self) -> Option<f64>;
     #[allow(unsafe_code)]
-    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
-
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
-    fn get_height(&self) -> LengthOrPercentageOrAuto;
+    unsafe fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
+    fn get_width(self) -> LengthOrPercentageOrAuto;
+    fn get_height(self) -> LengthOrPercentageOrAuto;
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     #[allow(unsafe_code)]
-    unsafe fn image(&self) -> Option<Arc<Image>> {
+    unsafe fn image(self) -> Option<Arc<Image>> {
         (*self.unsafe_get())
             .current_request
             .borrow_for_layout()
@@ -1393,7 +1389,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn image_url(&self) -> Option<ServoUrl> {
+    unsafe fn image_url(self) -> Option<ServoUrl> {
         (*self.unsafe_get())
             .current_request
             .borrow_for_layout()
@@ -1402,7 +1398,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+    unsafe fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
         let current_request = (*self.unsafe_get()).current_request.borrow_for_layout();
         (
             current_request.image.clone(),
@@ -1411,7 +1407,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn image_density(&self) -> Option<f64> {
+    unsafe fn image_density(self) -> Option<f64> {
         (*self.unsafe_get())
             .current_request
             .borrow_for_layout()
@@ -1420,7 +1416,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
@@ -1431,7 +1427,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_height(&self) -> LengthOrPercentageOrAuto {
+    fn get_height(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
