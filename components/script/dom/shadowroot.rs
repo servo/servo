@@ -241,9 +241,7 @@ impl ShadowRootMethods for ShadowRoot {
 #[allow(unsafe_code)]
 pub trait LayoutShadowRootHelpers<'dom> {
     unsafe fn get_host_for_layout(&self) -> LayoutDom<'dom, Element>;
-    unsafe fn get_style_data_for_layout<'a, E: TElement>(
-        &self,
-    ) -> &'a AuthorStyles<StyleSheetInDocument>;
+    unsafe fn get_style_data_for_layout(self) -> &'dom AuthorStyles<StyleSheetInDocument>;
     unsafe fn flush_stylesheets<E: TElement>(
         &self,
         device: &Device,
@@ -264,9 +262,7 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_style_data_for_layout<'a, E: TElement>(
-        &self,
-    ) -> &'a AuthorStyles<StyleSheetInDocument> {
+    unsafe fn get_style_data_for_layout(self) -> &'dom AuthorStyles<StyleSheetInDocument> {
         (*self.unsafe_get()).author_styles.borrow_for_layout()
     }
 
