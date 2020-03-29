@@ -406,15 +406,15 @@ impl HTMLTableElementMethods for HTMLTableElement {
 }
 
 pub trait HTMLTableElementLayoutHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-    fn get_border(&self) -> Option<u32>;
-    fn get_cellspacing(&self) -> Option<u32>;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_background_color(self) -> Option<RGBA>;
+    fn get_border(self) -> Option<u32>;
+    fn get_cellspacing(self) -> Option<u32>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     #[allow(unsafe_code)]
-    fn get_background_color(&self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
@@ -424,17 +424,17 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_border(&self) -> Option<u32> {
+    fn get_border(self) -> Option<u32> {
         unsafe { (*self.unsafe_get()).border.get() }
     }
 
     #[allow(unsafe_code)]
-    fn get_cellspacing(&self) -> Option<u32> {
+    fn get_cellspacing(self) -> Option<u32> {
         unsafe { (*self.unsafe_get()).cellspacing.get() }
     }
 
     #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
