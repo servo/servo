@@ -624,7 +624,7 @@ pub trait LayoutElementHelpers<'dom> {
     #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_classes_for_layout(self) -> Option<&'static [Atom]>;
+    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, _: &mut V)
@@ -666,7 +666,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_classes_for_layout(self) -> Option<&'static [Atom]> {
+    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class"))
             .map(|attr| attr.value_tokens_forever().unwrap())
     }
