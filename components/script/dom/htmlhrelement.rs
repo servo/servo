@@ -66,13 +66,13 @@ impl HTMLHRElementMethods for HTMLHRElement {
 }
 
 pub trait HTMLHRLayoutHelpers {
-    fn get_color(&self) -> Option<RGBA>;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_color(self) -> Option<RGBA>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
     #[allow(unsafe_code)]
-    fn get_color(&self) -> Option<RGBA> {
+    fn get_color(self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("color"))
@@ -82,7 +82,7 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
