@@ -748,12 +748,11 @@ impl<'dom, T> LayoutDom<'dom, T>
 where
     T: 'dom + DomObject,
 {
-    /// Returns an unsafe pointer to the interior of this JS object. This is
-    /// the only method that be safely accessed from layout. (The fact that
-    /// this is unsafe is what necessitates the layout wrappers.)
-    pub unsafe fn unsafe_get(&self) -> *const T {
+    /// Returns a reference to the interior of this JS object. The fact
+    /// that this is unsafe is what necessitates the layout wrappers.
+    pub unsafe fn unsafe_get(self) -> &'dom T {
         debug_assert!(thread_state::get().is_layout());
-        self.ptr.as_ptr()
+        &*self.ptr.as_ptr()
     }
 }
 
