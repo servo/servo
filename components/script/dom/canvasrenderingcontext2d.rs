@@ -152,14 +152,14 @@ impl CanvasRenderingContext2D {
 
 pub trait LayoutCanvasRenderingContext2DHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
+    unsafe fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
     #[allow(unsafe_code)]
-    unsafe fn get_canvas_id(&self) -> CanvasId;
+    unsafe fn get_canvas_id(self) -> CanvasId;
 }
 
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+    unsafe fn get_ipc_renderer(self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get())
             .canvas_state
             .borrow_for_layout()
@@ -168,7 +168,7 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingCont
     }
 
     #[allow(unsafe_code)]
-    unsafe fn get_canvas_id(&self) -> CanvasId {
+    unsafe fn get_canvas_id(self) -> CanvasId {
         (*self.unsafe_get())
             .canvas_state
             .borrow_for_layout()
