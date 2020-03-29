@@ -2605,46 +2605,46 @@ pub enum DocumentSource {
 }
 
 #[allow(unsafe_code)]
-pub trait LayoutDocumentHelpers {
-    unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn needs_paint_from_layout(&self);
-    unsafe fn will_paint(&self);
-    unsafe fn quirks_mode(&self) -> QuirksMode;
-    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
-    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>>;
-    unsafe fn shadow_roots_styles_changed(&self) -> bool;
-    unsafe fn flush_shadow_roots_stylesheets(&self);
+pub trait LayoutDocumentHelpers<'dom> {
+    unsafe fn is_html_document_for_layout(self) -> bool;
+    unsafe fn needs_paint_from_layout(self);
+    unsafe fn will_paint(self);
+    unsafe fn quirks_mode(self) -> QuirksMode;
+    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
+    unsafe fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
+    unsafe fn shadow_roots_styles_changed(self) -> bool;
+    unsafe fn flush_shadow_roots_stylesheets(self);
 }
 
 #[allow(unsafe_code)]
-impl LayoutDocumentHelpers for LayoutDom<'_, Document> {
+impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
-    unsafe fn is_html_document_for_layout(&self) -> bool {
+    unsafe fn is_html_document_for_layout(self) -> bool {
         (*self.unsafe_get()).is_html_document
     }
 
     #[inline]
-    unsafe fn needs_paint_from_layout(&self) {
+    unsafe fn needs_paint_from_layout(self) {
         (*self.unsafe_get()).needs_paint.set(true)
     }
 
     #[inline]
-    unsafe fn will_paint(&self) {
+    unsafe fn will_paint(self) {
         (*self.unsafe_get()).needs_paint.set(false)
     }
 
     #[inline]
-    unsafe fn quirks_mode(&self) -> QuirksMode {
+    unsafe fn quirks_mode(self) -> QuirksMode {
         (*self.unsafe_get()).quirks_mode()
     }
 
     #[inline]
-    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
+    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
         (*self.unsafe_get()).style_shared_lock()
     }
 
     #[inline]
-    unsafe fn shadow_roots(&self) -> Vec<LayoutDom<ShadowRoot>> {
+    unsafe fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
         (*self.unsafe_get())
             .shadow_roots
             .borrow_for_layout()
@@ -2654,12 +2654,12 @@ impl LayoutDocumentHelpers for LayoutDom<'_, Document> {
     }
 
     #[inline]
-    unsafe fn shadow_roots_styles_changed(&self) -> bool {
+    unsafe fn shadow_roots_styles_changed(self) -> bool {
         (*self.unsafe_get()).shadow_roots_styles_changed()
     }
 
     #[inline]
-    unsafe fn flush_shadow_roots_stylesheets(&self) {
+    unsafe fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 }
