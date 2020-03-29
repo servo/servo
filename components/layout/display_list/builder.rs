@@ -1875,6 +1875,12 @@ impl Fragment {
                 }
             },
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                if canvas_fragment_info.dom_width == Au(0) ||
+                    canvas_fragment_info.dom_height == Au(0)
+                {
+                    return;
+                }
+
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,
                     CanvasFragmentSource::Image(ref ipc_renderer) => match *ipc_renderer {
