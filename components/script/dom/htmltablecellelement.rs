@@ -98,15 +98,15 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 }
 
 pub trait HTMLTableCellElementLayoutHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-    fn get_colspan(&self) -> Option<u32>;
-    fn get_rowspan(&self) -> Option<u32>;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_background_color(self) -> Option<RGBA>;
+    fn get_colspan(self) -> Option<u32>;
+    fn get_rowspan(self) -> Option<u32>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
 #[allow(unsafe_code)]
 impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
-    fn get_background_color(&self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
@@ -115,7 +115,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
         }
     }
 
-    fn get_colspan(&self) -> Option<u32> {
+    fn get_colspan(self) -> Option<u32> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("colspan"))
@@ -123,7 +123,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
         }
     }
 
-    fn get_rowspan(&self) -> Option<u32> {
+    fn get_rowspan(self) -> Option<u32> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
@@ -131,7 +131,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
         }
     }
 
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
