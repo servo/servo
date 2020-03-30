@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <title>Doge Testing Example</title>
+    <style> 
+    body {
+    	font-family: "Comic Sans MS";
+    	color: #ff008d;
+    	font-size: 50px;
+    }
+	</style>
+</head>
+<body>
+    <h1>Doge Example</h1>
+    <script type="text/javascript">
+        var myDoge = new Doge(["Servo","So Rust","Testing Doge"]);
+        myDoge.append("Testing Append");
+		document.body.innerHTML = myDoge.random();
+		myDoge.remove("Testing Doge");
+		myDoge.remove("Testing absence");
+    </script>
+</body>
+</html>

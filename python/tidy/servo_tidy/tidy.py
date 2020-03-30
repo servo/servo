@@ -89,6 +89,7 @@ WEBIDL_STANDARDS = [
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",
     b"//drafts.fxtf.org",
+    b"//jeenalee.github.io/doge-standard/",
     b"//encoding.spec.whatwg.org",
     b"//fetch.spec.whatwg.org",
     b"//html.spec.whatwg.org",
