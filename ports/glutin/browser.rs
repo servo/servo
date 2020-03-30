@@ -8,7 +8,7 @@ use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{
-    EmbedderMsg, FilterPattern, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
+    ContextMenuResult, EmbedderMsg, FilterPattern, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
     PermissionPrompt,
 };
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
@@ -521,6 +521,9 @@ where
                         Err(()) => error!("Error running devtools server"),
                     }
                 },
+                EmbedderMsg::ShowContextMenu(sender, _) => {
+                    let _ = sender.send(ContextMenuResult::Ignored);
+                }
             }
         }
     }

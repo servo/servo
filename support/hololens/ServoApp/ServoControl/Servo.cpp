@@ -43,7 +43,7 @@ void on_ime_state_changed(bool aShow) {
   sServo->Delegate().OnServoIMEStateChanged(aShow);
 }
 
-void set_clipboard_contents(const char *content) {
+void set_clipboard_contents(const char *) {
   // FIXME
 }
 
@@ -65,6 +65,14 @@ void on_media_session_playback_state_change(
 
 void prompt_alert(const char *message, bool trusted) {
   sServo->Delegate().OnServoPromptAlert(char2hstring(message), trusted);
+}
+
+void show_context_menu(const char *const *items_list, uint32_t items_size) {
+  std::vector<winrt::hstring> items;
+  for (uint32_t i = 0; i < items_size; i++) {
+    items.push_back(char2hstring(items_list[i]));
+  }
+  sServo->Delegate().OnServoShowContextMenu(items);
 }
 
 void on_devtools_started(Servo::DevtoolsServerState result,
@@ -150,6 +158,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   c.prompt_yes_no = &prompt_yes_no;
   c.prompt_input = &prompt_input;
   c.on_devtools_started = &on_devtools_started;
+  c.show_context_menu = &show_context_menu;
 
   capi::register_panic_handler(&on_panic);
 

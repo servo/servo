@@ -5400,6 +5400,7 @@ dependencies = [
  "core-foundation 0.6.4",
  "getopts",
  "gl_generator 0.11.0",
+ "ipc-channel",
  "libc",
  "libloading",
  "libservo",

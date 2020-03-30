@@ -29,6 +29,7 @@ public:
 
   typedef capi::CMouseButton MouseButton;
   typedef capi::CPromptResult PromptResult;
+  typedef capi::CContextMenuResult ContextMenuResult;
   typedef capi::CMediaSessionActionType MediaSessionActionType;
   typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
   typedef capi::CDevtoolsServerState DevtoolsServerState;
@@ -74,6 +75,9 @@ public:
   void SendMediaSessionAction(capi::CMediaSessionActionType action) {
     capi::media_session_action(action);
   }
+  void ContextMenuClosed(capi::CContextMenuResult res, unsigned int idx) {
+    capi::on_context_menu_closed(res, idx);
+  }
 
 private:
   ServoDelegate &mDelegate;
@@ -95,12 +99,13 @@ public:
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
   virtual void OnServoIMEStateChanged(bool) = 0;
-  virtual void OnServoDevtoolsStarted(bool, unsigned int) = 0;
+  virtual void OnServoDevtoolsStarted(bool, const unsigned int) = 0;
   virtual void Flush() = 0;
   virtual void MakeCurrent() = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
   virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
   virtual void OnServoPromptAlert(hstring, bool) = 0;
+  virtual void OnServoShowContextMenu(std::vector<hstring>) = 0;
   virtual Servo::PromptResult OnServoPromptOkCancel(hstring, bool) = 0;
   virtual Servo::PromptResult OnServoPromptYesNo(hstring, bool) = 0;
   virtual std::optional<hstring> OnServoPromptInput(hstring, hstring, bool) = 0;
