@@ -578,7 +578,7 @@ pub unsafe fn get_attr_for_layout<'dom>(
         .iter()
         .find(|attr| {
             let attr = attr.to_layout();
-            *name == attr.local_name_atom_forever() && (*attr.unsafe_get()).namespace() == namespace
+            *name == attr.local_name_atom() && (*attr.unsafe_get()).namespace() == namespace
         })
         .map(|attr| attr.to_layout())
 }
@@ -591,7 +591,7 @@ impl RawLayoutElementHelpers for Element {
         namespace: &Namespace,
         name: &LocalName,
     ) -> Option<&'a AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value_forever())
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
     }
 
     #[inline]
@@ -610,8 +610,8 @@ impl RawLayoutElementHelpers for Element {
             .iter()
             .filter_map(|attr| {
                 let attr = attr.to_layout();
-                if *name == attr.local_name_atom_forever() {
-                    Some(attr.value_forever())
+                if *name == attr.local_name_atom() {
+                    Some(attr.value())
                 } else {
                     None
                 }
@@ -622,12 +622,12 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers<'dom> {
     #[allow(unsafe_code)]
-    unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
+    unsafe fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
+    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
 
     #[allow(unsafe_code)]
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _: &mut V)
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, _: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>;
     #[allow(unsafe_code)]
@@ -635,28 +635,28 @@ pub trait LayoutElementHelpers<'dom> {
     #[allow(unsafe_code)]
     unsafe fn get_rowspan(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn is_html_element(&self) -> bool;
-    fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
-    fn local_name(&self) -> &LocalName;
-    fn namespace(&self) -> &Namespace;
-    fn get_lang_for_layout(&self) -> String;
-    fn get_state_for_layout(&self) -> ElementState;
-    fn insert_selector_flags(&self, flags: ElementSelectorFlags);
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
+    unsafe fn is_html_element(self) -> bool;
+    fn id_attribute(self) -> *const Option<Atom>;
+    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
+    fn local_name(self) -> &'dom LocalName;
+    fn namespace(self) -> &'dom Namespace;
+    fn get_lang_for_layout(self) -> String;
+    fn get_state_for_layout(self) -> ElementState;
+    fn insert_selector_flags(self, flags: ElementSelectorFlags);
+    fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool;
     /// The shadow root this element is a host of.
     #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     #[inline]
-    unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    unsafe fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class")).map_or(
             false,
             |attr| {
-                attr.value_tokens_forever()
+                attr.value_tokens()
                     .unwrap()
                     .iter()
                     .any(|atom| case_sensitivity.eq_atom(atom, name))
@@ -666,13 +666,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
+    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class"))
-            .map(|attr| attr.value_tokens_forever().unwrap())
+            .map(|attr| attr.value_tokens().unwrap())
     }
 
     #[allow(unsafe_code)]
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>,
     {
@@ -1019,32 +1019,32 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn is_html_element(&self) -> bool {
+    unsafe fn is_html_element(self) -> bool {
         (*self.unsafe_get()).namespace == ns!(html)
     }
 
     #[allow(unsafe_code)]
-    fn id_attribute(&self) -> *const Option<Atom> {
+    fn id_attribute(self) -> *const Option<Atom> {
         unsafe { (*self.unsafe_get()).id_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
-    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
         unsafe { (*self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
-    fn local_name(&self) -> &LocalName {
+    fn local_name(self) -> &'dom LocalName {
         unsafe { &(*self.unsafe_get()).local_name }
     }
 
     #[allow(unsafe_code)]
-    fn namespace(&self) -> &Namespace {
+    fn namespace(self) -> &'dom Namespace {
         unsafe { &(*self.unsafe_get()).namespace }
     }
 
     #[allow(unsafe_code)]
-    fn get_lang_for_layout(&self) -> String {
+    fn get_lang_for_layout(self) -> String {
         unsafe {
             let mut current_node = Some(self.upcast::<Node>());
             while let Some(node) = current_node {
@@ -1073,13 +1073,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn get_state_for_layout(&self) -> ElementState {
+    fn get_state_for_layout(self) -> ElementState {
         unsafe { (*self.unsafe_get()).state.get() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
+    fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
             let f = &(*self.unsafe_get()).selector_flags;
@@ -1089,13 +1089,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
+    fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool {
         unsafe { (*self.unsafe_get()).selector_flags.get().contains(flags) }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(&self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+    unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         (*self.unsafe_get())
             .rare_data_for_layout()
             .as_ref()?

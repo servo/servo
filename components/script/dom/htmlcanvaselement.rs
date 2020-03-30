@@ -114,15 +114,15 @@ impl HTMLCanvasElement {
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
-    fn data(&self) -> HTMLCanvasData;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
-    fn get_height(&self) -> LengthOrPercentageOrAuto;
-    fn get_canvas_id_for_layout(&self) -> CanvasId;
+    fn data(self) -> HTMLCanvasData;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
+    fn get_height(self) -> LengthOrPercentageOrAuto;
+    fn get_canvas_id_for_layout(self) -> CanvasId;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    fn data(&self) -> HTMLCanvasData {
+    fn data(self) -> HTMLCanvasData {
         unsafe {
             let canvas = &*self.unsafe_get();
             let source = match canvas.context.borrow_for_layout().as_ref() {
@@ -154,7 +154,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
@@ -164,7 +164,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_height(&self) -> LengthOrPercentageOrAuto {
+    fn get_height(self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
@@ -174,7 +174,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_canvas_id_for_layout(&self) -> CanvasId {
+    fn get_canvas_id_for_layout(self) -> CanvasId {
         unsafe {
             let canvas = &*self.unsafe_get();
             if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()

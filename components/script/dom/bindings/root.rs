@@ -330,8 +330,7 @@ impl<T> Dom<T> {
     pub unsafe fn to_layout(&self) -> LayoutDom<T> {
         debug_assert!(thread_state::get().is_layout());
         LayoutDom {
-            ptr: self.ptr.clone(),
-            marker: PhantomData,
+            value: self.ptr.as_ref(),
         }
     }
 }
@@ -415,8 +414,7 @@ where
 /// traits must be implemented on this.
 #[unrooted_must_root_lint::allow_unrooted_interior]
 pub struct LayoutDom<'dom, T> {
-    ptr: ptr::NonNull<T>,
-    marker: PhantomData<&'dom T>,
+    value: &'dom T,
 }
 
 impl<'dom, T> LayoutDom<'dom, T>
@@ -430,10 +428,8 @@ where
         T: DerivedFrom<U>,
     {
         debug_assert!(thread_state::get().is_layout());
-        let ptr: *mut T = self.ptr.as_ptr();
         LayoutDom {
-            ptr: unsafe { ptr::NonNull::new_unchecked(ptr as *mut U) },
-            marker: PhantomData,
+            value: self.value.upcast::<U>(),
         }
     }
 
@@ -443,17 +439,7 @@ where
         U: DerivedFrom<T>,
     {
         debug_assert!(thread_state::get().is_layout());
-        unsafe {
-            if (*self.unsafe_get()).is::<U>() {
-                let ptr: *mut T = self.ptr.as_ptr();
-                Some(LayoutDom {
-                    ptr: ptr::NonNull::new_unchecked(ptr as *mut U),
-                    marker: PhantomData,
-                })
-            } else {
-                None
-            }
-        }
+        self.value.downcast::<U>().map(|value| LayoutDom { value })
     }
 }
 
@@ -464,7 +450,7 @@ where
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         debug_assert!(thread_state::get().is_layout());
-        (*self.ptr.as_ptr()).reflector().get_jsobject().get()
+        self.value.reflector().get_jsobject().get()
     }
 }
 
@@ -486,7 +472,7 @@ impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutDom<'_, T> {
     fn eq(&self, other: &Self) -> bool {
-        self.ptr.as_ptr() == other.ptr.as_ptr()
+        self.value as *const T == other.value as *const T
     }
 }
 
@@ -500,7 +486,7 @@ impl<T> Hash for Dom<T> {
 
 impl<T> Hash for LayoutDom<'_, T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.ptr.as_ptr().hash(state)
+        (self.value as *const T).hash(state)
     }
 }
 
@@ -519,10 +505,7 @@ impl<T> Clone for LayoutDom<'_, T> {
     #[inline]
     fn clone(&self) -> Self {
         debug_assert!(thread_state::get().is_layout());
-        LayoutDom {
-            ptr: self.ptr.clone(),
-            marker: PhantomData,
-        }
+        LayoutDom { value: self.value }
     }
 }
 
@@ -533,8 +516,7 @@ impl LayoutDom<'_, Node> {
         debug_assert!(thread_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            ptr: ptr::NonNull::new_unchecked(addr as *const Node as *mut Node),
-            marker: PhantomData,
+            value: &*(addr as *const Node),
         }
     }
 }
@@ -748,12 +730,11 @@ impl<'dom, T> LayoutDom<'dom, T>
 where
     T: 'dom + DomObject,
 {
-    /// Returns an unsafe pointer to the interior of this JS object. This is
-    /// the only method that be safely accessed from layout. (The fact that
-    /// this is unsafe is what necessitates the layout wrappers.)
-    pub unsafe fn unsafe_get(&self) -> *const T {
+    /// Returns a reference to the interior of this JS object. The fact
+    /// that this is unsafe is what necessitates the layout wrappers.
+    pub unsafe fn unsafe_get(self) -> &'dom T {
         debug_assert!(thread_state::get().is_layout());
-        self.ptr.as_ptr()
+        self.value
     }
 }
 

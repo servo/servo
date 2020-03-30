@@ -94,14 +94,14 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-    fn get_color(&self) -> Option<RGBA>;
-    fn get_background(&self) -> Option<ServoUrl>;
+    fn get_background_color(self) -> Option<RGBA>;
+    fn get_color(self) -> Option<RGBA>;
+    fn get_background(self) -> Option<ServoUrl>;
 }
 
 impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     #[allow(unsafe_code)]
-    fn get_background_color(&self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
@@ -111,7 +111,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_color(&self) -> Option<RGBA> {
+    fn get_color(self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("text"))
@@ -121,7 +121,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_background(&self) -> Option<ServoUrl> {
+    fn get_background(self) -> Option<ServoUrl> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("background"))

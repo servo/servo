@@ -2444,12 +2444,12 @@ impl VirtualMethods for HTMLMediaElement {
 }
 
 pub trait LayoutHTMLMediaElementHelpers {
-    fn data(&self) -> HTMLMediaData;
+    fn data(self) -> HTMLMediaData;
 }
 
 impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     #[allow(unsafe_code)]
-    fn data(&self) -> HTMLMediaData {
+    fn data(self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };
         HTMLMediaData {
             current_frame: media.video_renderer.lock().unwrap().current_frame.clone(),

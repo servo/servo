@@ -84,12 +84,12 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
 }
 
 pub trait HTMLTableSectionElementLayoutHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RGBA>;
 }
 
 #[allow(unsafe_code)]
 impl HTMLTableSectionElementLayoutHelpers for LayoutDom<'_, HTMLTableSectionElement> {
-    fn get_background_color(&self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
