@@ -578,7 +578,7 @@ pub unsafe fn get_attr_for_layout<'dom>(
         .iter()
         .find(|attr| {
             let attr = attr.to_layout();
-            *name == attr.local_name_atom_forever() && (*attr.unsafe_get()).namespace() == namespace
+            *name == attr.local_name_atom() && (*attr.unsafe_get()).namespace() == namespace
         })
         .map(|attr| attr.to_layout())
 }
@@ -591,7 +591,7 @@ impl RawLayoutElementHelpers for Element {
         namespace: &Namespace,
         name: &LocalName,
     ) -> Option<&'a AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value_forever())
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
     }
 
     #[inline]
@@ -610,8 +610,8 @@ impl RawLayoutElementHelpers for Element {
             .iter()
             .filter_map(|attr| {
                 let attr = attr.to_layout();
-                if *name == attr.local_name_atom_forever() {
-                    Some(attr.value_forever())
+                if *name == attr.local_name_atom() {
+                    Some(attr.value())
                 } else {
                     None
                 }
@@ -656,7 +656,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class")).map_or(
             false,
             |attr| {
-                attr.value_tokens_forever()
+                attr.value_tokens()
                     .unwrap()
                     .iter()
                     .any(|atom| case_sensitivity.eq_atom(atom, name))
@@ -668,7 +668,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class"))
-            .map(|attr| attr.value_tokens_forever().unwrap())
+            .map(|attr| attr.value_tokens().unwrap())
     }
 
     #[allow(unsafe_code)]
