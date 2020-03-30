@@ -226,8 +226,8 @@ impl PositioningContext {
 
         let mut new_fragment = fragment_layout_fn(&mut new_context);
         new_context.layout_collected_children(layout_context, &mut new_fragment);
-        *for_nearest_containing_block_for_all_descendants =
-            new_context.for_nearest_containing_block_for_all_descendants;
+        for_nearest_containing_block_for_all_descendants
+            .extend(new_context.for_nearest_containing_block_for_all_descendants);
         new_fragment
     }
 
