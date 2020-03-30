@@ -7,7 +7,7 @@
   "use strict";
 
   const same_origin_src =
-    "/feature-policy/resources/feature-policy-wakelock.html";
+    "/feature-policy/resources/feature-policy-screen-wakelock.html";
   const cross_origin_src =
     "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_src;
 
@@ -17,9 +17,9 @@
       t,
       same_origin_src,
       expect_feature_available_default,
-      "wake-lock"
+      "screen-wake-lock"
     );
-  }, 'Feature policy "wake-lock" can be enabled in same-origin iframe using allow="wake-lock" attribute');
+  }, 'Feature policy "screen-wake-lock" can be enabled in same-origin iframe using allow="screen-wake-lock" attribute');
 
   async_test(t => {
     test_feature_availability(
@@ -27,8 +27,8 @@
       t,
       cross_origin_src,
       expect_feature_available_default,
-      "wake-lock"
+      "screen-wake-lock"
     );
-  }, 'Feature policy "wake-lock" can be enabled in cross-origin iframe using allow="wake-lock" attribute');
+  }, 'Feature policy "screen-wake-lock" can be enabled in cross-origin iframe using allow="screen-wake-lock" attribute');
 </script>
 </body>

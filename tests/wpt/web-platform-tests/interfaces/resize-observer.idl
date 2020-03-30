@@ -39,5 +39,5 @@ interface ResizeObservation {
     constructor(Element target);
     readonly attribute Element target;
     readonly attribute ResizeObserverBoxOptions observedBox;
-    readonly attribute sequence<ResizeObserverSize> lastReportedSizes;
+    readonly attribute FrozenArray<ResizeObserverSize> lastReportedSizes;
 };

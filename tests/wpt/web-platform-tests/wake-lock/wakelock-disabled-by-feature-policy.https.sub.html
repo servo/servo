@@ -7,13 +7,13 @@
   "use strict";
 
   const same_origin_src =
-    "/feature-policy/resources/feature-policy-wakelock.html";
+    "/feature-policy/resources/feature-policy-screen-wakelock.html";
   const cross_origin_src =
     "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_src;
 
   promise_test(t => {
     return promise_rejects_dom(t, "NotAllowedError", navigator.wakeLock.request("screen"));
-  }, 'Feature-Policy header {"wake-lock" : []} disallows the top-level document.');
+  }, 'Feature-Policy header {"screen-wake-lock" : []} disallows the top-level document.');
 
   async_test(t => {
     test_feature_availability(
@@ -22,7 +22,7 @@
       same_origin_src,
       expect_feature_unavailable_default
     );
-  }, 'Feature-Policy header {"wake-lock" : []} disallows same-origin iframes.');
+  }, 'Feature-Policy header {"screen-wake-lock" : []} disallows same-origin iframes.');
 
   async_test(t => {
     test_feature_availability(
@@ -31,6 +31,6 @@
       cross_origin_src,
       expect_feature_unavailable_default
     );
-  }, 'Feature-Policy header {"wake-lock" : []} disallows cross-origin iframes.');
+  }, 'Feature-Policy header {"screen-wake-lock" : []} disallows cross-origin iframes.');
 </script>
 </body>

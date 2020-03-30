@@ -1,1 +1,1 @@
-Feature-Policy: wake-lock *
+Feature-Policy: screen-wake-lock *
