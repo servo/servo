@@ -770,6 +770,8 @@ pub struct ActiveUniformInfo {
     pub size: Option<i32>,
     /// The type of the uniform.
     pub type_: u32,
+    /// The index of the indexed uniform buffer binding, if it is bound.
+    pub bind_index: Option<u32>,
 }
 
 impl ActiveUniformInfo {

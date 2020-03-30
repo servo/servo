@@ -2178,6 +2178,7 @@ impl WebGLImpl {
                     base_name: from_name_in_compiled_shader(&name).into(),
                     size: if is_array { Some(size) } else { None },
                     type_,
+                    bind_index: None,
                 }
             })
             .collect::<Vec<_>>()

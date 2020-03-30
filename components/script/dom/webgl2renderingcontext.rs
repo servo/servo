@@ -189,6 +189,48 @@ impl WebGL2RenderingContext {
         self.base.current_vao_webgl2()
     }
 
+    pub fn validate_uniform_block_for_draw(&self) {
+        let program = match self.base.current_program() {
+            Some(program) => program,
+            None => return,
+        };
+        for uniform_block in program.active_uniform_blocks().iter() {
+            let data_size = uniform_block.size as usize;
+            for block in program.active_uniforms().iter() {
+                let index = match block.bind_index {
+                    Some(index) => index,
+                    None => continue,
+                };
+                let indexed = &self.indexed_uniform_buffer_bindings[index as usize];
+                let buffer = match indexed.buffer.get() {
+                    Some(buffer) => buffer,
+                    None => {
+                        self.base.webgl_error(InvalidOperation);
+                        return;
+                    },
+                };
+                if indexed.size.get() == 0 {
+                    if data_size > buffer.capacity() {
+                        self.base.webgl_error(InvalidOperation);
+                        return;
+                    }
+                } else {
+                    let start = indexed.start.get() as usize;
+                    let mut size = indexed.size.get() as usize;
+                    if start >= size {
+                        self.base.webgl_error(InvalidOperation);
+                        return;
+                    }
+                    size -= start;
+                    if data_size > size {
+                        self.base.webgl_error(InvalidOperation);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
     pub fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&*self.base)
     }
@@ -1527,11 +1569,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
+        self.validate_uniform_block_for_draw();
         self.base.DrawArrays(mode, first, count)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        self.validate_uniform_block_for_draw();
         self.base.DrawElements(mode, count, type_, offset)
     }
 
@@ -2776,6 +2820,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
     fn DrawArraysInstanced(&self, mode: u32, first: i32, count: i32, primcount: i32) {
+        self.validate_uniform_block_for_draw();
         handle_potential_webgl_error!(
             self.base,
             self.base
@@ -2792,10 +2837,33 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         offset: i64,
         primcount: i32,
     ) {
+        self.validate_uniform_block_for_draw();
         handle_potential_webgl_error!(
             self.base,
             self.base
                 .draw_elements_instanced(mode, count, type_, offset, primcount)
+        )
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    fn DrawRangeElements(
+        &self,
+        mode: u32,
+        start: u32,
+        end: u32,
+        count: i32,
+        type_: u32,
+        offset: i64,
+    ) {
+        if end < start {
+            self.base.webgl_error(InvalidValue);
+            return;
+        }
+        self.validate_uniform_block_for_draw();
+        handle_potential_webgl_error!(
+            self.base,
+            self.base
+                .draw_elements_instanced(mode, count, type_, offset, 1)
         )
     }
 
