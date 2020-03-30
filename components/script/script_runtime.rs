@@ -45,6 +45,7 @@ use js::jsapi::ContextOptionsRef;
 use js::jsapi::GetPromiseUserInputEventHandlingState;
 use js::jsapi::InitConsumeStreamCallback;
 use js::jsapi::InitDispatchToEventLoop;
+use js::jsapi::JS_SetFutexCanWait;
 use js::jsapi::MimeType;
 use js::jsapi::PromiseUserInputEventHandlingState;
 use js::jsapi::StreamConsumer as JSStreamConsumer;
@@ -454,12 +455,22 @@ unsafe fn new_rt_and_cx_with_parent(
     networking_task_source: Option<NetworkingTaskSource>,
 ) -> Runtime {
     LiveDOMReferences::initialize();
-    let runtime = if let Some(parent) = parent {
-        RustRuntime::create_with_parent(parent)
+    let (cx, runtime) = if let Some(parent) = parent {
+        let runtime = RustRuntime::create_with_parent(parent);
+        let cx = runtime.cx();
+
+        // Note: this enables blocking on an Atomics.wait,
+        // which should only be enabled for an agent whose [[CanBlock]] is true.
+        // Currently only a dedicated worker agent uses a parent,
+        // and this agent can block.
+        // See https://html.spec.whatwg.org/multipage/#integration-with-the-javascript-agent-cluster-formalism
+        JS_SetFutexCanWait(cx);
+
+        (cx, runtime)
     } else {
-        RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
+        let runtime = RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone());
+        (runtime.cx(), runtime)
     };
-    let cx = runtime.cx();
 
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
 
