@@ -2966,18 +2966,16 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
-        ret = ''
+        ret = """let incumbent_global = GlobalScope::incumbent().expect("no incumbent global");
+let global = incumbent_global.reflector().get_jsobject();\n"""
         interface = self.descriptor.interface
-
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 name = m.identifier.name
                 conditions = MemberCondition(None, None, m.exposureSet)
-                ret_conditions = 'vec![' + ",".join(conditions) + "]"
+                ret_conditions = '&[' + ", ".join(conditions) + "]"
                 ret += fill(
                     """
-                    let incumbent_global = GlobalScope::incumbent().expect("no incumbent global");
-                    let global = incumbent_global.reflector().get_jsobject();
                     let conditions = ${conditions};
                     let is_satisfied = conditions.iter().any(|c|
                          c.is_satisfied(
