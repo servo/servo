@@ -235,9 +235,9 @@ impl Attr {
 #[allow(unsafe_code)]
 pub trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
-    fn value_ref_forever(self) -> &'dom str;
-    fn value_tokens(self) -> Option<&'dom [Atom]>;
-    fn local_name_atom(self) -> LocalName;
+    fn as_str(self) -> &'dom str;
+    fn as_tokens(self) -> Option<&'dom [Atom]>;
+    fn local_name(self) -> LocalName;
 }
 
 #[allow(unsafe_code)]
@@ -248,12 +248,12 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     }
 
     #[inline]
-    fn value_ref_forever(self) -> &'dom str {
+    fn as_str(self) -> &'dom str {
         &**self.value()
     }
 
     #[inline]
-    fn value_tokens(self) -> Option<&'dom [Atom]> {
+    fn as_tokens(self) -> Option<&'dom [Atom]> {
         // This transmute is used to cheat the lifetime restriction.
         match *self.value() {
             AttrValue::TokenList(_, ref tokens) => Some(tokens),
@@ -262,7 +262,7 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     }
 
     #[inline]
-    fn local_name_atom(self) -> LocalName {
+    fn local_name(self) -> LocalName {
         unsafe { self.unsafe_get().identifier.local_name.clone() }
     }
 }
