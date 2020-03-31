@@ -1305,22 +1305,22 @@ pub unsafe fn from_untrusted_node_address(
 
 #[allow(unsafe_code)]
 pub trait LayoutNodeHelpers<'dom> {
-    unsafe fn type_id_for_layout(self) -> NodeTypeId;
+    fn type_id_for_layout(self) -> NodeTypeId;
 
     unsafe fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
 
-    unsafe fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
+    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
     fn is_element_for_layout(self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
-    unsafe fn children_count(self) -> u32;
+    fn children_count(self) -> u32;
 
     unsafe fn get_style_and_layout_data(self) -> Option<OpaqueStyleAndLayoutData>;
     unsafe fn init_style_and_layout_data(self, _: OpaqueStyleAndLayoutData);
@@ -1342,8 +1342,8 @@ pub trait LayoutNodeHelpers<'dom> {
 impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn type_id_for_layout(self) -> NodeTypeId {
-        (*self.unsafe_get()).type_id()
+    fn type_id_for_layout(self) -> NodeTypeId {
+        unsafe { self.unsafe_get().type_id() }
     }
 
     #[inline]
@@ -1365,35 +1365,32 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).first_child.get_inner_as_layout()
+    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().first_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).last_child.get_inner_as_layout()
+    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().last_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
+    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().prev_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).next_sibling.get_inner_as_layout()
+    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
-        (*self.unsafe_get())
-            .owner_doc
-            .get_inner_as_layout()
-            .unwrap()
+    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
+        unsafe { self.unsafe_get().owner_doc.get_inner_as_layout().unwrap() }
     }
 
     #[inline]
@@ -1433,8 +1430,8 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn children_count(self) -> u32 {
-        (*self.unsafe_get()).children_count.get()
+    fn children_count(self) -> u32 {
+        unsafe { self.unsafe_get().children_count.get() }
     }
 
     #[inline]

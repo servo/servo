@@ -142,7 +142,7 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     fn script_type_id(&self) -> NodeTypeId {
-        unsafe { self.node.type_id_for_layout() }
+        self.node.type_id_for_layout()
     }
 }
 
@@ -218,23 +218,23 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn first_child(&self) -> Option<Self> {
-        unsafe { self.node.first_child_ref().map(Self::from_layout_js) }
+        self.node.first_child_ref().map(Self::from_layout_js)
     }
 
     fn last_child(&self) -> Option<Self> {
-        unsafe { self.node.last_child_ref().map(Self::from_layout_js) }
+        self.node.last_child_ref().map(Self::from_layout_js)
     }
 
     fn prev_sibling(&self) -> Option<Self> {
-        unsafe { self.node.prev_sibling_ref().map(Self::from_layout_js) }
+        self.node.prev_sibling_ref().map(Self::from_layout_js)
     }
 
     fn next_sibling(&self) -> Option<Self> {
-        unsafe { self.node.next_sibling_ref().map(Self::from_layout_js) }
+        self.node.next_sibling_ref().map(Self::from_layout_js)
     }
 
     fn owner_doc(&self) -> Self::ConcreteDocument {
-        ServoLayoutDocument::from_layout_js(unsafe { self.node.owner_doc_for_layout() })
+        ServoLayoutDocument::from_layout_js(self.node.owner_doc_for_layout())
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
