@@ -50,7 +50,7 @@ pub enum Condition {
 }
 
 impl Condition {
-    fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
+    pub fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
         match *self {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),

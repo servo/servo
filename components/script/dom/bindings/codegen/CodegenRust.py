@@ -2966,24 +2966,35 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
-        ret = ''
+        ret = """let incumbent_global = GlobalScope::incumbent().expect("no incumbent global");
+let global = incumbent_global.reflector().get_jsobject();\n"""
         interface = self.descriptor.interface
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 name = m.identifier.name
+                conditions = MemberCondition(None, None, m.exposureSet)
+                ret_conditions = '&[' + ", ".join(conditions) + "]"
                 ret += fill(
                     """
-                    rooted!(in(cx) let mut temp = UndefinedValue());
-                    if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
-                      return false;
-                    }
-                    if !JS_DefineProperty(cx, result.handle().into(),
-                                          ${nameAsArray} as *const u8 as *const libc::c_char,
-                                          temp.handle(), JSPROP_ENUMERATE as u32) {
-                      return false;
+                    let conditions = ${conditions};
+                    let is_satisfied = conditions.iter().any(|c|
+                         c.is_satisfied(
+                           SafeJSContext::from_ptr(cx),
+                           HandleObject::from_raw(obj),
+                           global));
+                    if is_satisfied {
+                      rooted!(in(cx) let mut temp = UndefinedValue());
+                      if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
+                        return false;
+                      }
+                      if !JS_DefineProperty(cx, result.handle().into(),
+                                            ${nameAsArray} as *const u8 as *const libc::c_char,
+                                            temp.handle(), JSPROP_ENUMERATE as u32) {
+                        return false;
+                      }
                     }
                     """,
-                    name=name, nameAsArray=str_to_const_array(name))
+                    name=name, nameAsArray=str_to_const_array(name), conditions=ret_conditions)
         ret += 'return true;\n'
         return CGGeneric(ret)
 
