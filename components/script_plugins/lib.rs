@@ -19,21 +19,21 @@
 #![feature(rustc_private)]
 #![cfg(feature = "unrooted_must_root_lint")]
 
-extern crate rustc;
 extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_hir;
 extern crate rustc_lint;
+extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
-use rustc::ty;
 use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit as visit;
 use rustc_hir::{self as hir, ExprKind, HirId};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
+use rustc_middle::ty;
 use rustc_session::declare_lint;
 use rustc_span::source_map;
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
@@ -298,7 +298,7 @@ struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
 }
 
 impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
-    type Map = rustc::hir::map::Map<'tcx>;
+    type Map = rustc_middle::hir::map::Map<'tcx>;
 
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;
