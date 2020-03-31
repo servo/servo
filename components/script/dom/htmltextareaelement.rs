@@ -56,8 +56,7 @@ pub struct HTMLTextAreaElement {
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn value_for_layout(self) -> String;
+    fn value_for_layout(self) -> String;
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
@@ -67,19 +66,19 @@ pub trait LayoutHTMLTextAreaElementHelpers {
 }
 
 impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn value_for_layout(self) -> String {
-        let text = (*self.unsafe_get())
-            .textinput
-            .borrow_for_layout()
-            .get_content();
-        if text.is_empty() {
-            (*self.unsafe_get())
-                .placeholder
+    fn value_for_layout(self) -> String {
+        let text = unsafe {
+            self.unsafe_get()
+                .textinput
                 .borrow_for_layout()
-                .replace("\r\n", "\n")
-                .replace("\r", "\n")
+                .get_content()
+        };
+        if text.is_empty() {
+            let placeholder = unsafe { self.unsafe_get().placeholder.borrow_for_layout() };
+            // FIXME(nox): Would be cool to not allocate a new string if the
+            // placeholder is single line, but that's an unimportant detail.
+            placeholder.replace("\r\n", "\n").replace("\r", "\n").into()
         } else {
             text.into()
         }

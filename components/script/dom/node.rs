@@ -1467,7 +1467,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.value_for_layout() };
+            return area.value_for_layout();
         }
 
         panic!("not text!")
