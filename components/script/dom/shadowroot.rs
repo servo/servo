@@ -240,7 +240,7 @@ impl ShadowRootMethods for ShadowRoot {
 
 #[allow(unsafe_code)]
 pub trait LayoutShadowRootHelpers<'dom> {
-    unsafe fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
+    fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     unsafe fn get_style_data_for_layout(self) -> &'dom AuthorStyles<StyleSheetInDocument>;
     unsafe fn flush_stylesheets<E: TElement>(
         self,
@@ -253,11 +253,13 @@ pub trait LayoutShadowRootHelpers<'dom> {
 impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
-        (*self.unsafe_get())
-            .host
-            .get_inner_as_layout()
-            .expect("We should never do layout on a detached shadow root")
+    fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
+        unsafe {
+            self.unsafe_get()
+                .host
+                .get_inner_as_layout()
+                .expect("We should never do layout on a detached shadow root")
+        }
     }
 
     #[inline]

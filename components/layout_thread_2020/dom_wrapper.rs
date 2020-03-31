@@ -177,7 +177,7 @@ impl<'lr> TShadowRoot for ServoShadowRoot<'lr> {
     }
 
     fn host(&self) -> ServoLayoutElement<'lr> {
-        ServoLayoutElement::from_layout_js(unsafe { self.shadow_root.get_host_for_layout() })
+        ServoLayoutElement::from_layout_js(self.shadow_root.get_host_for_layout())
     }
 
     fn style_data<'a>(&self) -> Option<&'a CascadeData>
