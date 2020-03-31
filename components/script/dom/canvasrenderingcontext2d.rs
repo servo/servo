@@ -153,8 +153,7 @@ impl CanvasRenderingContext2D {
 pub trait LayoutCanvasRenderingContext2DHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_id(self) -> CanvasId;
+    fn get_canvas_id(self) -> CanvasId;
 }
 
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
@@ -168,11 +167,16 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingCont
     }
 
     #[allow(unsafe_code)]
-    unsafe fn get_canvas_id(self) -> CanvasId {
-        (*self.unsafe_get())
-            .canvas_state
-            .borrow_for_layout()
-            .get_canvas_id()
+    fn get_canvas_id(self) -> CanvasId {
+        // FIXME(nox): This relies on the fact that CanvasState::get_canvas_id
+        // does nothing fancy but it would be easier to trust a
+        // LayoutDom<_>-like type that would wrap the &CanvasState.
+        unsafe {
+            self.unsafe_get()
+                .canvas_state
+                .borrow_for_layout()
+                .get_canvas_id()
+        }
     }
 }
 
