@@ -736,6 +736,15 @@ where
         debug_assert!(thread_state::get().is_layout());
         self.value
     }
+
+    /// Transforms a slice of Dom<T> into a slice of LayoutDom<T>.
+    // FIXME(nox): This should probably be done through a ToLayout trait.
+    pub unsafe fn to_layout_slice(slice: &'dom [Dom<T>]) -> &'dom [LayoutDom<'dom, T>] {
+        // This doesn't compile if Dom and LayoutDom don't have the same
+        // representation.
+        let _ = mem::transmute::<Dom<T>, LayoutDom<T>>;
+        &*(slice as *const [Dom<T>] as *const [LayoutDom<T>])
+    }
 }
 
 /// Helper trait for safer manipulations of `Option<Heap<T>>` values.

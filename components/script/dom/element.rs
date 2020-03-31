@@ -598,14 +598,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     #[inline]
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
-        unsafe {
-            // FIXME(nox): This should probably be done through a ToLayout trait.
-            let attrs: &[Dom<Attr>] = &self.unsafe_get().attrs.borrow_for_layout();
-            // This doesn't compile if Dom and LayoutDom don't have the same
-            // representation.
-            let _ = mem::transmute::<Dom<Attr>, LayoutDom<Attr>>;
-            &*(attrs as *const [Dom<Attr>] as *const [LayoutDom<Attr>])
-        }
+        unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
     }
 
     #[inline]
