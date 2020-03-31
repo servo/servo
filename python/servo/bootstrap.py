@@ -64,7 +64,7 @@ def run_as_root(command, force=False):
 def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, force):
     install = False
     pkgs = []
-    if context.distro == 'Ubuntu':
+    if context.distro in ['Ubuntu', 'Debian GNU/Linux']:
         command = ['apt-get', 'install']
         pkgs = pkgs_ubuntu
         if subprocess.call(['dpkg', '-s'] + pkgs, stdout=PIPE, stderr=PIPE) != 0:
