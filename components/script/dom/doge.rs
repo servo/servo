@@ -46,7 +46,7 @@ impl Doge {
 
 impl DogeMethods for Doge {
     fn Append(&self, word: ByteString) -> () {
-        *&self.such_list.borrow_mut().push(word);
+        self.such_list.borrow_mut().push(word);
     }
 
     fn Random(&self) -> Fallible<ByteString> {
@@ -61,17 +61,11 @@ impl DogeMethods for Doge {
 
     fn Remove(&self, word: ByteString) -> Fallible<()> {
         let mut list = self.such_list.borrow_mut();
-        let mut present = 0;
-        for i in 0..list.len() {
-                if word == list[i] {
-                list.remove(i);
-                present = 1;
-            }
-        }
-        if present == 0 {
-            return Err(Error::Type("The word doesn't exist in the list".to_string()));
-        } else {
+        if list.contains(&word){
+            list.retain(|e| *e != word);
             return Ok(());
+        } else {
+            return Err(Error::Type("The list doesn't contain the word".to_string()));
         }
     }
 }
