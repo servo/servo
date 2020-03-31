@@ -567,8 +567,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
 
-    #[allow(unsafe_code)]
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, _: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>;
     fn get_colspan(self) -> u32;
@@ -616,8 +615,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             .map(|attr| attr.as_tokens().unwrap())
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>,
     {

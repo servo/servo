@@ -639,10 +639,8 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     ) where
         V: Push<ApplicableDeclarationBlock>,
     {
-        unsafe {
-            self.element
-                .synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
+        self.element
+            .synthesize_presentational_hints_for_legacy_attributes(hints);
     }
 
     /// The shadow root this element is a host of.
