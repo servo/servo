@@ -345,11 +345,11 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
     }
 
     fn quirks_mode(&self) -> QuirksMode {
-        unsafe { self.document.quirks_mode() }
+        self.document.quirks_mode()
     }
 
     fn is_html_document(&self) -> bool {
-        unsafe { self.document.is_html_document_for_layout() }
+        self.document.is_html_document_for_layout()
     }
 }
 
