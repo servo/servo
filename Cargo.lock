@@ -3624,7 +3624,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.13.0"
-source = "git+https://github.com/servo/rust-mozjs#2598da7110f752d29f2beedf3e47c71f72a354a3"
+source = "git+https://github.com/servo/rust-mozjs#81c88926aa57f8571b3784216907e4e06363b345"
 dependencies = [
  "cc",
  "lazy_static",
@@ -3637,7 +3637,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.1"
-source = "git+https://github.com/servo/mozjs?rev=2392ebc144331184a770bee1f1ac02969946380f#2392ebc144331184a770bee1f1ac02969946380f"
+source = "git+https://github.com/servo/mozjs?rev=ef2d1cc249f2662b2acb31d1c1328d7960161da4#ef2d1cc249f2662b2acb31d1c1328d7960161da4"
 dependencies = [
  "bindgen",
  "cc",

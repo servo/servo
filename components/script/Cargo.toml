@@ -21,7 +21,6 @@ webgl_backtrace = ["backtrace", "canvas_traits/webgl_backtrace"]
 js_backtrace = ["backtrace"]
 refcell_backtrace = ["accountable-refcell"]
 uwp = ["js/uwp"]
-vslatestinstalled = ["js/vslatestinstalled"]
 xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
