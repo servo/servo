@@ -59,6 +59,10 @@ impl Navigator {
     pub fn new(window: &Window) -> DomRoot<Navigator> {
         reflect_dom_object(Box::new(Navigator::new_inherited()), window)
     }
+
+    pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
+        self.xr.get()
+    }
 }
 
 impl NavigatorMethods for Navigator {

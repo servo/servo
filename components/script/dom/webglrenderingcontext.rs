@@ -502,6 +502,12 @@ impl WebGLRenderingContext {
             return;
         }
 
+        // Dirtying the canvas is unnecessary if we're actively displaying immersive
+        // XR content right now.
+        if self.global().as_window().in_immersive_xr_session() {
+            return;
+        }
+
         self.canvas
             .upcast::<Node>()
             .dirty(NodeDamage::OtherNodeDamage);
