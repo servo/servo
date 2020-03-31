@@ -8,7 +8,6 @@ use crate::style_ext::ComputedValuesExt;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
-use style::values::generics::length::MaxSize;
 use style::Zero;
 
 /// Which min/max-content values should be computed during box construction
@@ -121,7 +120,7 @@ impl BoxContentSizes {
         let margin = style.margin();
 
         let mut pbm_percentages = Percentage::zero();
-        let mut decompose = |x: LengthPercentage| {
+        let mut decompose = |x: &LengthPercentage| {
             pbm_percentages += x.to_percentage().unwrap_or_else(Zero::zero);
             x.to_length().unwrap_or_else(Zero::zero)
         };
@@ -149,11 +148,11 @@ impl BoxContentSizes {
             .percentage_relative_to(Length::zero())
             // FIXME: 'auto' is not zero in Flexbox
             .auto_is(Length::zero);
-        let max_inline_size = match style.max_box_size().inline {
-            MaxSize::None => None,
+        let max_inline_size = style
+            .max_box_size()
+            .inline
             // Percentages for 'max-width' are treated as 'none'
-            MaxSize::LengthPercentage(ref lp) => lp.to_length(),
-        };
+            .and_then(|lp| lp.to_length());
         let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
 
         let border_box_sizes = match inline_size {

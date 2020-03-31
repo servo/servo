@@ -7,8 +7,8 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection};
 use style::logical_geometry::{PhysicalCorner, WritingMode};
-use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
-use style::values::generics::length::MaxSize;
+use style::values::computed::{Length, LengthPercentage};
+use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
 
@@ -16,6 +16,8 @@ pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
+pub type LengthOrAuto = AutoOr<Length>;
+pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 pub(crate) mod flow_relative {
     #[derive(Clone, Serialize)]
@@ -107,7 +109,7 @@ impl flow_relative::Vec2<LengthOrAuto> {
     }
 }
 
-impl flow_relative::Vec2<LengthPercentageOrAuto> {
+impl flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
     pub fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
@@ -123,24 +125,18 @@ impl flow_relative::Vec2<LengthPercentageOrAuto> {
     }
 }
 
-impl flow_relative::Vec2<MaxSize<LengthPercentage>> {
+impl flow_relative::Vec2<Option<&'_ LengthPercentage>> {
     pub fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
     ) -> flow_relative::Vec2<Option<Length>> {
         flow_relative::Vec2 {
-            inline: match self.inline {
-                MaxSize::None => None,
-                MaxSize::LengthPercentage(ref lp) => {
-                    Some(lp.percentage_relative_to(containing_block.inline_size))
-                },
-            },
-            block: match self.block {
-                MaxSize::None => None,
-                MaxSize::LengthPercentage(ref lp) => {
-                    lp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
-                },
-            },
+            inline: self
+                .inline
+                .map(|lp| lp.percentage_relative_to(containing_block.inline_size)),
+            block: self.block.and_then(|lp| {
+                lp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
+            }),
         }
     }
 }
@@ -280,13 +276,13 @@ impl<T> flow_relative::Sides<T> {
     }
 }
 
-impl flow_relative::Sides<LengthPercentage> {
+impl flow_relative::Sides<&'_ LengthPercentage> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<Length> {
         self.map(|s| s.percentage_relative_to(basis))
     }
 }
 
-impl flow_relative::Sides<LengthPercentageOrAuto> {
+impl flow_relative::Sides<LengthPercentageOrAuto<'_>> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<LengthOrAuto> {
         self.map(|s| s.percentage_relative_to(basis))
     }

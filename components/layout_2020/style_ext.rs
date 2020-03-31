@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::{flow_relative, PhysicalSides, PhysicalSize};
+use crate::geom::flow_relative;
+use crate::geom::{LengthOrAuto, LengthPercentageOrAuto, PhysicalSides, PhysicalSize};
 use crate::ContainingBlock;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{Length, LengthPercentage};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
@@ -62,7 +63,7 @@ pub(crate) trait ComputedValuesExt {
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
-    fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>>;
+    fn max_box_size(&self) -> flow_relative::Vec2<Option<&LengthPercentage>>;
     fn content_box_size(
         &self,
         containing_block: &ContainingBlock,
@@ -79,7 +80,7 @@ pub(crate) trait ComputedValuesExt {
         pbm: &PaddingBorderMargin,
     ) -> flow_relative::Vec2<Option<Length>>;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
-    fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
+    fn padding(&self) -> flow_relative::Sides<&LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
     fn has_transform_or_perspective(&self) -> bool;
@@ -114,10 +115,10 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
-                position.top.clone(),
-                position.right.clone(),
-                position.bottom.clone(),
-                position.left.clone(),
+                position.top.as_ref(),
+                position.right.as_ref(),
+                position.bottom.as_ref(),
+                position.left.as_ref(),
             ),
             self.writing_mode,
         )
@@ -127,8 +128,8 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
-                size_to_length(position.width.clone()),
-                size_to_length(position.height.clone()),
+                size_to_length(&position.width),
+                size_to_length(&position.height),
             ),
             self.writing_mode,
         )
@@ -138,24 +139,23 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
-                size_to_length(position.min_width.clone()),
-                size_to_length(position.min_height.clone()),
+                size_to_length(&position.min_width),
+                size_to_length(&position.min_height),
             ),
             self.writing_mode,
         )
     }
 
-    fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>> {
-        let unwrap = |max_size: MaxSize<NonNegativeLengthPercentage>| match max_size {
-            MaxSize::LengthPercentage(length) => MaxSize::LengthPercentage(length.0),
-            MaxSize::None => MaxSize::None,
-        };
+    fn max_box_size(&self) -> flow_relative::Vec2<Option<&LengthPercentage>> {
+        fn unwrap(max_size: &MaxSize<NonNegativeLengthPercentage>) -> Option<&LengthPercentage> {
+            match max_size {
+                MaxSize::LengthPercentage(length) => Some(&length.0),
+                MaxSize::None => None,
+            }
+        }
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
-            &PhysicalSize::new(
-                unwrap(position.max_width.clone()),
-                unwrap(position.max_height.clone()),
-            ),
+            &PhysicalSize::new(unwrap(&position.max_width), unwrap(&position.max_height)),
             self.writing_mode,
         )
     }
@@ -239,14 +239,14 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
-    fn padding(&self) -> flow_relative::Sides<LengthPercentage> {
+    fn padding(&self) -> flow_relative::Sides<&LengthPercentage> {
         let padding = self.get_padding();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
-                padding.padding_top.0.clone(),
-                padding.padding_right.0.clone(),
-                padding.padding_bottom.0.clone(),
-                padding.padding_left.0.clone(),
+                &padding.padding_top.0,
+                &padding.padding_right.0,
+                &padding.padding_bottom.0,
+                &padding.padding_left.0,
             ),
             self.writing_mode,
         )
@@ -269,10 +269,10 @@ impl ComputedValuesExt for ComputedValues {
         let margin = self.get_margin();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
-                margin.margin_top.clone(),
-                margin.margin_right.clone(),
-                margin.margin_bottom.clone(),
-                margin.margin_left.clone(),
+                margin.margin_top.as_ref(),
+                margin.margin_right.as_ref(),
+                margin.margin_bottom.as_ref(),
+                margin.margin_left.as_ref(),
             ),
             self.writing_mode,
         )
@@ -388,9 +388,9 @@ impl From<stylo::Display> for Display {
     }
 }
 
-fn size_to_length(size: Size) -> LengthPercentageOrAuto {
+fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
     match size {
-        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(length.0),
+        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(&length.0),
         Size::Auto => LengthPercentageOrAuto::Auto,
     }
 }

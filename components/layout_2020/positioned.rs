@@ -8,6 +8,7 @@ use crate::dom_traversal::{Contents, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
@@ -16,7 +17,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{Length, LengthPercentage};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -112,29 +113,34 @@ impl AbsolutelyPositionedBox {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
                     start: initial_static_start,
                 },
-                (Some(start), Some(end)) => AbsoluteBoxOffsets::Both { start, end },
-                (None, Some(end)) => AbsoluteBoxOffsets::End { end },
-                (Some(start), None) => AbsoluteBoxOffsets::Start { start },
+                (Some(start), Some(end)) => AbsoluteBoxOffsets::Both {
+                    start: start.clone(),
+                    end: end.clone(),
+                },
+                (None, Some(end)) => AbsoluteBoxOffsets::End { end: end.clone() },
+                (Some(start), None) => AbsoluteBoxOffsets::Start {
+                    start: start.clone(),
+                },
             }
         }
 
         let box_offsets = self.contents.style.box_offsets();
         HoistedAbsolutelyPositionedBox {
-            absolutely_positioned_box: self,
             tree_rank,
             box_offsets: Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
-                    box_offsets.inline_start.clone(),
-                    box_offsets.inline_end.clone(),
+                    box_offsets.inline_start,
+                    box_offsets.inline_end,
                 ),
                 block: absolute_box_offsets(
                     initial_start_corner.block,
-                    box_offsets.block_start.clone(),
-                    box_offsets.block_end.clone(),
+                    box_offsets.block_start,
+                    box_offsets.block_end,
                 ),
             },
             fragment: ArcRefCell::new(None),
+            absolutely_positioned_box: self,
         }
     }
 }
@@ -436,7 +442,7 @@ impl HoistedAbsolutelyPositionedBox {
             pbm.margin.inline_start,
             pbm.margin.inline_end,
             /* avoid_negative_margin_start */ true,
-            self.box_offsets.inline.clone(),
+            &self.box_offsets.inline,
             size.inline,
         );
 
@@ -446,7 +452,7 @@ impl HoistedAbsolutelyPositionedBox {
             pbm.margin.block_start,
             pbm.margin.block_end,
             /* avoid_negative_margin_start */ false,
-            self.box_offsets.block.clone(),
+            &self.box_offsets.block,
             size.block,
         );
 
@@ -583,12 +589,12 @@ fn solve_axis(
     computed_margin_start: LengthOrAuto,
     computed_margin_end: LengthOrAuto,
     avoid_negative_margin_start: bool,
-    box_offsets: AbsoluteBoxOffsets,
+    box_offsets: &AbsoluteBoxOffsets,
     size: LengthOrAuto,
 ) -> AxisResult {
     match box_offsets {
         AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
-            anchor: Anchor::Start(start),
+            anchor: Anchor::Start(*start),
             size,
             margin_start: computed_margin_start.auto_is(Length::zero),
             margin_end: computed_margin_end.auto_is(Length::zero),
