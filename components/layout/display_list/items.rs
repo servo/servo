@@ -195,7 +195,7 @@ pub struct StackingContext {
     /// The clip and scroll info for this StackingContext.
     pub parent_clipping_and_scrolling: ClippingAndScrolling,
 
-    /// The index of the reference frame that this stacking context estalishes.
+    /// The index of the reference frame that this stacking context establishes.
     pub established_reference_frame: Option<ClipScrollNodeIndex>,
 }
 
@@ -261,6 +261,7 @@ impl StackingContext {
         let pop_item = DisplayItem::PopStackingContext(Box::new(PopStackingContextItem {
             base: base_item.clone(),
             stacking_context_id: self.id,
+            established_reference_frame: self.established_reference_frame.is_some(),
         }));
 
         let push_item = DisplayItem::PushStackingContext(Box::new(PushStackingContextItem {
@@ -657,6 +658,8 @@ pub struct PopStackingContextItem {
     pub base: BaseDisplayItem,
 
     pub stacking_context_id: StackingContextId,
+
+    pub established_reference_frame: bool,
 }
 
 /// Starts a group of items inside a particular scroll root.

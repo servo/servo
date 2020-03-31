@@ -186,7 +186,7 @@ impl DisplayItem {
                 );
                 IsContentful(false)
             },
-            DisplayItem::PushStackingContext(ref mut item) => {
+            DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
@@ -252,8 +252,11 @@ impl DisplayItem {
                 builder.push_item(&WrDisplayItem::PushStackingContext(wr_item));
                 IsContentful(false)
             },
-            DisplayItem::PopStackingContext(_) => {
+            DisplayItem::PopStackingContext(ref item) => {
                 builder.pop_stacking_context();
+                if item.established_reference_frame {
+                    builder.pop_reference_frame();
+                }
                 IsContentful(false)
             },
             DisplayItem::DefineClipScrollNode(ref mut item) => {
