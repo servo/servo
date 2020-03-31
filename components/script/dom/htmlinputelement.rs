@@ -705,26 +705,34 @@ impl HTMLInputElement {
 
 pub trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
-    #[allow(unsafe_code)]
-    unsafe fn size_for_layout(self) -> u32;
+    fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
-    #[allow(unsafe_code)]
-    unsafe fn checked_state_for_layout(self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn indeterminate_state_for_layout(self) -> bool;
+    fn checked_state_for_layout(self) -> bool;
+    fn indeterminate_state_for_layout(self) -> bool;
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMString {
-    (*input.unsafe_get())
-        .textinput
-        .borrow_for_layout()
-        .get_content()
+impl<'dom> LayoutDom<'dom, HTMLInputElement> {
+    fn get_raw_textinput_value(self) -> DOMString {
+        unsafe {
+            self.unsafe_get()
+                .textinput
+                .borrow_for_layout()
+                .get_content()
+        }
+    }
+
+    fn placeholder(self) -> &'dom str {
+        unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
+    }
+
+    fn input_type(self) -> InputType {
+        unsafe { self.unsafe_get().input_type.get() }
+    }
 }
 
 impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
-    #[allow(unsafe_code)]
     fn value_for_layout(self) -> Cow<'dom, str> {
         fn get_raw_attr_value<'dom>(
             input: LayoutDom<'dom, HTMLInputElement>,
@@ -737,42 +745,39 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 .into()
         }
 
-        let placeholder = unsafe { &**self.unsafe_get().placeholder.borrow_for_layout() };
-        match unsafe { self.unsafe_get().input_type() } {
+        match self.input_type() {
             InputType::Checkbox | InputType::Radio => "".into(),
             InputType::File | InputType::Image => "".into(),
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
             InputType::Password => {
-                let text = unsafe { get_raw_textinput_value(self) };
+                let text = self.get_raw_textinput_value();
                 if !text.is_empty() {
                     text.chars()
                         .map(|_| PASSWORD_REPLACEMENT_CHAR)
                         .collect::<String>()
                         .into()
                 } else {
-                    placeholder.into()
+                    self.placeholder().into()
                 }
             },
             _ => {
-                let text = unsafe { get_raw_textinput_value(self) };
+                let text = self.get_raw_textinput_value();
                 if !text.is_empty() {
                     text.into()
                 } else {
-                    placeholder.into()
+                    self.placeholder().into()
                 }
             },
         }
     }
 
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn size_for_layout(self) -> u32 {
-        (*self.unsafe_get()).size.get()
+    fn size_for_layout(self) -> u32 {
+        unsafe { self.unsafe_get().size.get() }
     }
 
-    #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
@@ -781,9 +786,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
 
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
 
-        match (*self.unsafe_get()).input_type() {
+        match self.input_type() {
             InputType::Password => {
-                let text = get_raw_textinput_value(self);
+                let text = self.get_raw_textinput_value();
                 let sel = UTF8Bytes::unwrap_range(textinput.sorted_selection_offsets_range());
 
                 // Translate indices from the raw value to indices in the replacement value.
@@ -800,17 +805,13 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
     }
 
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn checked_state_for_layout(self) -> bool {
+    fn checked_state_for_layout(self) -> bool {
         self.upcast::<Element>()
             .get_state_for_layout()
             .contains(ElementState::IN_CHECKED_STATE)
     }
 
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn indeterminate_state_for_layout(self) -> bool {
+    fn indeterminate_state_for_layout(self) -> bool {
         self.upcast::<Element>()
             .get_state_for_layout()
             .contains(ElementState::IN_INDETERMINATE_STATE)
