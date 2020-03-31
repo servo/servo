@@ -255,7 +255,6 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
 
     #[inline]
     fn as_tokens(self) -> Option<&'dom [Atom]> {
-        // This transmute is used to cheat the lifetime restriction.
         match *self.value() {
             AttrValue::TokenList(_, ref tokens) => Some(tokens),
             _ => None,
