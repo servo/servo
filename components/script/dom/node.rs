@@ -1463,7 +1463,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return unsafe { input.value_for_layout() };
+            return input.value_for_layout().into_owned();
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
