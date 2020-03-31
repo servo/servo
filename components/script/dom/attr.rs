@@ -237,7 +237,7 @@ pub trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
     fn as_str(self) -> &'dom str;
     fn as_tokens(self) -> Option<&'dom [Atom]>;
-    fn local_name(self) -> LocalName;
+    fn local_name(self) -> &'dom LocalName;
 }
 
 #[allow(unsafe_code)]
@@ -262,7 +262,7 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     }
 
     #[inline]
-    fn local_name(self) -> LocalName {
-        unsafe { self.unsafe_get().identifier.local_name.clone() }
+    fn local_name(self) -> &'dom LocalName {
+        unsafe { &self.unsafe_get().identifier.local_name }
     }
 }

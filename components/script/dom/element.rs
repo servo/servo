@@ -578,7 +578,7 @@ pub unsafe fn get_attr_for_layout<'dom>(
         .iter()
         .find(|attr| {
             let attr = attr.to_layout();
-            *name == attr.local_name() && (*attr.unsafe_get()).namespace() == namespace
+            name == attr.local_name() && (*attr.unsafe_get()).namespace() == namespace
         })
         .map(|attr| attr.to_layout())
 }
@@ -610,7 +610,7 @@ impl RawLayoutElementHelpers for Element {
             .iter()
             .filter_map(|attr| {
                 let attr = attr.to_layout();
-                if *name == attr.local_name() {
+                if name == attr.local_name() {
                     Some(attr.value())
                 } else {
                     None
