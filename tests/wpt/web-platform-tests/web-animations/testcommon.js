@@ -180,12 +180,12 @@ function waitForNextFrame() {
   });
 }
 
-async function insertFrameAndAwaitLoad(test, iframe, document) {
+async function insertFrameAndAwaitLoad(test, iframe, doc) {
   const eventWatcher = new EventWatcher(test, iframe, ['load']);
   const event_promise = eventWatcher.wait_for('load');
 
-  document.body.appendChild(iframe);
-  test.add_cleanup(() => { document.body.removeChild(iframe); });
+  doc.body.appendChild(iframe);
+  test.add_cleanup(() => { doc.body.removeChild(iframe); });
 
   await event_promise;
 }

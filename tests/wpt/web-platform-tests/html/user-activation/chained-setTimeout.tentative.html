@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+   https://github.com/whatwg/html/issues/1983
+-->
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+    const max_call_depth = 3;
+    let initial_async_tests = {};
+    let final_async_tests = {};
+
+    function testInitialStates(depth) {
+        assert_true(1 <= depth && depth <= max_call_depth);
+
+        initial_async_tests[depth].step_timeout(() => {
+            assert_false(navigator.userActivation.isActive);
+            assert_false(navigator.userActivation.hasBeenActive);
+            initial_async_tests[depth].done();
+
+            if (depth < max_call_depth)
+                testInitialStates(depth+1);
+        }, 10);
+    }
+
+    function testFinalStates(depth) {
+        assert_true(1 <= depth && depth <= max_call_depth);
+
+        final_async_tests[depth].step_timeout(() => {
+            assert_true(navigator.userActivation.isActive);
+            assert_true(navigator.userActivation.hasBeenActive);
+            final_async_tests[depth].done();
+
+            if (depth < max_call_depth)
+                testFinalStates(depth+1);
+        }, 10)
+    }
+
+    function run() {
+        for (let i = 1; i <= max_call_depth; i++) {
+            initial_async_tests[i] = async_test("Call-depth=" + i + " initial state");
+            final_async_tests[i] =   async_test("Call-depth=" + i + " final state");
+        }
+
+        testInitialStates(1);
+
+        window.addEventListener("click", event => {
+            testFinalStates(1);
+        });
+        test_driver.click(document.body);
+    }
+  </script>
+</head>
+<body onload="run()">
+  <h1>User activation state in chained setTimeout calls</h1>
+  <p>Tests that user activation state is visible in arbitrary call depth of setTimeout.</p>
+  <ol id="instructions">
+    <li>Click anywhere in the document.
+  </ol></body>
+</html>

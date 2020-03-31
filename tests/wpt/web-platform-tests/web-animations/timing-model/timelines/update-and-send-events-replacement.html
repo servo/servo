@@ -989,14 +989,14 @@ promise_test(async t => {
 
 promise_test(async t => {
   const outerIframe = document.createElement('iframe');
-  insertFrameAndAwaitLoad(t, outerIframe, document);
   outerIframe.width = 10;
   outerIframe.height = 10;
+  await insertFrameAndAwaitLoad(t, outerIframe, document);
 
   const innerIframe = document.createElement('iframe');
-  insertFrameAndAwaitLoad(t, innerIframe, outerIframe.contentDocument);
   innerIframe.width = 10;
   innerIframe.height = 10;
+  await insertFrameAndAwaitLoad(t, innerIframe, outerIframe.contentDocument);
 
   const div = createDiv(t, innerIframe.contentDocument);
 

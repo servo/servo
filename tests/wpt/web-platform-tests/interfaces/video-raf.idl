@@ -4,15 +4,16 @@
 // Source: HTMLVideoElement.requestAnimationFrame() (https://wicg.github.io/video-raf/)
 
 dictionary VideoFrameMetadata {
-  required DOMHighResTimeStamp presentedTime;
+  required DOMHighResTimeStamp presentationTime;
   required DOMHighResTimeStamp expectedDisplayTime;
 
   required unsigned long width;
   required unsigned long height;
+  required double mediaTime;
 
-  double presentationTimestamp;
+  required unsigned long presentedFrames;
   double processingDuration;
-  unsigned long presentedFrames;
+
   DOMHighResTimeStamp captureTime;
   DOMHighResTimeStamp receiveTime;
   unsigned long rtpTimestamp;

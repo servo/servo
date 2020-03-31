@@ -21,7 +21,13 @@
     background-color: red;
   }
 
+  /* Hide scrollbars to avoid unnecessary visual issues related to them */
+  #scroller::-webkit-scrollbar {
+    display: none;
+  }
+
   #scroller {
+    scrollbar-width: none;
     overflow: auto;
     height: 100px;
     width: 100px;
@@ -45,11 +51,11 @@
     const box = document.getElementById('box');
     const effect = new KeyframeEffect(box,
       [
-      { transform: 'translateY(0)', opacity: 1},
-      { transform: 'translateY(200px)', opacity: 0}
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translateY(200px)', opacity: 0 }
       ], {
-        duration: 1000,
-      }
+      duration: 1000,
+    }
     );
 
     const scroller = document.getElementById('scroller');

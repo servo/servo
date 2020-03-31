@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+   https://github.com/whatwg/html/issues/1983
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>Post-navigation activation state in child</h1>
+  <p>Tests that navigating a cross-origin child frame resets its activation states.</p>
+  <ol id="instructions">
+    <li>Click inside the yellow area.
+  </ol>
+  <iframe id="child" width="200" height="50"
+          src="http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html">
+  </iframe>
+  <script>
+    async_test(function(t) {
+      var child = document.getElementById("child");
+      window.addEventListener("message", t.step_func(event => {
+          var msg = JSON.parse(event.data);
+          if (msg.type == 'child-one-loaded') {
+              assert_false(navigator.userActivation.isActive);
+              assert_false(navigator.userActivation.hasBeenActive);
+              assert_false(msg.isActive);
+              assert_false(msg.hasBeenActive);
+
+              test_driver.click(child);
+          } else if (msg.type == 'child-one-clicked') {
+              assert_true(navigator.userActivation.isActive);
+              assert_true(navigator.userActivation.hasBeenActive);
+              assert_true(msg.isActive);
+              assert_true(msg.hasBeenActive);
+
+              child.src = "http://{{domains[www2]}}:{{ports[http][0]}}/html/user-activation/resources/child-two.html";
+          } else if (msg.type == 'child-two-loaded') {
+              assert_true(navigator.userActivation.isActive);
+              assert_true(navigator.userActivation.hasBeenActive);
+              assert_false(msg.isActive);
+              assert_false(msg.hasBeenActive);
+
+              t.done();
+          }
+      }));
+    }, "Post-navigation state reset.");
+  </script>
+</body>
+</html>

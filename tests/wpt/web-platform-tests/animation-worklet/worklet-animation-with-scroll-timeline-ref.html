@@ -16,7 +16,13 @@
     background-color: red;
   }
 
+  /* Hide scrollbars to avoid unnecessary visual issues related to them */
+  #scroller::-webkit-scrollbar {
+    display: none;
+  }
+
   #scroller {
+    scrollbar-width: none;
     overflow: auto;
     height: 100px;
     width: 100px;
