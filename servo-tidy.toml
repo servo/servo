@@ -31,6 +31,7 @@ packages = [
   "base64",
   "cgl",
   "cocoa",
+  "dwrote",
   "gleam",
   "peek-poke",
   "peek-poke-derive",

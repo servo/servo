@@ -292,7 +292,7 @@ impl FontHandleMethods for FontHandle {
         };
 
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
-        let du_per_em = face.metrics().designUnitsPerEm as f32;
+        let du_per_em = face.metrics().metrics0().designUnitsPerEm as f32;
 
         let em_size = pt_size.to_f32_px() / 16.;
         let design_units_per_pixel = du_per_em / 16.;
@@ -368,7 +368,7 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn metrics(&self) -> FontMetrics {
-        let dm = self.face.metrics();
+        let dm = self.face.metrics().metrics0();
 
         let au_from_du = |du| -> Au { Au::from_f32_px(du as f32 * self.du_to_px) };
         let au_from_du_s = |du| -> Au { Au::from_f32_px(du as f32 * self.scaled_du_to_px) };

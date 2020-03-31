@@ -58,5 +58,5 @@ servo-fontconfig = "0.4"
 xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.9"
+dwrote = "0.11"
 truetype = "0.26"

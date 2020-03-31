@@ -1328,6 +1328,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dwrote"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "439a1c2ba5611ad3ed731280541d36d2e9c4ac5e7fb818a27b604bdc5a6aa65b"
+dependencies = [
+ "lazy_static",
+ "libc",
+ "serde",
+ "serde_derive",
+ "winapi",
+ "wio",
+]
+
+[[package]]
 name = "either"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1538,7 +1552,7 @@ dependencies = [
  "core-graphics 0.19.0",
  "core-text 15.0.0",
  "dirs 2.0.2",
- "dwrote",
+ "dwrote 0.9.0",
  "euclid",
  "float-ord",
  "freetype",
@@ -1760,7 +1774,7 @@ dependencies = [
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "core-text 13.2.0",
- "dwrote",
+ "dwrote 0.11.0",
  "euclid",
  "fnv",
  "fontsan",
@@ -6571,7 +6585,7 @@ dependencies = [
  "core-graphics 0.17.3",
  "core-text 13.2.0",
  "cstr",
- "dwrote",
+ "dwrote 0.9.0",
  "euclid",
  "freetype",
  "fxhash",
