@@ -67,12 +67,17 @@ void prompt_alert(const char *message, bool trusted) {
   sServo->Delegate().OnServoPromptAlert(char2hstring(message), trusted);
 }
 
-void show_context_menu(const char *const *items_list, uint32_t items_size) {
+void show_context_menu(const char *title, const char *const *items_list,
+                       uint32_t items_size) {
+  std::optional<hstring> opt_title = {};
+  if (title != nullptr) {
+    opt_title = char2hstring(title);
+  }
   std::vector<winrt::hstring> items;
   for (uint32_t i = 0; i < items_size; i++) {
     items.push_back(char2hstring(items_list[i]));
   }
-  sServo->Delegate().OnServoShowContextMenu(items);
+  sServo->Delegate().OnServoShowContextMenu(opt_title, items);
 }
 
 void on_devtools_started(Servo::DevtoolsServerState result,

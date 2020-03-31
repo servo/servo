@@ -105,7 +105,7 @@ pub trait HostTrait {
     /// Ask for string
     fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
     /// Show context menu
-    fn show_context_menu(&self, items: Vec<String>);
+    fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
     /// Page starts loading.
     /// "Reload button" should be disabled.
     /// "Stop button" should be enabled.
@@ -579,7 +579,7 @@ impl ServoGlue {
                 EmbedderMsg::AllowUnload(sender) => {
                     let _ = sender.send(true);
                 },
-                EmbedderMsg::ShowContextMenu(sender, items) => {
+                EmbedderMsg::ShowContextMenu(sender, title, items) => {
                     if self.context_menu_sender.is_some() {
                         warn!(
                             "Trying to show a context menu when a context menu is already active"
@@ -587,7 +587,9 @@ impl ServoGlue {
                         let _ = sender.send(ContextMenuResult::Ignored);
                     } else {
                         self.context_menu_sender = Some(sender);
-                        self.callbacks.host_callbacks.show_context_menu(items);
+                        self.callbacks
+                            .host_callbacks
+                            .show_context_menu(title, items);
                     }
                 },
                 EmbedderMsg::Prompt(definition, origin) => {

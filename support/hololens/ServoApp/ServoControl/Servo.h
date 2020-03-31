@@ -105,7 +105,8 @@ public:
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
   virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
   virtual void OnServoPromptAlert(hstring, bool) = 0;
-  virtual void OnServoShowContextMenu(std::vector<hstring>) = 0;
+  virtual void OnServoShowContextMenu(std::optional<hstring>,
+                                      std::vector<hstring>) = 0;
   virtual Servo::PromptResult OnServoPromptOkCancel(hstring, bool) = 0;
   virtual Servo::PromptResult OnServoPromptYesNo(hstring, bool) = 0;
   virtual std::optional<hstring> OnServoPromptInput(hstring, hstring, bool) = 0;

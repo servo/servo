@@ -230,7 +230,8 @@ pub struct CHostCallbacks {
         trusted: bool,
     ) -> *const c_char,
     pub on_devtools_started: extern "C" fn(result: CDevtoolsServerState, port: c_uint),
-    pub show_context_menu: extern "C" fn(items_list: *const *const c_char, items_size: u32),
+    pub show_context_menu:
+        extern "C" fn(title: *const c_char, items_list: *const *const c_char, items_size: u32),
 }
 
 /// Servo options
@@ -903,15 +904,19 @@ impl HostTrait for HostCallbacks {
         }
     }
 
-    fn show_context_menu(&self, items: Vec<String>) {
+    fn show_context_menu(&self, title: Option<String>, items: Vec<String>) {
         debug!("show_context_menu");
-        let size = items.len() as u32;
+        let items_size = items.len() as u32;
         let cstrs: Vec<CString> = items
             .into_iter()
             .map(|i| CString::new(i).expect("Can't create string"))
             .collect();
-        let ptrs: Vec<*const c_char> = cstrs.iter().map(|cstr| cstr.as_ptr()).collect();
-        (self.0.show_context_menu)(ptrs.as_ptr(), size);
-        // let _ = cstrs; // Don't drop these too early
+        let items: Vec<*const c_char> = cstrs.iter().map(|cstr| cstr.as_ptr()).collect();
+        let title = title.map(|s| CString::new(s).expect("Can't create string"));
+        let title_ptr = title
+            .as_ref()
+            .map(|cstr| cstr.as_ptr())
+            .unwrap_or(std::ptr::null());
+        (self.0.show_context_menu)(title_ptr, items.as_ptr(), items_size);
     }
 }
