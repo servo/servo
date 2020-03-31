@@ -67,9 +67,10 @@ use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
-use js::jsapi::{JSContext, JSObject, SourceText};
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
+use js::rust::transform_str_to_source_text;
 use js::rust::wrappers::Evaluate2;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
@@ -97,7 +98,6 @@ use std::cell::{Cell, RefCell, RefMut};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::CString;
-use std::marker::PhantomData;
 use std::mem;
 use std::ops::Index;
 use std::rc::Rc;
@@ -2166,12 +2166,7 @@ impl GlobalScope {
                     Evaluate2(
                         *cx,
                         options.ptr,
-                        &mut SourceText {
-                            units_: code.as_ptr() as *const _,
-                            length_: code.len() as u32,
-                            ownsUnits_: false,
-                            _phantom_0: PhantomData,
-                        },
+                        &mut transform_str_to_source_text(code),
                         rval,
                     )
                 };

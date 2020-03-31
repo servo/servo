@@ -46,13 +46,14 @@ use js::jsapi::{
     CompileModule, ExceptionStackBehavior, GetModuleResolveHook, JSRuntime, SetModuleResolveHook,
 };
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
-use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate, SourceText};
+use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
 use js::rust::jsapi_wrapped::{JS_GetArrayLength, JS_GetElement};
+use js::rust::transform_u16_to_source_text;
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
 use js::rust::IntoHandle;
@@ -68,22 +69,12 @@ use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ffi;
-use std::marker::PhantomData;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
 use indexmap::IndexSet;
-
-pub fn get_source_text(source: &[u16]) -> SourceText<u16> {
-    SourceText {
-        units_: source.as_ptr() as *const _,
-        length_: source.len() as u32,
-        ownsUnits_: false,
-        _phantom_0: PhantomData,
-    }
-}
 
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> ModuleError {
@@ -368,13 +359,11 @@ impl ModuleTree {
         let compile_options =
             unsafe { CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1) };
 
-        let mut source = get_source_text(&module);
-
         unsafe {
             rooted!(in(*global.get_cx()) let mut module_script = CompileModule(
                 *global.get_cx(),
                 compile_options.ptr,
-                &mut source,
+                &mut transform_u16_to_source_text(&module),
             ));
 
             if module_script.is_null() {

@@ -36,7 +36,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_realm, InRealm};
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JS_GetFunctionObject, SourceText};
+use js::jsapi::JS_GetFunctionObject;
+use js::rust::transform_u16_to_source_text;
 use js::rust::wrappers::CompileFunction;
 use js::rust::{CompileOptionsWrapper, RootedObjectVectorWrapper};
 use libc::c_char;
@@ -47,7 +48,6 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
-use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -539,12 +539,7 @@ impl EventTarget {
                 name.as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),
-                &mut SourceText {
-                    units_: body.as_ptr() as *const _,
-                    length_: body.len() as u32,
-                    ownsUnits_: false,
-                    _phantom_0: PhantomData,
-                },
+                &mut transform_u16_to_source_text(&body),
             )
         });
         if handler.get().is_null() {
