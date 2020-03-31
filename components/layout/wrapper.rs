@@ -130,7 +130,7 @@ where
             });
         }
 
-        TextContent::Text(self.node_text_content().into_boxed_str())
+        TextContent::Text(self.node_text_content().into_owned().into_boxed_str())
     }
 
     fn restyle_damage(self) -> RestyleDamage {
