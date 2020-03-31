@@ -17,6 +17,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::sync::Arc as StdArc;
 use style::attr::AttrValue;
@@ -262,7 +263,7 @@ pub trait ThreadSafeLayoutNode<'dom>:
     /// data flags, and we have this annoying trait separation between script and layout :-(
     unsafe fn unsafe_get(self) -> Self::ConcreteNode;
 
-    fn node_text_content(&self) -> String;
+    fn node_text_content(self) -> Cow<'dom, str>;
 
     /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
     fn selection(&self) -> Option<Range<ByteIndex>>;

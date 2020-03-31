@@ -16,6 +16,7 @@ use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, D
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
+use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -286,7 +287,12 @@ where
         }
     }
 
-    fn handle_text(&mut self, node: Node, input: String, parent_style: &Arc<ComputedValues>) {
+    fn handle_text(
+        &mut self,
+        node: Node,
+        input: Cow<'dom, str>,
+        parent_style: &Arc<ComputedValues>,
+    ) {
         let (leading_whitespace, mut input) = self.handle_leading_whitespace(&input);
         if leading_whitespace || !input.is_empty() {
             // This text node should be pushed either to the next ongoing

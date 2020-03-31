@@ -67,7 +67,7 @@ use profile_traits::ipc;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
-use std::borrow::ToOwned;
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::ops::Range;
 use std::ptr::NonNull;
@@ -705,9 +705,8 @@ impl HTMLInputElement {
     }
 }
 
-pub trait LayoutHTMLInputElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn value_for_layout(self) -> String;
+pub trait LayoutHTMLInputElementHelpers<'dom> {
+    fn value_for_layout(self) -> Cow<'dom, str>;
     #[allow(unsafe_code)]
     unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
@@ -726,41 +725,47 @@ unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMStri
         .get_content()
 }
 
-impl LayoutHTMLInputElementHelpers for LayoutDom<'_, HTMLInputElement> {
+impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
     #[allow(unsafe_code)]
-    unsafe fn value_for_layout(self) -> String {
-        #[allow(unsafe_code)]
-        unsafe fn get_raw_attr_value(
-            input: LayoutDom<'_, HTMLInputElement>,
-            default: &str,
-        ) -> String {
-            let elem = input.upcast::<Element>();
-            let value = (*elem.unsafe_get())
-                .get_attr_val_for_layout(&ns!(), &local_name!("value"))
-                .unwrap_or(default);
-            String::from(value)
+    fn value_for_layout(self) -> Cow<'dom, str> {
+        fn get_raw_attr_value<'dom>(
+            input: LayoutDom<'dom, HTMLInputElement>,
+            default: &'static str,
+        ) -> Cow<'dom, str> {
+            unsafe {
+                input
+                    .upcast::<Element>()
+                    .unsafe_get()
+                    .get_attr_val_for_layout(&ns!(), &local_name!("value"))
+                    .unwrap_or(default)
+                    .into()
+            }
         }
 
-        match (*self.unsafe_get()).input_type() {
-            InputType::Checkbox | InputType::Radio => String::new(),
-            InputType::File | InputType::Image => String::new(),
+        let placeholder = unsafe { &**self.unsafe_get().placeholder.borrow_for_layout() };
+        match unsafe { self.unsafe_get().input_type() } {
+            InputType::Checkbox | InputType::Radio => "".into(),
+            InputType::File | InputType::Image => "".into(),
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
             InputType::Password => {
-                let text = get_raw_textinput_value(self);
+                let text = unsafe { get_raw_textinput_value(self) };
                 if !text.is_empty() {
-                    text.chars().map(|_| PASSWORD_REPLACEMENT_CHAR).collect()
+                    text.chars()
+                        .map(|_| PASSWORD_REPLACEMENT_CHAR)
+                        .collect::<String>()
+                        .into()
                 } else {
-                    String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
+                    placeholder.into()
                 }
             },
             _ => {
-                let text = get_raw_textinput_value(self);
+                let text = unsafe { get_raw_textinput_value(self) };
                 if !text.is_empty() {
-                    String::from(text)
+                    text.into()
                 } else {
-                    String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
+                    placeholder.into()
                 }
             },
         }

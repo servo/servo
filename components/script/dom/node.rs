@@ -87,7 +87,7 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
-use std::borrow::ToOwned;
+use std::borrow::Cow;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp;
 use std::default::Default;
@@ -1326,7 +1326,7 @@ pub trait LayoutNodeHelpers<'dom> {
     unsafe fn init_style_and_layout_data(self, _: OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData;
 
-    fn text_content(self) -> String;
+    fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
@@ -1456,18 +1456,17 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         val
     }
 
-    #[allow(unsafe_code)]
-    fn text_content(self) -> String {
+    fn text_content(self) -> Cow<'dom, str> {
         if let Some(text) = self.downcast::<Text>() {
-            return unsafe { text.upcast().data_for_layout().to_owned() };
+            return text.upcast().data_for_layout().into();
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return unsafe { input.value_for_layout() };
+            return input.value_for_layout();
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.value_for_layout() };
+            return area.value_for_layout().into();
         }
 
         panic!("not text!")

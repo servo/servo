@@ -67,6 +67,7 @@ use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
@@ -835,7 +836,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             .dom_children()
             .all(|node| match node.script_type_id() {
                 NodeTypeId::Element(..) => false,
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => unsafe {
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                     node.node.downcast().unwrap().data_for_layout().is_empty()
                 },
                 _ => true,
@@ -1117,9 +1118,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         self.node
     }
 
-    fn node_text_content(&self) -> String {
-        let this = unsafe { self.get_jsmanaged() };
-        return this.text_content();
+    fn node_text_content(self) -> Cow<'ln, str> {
+        unsafe { self.get_jsmanaged().text_content() }
     }
 
     fn selection(&self) -> Option<Range<ByteIndex>> {

@@ -17,6 +17,7 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_arc::Arc as ServoArc;
+use std::borrow::Cow;
 use std::marker::PhantomData as marker;
 use std::sync::{Arc, Mutex};
 use style::dom::{OpaqueNode, TNode};
@@ -59,7 +60,12 @@ pub(super) trait TraversalHandler<'dom, Node>
 where
     Node: 'dom,
 {
-    fn handle_text(&mut self, node: Node, text: String, parent_style: &ServoArc<ComputedValues>);
+    fn handle_text(
+        &mut self,
+        node: Node,
+        text: Cow<'dom, str>,
+        parent_style: &ServoArc<ComputedValues>,
+    );
 
     /// Or pseudo-element
     fn handle_element(
@@ -166,7 +172,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     for item in items {
         match item {
             PseudoElementContentItem::Text(text) => {
-                handler.handle_text(node, text, pseudo_element_style)
+                handler.handle_text(node, text.into(), pseudo_element_style)
             },
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
@@ -351,7 +357,7 @@ impl Drop for BoxSlot<'_> {
 
 pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     fn is_element(self) -> bool;
-    fn as_text(self) -> Option<String>;
+    fn as_text(self) -> Option<Cow<'dom, str>>;
 
     /// Returns the image if it’s loaded, and its size in image pixels
     /// adjusted for `image_density`.
@@ -378,7 +384,7 @@ where
         self.to_threadsafe().as_element().is_some()
     }
 
-    fn as_text(self) -> Option<String> {
+    fn as_text(self) -> Option<Cow<'dom, str>> {
         if self.is_text_node() {
             Some(self.to_threadsafe().node_text_content())
         } else {
