@@ -1456,10 +1456,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         val
     }
 
-    #[allow(unsafe_code)]
     fn text_content(self) -> String {
         if let Some(text) = self.downcast::<Text>() {
-            return unsafe { text.upcast().data_for_layout().to_owned() };
+            return text.upcast().data_for_layout().to_owned();
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {

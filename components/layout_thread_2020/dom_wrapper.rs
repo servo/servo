@@ -835,7 +835,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             .dom_children()
             .all(|node| match node.script_type_id() {
                 NodeTypeId::Element(..) => false,
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => unsafe {
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
                     node.node.downcast().unwrap().data_for_layout().is_empty()
                 },
                 _ => true,
