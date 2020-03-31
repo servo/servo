@@ -123,8 +123,8 @@ pub trait LayoutHTMLCanvasElementHelpers {
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
-        unsafe {
-            let source = match self.unsafe_get().context.borrow_for_layout().as_ref() {
+        let source = unsafe {
+            match self.unsafe_get().context.borrow_for_layout().as_ref() {
                 Some(&CanvasContext::Context2d(ref context)) => {
                     HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
                 },
@@ -135,20 +135,20 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                     context.to_layout().canvas_data_source()
                 },
                 None => HTMLCanvasDataSource::Image(None),
-            };
-
-            let width_attr = self
-                .upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("width"));
-            let height_attr = self
-                .upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("height"));
-            HTMLCanvasData {
-                source: source,
-                width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
-                height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
-                canvas_id: self.get_canvas_id_for_layout(),
             }
+        };
+
+        let width_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"));
+        let height_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"));
+        HTMLCanvasData {
+            source: source,
+            width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
+            height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
+            canvas_id: self.get_canvas_id_for_layout(),
         }
     }
 
