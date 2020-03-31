@@ -551,28 +551,21 @@ impl Element {
 }
 
 #[inline]
-#[allow(unsafe_code)]
-pub unsafe fn get_attr_for_layout<'dom>(
-    elem: &'dom Element,
+pub fn get_attr_for_layout<'dom>(
+    elem: LayoutDom<'dom, Element>,
     namespace: &Namespace,
     name: &LocalName,
 ) -> Option<LayoutDom<'dom, Attr>> {
-    // cast to point to T in RefCell<T> directly
-    let attrs = elem.attrs.borrow_for_layout();
-    attrs
+    elem.attrs()
         .iter()
-        .find(|attr| {
-            let attr = attr.to_layout();
-            name == attr.local_name() && namespace == attr.namespace()
-        })
-        .map(|attr| attr.to_layout())
+        .find(|attr| name == attr.local_name() && namespace == attr.namespace())
+        .cloned()
 }
 
 pub trait LayoutElementHelpers<'dom> {
-    #[allow(unsafe_code)]
-    unsafe fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
+    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
+    fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
+    fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, _: &mut V)
@@ -595,41 +588,42 @@ pub trait LayoutElementHelpers<'dom> {
     /// The shadow root this element is a host of.
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
-    #[allow(unsafe_code)]
-    unsafe fn get_attr_for_layout(
+    fn get_attr_for_layout(
         self,
         namespace: &Namespace,
         name: &LocalName,
     ) -> Option<&'dom AttrValue>;
-    #[allow(unsafe_code)]
-    unsafe fn get_attr_val_for_layout(
-        self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'dom str>;
-    #[allow(unsafe_code)]
-    unsafe fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     #[inline]
-    unsafe fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class")).map_or(
-            false,
-            |attr| {
-                attr.as_tokens()
-                    .unwrap()
-                    .iter()
-                    .any(|atom| case_sensitivity.eq_atom(atom, name))
-            },
-        )
+    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
+        unsafe {
+            // FIXME(nox): This should probably be done through a ToLayout trait.
+            let attrs: &[Dom<Attr>] = &self.unsafe_get().attrs.borrow_for_layout();
+            // This doesn't compile if Dom and LayoutDom don't have the same
+            // representation.
+            let _ = mem::transmute::<Dom<Attr>, LayoutDom<Attr>>;
+            &*(attrs as *const [Dom<Attr>] as *const [LayoutDom<Attr>])
+        }
     }
 
-    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
-        get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class"))
+    fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        get_attr_for_layout(self, &ns!(), &local_name!("class")).map_or(false, |attr| {
+            attr.as_tokens()
+                .unwrap()
+                .iter()
+                .any(|atom| case_sensitivity.eq_atom(atom, name))
+        })
+    }
+
+    #[inline]
+    fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("class"))
             .map(|attr| attr.as_tokens().unwrap())
     }
 
@@ -1066,34 +1060,25 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             .map(|sr| sr.to_layout())
     }
 
-    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_for_layout(
+    fn get_attr_for_layout(
         self,
         namespace: &Namespace,
         name: &LocalName,
     ) -> Option<&'dom AttrValue> {
-        get_attr_for_layout(self.unsafe_get(), namespace, name).map(|attr| attr.value())
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
     }
 
-    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_val_for_layout(
-        self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'dom str> {
-        get_attr_for_layout(self.unsafe_get(), namespace, name).map(|attr| attr.as_str())
+    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str> {
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
     }
 
-    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
-        let attrs = self.unsafe_get().attrs.borrow_for_layout();
-        attrs
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
+        self.attrs()
             .iter()
             .filter_map(|attr| {
-                let attr = attr.to_layout();
                 if name == attr.local_name() {
                     Some(attr.value())
                 } else {

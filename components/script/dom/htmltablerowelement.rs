@@ -149,15 +149,12 @@ pub trait HTMLTableRowElementLayoutHelpers {
     fn get_background_color(self) -> Option<RGBA>;
 }
 
-#[allow(unsafe_code)]
 impl HTMLTableRowElementLayoutHelpers for LayoutDom<'_, HTMLTableRowElement> {
     fn get_background_color(self) -> Option<RGBA> {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
-                .and_then(AttrValue::as_color)
-                .cloned()
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 }
 

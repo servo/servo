@@ -413,14 +413,11 @@ pub trait HTMLTableElementLayoutHelpers {
 }
 
 impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
-    #[allow(unsafe_code)]
     fn get_background_color(self) -> Option<RGBA> {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
-                .and_then(AttrValue::as_color)
-                .cloned()
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 
     #[allow(unsafe_code)]
@@ -433,15 +430,12 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
         unsafe { (*self.unsafe_get()).cellspacing.get() }
     }
 
-    #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

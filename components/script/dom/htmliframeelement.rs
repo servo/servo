@@ -499,26 +499,20 @@ impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
         unsafe { (*self.unsafe_get()).browsing_context_id.get() }
     }
 
-    #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    #[allow(unsafe_code)]
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("height"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

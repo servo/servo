@@ -152,24 +152,18 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
         }
     }
 
-    #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_uint_px_dimension)
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_uint_px_dimension)
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    #[allow(unsafe_code)]
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("height"))
-                .map(AttrValue::as_uint_px_dimension)
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_uint_px_dimension)
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
     #[allow(unsafe_code)]

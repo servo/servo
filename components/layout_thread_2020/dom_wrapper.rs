@@ -496,11 +496,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     where
         F: FnMut(&Atom),
     {
-        unsafe {
-            if let Some(ref classes) = self.element.get_classes_for_layout() {
-                for class in *classes {
-                    callback(class)
-                }
+        if let Some(ref classes) = self.element.get_classes_for_layout() {
+            for class in *classes {
+                callback(class)
             }
         }
     }
@@ -705,12 +703,12 @@ impl<'le> ServoLayoutElement<'le> {
 
     #[inline]
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
-        unsafe { self.element.get_attr_for_layout(namespace, name) }
+        self.element.get_attr_for_layout(namespace, name)
     }
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
-        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+        self.element.get_attr_val_for_layout(namespace, name)
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
@@ -812,10 +810,11 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NamespaceConstraint::Specific(ref ns) => self
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
-            NamespaceConstraint::Any => {
-                let values = unsafe { self.element.get_attr_vals_for_layout(local_name) };
-                values.iter().any(|value| value.eval_selector(operation))
-            },
+            NamespaceConstraint::Any => self
+                .element
+                .get_attr_vals_for_layout(local_name)
+                .iter()
+                .any(|value| value.eval_selector(operation)),
         }
     }
 
@@ -885,7 +884,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, &*lang),
 
-            NonTSPseudoClass::ServoNonZeroBorder => unsafe {
+            NonTSPseudoClass::ServoNonZeroBorder => {
                 match self
                     .element
                     .get_attr_for_layout(&ns!(), &local_name!("border"))
@@ -919,23 +918,18 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        unsafe {
-            match self.as_node().script_type_id() {
-                // https://html.spec.whatwg.org/multipage/#selector-link
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLAnchorElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLAreaElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLLinkElement,
-                )) => self
-                    .element
+        match self.as_node().script_type_id() {
+            // https://html.spec.whatwg.org/multipage/#selector-link
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+                self.element
                     .get_attr_val_for_layout(&ns!(), &local_name!("href"))
-                    .is_some(),
-                _ => false,
-            }
+                    .is_some()
+            },
+            _ => false,
         }
     }
 
@@ -963,7 +957,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     #[inline]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        unsafe { self.element.has_class_for_layout(name, case_sensitivity) }
+        self.element.has_class_for_layout(name, case_sensitivity)
     }
 
     fn is_html_slot_element(&self) -> bool {
@@ -1447,7 +1441,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
-                let values = unsafe { self.element.element.get_attr_vals_for_layout(local_name) };
+                let values = self.element.element.get_attr_vals_for_layout(local_name);
                 values.iter().any(|v| v.eval_selector(operation))
             },
         }

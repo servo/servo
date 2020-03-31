@@ -96,22 +96,16 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         ))
     }
 
-    #[allow(unsafe_code)]
     fn get_cols(self) -> u32 {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("cols"))
-                .map_or(DEFAULT_COLS, AttrValue::as_uint)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("cols"))
+            .map_or(DEFAULT_COLS, AttrValue::as_uint)
     }
 
-    #[allow(unsafe_code)]
     fn get_rows(self) -> u32 {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("rows"))
-                .map_or(DEFAULT_ROWS, AttrValue::as_uint)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("rows"))
+            .map_or(DEFAULT_ROWS, AttrValue::as_uint)
     }
 }
 

@@ -107,32 +107,24 @@ pub trait HTMLFontElementLayoutHelpers {
 }
 
 impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
-    #[allow(unsafe_code)]
     fn get_color(self) -> Option<RGBA> {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("color"))
-                .and_then(AttrValue::as_color)
-                .cloned()
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 
-    #[allow(unsafe_code)]
     fn get_face(self) -> Option<Atom> {
-        unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("face"))
-                .map(AttrValue::as_atom)
-                .cloned()
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("face"))
+            .map(AttrValue::as_atom)
+            .cloned()
     }
 
-    #[allow(unsafe_code)]
     fn get_size(self) -> Option<u32> {
-        let size = unsafe {
-            self.upcast::<Element>()
-                .get_attr_for_layout(&ns!(), &local_name!("size"))
-        };
+        let size = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("size"));
         match size {
             Some(&AttrValue::UInt(_, s)) => Some(s),
             _ => None,

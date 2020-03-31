@@ -730,13 +730,11 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             input: LayoutDom<'dom, HTMLInputElement>,
             default: &'static str,
         ) -> Cow<'dom, str> {
-            unsafe {
-                input
-                    .upcast::<Element>()
-                    .get_attr_val_for_layout(&ns!(), &local_name!("value"))
-                    .unwrap_or(default)
-                    .into()
-            }
+            input
+                .upcast::<Element>()
+                .get_attr_val_for_layout(&ns!(), &local_name!("value"))
+                .unwrap_or(default)
+                .into()
         }
 
         let placeholder = unsafe { &**self.unsafe_get().placeholder.borrow_for_layout() };
