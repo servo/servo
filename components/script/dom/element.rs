@@ -550,21 +550,6 @@ impl Element {
     }
 }
 
-#[allow(unsafe_code)]
-pub trait RawLayoutElementHelpers {
-    unsafe fn get_attr_for_layout<'a>(
-        &'a self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'a AttrValue>;
-    unsafe fn get_attr_val_for_layout<'a>(
-        &'a self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'a str>;
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
-}
-
 #[inline]
 #[allow(unsafe_code)]
 pub unsafe fn get_attr_for_layout<'dom>(
@@ -581,43 +566,6 @@ pub unsafe fn get_attr_for_layout<'dom>(
             name == attr.local_name() && namespace == attr.namespace()
         })
         .map(|attr| attr.to_layout())
-}
-
-#[allow(unsafe_code)]
-impl RawLayoutElementHelpers for Element {
-    #[inline]
-    unsafe fn get_attr_for_layout<'a>(
-        &'a self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'a AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
-    }
-
-    #[inline]
-    unsafe fn get_attr_val_for_layout<'a>(
-        &'a self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'a str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
-    }
-
-    #[inline]
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue> {
-        let attrs = self.attrs.borrow_for_layout();
-        attrs
-            .iter()
-            .filter_map(|attr| {
-                let attr = attr.to_layout();
-                if name == attr.local_name() {
-                    Some(attr.value())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
 }
 
 pub trait LayoutElementHelpers<'dom> {
@@ -647,6 +595,21 @@ pub trait LayoutElementHelpers<'dom> {
     /// The shadow root this element is a host of.
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+}
+
+#[allow(unsafe_code)]
+pub trait RawLayoutElementHelpers {
+    unsafe fn get_attr_for_layout<'a>(
+        &'a self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'a AttrValue>;
+    unsafe fn get_attr_val_for_layout<'a>(
+        &'a self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'a str>;
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
@@ -1102,6 +1065,43 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             .shadow_root
             .as_ref()
             .map(|sr| sr.to_layout())
+    }
+}
+
+#[allow(unsafe_code)]
+impl RawLayoutElementHelpers for Element {
+    #[inline]
+    unsafe fn get_attr_for_layout<'a>(
+        &'a self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'a AttrValue> {
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
+    }
+
+    #[inline]
+    unsafe fn get_attr_val_for_layout<'a>(
+        &'a self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'a str> {
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
+    }
+
+    #[inline]
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue> {
+        let attrs = self.attrs.borrow_for_layout();
+        attrs
+            .iter()
+            .filter_map(|attr| {
+                let attr = attr.to_layout();
+                if name == attr.local_name() {
+                    Some(attr.value())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
