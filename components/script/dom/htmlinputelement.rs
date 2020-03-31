@@ -18,9 +18,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{
-    AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers,
-};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -735,7 +733,6 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             unsafe {
                 input
                     .upcast::<Element>()
-                    .unsafe_get()
                     .get_attr_val_for_layout(&ns!(), &local_name!("value"))
                     .unwrap_or(default)
                     .into()

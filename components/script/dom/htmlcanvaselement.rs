@@ -18,7 +18,7 @@ use crate::dom::canvasrenderingcontext2d::{
     CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
 };
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node};
@@ -124,8 +124,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
         unsafe {
-            let canvas = &*self.unsafe_get();
-            let source = match canvas.context.borrow_for_layout().as_ref() {
+            let source = match self.unsafe_get().context.borrow_for_layout().as_ref() {
                 Some(&CanvasContext::Context2d(ref context)) => {
                     HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
                 },
@@ -138,10 +137,10 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 None => HTMLCanvasDataSource::Image(None),
             };
 
-            let width_attr = canvas
+            let width_attr = self
                 .upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"));
-            let height_attr = canvas
+            let height_attr = self
                 .upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("height"));
             HTMLCanvasData {
@@ -156,7 +155,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_uint_px_dimension)
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -166,7 +165,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_height(self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_uint_px_dimension)
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)

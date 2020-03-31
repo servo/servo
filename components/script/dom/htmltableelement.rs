@@ -11,7 +11,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -416,7 +416,7 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_background_color(self) -> Option<RGBA> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -436,7 +436,7 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()

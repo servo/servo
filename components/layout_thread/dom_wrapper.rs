@@ -48,7 +48,6 @@ use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{
     LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
-    RawLayoutElementHelpers,
 };
 use script_layout_interface::wrapper_traits::{
     DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
@@ -699,12 +698,12 @@ impl<'le> ServoLayoutElement<'le> {
 
     #[inline]
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
-        unsafe { (*self.element.unsafe_get()).get_attr_for_layout(namespace, name) }
+        unsafe { self.element.get_attr_for_layout(namespace, name) }
     }
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
-        unsafe { (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name) }
+        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
@@ -807,8 +806,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
-                let values =
-                    unsafe { (*self.element.unsafe_get()).get_attr_vals_for_layout(local_name) };
+                let values = unsafe { self.element.get_attr_vals_for_layout(local_name) };
                 values.iter().any(|value| value.eval_selector(operation))
             },
         }
@@ -881,7 +879,8 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, &*lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
-                match (*self.element.unsafe_get())
+                match self
+                    .element
                     .get_attr_for_layout(&ns!(), &local_name!("border"))
                 {
                     None | Some(&AttrValue::UInt(_, 0)) => false,
@@ -924,7 +923,8 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 )) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLLinkElement,
-                )) => (*self.element.unsafe_get())
+                )) => self
+                    .element
                     .get_attr_val_for_layout(&ns!(), &local_name!("href"))
                     .is_some(),
                 _ => false,
@@ -1440,9 +1440,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
-                let values = unsafe {
-                    (*self.element.element.unsafe_get()).get_attr_vals_for_layout(local_name)
-                };
+                let values = unsafe { self.element.element.get_attr_vals_for_layout(local_name) };
                 values.iter().any(|v| v.eval_selector(operation))
             },
         }

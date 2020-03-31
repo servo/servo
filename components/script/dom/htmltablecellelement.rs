@@ -9,7 +9,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::node::Node;
@@ -108,7 +108,7 @@ pub trait HTMLTableCellElementLayoutHelpers {
 impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
     fn get_background_color(self) -> Option<RGBA> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -117,7 +117,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
 
     fn get_colspan(self) -> Option<u32> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("colspan"))
                 .map(AttrValue::as_uint)
         }
@@ -125,7 +125,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
 
     fn get_rowspan(self) -> Option<u32> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
                 .map(AttrValue::as_uint)
         }
@@ -133,7 +133,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()

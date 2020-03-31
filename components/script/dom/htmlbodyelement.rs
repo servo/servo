@@ -9,7 +9,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
@@ -103,7 +103,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     #[allow(unsafe_code)]
     fn get_background_color(self) -> Option<RGBA> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -113,7 +113,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     #[allow(unsafe_code)]
     fn get_color(self) -> Option<RGBA> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("text"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -123,7 +123,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
     #[allow(unsafe_code)]
     fn get_background(self) -> Option<ServoUrl> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("background"))
                 .and_then(AttrValue::as_resolved_url)
                 .cloned()

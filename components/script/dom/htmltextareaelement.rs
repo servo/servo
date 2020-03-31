@@ -14,7 +14,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::RawLayoutElementHelpers;
+use crate::dom::element::LayoutElementHelpers;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -99,7 +99,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     fn get_cols(self) -> u32 {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("cols"))
                 .map_or(DEFAULT_COLS, AttrValue::as_uint)
         }
@@ -108,7 +108,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     fn get_rows(self) -> u32 {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(), &local_name!("rows"))
                 .map_or(DEFAULT_ROWS, AttrValue::as_uint)
         }

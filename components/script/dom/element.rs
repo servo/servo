@@ -595,21 +595,20 @@ pub trait LayoutElementHelpers<'dom> {
     /// The shadow root this element is a host of.
     #[allow(unsafe_code)]
     unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
-}
-
-#[allow(unsafe_code)]
-pub trait RawLayoutElementHelpers {
-    unsafe fn get_attr_for_layout<'a>(
-        &'a self,
+    #[allow(unsafe_code)]
+    unsafe fn get_attr_for_layout(
+        self,
         namespace: &Namespace,
         name: &LocalName,
-    ) -> Option<&'a AttrValue>;
-    unsafe fn get_attr_val_for_layout<'a>(
-        &'a self,
+    ) -> Option<&'dom AttrValue>;
+    #[allow(unsafe_code)]
+    unsafe fn get_attr_val_for_layout(
+        self,
         namespace: &Namespace,
         name: &LocalName,
-    ) -> Option<&'a str>;
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
+    ) -> Option<&'dom str>;
+    #[allow(unsafe_code)]
+    unsafe fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
@@ -765,7 +764,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
             // FIXME(pcwalton): More use of atoms, please!
-            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+            match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
                 // Not text entry widget
                 Some("hidden") |
                 Some("date") |
@@ -1012,15 +1011,15 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             let mut current_node = Some(self.upcast::<Node>());
             while let Some(node) = current_node {
                 current_node = node.composed_parent_node_ref();
-                match node.downcast::<Element>().map(|el| el.unsafe_get()) {
+                match node.downcast::<Element>() {
                     Some(elem) => {
                         if let Some(attr) =
-                            (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang"))
+                            elem.get_attr_val_for_layout(&ns!(xml), &local_name!("lang"))
                         {
                             return attr.to_owned();
                         }
                         if let Some(attr) =
-                            (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang"))
+                            elem.get_attr_val_for_layout(&ns!(), &local_name!("lang"))
                         {
                             return attr.to_owned();
                         }
@@ -1066,31 +1065,31 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             .as_ref()
             .map(|sr| sr.to_layout())
     }
-}
 
-#[allow(unsafe_code)]
-impl RawLayoutElementHelpers for Element {
+    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_for_layout<'a>(
-        &'a self,
+    unsafe fn get_attr_for_layout(
+        self,
         namespace: &Namespace,
         name: &LocalName,
-    ) -> Option<&'a AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
+    ) -> Option<&'dom AttrValue> {
+        get_attr_for_layout(self.unsafe_get(), namespace, name).map(|attr| attr.value())
     }
 
+    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_val_for_layout<'a>(
-        &'a self,
+    unsafe fn get_attr_val_for_layout(
+        self,
         namespace: &Namespace,
         name: &LocalName,
-    ) -> Option<&'a str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
+    ) -> Option<&'dom str> {
+        get_attr_for_layout(self.unsafe_get(), namespace, name).map(|attr| attr.as_str())
     }
 
+    #[allow(unsafe_code)]
     #[inline]
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue> {
-        let attrs = self.attrs.borrow_for_layout();
+    unsafe fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
+        let attrs = self.unsafe_get().attrs.borrow_for_layout();
         attrs
             .iter()
             .filter_map(|attr| {
