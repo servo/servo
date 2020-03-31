@@ -985,32 +985,27 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         unsafe { &(*self.unsafe_get()).namespace }
     }
 
-    #[allow(unsafe_code)]
     fn get_lang_for_layout(self) -> String {
-        unsafe {
-            let mut current_node = Some(self.upcast::<Node>());
-            while let Some(node) = current_node {
-                current_node = node.composed_parent_node_ref();
-                match node.downcast::<Element>() {
-                    Some(elem) => {
-                        if let Some(attr) =
-                            elem.get_attr_val_for_layout(&ns!(xml), &local_name!("lang"))
-                        {
-                            return attr.to_owned();
-                        }
-                        if let Some(attr) =
-                            elem.get_attr_val_for_layout(&ns!(), &local_name!("lang"))
-                        {
-                            return attr.to_owned();
-                        }
-                    },
-                    None => continue,
-                }
+        let mut current_node = Some(self.upcast::<Node>());
+        while let Some(node) = current_node {
+            current_node = node.composed_parent_node_ref();
+            match node.downcast::<Element>() {
+                Some(elem) => {
+                    if let Some(attr) =
+                        elem.get_attr_val_for_layout(&ns!(xml), &local_name!("lang"))
+                    {
+                        return attr.to_owned();
+                    }
+                    if let Some(attr) = elem.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                        return attr.to_owned();
+                    }
+                },
+                None => continue,
             }
-            // TODO: Check meta tags for a pragma-set default language
-            // TODO: Check HTTP Content-Language header
-            String::new()
         }
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        String::new()
     }
 
     #[inline]

@@ -203,11 +203,9 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteShadowRoot = ServoShadowRoot<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
-        unsafe {
-            self.node
-                .composed_parent_node_ref()
-                .map(Self::from_layout_js)
-        }
+        self.node
+            .composed_parent_node_ref()
+            .map(Self::from_layout_js)
     }
 
     fn first_child(&self) -> Option<Self> {
@@ -745,12 +743,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
-        unsafe {
-            self.element
-                .upcast()
-                .composed_parent_node_ref()
-                .and_then(as_element)
-        }
+        self.element
+            .upcast()
+            .composed_parent_node_ref()
+            .and_then(as_element)
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
