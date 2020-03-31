@@ -1314,7 +1314,7 @@ pub trait LayoutNodeHelpers<'dom> {
     unsafe fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
 
     unsafe fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
-    unsafe fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
     unsafe fn is_element_for_layout(self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
@@ -1399,14 +1399,16 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
-        self.unsafe_get()
-            .rare_data
-            .borrow_for_layout()
-            .as_ref()?
-            .containing_shadow_root
-            .as_ref()
-            .map(|sr| sr.to_layout())
+    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .containing_shadow_root
+                .as_ref()
+                .map(|sr| sr.to_layout())
+        }
     }
 
     #[inline]

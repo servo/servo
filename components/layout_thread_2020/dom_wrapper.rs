@@ -656,21 +656,17 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     /// The shadow root this element is a host of.
     fn shadow_root(&self) -> Option<ServoShadowRoot<'le>> {
-        unsafe {
-            self.element
-                .get_shadow_root_for_layout()
-                .map(ServoShadowRoot::from_layout_js)
-        }
+        self.element
+            .get_shadow_root_for_layout()
+            .map(ServoShadowRoot::from_layout_js)
     }
 
     /// The shadow root which roots the subtree this element is contained in.
     fn containing_shadow(&self) -> Option<ServoShadowRoot<'le>> {
-        unsafe {
-            self.element
-                .upcast()
-                .containing_shadow_root_for_layout()
-                .map(ServoShadowRoot::from_layout_js)
-        }
+        self.element
+            .upcast()
+            .containing_shadow_root_for_layout()
+            .map(ServoShadowRoot::from_layout_js)
     }
 
     fn local_name(&self) -> &LocalName {

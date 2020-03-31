@@ -583,8 +583,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn insert_selector_flags(self, flags: ElementSelectorFlags);
     fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool;
     /// The shadow root this element is a host of.
-    #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
     fn get_attr_for_layout(
         self,
         namespace: &Namespace,
@@ -1038,14 +1037,16 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
-        self.unsafe_get()
-            .rare_data
-            .borrow_for_layout()
-            .as_ref()?
-            .shadow_root
-            .as_ref()
-            .map(|sr| sr.to_layout())
+    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .shadow_root
+                .as_ref()
+                .map(|sr| sr.to_layout())
+        }
     }
 
     #[inline]
