@@ -405,9 +405,10 @@ impl HoistedAbsolutelyPositionedBox {
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
-        let style = &self.absolutely_positioned_box.contents.style;
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
+        let style = &self.absolutely_positioned_box.contents.style;
+        let pbm = style.padding_border_margin(&containing_block.into());
 
         let size;
         let replaced_used_size;
@@ -432,16 +433,11 @@ impl HoistedAbsolutelyPositionedBox {
             },
         }
 
-        let padding = style.padding().percentages_relative_to(cbis);
-        let border = style.border_width();
-        let computed_margin = style.margin().percentages_relative_to(cbis);
-        let pb = &padding + &border;
-
         let inline_axis = solve_axis(
             cbis,
-            pb.inline_sum(),
-            computed_margin.inline_start.clone(),
-            computed_margin.inline_end.clone(),
+            pbm.padding_border_sums.inline,
+            pbm.margin.inline_start,
+            pbm.margin.inline_end,
             /* avoid_negative_margin_start */ true,
             self.box_offsets.inline.clone(),
             size.inline,
@@ -449,9 +445,9 @@ impl HoistedAbsolutelyPositionedBox {
 
         let block_axis = solve_axis(
             cbis,
-            pb.block_sum(),
-            computed_margin.block_start.clone(),
-            computed_margin.block_end.clone(),
+            pbm.padding_border_sums.block,
+            pbm.margin.block_start,
+            pbm.margin.block_end,
             /* avoid_negative_margin_start */ false,
             self.box_offsets.block.clone(),
             size.block,
@@ -483,14 +479,14 @@ impl HoistedAbsolutelyPositionedBox {
                         // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                         // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
                         let inline_size = inline_axis.size.auto_is(|| {
-                            let available_size = match inline_axis.anchor {
-                                Anchor::Start(start) => {
-                                    cbis - start - pb.inline_sum() - margin.inline_sum()
-                                },
-                                Anchor::End(end) => {
-                                    cbis - end - pb.inline_sum() - margin.inline_sum()
-                                },
+                            let anchor = match inline_axis.anchor {
+                                Anchor::Start(start) => start,
+                                Anchor::End(end) => end,
                             };
+                            let available_size = cbis -
+                                anchor -
+                                pbm.padding_border_sums.inline -
+                                margin.inline_sum();
                             self.absolutely_positioned_box
                                 .contents
                                 .content_sizes
@@ -526,6 +522,7 @@ impl HoistedAbsolutelyPositionedBox {
                     },
                 };
 
+                let pb = &pbm.padding + &pbm.border;
                 let inline_start = match inline_axis.anchor {
                     Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
                     Anchor::End(end) => {
@@ -550,8 +547,8 @@ impl HoistedAbsolutelyPositionedBox {
                     style.clone(),
                     fragments,
                     content_rect,
-                    padding,
-                    border,
+                    pbm.padding,
+                    pbm.border,
                     margin,
                     CollapsedBlockMargins::zero(),
                 )

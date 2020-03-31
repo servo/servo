@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::geom::{flow_relative, PhysicalSides, PhysicalSize};
+use crate::ContainingBlock;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
@@ -43,6 +44,16 @@ pub(crate) enum DisplayInside {
     FlowRoot,
 }
 
+/// Percentages resolved but not `auto` margins
+pub(crate) struct PaddingBorderMargin {
+    pub padding: flow_relative::Sides<Length>,
+    pub border: flow_relative::Sides<Length>,
+    pub margin: flow_relative::Sides<LengthOrAuto>,
+
+    /// Pre-computed sums in each axis
+    pub padding_border_sums: flow_relative::Vec2<Length>,
+}
+
 pub(crate) trait ComputedValuesExt {
     fn inline_size_is_length(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
@@ -50,6 +61,7 @@ pub(crate) trait ComputedValuesExt {
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>>;
+    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
     fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
@@ -135,7 +147,21 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    #[inline]
+    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
+        let cbis = containing_block.inline_size;
+        let padding = self.padding().percentages_relative_to(cbis);
+        let border = self.border_width();
+        PaddingBorderMargin {
+            padding_border_sums: flow_relative::Vec2 {
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
+            },
+            padding,
+            border,
+            margin: self.margin().percentages_relative_to(cbis),
+        }
+    }
+
     fn padding(&self) -> flow_relative::Sides<LengthPercentage> {
         let padding = self.get_padding();
         flow_relative::Sides::from_physical(

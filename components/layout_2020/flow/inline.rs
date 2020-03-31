@@ -421,13 +421,11 @@ impl InlineBox {
         ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
     ) -> PartialInlineBoxFragment<'box_tree> {
         let style = self.style.clone();
-        let cbis = ifc.containing_block.inline_size;
-        let mut padding = style.padding().percentages_relative_to(cbis);
-        let mut border = style.border_width();
-        let mut margin = style
-            .margin()
-            .percentages_relative_to(cbis)
-            .auto_is(Length::zero);
+        let pbm = style.padding_border_margin(&ifc.containing_block);
+        let mut padding = pbm.padding;
+        let mut border = pbm.border;
+        let mut margin = pbm.margin.auto_is(Length::zero);
+
         if self.first_fragment {
             ifc.inline_position += padding.inline_start + border.inline_start + margin.inline_start;
         } else {
@@ -530,18 +528,14 @@ fn layout_atomic(
     ifc: &mut InlineFormattingContextState,
     atomic: &IndependentFormattingContext,
 ) {
-    let cbis = ifc.containing_block.inline_size;
-    let padding = atomic.style.padding().percentages_relative_to(cbis);
-    let border = atomic.style.border_width();
-    let margin = atomic
-        .style
-        .margin()
-        .percentages_relative_to(cbis)
-        .auto_is(Length::zero);
-    let pbm = &(&padding + &border) + &margin;
-    ifc.inline_position += pbm.inline_start;
+    let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
+    let padding = pbm.padding;
+    let border = pbm.border;
+    let margin = pbm.margin.auto_is(Length::zero);
+    let pbm_sums = &(&padding + &border) + &margin;
+    ifc.inline_position += pbm_sums.inline_start;
     let mut start_corner = Vec2 {
-        block: pbm.block_start,
+        block: pbm_sums.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
     if atomic.style.clone_position().is_relative() {
@@ -577,9 +571,10 @@ fn layout_atomic(
                 .auto_is(Length::zero);
 
             // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
+            let cbis = ifc.containing_block.inline_size;
             let tentative_inline_size =
                 box_size.inline.percentage_relative_to(cbis).auto_is(|| {
-                    let available_size = cbis - pbm.inline_sum();
+                    let available_size = cbis - pbm_sums.inline_sum();
                     atomic.content_sizes.shrink_to_fit(available_size)
                 });
 
@@ -641,10 +636,10 @@ fn layout_atomic(
         },
     };
 
-    ifc.inline_position += pbm.inline_end + fragment.content_rect.size.inline;
+    ifc.inline_position += pbm_sums.inline_end + fragment.content_rect.size.inline;
     ifc.current_nesting_level
         .max_block_size_of_fragments_so_far
-        .max_assign(pbm.block_sum() + fragment.content_rect.size.block);
+        .max_assign(pbm_sums.block_sum() + fragment.content_rect.size.block);
     ifc.current_nesting_level
         .fragments_so_far
         .push(Fragment::Box(fragment));

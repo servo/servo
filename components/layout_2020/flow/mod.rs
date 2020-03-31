@@ -14,7 +14,7 @@ use crate::fragments::{CollapsedBlockMargins, CollapsedMargin, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
@@ -350,12 +350,7 @@ fn layout_in_flow_non_replaced_block_level(
     tree_rank: usize,
     float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {
-    let cbis = containing_block.inline_size;
-    let padding = style.padding().percentages_relative_to(cbis);
-    let border = style.border_width();
-    let margin = style.margin().percentages_relative_to(cbis);
-    let pb = &padding + &border;
-    let pb_inline_sum = pb.inline_sum();
+    let pbm = style.padding_border_margin(containing_block);
 
     let box_size = style.box_size().percentages_relative_to(containing_block);
     let max_box_size = style
@@ -368,22 +363,18 @@ fn layout_in_flow_non_replaced_block_level(
 
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
     let solve_inline_margins = |inline_size| {
-        solve_inline_margins_for_in_flow_block_level(
-            containing_block,
-            pb_inline_sum,
-            margin.inline_start,
-            margin.inline_end,
-            inline_size,
-        )
+        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size)
     };
     let (mut inline_size, mut inline_margins) =
         if let Some(inline_size) = box_size.inline.non_auto() {
             (inline_size, solve_inline_margins(inline_size))
         } else {
-            let margin_inline_start = margin.inline_start.auto_is(Length::zero);
-            let margin_inline_end = margin.inline_end.auto_is(Length::zero);
-            let margin_inline_sum = margin_inline_start + margin_inline_end;
-            let inline_size = cbis - pb_inline_sum - margin_inline_sum;
+            let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
+            let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
+            let inline_size = containing_block.inline_size -
+                pbm.padding_border_sums.inline -
+                margin_inline_start -
+                margin_inline_end;
             (inline_size, (margin_inline_start, margin_inline_end))
         };
     if let Some(max_inline_size) = max_box_size.inline {
@@ -400,8 +391,8 @@ fn layout_in_flow_non_replaced_block_level(
     let margin = Sides {
         inline_start: inline_margins.0,
         inline_end: inline_margins.1,
-        block_start: margin.block_start.auto_is(Length::zero),
-        block_end: margin.block_end.auto_is(Length::zero),
+        block_start: pbm.margin.block_start.auto_is(Length::zero),
+        block_end: pbm.margin.block_end.auto_is(Length::zero),
     };
 
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
@@ -427,8 +418,10 @@ fn layout_in_flow_non_replaced_block_level(
     let mut content_block_size;
     match block_level_kind {
         NonReplacedContents::SameFormattingContextBlock(contents) => {
-            let this_start_margin_can_collapse_with_children = pb.block_start == Length::zero();
-            let this_end_margin_can_collapse_with_children = pb.block_end == Length::zero() &&
+            let start_margin_can_collapse_with_children = pbm.padding.block_start == Length::zero() &&
+                pbm.border.block_start == Length::zero();
+            let end_margin_can_collapse_with_children = pbm.padding.block_end == Length::zero() &&
+                pbm.border.block_end == Length::zero() &&
                 block_size == LengthOrAuto::Auto &&
                 min_box_size.block == Length::zero();
 
@@ -438,13 +431,13 @@ fn layout_in_flow_non_replaced_block_level(
                 &containing_block_for_children,
                 tree_rank,
                 float_context,
-                CollapsibleWithParentStartMargin(this_start_margin_can_collapse_with_children),
+                CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
             );
             fragments = flow_layout.fragments;
             content_block_size = flow_layout.content_block_size;
             let mut collapsible_margins_in_children = flow_layout.collapsible_margins_in_children;
 
-            if this_start_margin_can_collapse_with_children {
+            if start_margin_can_collapse_with_children {
                 block_margins_collapsed_with_children
                     .start
                     .adjoin_assign(&collapsible_margins_in_children.start);
@@ -457,7 +450,7 @@ fn layout_in_flow_non_replaced_block_level(
                         ));
                 }
             }
-            if this_end_margin_can_collapse_with_children {
+            if end_margin_can_collapse_with_children {
                 block_margins_collapsed_with_children
                     .end
                     .adjoin_assign(&collapsible_margins_in_children.end);
@@ -465,8 +458,8 @@ fn layout_in_flow_non_replaced_block_level(
                 content_block_size += collapsible_margins_in_children.end.solve();
             }
             block_margins_collapsed_with_children.collapsed_through =
-                this_start_margin_can_collapse_with_children &&
-                    this_end_margin_can_collapse_with_children &&
+                start_margin_can_collapse_with_children &&
+                    end_margin_can_collapse_with_children &&
                     collapsible_margins_in_children.collapsed_through;
         },
         NonReplacedContents::EstablishesAnIndependentFormattingContext(non_replaced) => {
@@ -485,8 +478,8 @@ fn layout_in_flow_non_replaced_block_level(
     });
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pb.block_start,
-            inline: pb.inline_start + margin.inline_start,
+            block: pbm.padding.block_start + pbm.border.block_start,
+            inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size: Vec2 {
             block: block_size,
@@ -498,8 +491,8 @@ fn layout_in_flow_non_replaced_block_level(
         style.clone(),
         fragments,
         content_rect,
-        padding,
-        border,
+        pbm.padding,
+        pbm.border,
         margin,
         block_margins_collapsed_with_children,
     )
@@ -514,32 +507,22 @@ fn layout_in_flow_replaced_block_level<'a>(
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
+    let pbm = style.padding_border_margin(containing_block);
     let size = replaced.used_size_as_if_inline_element(containing_block, style);
 
-    let cbis = containing_block.inline_size;
-    let padding = style.padding().percentages_relative_to(cbis);
-    let border = style.border_width();
-    let computed_margin = style.margin().percentages_relative_to(cbis);
-    let pb = &padding + &border;
-
-    let (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
-        containing_block,
-        pb.inline_sum(),
-        computed_margin.inline_start,
-        computed_margin.inline_end,
-        size.inline,
-    );
+    let (margin_inline_start, margin_inline_end) =
+        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, size.inline);
     let margin = Sides {
         inline_start: margin_inline_start,
         inline_end: margin_inline_end,
-        block_start: computed_margin.block_start.auto_is(Length::zero),
-        block_end: computed_margin.block_end.auto_is(Length::zero),
+        block_start: pbm.margin.block_start.auto_is(Length::zero),
+        block_end: pbm.margin.block_end.auto_is(Length::zero),
     };
     let fragments = replaced.make_fragments(style, size.clone());
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pb.block_start,
-            inline: pb.inline_start + margin.inline_start,
+            block: pbm.padding.block_start + pbm.border.block_start,
+            inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size,
     };
@@ -549,8 +532,8 @@ fn layout_in_flow_replaced_block_level<'a>(
         style.clone(),
         fragments,
         content_rect,
-        padding,
-        border,
+        pbm.padding,
+        pbm.border,
         margin,
         block_margins_collapsed_with_children,
     )
@@ -558,15 +541,13 @@ fn layout_in_flow_replaced_block_level<'a>(
 
 fn solve_inline_margins_for_in_flow_block_level(
     containing_block: &ContainingBlock,
-    padding_border_inline_sum: Length,
-    computed_margin_inline_start: LengthOrAuto,
-    computed_margin_inline_end: LengthOrAuto,
+    pbm: &PaddingBorderMargin,
     inline_size: Length,
 ) -> (Length, Length) {
-    let inline_margins = containing_block.inline_size - padding_border_inline_sum - inline_size;
-    match (computed_margin_inline_start, computed_margin_inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (inline_margins / 2., inline_margins / 2.),
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (inline_margins - end, end),
-        (LengthOrAuto::LengthPercentage(start), _) => (start, inline_margins - start),
+    let available = containing_block.inline_size - pbm.padding_border_sums.inline - inline_size;
+    match (pbm.margin.inline_start, pbm.margin.inline_end) {
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (available / 2., available / 2.),
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (available - end, end),
+        (LengthOrAuto::LengthPercentage(start), _) => (start, available - start),
     }
 }
