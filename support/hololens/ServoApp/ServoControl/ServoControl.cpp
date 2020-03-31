@@ -564,9 +564,10 @@ void ServoControl::OnServoDevtoolsStarted(bool success,
   });
 }
 
-void ServoControl::OnServoShowContextMenu(std::vector<winrt::hstring> items) {
+void ServoControl::OnServoShowContextMenu(std::optional<hstring> title,
+                                          std::vector<winrt::hstring> items) {
   RunOnUIThread([=] {
-    MessageDialog msg{L"Menu"};
+    MessageDialog msg{title.value_or(L"Menu")};
     for (auto i = 0; i < items.size(); i++) {
       UICommand cmd{items[i], [=](auto) {
                       RunOnGLThread([=] {

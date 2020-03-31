@@ -521,7 +521,7 @@ where
                         Err(()) => error!("Error running devtools server"),
                     }
                 },
-                EmbedderMsg::ShowContextMenu(sender, _) => {
+                EmbedderMsg::ShowContextMenu(sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 }
             }

@@ -157,7 +157,7 @@ pub enum EmbedderMsg {
     /// Show dialog to user
     Prompt(PromptDefinition, PromptOrigin),
     /// Show a context menu to the user
-    ShowContextMenu(IpcSender<ContextMenuResult>, Vec<String>),
+    ShowContextMenu(IpcSender<ContextMenuResult>, Option<String>, Vec<String>),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
