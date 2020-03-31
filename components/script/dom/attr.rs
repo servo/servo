@@ -234,26 +234,26 @@ impl Attr {
 
 #[allow(unsafe_code)]
 pub trait AttrHelpersForLayout<'dom> {
-    unsafe fn value(self) -> &'dom AttrValue;
-    unsafe fn value_ref_forever(self) -> &'dom str;
-    unsafe fn value_tokens(self) -> Option<&'dom [Atom]>;
-    unsafe fn local_name_atom(self) -> LocalName;
+    fn value(self) -> &'dom AttrValue;
+    fn value_ref_forever(self) -> &'dom str;
+    fn value_tokens(self) -> Option<&'dom [Atom]>;
+    fn local_name_atom(self) -> LocalName;
 }
 
 #[allow(unsafe_code)]
 impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     #[inline]
-    unsafe fn value(self) -> &'dom AttrValue {
-        (*self.unsafe_get()).value.borrow_for_layout()
+    fn value(self) -> &'dom AttrValue {
+        unsafe { self.unsafe_get().value.borrow_for_layout() }
     }
 
     #[inline]
-    unsafe fn value_ref_forever(self) -> &'dom str {
+    fn value_ref_forever(self) -> &'dom str {
         &**self.value()
     }
 
     #[inline]
-    unsafe fn value_tokens(self) -> Option<&'dom [Atom]> {
+    fn value_tokens(self) -> Option<&'dom [Atom]> {
         // This transmute is used to cheat the lifetime restriction.
         match *self.value() {
             AttrValue::TokenList(_, ref tokens) => Some(tokens),
@@ -262,7 +262,7 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     }
 
     #[inline]
-    unsafe fn local_name_atom(self) -> LocalName {
-        (*self.unsafe_get()).identifier.local_name.clone()
+    fn local_name_atom(self) -> LocalName {
+        unsafe { self.unsafe_get().identifier.local_name.clone() }
     }
 }
