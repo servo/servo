@@ -486,7 +486,7 @@ fn layout_in_flow_non_replaced_block_level(
     let content_rect = Rect {
         start_corner: Vec2 {
             block: pb.block_start,
-            inline: pb.inline_start,
+            inline: pb.inline_start + margin.inline_start,
         },
         size: Vec2 {
             block: block_size,
