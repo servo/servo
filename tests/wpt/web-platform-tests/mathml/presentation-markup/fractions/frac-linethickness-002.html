@@ -56,6 +56,12 @@
           assert_approx_equals(LineThickness("namedspace"), defaultRuleThickness, epsilon);
         }, "Named space");
 
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          /* Calc() expressions are invalid in MathML Core. */
+          assert_approx_equals(LineThickness("calc"), defaultRuleThickness, epsilon);
+        }, "Calc() expression");
+
         done();
       }
     </script>
@@ -81,6 +87,12 @@
     </math>
     <math>
       <mfrac id="namedspace" linethickness="veryverythickmathspace">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac id="calc" linethickness="calc(20px)">
         <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>

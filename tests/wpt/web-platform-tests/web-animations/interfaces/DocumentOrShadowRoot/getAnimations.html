@@ -68,7 +68,7 @@ test(t => {
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  insertFrameAndAwaitLoad(t, iframe, document)
+  await insertFrameAndAwaitLoad(t, iframe, document)
 
   const div = createDiv(t, iframe.contentDocument)
   const effect = new KeyframeEffect(div, null, 100 * MS_PER_SEC);
@@ -88,8 +88,8 @@ promise_test(async t => {
   const iframe1 = document.createElement('iframe');
   const iframe2 = document.createElement('iframe');
 
-  insertFrameAndAwaitLoad(t, iframe1, document);
-  insertFrameAndAwaitLoad(t, iframe2, document);
+  await insertFrameAndAwaitLoad(t, iframe1, document);
+  await insertFrameAndAwaitLoad(t, iframe2, document);
 
   const div_frame1 = createDiv(t, iframe1.contentDocument)
   const div_main_frame = createDiv(t)

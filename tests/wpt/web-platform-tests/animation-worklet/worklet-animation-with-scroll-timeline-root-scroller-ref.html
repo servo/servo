@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <title>Reference for Scroll timeline with WorkletAnimation using the root scroller</title>
 <style>
+  /* Hide scrollbars to avoid unnecessary visual issues related to them */
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
   html {
+    scrollbar-width: none;
     min-height: 100%;
     min-width: 100%;
     padding-bottom: 100px;

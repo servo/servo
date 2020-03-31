@@ -93,27 +93,27 @@ partial dictionary MediaTrackCapabilities {
 };
 
 partial dictionary MediaTrackConstraintSet {
-  ConstrainDOMString whiteBalanceMode;
-  ConstrainDOMString exposureMode;
-  ConstrainDOMString focusMode;
-  ConstrainPoint2D   pointsOfInterest;
+  ConstrainDOMString           whiteBalanceMode;
+  ConstrainDOMString           exposureMode;
+  ConstrainDOMString           focusMode;
+  ConstrainPoint2D             pointsOfInterest;
 
-  ConstrainDouble    exposureCompensation;
-  ConstrainDouble    exposureTime;
-  ConstrainDouble    colorTemperature;
-  ConstrainDouble    iso;
+  ConstrainDouble              exposureCompensation;
+  ConstrainDouble              exposureTime;
+  ConstrainDouble              colorTemperature;
+  ConstrainDouble              iso;
 
-  ConstrainDouble    brightness;
-  ConstrainDouble    contrast;
-  ConstrainDouble    saturation;
-  ConstrainDouble    sharpness;
+  ConstrainDouble              brightness;
+  ConstrainDouble              contrast;
+  ConstrainDouble              saturation;
+  ConstrainDouble              sharpness;
 
-  ConstrainDouble    focusDistance;
-  ConstrainDouble    pan;
-  ConstrainDouble    tilt;
-  ConstrainDouble    zoom;
+  ConstrainDouble              focusDistance;
+  (boolean or ConstrainDouble) pan;
+  (boolean or ConstrainDouble) tilt;
+  (boolean or ConstrainDouble) zoom;
 
-  ConstrainBoolean   torch;
+  ConstrainBoolean             torch;
 };
 
 partial dictionary MediaTrackSettings {

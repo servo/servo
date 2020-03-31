@@ -13,3 +13,13 @@ partial interface XRSession {
   // Attributes
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 };
+
+enum XRInteractionMode {
+    "screen-space",
+    "world-space",
+};
+
+partial interface XRSession {
+  // Attributes
+  readonly attribute XRInteractionMode interactionMode;
+};
