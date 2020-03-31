@@ -148,7 +148,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     fn is_element(&self) -> bool {
-        unsafe { self.node.is_element_for_layout() }
+        self.node.is_element_for_layout()
     }
 
     fn is_text_node(&self) -> bool {

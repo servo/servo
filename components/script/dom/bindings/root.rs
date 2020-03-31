@@ -441,6 +441,15 @@ where
         debug_assert!(thread_state::get().is_layout());
         self.value.downcast::<U>().map(|value| LayoutDom { value })
     }
+
+    /// Returns whether this inner object is a U.
+    pub fn is<U>(&self) -> bool
+    where
+        U: DerivedFrom<T>,
+    {
+        debug_assert!(thread_state::get().is_layout());
+        self.value.is::<U>()
+    }
 }
 
 impl<T> LayoutDom<'_, T>
