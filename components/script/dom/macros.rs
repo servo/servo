@@ -671,11 +671,6 @@ macro_rules! impl_rare_data (
                 rare_data.as_mut().unwrap()
             })
         }
-
-        #[allow(unsafe_code)]
-        fn rare_data_for_layout(&self) -> &Option<Box<$type>> {
-            unsafe { self.rare_data.borrow_for_layout() }
-        }
     );
 );
 

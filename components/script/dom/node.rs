@@ -1400,8 +1400,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
-        (*self.unsafe_get())
-            .rare_data_for_layout()
+        self.unsafe_get()
+            .rare_data
+            .borrow_for_layout()
             .as_ref()?
             .containing_shadow_root
             .as_ref()
