@@ -522,6 +522,10 @@ impl BoxFragment {
                 StackingContextBuildMode::SkipHoisted,
             );
         }
+
+        if established_reference_frame {
+            builder.wr.pop_reference_frame();
+        }
     }
 
     fn adjust_spatial_id_for_positioning(&self, builder: &mut StackingContextBuilder) {
