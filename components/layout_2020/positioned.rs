@@ -416,19 +416,16 @@ impl HoistedAbsolutelyPositionedBox {
             Ok(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let u = replaced.used_size_as_if_inline_element(&containing_block.into(), style);
+                let used_size =
+                    replaced.used_size_as_if_inline_element(&containing_block.into(), style, &pbm);
                 size = Vec2 {
-                    inline: LengthOrAuto::LengthPercentage(u.inline),
-                    block: LengthOrAuto::LengthPercentage(u.block),
+                    inline: LengthOrAuto::LengthPercentage(used_size.inline),
+                    block: LengthOrAuto::LengthPercentage(used_size.block),
                 };
-                replaced_used_size = Some(u);
+                replaced_used_size = Some(used_size);
             },
             Err(_non_replaced) => {
-                let box_size = style.box_size();
-                size = Vec2 {
-                    inline: box_size.inline.percentage_relative_to(cbis),
-                    block: box_size.block.percentage_relative_to(cbbs),
-                };
+                size = style.content_box_size(&containing_block.into(), &pbm);
                 replaced_used_size = None;
             },
         }

@@ -7,12 +7,14 @@ use crate::ContainingBlock;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::specified::box_ as stylo;
+use style::Zero;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {
@@ -61,6 +63,21 @@ pub(crate) trait ComputedValuesExt {
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
     fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>>;
+    fn content_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<LengthOrAuto>;
+    fn content_min_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<LengthOrAuto>;
+    fn content_max_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<Option<Length>>;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding(&self) -> flow_relative::Sides<LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
@@ -93,7 +110,6 @@ impl ComputedValuesExt for ComputedValues {
         !a.is_auto() && !b.is_auto()
     }
 
-    #[inline]
     fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
         let position = self.get_position();
         flow_relative::Sides::from_physical(
@@ -107,7 +123,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    #[inline]
     fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
@@ -119,7 +134,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    #[inline]
     fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
@@ -131,7 +145,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    #[inline]
     fn max_box_size(&self) -> flow_relative::Vec2<MaxSize<LengthPercentage>> {
         let unwrap = |max_size: MaxSize<NonNegativeLengthPercentage>| match max_size {
             MaxSize::LengthPercentage(length) => MaxSize::LengthPercentage(length.0),
@@ -145,6 +158,70 @@ impl ComputedValuesExt for ComputedValues {
             ),
             self.writing_mode,
         )
+    }
+
+    fn content_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<LengthOrAuto> {
+        let box_size = self.box_size().percentages_relative_to(containing_block);
+        match self.get_position().box_sizing {
+            BoxSizing::ContentBox => box_size,
+            BoxSizing::BorderBox => flow_relative::Vec2 {
+                // These may be negative, but will later be clamped by `min-width`/`min-height`
+                // which is clamped to zero.
+                inline: box_size.inline.map(|i| i - pbm.padding_border_sums.inline),
+                block: box_size.block.map(|b| b - pbm.padding_border_sums.block),
+            },
+        }
+    }
+
+    fn content_min_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<LengthOrAuto> {
+        let min_box_size = self
+            .min_box_size()
+            .percentages_relative_to(containing_block);
+        match self.get_position().box_sizing {
+            BoxSizing::ContentBox => min_box_size,
+            BoxSizing::BorderBox => flow_relative::Vec2 {
+                // Clamp to zero to make sure the used size components are non-negative
+                inline: min_box_size
+                    .inline
+                    .map(|i| (i - pbm.padding_border_sums.inline).max(Length::zero())),
+                block: min_box_size
+                    .block
+                    .map(|b| (b - pbm.padding_border_sums.block).max(Length::zero())),
+            },
+        }
+    }
+
+    fn content_max_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> flow_relative::Vec2<Option<Length>> {
+        let max_box_size = self
+            .max_box_size()
+            .percentages_relative_to(containing_block);
+        match self.get_position().box_sizing {
+            BoxSizing::ContentBox => max_box_size,
+            BoxSizing::BorderBox => {
+                // This may be negative, but will later be clamped by `min-width`
+                // which itself is clamped to zero.
+                flow_relative::Vec2 {
+                    inline: max_box_size
+                        .inline
+                        .map(|i| i - pbm.padding_border_sums.inline),
+                    block: max_box_size
+                        .block
+                        .map(|b| b - pbm.padding_border_sums.block),
+                }
+            },
+        }
     }
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
@@ -313,9 +390,7 @@ impl From<stylo::Display> for Display {
 
 fn size_to_length(size: Size) -> LengthPercentageOrAuto {
     match size {
-        Size::LengthPercentage(length) => {
-            LengthPercentageOrAuto::LengthPercentage(length.0.clone())
-        },
+        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(length.0),
         Size::Auto => LengthPercentageOrAuto::Auto,
     }
 }

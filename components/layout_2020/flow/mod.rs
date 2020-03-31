@@ -351,14 +351,10 @@ fn layout_in_flow_non_replaced_block_level(
     float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
-
-    let box_size = style.box_size().percentages_relative_to(containing_block);
-    let max_box_size = style
-        .max_box_size()
-        .percentages_relative_to(containing_block);
+    let box_size = style.content_box_size(containing_block, &pbm);
+    let max_box_size = style.content_max_box_size(containing_block, &pbm);
     let min_box_size = style
-        .min_box_size()
-        .percentages_relative_to(containing_block)
+        .content_min_box_size(containing_block, &pbm)
         .auto_is(Length::zero);
 
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -508,7 +504,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     replaced: &ReplacedContent,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
-    let size = replaced.used_size_as_if_inline_element(containing_block, style);
+    let size = replaced.used_size_as_if_inline_element(containing_block, style, &pbm);
 
     let (margin_inline_start, margin_inline_end) =
         solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, size.inline);

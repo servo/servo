@@ -529,10 +529,8 @@ fn layout_atomic(
     atomic: &IndependentFormattingContext,
 ) {
     let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
-    let padding = pbm.padding;
-    let border = pbm.border;
     let margin = pbm.margin.auto_is(Length::zero);
-    let pbm_sums = &(&padding + &border) + &margin;
+    let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
     ifc.inline_position += pbm_sums.inline_start;
     let mut start_corner = Vec2 {
         block: pbm_sums.block_start,
@@ -544,7 +542,8 @@ fn layout_atomic(
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
-            let size = replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style);
+            let size =
+                replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment::new(
@@ -552,31 +551,27 @@ fn layout_atomic(
                 atomic.style.clone(),
                 fragments,
                 content_rect,
-                padding,
-                border,
+                pbm.padding,
+                pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
             )
         },
         Err(non_replaced) => {
-            let box_size = atomic.style.box_size();
+            let box_size = atomic.style.content_box_size(&ifc.containing_block, &pbm);
             let max_box_size = atomic
                 .style
-                .max_box_size()
-                .percentages_relative_to(ifc.containing_block);
+                .content_max_box_size(&ifc.containing_block, &pbm);
             let min_box_size = atomic
                 .style
-                .min_box_size()
-                .percentages_relative_to(ifc.containing_block)
+                .content_min_box_size(&ifc.containing_block, &pbm)
                 .auto_is(Length::zero);
 
             // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-            let cbis = ifc.containing_block.inline_size;
-            let tentative_inline_size =
-                box_size.inline.percentage_relative_to(cbis).auto_is(|| {
-                    let available_size = cbis - pbm_sums.inline_sum();
-                    atomic.content_sizes.shrink_to_fit(available_size)
-                });
+            let tentative_inline_size = box_size.inline.auto_is(|| {
+                let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
+                atomic.content_sizes.shrink_to_fit(available_size)
+            });
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-widths
             // In this case “applying the rules above again” with a non-auto inline-size
@@ -584,12 +579,9 @@ fn layout_atomic(
             let inline_size = tentative_inline_size
                 .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
-            let block_size = box_size
-                .block
-                .maybe_percentage_relative_to(ifc.containing_block.block_size.non_auto());
             let containing_block_for_children = ContainingBlock {
                 inline_size,
-                block_size,
+                block_size: box_size.block,
                 style: &atomic.style,
             };
             assert_eq!(
@@ -608,7 +600,9 @@ fn layout_atomic(
             );
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-            let tentative_block_size = block_size.auto_is(|| independent_layout.content_block_size);
+            let tentative_block_size = box_size
+                .block
+                .auto_is(|| independent_layout.content_block_size);
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-heights
             // In this case “applying the rules above again” with a non-auto block-size
@@ -628,8 +622,8 @@ fn layout_atomic(
                 atomic.style.clone(),
                 independent_layout.fragments,
                 content_rect,
-                padding,
-                border,
+                pbm.padding,
+                pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
             )

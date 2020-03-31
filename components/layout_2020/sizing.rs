@@ -5,6 +5,7 @@
 //! https://drafts.csswg.org/css-sizing/
 
 use crate::style_ext::ComputedValuesExt;
+use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::generics::length::MaxSize;
@@ -63,6 +64,13 @@ impl ContentSizes {
         }
     }
 
+    fn map(&self, f: impl Fn(Length) -> Length) -> Self {
+        Self {
+            min_content: f(self.min_content),
+            max_content: f(self.max_content),
+        }
+    }
+
     pub fn max_assign(&mut self, other: &Self) {
         self.min_content.max_assign(other.min_content);
         self.max_content.max_assign(other.max_content);
@@ -108,61 +116,68 @@ impl BoxContentSizes {
         &self,
         style: &ComputedValues,
     ) -> (ContentSizes, Percentage) {
-        // FIXME: account for 'box-sizing'
-        let inline_size = style.box_size().inline;
+        let padding = style.padding();
+        let border = style.border_width();
+        let margin = style.margin();
+
+        let mut pbm_percentages = Percentage::zero();
+        let mut decompose = |x: LengthPercentage| {
+            pbm_percentages += x.to_percentage().unwrap_or_else(Zero::zero);
+            x.to_length().unwrap_or_else(Zero::zero)
+        };
+        let pb_lengths =
+            border.inline_sum() + decompose(padding.inline_start) + decompose(padding.inline_end);
+        let mut m_lengths = Length::zero();
+        if let Some(m) = margin.inline_start.non_auto() {
+            m_lengths += decompose(m)
+        }
+        if let Some(m) = margin.inline_end.non_auto() {
+            m_lengths += decompose(m)
+        }
+
+        let box_sizing = style.get_position().box_sizing;
+        let inline_size = style
+            .box_size()
+            .inline
+            .non_auto()
+            // Percentages for 'width' are treated as 'auto'
+            .and_then(|lp| lp.to_length());
         let min_inline_size = style
             .min_box_size()
             .inline
+            // Percentages for 'min-width' are treated as zero
             .percentage_relative_to(Length::zero())
+            // FIXME: 'auto' is not zero in Flexbox
             .auto_is(Length::zero);
         let max_inline_size = match style.max_box_size().inline {
             MaxSize::None => None,
+            // Percentages for 'max-width' are treated as 'none'
             MaxSize::LengthPercentage(ref lp) => lp.to_length(),
         };
         let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
 
-        // Percentages for 'width' are treated as 'auto'
-        let inline_size = inline_size.map(|lp| lp.to_length());
-        // The (inner) min/max-content are only used for 'auto'
-        let mut outer = match inline_size.non_auto().flatten() {
-            None => {
-                let inner = self.expect_inline().clone();
+        let border_box_sizes = match inline_size {
+            Some(non_auto) => {
+                let clamped = clamp(non_auto);
+                let border_box_size = match box_sizing {
+                    BoxSizing::ContentBox => clamped + pb_lengths,
+                    BoxSizing::BorderBox => clamped,
+                };
                 ContentSizes {
-                    min_content: clamp(inner.min_content),
-                    max_content: clamp(inner.max_content),
+                    min_content: border_box_size,
+                    max_content: border_box_size,
                 }
             },
-            Some(length) => {
-                let length = clamp(length);
-                ContentSizes {
-                    min_content: length,
-                    max_content: length,
+            None => self.expect_inline().map(|content_box_size| {
+                match box_sizing {
+                    // Clamp to 'min-width' and 'max-width', which are sizing the…
+                    BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
+                    BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
                 }
-            },
+            }),
         };
 
-        let mut pbm_lengths = Length::zero();
-        let mut pbm_percentages = Percentage::zero();
-        let padding = style.padding();
-        let border = style.border_width();
-        let margin = style.margin();
-        pbm_lengths += border.inline_sum();
-        let mut add = |x: LengthPercentage| {
-            if let Some(l) = x.to_length() {
-                pbm_lengths += l;
-            }
-            if let Some(p) = x.to_percentage() {
-                pbm_percentages += p;
-            }
-        };
-        add(padding.inline_start);
-        add(padding.inline_end);
-        margin.inline_start.non_auto().map(&mut add);
-        margin.inline_end.non_auto().map(&mut add);
-
-        outer.min_content += pbm_lengths;
-        outer.max_content += pbm_lengths;
-
+        let outer = border_box_sizes.map(|s| s + m_lengths);
         (outer, pbm_percentages)
     }
 
