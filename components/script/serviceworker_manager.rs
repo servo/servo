@@ -54,8 +54,26 @@ impl ServiceWorkerManager {
         }
     }
 
-    pub fn spawn_manager(sw_senders: SWManagerSenders) {
+    pub fn spawn_manager(sw_senders: SWManagerSenders, origin: Option<ImmutableOrigin>) {
         let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
+
+        if let Some(origin) = origin.as_ref() {
+            let (sender, receiver) = ipc::channel().unwrap();
+            let _ = sw_senders
+                .swmanager_sender
+                .send(SWManagerMsg::ShouldStartManagerForOrigin(
+                    sender,
+                    origin.clone(),
+                ));
+            if !receiver
+                .recv()
+                .expect("Couldn't get a confirmation from the constellation.")
+            {
+                // No need to start a manager in this process.
+                return;
+            }
+        }
+
         let (resource_chan, resource_port) = ipc::channel().unwrap();
         let from_constellation =
             ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(from_constellation_receiver);
@@ -65,7 +83,7 @@ impl ServiceWorkerManager {
             .send(CoreResourceMsg::NetworkMediator(resource_chan));
         let _ = sw_senders
             .swmanager_sender
-            .send(SWManagerMsg::OwnSender(own_sender.clone()));
+            .send(SWManagerMsg::OwnSender(own_sender.clone(), origin));
         thread::Builder::new()
             .name("ServiceWorkerManager".to_owned())
             .spawn(move || {

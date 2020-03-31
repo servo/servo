@@ -348,8 +348,12 @@ pub struct Constellation<Message, LTF, STF> {
     /// bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// An IPC channel for the constellation to send messages to the
-    /// Service Worker Manager thread.
+    /// A map of origin to ServiceWorker manager sender,
+    /// for use in multi-process mode.
+    serviceworker_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
+
+    /// The sender to a single ServiceWorker manager
+    /// for use in single-process mode.
     swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
 
     /// An IPC channel for Service Worker Manager threads to send
@@ -961,6 +965,7 @@ where
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
                     font_cache_thread: state.font_cache_thread,
+                    serviceworker_managers: HashMap::new(),
                     swmanager_chan: None,
                     swmanager_receiver: swmanager_receiver,
                     swmanager_sender: sw_mgr_clone,
@@ -1530,9 +1535,17 @@ where
 
     fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
         match message {
-            SWManagerMsg::OwnSender(sw_sender) => {
-                // store service worker manager for communicating with it.
-                self.swmanager_chan = Some(sw_sender);
+            SWManagerMsg::OwnSender(sw_sender, origin) => {
+                if let Some(origin) = origin {
+                    // Multiple processes.
+                    self.serviceworker_managers.insert(sw_sender, origin);
+                } else {
+                    // A single process.
+                    self.swmanager_chan = Some(sw_sender);
+                }
+            },
+            SWManagerMsg::ShouldStartManagerForOrigin(sender, origin) => {
+                let _ = sender.send(!self.serviceworker_managers.contains_key(&origin));
             },
         }
     }
@@ -1968,7 +1981,11 @@ where
                 if let Some(ref mgr) = self.swmanager_chan {
                     let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
                 } else {
-                    warn!("Unable to forward DOMMessage for postMessage call");
+                    if let Some(mgr) = self.serviceworker_managers.get(&scope_url.origin()) {
+                        let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
+                    } else {
+                        warn!("Unable to forward DOMMessage for postMessage call");
+                    }
                 }
             },
             FromScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value) => {
@@ -2625,7 +2642,11 @@ where
         if let Some(ref mgr) = self.swmanager_chan {
             let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
         } else {
-            warn!("sending scope info to service worker manager failed");
+            if let Some(mgr) = self.serviceworker_managers.get(&scope_url.origin()) {
+                let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
+            } else {
+                warn!("Unable to forward DOMMessage for postMessage call");
+            }
         }
     }
 
@@ -2762,10 +2783,16 @@ where
             warn!("Exit bluetooth thread failed ({})", e);
         }
 
-        debug!("Exiting service worker manager thread.");
+        debug!("Exiting service worker manager(s).");
         if let Some(mgr) = self.swmanager_chan.as_ref() {
             if let Err(e) = mgr.send(ServiceWorkerMsg::Exit) {
                 warn!("Exit service worker manager failed ({})", e);
+            }
+        } else {
+            for (_, mgr) in self.serviceworker_managers.drain() {
+                if let Err(e) = mgr.send(ServiceWorkerMsg::Exit) {
+                    warn!("Exit service worker manager failed ({})", e);
+                }
             }
         }
 

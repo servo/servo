@@ -394,5 +394,8 @@ pub enum ServiceWorkerMsg {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
-    OwnSender(IpcSender<ServiceWorkerMsg>),
+    OwnSender(IpcSender<ServiceWorkerMsg>, Option<ImmutableOrigin>),
+    /// In multi-process mode, ask the constellation
+    /// whether a given content-process should start a SW manager.
+    ShouldStartManagerForOrigin(IpcSender<bool>, ImmutableOrigin),
 }

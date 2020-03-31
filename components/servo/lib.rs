@@ -540,8 +540,10 @@ where
             pending_wr_frame.clone(),
         );
 
-        // Send the constellation's swmanager sender to service worker manager thread
-        script::init_service_workers(sw_senders);
+        if !opts.multiprocess {
+            // Send the constellation's swmanager sender to service worker manager thread
+            script::init_service_workers(sw_senders, None);
+        }
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -1021,7 +1023,9 @@ pub fn run_content_process(token: String) {
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
     let _js_engine_setup = script::init();
-    script::init_service_workers(sw_senders);
+
+    let origin = unprivileged_content.load_data.url.origin();
+    script::init_service_workers(sw_senders, Some(origin));
 
     media_platform::init();
 

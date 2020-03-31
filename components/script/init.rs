@@ -7,6 +7,7 @@ use crate::dom::bindings::proxyhandler;
 use crate::script_runtime::JSEngineSetup;
 use crate::serviceworker_manager::ServiceWorkerManager;
 use script_traits::SWManagerSenders;
+use servo_url::ImmutableOrigin;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -51,9 +52,9 @@ fn perform_platform_specific_initialization() {
 #[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
-pub fn init_service_workers(sw_senders: SWManagerSenders) {
+pub fn init_service_workers(sw_senders: SWManagerSenders, origin: Option<ImmutableOrigin>) {
     // Spawn the service worker manager passing the constellation sender
-    ServiceWorkerManager::spawn_manager(sw_senders);
+    ServiceWorkerManager::spawn_manager(sw_senders, origin);
 }
 
 #[allow(unsafe_code)]
