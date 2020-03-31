@@ -1493,25 +1493,21 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[allow(unsafe_code)]
     fn image_url(self) -> Option<ServoUrl> {
-        unsafe {
-            self.downcast::<HTMLImageElement>()
-                .expect("not an image!")
-                .image_url()
-        }
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_url()
     }
 
     #[allow(unsafe_code)]
     fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
-        unsafe { self.downcast::<HTMLImageElement>().map(|e| e.image_data()) }
+        self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
     #[allow(unsafe_code)]
     fn image_density(self) -> Option<f64> {
-        unsafe {
-            self.downcast::<HTMLImageElement>()
-                .expect("not an image!")
-                .image_density()
-        }
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_density()
     }
 
     fn canvas_data(self) -> Option<HTMLCanvasData> {
