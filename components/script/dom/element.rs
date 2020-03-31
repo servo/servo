@@ -571,12 +571,9 @@ pub trait LayoutElementHelpers<'dom> {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(self, _: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>;
-    #[allow(unsafe_code)]
-    unsafe fn get_colspan(self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn get_rowspan(self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn is_html_element(self) -> bool;
+    fn get_colspan(self) -> u32;
+    fn get_rowspan(self) -> u32;
+    fn is_html_element(self) -> bool;
     fn id_attribute(self) -> *const Option<Atom>;
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(self) -> &'dom LocalName;
@@ -951,8 +948,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         }
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_colspan(self) -> u32 {
+    fn get_colspan(self) -> u32 {
         if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_colspan().unwrap_or(1)
         } else {
@@ -962,8 +958,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         }
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn get_rowspan(self) -> u32 {
+    fn get_rowspan(self) -> u32 {
         if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_rowspan().unwrap_or(1)
         } else {
@@ -974,9 +969,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
-    unsafe fn is_html_element(self) -> bool {
-        (*self.unsafe_get()).namespace == ns!(html)
+    fn is_html_element(self) -> bool {
+        *self.namespace() == ns!(html)
     }
 
     #[allow(unsafe_code)]

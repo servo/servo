@@ -443,7 +443,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn is_html_element(&self) -> bool {
-        unsafe { self.element.is_html_element() }
+        self.element.is_html_element()
     }
 
     fn is_mathml_element(&self) -> bool {
@@ -954,14 +954,12 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn is_html_slot_element(&self) -> bool {
-        unsafe { self.element.is_html_element() && self.local_name() == &local_name!("slot") }
+        self.element.is_html_element() && self.local_name() == &local_name!("slot")
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        unsafe {
-            if !self.element.is_html_element() {
-                return false;
-            }
+        if !self.element.is_html_element() {
+            return false;
         }
 
         self.as_node().owner_doc().is_html_document()
