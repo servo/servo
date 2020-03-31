@@ -2610,7 +2610,7 @@ pub trait LayoutDocumentHelpers<'dom> {
     unsafe fn needs_paint_from_layout(self);
     unsafe fn will_paint(self);
     fn quirks_mode(self) -> QuirksMode;
-    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
+    fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
     fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
     fn shadow_roots_styles_changed(self) -> bool;
     unsafe fn flush_shadow_roots_stylesheets(self);
@@ -2639,8 +2639,8 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
-        (*self.unsafe_get()).style_shared_lock()
+    fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
+        unsafe { self.unsafe_get().style_shared_lock() }
     }
 
     #[inline]

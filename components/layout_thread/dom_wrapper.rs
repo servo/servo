@@ -368,7 +368,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
     }
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
-        unsafe { self.document.style_shared_lock() }
+        self.document.style_shared_lock()
     }
 
     pub fn shadow_roots(&self) -> Vec<ServoShadowRoot> {
