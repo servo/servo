@@ -29,6 +29,13 @@ if not os.path.isfile(appx_file):
     print "Can't find ServoApp package (was `mach package` run?)"
     exit(1)
 
+def run_powershell_cmd_dont_fail(cmd):
+    try:
+        print "Running PowerShell command: ", cmd
+        check_call(['powershell.exe', '-NoProfile', '-Command', cmd])
+    except CalledProcessError:
+        print "ERROR: PowerShell command failed"
+        check_call(['powershell.exe', '-NoProfile', '-Command', 'Get-Appxlog'])
 
 def run_powershell_cmd(cmd):
     try:
@@ -36,6 +43,7 @@ def run_powershell_cmd(cmd):
         check_call(['powershell.exe', '-NoProfile', '-Command', cmd])
     except CalledProcessError:
         print "ERROR: PowerShell command failed"
+        check_call(['powershell.exe', '-NoProfile', '-Command', 'Get-Appxlog'])
         exit(1)
 
 
@@ -60,6 +68,13 @@ uninstall_cmd = '$(Get-AppxPackage ' + app_name + ')| Remove-AppxPackage'
 # Installing app
 # Uninstalling first. Just in case.
 run_powershell_cmd(uninstall_cmd)
+
+run_powershell_cmd_dont_fail('dir cert: -Recurse | Where-Object {$_.Issuer -eq "CN=Allizom"}')
+run_powershell_cmd_dont_fail('Get-AuthenticodeSignature -FilePath ' + appx_file + ' | Select-Object *')
+c1 = 'reg query "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock" /v "AllowDevelopmentWithoutDevLicense"'
+c2 = 'reg query "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock" /v "AllowAllTrustedApps"'
+run_powershell_cmd_dont_fail(c1)
+run_powershell_cmd_dont_fail(c2)
 run_powershell_cmd('Add-AppxPackage -Path ' + dep_file)
 run_powershell_cmd('Add-AppxPackage -Path ' + appx_file)
 # Allow app to connect to localhost
