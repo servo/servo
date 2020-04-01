@@ -607,7 +607,12 @@ trait PrivateMatchMethods: TElement {
 
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
-        animation::complete_expired_transitions(this_opaque, style, context);
+        animation::complete_expired_transitions(
+            this_opaque,
+            style,
+            context,
+            possibly_expired_animations,
+        );
 
         // Merge any running animations into the current style, and cancel them.
         let had_running_animations = context

@@ -425,6 +425,11 @@ pub fn start_transitions_if_applicable(
             // above.
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
+            debug!(
+                "checking {:?} for matching end value",
+                possibly_expired_animations
+            );
+
             // Per [1], don't trigger a new transition if the end state for that
             // transition is the same as that of a transition that's already
             // running on the same node.
@@ -852,26 +857,18 @@ pub fn complete_expired_transitions(
     node: OpaqueNode,
     style: &mut Arc<ComputedValues>,
     context: &SharedStyleContext,
-) -> bool {
-    let had_animations_to_expire;
-    {
-        let all_expired_animations = context.expired_animations.read();
-        let animations_to_expire = all_expired_animations.get(&node);
-        had_animations_to_expire = animations_to_expire.is_some();
-        if let Some(ref animations) = animations_to_expire {
-            for animation in *animations {
-                debug!("Updating expired animation {:?}", animation);
-                // TODO: support animation-fill-mode
-                if let Animation::Transition(_, _, ref frame) = *animation {
-                    frame.property_animation.update(Arc::make_mut(style), 1.0);
-                }
+    expired_animations: &mut Vec<crate::animation::PropertyAnimation>,
+) {
+    let mut all_expired_animations = context.expired_animations.write();
+    if let Some(animations) = all_expired_animations.remove(&node) {
+        debug!("removing expired animations for {:?}", node);
+        for animation in animations {
+            debug!("Updating expired animation {:?}", animation);
+            // TODO: support animation-fill-mode
+            if let Animation::Transition(_, _, frame) = animation {
+                frame.property_animation.update(Arc::make_mut(style), 1.0);
+                expired_animations.push(frame.property_animation);
             }
         }
     }
-
-    if had_animations_to_expire {
-        context.expired_animations.write().remove(&node);
-    }
-
-    had_animations_to_expire
 }

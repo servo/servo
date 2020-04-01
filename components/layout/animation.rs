@@ -110,6 +110,7 @@ pub fn update_animation_state<E>(
                     .unwrap();
             }
 
+            debug!("expiring animation for {:?}", running_animation);
             expired_animations
                 .entry(*key)
                 .or_insert_with(Vec::new)
