@@ -191,6 +191,12 @@ def change_prefs(resources_path, platform, vr=False):
 
 @CommandProvider
 class PackageCommands(CommandBase):
+    @Command('package-pre-check',
+             description='Package Servo',
+             category='package')
+    def package_pre_check(self):
+        setup_uwp_signing(False)
+
     @Command('package',
              description='Package Servo',
              category='package')

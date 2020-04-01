@@ -329,6 +329,7 @@ def windows_uwp_x64():
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
         .with_script(
+            "python mach package-pre-check",
             "python mach build --dev --target=x86_64-uwp-windows-msvc",
             "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
             "python mach test-tidy --force-cpp --no-wpt",
