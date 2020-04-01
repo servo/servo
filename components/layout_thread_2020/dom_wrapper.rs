@@ -184,7 +184,7 @@ impl<'lr> TShadowRoot for ServoShadowRoot<'lr> {
     where
         Self: 'a,
     {
-        Some(unsafe { &self.shadow_root.get_style_data_for_layout().data })
+        Some(&self.shadow_root.get_style_data_for_layout())
     }
 }
 
