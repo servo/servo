@@ -56,7 +56,7 @@ def tasks(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
-            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
+            "try-windows": [windows_uwp_x64],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-2020": [linux_wpt_layout_2020],
