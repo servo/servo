@@ -706,8 +706,7 @@ impl HTMLInputElement {
 pub trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
+    fn selection_for_layout(self) -> Option<Range<usize>>;
     fn checked_state_for_layout(self) -> bool;
     fn indeterminate_state_for_layout(self) -> bool;
 }
@@ -729,6 +728,15 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
 
     fn input_type(self) -> InputType {
         unsafe { self.unsafe_get().input_type.get() }
+    }
+
+    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+        unsafe {
+            self.unsafe_get()
+                .textinput
+                .borrow_for_layout()
+                .sorted_selection_offsets_range()
+        }
     }
 }
 
@@ -778,18 +786,17 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         unsafe { self.unsafe_get().size.get() }
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
+    fn selection_for_layout(self) -> Option<Range<usize>> {
         if !self.upcast::<Element>().focus_state() {
             return None;
         }
 
-        let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
+        let sorted_selection_offsets_range = self.textinput_sorted_selection_offsets_range();
 
         match self.input_type() {
             InputType::Password => {
                 let text = self.get_raw_textinput_value();
-                let sel = UTF8Bytes::unwrap_range(textinput.sorted_selection_offsets_range());
+                let sel = UTF8Bytes::unwrap_range(sorted_selection_offsets_range);
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text[..sel.start].chars().count();
@@ -798,9 +805,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
             },
-            input_type if input_type.is_textual() => Some(UTF8Bytes::unwrap_range(
-                textinput.sorted_selection_offsets_range(),
-            )),
+            input_type if input_type.is_textual() => {
+                Some(UTF8Bytes::unwrap_range(sorted_selection_offsets_range))
+            },
             _ => None,
         }
     }

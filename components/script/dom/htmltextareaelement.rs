@@ -57,8 +57,7 @@ pub struct HTMLTextAreaElement {
 
 pub trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
+    fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
     fn get_rows(self) -> u32;
 }
@@ -71,6 +70,15 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+        }
+    }
+
+    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+        unsafe {
+            self.unsafe_get()
+                .textinput
+                .borrow_for_layout()
+                .sorted_selection_offsets_range()
         }
     }
 
@@ -94,14 +102,12 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         }
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
+    fn selection_for_layout(self) -> Option<Range<usize>> {
         if !self.upcast::<Element>().focus_state() {
             return None;
         }
-        let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
         Some(UTF8Bytes::unwrap_range(
-            textinput.sorted_selection_offsets_range(),
+            self.textinput_sorted_selection_offsets_range(),
         ))
     }
 

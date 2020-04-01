@@ -1478,14 +1478,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         panic!("not text!")
     }
 
-    #[allow(unsafe_code)]
     fn selection(self) -> Option<Range<usize>> {
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.selection_for_layout() };
+            return area.selection_for_layout();
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return unsafe { input.selection_for_layout() };
+            return input.selection_for_layout();
         }
 
         None
