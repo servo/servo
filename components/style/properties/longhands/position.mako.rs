@@ -313,7 +313,6 @@ ${helpers.single_keyword(
     "box-sizing",
     "content-box border-box",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     extra_prefixes="moz:layout.css.prefixes.box-sizing webkit",
     spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
     gecko_enum_prefix="StyleBoxSizing",

@@ -206,7 +206,7 @@ impl InlineFormattingContext {
                 }
             }
 
-            fn add_lengthpercentage(&mut self, lp: LengthPercentage) {
+            fn add_lengthpercentage(&mut self, lp: &LengthPercentage) {
                 if let Some(l) = lp.to_length() {
                     self.add_length(l);
                 }
@@ -421,13 +421,11 @@ impl InlineBox {
         ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
     ) -> PartialInlineBoxFragment<'box_tree> {
         let style = self.style.clone();
-        let cbis = ifc.containing_block.inline_size;
-        let mut padding = style.padding().percentages_relative_to(cbis);
-        let mut border = style.border_width();
-        let mut margin = style
-            .margin()
-            .percentages_relative_to(cbis)
-            .auto_is(Length::zero);
+        let pbm = style.padding_border_margin(&ifc.containing_block);
+        let mut padding = pbm.padding;
+        let mut border = pbm.border;
+        let mut margin = pbm.margin.auto_is(Length::zero);
+
         if self.first_fragment {
             ifc.inline_position += padding.inline_start + border.inline_start + margin.inline_start;
         } else {
@@ -530,18 +528,12 @@ fn layout_atomic(
     ifc: &mut InlineFormattingContextState,
     atomic: &IndependentFormattingContext,
 ) {
-    let cbis = ifc.containing_block.inline_size;
-    let padding = atomic.style.padding().percentages_relative_to(cbis);
-    let border = atomic.style.border_width();
-    let margin = atomic
-        .style
-        .margin()
-        .percentages_relative_to(cbis)
-        .auto_is(Length::zero);
-    let pbm = &(&padding + &border) + &margin;
-    ifc.inline_position += pbm.inline_start;
+    let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
+    let margin = pbm.margin.auto_is(Length::zero);
+    let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
+    ifc.inline_position += pbm_sums.inline_start;
     let mut start_corner = Vec2 {
-        block: pbm.block_start,
+        block: pbm_sums.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
     if atomic.style.clone_position().is_relative() {
@@ -550,7 +542,8 @@ fn layout_atomic(
 
     let fragment = match atomic.as_replaced() {
         Ok(replaced) => {
-            let size = replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style);
+            let size =
+                replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment::new(
@@ -558,30 +551,27 @@ fn layout_atomic(
                 atomic.style.clone(),
                 fragments,
                 content_rect,
-                padding,
-                border,
+                pbm.padding,
+                pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
             )
         },
         Err(non_replaced) => {
-            let box_size = atomic.style.box_size();
+            let box_size = atomic.style.content_box_size(&ifc.containing_block, &pbm);
             let max_box_size = atomic
                 .style
-                .max_box_size()
-                .percentages_relative_to(ifc.containing_block);
+                .content_max_box_size(&ifc.containing_block, &pbm);
             let min_box_size = atomic
                 .style
-                .min_box_size()
-                .percentages_relative_to(ifc.containing_block)
+                .content_min_box_size(&ifc.containing_block, &pbm)
                 .auto_is(Length::zero);
 
             // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-            let tentative_inline_size =
-                box_size.inline.percentage_relative_to(cbis).auto_is(|| {
-                    let available_size = cbis - pbm.inline_sum();
-                    atomic.content_sizes.shrink_to_fit(available_size)
-                });
+            let tentative_inline_size = box_size.inline.auto_is(|| {
+                let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
+                atomic.content_sizes.shrink_to_fit(available_size)
+            });
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-widths
             // In this case “applying the rules above again” with a non-auto inline-size
@@ -589,12 +579,9 @@ fn layout_atomic(
             let inline_size = tentative_inline_size
                 .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
-            let block_size = box_size
-                .block
-                .maybe_percentage_relative_to(ifc.containing_block.block_size.non_auto());
             let containing_block_for_children = ContainingBlock {
                 inline_size,
-                block_size,
+                block_size: box_size.block,
                 style: &atomic.style,
             };
             assert_eq!(
@@ -613,7 +600,9 @@ fn layout_atomic(
             );
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-            let tentative_block_size = block_size.auto_is(|| independent_layout.content_block_size);
+            let tentative_block_size = box_size
+                .block
+                .auto_is(|| independent_layout.content_block_size);
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-heights
             // In this case “applying the rules above again” with a non-auto block-size
@@ -633,18 +622,18 @@ fn layout_atomic(
                 atomic.style.clone(),
                 independent_layout.fragments,
                 content_rect,
-                padding,
-                border,
+                pbm.padding,
+                pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
             )
         },
     };
 
-    ifc.inline_position += pbm.inline_end + fragment.content_rect.size.inline;
+    ifc.inline_position += pbm_sums.inline_end + fragment.content_rect.size.inline;
     ifc.current_nesting_level
         .max_block_size_of_fragments_so_far
-        .max_assign(pbm.block_sum() + fragment.content_rect.size.block);
+        .max_assign(pbm_sums.block_sum() + fragment.content_rect.size.block);
     ifc.current_nesting_level
         .fragments_so_far
         .push(Fragment::Box(fragment));
