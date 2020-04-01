@@ -148,7 +148,7 @@ Before starting the debugger right away, you might want to get some information 
 A typical command might be:
 
 ``` shell
-./mach run -d -- -i -y 1 --debug dump-layer-tree /tmp/a.html
+./mach run -d -- -i -y 1 --debug dump-style-tree /tmp/a.html
 ```
 
 … to avoid using too many threads and make things easier to understand.
