@@ -2252,6 +2252,14 @@ impl Window {
     pub fn webrender_document(&self) -> DocumentId {
         self.webrender_document
     }
+
+    pub fn in_immersive_xr_session(&self) -> bool {
+        self.navigator
+            .get()
+            .as_ref()
+            .and_then(|nav| nav.xr())
+            .map_or(false, |xr| xr.pending_or_active_session())
+    }
 }
 
 impl Window {
