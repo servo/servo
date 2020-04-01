@@ -1414,6 +1414,10 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
+    // FIXME(nox): get_flag/set_flag (especially the latter) are not safe because
+    // they mutate stuff while values of this type can be used from multiple
+    // threads at once, this should be revisited.
+
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_flag(self, flag: NodeFlags) -> bool {
@@ -1440,6 +1444,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     fn children_count(self) -> u32 {
         unsafe { self.unsafe_get().children_count.get() }
     }
+
+    // FIXME(nox): How we handle style and layout data needs to be completely
+    // revisited so we can do that more cleanly and safely in layout 2020.
 
     #[inline]
     #[allow(unsafe_code)]
@@ -1490,19 +1497,16 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         None
     }
 
-    #[allow(unsafe_code)]
     fn image_url(self) -> Option<ServoUrl> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")
             .image_url()
     }
 
-    #[allow(unsafe_code)]
     fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
-    #[allow(unsafe_code)]
     fn image_density(self) -> Option<f64> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")

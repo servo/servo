@@ -271,6 +271,8 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
         unsafe { &self.unsafe_get().author_styles.borrow_for_layout().data }
     }
 
+    // FIXME(nox): This uses the dreaded borrow_mut_for_layout so this should
+    // probably be revisited.
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn flush_stylesheets<E: TElement>(
