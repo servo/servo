@@ -519,6 +519,28 @@ impl DOMString {
         // Step 7, 8, 9
         Ok((date_tuple, time_tuple))
     }
+
+    /// https://html.spec.whatwg.org/multipage/#valid-e-mail-address
+    pub fn is_valid_email_address_string(&self) -> bool {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(concat!(
+                r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?",
+                r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+            ))
+            .unwrap();
+        }
+        RE.is_match(&self.0)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#valid-simple-colour
+    pub fn is_valid_simple_color_string(&self) -> bool {
+        let mut chars = self.0.chars();
+        if self.0.len() == 7 && chars.next() == Some('#') {
+            chars.all(|c| c.is_digit(16))
+        } else {
+            false
+        }
+    }
 }
 
 impl Borrow<str> for DOMString {

@@ -43,12 +43,12 @@ interface HTMLTextAreaElement : HTMLElement {
            attribute [TreatNullAs=EmptyString] DOMString value;
   readonly attribute unsigned long textLength;
 
-  // readonly attribute boolean willValidate;
-  // readonly attribute ValidityState validity;
-  // readonly attribute DOMString validationMessage;
-  // boolean checkValidity();
-  // boolean reportValidity();
-  // void setCustomValidity(DOMString error);
+  readonly attribute boolean willValidate;
+  readonly attribute ValidityState validity;
+  readonly attribute DOMString validationMessage;
+  boolean checkValidity();
+  boolean reportValidity();
+  void setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 

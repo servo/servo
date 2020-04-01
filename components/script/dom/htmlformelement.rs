@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -43,7 +44,7 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, NodeFlags};
 use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
@@ -509,6 +510,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
         return names_vec;
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.static_validation().is_ok()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.interactive_validation().is_ok()
+    }
 }
 
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
@@ -856,48 +867,56 @@ impl HTMLFormElement {
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self) -> Result<(), ()> {
-        // Step 1-3
-        let _unhandled_invalid_controls = match self.static_validation() {
+        // Step 1-2
+        let unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
             Err(err) => err,
         };
-        // TODO: Report the problems with the constraints of at least one of
-        //       the elements given in unhandled invalid controls to the user
+
+        // Step 3
+        let mut first = true;
+
+        for elem in unhandled_invalid_controls {
+            if let Some(validatable) = elem.as_maybe_validatable() {
+                println!("Validation error: {}", validatable.validation_message());
+            }
+            if first {
+                if let Some(html_elem) = elem.downcast::<HTMLElement>() {
+                    html_elem.Focus();
+                    first = false;
+                }
+            }
+        }
+
         // Step 4
         Err(())
     }
 
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
-    fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
-        let node = self.upcast::<Node>();
-        // FIXME(#3553): This is an incorrect way of getting controls owned by the
-        //               form, refactor this when html5ever's form owner PR lands
+    fn static_validation(&self) -> Result<(), Vec<DomRoot<Element>>> {
+        let controls = self.controls.borrow();
         // Step 1-3
-        let invalid_controls = node
-            .traverse_preorder(ShadowIncluding::No)
+        let invalid_controls = controls
+            .iter()
             .filter_map(|field| {
                 if let Some(el) = field.downcast::<Element>() {
-                    if el.disabled_state() {
+                    let validatable = match el.as_maybe_validatable() {
+                        Some(v) => v,
+                        None => return None,
+                    };
+                    if !validatable.is_instance_validatable() {
+                        None
+                    } else if validatable.validate(ValidationFlags::all()).is_empty() {
                         None
                     } else {
-                        let validatable = match el.as_maybe_validatable() {
-                            Some(v) => v,
-                            None => return None,
-                        };
-                        if !validatable.is_instance_validatable() {
-                            None
-                        } else if validatable.validate(ValidationFlags::empty()) {
-                            None
-                        } else {
-                            Some(FormSubmittableElement::from_element(&el))
-                        }
+                        Some(DomRoot::from_ref(el))
                     }
                 } else {
                     None
                 }
             })
-            .collect::<Vec<FormSubmittableElement>>();
+            .collect::<Vec<DomRoot<Element>>>();
         // Step 4
         if invalid_controls.is_empty() {
             return Ok(());
@@ -907,14 +926,14 @@ impl HTMLFormElement {
             .into_iter()
             .filter_map(|field| {
                 let event = field
-                    .as_event_target()
+                    .upcast::<EventTarget>()
                     .fire_cancelable_event(atom!("invalid"));
                 if !event.DefaultPrevented() {
                     return Some(field);
                 }
                 None
             })
-            .collect::<Vec<FormSubmittableElement>>();
+            .collect::<Vec<DomRoot<Element>>>();
         // Step 7
         Err(unhandled_invalid_controls)
     }
@@ -1202,46 +1221,6 @@ pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog,
-}
-
-#[derive(MallocSizeOf)]
-#[allow(dead_code)]
-pub enum FormSubmittableElement {
-    ButtonElement(DomRoot<HTMLButtonElement>),
-    InputElement(DomRoot<HTMLInputElement>),
-    // TODO: HTMLKeygenElement unimplemented
-    // KeygenElement(&'a HTMLKeygenElement),
-    ObjectElement(DomRoot<HTMLObjectElement>),
-    SelectElement(DomRoot<HTMLSelectElement>),
-    TextAreaElement(DomRoot<HTMLTextAreaElement>),
-}
-
-impl FormSubmittableElement {
-    fn as_event_target(&self) -> &EventTarget {
-        match *self {
-            FormSubmittableElement::ButtonElement(ref button) => button.upcast(),
-            FormSubmittableElement::InputElement(ref input) => input.upcast(),
-            FormSubmittableElement::ObjectElement(ref object) => object.upcast(),
-            FormSubmittableElement::SelectElement(ref select) => select.upcast(),
-            FormSubmittableElement::TextAreaElement(ref textarea) => textarea.upcast(),
-        }
-    }
-
-    fn from_element(element: &Element) -> FormSubmittableElement {
-        if let Some(input) = element.downcast::<HTMLInputElement>() {
-            FormSubmittableElement::InputElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLButtonElement>() {
-            FormSubmittableElement::ButtonElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLObjectElement>() {
-            FormSubmittableElement::ObjectElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLSelectElement>() {
-            FormSubmittableElement::SelectElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLTextAreaElement>() {
-            FormSubmittableElement::TextAreaElement(DomRoot::from_ref(&input))
-        } else {
-            unreachable!()
-        }
-    }
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]

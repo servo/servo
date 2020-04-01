@@ -39,9 +39,10 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::Validatable;
-use crate::dom::validitystate::ValidationFlags;
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::realms::enter_realm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
@@ -55,8 +56,12 @@ use embedder_traits::FilterPattern;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use js::jsapi::{
-    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, NewDateObject, ObjectIsDate,
+    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
+    NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
+use js::jsval::UndefinedValue;
+use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::{HandleObject, MutableHandleObject};
 use msg::constellation_msg::InputMethodType;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -67,12 +72,15 @@ use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::f64;
 use std::ops::Range;
+use std::ptr;
 use std::ptr::NonNull;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::{split_commas, str_join};
 use unicode_bidi::{bidi_class, BidiClass};
+use url::Url;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -133,6 +141,11 @@ impl InputType {
 
     fn is_textual_or_password(&self) -> bool {
         self.is_textual() || *self == InputType::Password
+    }
+
+    // https://html.spec.whatwg.org/multipage/#has-a-periodic-domain
+    fn has_periodic_domain(&self) -> bool {
+        *self == InputType::Time
     }
 
     fn to_str(&self) -> &str {
@@ -253,6 +266,7 @@ pub struct HTMLInputElement {
     filelist: MutNullableDom<FileList>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 #[derive(JSTraceable)]
@@ -307,6 +321,7 @@ impl HTMLInputElement {
             filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
+            validity_state: Default::default(),
         }
     }
 
@@ -400,6 +415,52 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
+    }
+
+    fn does_readonly_apply(&self) -> bool {
+        match self.input_type() {
+            InputType::Text |
+            InputType::Search |
+            InputType::Url |
+            InputType::Tel |
+            InputType::Email |
+            InputType::Password |
+            InputType::Date |
+            InputType::Month |
+            InputType::Week |
+            InputType::Time |
+            InputType::DatetimeLocal |
+            InputType::Number => true,
+            _ => false,
+        }
+    }
+
+    fn does_minmaxlength_apply(&self) -> bool {
+        match self.input_type() {
+            InputType::Text |
+            InputType::Search |
+            InputType::Url |
+            InputType::Tel |
+            InputType::Email |
+            InputType::Password => true,
+            _ => false,
+        }
+    }
+
+    fn does_pattern_apply(&self) -> bool {
+        match self.input_type() {
+            InputType::Text |
+            InputType::Search |
+            InputType::Url |
+            InputType::Tel |
+            InputType::Email |
+            InputType::Password => true,
+            _ => false,
+        }
+    }
+
+    fn does_multiple_apply(&self) -> bool {
+        self.input_type() == InputType::Email
     }
 
     // valueAsNumber, step, min, and max all share the same set of
@@ -700,6 +761,212 @@ impl HTMLInputElement {
                     .map(|data_el| data_el.upcast::<HTMLElement>())
             })
             .map(|el| DomRoot::from_ref(&*el))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+    fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
+        match self.input_type() {
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type%3Dcheckbox)%3Asuffering-from-being-missing
+            InputType::Checkbox => self.Required() && !self.Checked(),
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type%3Dradio)%3Asuffering-from-being-missing
+            InputType::Radio => {
+                let mut is_required = self.Required();
+                let mut is_checked = self.Checked();
+                for other in radio_group_iter(self, self.radio_group_name().as_ref()) {
+                    is_required = is_required || other.Required();
+                    is_checked = is_checked || other.Checked();
+                }
+                is_required && !is_checked
+            },
+            // https://html.spec.whatwg.org/multipage/#file-upload-state-(type%3Dfile)%3Asuffering-from-being-missing
+            InputType::File => {
+                self.Required() &&
+                    self.filelist
+                        .get()
+                        .map_or(true, |files| files.Length() == 0)
+            },
+            // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
+            _ => {
+                self.Required() &&
+                    self.value_mode() == ValueMode::Value &&
+                    self.is_mutable() &&
+                    value.is_empty()
+            },
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch
+    fn suffers_from_type_mismatch(&self, value: &DOMString) -> bool {
+        if value.is_empty() {
+            return false;
+        }
+
+        match self.input_type() {
+            // https://html.spec.whatwg.org/multipage/#url-state-(type%3Durl)%3Asuffering-from-a-type-mismatch
+            InputType::Url => Url::parse(&value).is_err(),
+            // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch
+            // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch-2
+            InputType::Email => {
+                if self.Multiple() {
+                    !split_commas(&value).all(|s| {
+                        DOMString::from_string(s.to_string()).is_valid_email_address_string()
+                    })
+                } else {
+                    !value.is_valid_email_address_string()
+                }
+            },
+            // Other input types don't suffer from type mismatch
+            _ => false,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch
+    fn suffers_from_pattern_mismatch(&self, value: &DOMString) -> bool {
+        // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch
+        // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch-2
+        let pattern_str = self.Pattern();
+        if value.is_empty() || pattern_str.is_empty() || !self.does_pattern_apply() {
+            return false;
+        }
+
+        // Rust's regex is not compatible, we need to use mozjs RegExp.
+        let cx = self.global().get_cx();
+        let _ac = enter_realm(self);
+        rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
+
+        if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
+            if self.Multiple() && self.does_multiple_apply() {
+                !split_commas(&value)
+                    .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
+            } else {
+                !matches_js_regex(cx, pattern.handle(), &value).unwrap_or(true)
+            }
+        } else {
+            // Element doesn't suffer from pattern mismatch if pattern is invalid.
+            false
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-bad-input
+    fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
+        if value.is_empty() {
+            return false;
+        }
+
+        match self.input_type() {
+            // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-bad-input
+            // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-bad-input-2
+            InputType::Email => {
+                // TODO: Check for input that cannot be converted to punycode.
+                // Currently we don't support conversion of email values to punycode
+                // so always return false.
+                false
+            },
+            // https://html.spec.whatwg.org/multipage/#date-state-(type%3Ddate)%3Asuffering-from-bad-input
+            InputType::Date => !value.is_valid_date_string(),
+            // https://html.spec.whatwg.org/multipage/#month-state-(type%3Dmonth)%3Asuffering-from-bad-input
+            InputType::Month => !value.is_valid_month_string(),
+            // https://html.spec.whatwg.org/multipage/#week-state-(type%3Dweek)%3Asuffering-from-bad-input
+            InputType::Week => !value.is_valid_week_string(),
+            // https://html.spec.whatwg.org/multipage/#time-state-(type%3Dtime)%3Asuffering-from-bad-input
+            InputType::Time => !value.is_valid_time_string(),
+            // https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type%3Ddatetime-local)%3Asuffering-from-bad-input
+            InputType::DatetimeLocal => value.parse_local_date_and_time_string().is_err(),
+            // https://html.spec.whatwg.org/multipage/#number-state-(type%3Dnumber)%3Asuffering-from-bad-input
+            // https://html.spec.whatwg.org/multipage/#range-state-(type%3Drange)%3Asuffering-from-bad-input
+            InputType::Number | InputType::Range => !value.is_valid_floating_point_number_string(),
+            // https://html.spec.whatwg.org/multipage/#color-state-(type%3Dcolor)%3Asuffering-from-bad-input
+            InputType::Color => !value.is_valid_simple_color_string(),
+            // Other input types don't suffer from bad input
+            _ => false,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short
+    fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
+        // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
+        // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
+        let value_dirty = self.value_dirty.get();
+        let textinput = self.textinput.borrow();
+        let edit_by_user = !textinput.was_last_change_by_set_content();
+
+        if value.is_empty() || !value_dirty || !edit_by_user || !self.does_minmaxlength_apply() {
+            return ValidationFlags::empty();
+        }
+
+        let mut failed_flags = ValidationFlags::empty();
+        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let min_length = self.MinLength();
+        let max_length = self.MaxLength();
+
+        if min_length != DEFAULT_MIN_LENGTH && value_len < (min_length as usize) {
+            failed_flags.insert(ValidationFlags::TOO_SHORT);
+        }
+
+        if max_length != DEFAULT_MAX_LENGTH && value_len > (max_length as usize) {
+            failed_flags.insert(ValidationFlags::TOO_LONG);
+        }
+
+        failed_flags
+    }
+
+    // https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow
+    // https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow
+    // https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch
+    fn suffers_from_range_issues(&self, value: &DOMString) -> ValidationFlags {
+        if value.is_empty() || !self.does_value_as_number_apply() {
+            return ValidationFlags::empty();
+        }
+
+        let value_as_number = match self.convert_string_to_number(&value) {
+            Ok(num) => num,
+            Err(()) => return ValidationFlags::empty(),
+        };
+
+        let mut failed_flags = ValidationFlags::empty();
+        let min_value = self.minimum();
+        let max_value = self.maximum();
+
+        // https://html.spec.whatwg.org/multipage/#has-a-reversed-range
+        let has_reversed_range = match (min_value, max_value) {
+            (Some(min), Some(max)) => self.input_type().has_periodic_domain() && min > max,
+            _ => false,
+        };
+
+        if has_reversed_range {
+            // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes:has-a-reversed-range-3
+            if value_as_number > max_value.unwrap() && value_as_number < min_value.unwrap() {
+                failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
+                failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
+            }
+        } else {
+            // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-underflow-2
+            if let Some(min_value) = min_value {
+                if value_as_number < min_value {
+                    failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
+                }
+            }
+            // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-overflow-2
+            if let Some(max_value) = max_value {
+                if value_as_number > max_value {
+                    failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
+                }
+            }
+        }
+
+        // https://html.spec.whatwg.org/multipage/#the-step-attribute%3Asuffering-from-a-step-mismatch
+        if let Some(step) = self.allowed_value_step() {
+            // TODO: Spec has some issues here, see https://github.com/whatwg/html/issues/5207.
+            // Chrome and Firefox parse values as decimals to get exact results,
+            // we probably should too.
+            let diff = (self.step_base() - value_as_number) % step / value_as_number;
+            if diff.abs() > 1e-12 {
+                failed_flags.insert(ValidationFlags::STEP_MISMATCH);
+            }
+        }
+
+        failed_flags
     }
 }
 
@@ -1325,6 +1592,36 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn StepDown(&self, n: i32) -> ErrorResult {
         self.step_up_or_down(n, StepDirection::Down)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
+    }
 }
 
 fn radio_group_iter<'a>(
@@ -1648,16 +1945,7 @@ impl HTMLInputElement {
                 }
             },
             InputType::Color => {
-                let is_valid = {
-                    let mut chars = value.chars();
-                    if value.len() == 7 && chars.next() == Some('#') {
-                        chars.all(|c| c.is_digit(16))
-                    } else {
-                        false
-                    }
-                };
-
-                if is_valid {
+                if value.is_valid_simple_color_string() {
                     value.make_ascii_lowercase();
                 } else {
                     *value = "#000000".into();
@@ -2352,13 +2640,73 @@ impl FormControl for HTMLInputElement {
 }
 
 impl Validatable for HTMLInputElement {
-    fn is_instance_validatable(&self) -> bool {
-        // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
-        true
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
-    fn validate(&self, _validate_flags: ValidationFlags) -> bool {
-        // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
-        true
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#hidden-state-(type%3Dhidden)%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#button-state-(type%3Dbutton)%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#reset-button-state-(type%3Dreset)%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-readonly-attribute%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
+        match self.input_type() {
+            InputType::Hidden | InputType::Button | InputType::Reset => false,
+            _ => {
+                !(self.upcast::<Element>().disabled_state() ||
+                    (self.ReadOnly() && self.does_readonly_apply()) ||
+                    is_barred_by_datalist_ancestor(self.upcast()))
+            },
+        }
+    }
+
+    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+        let mut failed_flags = ValidationFlags::empty();
+        let value = self.Value();
+
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
+            if self.suffers_from_being_missing(&value) {
+                failed_flags.insert(ValidationFlags::VALUE_MISSING);
+            }
+        }
+
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) {
+            if self.suffers_from_type_mismatch(&value) {
+                failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
+            }
+        }
+
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) {
+            if self.suffers_from_pattern_mismatch(&value) {
+                failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
+            }
+        }
+
+        if validate_flags.contains(ValidationFlags::BAD_INPUT) {
+            if self.suffers_from_bad_input(&value) {
+                failed_flags.insert(ValidationFlags::BAD_INPUT);
+            }
+        }
+
+        if validate_flags.intersects(ValidationFlags::TOO_LONG | ValidationFlags::TOO_SHORT) {
+            failed_flags |= self.suffers_from_length_issues(&value);
+        }
+
+        if validate_flags.intersects(
+            ValidationFlags::RANGE_UNDERFLOW |
+                ValidationFlags::RANGE_OVERFLOW |
+                ValidationFlags::STEP_MISMATCH,
+        ) {
+            failed_flags |= self.suffers_from_range_issues(&value);
+        }
+
+        failed_flags & validate_flags
     }
 }
 
@@ -2544,4 +2892,69 @@ fn milliseconds_to_datetime(value: f64) -> Result<NaiveDateTime, ()> {
     let milliseconds = value - (seconds * 1000.0);
     let nanoseconds = milliseconds * 1e6;
     NaiveDateTime::from_timestamp_opt(seconds as i64, nanoseconds as u32).ok_or(())
+}
+
+// This is used to compile JS-compatible regex provided in pattern attribute
+// that matches only the entirety of string.
+// https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
+fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
+    // First check if pattern compiles...
+    if new_js_regex(cx, pattern_str, out_regex) {
+        // ...and if it does make pattern that matches only the entirety of string
+        let pattern_str = format!("^(?:{})$", pattern_str);
+        new_js_regex(cx, &pattern_str, out_regex)
+    } else {
+        false
+    }
+}
+
+#[allow(unsafe_code)]
+fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleObject) -> bool {
+    let pattern: Vec<u16> = pattern.encode_utf16().collect();
+    unsafe {
+        out_regex.set(NewUCRegExpObject(
+            *cx,
+            pattern.as_ptr(),
+            pattern.len(),
+            RegExpFlags {
+                flags_: RegExpFlag_Unicode,
+            },
+        ));
+        if out_regex.is_null() {
+            JS_ClearPendingException(*cx);
+            return false;
+        }
+    }
+    true
+}
+
+#[allow(unsafe_code)]
+fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
+    let mut value: Vec<u16> = value.encode_utf16().collect();
+
+    unsafe {
+        let mut is_regex = false;
+        assert!(ObjectIsRegExp(*cx, regex_obj, &mut is_regex));
+        assert!(is_regex);
+
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        let mut index = 0;
+
+        let ok = ExecuteRegExpNoStatics(
+            *cx,
+            regex_obj,
+            value.as_mut_ptr(),
+            value.len(),
+            &mut index,
+            true,
+            &mut rval.handle_mut(),
+        );
+
+        if ok {
+            Ok(!rval.is_null())
+        } else {
+            JS_ClearPendingException(*cx);
+            Err(())
+        }
+    }
 }

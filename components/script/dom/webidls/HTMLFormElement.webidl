@@ -34,8 +34,8 @@ interface HTMLFormElement : HTMLElement {
   void submit();
   [CEReactions]
   void reset();
-  //boolean checkValidity();
-  //boolean reportValidity();
+  boolean checkValidity();
+  boolean reportValidity();
 };
 
 // https://html.spec.whatwg.org/multipage/#selectionmode

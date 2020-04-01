@@ -14,7 +14,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::validation::Validatable;
-use crate::dom::validitystate::{ValidationFlags, ValidityState};
+use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -28,6 +28,7 @@ pub struct HTMLObjectElement {
     #[ignore_malloc_size_of = "Arc"]
     image: DomRefCell<Option<Arc<Image>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 impl HTMLObjectElement {
@@ -40,6 +41,7 @@ impl HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image: DomRefCell::new(None),
             form_owner: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
@@ -82,12 +84,6 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
 }
 
 impl HTMLObjectElementMethods for HTMLObjectElement {
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_getter!(Type, "type");
 
@@ -98,16 +94,51 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
+    }
 }
 
 impl Validatable for HTMLObjectElement {
-    fn is_instance_validatable(&self) -> bool {
-        true
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
-        true
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#the-object-element%3Abarred-from-constraint-validation
+        false
     }
 }
 

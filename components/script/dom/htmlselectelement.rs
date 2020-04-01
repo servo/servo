@@ -26,7 +26,7 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
-use crate::dom::validation::Validatable;
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -62,6 +62,7 @@ pub struct HTMLSelectElement {
     options: MutNullableDom<HTMLOptionsCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
@@ -82,6 +83,7 @@ impl HTMLSelectElement {
             options: Default::default(),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
@@ -111,6 +113,18 @@ impl HTMLSelectElement {
                 Choice3::Third(iter::empty())
             }
         })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#placeholder-label-option
+    fn get_placeholder_label_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
+        if self.Required() && !self.Multiple() && self.display_size() == 1 {
+            self.list_of_options().next().filter(|node| {
+                let parent = node.upcast::<Node>().GetParentNode();
+                node.Value().is_empty() && parent.as_deref() == Some(self.upcast())
+            })
+        } else {
+            None
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
@@ -196,12 +210,6 @@ impl HTMLSelectElement {
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(
         &self,
@@ -233,6 +241,12 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_atomic_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-required
+    make_bool_getter!(Required, "required");
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-required
+    make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-select-size
     make_uint_getter!(Size, "size", DEFAULT_SELECT_SIZE);
@@ -354,6 +368,36 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
             }
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
+    }
 }
 
 impl VirtualMethods for HTMLSelectElement {
@@ -435,13 +479,36 @@ impl FormControl for HTMLSelectElement {
 }
 
 impl Validatable for HTMLSelectElement {
-    fn is_instance_validatable(&self) -> bool {
-        true
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
-        true
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
+        !self.upcast::<Element>().disabled_state() && !is_barred_by_datalist_ancestor(self.upcast())
+    }
+
+    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+        let mut failed_flags = ValidationFlags::empty();
+
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+        // https://html.spec.whatwg.org/multipage/#the-select-element%3Asuffering-from-being-missing
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
+            let placeholder = self.get_placeholder_label_option();
+            let selected_option = self
+                .list_of_options()
+                .filter(|e| e.Selected() && placeholder.as_ref() != Some(e))
+                .next();
+            failed_flags.set(ValidationFlags::VALUE_MISSING, selected_option.is_none());
+        }
+
+        failed_flags
     }
 }
 

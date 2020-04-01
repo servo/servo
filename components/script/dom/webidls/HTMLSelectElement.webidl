@@ -16,8 +16,8 @@ interface HTMLSelectElement : HTMLElement {
            attribute boolean multiple;
   [CEReactions]
            attribute DOMString name;
-  // [CEReactions]
-  //          attribute boolean required;
+  [CEReactions]
+           attribute boolean required;
   [CEReactions]
            attribute unsigned long size;
 
@@ -41,12 +41,12 @@ interface HTMLSelectElement : HTMLElement {
   attribute long selectedIndex;
   attribute DOMString value;
 
-  // readonly attribute boolean willValidate;
+  readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
-  // readonly attribute DOMString validationMessage;
-  // boolean checkValidity();
-  // boolean reportValidity();
-  // void setCustomValidity(DOMString error);
+  readonly attribute DOMString validationMessage;
+  boolean checkValidity();
+  boolean reportValidity();
+  void setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 };

@@ -14,6 +14,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
+use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -25,6 +26,7 @@ pub struct HTMLOutputElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     default_value_override: DomRefCell<Option<DOMString>>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 impl HTMLOutputElement {
@@ -38,6 +40,7 @@ impl HTMLOutputElement {
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             default_value_override: DomRefCell::new(None),
+            validity_state: Default::default(),
         }
     }
 
@@ -62,12 +65,6 @@ impl HTMLOutputElement {
 }
 
 impl HTMLOutputElementMethods for HTMLOutputElement {
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
@@ -118,6 +115,36 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_getter!(Name, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
+    }
 }
 
 impl VirtualMethods for HTMLOutputElement {
@@ -147,5 +174,21 @@ impl FormControl for HTMLOutputElement {
 
     fn to_element<'a>(&'a self) -> &'a Element {
         self.upcast::<Element>()
+    }
+}
+
+impl Validatable for HTMLOutputElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // output is not a submittable element (https://html.spec.whatwg.org/multipage/#category-submit)
+        false
     }
 }

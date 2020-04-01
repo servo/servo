@@ -17,10 +17,10 @@ interface HTMLFieldSetElement : HTMLElement {
 
   [SameObject] readonly attribute HTMLCollection elements;
 
-  //readonly attribute boolean willValidate;
+  readonly attribute boolean willValidate;
   [SameObject] readonly attribute ValidityState validity;
-  //readonly attribute DOMString validationMessage;
-  //boolean checkValidity();
-  //boolean reportValidity();
-  //void setCustomValidity(DOMString error);
+  readonly attribute DOMString validationMessage;
+  boolean checkValidity();
+  boolean reportValidity();
+  void setCustomValidity(DOMString error);
 };

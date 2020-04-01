@@ -29,7 +29,8 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::Validatable;
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
@@ -53,6 +54,7 @@ pub struct HTMLTextAreaElement {
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -163,6 +165,7 @@ impl HTMLTextAreaElement {
             value_dirty: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
@@ -190,6 +193,13 @@ impl HTMLTextAreaElement {
         let has_value = !self.textinput.borrow().is_empty();
         let el = self.upcast::<Element>();
         el.set_placeholder_shown_state(has_placeholder && !has_value);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
+    fn is_mutable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Aconcept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
+        !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 }
 
@@ -394,6 +404,36 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     ) -> ErrorResult {
         self.selection()
             .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
     }
 }
 
@@ -643,4 +683,61 @@ impl FormControl for HTMLTextAreaElement {
     }
 }
 
-impl Validatable for HTMLTextAreaElement {}
+impl Validatable for HTMLTextAreaElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
+        !self.upcast::<Element>().disabled_state() &&
+            !self.ReadOnly() &&
+            !is_barred_by_datalist_ancestor(self.upcast())
+    }
+
+    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+        let mut failed_flags = ValidationFlags::empty();
+
+        let textinput = self.textinput.borrow();
+        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let last_edit_by_user = !textinput.was_last_change_by_set_content();
+        let value_dirty = self.value_dirty.get();
+
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Asuffering-from-being-missing
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
+            if self.Required() && self.is_mutable() && value_len == 0 {
+                failed_flags.insert(ValidationFlags::VALUE_MISSING);
+            }
+        }
+
+        if value_dirty && last_edit_by_user && value_len > 0 {
+            // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+            // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
+            if validate_flags.contains(ValidationFlags::TOO_LONG) {
+                let max_length = self.MaxLength();
+                if max_length != DEFAULT_MAX_LENGTH && value_len > (max_length as usize) {
+                    failed_flags.insert(ValidationFlags::TOO_LONG);
+                }
+            }
+
+            // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short
+            // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
+            if validate_flags.contains(ValidationFlags::TOO_SHORT) {
+                let min_length = self.MinLength();
+                if min_length != DEFAULT_MIN_LENGTH && value_len < (min_length as usize) {
+                    failed_flags.insert(ValidationFlags::TOO_SHORT);
+                }
+            }
+        }
+
+        failed_flags
+    }
+}
