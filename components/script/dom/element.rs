@@ -85,6 +85,7 @@ use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
+use euclid::default::Rect;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -2438,22 +2439,22 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(&self) -> i32 {
-        self.upcast::<Node>().client_rect().origin.y
+        self.client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
     fn ClientLeft(&self) -> i32 {
-        self.upcast::<Node>().client_rect().origin.x
+        self.client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
-        self.upcast::<Node>().client_rect().size.width
+        self.client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
-        self.upcast::<Node>().client_rect().size.height
+        self.client_rect().size.height
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
@@ -3206,6 +3207,20 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 }
 
 impl Element {
+    fn client_rect(&self) -> Rect<i32> {
+        if let Some(rect) = self
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.client_rect.as_ref())
+            .and_then(|rect| rect.get().ok())
+        {
+            return rect;
+        }
+        let rect = self.upcast::<Node>().client_rect();
+        self.ensure_rare_data().client_rect = Some(window_from_node(self).cache_layout_value(rect));
+        rect
+    }
+
     pub fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
