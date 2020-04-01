@@ -778,6 +778,11 @@ def setup_uwp_signing(ms_app_store):
     namespace = "{http://schemas.microsoft.com/appx/manifest/foundation/windows10}"
     publisher = manifest.getroot().find(namespace + "Identity").attrib["Publisher"]
     # Powershell command that lists all certificates for publisher
+    print("DEBUG CERT")
+    print(run_powershell_cmd('dir cert: -Recurse | Where-Object {$_.Issuer -eq "' + publisher + '"}'))
+    print(run_powershell_cmd('$PSVersionTable'))
+    print(run_powershell_cmd('Get-ChildItem Cert:\\CurrentUser\\My -CodeSigningCert |where{ $_.NotAfter -gt [datetime]::Now}'))
+    print(run_powershell_cmd('dir cert:currentuser\my\ -CodeSigningCert | Select-Object *'))
     cmd = '(dir cert: -Recurse | Where-Object {$_.Issuer -eq "' + publisher + '"}).Thumbprint'
     certs = list(set(run_powershell_cmd(cmd).splitlines()))
     if not certs and is_tc:
@@ -798,6 +803,7 @@ def setup_uwp_signing(ms_app_store):
         thumbprint = certs[0]
     else:
         thumbprint = certs[0]
+    print("Found certificate: " + thumbprint + " for publisher " + publisher)
     return ["/p:AppxPackageSigningEnabled=true", "/p:PackageCertificateThumbprint=" + thumbprint]
 
 
