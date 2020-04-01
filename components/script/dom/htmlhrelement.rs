@@ -7,7 +7,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -71,25 +71,19 @@ pub trait HTMLHRLayoutHelpers {
 }
 
 impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
-    #[allow(unsafe_code)]
     fn get_color(self) -> Option<RGBA> {
-        unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("color"))
-                .and_then(AttrValue::as_color)
-                .cloned()
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 
-    #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

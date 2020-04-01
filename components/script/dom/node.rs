@@ -1305,22 +1305,22 @@ pub unsafe fn from_untrusted_node_address(
 
 #[allow(unsafe_code)]
 pub trait LayoutNodeHelpers<'dom> {
-    unsafe fn type_id_for_layout(self) -> NodeTypeId;
+    fn type_id_for_layout(self) -> NodeTypeId;
 
-    unsafe fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    unsafe fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
+    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
 
-    unsafe fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
-    unsafe fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
+    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
-    unsafe fn is_element_for_layout(self) -> bool;
+    fn is_element_for_layout(self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
-    unsafe fn children_count(self) -> u32;
+    fn children_count(self) -> u32;
 
     unsafe fn get_style_and_layout_data(self) -> Option<OpaqueStyleAndLayoutData>;
     unsafe fn init_style_and_layout_data(self, _: OpaqueStyleAndLayoutData);
@@ -1339,24 +1339,30 @@ pub trait LayoutNodeHelpers<'dom> {
     fn opaque(self) -> OpaqueNode;
 }
 
+impl<'dom> LayoutDom<'dom, Node> {
+    #[inline]
+    #[allow(unsafe_code)]
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
+    }
+}
+
 impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn type_id_for_layout(self) -> NodeTypeId {
-        (*self.unsafe_get()).type_id()
+    fn type_id_for_layout(self) -> NodeTypeId {
+        unsafe { self.unsafe_get().type_id() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
-    unsafe fn is_element_for_layout(self) -> bool {
-        (*self.unsafe_get()).is::<Element>()
+    fn is_element_for_layout(self) -> bool {
+        self.is::<Element>()
     }
 
     #[inline]
-    #[allow(unsafe_code)]
-    unsafe fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        let parent = (*self.unsafe_get()).parent_node.get_inner_as_layout();
-        if let Some(ref parent) = parent {
+    fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        let parent = self.parent_node_ref();
+        if let Some(parent) = parent {
             if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
                 return Some(shadow_root.get_host_for_layout().upcast());
             }
@@ -1366,47 +1372,51 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).first_child.get_inner_as_layout()
+    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().first_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).last_child.get_inner_as_layout()
+    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().last_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
+    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().prev_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        (*self.unsafe_get()).next_sibling.get_inner_as_layout()
+    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
-        (*self.unsafe_get())
-            .owner_doc
-            .get_inner_as_layout()
-            .unwrap()
+    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
+        unsafe { self.unsafe_get().owner_doc.get_inner_as_layout().unwrap() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
-        (*self.unsafe_get())
-            .rare_data_for_layout()
-            .as_ref()?
-            .containing_shadow_root
-            .as_ref()
-            .map(|sr| sr.to_layout())
+    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .containing_shadow_root
+                .as_ref()
+                .map(|sr| sr.to_layout())
+        }
     }
+
+    // FIXME(nox): get_flag/set_flag (especially the latter) are not safe because
+    // they mutate stuff while values of this type can be used from multiple
+    // threads at once, this should be revisited.
 
     #[inline]
     #[allow(unsafe_code)]
@@ -1431,9 +1441,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn children_count(self) -> u32 {
-        (*self.unsafe_get()).children_count.get()
+    fn children_count(self) -> u32 {
+        unsafe { self.unsafe_get().children_count.get() }
     }
+
+    // FIXME(nox): How we handle style and layout data needs to be completely
+    // revisited so we can do that more cleanly and safely in layout 2020.
 
     #[inline]
     #[allow(unsafe_code)]
@@ -1472,40 +1485,32 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         panic!("not text!")
     }
 
-    #[allow(unsafe_code)]
     fn selection(self) -> Option<Range<usize>> {
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.selection_for_layout() };
+            return area.selection_for_layout();
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return unsafe { input.selection_for_layout() };
+            return input.selection_for_layout();
         }
 
         None
     }
 
-    #[allow(unsafe_code)]
     fn image_url(self) -> Option<ServoUrl> {
-        unsafe {
-            self.downcast::<HTMLImageElement>()
-                .expect("not an image!")
-                .image_url()
-        }
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_url()
     }
 
-    #[allow(unsafe_code)]
     fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
-        unsafe { self.downcast::<HTMLImageElement>().map(|e| e.image_data()) }
+        self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
-    #[allow(unsafe_code)]
     fn image_density(self) -> Option<f64> {
-        unsafe {
-            self.downcast::<HTMLImageElement>()
-                .expect("not an image!")
-                .image_density()
-        }
+        self.downcast::<HTMLImageElement>()
+            .expect("not an image!")
+            .image_density()
     }
 
     fn canvas_data(self) -> Option<HTMLCanvasData> {

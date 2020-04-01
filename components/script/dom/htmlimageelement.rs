@@ -22,7 +22,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{cors_setting_for_element, referrer_policy_for_element};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, RawLayoutElementHelpers,
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -1366,75 +1366,56 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 }
 
 pub trait LayoutHTMLImageElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn image(self) -> Option<Arc<Image>>;
-    #[allow(unsafe_code)]
-    unsafe fn image_url(self) -> Option<ServoUrl>;
-    #[allow(unsafe_code)]
-    unsafe fn image_density(self) -> Option<f64>;
-    #[allow(unsafe_code)]
-    unsafe fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
+    fn image(self) -> Option<Arc<Image>>;
+    fn image_url(self) -> Option<ServoUrl>;
+    fn image_density(self) -> Option<f64>;
+    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }
 
+impl<'dom> LayoutDom<'dom, HTMLImageElement> {
+    #[allow(unsafe_code)]
+    fn current_request(self) -> &'dom ImageRequest {
+        unsafe { self.unsafe_get().current_request.borrow_for_layout() }
+    }
+}
+
 impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
-    #[allow(unsafe_code)]
-    unsafe fn image(self) -> Option<Arc<Image>> {
-        (*self.unsafe_get())
-            .current_request
-            .borrow_for_layout()
-            .image
-            .clone()
+    fn image(self) -> Option<Arc<Image>> {
+        self.current_request().image.clone()
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn image_url(self) -> Option<ServoUrl> {
-        (*self.unsafe_get())
-            .current_request
-            .borrow_for_layout()
-            .parsed_url
-            .clone()
+    fn image_url(self) -> Option<ServoUrl> {
+        self.current_request().parsed_url.clone()
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
-        let current_request = (*self.unsafe_get()).current_request.borrow_for_layout();
+    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+        let current_request = self.current_request();
         (
             current_request.image.clone(),
             current_request.metadata.clone(),
         )
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn image_density(self) -> Option<f64> {
-        (*self.unsafe_get())
-            .current_request
-            .borrow_for_layout()
-            .current_pixel_density
-            .clone()
+    fn image_density(self) -> Option<f64> {
+        self.current_request().current_pixel_density.clone()
     }
 
-    #[allow(unsafe_code)]
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    #[allow(unsafe_code)]
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("height"))
-                .map(AttrValue::as_dimension)
-                .cloned()
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 

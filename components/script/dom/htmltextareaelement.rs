@@ -14,7 +14,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::RawLayoutElementHelpers;
+use crate::dom::element::LayoutElementHelpers;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -57,61 +57,70 @@ pub struct HTMLTextAreaElement {
 
 pub trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
-    #[allow(unsafe_code)]
+    fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
-    #[allow(unsafe_code)]
     fn get_rows(self) -> u32;
 }
 
-impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
-    #[allow(unsafe_code)]
-    fn value_for_layout(self) -> String {
-        let text = unsafe {
+#[allow(unsafe_code)]
+impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
+    fn textinput_content(self) -> DOMString {
+        unsafe {
             self.unsafe_get()
                 .textinput
                 .borrow_for_layout()
                 .get_content()
-        };
+        }
+    }
+
+    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+        unsafe {
+            self.unsafe_get()
+                .textinput
+                .borrow_for_layout()
+                .sorted_selection_offsets_range()
+        }
+    }
+
+    fn placeholder(self) -> &'dom str {
+        unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
+    }
+}
+
+impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
+    fn value_for_layout(self) -> String {
+        let text = self.textinput_content();
         if text.is_empty() {
-            let placeholder = unsafe { self.unsafe_get().placeholder.borrow_for_layout() };
             // FIXME(nox): Would be cool to not allocate a new string if the
             // placeholder is single line, but that's an unimportant detail.
-            placeholder.replace("\r\n", "\n").replace("\r", "\n").into()
+            self.placeholder()
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
+                .into()
         } else {
             text.into()
         }
     }
 
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
-        if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
+    fn selection_for_layout(self) -> Option<Range<usize>> {
+        if !self.upcast::<Element>().focus_state() {
             return None;
         }
-        let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
         Some(UTF8Bytes::unwrap_range(
-            textinput.sorted_selection_offsets_range(),
+            self.textinput_sorted_selection_offsets_range(),
         ))
     }
 
-    #[allow(unsafe_code)]
     fn get_cols(self) -> u32 {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("cols"))
-                .map_or(DEFAULT_COLS, AttrValue::as_uint)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("cols"))
+            .map_or(DEFAULT_COLS, AttrValue::as_uint)
     }
 
-    #[allow(unsafe_code)]
     fn get_rows(self) -> u32 {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("rows"))
-                .map_or(DEFAULT_ROWS, AttrValue::as_uint)
-        }
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("rows"))
+            .map_or(DEFAULT_ROWS, AttrValue::as_uint)
     }
 }
 

@@ -2618,21 +2618,21 @@ pub enum DocumentSource {
 
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers<'dom> {
-    unsafe fn is_html_document_for_layout(self) -> bool;
+    fn is_html_document_for_layout(self) -> bool;
     unsafe fn needs_paint_from_layout(self);
     unsafe fn will_paint(self);
-    unsafe fn quirks_mode(self) -> QuirksMode;
-    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
-    unsafe fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
-    unsafe fn shadow_roots_styles_changed(self) -> bool;
+    fn quirks_mode(self) -> QuirksMode;
+    fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
+    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
+    fn shadow_roots_styles_changed(self) -> bool;
     unsafe fn flush_shadow_roots_stylesheets(self);
 }
 
 #[allow(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
-    unsafe fn is_html_document_for_layout(self) -> bool {
-        (*self.unsafe_get()).is_html_document
+    fn is_html_document_for_layout(self) -> bool {
+        unsafe { self.unsafe_get().is_html_document }
     }
 
     #[inline]
@@ -2646,28 +2646,34 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    unsafe fn quirks_mode(self) -> QuirksMode {
-        (*self.unsafe_get()).quirks_mode()
+    fn quirks_mode(self) -> QuirksMode {
+        unsafe { self.unsafe_get().quirks_mode.get() }
     }
 
     #[inline]
-    unsafe fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
-        (*self.unsafe_get()).style_shared_lock()
+    fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
+        unsafe { self.unsafe_get().style_shared_lock() }
     }
 
     #[inline]
-    unsafe fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
-        (*self.unsafe_get())
-            .shadow_roots
-            .borrow_for_layout()
-            .iter()
-            .map(|sr| sr.to_layout())
-            .collect()
+    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
+        // FIXME(nox): We should just return a
+        // &'dom HashSet<LayoutDom<'dom, ShadowRoot>> here but not until
+        // I rework the ToLayout trait as mentioned in
+        // LayoutDom::to_layout_slice.
+        unsafe {
+            self.unsafe_get()
+                .shadow_roots
+                .borrow_for_layout()
+                .iter()
+                .map(|sr| sr.to_layout())
+                .collect()
+        }
     }
 
     #[inline]
-    unsafe fn shadow_roots_styles_changed(self) -> bool {
-        (*self.unsafe_get()).shadow_roots_styles_changed()
+    fn shadow_roots_styles_changed(self) -> bool {
+        unsafe { self.unsafe_get().shadow_roots_styles_changed.get() }
     }
 
     #[inline]
