@@ -14,6 +14,7 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['js/debugmozjs']
+jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
 unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
