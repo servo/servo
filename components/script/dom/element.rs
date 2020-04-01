@@ -592,6 +592,18 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
 }
 
+impl<'dom> LayoutDom<'dom, Element> {
+    #[allow(unsafe_code)]
+    pub(super) fn focus_state(self) -> bool {
+        unsafe {
+            self.unsafe_get()
+                .state
+                .get()
+                .contains(ElementState::IN_FOCUS_STATE)
+        }
+    }
+}
+
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     #[inline]

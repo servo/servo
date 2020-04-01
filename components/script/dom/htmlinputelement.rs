@@ -780,7 +780,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
 
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
-        if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
+        if !self.upcast::<Element>().focus_state() {
             return None;
         }
 
