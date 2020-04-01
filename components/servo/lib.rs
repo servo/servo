@@ -481,6 +481,7 @@ where
                     &mut webxr_main_thread,
                     webgl_executor,
                     webxr_surface_providers,
+                    embedder_proxy.clone(),
                 );
             }
         }
@@ -521,7 +522,7 @@ where
         let (constellation_chan, sw_senders) = create_constellation(
             opts.user_agent.clone(),
             opts.config_dir.clone(),
-            embedder_proxy.clone(),
+            embedder_proxy,
             compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),

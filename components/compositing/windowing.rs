@@ -5,7 +5,7 @@
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
 use canvas::{SurfaceProviders, WebGlExecutor};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 #[cfg(feature = "gl")]
 use gleam::gl;
@@ -190,6 +190,7 @@ pub trait EmbedderMethods {
         _: &mut webxr::MainThreadRegistry,
         _: WebGlExecutor,
         _: SurfaceProviders,
+        _: EmbedderProxy,
     ) {
     }
 }

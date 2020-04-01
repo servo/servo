@@ -20,7 +20,9 @@ use servo::compositing::windowing::{
     WindowMethods,
 };
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
-use servo::embedder_traits::{EmbedderMsg, MediaSessionEvent, PromptDefinition, PromptOrigin};
+use servo::embedder_traits::{
+    EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
+};
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
@@ -764,7 +766,10 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         registry: &mut webxr::MainThreadRegistry,
         executor: WebGlExecutor,
         surface_providers: SurfaceProviders,
+        embedder_proxy: EmbedderProxy,
     ) {
+        use ipc_channel::ipc::{self, IpcReceiver};
+        use webxr::openxr;
         debug!("EmbedderMethods::register_xr");
         assert!(
             self.xr_discovery.is_none(),
@@ -772,12 +777,50 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         );
 
         struct ProviderRegistration(SurfaceProviders);
-        impl webxr::openxr::SurfaceProviderRegistration for ProviderRegistration {
+        impl openxr::SurfaceProviderRegistration for ProviderRegistration {
             fn register(&self, id: webxr_api::SessionId, provider: servo::canvas::SurfaceProvider) {
                 self.0.lock().unwrap().insert(id, provider);
             }
-            fn clone(&self) -> Box<dyn webxr::openxr::SurfaceProviderRegistration> {
+            fn clone(&self) -> Box<dyn openxr::SurfaceProviderRegistration> {
                 Box::new(ProviderRegistration(self.0.clone()))
+            }
+        }
+
+        #[derive(Clone)]
+        struct ContextMenuCallback(EmbedderProxy);
+
+        struct ContextMenuFuture(IpcReceiver<ContextMenuResult>);
+
+        impl openxr::ContextMenuProvider for ContextMenuCallback {
+            fn open_context_menu(&self) -> Box<dyn openxr::ContextMenuFuture> {
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.0.send((
+                    None,
+                    EmbedderMsg::ShowContextMenu(
+                        sender,
+                        Some("Would you like to exit the XR session?".into()),
+                        vec!["Exit".into()],
+                    ),
+                ));
+
+                Box::new(ContextMenuFuture(receiver))
+            }
+            fn clone_object(&self) -> Box<dyn openxr::ContextMenuProvider> {
+                Box::new(self.clone())
+            }
+        }
+
+        impl openxr::ContextMenuFuture for ContextMenuFuture {
+            fn poll(&self) -> openxr::ContextMenuResult {
+                if let Ok(result) = self.0.try_recv() {
+                    if let ContextMenuResult::Selected(0) = result {
+                        openxr::ContextMenuResult::ExitSession
+                    } else {
+                        openxr::ContextMenuResult::Dismissed
+                    }
+                } else {
+                    openxr::ContextMenuResult::Pending
+                }
             }
         }
 
@@ -794,6 +837,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         let discovery = webxr::openxr::OpenXrDiscovery::new(
             Box::new(GlThread(executor)),
             Box::new(ProviderRegistration(surface_providers)),
+            Box::new(ContextMenuCallback(embedder_proxy)),
         );
         registry.register(discovery);
     }
@@ -804,6 +848,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         registry: &mut webxr::MainThreadRegistry,
         _executor: WebGlExecutor,
         _surface_provider_registration: SurfaceProviders,
+        _embedder_proxy: EmbedderProxy,
     ) {
         debug!("EmbedderMethods::register_xr");
         if let Some(discovery) = self.xr_discovery.take() {
