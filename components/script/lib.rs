@@ -91,7 +91,7 @@ pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
 #[warn(deprecated)]
-mod serviceworker_manager;
+pub mod serviceworker_manager;
 #[warn(deprecated)]
 mod serviceworkerjob;
 #[warn(deprecated)]
@@ -115,7 +115,7 @@ mod unpremultiplytable;
 #[warn(deprecated)]
 mod webdriver_handlers;
 
-pub use init::{init, init_service_workers};
+pub use init::init;
 pub use script_runtime::JSEngineSetup;
 
 /// A module with everything layout can use from script.

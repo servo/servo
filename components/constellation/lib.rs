@@ -24,6 +24,7 @@ mod pipeline;
     not(target_arch = "aarch64")
 ))]
 mod sandboxing;
+mod serviceworker;
 mod session_history;
 mod timer_scheduler;
 
@@ -38,4 +39,4 @@ pub use crate::pipeline::UnprivilegedPipelineContent;
     not(target_arch = "arm"),
     not(target_arch = "aarch64")
 ))]
-pub use crate::sandboxing::content_process_sandbox_profile;
+pub use crate::sandboxing::{content_process_sandbox_profile, UnprivilegedContent};

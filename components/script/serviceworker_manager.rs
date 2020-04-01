@@ -15,8 +15,12 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
-use script_traits::{DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg};
+use script_traits::{
+    DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg,
+};
 use servo_config::pref;
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::thread;
@@ -31,6 +35,9 @@ pub struct ServiceWorkerManager {
     registered_workers: HashMap<ServoUrl, ScopeThings>,
     // map of active service worker descriptors
     active_workers: HashMap<ServoUrl, Sender<ServiceWorkerScriptMsg>>,
+    // Will be useful to implement posting a message to a client.
+    // See https://github.com/servo/servo/issues/24660
+    _constellation_sender: IpcSender<SWManagerMsg>,
     // own sender to send messages here
     own_sender: IpcSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
@@ -44,6 +51,7 @@ impl ServiceWorkerManager {
         own_sender: IpcSender<ServiceWorkerMsg>,
         from_constellation_receiver: Receiver<ServiceWorkerMsg>,
         resource_port: Receiver<CustomResponseMediator>,
+        constellation_sender: IpcSender<SWManagerMsg>,
     ) -> ServiceWorkerManager {
         ServiceWorkerManager {
             registered_workers: HashMap::new(),
@@ -51,28 +59,8 @@ impl ServiceWorkerManager {
             own_sender: own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
+            _constellation_sender: constellation_sender,
         }
-    }
-
-    pub fn spawn_manager(sw_senders: SWManagerSenders) {
-        let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
-        let (resource_chan, resource_port) = ipc::channel().unwrap();
-        let from_constellation =
-            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(from_constellation_receiver);
-        let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
-        let _ = sw_senders
-            .resource_sender
-            .send(CoreResourceMsg::NetworkMediator(resource_chan));
-        let _ = sw_senders
-            .swmanager_sender
-            .send(SWManagerMsg::OwnSender(own_sender.clone()));
-        thread::Builder::new()
-            .name("ServiceWorkerManager".to_owned())
-            .spawn(move || {
-                ServiceWorkerManager::new(own_sender, from_constellation, resource_port)
-                    .handle_message();
-            })
-            .expect("Thread spawning failed");
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
@@ -199,6 +187,38 @@ impl ServiceWorkerManager {
         select! {
             recv(self.own_port) -> msg => msg.map(Message::FromConstellation),
             recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
+        }
+    }
+}
+
+impl ServiceWorkerManagerFactory for ServiceWorkerManager {
+    fn create(sw_senders: SWManagerSenders, _origin: ImmutableOrigin) {
+        let (resource_chan, resource_port) = ipc::channel().unwrap();
+
+        let SWManagerSenders {
+            resource_sender,
+            own_sender,
+            receiver,
+            swmanager_sender: constellation_sender,
+        } = sw_senders;
+
+        let from_constellation = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(receiver);
+        let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
+        let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
+        if thread::Builder::new()
+            .name("ServiceWorkerManager".to_owned())
+            .spawn(move || {
+                ServiceWorkerManager::new(
+                    own_sender,
+                    from_constellation,
+                    resource_port,
+                    constellation_sender,
+                )
+                .handle_message();
+            })
+            .is_err()
+        {
+            warn!("ServiceWorkerManager thread spawning failed");
         }
     }
 }

@@ -96,6 +96,7 @@ use crate::browsingcontext::{
 use crate::event_loop::EventLoop;
 use crate::network_listener::NetworkListener;
 use crate::pipeline::{InitialPipelineState, Pipeline};
+use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
@@ -151,10 +152,15 @@ use script_traits::{HistoryEntryReplacement, IFrameSizeMsg, WindowSizeData, Wind
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
-use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{
+    LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory,
+    ServiceWorkerManagerFactory,
+};
 use script_traits::{MediaSessionActionType, MouseEventType};
 use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
-use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
+use script_traits::{
+    SWManagerMsg, SWManagerSenders, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg,
+};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
@@ -259,7 +265,7 @@ struct BrowsingContextGroup {
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
 /// the `script` crate). Script and layout communicate using a `Message`
 /// type.
-pub struct Constellation<Message, LTF, STF> {
+pub struct Constellation<Message, LTF, STF, SWF> {
     /// An ipc-sender/threaded-receiver pair
     /// to facilitate installing pipeline namespaces in threads
     /// via a per-process installer.
@@ -348,9 +354,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// An IPC channel for the constellation to send messages to the
-    /// Service Worker Manager thread.
-    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
+    /// A map of origin to sender to a Service worker manager.
+    sw_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
 
     /// An IPC channel for Service Worker Manager threads to send
     /// messages to the constellation.  This is the SW Manager thread's
@@ -453,7 +458,7 @@ pub struct Constellation<Message, LTF, STF> {
     random_pipeline_closure: Option<(ServoRng, f32)>,
 
     /// Phantom data that keeps the Rust type system happy.
-    phantom: PhantomData<(Message, LTF, STF)>,
+    phantom: PhantomData<(Message, LTF, STF, SWF)>,
 
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
@@ -813,10 +818,11 @@ fn handle_webrender_message(
     }
 }
 
-impl<Message, LTF, STF> Constellation<Message, LTF, STF>
+impl<Message, LTF, STF, SWF> Constellation<Message, LTF, STF, SWF>
 where
     LTF: LayoutThreadFactory<Message = Message>,
     STF: ScriptThreadFactory<Message = Message>,
+    SWF: ServiceWorkerManagerFactory,
 {
     /// Create a new constellation thread.
     pub fn start(
@@ -829,12 +835,11 @@ where
         enable_canvas_antialiasing: bool,
         canvas_chan: Sender<ConstellationCanvasMsg>,
         ipc_canvas_chan: IpcSender<CanvasMsg>,
-    ) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
+    ) -> Sender<FromCompositorMsg> {
         let (compositor_sender, compositor_receiver) = unbounded();
 
         // service worker manager to communicate with constellation
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
-        let sw_mgr_clone = swmanager_sender.clone();
 
         thread::Builder::new()
             .name("Constellation".to_owned())
@@ -937,7 +942,7 @@ where
                     }),
                 );
 
-                let mut constellation: Constellation<Message, LTF, STF> = Constellation {
+                let mut constellation: Constellation<Message, LTF, STF, SWF> = Constellation {
                     namespace_receiver,
                     namespace_sender,
                     script_sender: ipc_script_sender,
@@ -961,9 +966,9 @@ where
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
                     font_cache_thread: state.font_cache_thread,
-                    swmanager_chan: None,
+                    sw_managers: Default::default(),
                     swmanager_receiver: swmanager_receiver,
-                    swmanager_sender: sw_mgr_clone,
+                    swmanager_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
                     message_ports: HashMap::new(),
@@ -1022,7 +1027,7 @@ where
             })
             .expect("Thread spawning failed");
 
-        (compositor_sender, swmanager_sender)
+        compositor_sender
     }
 
     /// The main event loop for the constellation.
@@ -1530,9 +1535,9 @@ where
 
     fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
         match message {
-            SWManagerMsg::OwnSender(sw_sender) => {
-                // store service worker manager for communicating with it.
-                self.swmanager_chan = Some(sw_sender);
+            SWManagerMsg::PostMessageToClient => {
+                // TODO: implement posting a message to a SW client.
+                // https://github.com/servo/servo/issues/24660
             },
         }
     }
@@ -1965,7 +1970,7 @@ where
                 self.handle_register_serviceworker(scope_things, scope);
             },
             FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
-                if let Some(ref mgr) = self.swmanager_chan {
+                if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
                     let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
                 } else {
                     warn!("Unable to forward DOMMessage for postMessage call");
@@ -2621,11 +2626,32 @@ where
         }
     }
 
-    fn handle_register_serviceworker(&self, scope_things: ScopeThings, scope: ServoUrl) {
-        if let Some(ref mgr) = self.swmanager_chan {
+    fn handle_register_serviceworker(&mut self, scope_things: ScopeThings, scope: ServoUrl) {
+        let origin = scope.origin();
+
+        if let Some(mgr) = self.sw_managers.get(&origin) {
             let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
         } else {
-            warn!("sending scope info to service worker manager failed");
+            let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
+            let sw_senders = SWManagerSenders {
+                swmanager_sender: self.swmanager_sender.clone(),
+                resource_sender: self.public_resource_threads.sender(),
+                own_sender: own_sender.clone(),
+                receiver,
+            };
+            let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin.clone());
+
+            if opts::multiprocess() {
+                if content.spawn_multiprocess().is_err() {
+                    return warn!("Failed to spawn process for SW manager.");
+                }
+            } else {
+                content.start::<SWF>();
+            }
+
+            let _ = own_sender.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
+            self.sw_managers.insert(origin, own_sender);
         }
     }
 
@@ -2763,7 +2789,7 @@ where
         }
 
         debug!("Exiting service worker manager thread.");
-        if let Some(mgr) = self.swmanager_chan.as_ref() {
+        for (_, mgr) in self.sw_managers.drain() {
             if let Err(e) = mgr.send(ServiceWorkerMsg::Exit) {
                 warn!("Exit service worker manager failed ({})", e);
             }
