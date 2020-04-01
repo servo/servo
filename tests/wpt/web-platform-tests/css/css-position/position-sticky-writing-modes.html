@@ -5,6 +5,9 @@
 <meta name="assert" content="This test checks that position:sticky constraints are independent of the writing mode" />
 
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 .group {
   display: inline-block;
@@ -45,6 +48,7 @@ window.addEventListener('load', function() {
   document.getElementById('scroller1').scrollLeft = 20;
   document.getElementById('scroller2').scrollTop = 50;
   document.getElementById('scroller2').scrollLeft = -25;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -59,11 +63,11 @@ window.addEventListener('load', function() {
 
 <div class="group">
   <div id="scroller2" class="scroller" style="writing-mode: vertical-rl;">
+    <div class="indicator" style="left: 45px; top: 100px;">XXX</div>
     <div class="contents">
-      <div class="indicator" style="left: 45px; top: 100px;">XXX</div>
       <div class="sticky" style="right: 20px;">XXX</div>
     </div>
   </div>
 </div>
 
-<div>You should see two green blocks above. No red should be visible.</div>
+<div>You should see two green blocks above. No red or blue should be visible.</div>

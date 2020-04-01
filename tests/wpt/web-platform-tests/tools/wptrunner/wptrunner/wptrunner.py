@@ -339,7 +339,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
 
 def check_stability(**kwargs):
-    import stability
+    from . import stability
     if kwargs["stability"]:
         logger.warning("--stability is deprecated; please use --verify instead!")
         kwargs['verify_max_time'] = None
