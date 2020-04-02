@@ -29,6 +29,7 @@
     observer.observe();
 
     // This should result in a "test" type report being generated and observed.
-    test_driver.generate_test_report("Test message.");
+    test_driver.generate_test_report("Test message.")
+      .catch(test.unreached_func('generate test report failed'));
   }, "Generate Test Report");
 </script>

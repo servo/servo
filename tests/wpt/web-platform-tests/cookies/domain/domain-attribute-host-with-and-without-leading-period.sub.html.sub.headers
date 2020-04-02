@@ -1,2 +1,2 @@
-Set-Cookie: a=b; Path=/; Domain=.{{host}}
-Set-Cookie: a=c; Path=/; Domain={{host}}
+Set-Cookie: domain-attribute-host-with-and-without-leading-period=b; Path=/; Domain=.{{host}}
+Set-Cookie: domain-attribute-host-with-and-without-leading-period=c; Path=/; Domain={{host}}

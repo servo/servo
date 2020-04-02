@@ -286,7 +286,11 @@ dictionary RTCTransportStats : RTCStats {
 };
 
 dictionary RTCSctpTransportStats : RTCStats {
-    double smoothedRoundTripTime;
+            double smoothedRoundTripTime;
+            unsigned long congestionWindow;
+            unsigned long receiverWindow;
+            unsigned long mtu;
+            unsigned long unackData;
 };
 
 dictionary RTCIceCandidateStats : RTCStats {

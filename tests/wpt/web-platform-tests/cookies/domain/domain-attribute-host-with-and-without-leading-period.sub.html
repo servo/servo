@@ -7,18 +7,19 @@
 <body>
   <script>
     //
-    //  Set-Cookie: a=b; Path=/; Domain=.{{host}}
-    //  Set-Cookie: a=c; Path=/; Domain={{host}}
+    // Set-Cookie: domain-attribute-host-with-and-without-leading-period=b; Path=/; Domain=.{{host}}
+    // Set-Cookie: domain-attribute-host-with-and-without-leading-period=c; Path=/; Domain={{host}}
     //
+    const cookieName = "domain-attribute-host-with-and-without-leading-period";
     test(t => {
-      assert_dom_cookie("a", "c", true);
+      assert_dom_cookie(cookieName, "c", true);
     }, "Domain=.{{host}} => Second value available via `document.cookie`");
 
     async_test(t => {
       fetch("/cookies/resources/list.py", { credentials: "include" })
         .then(t.step_func(r => r.json()))
         .then(t.step_func_done(r => {
-          assert_equals(r["a"], "c");
+          assert_equals(r[cookieName], "c");
         }))
         .catch(_ => assert_unreached);
     }, "Domain=.{{host}} => Second value sent with same-origin requests.");
@@ -27,7 +28,7 @@
       fetch(`${SECURE_SUBDOMAIN_ORIGIN}/cookies/resources/list.py`, { credentials: "include" })
         .then(t.step_func(r => r.json()))
         .then(t.step_func_done(r => {
-          assert_equals(r["a"], "c");
+          assert_equals(r[cookieName], "c");
         }))
         .catch(_ => assert_unreached);
     }, "Domain=.{{host}} => Second value sent with subdomain requests.");
