@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<style>
+.testcase {
+    float: left;
+    background-color: #aaa;
+}
+
+.testcase > :nth-child(1) {
+    background-color: lightblue;
+}
+.testcase > :nth-child(2) {
+    background-color: lightgreen;
+}
+.testcase > :nth-child(3) {
+    background-color: pink;
+}
+.testcase > :nth-child(4) {
+    background-color: yellow;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0;
+  width: 100px;
+}
+
+</style>
+<body>
+
+<div class="testcase" style="height: 60px; width: 100px">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div class="testcase" style="height: 30px; width: 100px">
+  <table>
+    <td>
+      <div style="width: 100px; height: 20px"></div>
+      <div style="width: 100px; height: 10px; background-color: lightgreen"></div>
+    </td>
+    <td>
+      <div style="width: 100px; height: 10px; background-color: pink"></div>
+      <div style="width: 100px; height: 20px; background-color: yellow"></div>
+    </td>
+  </table>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div style="width: 150px">
+<div class="testcase" style="height: 60px; width: 100px">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div style="width: 150px">
+<div class="testcase" style="height: 35px; width: 100px;">
+  <table>
+    <td>
+      <div style="width: 100px; height: 20px"></div>
+      <div style="width: 100px; height: 10px; background-color: lightgreen"></div>
+    </td>
+    <td>
+      <div style="width: 100px; height: 10px; background-color: pink"></div>
+      <div style="width: 100px; height: 20px; background-color: yellow"></div>
+    </td>
+  </table>
+</div>
+</div>
+<p style="clear:left">The grey background should be 100px wide and 5px should
+stick out the bottom.</p>
+
+</body>
+</html>

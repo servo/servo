@@ -181,6 +181,29 @@ test(t => {
 }, 'Order of CSS Animations - markup-bound vs free animations');
 
 test(t => {
+  // Add an animation first
+  const div = addDiv(t, { style: 'animation: animLeft 100s' });
+  const animLeft = document.getAnimations()[0];
+  // Disassociate animLeft from markup and restart
+  div.style.animation = '';
+  animLeft.play();
+
+  div.style.top = '0px';
+  div.style.transition = 'all 100s';
+  flushComputedStyle(div);
+  // *Then* add a transition
+  div.style.top = '100px';
+  flushComputedStyle(div);
+
+  // Although the transition was added later, it should come first in the list
+  const animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'Both CSS animations and transitions are returned');
+  assert_class_string(animations[0], 'CSSTransition', 'Transition comes first');
+  assert_equals(animations[1], animLeft, 'Free animations come last');
+}, 'Order of CSS Animations - free animation vs CSS Transitions');
+
+test(t => {
   const div = addDiv(t, { style: 'animation: animLeft 100s, animTop 100s' });
   const animLeft = document.getAnimations()[0];
   const animTop  = document.getAnimations()[1];

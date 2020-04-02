@@ -33,7 +33,7 @@
     openWindow(t, "support/navigation-support.html");
     return Promise.all([
       expectLoadedAsMessage("navigation-support.html"),
-      expectViolationAsMessage("Location.href"),
+      expectViolationAsMessage("Location href"),
     ]);
   }, "Navigate a window with javascript:-urls in enforcing mode.");
 

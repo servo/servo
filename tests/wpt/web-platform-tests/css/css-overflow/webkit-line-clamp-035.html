@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp with visibility: hidden; and visibility: visible; descendant</title>
+<link rel="author" title="Tim Nguyen" href="mailto:ntim.bugs@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-035-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#parent {
+  display: inline-block;
+  background: green;
+}
+#clamp {
+  font-family: Ahem;
+  visibility: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  width: 4ch;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+</style>
+<div id="parent">
+  <div id="clamp">
+    <span style="visibility: visible">
+      AAA<br>
+      BBB<br>
+      CCCCCCCCC<br>
+      DDDDDDDDD<br>
+      EEEEEEEEE
+    </span>
+  </div>
+</div>

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp with visibility: hidden;</title>
+<link rel="author" title="Tim Nguyen" href="mailto:ntim.bugs@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="/css/reference/blank.html">
+<style>
+#clamp {
+  visibility: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+</style>
+<div id="clamp">
+  AAAAAAAAA<br>
+  BBBBBBBBB<br>
+  CCCCCCCCC<br>
+  DDDDDDDDD<br>
+  EEEEEEEEE
+</div>

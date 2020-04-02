@@ -1,9 +1,10 @@
-from six import ensure_str, ensure_text
+from __future__ import unicode_literals
+from six import ensure_text
 
 from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
 from .parser import atoms, precedence
 
-atom_names = {v:"@%s" % k for (k,v) in atoms.items()}
+atom_names = {v: "@%s" % k for (k,v) in atoms.items()}
 
 named_escapes = {"\a", "\b", "\f", "\n", "\r", "\t", "\v"}
 
@@ -21,7 +22,7 @@ def escape(string, extras=""):
             rv += "\\" + c
         else:
             rv += c
-    return ensure_str(rv)
+    return ensure_text(rv)
 
 
 class ManifestSerializer(NodeVisitor):
@@ -99,7 +100,7 @@ class ManifestSerializer(NodeVisitor):
         return rv
 
     def visit_NumberNode(self, node):
-        return [str(node.data)]
+        return [ensure_text(node.data)]
 
     def visit_VariableNode(self, node):
         rv = escape(node.data)
@@ -133,10 +134,10 @@ class ManifestSerializer(NodeVisitor):
         return [" ".join(children)]
 
     def visit_UnaryOperatorNode(self, node):
-        return [str(node.data)]
+        return [ensure_text(node.data)]
 
     def visit_BinaryOperatorNode(self, node):
-        return [str(node.data)]
+        return [ensure_text(node.data)]
 
 
 def serialize(tree, *args, **kwargs):

@@ -9,7 +9,7 @@
     <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-domquad-p2">
     <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-domquad-p3">
     <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-domquad-p4">
-    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-domquad-bounds">
+    <link rel="help" href="https://www.w3.org/TR/geometry-1/#DOMQuad">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -67,7 +67,7 @@
                     p2: { x: NaN, y: -Infinity, z: 0, w: 1 },
                     p3: { x: NaN, y: NaN, z: 0, w: 1 },
                     p4: { x: -Infinity, y: NaN, z: 0, w: 1 },
-                    bounds: { x: -Infinity, y: -Infinity, width: NaN, height: NaN } },
+                    bounds: { x: NaN, y: NaN, width: NaN, height: NaN } },
                 'fromRect() method on DOMQuad with Infinity');
 
         checkDOMQuad(function() { return new DOMQuad(new DOMRect()); }, initial, 'testConstructor8');

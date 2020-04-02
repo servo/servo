@@ -170,6 +170,28 @@ promise_test(async testCase => {
 }, 'CookieListItem - cookieStore.set with path set to the current directory');
 
 promise_test(async testCase => {
+  const currentUrl = new URL(self.location.href);
+  const currentPath = currentUrl.pathname;
+  const currentDirectory = currentPath.substr(0, currentPath.lastIndexOf('/'));
+  await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+
+  await cookieStore.set('cookie-name', 'cookie-value',
+                        { path: currentDirectory });
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+  });
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, 'cookie-value');
+  assert_equals(cookie.domain, null);
+  assert_equals(cookie.path, currentDirectory + '/');
+  assert_equals(cookie.expires, null);
+  assert_equals(cookie.secure, true);
+  assert_equals(cookie.sameSite, 'strict');
+  assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
+}, 'CookieListItem - cookieStore.set adds / to path if it does not end with /');
+
+promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set('cookie-name', 'cookie-value', { secure: false });

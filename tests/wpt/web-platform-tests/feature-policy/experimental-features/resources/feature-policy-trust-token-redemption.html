@@ -6,7 +6,7 @@
     // and signing ("send-srr") should both be available; when it's disabled,
     // they should both be unavailable. Send the number of available operations
     // upstream in order to enforce this in assertions.
-    let num_enabled = 2;
+    let num_enabled = 4;
     try {
       new Request("https://issuer.example/", {
         trustToken: {
@@ -26,6 +26,26 @@
     } catch (e) {
       num_enabled--;
     }
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://issuer.example/");
+      xhr.setTrustToken( { type: "srr-token-redemption" } );
+    } catch (e) {
+      num_enabled--;
+    }
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://destination.example/");
+      xhr.setTrustToken({
+        type: "send-srr",
+        issuer: "https://issuer.example/"
+      });
+    } catch (e) {
+      num_enabled--;
+    }
+
     parent.postMessage({
       num_operations_enabled: num_enabled
     }, '*');
