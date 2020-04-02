@@ -56,6 +56,7 @@ use crate::dom::htmllegendelement::HTMLLegendElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
@@ -3279,6 +3280,18 @@ impl Element {
                 HTMLElementTypeId::HTMLTextAreaElement,
             )) => {
                 let element = self.downcast::<HTMLTextAreaElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFieldSetElement,
+            )) => {
+                let element = self.downcast::<HTMLFieldSetElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLOutputElement,
+            )) => {
+                let element = self.downcast::<HTMLOutputElement>().unwrap();
                 Some(element as &dyn Validatable)
             },
             _ => None,

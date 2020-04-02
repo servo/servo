@@ -184,6 +184,9 @@ pub struct TextInput<T: ClipboardProvider> {
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
     max_length: Option<UTF16CodeUnits>,
     min_length: Option<UTF16CodeUnits>,
+
+    /// Was last change made by set_content?
+    was_last_change_by_set_content: bool,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -269,6 +272,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             max_length: max_length,
             min_length: min_length,
             selection_direction: selection_direction,
+            was_last_change_by_set_content: true,
         };
         i.set_content(initial);
         i
@@ -298,6 +302,11 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn set_min_length(&mut self, length: Option<UTF16CodeUnits>) {
         self.min_length = length;
+    }
+
+    /// Was last edit made by set_content?
+    pub fn was_last_change_by_set_content(&self) -> bool {
+        self.was_last_change_by_set_content
     }
 
     /// Remove a character at the current editing point
@@ -496,6 +505,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         };
 
         self.lines = new_lines;
+        self.was_last_change_by_set_content = false;
         self.clear_selection();
         self.assert_ok_selection();
     }
@@ -1035,6 +1045,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             vec![content]
         };
 
+        self.was_last_change_by_set_content = true;
         self.edit_point = self.edit_point.constrain_to(&self.lines);
 
         if let Some(origin) = self.selection_origin {

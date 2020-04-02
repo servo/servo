@@ -14,6 +14,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmllegendelement::HTMLLegendElement;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -25,6 +26,7 @@ use style::element_state::ElementState;
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 impl HTMLFieldSetElement {
@@ -41,6 +43,7 @@ impl HTMLFieldSetElement {
                 document,
             ),
             form_owner: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
@@ -75,12 +78,6 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
         HTMLCollection::create(&window, self.upcast(), filter)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
     make_bool_getter!(Disabled, "disabled");
 
@@ -96,6 +93,36 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
     }
 }
 
@@ -183,5 +210,21 @@ impl FormControl for HTMLFieldSetElement {
 
     fn to_element<'a>(&'a self) -> &'a Element {
         self.upcast::<Element>()
+    }
+}
+
+impl Validatable for HTMLFieldSetElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // fieldset is not a submittable element (https://html.spec.whatwg.org/multipage/#category-submit)
+        false
     }
 }
