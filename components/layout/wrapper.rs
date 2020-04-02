@@ -52,11 +52,11 @@ where
     T: GetLayoutData<'dom>,
 {
     fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>> {
-        self.get_raw_data().map(|d| d.layout_data.borrow())
+        unsafe { self.get_raw_data().map(|d| d.layout_data.borrow()) }
     }
 
     fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>> {
-        self.get_raw_data().map(|d| d.layout_data.borrow_mut())
+        unsafe { self.get_raw_data().map(|d| d.layout_data.borrow_mut()) }
     }
 
     fn flow_debug_id(self) -> usize {
@@ -66,18 +66,16 @@ where
 }
 
 pub trait GetRawData {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
+    unsafe fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
 }
 
 impl<'dom, T> GetRawData for T
 where
     T: GetLayoutData<'dom>,
 {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
-        self.get_style_and_layout_data().map(|opaque| {
-            let container = opaque.ptr.as_ptr() as *mut StyleAndLayoutData;
-            unsafe { &*container }
-        })
+    unsafe fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
+        self.get_style_and_layout_data()
+            .map(|opaque| opaque.downcast_ref().unwrap())
     }
 }
 
@@ -146,7 +144,7 @@ where
             debug_assert!(node.is_element());
         }
 
-        let damage = {
+        let damage = unsafe {
             let data = node.get_raw_data().unwrap();
 
             if !data

@@ -63,7 +63,7 @@ where
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
-        node.get_raw_data().is_none() || !parent_data.damage.is_empty()
+        (unsafe { node.get_raw_data().is_none() }) || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

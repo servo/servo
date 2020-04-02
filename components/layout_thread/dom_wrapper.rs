@@ -70,7 +70,6 @@ use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::ptr::NonNull;
 use std::sync::atomic::Ordering;
 use std::sync::Arc as StdArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -93,9 +92,7 @@ use style::stylist::CascadeData;
 use style::CaseSensitivityExt;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr = data.ptr.as_ptr() as *mut StyleData;
-    let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
-    let _ = Box::from_raw(non_opaque);
+    drop(Box::from_raw(data.as_ptr()));
 }
 
 #[derive(Clone, Copy)]
@@ -276,10 +273,7 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
 
     unsafe fn initialize_data(&self) {
         if self.get_raw_data().is_none() {
-            let ptr: *mut StyleAndLayoutData = Box::into_raw(Box::new(StyleAndLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonNull::new_unchecked(ptr as *mut StyleData),
-            };
+            let opaque = OpaqueStyleAndLayoutData::new(StyleAndLayoutData::new());
             self.init_style_and_layout_data(opaque);
         };
     }
@@ -558,10 +552,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        unsafe {
-            self.get_style_and_layout_data()
-                .map(|d| &(*(d.ptr.as_ptr() as *mut StyleData)).element_data)
-        }
+        self.get_style_data().map(|data| &data.element_data)
     }
 
     fn skip_item_display_fixup(&self) -> bool {
@@ -697,10 +688,12 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        unsafe {
-            self.get_style_and_layout_data()
-                .map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
-        }
+        self.get_style_and_layout_data().map(|opaque| {
+            &opaque
+                .downcast_ref::<StyleAndLayoutData>()
+                .unwrap()
+                .style_data
+        })
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {

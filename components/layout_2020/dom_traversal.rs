@@ -446,10 +446,13 @@ where
         self.opaque()
     }
 
+    #[allow(unsafe_code)]
     fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement> {
-        self.get_raw_data()
-            .map(|d| d.layout_data.borrow_mut())
-            .unwrap()
+        unsafe {
+            self.get_raw_data()
+                .map(|d| d.layout_data.borrow_mut())
+                .unwrap()
+        }
     }
 
     fn element_box_slot(&self) -> BoxSlot<'dom> {

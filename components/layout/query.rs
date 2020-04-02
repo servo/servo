@@ -6,6 +6,7 @@
 
 use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
+use crate::data::StyleAndLayoutData;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
@@ -26,7 +27,6 @@ use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, 
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::StyleData;
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -1037,8 +1037,13 @@ fn inner_text_collection_steps<'dom>(
         };
 
         let element_data = unsafe {
-            node.get_style_and_layout_data()
-                .map(|d| &(*(d.ptr.as_ptr() as *mut StyleData)).element_data)
+            &node.get_style_and_layout_data().as_ref().map(|opaque| {
+                &opaque
+                    .downcast_ref::<StyleAndLayoutData>()
+                    .unwrap()
+                    .style_data
+                    .element_data
+            })
         };
 
         if element_data.is_none() {
