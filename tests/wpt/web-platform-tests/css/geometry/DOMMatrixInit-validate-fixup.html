@@ -28,6 +28,12 @@
   test(() => {
     assert_true('fromMatrix' in DOMMatrix, 'fromMatrix should exist');
     assert_throws_js(TypeError, () => DOMMatrix.fromMatrix(dict));
+    assert_true('multiply' in DOMMatrix.prototype, 'multiply should exist');
+    assert_throws_js(TypeError, () => new DOMMatrix().multiply(dict));
+    assert_true('multiplySelf' in DOMMatrix.prototype, 'multiplySelf should exist');
+    assert_throws_js(TypeError, () => new DOMMatrix().multiplySelf(dict));
+    assert_true('preMultiplySelf' in DOMMatrix.prototype, 'preMultiplySelf should exist');
+    assert_throws_js(TypeError, () => new DOMMatrix().preMultiplySelf(dict));
   }, `${format_dict(dict)} (invalid)`);
 });
 

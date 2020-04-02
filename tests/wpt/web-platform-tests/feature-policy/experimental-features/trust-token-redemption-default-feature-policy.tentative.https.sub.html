@@ -14,6 +14,8 @@
 
     test(() => {
       try {
+        // The feature policy gates redemption and signing via both the Fetch
+        // and XHR interfaces.
         new Request("https://issuer.example/", {
           trustToken: {
             type: "srr-token-redemption"
@@ -21,9 +23,20 @@
         });
         new Request("https://destination.example/", {
           trustToken: {
-            type: "send-srr",
+            type: "send-srr",  // signing
             issuer: "https://issuer.example/"
           }
+        });
+
+        const redemption_xhr = new XMLHttpRequest();
+        redemption_xhr.open("GET", "https://issuer.example/");
+        redemption_xhr.setTrustToken( { type: "srr-token-redemption" } );
+
+        const signing_xhr = new XMLHttpRequest();
+        signing_xhr.open("GET", "https://destination.example/");
+        signing_xhr.setTrustToken({
+          type: "send-srr",  // signing
+          issuer: "https://issuer.example/"
         });
       } catch (e) {
         assert_unreached();
@@ -33,7 +46,7 @@
     async_test(t => {
       test_feature_availability('Trust token redemption', t, same_origin_src,
         (data, desc) => {
-          assert_equals(data.num_operations_enabled, 2, desc);
+          assert_equals(data.num_operations_enabled, 4, desc);
         });
     }, header + ' allows same-origin iframes.');
 

@@ -326,7 +326,7 @@ def write_new_expected(metadata_path, expected):
         tmp_path = path + ".tmp"
         try:
             with open(tmp_path, "wb") as f:
-                f.write(manifest_str.encode())
+                f.write(manifest_str.encode("utf8"))
             if sys.version_info >= (3, 3):
                 os.replace(tmp_path, path)
             else:

@@ -1,5 +1,5 @@
 This directory contains tests for the
-[Async Cookies API](https://github.com/WICG/cookie-store).
+[Cookie Store API](https://github.com/WICG/cookie-store).
 
 ## Note on cookie naming conventions
 

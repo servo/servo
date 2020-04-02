@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>JavaScript: the Trust Token API XHR interface correctly validates its parameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  test(() => {
+    assert_throws_dom("InvalidStateError", () => {
+      let request = new XMLHttpRequest();
+      request.setTrustToken({
+        type: 'token-request'
+      });
+    });
+  }, 'Setting XHR Trust Tokens parameters requires that the XHR request be open.');
+
+  test(() => {
+    assert_throws_dom("InvalidStateError", () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.send();
+      request.setTrustToken({
+        type: 'token-request'
+      });
+    });
+  }, 'Setting XHR Trust Tokens parameters requires that the XHR request not have been sent.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({});
+    });
+  }, 'Trust Tokens operations require present `type` values.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({
+        type: "invalid"
+      });
+    });
+  }, 'Trust Tokens operations require valid `type` values.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({
+        type: "token-request",
+        signRequestData: "not a member of the signRequestData enum"
+      });
+    });
+  }, 'Trust Tokens operations require valid `signRequestData` values, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({
+        type: "token-request",
+        refreshPolicy: "not a member of the refreshPolicy enum",
+      });
+    });
+  }, 'Trust Tokens operations require valid `refreshPolicy:` values, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({
+        type: "send-srr",
+        issuer: "not a valid URL"
+      });
+    });
+  }, 'Trust Tokens operations require valid issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://trusttoken.example');
+      request.setTrustToken({
+        type: "send-srr",
+        issuer: "http://not-secure.com"
+      });
+    });
+  }, 'Trust Tokens operations require secure issuer URLs, if provided.');
+
+  test(() => {
+    let request = new XMLHttpRequest();
+    request.open('GET', 'https://trusttoken.example');
+    request.setTrustToken({
+      type: "send-srr",
+      issuer: "http://localhost"
+    });
+  }, 'Since localhost URLs are potentially trustworthy, setting an issuer to localhost should succeed.');
+</script>

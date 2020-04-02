@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation with background properties reference</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<style>
+    div {
+        position: absolute;
+        width: 200px;
+        height: 200PX;
+        vertical-align: top;
+        background-image: url(../support/exif-orientation-5-lu-pre-rotated.jpg);
+        background-repeat: no-repeat;
+    }
+
+    .repeat {
+        background-repeat: repeat;
+        top: 20px;
+        left: 20px;
+    }
+
+    .position {
+        background-position: bottom right;
+        top: 20px;
+        left: 240px;
+    }
+
+    .cover {
+        background-size: cover;
+        top: 240px;
+        left: 20px;
+    }
+
+    .contain {
+        background-size: contain;
+        top: 240px;
+        left: 240px;
+    }
+</style>
+</head>
+<body>
+    <div class="repeat">
+    </div>
+    <div class="position">
+    </div>
+    <div class="cover">
+    </div>
+    <div class="contain">
+    </div>
+</body>
+</html>

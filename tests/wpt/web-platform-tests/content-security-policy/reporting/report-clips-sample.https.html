@@ -16,7 +16,7 @@
     });
     assert_false(evil);
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
-      assert_equals(e.sample, "eval evil = '12345678901234567890123456789012");
+      assert_equals(e.sample, "eval|evil = '12345678901234567890123456789012");
     }));
   }, "Unsafe eval violation sample is clipped to 40 characters.");
 
@@ -26,7 +26,7 @@
     });
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
       assert_equals(e.sample.replace(/\n/g, ""),
-                    "eval (function anonymous(a,b) {return '1234");
+                    "eval|(function anonymous(a,b) {return '1234");
     }));
   }, "Function constructor - the other kind of eval - is clipped.");
 
@@ -37,7 +37,7 @@
     });
     assert_equals(a.innerHTML, "");
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
-      assert_equals(e.sample, "Element.innerHTML 1234567890123456789012345678901234567890");
+      assert_equals(e.sample, "Element innerHTML|1234567890123456789012345678901234567890");
     }));
   }, "Trusted Types violation sample is clipped to 40 characters excluded the sink name.");
   </script>
