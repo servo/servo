@@ -197,6 +197,52 @@ for (const suffix of gInvalidScrollOffsetSuffixes) {
   }, '\'' + suffix + '\' is an invalid scroll offset unit');
 }
 
+
+const offset_target = document.createElement('div');
+
+const gValidElementBasedScrollOffsetValues = [
+  {target: offset_target},
+  {target: offset_target, threshold: 0},
+  {target: offset_target, threshold: 0.5},
+  {target: offset_target, threshold: 1},
+];
+
+for (let offset of gValidElementBasedScrollOffsetValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset});
+
+    // Special case unspecified threshold since it gets initialized to 0.
+    if (!offset.hasOwnProperty('threshold'))
+      offset.threshold = 0;
+
+    assert_equals(scrollTimeline.startScrollOffset.target, offset.target);
+    assert_equals(scrollTimeline.startScrollOffset.threshold, offset.threshold);
+    assert_equals(scrollTimeline.endScrollOffset.target, offset.target);
+    assert_equals(scrollTimeline.endScrollOffset.threshold, offset.threshold);
+  }, '\'' + JSON.stringify(offset) + '\' is a valid scroll offset value');
+}
+
+
+const gInvalidElementBasedScrollOffsetValues = [
+  {}, // empty
+  {target: offset_target, threshold: "test"},
+  {target: offset_target, threshold: 2},
+  {target: offset_target, threshold: -0.2},
+];
+
+for (let offset of gInvalidElementBasedScrollOffsetValues) {
+  test(function() {
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset})
+    };
+    assert_throws_js(TypeError, constructorFunc);
+  }, '\'' + JSON.stringify(offset) + '\' is an invalid scroll offset value');
+}
+
+
+
 // timeRange
 
 test(function() {

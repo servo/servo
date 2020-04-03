@@ -9,7 +9,9 @@ function send_message_to_client(message, clientId) {
 }
 
 self.addEventListener('fetch', function(event) {
-  const clientId = event.clientId;
+  const clientId = (event.request.mode === 'navigate') ?
+      event.resultingClientId : event.clientId;
+
   try {
     event.handled.then(() => {
       send_message_to_client('RESOLVED', clientId);

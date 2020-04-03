@@ -39,14 +39,13 @@ const corp_header = {
 // - |response_corp| the CORP header of the response.
 //
 // Test expectations:
-// |loaded| is true whenever the worker is able to fetch the response from
-// the CacheStorage. According to the specification:
+// |result|
+//   - "success" when the worker is able to fetch the response from the
+//     CacheStorage,
+//   - "failure" when the worker is not able to fetch the response from the
+//     CacheStorage, and
+//   - "error" when it is unable to create a worker.
 // https://mikewest.github.io/corpp/#initialize-embedder-policy-for-global
-// it must be false when:
-// - |iframe_coep| is 'coep-require-corp' and
-// - |response-corp| is 'corp-undefined'.
-//
-// |worker_coep| must be ignored.
 function check(
   // Test parameters:
   iframe_coep,
@@ -54,7 +53,7 @@ function check(
   response_corp,
 
   // Test expectations:
-  loaded) {
+  result) {
 
   promise_test(async (t) => {
     // 1) Fetch a response from a document with COEP:none. Store it in the
@@ -79,7 +78,7 @@ function check(
           const response = await cache.match(request);
           postMessage('success');
         } catch(error) {
-          postMessage('error');
+          postMessage('failure');
         }
       })()
     `;
@@ -89,6 +88,7 @@ function check(
       (async function() {
         const w = new Worker('${worker_url}');
         const worker_response = new Promise(resolve => w.onmessage = resolve);
+        w.onerror = () => parent.postMessage('error');
         w.postMessage(\`${worker_eval}\`);
         const response = await worker_response;
         parent.postMessage(response.data);
@@ -108,21 +108,21 @@ function check(
     iframe.contentWindow.postMessage(iframe_eval);
 
     const {data} = await iframe_response;
-    assert_equals(data === "success", loaded);
+    assert_equals(data, result);
   }, `${iframe_coep} ${worker_coep} ${response_corp}`)
 }
 
 // -----------------------------------------------------------------------------
 //    iframe_coep         , worker_coep         , response_corp       , loaded
 // -----------------------------------------------------------------------------
-check("coep-none"         , "coep-none"         , "corp-cross-origin" , true);
-check("coep-none"         , "coep-none"         , "corp-undefined"    , true);
-check("coep-none"         , "coep-require-corp" , "corp-cross-origin" , true);
-check("coep-none"         , "coep-require-corp" , "corp-undefined"    , true);
-check("coep-require-corp" , "coep-none"         , "corp-cross-origin" , true);
-check("coep-require-corp" , "coep-none"         , "corp-undefined"    , false);
-check("coep-require-corp" , "coep-require-corp" , "corp-cross-origin" , true);
-check("coep-require-corp" , "coep-require-corp" , "corp-undefined"    , false);
+check("coep-none"         , "coep-none"         , "corp-cross-origin" , "success");
+check("coep-none"         , "coep-none"         , "corp-undefined"    , "success");
+check("coep-none"         , "coep-require-corp" , "corp-cross-origin" , "success");
+check("coep-none"         , "coep-require-corp" , "corp-undefined"    , "failure");
+check("coep-require-corp" , "coep-none"         , "corp-cross-origin" , "error");
+check("coep-require-corp" , "coep-none"         , "corp-undefined"    , "error");
+check("coep-require-corp" , "coep-require-corp" , "corp-cross-origin" , "success");
+check("coep-require-corp" , "coep-require-corp" , "corp-undefined"    , "failure");
 
 </script>
 </html>

@@ -47,6 +47,9 @@
     // Now do some scrolling and make sure that the Animation current time is
     // correct.
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     assert_equals(animation.currentTime, animation.timeline.currentTime,
       "The current time corresponds to the scroll position of the scroller.");
     assert_times_equal(
@@ -62,6 +65,9 @@ promise_test(async t => {
     const timeRange = animation.timeline.timeRange;
     // Advance the scroller.
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     // Verify initial start and current times in Idle state.
     assert_equals(animation.currentTime, null,
@@ -93,6 +99,9 @@ promise_test(async t => {
     const timeRange = timeline.timeRange;
     // Advance the scroller.
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     // Verify initial start and current times in Idle state.
     assert_equals(animation1.currentTime, null,

@@ -8,6 +8,15 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script>
+function change() {
+  document.body.offsetTop;
+  var flex = document.getElementById("flex");
+  flex.style.width = "100px";
+  checkLayout("#container");
+}
+</script>
+<body onload="change()">
 <p>There should be a green square below. No red.</p>
 <!-- #container is just here to make sure the test fails more reliably visually if the bug is present. -->
 <div id="container" style="width:500px;">
@@ -18,9 +27,4 @@
         </div>
     </div>
 </div>
-<script>
-    document.body.offsetTop;
-    var flex = document.getElementById("flex");
-    flex.style.width = "100px";
-    checkLayout("#container");
-</script>
+</body>

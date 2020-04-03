@@ -10811,12 +10811,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A').width === 50;
         @assert ctx.measureText('AA').width === 100;
@@ -10833,12 +10832,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText("").width === 0;
     }).then(t_pass, t_fail);
@@ -10850,12 +10848,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A B').width === 150;
         @assert ctx.measureText('A  B').width === 150; @moz-todo
@@ -10873,12 +10870,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         ctx.direction = 'ltr';
         ctx.align = 'left'
@@ -10905,12 +10901,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         ctx.direction = 'ltr';
         ctx.align = 'left'
@@ -10935,12 +10930,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         ctx.direction = 'ltr';
         ctx.align = 'left'
@@ -10950,7 +10944,6 @@
         @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 85;
         @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 39;
     }).then(t_pass, t_fail);
-
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights for OffscreenCanvas
   testing:
@@ -10958,12 +10951,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         ctx.direction = 'ltr';
         ctx.align = 'left'
@@ -10975,7 +10967,6 @@
         @assert ctx.measureText('ABCD').emHeightDescent === 12.5;
         @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 50;
     }).then(t_pass, t_fail);
-
 - name: 2d.text.measure.baselines
   desc: Testing baselines for OffscreenCanvas
   testing:
@@ -10983,12 +10974,11 @@
   fonts:
     - CanvasTest
   code: |
-    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
     fonts.add(f);
-    fonts.ready.then(() => {
-        return new Promise(function(resolve) { step_timeout(resolve, 500); });
-    }).then(function() {
+    fonts.ready.then(function() {
        ctx.font = '50px CanvasTest';
        ctx.direction = 'ltr';
        ctx.align = 'left'
@@ -11000,5 +10990,4 @@
        @assert ctx.measureText('ABCD').getBaselines().ideographic === -39;
        @assert ctx.measureText('ABCD').getBaselines().hanging === 68;
     }).then(t_pass, t_fail);
-
 # TODO: shadows, alpha, composite, clip

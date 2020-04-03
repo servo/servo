@@ -16,7 +16,7 @@
 <script>
 
 promise_test(async (t) => {
-  const worker_url = local(encode(worker_path));
+  const worker_url = local(encode(worker_path + header_coep));
   const iframe_url =
     local(encode(iframe_path + header_coep + header_report_to));
   dedicated_worker_script = `
@@ -35,7 +35,7 @@ promise_test(async (t) => {
 }, "COEP support on DedicatedWorker.")
 
 promise_test(async (t) => {
-  const worker_url = local(encode(worker_path));
+  const worker_url = local(encode(worker_path + header_coep_report_only));
   const iframe_url =
     local(encode(iframe_path + header_coep_report_only + header_report_to));
   dedicated_worker_script = `

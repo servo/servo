@@ -12,7 +12,7 @@
 <script>
 'use strict';
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
 
@@ -52,6 +52,9 @@ test(function() {
   // block/vertical direction should be unaffected.
   scroller.scrollTop = 50;
   scroller.scrollLeft = 75 - scrollerSize;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   assert_equals(blockScrollTimeline.currentTime, 50, 'Scrolled block timeline');
   assert_equals(
@@ -64,7 +67,7 @@ test(function() {
       verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
 }, 'currentTime handles direction: rtl correctly');
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['writing-mode', 'vertical-rl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
 
@@ -106,6 +109,9 @@ test(function() {
   // vertical is normal.
   scroller.scrollTop = 50;
   scroller.scrollLeft = 75 - scrollerSize;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   assert_equals(
       blockScrollTimeline.currentTime, scrollerSize - 75,
@@ -119,7 +125,7 @@ test(function() {
       verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
 }, 'currentTime handles writing-mode: vertical-rl correctly');
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['writing-mode', 'vertical-lr']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
 
@@ -159,6 +165,9 @@ test(function() {
   // not affect horizontal/vertical.
   scroller.scrollTop = 50;
   scroller.scrollLeft = 75;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   assert_equals(blockScrollTimeline.currentTime, 75, 'Scrolled block timeline');
   assert_equals(
@@ -169,7 +178,7 @@ test(function() {
       verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
 }, 'currentTime handles writing-mode: vertical-lr correctly');
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
   // Set the timeRange such that currentTime maps directly to the value
@@ -214,14 +223,19 @@ test(function() {
 
   // Check the length-based ScrollTimeline.
   scroller.scrollLeft = 0;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -20;
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -50;
+  await waitForNextFrame();
   assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(50, 20, scrollerSize, scrollerSize),
@@ -229,14 +243,17 @@ test(function() {
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = -(0.19 * scrollerSize);
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.20 * scrollerSize);
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.4 * scrollerSize);
+  await waitForNextFrame();
   assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -245,14 +262,17 @@ test(function() {
 
   // Check the calc-based ScrollTimeline.
   scroller.scrollLeft = -(0.2 * scrollerSize - 10);
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize - 5);
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize);
+  await waitForNextFrame();
   assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -261,7 +281,7 @@ test(function() {
       'Calc-based timeline after the startScrollOffset point');
 }, 'currentTime handles startScrollOffset with direction: rtl correctly');
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
   // Set the timeRange such that currentTime maps directly to the value
@@ -295,14 +315,19 @@ test(function() {
 
   // Check the length-based ScrollTimeline.
   scroller.scrollLeft = -scrollerSize;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 20 - scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 50 - scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -311,14 +336,17 @@ test(function() {
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = 0.19 * scrollerSize - scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 0.20 * scrollerSize - scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.4 * scrollerSize - scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -327,14 +355,17 @@ test(function() {
 
   // Check the calc-based ScrollTimeline. 80% + 5px
   scroller.scrollLeft = -0.8 * scrollerSize - 10;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline after the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize - 5;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -342,7 +373,7 @@ test(function() {
       'Calc-based timeline before the endScrollOffset point');
 }, 'currentTime handles endScrollOffset with direction: rtl correctly');
 
-test(function() {
+promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
   // Set the timeRange such that currentTime maps directly to the value
@@ -385,6 +416,9 @@ test(function() {
   scroller.scrollLeft = 0;
   let expectedCurrentTime = calculateCurrentTime(
       scroller.scrollLeft, 0, scrollerSize, scrollerSize);
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   assert_times_equal(
     inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,

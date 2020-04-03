@@ -73,7 +73,7 @@ interface CSSRule {
   readonly attribute CSSRule? parentRule;
   readonly attribute CSSStyleSheet? parentStyleSheet;
 
-  // the following attribute and constants are historial
+  // the following attribute and constants are historical
   readonly attribute unsigned short type;
   const unsigned short STYLE_RULE = 1;
   const unsigned short CHARSET_RULE = 2;

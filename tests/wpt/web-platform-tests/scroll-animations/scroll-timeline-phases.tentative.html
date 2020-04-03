@@ -57,12 +57,15 @@
 
   for (const test_case_key in test_cases){
     const test_case = test_cases[test_case_key];
-    test(t => {
+    promise_test(async t => {
       const timeline = createScrollTimelineWithOffsets(t, "20%", "80%");
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
 
       assert_equals(
         timeline.phase,
@@ -107,12 +110,15 @@
   for (const test_case_key in test_cases_start_offset_greater_than_end_offset){
     const test_case =
       test_cases_start_offset_greater_than_end_offset[test_case_key];
-    test(t => {
+    promise_test(async t => {
       const timeline = createScrollTimelineWithOffsets(t, "80%", "20%");
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
 
       assert_equals(
         timeline.phase,
@@ -147,12 +153,15 @@
   for (const test_case_key in test_cases_start_offset_equal_to_end_offset){
     const test_case =
       test_cases_start_offset_equal_to_end_offset[test_case_key];
-    test(t => {
+    promise_test(async t => {
       const timeline = createScrollTimelineWithOffsets(t, "50%", "50%");
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
 
       assert_equals(
         timeline.phase,
@@ -163,7 +172,7 @@
     " offset is " + test_case.name);
   }
 
-  test(t => {
+  promise_test(async t => {
     const timeline = createScrollTimeline(t);
     const scroller = timeline.scrollSource;
     // Timeline should be inactive since layout hasn't updated yet
@@ -171,13 +180,14 @@
 
     // Accessing scroller.scrollHeight forces the scroller to update
     scroller.scrollHeight;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     assert_equals(timeline.phase, "active");
 
     // Setting the scroller to display none should make the timeline inactive
     scroller.style.display = "none"
-
-    // Force another layout
-    scroller.scrollHeight;
+    await waitForNextFrame();
 
     assert_equals(timeline.phase, "inactive");
   }, 'Scroll timeline starts inactive, can transition to active, and then' +

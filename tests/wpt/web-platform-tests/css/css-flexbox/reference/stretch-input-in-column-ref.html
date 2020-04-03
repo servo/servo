@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<link href="../support/flexbox.css" rel="stylesheet">
+<style>
+.flexbox {
+    background-color: grey;
+}
+.flexbox > * {
+    flex: 1;
+}
+</style>
+<body>
+<p>This test passes if none of the form controls overflow.</p>
+<div class="flexbox">
+    <input>
+</div>
+<div class="flexbox">
+    <textarea></textarea>
+</div>
+<div class="flexbox">
+    <input type="button">
+</div>
+<div class="flexbox">
+    <select></select>
+</div>
+<div class="flexbox">
+    <legend style="border: 2px solid black">legend</legend>
+</div>
+<div class="flexbox">
+    <div type="border: 4px solid black; padding: 10px;">
+</div>
+</body>
+</html>

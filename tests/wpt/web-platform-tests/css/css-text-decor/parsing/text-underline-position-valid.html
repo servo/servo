@@ -10,8 +10,11 @@
 test_valid_value("text-underline-position", "auto");
 
 test_valid_value("text-underline-position", "under");
+test_valid_value("text-underline-position", "from-font");
 test_valid_value("text-underline-position", "left");
 test_valid_value("text-underline-position", "right");
 test_valid_value("text-underline-position", "under left");
+test_valid_value("text-underline-position", "from-font left");
 test_valid_value("text-underline-position", "right under", "under right");
+test_valid_value("text-underline-position", "right from-font", "from-font right");
 </script>

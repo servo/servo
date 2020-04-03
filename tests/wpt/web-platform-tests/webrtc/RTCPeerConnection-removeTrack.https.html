@@ -305,6 +305,19 @@
     assert_equals(sender.track, track);
   }, "Calling removeTrack on a stopped transceiver should be a no-op");
 
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
+
+    await sender.replaceTrack(null);
+    pc.removeTrack(sender);
+    assert_equals(sender.track, null);
+}, "Calling removeTrack on a null track should have no effect");
+
 
   /*
     TODO
