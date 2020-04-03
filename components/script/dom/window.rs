@@ -1399,13 +1399,6 @@ impl Window {
     }
 
     pub fn clear_js_runtime(&self) {
-        // We tear down the active document, which causes all the attached
-        // nodes to dispose of their layout data. This messages the layout
-        // thread, informing it that it can safely free the memory.
-        self.Document()
-            .upcast::<Node>()
-            .teardown(self.layout_chan());
-
         // Remove the infra for managing messageports and broadcast channels.
         self.upcast::<GlobalScope>().remove_web_messaging_infra();
 

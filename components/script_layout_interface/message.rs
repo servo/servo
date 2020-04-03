@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::rpc::LayoutRPC;
-use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
+use crate::{PendingImage, TrustedNodeAddress};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use euclid::default::{Point2D, Rect};
@@ -55,11 +55,6 @@ pub enum Msg {
     /// The inner field is the number of *milliseconds* to advance, and the bool
     /// field is whether animations should be force-ticked.
     AdvanceClockMs(i32, bool, ImmutableOrigin),
-
-    /// Destroys layout data associated with a DOM node.
-    ///
-    /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
-    ReapStyleAndLayoutData(OpaqueStyleAndLayoutData),
 
     /// Requests that the layout thread measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.

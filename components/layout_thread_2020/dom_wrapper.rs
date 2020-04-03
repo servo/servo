@@ -91,10 +91,6 @@ use style::str::is_whitespace;
 use style::stylist::CascadeData;
 use style::CaseSensitivityExt;
 
-pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    drop(Box::from_raw(data.as_ptr()));
-}
-
 #[derive(Clone, Copy)]
 pub struct ServoLayoutNode<'dom> {
     /// The wrapped node.
@@ -298,26 +294,26 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> GetLayoutData<'ln> for ServoLayoutNode<'ln> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoLayoutNode<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         unsafe { self.get_jsmanaged().get_style_and_layout_data() }
     }
 }
 
-impl<'le> GetLayoutData<'le> for ServoLayoutElement<'le> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoLayoutElement<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.as_node().get_style_and_layout_data()
     }
 }
 
-impl<'ln> GetLayoutData<'ln> for ServoThreadSafeLayoutNode<'ln> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoThreadSafeLayoutNode<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
 }
 
-impl<'le> GetLayoutData<'le> for ServoThreadSafeLayoutElement<'le> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoThreadSafeLayoutElement<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.element.as_node().get_style_and_layout_data()
     }
 }
@@ -549,7 +545,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     unsafe fn clear_data(&self) {
         if self.get_raw_data().is_some() {
-            drop_style_and_layout_data(self.as_node().take_style_and_layout_data());
+            drop(self.as_node().take_style_and_layout_data());
         }
     }
 
@@ -707,7 +703,7 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        self.get_style_and_layout_data().map(|opaque| unsafe {
+        self.get_style_and_layout_data().map(|opaque| {
             &opaque
                 .downcast_ref::<StyleAndLayoutData>()
                 .unwrap()
@@ -1072,7 +1068,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
             })
     }
 
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+    fn get_style_and_layout_data(self) -> Option<&'ln OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
 

@@ -26,7 +26,6 @@ use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::any::Any;
-use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -51,12 +50,11 @@ impl StyleData {
     }
 }
 
-#[derive(Clone, Copy, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
-    #[ignore_malloc_size_of = "TODO(#6910) Box value that should be counted but \
-                               the type lives in layout"]
-    ptr: NonNull<dyn Any + Send + Sync>,
+    #[ignore_malloc_size_of = "Trait objects are hard"]
+    ptr: Box<dyn Any + Send + Sync>,
 }
 
 impl OpaqueStyleAndLayoutData {
@@ -66,23 +64,17 @@ impl OpaqueStyleAndLayoutData {
         T: Any + Send + Sync,
     {
         Self {
-            ptr: Box::into_raw_non_null(Box::new(value) as Box<dyn Any + Send + Sync>),
+            ptr: Box::new(value) as Box<dyn Any + Send + Sync>,
         }
     }
 
-    #[inline]
-    pub fn as_ptr(&self) -> *mut (dyn Any + Send + Sync) {
-        self.ptr.as_ptr()
-    }
-
     /// Extremely cursed.
-    #[allow(unsafe_code)]
     #[inline]
-    pub unsafe fn downcast_ref<'extended, T>(&self) -> Option<&'extended T>
+    pub fn downcast_ref<T>(&self) -> Option<&T>
     where
         T: Any + Send + Sync,
     {
-        (*self.ptr.as_ptr()).downcast_ref()
+        self.ptr.downcast_ref()
     }
 }
 

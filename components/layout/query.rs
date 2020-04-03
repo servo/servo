@@ -1036,7 +1036,7 @@ fn inner_text_collection_steps<'dom>(
             _ => child,
         };
 
-        let element_data = unsafe {
+        let element_data = {
             &node.get_style_and_layout_data().as_ref().map(|opaque| {
                 &opaque
                     .downcast_ref::<StyleAndLayoutData>()

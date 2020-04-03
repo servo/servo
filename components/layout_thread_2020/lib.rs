@@ -21,7 +21,6 @@ extern crate profile_traits;
 
 mod dom_wrapper;
 
-use crate::dom_wrapper::drop_style_and_layout_data;
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -640,7 +639,6 @@ impl LayoutThread {
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
             Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
             Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
-            Msg::ReapStyleAndLayoutData(..) => LayoutHangAnnotation::ReapStyleAndLayoutData,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
             Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
             Msg::ExitNow => LayoutHangAnnotation::ExitNow,
@@ -779,9 +777,6 @@ impl LayoutThread {
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
             },
-            Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
-                drop_style_and_layout_data(dead_data)
-            },
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
@@ -890,9 +885,6 @@ impl LayoutThread {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
-                Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
-                    drop_style_and_layout_data(dead_data)
-                },
                 Msg::ExitNow => {
                     debug!("layout thread is exiting...");
                     self.exit_now();

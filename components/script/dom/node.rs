@@ -65,7 +65,6 @@ use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use app_units::Au;
-use crossbeam_channel::Sender;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
@@ -76,7 +75,6 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
-use script_layout_interface::message::Msg;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
 use script_traits::DocumentActivity;
@@ -99,7 +97,6 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
-use style::thread_state;
 use uuid::Uuid;
 
 //
@@ -155,7 +152,8 @@ pub struct Node {
     ///
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
-    style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
+    #[ignore_malloc_size_of = "shrug"]
+    style_and_layout_data: UnsafeCell<Option<OpaqueStyleAndLayoutData>>,
 }
 
 bitflags! {
@@ -205,15 +203,6 @@ impl NodeFlags {
     }
 }
 
-impl Drop for Node {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        if let Some(data) = self.style_and_layout_data.get() {
-            self.dispose(data, ScriptThread::get_any_layout_chan().as_ref());
-        }
-    }
-}
-
 /// suppress observers flag
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
@@ -224,21 +213,6 @@ enum SuppressObserver {
 }
 
 impl Node {
-    /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
-    pub(crate) fn dispose(
-        &self,
-        data: OpaqueStyleAndLayoutData,
-        layout_chan: Option<&Sender<Msg>>,
-    ) {
-        debug_assert!(thread_state::get().is_script());
-        self.style_and_layout_data.set(None);
-        if layout_chan.map_or(false, |chan| {
-            chan.send(Msg::ReapStyleAndLayoutData(data)).is_err()
-        }) {
-            warn!("layout thread unreachable - leaking layout data");
-        }
-    }
-
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
@@ -317,16 +291,11 @@ impl Node {
                 false,
             );
         }
-        let window = window_from_node(root);
-        let layout_chan = window.layout_chan();
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
             vtable_for(&&*node).unbind_from_tree(&context);
-            if let Some(data) = node.style_and_layout_data.get() {
-                node.dispose(data, Some(layout_chan));
-            }
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
@@ -506,15 +475,6 @@ impl<'a> Iterator for QuerySelectorIterator {
 
 impl Node {
     impl_rare_data!(NodeRareData);
-
-    pub(crate) fn teardown(&self, layout_chan: &Sender<Msg>) {
-        if let Some(data) = self.style_and_layout_data.get() {
-            self.dispose(data, Some(layout_chan));
-        }
-        for kid in self.children() {
-            kid.teardown(layout_chan);
-        }
-    }
 
     /// Returns true if this node is before `other` in the same connected DOM
     /// tree.
@@ -1322,8 +1282,8 @@ pub trait LayoutNodeHelpers<'dom> {
 
     fn children_count(self) -> u32;
 
-    unsafe fn get_style_and_layout_data(self) -> Option<OpaqueStyleAndLayoutData>;
-    unsafe fn init_style_and_layout_data(self, _: OpaqueStyleAndLayoutData);
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
+    unsafe fn init_style_and_layout_data(self, data: OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData;
 
     fn text_content(self) -> Cow<'dom, str>;
@@ -1450,23 +1410,24 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn get_style_and_layout_data(self) -> Option<OpaqueStyleAndLayoutData> {
-        (*self.unsafe_get()).style_and_layout_data.get()
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
+        unsafe { (*self.unsafe_get().style_and_layout_data.get()).as_ref() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn init_style_and_layout_data(self, val: OpaqueStyleAndLayoutData) {
-        debug_assert!((*self.unsafe_get()).style_and_layout_data.get().is_none());
-        (*self.unsafe_get()).style_and_layout_data.set(Some(val));
+        let data = &mut *self.unsafe_get().style_and_layout_data.get();
+        debug_assert!(data.is_none());
+        *data = Some(val);
     }
 
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData {
-        let val = (*self.unsafe_get()).style_and_layout_data.get().unwrap();
-        (*self.unsafe_get()).style_and_layout_data.set(None);
-        val
+        (*self.unsafe_get().style_and_layout_data.get())
+            .take()
+            .unwrap()
     }
 
     fn text_content(self) -> Cow<'dom, str> {
@@ -1781,7 +1742,7 @@ impl Node {
             inclusive_descendants_version: Cell::new(0),
             ranges: WeakRangeVec::new(),
 
-            style_and_layout_data: Cell::new(None),
+            style_and_layout_data: UnsafeCell::new(None),
         }
     }
 

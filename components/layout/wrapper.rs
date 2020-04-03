@@ -39,24 +39,22 @@ use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;
 use style::values::generics::counters::Content;
 
-pub trait LayoutNodeLayoutData {
-    /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
-    /// than only the style::data::ElementData.
-    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>>;
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>>;
+pub trait LayoutNodeLayoutData<'dom> {
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>>;
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>>;
     fn flow_debug_id(self) -> usize;
 }
 
-impl<'dom, T> LayoutNodeLayoutData for T
+impl<'dom, T> LayoutNodeLayoutData<'dom> for T
 where
     T: GetLayoutData<'dom>,
 {
-    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>> {
-        unsafe { self.get_raw_data().map(|d| d.layout_data.borrow()) }
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>> {
+        self.get_raw_data().map(|d| d.layout_data.borrow())
     }
 
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>> {
-        unsafe { self.get_raw_data().map(|d| d.layout_data.borrow_mut()) }
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>> {
+        self.get_raw_data().map(|d| d.layout_data.borrow_mut())
     }
 
     fn flow_debug_id(self) -> usize {
@@ -65,15 +63,15 @@ where
     }
 }
 
-pub trait GetRawData {
-    unsafe fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
+pub trait GetRawData<'dom> {
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData>;
 }
 
-impl<'dom, T> GetRawData for T
+impl<'dom, T> GetRawData<'dom> for T
 where
     T: GetLayoutData<'dom>,
 {
-    unsafe fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData> {
         self.get_style_and_layout_data()
             .map(|opaque| opaque.downcast_ref().unwrap())
     }
@@ -144,7 +142,7 @@ where
             debug_assert!(node.is_element());
         }
 
-        let damage = unsafe {
+        let damage = {
             let data = node.get_raw_data().unwrap();
 
             if !data

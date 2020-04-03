@@ -532,7 +532,6 @@ pub enum LayoutHangAnnotation {
     GetRPC,
     TickAnimations,
     AdvanceClockMs,
-    ReapStyleAndLayoutData,
     CollectReports,
     PrepareToExit,
     ExitNow,

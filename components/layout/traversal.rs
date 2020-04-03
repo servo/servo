@@ -73,7 +73,7 @@ where
         // flow construction:
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
         // (2) The parent element has restyle damage (so the text flow also needs fixup).
-        (unsafe { node.get_raw_data().is_none() }) || !parent_data.damage.is_empty()
+        node.get_raw_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {
