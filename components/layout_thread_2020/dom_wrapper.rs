@@ -30,7 +30,7 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
@@ -558,8 +558,20 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.mutate_data().unwrap()
     }
 
-    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        self.get_style_data().map(|data| &data.element_data)
+    /// Whether there is an ElementData container.
+    fn has_data(&self) -> bool {
+        self.get_style_data().is_some()
+    }
+
+    /// Immutably borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_style_data().map(|data| data.element_data.borrow())
+    }
+
+    /// Mutably borrows the ElementData.
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_style_data()
+            .map(|data| data.element_data.borrow_mut())
     }
 
     fn skip_item_display_fixup(&self) -> bool {
@@ -695,7 +707,7 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        self.get_style_and_layout_data().map(|opaque| {
+        self.get_style_and_layout_data().map(|opaque| unsafe {
             &opaque
                 .downcast_ref::<StyleAndLayoutData>()
                 .unwrap()
@@ -1034,7 +1046,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
 
     fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
-        let parent_data = parent.get_data().unwrap().borrow();
+        let parent_data = parent.borrow_data().unwrap();
         parent_data.styles.primary().clone()
     }
 
@@ -1319,10 +1331,7 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn style_data(&self) -> AtomicRef<ElementData> {
-        self.element
-            .get_data()
-            .expect("Unstyled layout node?")
-            .borrow()
+        self.element.borrow_data().expect("Unstyled layout node?")
     }
 
     fn is_shadow_host(&self) -> bool {

@@ -761,7 +761,7 @@ pub fn process_resolved_style_request<'dom>(
 
     // We call process_resolved_style_request after performing a whole-document
     // traversal, so in the common case, the element is styled.
-    if element.get_data().is_some() {
+    if element.has_data() {
         return process_resolved_style_request_internal(node, pseudo, property, layout_root);
     }
 
