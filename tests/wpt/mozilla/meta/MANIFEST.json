@@ -14591,6 +14591,13 @@
       null,
       {}
      ]
+    ],
+    "zero_size_canvas_crash.html": [
+     "45eb9b559e8d6105baca5ab4d336de520d33b36b",
+     [
+      null,
+      {}
+     ]
     ]
    },
    "webxr": {

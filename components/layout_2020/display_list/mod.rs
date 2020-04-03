@@ -87,6 +87,7 @@ impl Fragment {
                     .rect
                     .to_physical(i.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
+
                 let common = builder.common_properties(rect.clone().to_webrender());
                 builder.wr.push_image(
                     &common,

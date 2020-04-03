@@ -102,6 +102,7 @@ impl ReplacedContent {
 
         let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
         let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
+
         return Some(Self {
             kind,
             intrinsic: IntrinsicSizes {
@@ -201,6 +202,12 @@ impl ReplacedContent {
                 .into_iter()
                 .collect(),
             ReplacedContentKind::Canvas(canvas_info) => {
+                if self.intrinsic.width == Some(Length::zero()) ||
+                    self.intrinsic.height == Some(Length::zero())
+                {
+                    return vec![];
+                }
+
                 let image_key = match canvas_info.source {
                     CanvasSource::WebGL(image_key) => image_key,
                     CanvasSource::Image(ref ipc_renderer) => match *ipc_renderer {
