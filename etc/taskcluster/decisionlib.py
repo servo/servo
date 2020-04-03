@@ -458,9 +458,29 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.scripts = []
+        self.rdp_info_artifact_name = None
 
     with_script = chaining(append_to_attr, "scripts")
     with_early_script = chaining(prepend_to_attr, "scripts")
+
+    def build_worker_payload(self):
+        if self.rdp_info_artifact_name:
+            rdp_scope = "generic-worker:allow-rdp:%s/%s" % (self.provisioner_id, self.worker_type)
+            self.scopes.append(rdp_scope)
+        return dict_update_if_truthy(
+            super().build_worker_payload(),
+            rdpInfo=self.rdp_info_artifact_name,
+        )
+
+    def with_rdp_info(self, *, artifact_name):
+        """
+        Enable RDP access to this task’s environment.
+
+        See `rdpInfo` in
+        <https://community-tc.services.mozilla.com/docs/reference/workers/generic-worker/multiuser-windows-payload>
+        """
+        assert not artifact_name.startswith("public/")
+        self.rdp_info_artifact_name = artifact_name
 
     def build_command(self):
         return [deindent(s) for s in self.scripts]
