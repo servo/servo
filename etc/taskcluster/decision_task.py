@@ -6,6 +6,7 @@
 
 import os.path
 import decisionlib
+import functools
 from decisionlib import CONFIG, SHARED
 
 
@@ -62,6 +63,10 @@ def tasks(task_for):
             "try-wpt-2020": [linux_wpt_layout_2020],
             "try-wpt-mac": [macos_wpt],
         }
+        by_branch_name["try-windows-rdp"] = [
+            functools.partial(f, rdp=True) for f in by_branch_name["try-windows"]
+        ]
+
         for function in by_branch_name.get(branch, []):
             function()
 
@@ -80,7 +85,7 @@ def tasks(task_for):
     elif task_for == "try-windows-ami":
         CONFIG.git_sha_is_current_head()
         CONFIG.windows_worker_type = os.environ["NEW_AMI_WORKER_TYPE"]
-        windows_unit(cached=False)
+        windows_unit(cached=False, rdp=True)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -307,9 +312,9 @@ def appx_artifact(debug):
     ])
 
 
-def windows_arm64():
+def windows_arm64(rdp=False):
     return (
-        windows_build_task("UWP dev build", arch="arm64", package=False)
+        windows_build_task("UWP dev build", arch="arm64", package=False, rdp=rdp)
         .with_treeherder("Windows arm64", "UWP-Dev")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
@@ -322,9 +327,9 @@ def windows_arm64():
     )
 
 
-def windows_uwp_x64():
+def windows_uwp_x64(rdp=False):
     return (
-        windows_build_task("UWP dev build", package=False)
+        windows_build_task("UWP dev build", package=False, rdp=rdp)
         .with_treeherder("Windows x64", "UWP-Dev")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
@@ -338,9 +343,9 @@ def windows_uwp_x64():
     )
 
 
-def uwp_nightly():
+def uwp_nightly(rdp=False):
     return (
-        windows_build_task("Nightly UWP build and upload", package=False)
+        windows_build_task("Nightly UWP build and upload", package=False, rdp=rdp)
         .with_treeherder("Windows x64", "UWP-Nightly")
         .with_features("taskclusterProxy")
         .with_scopes(
@@ -359,9 +364,9 @@ def uwp_nightly():
     )
 
 
-def windows_unit(cached=True):
+def windows_unit(cached=True, rdp=False):
     task = (
-        windows_build_task("Dev build + unit tests")
+        windows_build_task("Dev build + unit tests", rdp=rdp)
         .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
@@ -389,9 +394,9 @@ def windows_unit(cached=True):
         return task.create()
 
 
-def windows_nightly():
+def windows_nightly(rdp=False):
     return (
-        windows_build_task("Nightly build and upload")
+        windows_build_task("Nightly build and upload", rdp=rdp)
         .with_treeherder("Windows x64", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
@@ -714,7 +719,6 @@ def windows_task(name):
 def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
-        .with_provisioner_id("proj-servo")
         .with_worker_type(CONFIG.macos_worker_type)
         .with_treeherder_required()
     )
@@ -742,7 +746,7 @@ def linux_build_task(name, *, build_env=build_env):
     return task
 
 
-def windows_build_task(name, package=True, arch="x86_64"):
+def windows_build_task(name, package=True, arch="x86_64", rdp=False):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
@@ -773,30 +777,27 @@ def windows_build_task(name, package=True, arch="x86_64"):
         .with_rustup()
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
-        task = (
-            task.with_repacked_msi(
-                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                     "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-                sha256=hashes["non-devel"][arch],
-                path="gst",
-            )
-            .with_repacked_msi(
-                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                     "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-                sha256=hashes["devel"][arch],
-                path="gst",
-            )
+        task.with_repacked_msi(
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+            sha256=hashes["non-devel"][arch],
+            path="gst",
+        )
+        task.with_repacked_msi(
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+            sha256=hashes["devel"][arch],
+            path="gst",
         )
     if package:
-        task = (
-            task
-            .with_directory_mount(
-                "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
-                sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
-                path="wix",
-            )
-            .with_path_from_homedir("wix")
+        task.with_directory_mount(
+            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
+            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
+            path="wix",
         )
+        task.with_path_from_homedir("wix")
+    if rdp:
+        task.with_rdp_info(artifact_name="project/servo/rdp-info")
     return task
 
 
