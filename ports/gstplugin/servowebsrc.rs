@@ -205,7 +205,7 @@ impl ServoThread {
         let window = Rc::new(ServoWebSrcWindow::new(connection, version));
         let swap_chain = window.swap_chain.clone();
         let gfx = window.gfx.clone();
-        let mut servo = Servo::new(embedder, window);
+        let mut servo = Servo::new(embedder, window, None);
         let id = TopLevelBrowsingContextId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(url, id)]);
 

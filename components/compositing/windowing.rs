@@ -193,6 +193,11 @@ pub trait EmbedderMethods {
         _: EmbedderProxy,
     ) {
     }
+
+    /// Returns the user agent string to report in network requests.
+    fn get_user_agent_string(&self) -> Option<String> {
+        None
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

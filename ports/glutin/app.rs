@@ -40,6 +40,7 @@ impl App {
         use_msaa: bool,
         no_native_titlebar: bool,
         device_pixels_per_px: Option<f32>,
+        user_agent: Option<String>,
     ) {
         let events_loop = EventsLoop::new(opts::get().headless);
 
@@ -70,7 +71,7 @@ impl App {
         // Handle browser state.
         let browser = Browser::new(window.clone());
 
-        let mut servo = Servo::new(embedder, window.clone());
+        let mut servo = Servo::new(embedder, window.clone(), user_agent);
         let browser_id = BrowserId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
         servo.setup_logging();
