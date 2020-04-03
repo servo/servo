@@ -4,6 +4,7 @@
 <link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 
 <style>
 html {
@@ -16,7 +17,7 @@ html {
 </style>
 
 <script>
-test(function() {
+promise_test(async t => {
   const scroller = document.scrollingElement;
   // Set the timeRange(s) such that currentTime maps directly to the value
   // scrolled. This makes it easier to assert on the currentTime in the test.
@@ -35,6 +36,9 @@ test(function() {
   // Now do some scrolling and make sure that the ScrollTimelines update.
   scroller.scrollTop = 50;
   scroller.scrollLeft = 75;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   // As noted above, the timeRange(s) are mapped such that currentTime should be
   // the scroll offset.

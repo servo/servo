@@ -1,6 +1,6 @@
 import sys
 
-from merge_dictionaries import merge_dictionaries
+from .merge_dictionaries import merge_dictionaries
 
 platform_name = {
     "linux2": "linux",

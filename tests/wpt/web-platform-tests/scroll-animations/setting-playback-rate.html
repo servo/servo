@@ -25,6 +25,9 @@
     const scroller = animation.timeline.scrollSource;
     // this forces a layout which results in an active timeline
     scroller.scrollTop = 0;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     animation.playbackRate = 0.5;
     animation.play();
@@ -39,6 +42,9 @@
     const scroller = animation.timeline.scrollSource;
     // this forces a layout which results in an active timeline
     scroller.scrollTop = 0;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     animation.play();
     animation.playbackRate = 0.5;
@@ -54,6 +60,9 @@
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     const timeRange = animation.timeline.timeRange;
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     animation.playbackRate = 0.5;
     animation.play();
@@ -71,6 +80,9 @@
     const playbackRate = 2;
 
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     animation.play();
     await animation.ready;
@@ -92,6 +104,9 @@
     animation.play();
     await animation.ready;
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     assert_times_equal(animation.currentTime, 0.2 * timeRange * 2,
       'The current time should increase two times faster than timeline time.');
@@ -108,6 +123,9 @@
 
     animation.playbackRate = 2;
     scroller.scrollTop = 0.25 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     assert_times_equal(
       animation.currentTime,
@@ -117,11 +135,14 @@
   }, 'The playback rate affects the rate of progress of the current time' +
     ' when scrolling');
 
-  test(t => {
+    promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.25 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     animation.playbackRate = 2;
@@ -149,6 +170,9 @@
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.25 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     await animation.ready;
@@ -181,6 +205,9 @@
     const range = animation.timeline.timeRange;
     animation.playbackRate = -1;
     scroller.scrollTop = 0.3 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     await animation.ready;
@@ -194,6 +221,9 @@
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.5 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     await animation.ready;
@@ -204,6 +234,7 @@
     animation.playbackRate = -1;
 
     scroller.scrollTop = 0.8 * maxScroll;
+    await waitForNextFrame();
     // -300 = 500 - 800
     let timelineDiff = startingTimelineTime - animation.timeline.currentTime;
     // 200 = 500 + (-300)
@@ -211,6 +242,7 @@
     assert_times_equal(animation.currentTime, expected);
 
     scroller.scrollTop = 0.2 * maxScroll;
+    await waitForNextFrame();
     // 300 = 500 - 200
     timelineDiff = startingTimelineTime - animation.timeline.currentTime;
     // 800 = 500 + 300
@@ -226,6 +258,9 @@
     const range = animation.timeline.timeRange;
     animation.playbackRate = 0;
     scroller.scrollTop = 0.3 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     await animation.ready;
@@ -238,12 +273,16 @@
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
     animation.play();
 
     await animation.ready;
     assert_times_equal(animation.currentTime, 200);
     animation.playbackRate = 0;
     scroller.scrollTop = 0.5 * maxScroll;
+    await waitForNextFrame();
 
     // Ensure that current time does not change.
     assert_time_equals_literal(animation.timeline.currentTime, 500);

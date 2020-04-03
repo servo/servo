@@ -12,7 +12,7 @@
 <script>
 'use strict';
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -48,6 +48,9 @@ test(function() {
   // Do some scrolling and make sure that the ScrollTimelines update.
   scroller.scrollTop = 50;
   scroller.scrollLeft = 75;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   // As noted above timeRange is mapped such that currentTime should be the
   // scroll offset.
@@ -60,7 +63,7 @@ test(function() {
       verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
 }, 'currentTime calculates the correct time based on scrolled amount');
 
-test(function() {
+promise_test(async t => {
   // It is difficult to calculate the scroll offset which results in an exact
   // currentTime. Scrolling is calculated in integers which allows for the
   // possibility of rounding, and scrollbar widths differ between platforms
@@ -76,11 +79,14 @@ test(function() {
   // calculate where the 50% scroll mark would be.
   const halfwayY = (scroller.scrollHeight - scroller.clientHeight) / 2;
   scroller.scrollTop = halfwayY;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
 
   assert_approx_equals(scrollTimeline.currentTime, 50, 0.5);
 }, 'currentTime adjusts correctly for the timeRange');
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -129,6 +135,9 @@ test(function() {
 
   // Check the length-based ScrollTimeline.
   scroller.scrollTop = 19;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline current time before the startScrollOffset'
@@ -137,6 +146,7 @@ test(function() {
       lengthScrollTimeline.phase, "before",
       'Length-based timeline phase before the startScrollOffset point');
   scroller.scrollTop = 20;
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, 0,
       'Length-based timeline current time at the startScrollOffset point');
@@ -144,6 +154,7 @@ test(function() {
       lengthScrollTimeline.phase, "active",
       'Length-based timeline phase at the startScrollOffset point');
   scroller.scrollTop = 50;
+  await waitForNextFrame();
   assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(50, 20, scrollerSize, scrollerSize),
@@ -154,6 +165,7 @@ test(function() {
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollTop = 0.19 * scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline current time before the startScrollOffset'
@@ -162,6 +174,7 @@ test(function() {
       percentageScrollTimeline.phase, "before",
       'Percentage-based timeline phase before the startScrollOffset point');
   scroller.scrollTop = 0.20 * scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline current time at the startScrollOffset point');
@@ -169,6 +182,7 @@ test(function() {
       percentageScrollTimeline.phase, "active",
       'Percentage-based timeline phase at the startScrollOffset point');
   scroller.scrollTop = 0.50 * scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -181,6 +195,7 @@ test(function() {
 
   // Check the calc-based ScrollTimeline.
   scroller.scrollTop = 0.2 * scrollerSize - 10;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline current time before the startScrollOffset point');
@@ -188,6 +203,7 @@ test(function() {
       calcScrollTimeline.phase, "before",
       'Calc-based timeline phase at the startScrollOffset point');
   scroller.scrollTop = 0.2 * scrollerSize - 5;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, 0,
       'Calc-based timeline current time at the startScrollOffset point');
@@ -195,6 +211,7 @@ test(function() {
       calcScrollTimeline.phase, "active",
       'Calc-based timeline phase at the startScrollOffset point');
   scroller.scrollTop = 0.2 * scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -206,7 +223,7 @@ test(function() {
       'Calc-based timeline phase at the startScrollOffset point');
 }, 'currentTime handles startScrollOffset correctly');
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -234,6 +251,9 @@ test(function() {
 
   // Check the length-based ScrollTimeline.
   scroller.scrollTop = scrollerSize;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline current time after the endScrollOffset point');
@@ -241,6 +261,7 @@ test(function() {
       lengthScrollTimeline.phase, "after",
       'Length-based timeline phase after the endScrollOffset point');
   scroller.scrollTop = scrollerSize - 20;
+  await waitForNextFrame();
   assert_equals(
       lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
       'Length-based timeline current time at the endScrollOffset point');
@@ -248,6 +269,7 @@ test(function() {
       lengthScrollTimeline.phase, "after",
       'Length-based timeline phase at the endScrollOffset point');
   scroller.scrollTop = scrollerSize - 50;
+  await waitForNextFrame();
   assert_times_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -259,6 +281,7 @@ test(function() {
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollTop = 0.81 * scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline current time after the endScrollOffset point');
@@ -266,6 +289,7 @@ test(function() {
       percentageScrollTimeline.phase, "after",
       'Percentage-based timeline phase after the endScrollOffset point');
   scroller.scrollTop = 0.80 * scrollerSize;
+  await waitForNextFrame();
   assert_equals(
       percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
       'Percentage-based timeline current time at the endScrollOffset point');
@@ -273,6 +297,7 @@ test(function() {
       percentageScrollTimeline.phase, "after",
       'Percentage-based timeline phase at the endScrollOffset point');
   scroller.scrollTop = 0.50 * scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -284,6 +309,7 @@ test(function() {
 
   // Check the calc-based ScrollTimeline.
   scroller.scrollTop = 0.8 * scrollerSize + 6;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline current time after the endScrollOffset point');
@@ -291,6 +317,7 @@ test(function() {
       calcScrollTimeline.phase, "after",
       'Calc-based timeline phase after the endScrollOffset point');
   scroller.scrollTop = 0.8 * scrollerSize + 5;
+  await waitForNextFrame();
   assert_equals(
       calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
       'Calc-based timeline current time at the endScrollOffset point');
@@ -298,6 +325,7 @@ test(function() {
       calcScrollTimeline.phase, "after",
       'Calc-based timeline phase at the endScrollOffset point');
   scroller.scrollTop = 0.5 * scrollerSize;
+  await waitForNextFrame();
   assert_times_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
@@ -308,7 +336,7 @@ test(function() {
       'Calc-based timeline phase before the endScrollOffset point');
 }, 'currentTime handles endScrollOffset correctly');
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -324,12 +352,15 @@ test(function() {
   });
 
   scroller.scrollTop = 150;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_times_equal(
       scrollTimeline.currentTime,
       calculateCurrentTime(150, 20, scrollerSize - 50, scrollerSize));
 }, 'currentTime handles startScrollOffset and endScrollOffset together correctly');
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -345,10 +376,13 @@ test(function() {
   });
 
   scroller.scrollTop = 150;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(scrollTimeline.currentTime, scrollTimeline.timeRange);
 }, 'currentTime handles startScrollOffset == endScrollOffset correctly');
 
-test(function() {
+promise_test(async t => {
   const scroller = setupScrollTimelineTest();
   // Set the timeRange such that currentTime maps directly to the value
   // scrolled. The contents and scroller are square, so it suffices to compute
@@ -364,8 +398,12 @@ test(function() {
   });
 
   scroller.scrollTop = 40;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
   assert_equals(scrollTimeline.currentTime, 0);
   scroller.scrollTop = 60;
+  await waitForNextFrame();
   assert_equals(scrollTimeline.currentTime, scrollTimeline.timeRange);
 }, 'currentTime handles startScrollOffset > endScrollOffset correctly');
 </script>

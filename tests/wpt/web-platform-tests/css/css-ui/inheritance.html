@@ -33,7 +33,7 @@
 const mediumWidth = getComputedStyle(reference).borderTopWidth; // e.g. 3px
 const currentColor = getComputedStyle(reference).color;
 
-assert_not_inherited('appearance', 'auto', 'none');
+assert_not_inherited('appearance', 'none', 'auto');
 assert_inherited('caret-color', currentColor, 'rgba(42, 53, 64, 0.75)');
 assert_inherited('caret-shape', 'auto', 'bar');
 assert_inherited('cursor', 'auto', 'pointer');

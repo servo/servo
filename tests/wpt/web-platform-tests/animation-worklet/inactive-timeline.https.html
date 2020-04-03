@@ -95,8 +95,10 @@ function setupAndRegisterTests() {
         'timeline is inactive.');
 
       // Make the timeline active.
-      scroller.style.display = ""
-      scroller.scrollTop;
+      scroller.style.display = "";
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
 
       assert_times_equal(animation.currentTime, 200,
         'Current time must be initialized.');
@@ -114,7 +116,7 @@ function setupAndRegisterTests() {
 
       // Make the timeline inactive again.
       scroller.style.display = "none"
-      scroller.scrollTop;
+      await waitForNextFrame();
 
       assert_times_equal(animation.currentTime, 200,
         'Current time must be the previous current time.');
@@ -122,7 +124,6 @@ function setupAndRegisterTests() {
         'Initial start time must be unresolved.');
 
       scrollerRef.scrollTop = 0.6 * maxScroll;
-      scrollerRef.scrollTop;
       // Wait until local times are synced back to the main thread.
       await waitForAnimationFrameWithCondition(_ => {
         return animationRef.effect.getComputedTiming().localTime == 600;

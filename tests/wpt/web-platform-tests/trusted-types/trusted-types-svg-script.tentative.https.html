@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'">
+</head>
+<body>
+  <div id="log"></div>
+  <svg id="svg"><script id="script">"some script text";</script></svg>
+  <script>
+    // Returns a promise that resolves with a Security Policy Violation (spv)
+    // even when it is received.
+    function promise_spv() {
+      return new Promise((resolve, reject) => {
+        window.addEventListener("securitypolicyviolation", e => {
+          resolve(e);
+        }, { once: true });
+      });
+    }
+
+    const policy = trustedTypes.createPolicy("policy", {
+        createScript: x => x, createScriptURL: x => x });
+
+    promise_test(t => {
+      assert_throws_js(TypeError, _ => {
+        document.getElementById("script").innerHTML = "'modified via innerHTML';";
+      });
+      return promise_spv();
+    }, "Assign String to SVGScriptElement.innerHTML.");
+
+    promise_test(t => {
+      document.getElementById("script").innerHTML = policy.createScript("'modified via innerHTML';");
+      return Promise.resolve();
+    }, "Assign TrustedScript to SVGScriptElement.innerHTML.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.insertBefore(document.createTextNode("modified via DOM"), null);
+      document.getElementById("svg").appendChild(elem);
+      return promise_spv();
+    }, "Modify SVGScriptElement via DOM manipulation.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.href.baseVal = "about:blank";
+      document.getElementById("svg").appendChild(elem);
+
+      // TODO(1066791): This should be rejected and throw an SPV event, but
+      //     doesn't until the issue is fixed.
+      // return promise_spv();
+      return Promise.resolve();
+    }, "Assign string to SVGScriptElement.href.baseVal.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.href.baseVal = policy.createScriptURL("about:blank");
+      document.getElementById("svg").appendChild(elem);
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to SVGScriptElement.href.baseVal.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      assert_throws_js(TypeError, _ => {
+        elem.setAttribute("href", "about:blank");
+      });
+      document.getElementById("svg").appendChild(elem);
+      return promise_spv();
+    }, "Assign string to non-attached SVGScriptElement.href via setAttribute.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.setAttribute("href", policy.createScriptURL("about:blank"));
+      document.getElementById("svg").appendChild(elem);
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to non-attached SVGScriptElement.href via setAttribute.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      document.getElementById("svg").appendChild(elem);
+      assert_throws_js(TypeError, _ => {
+        elem.setAttribute("href", "about:blank");
+      });
+      return promise_spv();
+    }, "Assign string to attached SVGScriptElement.href via setAttribute.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      document.getElementById("svg").appendChild(elem);
+      elem.setAttribute("href", policy.createScriptURL("about:blank"));
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to attached SVGScriptElement.href via setAttribute.");
+
+    // Default policy test: We repate the string assignment tests above,
+    // but now expect all of them to pass.
+    promise_test(t => {
+      trustedTypes.createPolicy("default", {
+        createScript: x => x, createScriptURL: x => x });
+      return Promise.resolve();
+    }, "Setup default policy");
+
+    promise_test(t => {
+      document.getElementById("script").innerHTML = "'modified via innerHTML';";
+      return Promise.resolve();
+    }, "Assign String to SVGScriptElement.innerHTML w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.href.baseVal = "about:blank";
+      document.getElementById("svg").appendChild(elem);
+      return Promise.resolve();
+    }, "Assign string to SVGScriptElement.href.baseVal  w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.setAttribute("href", "about:blank");
+      document.getElementById("svg").appendChild(elem);
+      return Promise.resolve();
+    }, "Assign string to non-attached SVGScriptElement.href via setAttribute w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      document.getElementById("svg").appendChild(elem);
+      elem.setAttribute("href", "about:blank");
+      return Promise.resolve();
+    }, "Assign string to attached SVGScriptElement.href via setAttribute w/ default policy.");
+  </script>
+</body>

@@ -20,12 +20,11 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
 let fonts = (self.fonts ? self.fonts : document.fonts);
+f.load();
 fonts.add(f);
-fonts.ready.then(() => {
-    return new Promise(function(resolve) { step_timeout(resolve, 500); });
-}).then(function() {
+fonts.ready.then(function() {
     ctx.font = '50px CanvasTest';
     _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
 }).then(t_pass, t_fail);

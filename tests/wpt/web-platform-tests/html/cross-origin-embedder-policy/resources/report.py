@@ -2,13 +2,15 @@ import json
 
 
 def main(request, response):
-    if request.method == 'OPTIONS':
-        # CORS preflight
-        response.headers.set('Access-Control-Allow-Origin', '*')
-        response.headers.set('Access-Control-Allow-Methods', 'POST')
-        response.headers.set('Access-Control-Allow-Headers', 'content-type')
-        return ''
     response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, GET, POST')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        return ''
+
     uuidMap = {
         'endpoint': '01234567-0123-0123-0123-0123456789AB',
         'report-only-endpoint': '01234567-0123-0123-0123-0123456789CD'
@@ -33,6 +35,7 @@ def main(request, response):
         return 'done'
 
     if request.method == 'GET':
+        response.headers.set('Content-Type', 'application/json')
         return json.dumps(request.server.stash.take(key, path) or [])
 
     response.status = 400

@@ -20,21 +20,23 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script>
+function change() {
+  var container = document.getElementById('container');
+  container.offsetWidth;
+  container.style.width = "200px";
+  checkLayout("#container");
+}
+</script>
 </head>
-<body>
+<body onload="change()">
 <div id=log></div>
 <div id="container" style="width: 100px" data-expected-width="200">
-<div class="flexbox column" data-expected-width="200">
+  <div class="flexbox column" data-expected-width="200">
     <div class="flexitem" data-expected-width="200">
-        <div class="child" data-expected-width="200">This div should be 200px wide.</div>
+      <div class="child" data-expected-width="200">This div should be 200px wide.</div>
     </div>
+  </div>
 </div>
-</div>
-<script>
-var container = document.getElementById('container');
-container.offsetWidth;
-container.style.width = "200px";
-checkLayout("#container");
-</script>
 </body>
 </html>

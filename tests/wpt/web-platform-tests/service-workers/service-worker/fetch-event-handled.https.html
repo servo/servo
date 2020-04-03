@@ -30,14 +30,21 @@ promise_test(async (t) => {
       await service_worker_unregister_and_register(t, script, scope);
   worker = registration.installing;
   await wait_for_state(t, worker, 'activated');
-  frame = await with_iframe(scope);
 }, 'global setup');
+
+promise_test(async (t) => {
+  frame = await with_iframe(scope);
+  const message = await wait_for_message_from_worker();
+  assert_equals(message, 'RESOLVED');
+}, 'FetchEvent.handled should resolve when respondWith() is not called for a' +
+    ' navigation request');
 
 promise_test(async (t) => {
   frame.contentWindow.fetch('dummy.txt?respondWith-not-called');
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'RESOLVED');
-}, 'FetchEvent.handled should resolve when respondWith() is not called');
+}, 'FetchEvent.handled should resolve when respondWith() is not called for a' +
+    ' sub-resource request');
 
 promise_test(async (t) => {
   frame.contentWindow.fetch(

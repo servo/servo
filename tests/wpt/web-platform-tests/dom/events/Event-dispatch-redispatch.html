@@ -104,7 +104,7 @@ async function testMouseUpAndClickEvent() {
 
   await waitForLoad;
   let bounds = buttonElement.getBoundingClientRect();
-  test(() => { assert_true(true); }, `Synthesizing click on button... (button width / height: ${bounds.width} / ${bounds.height})`);
+  test(() => { assert_true(true); }, `Synthesizing click on button...`);
   new test_driver.Actions()
       .pointerMove(Math.floor(bounds.width / 5),
                    Math.floor(bounds.height / 2),
