@@ -30,7 +30,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use webrender_api::ImageKey;
 
@@ -423,8 +423,8 @@ pub enum CoreResourceMsg {
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Send the network sender in constellation to CoreResourceThread
-    NetworkMediator(IpcSender<CustomResponseMediator>),
+    /// Send the service worker network mediator for an origin to CoreResourceThread
+    NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources

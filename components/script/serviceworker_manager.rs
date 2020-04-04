@@ -192,7 +192,7 @@ impl ServiceWorkerManager {
 }
 
 impl ServiceWorkerManagerFactory for ServiceWorkerManager {
-    fn create(sw_senders: SWManagerSenders, _origin: ImmutableOrigin) {
+    fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin) {
         let (resource_chan, resource_port) = ipc::channel().unwrap();
 
         let SWManagerSenders {
@@ -204,7 +204,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
 
         let from_constellation = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(receiver);
         let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
-        let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
+        let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
         if thread::Builder::new()
             .name("ServiceWorkerManager".to_owned())
             .spawn(move || {
