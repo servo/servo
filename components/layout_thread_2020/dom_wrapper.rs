@@ -720,21 +720,6 @@ impl<'le> ServoLayoutElement<'le> {
     pub unsafe fn set_has_snapshot(&self) {
         self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }
-
-    pub unsafe fn note_dirty_descendant(&self) {
-        use selectors::Element;
-
-        let mut current = Some(*self);
-        while let Some(el) = current {
-            // FIXME(bholley): Ideally we'd have the invariant that any element
-            // with has_dirty_descendants also has the bit set on all its
-            // ancestors.  However, there are currently some corner-cases where
-            // we get that wrong.  I have in-flight patches to fix all this
-            // stuff up, so we just always propagate this bit for now.
-            el.set_dirty_descendants();
-            current = el.parent_element();
-        }
-    }
 }
 
 fn as_element<'dom>(node: LayoutDom<'dom, Node>) -> Option<ServoLayoutElement<'dom>> {

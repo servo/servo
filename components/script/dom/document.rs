@@ -3587,8 +3587,14 @@ impl Document {
         self.pending_restyles
             .borrow_mut()
             .drain()
-            .filter(|(k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED))
-            .map(|(k, v)| (k.upcast::<Node>().to_trusted_node_address(), v))
+            .filter_map(|(elem, restyle)| {
+                let node = elem.upcast::<Node>();
+                if !node.get_flag(NodeFlags::IS_CONNECTED) {
+                    return None;
+                }
+                node.note_dirty_descendants();
+                Some((node.to_trusted_node_address(), restyle))
+            })
             .collect()
     }
 }
