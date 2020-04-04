@@ -21,7 +21,6 @@ extern crate profile_traits;
 
 mod dom_wrapper;
 
-use crate::dom_wrapper::drop_style_and_layout_data;
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -640,7 +639,6 @@ impl LayoutThread {
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
             Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
             Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
-            Msg::ReapStyleAndLayoutData(..) => LayoutHangAnnotation::ReapStyleAndLayoutData,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
             Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
             Msg::ExitNow => LayoutHangAnnotation::ExitNow,
@@ -779,9 +777,6 @@ impl LayoutThread {
                     webrender_api::ScrollClamping::ToContentBounds,
                 );
             },
-            Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
-                drop_style_and_layout_data(dead_data)
-            },
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
@@ -890,9 +885,6 @@ impl LayoutThread {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
-                Msg::ReapStyleAndLayoutData(dead_data) => unsafe {
-                    drop_style_and_layout_data(dead_data)
-                },
                 Msg::ExitNow => {
                     debug!("layout thread is exiting...");
                     self.exit_now();
@@ -1118,7 +1110,7 @@ impl LayoutThread {
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
-            let style_data = match el.get_data() {
+            let mut style_data = match el.mutate_data() {
                 Some(d) => d,
                 None => {
                     unsafe { el.unset_snapshot_flags() };
@@ -1130,8 +1122,6 @@ impl LayoutThread {
                 unsafe { el.set_has_snapshot() };
                 map.insert(el.as_node().opaque(), s);
             }
-
-            let mut style_data = style_data.borrow_mut();
 
             // Stash the data on the element for processing by the style system.
             style_data.hint.insert(restyle.hint.into());

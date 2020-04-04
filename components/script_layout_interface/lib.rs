@@ -7,6 +7,7 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
+#![feature(box_into_raw_non_null)]
 
 #[macro_use]
 extern crate html5ever;
@@ -24,7 +25,7 @@ use libc::c_void;
 use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::ptr::NonNull;
+use std::any::Any;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -49,12 +50,32 @@ impl StyleData {
     }
 }
 
-#[derive(Clone, Copy, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
-    #[ignore_malloc_size_of = "TODO(#6910) Box value that should be counted but \
-                               the type lives in layout"]
-    pub ptr: NonNull<StyleData>,
+    #[ignore_malloc_size_of = "Trait objects are hard"]
+    ptr: Box<dyn Any + Send + Sync>,
+}
+
+impl OpaqueStyleAndLayoutData {
+    #[inline]
+    pub fn new<T>(value: T) -> Self
+    where
+        T: Any + Send + Sync,
+    {
+        Self {
+            ptr: Box::new(value) as Box<dyn Any + Send + Sync>,
+        }
+    }
+
+    /// Extremely cursed.
+    #[inline]
+    pub fn downcast_ref<T>(&self) -> Option<&T>
+    where
+        T: Any + Send + Sync,
+    {
+        self.ptr.downcast_ref()
+    }
 }
 
 #[allow(unsafe_code)]

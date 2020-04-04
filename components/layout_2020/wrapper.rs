@@ -7,18 +7,16 @@
 use crate::data::StyleAndLayoutData;
 use script_layout_interface::wrapper_traits::GetLayoutData;
 
-pub trait GetRawData {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
+pub trait GetRawData<'dom> {
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData>;
 }
 
-impl<'dom, T> GetRawData for T
+impl<'dom, T> GetRawData<'dom> for T
 where
     T: GetLayoutData<'dom>,
 {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
-        self.get_style_and_layout_data().map(|opaque| {
-            let container = opaque.ptr.as_ptr() as *mut StyleAndLayoutData;
-            unsafe { &*container }
-        })
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData> {
+        self.get_style_and_layout_data()
+            .map(|opaque| opaque.downcast_ref().unwrap())
     }
 }

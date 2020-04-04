@@ -822,23 +822,6 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub(crate) fn get_any_layout_chan() -> Option<Sender<Msg>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = match root.get() {
-                Some(s) => unsafe { &*s },
-                None => return None,
-            };
-            script_thread
-                .documents
-                .borrow()
-                .map
-                .values()
-                .next()
-                .map(|d| d.window().layout_chan())
-                .cloned()
-        })
-    }
-
     pub fn runtime_handle() -> ParentRuntime {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };

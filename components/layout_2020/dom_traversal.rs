@@ -369,7 +369,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
     fn as_opaque(self) -> OpaqueNode;
-    fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement>;
+    fn layout_data_mut(self) -> AtomicRefMut<'dom, LayoutDataForElement>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(self, which: WhichPseudoElement);
@@ -446,7 +446,8 @@ where
         self.opaque()
     }
 
-    fn layout_data_mut(&self) -> AtomicRefMut<LayoutDataForElement> {
+    #[allow(unsafe_code)]
+    fn layout_data_mut(self) -> AtomicRefMut<'dom, LayoutDataForElement> {
         self.get_raw_data()
             .map(|d| d.layout_data.borrow_mut())
             .unwrap()

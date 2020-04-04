@@ -30,7 +30,7 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
@@ -70,7 +70,6 @@ use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::ptr::NonNull;
 use std::sync::atomic::Ordering;
 use std::sync::Arc as StdArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -91,12 +90,6 @@ use style::shared_lock::{
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
 use style::CaseSensitivityExt;
-
-pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr = data.ptr.as_ptr() as *mut StyleData;
-    let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
-    let _ = Box::from_raw(non_opaque);
-}
 
 #[derive(Clone, Copy)]
 pub struct ServoLayoutNode<'dom> {
@@ -283,10 +276,7 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
 
     unsafe fn initialize_data(&self) {
         if self.get_raw_data().is_none() {
-            let ptr: *mut StyleAndLayoutData = Box::into_raw(Box::new(StyleAndLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonNull::new_unchecked(ptr as *mut StyleData),
-            };
+            let opaque = OpaqueStyleAndLayoutData::new(StyleAndLayoutData::new());
             self.init_style_and_layout_data(opaque);
         };
     }
@@ -304,26 +294,26 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> GetLayoutData<'ln> for ServoLayoutNode<'ln> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoLayoutNode<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         unsafe { self.get_jsmanaged().get_style_and_layout_data() }
     }
 }
 
-impl<'le> GetLayoutData<'le> for ServoLayoutElement<'le> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoLayoutElement<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.as_node().get_style_and_layout_data()
     }
 }
 
-impl<'ln> GetLayoutData<'ln> for ServoThreadSafeLayoutNode<'ln> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoThreadSafeLayoutNode<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
 }
 
-impl<'le> GetLayoutData<'le> for ServoThreadSafeLayoutElement<'le> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+impl<'dom> GetLayoutData<'dom> for ServoThreadSafeLayoutElement<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         self.element.as_node().get_style_and_layout_data()
     }
 }
@@ -555,7 +545,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     unsafe fn clear_data(&self) {
         if self.get_raw_data().is_some() {
-            drop_style_and_layout_data(self.as_node().take_style_and_layout_data());
+            drop(self.as_node().take_style_and_layout_data());
         }
     }
 
@@ -564,11 +554,20 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.mutate_data().unwrap()
     }
 
-    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        unsafe {
-            self.get_style_and_layout_data()
-                .map(|d| &(*(d.ptr.as_ptr() as *mut StyleData)).element_data)
-        }
+    /// Whether there is an ElementData container.
+    fn has_data(&self) -> bool {
+        self.get_style_data().is_some()
+    }
+
+    /// Immutably borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_style_data().map(|data| data.element_data.borrow())
+    }
+
+    /// Mutably borrows the ElementData.
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_style_data()
+            .map(|data| data.element_data.borrow_mut())
     }
 
     fn skip_item_display_fixup(&self) -> bool {
@@ -704,10 +703,12 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        unsafe {
-            self.get_style_and_layout_data()
-                .map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
-        }
+        self.get_style_and_layout_data().map(|opaque| {
+            &opaque
+                .downcast_ref::<StyleAndLayoutData>()
+                .unwrap()
+                .style_data
+        })
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
@@ -1041,7 +1042,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
 
     fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
-        let parent_data = parent.get_data().unwrap().borrow();
+        let parent_data = parent.borrow_data().unwrap();
         parent_data.styles.primary().clone()
     }
 
@@ -1067,7 +1068,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
             })
     }
 
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+    fn get_style_and_layout_data(self) -> Option<&'ln OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
 
@@ -1326,10 +1327,7 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn style_data(&self) -> AtomicRef<ElementData> {
-        self.element
-            .get_data()
-            .expect("Unstyled layout node?")
-            .borrow()
+        self.element.borrow_data().expect("Unstyled layout node?")
     }
 
     fn is_shadow_host(&self) -> bool {

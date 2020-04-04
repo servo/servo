@@ -558,6 +558,11 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 
 impl<'le> GeckoElement<'le> {
     #[inline(always)]
+    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+        unsafe { self.0.mServoData.get().as_ref() }
+    }
+
+    #[inline(always)]
     fn attrs(&self) -> &[structs::AttrArray_InternalAttr] {
         unsafe {
             let attrs = match self.0.mAttrs.mImpl.mPtr.as_ref() {
@@ -1299,7 +1304,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        debug_assert!(self.get_data().is_some());
+        debug_assert!(self.has_data());
         self.set_flags(ELEMENT_HANDLED_SNAPSHOT as u32)
     }
 
@@ -1309,7 +1314,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.get_data().is_some());
+        debug_assert!(self.has_data());
         debug!("Setting dirty descendants: {:?}", self);
         self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
@@ -1378,13 +1383,23 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    #[inline(always)]
-    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        unsafe { self.0.mServoData.get().as_ref() }
+    /// Whether there is an ElementData container.
+    fn has_data(&self) -> bool {
+        self.get_data().is_some()
+    }
+
+    /// Immutably borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_data().map(|x| x.borrow())
+    }
+
+    /// Mutably borrows the ElementData.
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_data().map(|x| x.borrow_mut())
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
-        if self.get_data().is_none() {
+        if !self.has_data() {
             debug!("Creating ElementData for {:?}", self);
             let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::default())));
             self.0.mServoData.set(ptr);

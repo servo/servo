@@ -39,23 +39,21 @@ use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;
 use style::values::generics::counters::Content;
 
-pub trait LayoutNodeLayoutData {
-    /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
-    /// than only the style::data::ElementData.
-    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>>;
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>>;
+pub trait LayoutNodeLayoutData<'dom> {
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>>;
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>>;
     fn flow_debug_id(self) -> usize;
 }
 
-impl<'dom, T> LayoutNodeLayoutData for T
+impl<'dom, T> LayoutNodeLayoutData<'dom> for T
 where
     T: GetLayoutData<'dom>,
 {
-    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>> {
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>> {
         self.get_raw_data().map(|d| d.layout_data.borrow())
     }
 
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>> {
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>> {
         self.get_raw_data().map(|d| d.layout_data.borrow_mut())
     }
 
@@ -65,19 +63,17 @@ where
     }
 }
 
-pub trait GetRawData {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
+pub trait GetRawData<'dom> {
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData>;
 }
 
-impl<'dom, T> GetRawData for T
+impl<'dom, T> GetRawData<'dom> for T
 where
     T: GetLayoutData<'dom>,
 {
-    fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
-        self.get_style_and_layout_data().map(|opaque| {
-            let container = opaque.ptr.as_ptr() as *mut StyleAndLayoutData;
-            unsafe { &*container }
-        })
+    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData> {
+        self.get_style_and_layout_data()
+            .map(|opaque| opaque.downcast_ref().unwrap())
     }
 }
 

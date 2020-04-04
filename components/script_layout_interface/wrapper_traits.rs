@@ -80,7 +80,7 @@ impl PseudoElementType {
 
 /// Trait to abstract access to layout data across various data structures.
 pub trait GetLayoutData<'dom> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -224,7 +224,7 @@ pub trait ThreadSafeLayoutNode<'dom>:
             .map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
     }
 
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
+    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
 
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         if let Some(el) = self.as_element() {
