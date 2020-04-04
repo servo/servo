@@ -74,14 +74,19 @@ impl UrlHelper {
     }
     // https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
     pub fn is_origin_trustworthy(url: &ServoUrl) -> bool {
+        // Step 1
+        if !url.origin().is_tuple() {
+            return false;
+        }
+
         // Step 3
-        if url.scheme() == "http" || url.scheme() == "wss" {
+        if url.scheme() == "https" || url.scheme() == "wss" {
             true
         // Step 4
         } else if url.host().is_some() {
             let host = url.host_str().unwrap();
             host == "127.0.0.0/8" || host == "::1/128"
-        // Step 5
+        // Step 6
         } else {
             url.scheme() == "file"
         }

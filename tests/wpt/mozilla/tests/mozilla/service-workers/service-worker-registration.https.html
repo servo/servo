@@ -16,7 +16,7 @@ test(function (){
 
 promise_test(function() {
   return register_sw('resources/sw.js').then(function(sw_reg) {
-    assert_equals(sw_reg.active.scriptURL, location.href.replace("service-worker-registration.html", "resources/sw.js"));
+    assert_equals(sw_reg.active.scriptURL, location.href.replace("service-worker-registration.https.html", "resources/sw.js"));
   });
 }, "Test: Active Service Worker ScriptURL property");
 
@@ -30,7 +30,7 @@ promise_test(function() {
 
 promise_test(function() {
   return register_sw('resources/sw.js', './').then(function(sw_reg) {
-    assert_equals(sw_reg.scope, location.href.replace("service-worker-registration.html", ""));
+    assert_equals(sw_reg.scope, location.href.replace("service-worker-registration.https.html", ""));
   });
 }, "Test: Service Worker Registration property scope Url when no scope");
 
