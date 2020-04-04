@@ -70,7 +70,6 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as Cons
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::{Painter, WebrenderIpcSender};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
-use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1108,13 +1107,6 @@ impl LayoutThread {
 
         for (el, restyle) in restyles {
             let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
-
-            // Propagate the descendant bit up the ancestors. Do this before
-            // the restyle calculation so that we can also do it for new
-            // unstyled nodes, which the descendants bit helps us find.
-            if let Some(parent) = el.parent_element() {
-                unsafe { parent.note_dirty_descendant() };
-            }
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
