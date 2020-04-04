@@ -146,8 +146,13 @@ impl SVGPaintOrder {
 
     /// Get variant of `paint-order`
     pub fn order_at(&self, pos: u8) -> PaintOrder {
-        // Safe because PaintOrder covers all possible patterns.
-        unsafe { std::mem::transmute((self.0 >> pos * PAINT_ORDER_SHIFT) & PAINT_ORDER_MASK) }
+        match (self.0 >> pos * PAINT_ORDER_SHIFT) & PAINT_ORDER_MASK {
+            0 => PaintOrder::Normal,
+            1 => PaintOrder::Fill,
+            2 => PaintOrder::Stroke,
+            3 => PaintOrder::Markers,
+            _ => unreachable!("this cannot happen"),
+        }
     }
 }
 
