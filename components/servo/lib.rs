@@ -1016,8 +1016,11 @@ pub fn run_content_process(token: String) {
         create_sandbox();
     }
 
-    let background_hang_monitor_register =
-        unprivileged_content.register_with_background_hang_monitor();
+    let background_hang_monitor_register = if opts::get().background_hang_monitor {
+        unprivileged_content.register_with_background_hang_monitor()
+    } else {
+        None
+    };
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
