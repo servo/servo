@@ -23,6 +23,9 @@ test_valid_value("stroke-dasharray", "calc(2em + 3ex)");
 test_valid_value("stroke-dasharray", "10pt 20% 30pc 40in", "10pt, 20%, 30pc, 40in");
 test_valid_value("stroke-dasharray", "10vmin, 20vmax, 30em, 40ex");
 test_valid_value("stroke-dasharray", "0, 5", ["0, 5", "0px, 5px"]); // Edge/Safari serialize numbers as lengths.
+test_valid_value("stroke-dasharray", "calc(3)");
+test_valid_value("stroke-dasharray", "calc(2 + 1)", "calc(3)");
+test_valid_value("stroke-dasharray", "calc(2 + (7 - 5))", "calc(4)");
 
   ]]></script>
 </svg>

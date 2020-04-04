@@ -20,6 +20,9 @@ test_valid_value("stroke-width", "calc(2em + 3ex)");
 test_valid_value("stroke-width", "4%");
 test_valid_value("stroke-width", "5vmin");
 test_valid_value("stroke-width", "calc(50% + 60px)");
+test_valid_value("stroke-width", "calc(3)");
+test_valid_value("stroke-width", "calc(2 + 1)", "calc(3)");
+test_valid_value("stroke-width", "calc(2 + (7 - 5))", "calc(4)");
 
   ]]></script>
 </svg>

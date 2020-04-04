@@ -10273,9 +10273,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#0f0';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#f00';
@@ -10294,9 +10297,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10314,9 +10320,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '67px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '67px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10336,13 +10345,16 @@
     - CanvasTest
   fonthack: 0
   code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.font = '67px CanvasTest';
-    ctx.fillStyle = '#0f0';
-    ctx.fillText('AA', 0, 50);
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.font = '67px CanvasTest';
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('AA', 0, 50);
         ctx.fillText('AA', 0, 50);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
@@ -10359,9 +10371,12 @@
     - CanvasTest
   fonthack: 0
   code: |
-    ctx.font = '67px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '67px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10380,9 +10395,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10404,9 +10422,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10428,9 +10449,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10451,9 +10475,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10474,9 +10501,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10497,9 +10527,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10521,9 +10554,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10545,9 +10581,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10570,9 +10609,12 @@
     - CanvasTest
   canvas: width="100" height="50" dir="ltr"
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10596,9 +10638,12 @@
     - CanvasTest
   canvas: width="100" height="50" dir="rtl"
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10621,9 +10666,12 @@
     - CanvasTest
   canvas: width="100" height="50" dir="ltr"
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10647,9 +10695,12 @@
     - CanvasTest
   canvas: width="100" height="50" dir="rtl"
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10671,9 +10722,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10696,9 +10750,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10715,9 +10772,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10734,9 +10794,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10753,9 +10816,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10772,9 +10838,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -10791,9 +10860,12 @@
   fonts:
     - CanvasTest
   code: |
-    ctx.font = '50px CanvasTest';
-    new Promise(function(resolve) { step_timeout(resolve, 500); })
-      .then(function() {
+    var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+    let fonts = (self.fonts ? self.fonts : document.fonts);
+    f.load();
+    fonts.add(f);
+    fonts.ready.then(function() {
+        ctx.font = '50px CanvasTest';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';

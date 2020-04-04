@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Filters: drop-shadow filter on element with clipped children</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=350411">
+<link rel="match" href="reference/filters-drop-shadow-002-ref.html">
+<meta name="assert" content="Check that clipping gets correctly applied on children of a container with a drop-shadow filter in effect."/>
+
+<style>
+.container {
+    filter: drop-shadow(5px 5px 5px black);
+}
+.circle-mask {
+    border-radius: 80px;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+    position: absolute;
+}
+.green-box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+}
+</style>
+<div class="container">
+  <div class="circle-mask">
+    <div class="green-box"></div>
+  </div>
+</div>

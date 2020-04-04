@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable>
+<p id="p1"><br></p>
+<p id="p2"></p>
+</div>
+<script>
+"use strict";
+let editor = document.querySelector("[contenteditable]");
+let p1 = document.getElementById("p1");
+let p2 = document.getElementById("p2");
+p1.addEventListener("DOMNodeInserted", event => {
+  if (event.target.localName === "i") {
+    p2.appendChild(event.target);
+  }
+});
+document.getSelection().collapse(p1, 0);
+document.execCommand("insertHTML", false,
+                     "<b>bold1</b><i>italic1</i><b>bold2</b><i>italic2</i>");
+test(function () {
+  assert_in_array(p1.innerHTML, ["<b>bold1</b><b>bold2</b><br>", "<b>bold1</b><b>bold2</b>"]);
+}, "First <p> element should have only <b> elements");
+test(function () {
+  assert_equals(p2.innerHTML, "<i>italic1</i><i>italic2</i>");
+}, "Second <p> element should have only <i> elements");
+</script>

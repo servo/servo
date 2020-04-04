@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>SVG Filters: feConvolveMatrix filter</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feConvolveMatrixElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#ColorInterpolationFiltersProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feColorMatrixElement">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=533457">
+<link rel="match" href="reference/effect-reference-convolve-error-001-ref.html">
+<meta name="assert" content="feConvolveMatrix without a kernelMatrix acts as a pass through filter"/>
+<div style="width: 100px; height: 100px; background-color: red; filter: url(#f)"></div>
+<svg height="0">
+    <filter id="f" x="0" y="0" width="1" height="1">
+        <feConvolveMatrix/>
+        <feColorMatrix values="1 0 0 0 0,
+                               0 1 0 0 0.5,
+                               0 0 1 0 0,
+                               0 0 0 1 1"
+                       color-interpolation-filters="sRGB"/>
+    </filter>
+</svg>

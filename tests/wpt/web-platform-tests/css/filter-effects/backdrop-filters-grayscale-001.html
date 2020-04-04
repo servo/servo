@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters: Grayscale(50%)</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#supported-filter-functions">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=831485">
+<link rel="match" href="reference/backdrop-filters-grayscale-001-ref.html">
+<meta name="assert" content="Check that backdrop-filter works with grayscale(50%)."/>
+<style>
+.square {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: 100px;
+    left: 100px;
+    background: blue;
+}
+
+.filt {
+    backdrop-filter: grayscale(50%);
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    top: 50px;
+    left: 50px;
+}
+
+.greenbox {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    top: 75px;
+    left: 75px;
+    background: green;
+}
+</style>
+<p>You should see a dark blue rectangle with a green box.</p>
+<div class="square"></div>
+<div class="filt">
+    <div class="greenbox"></div>
+</div>

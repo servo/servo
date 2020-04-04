@@ -19,6 +19,9 @@ test_valid_value("stroke-dashoffset", "-20%");
 test_valid_value("stroke-dashoffset", "30", "30px");
 test_valid_value("stroke-dashoffset", "40Q", "40q");
 test_valid_value("stroke-dashoffset", "calc(2em + 3ex)");
+test_valid_value("stroke-dashoffset", "calc(3)");
+test_valid_value("stroke-dashoffset", "calc(2 + 1)", "calc(3)");
+test_valid_value("stroke-dashoffset", "calc(2 + (7 - 5))", "calc(4)");
 
   ]]></script>
 </svg>

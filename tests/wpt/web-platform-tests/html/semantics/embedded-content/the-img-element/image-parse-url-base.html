@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image load parses URL after microtask runs</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<img id="img">
+<script>
+const t = async_test("An image request's parsed URL should be affected by a " +
+                     "dynamically-inserted <base>, if it was inserted before " +
+                     "the image request microtask runs");
+
+t.step(() => {
+  const elm = document.getElementById('img');
+  elm.src = 'resources/image.png';
+  elm.onload = t.unreached_func("The image should have failed to load, as " +
+                                "the request URL should be affected by the " +
+                                "<base> element");
+  elm.onerror = t.step_func_done();
+
+  const base = document.createElement("base");
+  base.setAttribute("href", "bogus/");
+  document.head.appendChild(base);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backdrop Filters: Grayscale(100%) with transparent background color</title>
+<link rel="author" title="Hendrik Wagenaar" href="mailto:hendrikw@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#supported-filter-functions">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=497522">
+<link rel="match" href="reference/backdrop-filters-grayscale-002-ref.html">
+<meta name="assert" content="Check that backdrop-filter works with grayscale(100%) and a transparent background color."/>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+}
+
+.background_object {
+  left: 10px;
+  top: 10px;
+  background: orange;
+}
+
+.grayscale_backdrop {
+  left: 60px;
+  top: 60px;
+  background: #fff0;
+  backdrop-filter: grayscale(100%);
+}
+</style>
+</head>
+
+<body>
+  <div class="background_object"></div>
+  <div class="grayscale_backdrop"></div>
+</body>
+</html>
