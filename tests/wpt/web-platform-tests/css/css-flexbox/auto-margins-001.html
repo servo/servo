@@ -3,6 +3,7 @@
 <head>
 <title>CSS Test: Aligning with auto margins</title>
 <link href="support/flexbox.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <link rel="author" title="Google Inc." href="http://www.google.com/">
 <link rel="help" href="https://drafts.csswg.org/css-flexbox/#auto-margins">
 <link rel="match" href="auto-margins-001-ref.html">
@@ -27,13 +28,13 @@
 <body>
 <p>These tests are from the spec: <a href="http://dev.w3.org/csswg/css3-flexbox/#auto-margins">http://dev.w3.org/csswg/css3-flexbox/#auto-margins</a>.</p>
 
-<p>The word OK should be centered vertically and horizontally.</p>
+<p>The black rectangle should be centered vertically and horizontally.</p>
 <div class="flexbox" style="width: 4em; height: 4em; background: silver">
-  <p id="ok" style="margin: auto;">OK</p>
+  <p id="ok" style="margin: auto; font-family: Ahem;">OK</p>
 </div>
 
 <div class="flexbox" style="width: 4em; height: 4em; margin-top: 10px; background: silver; writing-mode: vertical-rl">
-  <p id="okVertical" style="margin: auto;">OK</p>
+  <p id="okVertical" style="margin: auto; font-family: Ahem;">OK</p>
 </div>
 
 <p>You should see 3 blue concentric circles.</p>
