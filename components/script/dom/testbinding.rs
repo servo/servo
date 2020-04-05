@@ -48,7 +48,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
@@ -1010,11 +1010,8 @@ impl TestBindingMethods for TestBinding {
         }
         impl Callback for SimpleHandler {
             #[allow(unsafe_code)]
-            fn callback(&self, cx: *mut JSContext, v: HandleValue) {
-                let global = unsafe {
-                    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-                    GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof))
-                };
+            fn callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
+                let global = unsafe { GlobalScope::from_context(cx, realm) };
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
         }

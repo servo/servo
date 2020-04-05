@@ -17,7 +17,7 @@ use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
@@ -292,21 +292,28 @@ unsafe extern "C" fn native_handler_callback(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
+    let cx = SafeJSContext::from_ptr(cx);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+
     let args = CallArgs::from_vp(vp, argc);
-    rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
+    rooted!(in(*cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
     assert!(v.get().is_object());
 
-    let handler = root_from_object::<PromiseNativeHandler>(v.to_object(), cx)
+    let handler = root_from_object::<PromiseNativeHandler>(v.to_object(), *cx)
         .expect("unexpected value for native handler in promise native handler callback");
 
-    rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
+    rooted!(in(*cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
     match v.to_int32() {
-        v if v == NativeHandlerTask::Resolve as i32 => {
-            handler.resolved_callback(cx, HandleValue::from_raw(args.get(0)))
-        },
-        v if v == NativeHandlerTask::Reject as i32 => {
-            handler.rejected_callback(cx, HandleValue::from_raw(args.get(0)))
-        },
+        v if v == NativeHandlerTask::Resolve as i32 => handler.resolved_callback(
+            *cx,
+            HandleValue::from_raw(args.get(0)),
+            InRealm::Already(&in_realm_proof),
+        ),
+        v if v == NativeHandlerTask::Reject as i32 => handler.rejected_callback(
+            *cx,
+            HandleValue::from_raw(args.get(0)),
+            InRealm::Already(&in_realm_proof),
+        ),
         _ => panic!("unexpected native handler task value"),
     };
 
