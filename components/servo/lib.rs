@@ -80,7 +80,7 @@ use compositing::{CompositingReason, ConstellationMsg, IOCompositor, ShutdownSta
     not(target_arch = "aarch64")
 ))]
 use constellation::content_process_sandbox_profile;
-use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
+use constellation::{Constellation, InitialConstellationState, UnprivilegedContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
@@ -105,8 +105,9 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
+use script::serviceworker_manager::ServiceWorkerManager;
 use script::JSEngineSetup;
-use script_traits::{SWManagerSenders, ScriptToConstellationChan, WindowSizeData};
+use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::opts;
 use servo_config::{pref, prefs};
 use servo_media::player::context::GlContext;
@@ -519,7 +520,7 @@ where
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
-        let (constellation_chan, sw_senders) = create_constellation(
+        let constellation_chan = create_constellation(
             opts.user_agent.clone(),
             opts.config_dir.clone(),
             embedder_proxy,
@@ -540,9 +541,6 @@ where
             window_size,
             pending_wr_frame.clone(),
         );
-
-        // Send the constellation's swmanager sender to service worker manager thread
-        script::init_service_workers(sw_senders);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -879,7 +877,7 @@ fn create_constellation(
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
     pending_wr_frame: Arc<AtomicBool>,
-) -> (Sender<ConstellationMsg>, SWManagerSenders) {
+) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
@@ -899,8 +897,6 @@ fn create_constellation(
         public_resource_threads.sender(),
         webrender_api_sender.create_api(),
     );
-
-    let resource_sender = public_resource_threads.sender();
 
     let initial_state = InitialConstellationState {
         compositor_proxy,
@@ -926,10 +922,11 @@ fn create_constellation(
 
     let (canvas_chan, ipc_canvas_chan) = canvas::canvas_paint_thread::CanvasPaintThread::start();
 
-    let (constellation_chan, from_swmanager_sender) = Constellation::<
+    let constellation_chan = Constellation::<
         script_layout_interface::message::Msg,
         layout_thread::LayoutThread,
         script::script_thread::ScriptThread,
+        script::serviceworker_manager::ServiceWorkerManager,
     >::start(
         initial_state,
         initial_window_size,
@@ -949,13 +946,7 @@ fn create_constellation(
             .unwrap();
     }
 
-    // channels to communicate with Service Worker Manager
-    let sw_senders = SWManagerSenders {
-        swmanager_sender: from_swmanager_sender,
-        resource_sender: resource_sender,
-    };
-
-    (constellation_chan, sw_senders)
+    constellation_chan
 }
 
 // A logger that logs to two downstream loggers.
@@ -997,45 +988,50 @@ pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
 /// Content process entry point.
 pub fn run_content_process(token: String) {
     let (unprivileged_content_sender, unprivileged_content_receiver) =
-        ipc::channel::<UnprivilegedPipelineContent>().unwrap();
-    let connection_bootstrap: IpcSender<IpcSender<UnprivilegedPipelineContent>> =
+        ipc::channel::<UnprivilegedContent>().unwrap();
+    let connection_bootstrap: IpcSender<IpcSender<UnprivilegedContent>> =
         IpcSender::connect(token).unwrap();
     connection_bootstrap
         .send(unprivileged_content_sender)
         .unwrap();
 
-    let mut unprivileged_content = unprivileged_content_receiver.recv().unwrap();
+    let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_options(unprivileged_content.opts());
     prefs::pref_map()
         .set_all(unprivileged_content.prefs())
         .expect("Failed to set preferences");
-    set_logger(unprivileged_content.script_to_constellation_chan().clone());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {
         create_sandbox();
     }
 
-    let background_hang_monitor_register = if opts::get().background_hang_monitor {
-        unprivileged_content.register_with_background_hang_monitor()
-    } else {
-        None
-    };
-
-    // send the required channels to the service worker manager
-    let sw_senders = unprivileged_content.swmanager_senders();
     let _js_engine_setup = script::init();
-    script::init_service_workers(sw_senders);
 
-    media_platform::init();
+    match unprivileged_content {
+        UnprivilegedContent::Pipeline(mut content) => {
+            media_platform::init();
 
-    unprivileged_content.start_all::<script_layout_interface::message::Msg,
-                                     layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(
-                                         true,
-                                         background_hang_monitor_register,
-                                         None,
-                                     );
+            set_logger(content.script_to_constellation_chan().clone());
+
+            let background_hang_monitor_register = if opts::get().background_hang_monitor {
+                content.register_with_background_hang_monitor()
+            } else {
+                None
+            };
+
+            content.start_all::<script_layout_interface::message::Msg,
+                                             layout_thread::LayoutThread,
+                                             script::script_thread::ScriptThread>(
+                                                 true,
+                                                 background_hang_monitor_register,
+                                                 None,
+                                             );
+        },
+        UnprivilegedContent::ServiceWorker(content) => {
+            content.start::<ServiceWorkerManager>();
+        },
+    }
 }
 
 #[cfg(all(

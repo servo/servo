@@ -370,11 +370,16 @@ pub struct DOMMessage {
 }
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread
+#[derive(Deserialize, Serialize)]
 pub struct SWManagerSenders {
-    /// sender for communicating with constellation
+    /// Sender of messages to the constellation.
     pub swmanager_sender: IpcSender<SWManagerMsg>,
-    /// sender for communicating with resource thread
+    /// Sender for communicating with resource thread.
     pub resource_sender: IpcSender<CoreResourceMsg>,
+    /// Sender of messages to the manager.
+    pub own_sender: IpcSender<ServiceWorkerMsg>,
+    /// Receiver of messages from the constellation.
+    pub receiver: IpcReceiver<ServiceWorkerMsg>,
 }
 
 /// Messages sent to Service Worker Manager thread
@@ -393,6 +398,8 @@ pub enum ServiceWorkerMsg {
 /// Messages outgoing from the Service Worker Manager thread to constellation
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SWManagerMsg {
-    /// Provide the constellation with a means of communicating with the Service Worker Manager
-    OwnSender(IpcSender<ServiceWorkerMsg>),
+    /// Placeholder to keep the enum,
+    /// as it will be needed when implementing
+    /// https://github.com/servo/servo/issues/24660
+    PostMessageToClient,
 }

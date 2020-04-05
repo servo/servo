@@ -706,6 +706,13 @@ pub trait ScriptThreadFactory {
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
+/// This trait allows creating a `ServiceWorkerManager` without depending on the `script`
+/// crate.
+pub trait ServiceWorkerManagerFactory {
+    /// Create a `ServiceWorkerManager`.
+    fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin);
+}
+
 /// Whether the sandbox attribute is present for an iframe element
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IFrameSandboxState {

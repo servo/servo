@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::event_loop::EventLoop;
+use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -27,7 +28,7 @@ use msg::constellation_msg::{
 };
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
-use net_traits::{IpcSend, ResourceThreads};
+use net_traits::ResourceThreads;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{
@@ -35,16 +36,12 @@ use script_traits::{
 };
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
-use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
+use script_traits::{NewLayoutInfo, SWManagerMsg};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
-#[cfg(not(windows))]
-use std::env;
-use std::ffi::OsStr;
-use std::process;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -632,109 +629,8 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    #[cfg(any(
-        target_os = "android",
-        target_arch = "arm",
-        all(target_arch = "aarch64", not(target_os = "windows"))
-    ))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
-        use ipc_channel::ipc::IpcOneShotServer;
-        // Note that this function can panic, due to process creation,
-        // avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
-            .expect("Failed to create IPC one-shot server.");
-
-        let path_to_self = env::current_exe().expect("Failed to get current executor.");
-        let mut child_process = process::Command::new(path_to_self);
-        self.setup_common(&mut child_process, token);
-        let _ = child_process
-            .spawn()
-            .expect("Failed to start unsandboxed child process!");
-
-        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        sender.send(self)?;
-
-        Ok(())
-    }
-
-    #[cfg(all(
-        not(target_os = "windows"),
-        not(target_os = "ios"),
-        not(target_os = "android"),
-        not(target_arch = "arm"),
-        not(target_arch = "aarch64")
-    ))]
-    pub fn spawn_multiprocess(self) -> Result<(), Error> {
-        use crate::sandboxing::content_process_sandbox_profile;
-        use gaol::sandbox::{self, Sandbox, SandboxMethods};
-        use ipc_channel::ipc::IpcOneShotServer;
-
-        impl CommandMethods for sandbox::Command {
-            fn arg<T>(&mut self, arg: T)
-            where
-                T: AsRef<OsStr>,
-            {
-                self.arg(arg);
-            }
-
-            fn env<T, U>(&mut self, key: T, val: U)
-            where
-                T: AsRef<OsStr>,
-                U: AsRef<OsStr>,
-            {
-                self.env(key, val);
-            }
-        }
-
-        // Note that this function can panic, due to process creation,
-        // avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
-            .expect("Failed to create IPC one-shot server.");
-
-        // If there is a sandbox, use the `gaol` API to create the child process.
-        if self.opts.sandbox {
-            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
-            self.setup_common(&mut command, token);
-
-            let profile = content_process_sandbox_profile();
-            let _ = Sandbox::new(profile)
-                .start(&mut command)
-                .expect("Failed to start sandboxed child process!");
-        } else {
-            let path_to_self = env::current_exe().expect("Failed to get current executor.");
-            let mut child_process = process::Command::new(path_to_self);
-            self.setup_common(&mut child_process, token);
-            let _ = child_process
-                .spawn()
-                .expect("Failed to start unsandboxed child process!");
-        }
-
-        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        sender.send(self)?;
-
-        Ok(())
-    }
-
-    #[cfg(any(target_os = "windows", target_os = "ios"))]
-    pub fn spawn_multiprocess(self) -> Result<(), Error> {
-        error!("Multiprocess is not supported on Windows or iOS.");
-        process::exit(1);
-    }
-
-    #[cfg(not(windows))]
-    fn setup_common<C: CommandMethods>(&self, command: &mut C, token: String) {
-        C::arg(command, "--content-process");
-        C::arg(command, token);
-
-        if let Ok(value) = env::var("RUST_BACKTRACE") {
-            C::env(command, "RUST_BACKTRACE", value);
-        }
-
-        if let Ok(value) = env::var("RUST_LOG") {
-            C::env(command, "RUST_LOG", value);
-        }
+        spawn_multiprocess(UnprivilegedContent::Pipeline(self))
     }
 
     pub fn register_with_background_hang_monitor(
@@ -762,43 +658,5 @@ impl UnprivilegedPipelineContent {
 
     pub fn prefs(&self) -> HashMap<String, PrefValue> {
         self.prefs.clone()
-    }
-
-    pub fn swmanager_senders(&self) -> SWManagerSenders {
-        SWManagerSenders {
-            swmanager_sender: self.swmanager_thread.clone(),
-            resource_sender: self.resource_threads.sender(),
-        }
-    }
-}
-
-/// A trait to unify commands launched as multiprocess with or without a sandbox.
-trait CommandMethods {
-    /// A command line argument.
-    fn arg<T>(&mut self, arg: T)
-    where
-        T: AsRef<OsStr>;
-
-    /// An environment variable.
-    fn env<T, U>(&mut self, key: T, val: U)
-    where
-        T: AsRef<OsStr>,
-        U: AsRef<OsStr>;
-}
-
-impl CommandMethods for process::Command {
-    fn arg<T>(&mut self, arg: T)
-    where
-        T: AsRef<OsStr>,
-    {
-        self.arg(arg);
-    }
-
-    fn env<T, U>(&mut self, key: T, val: U)
-    where
-        T: AsRef<OsStr>,
-        U: AsRef<OsStr>,
-    {
-        self.env(key, val);
     }
 }
