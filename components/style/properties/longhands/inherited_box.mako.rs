@@ -85,7 +85,8 @@ ${helpers.single_keyword(
 
 ${helpers.single_keyword(
     "image-orientation",
-    "from-image none",
+    "none from-image",
+    gecko_pref_controlled_initial_value="layout.css.image-orientation.initial-from-image=from-image",
     engines="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",
