@@ -20,9 +20,12 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-ctx.font = '50px CanvasTest';
-new Promise(function(resolve) { step_timeout(resolve, 500); })
-  .then(function() {
+var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+let fonts = (self.fonts ? self.fonts : document.fonts);
+f.load();
+fonts.add(f);
+fonts.ready.then(function() {
+    ctx.font = '50px CanvasTest';
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = '#0f0';

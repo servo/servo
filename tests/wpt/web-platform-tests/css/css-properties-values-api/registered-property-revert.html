@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1" />
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #parent {
+        --inherited: 10px;
+        --non-inherited: 10px;
+    }
+    #child {
+        --inherited: 20px;
+        --non-inherited: 20px;
+        --inherited: revert;
+        --non-inherited: revert;
+    }
+</style>
+<div id=parent>
+    <div id=child>
+    </div>
+</div>
+<script>
+
+CSS.registerProperty({
+    name: "--inherited",
+    syntax: "<length>",
+    initialValue: "0px",
+    inherits: true
+});
+
+CSS.registerProperty({
+    name: "--non-inherited",
+    syntax: "<length>",
+    initialValue: "0px",
+    inherits: false
+});
+
+test(function(){
+    let cs = getComputedStyle(child);
+    assert_equals(cs.getPropertyValue('--inherited'), '10px');
+}, 'Inherited registered custom property can be reverted');
+
+test(function(){
+    let cs = getComputedStyle(child);
+    assert_equals(cs.getPropertyValue('--non-inherited'), '0px');
+}, 'Non-inherited registered custom property can be reverted');
+
+</script>

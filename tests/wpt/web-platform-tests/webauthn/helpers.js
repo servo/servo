@@ -35,6 +35,10 @@ var createCredentialDefaultArgs = {
                 alg: cose_alg_ECDSA_w_SHA256,
             }],
 
+            authenticatorSelection: {
+                requireResidentKey: false,
+            },
+
             timeout: 60000, // 1 minute
             excludeCredentials: [] // No excludeList
         }
@@ -420,6 +424,9 @@ class GetCredentialsTest extends TestCase {
 
         this.credentialPromiseList = [];
 
+        // set to true to pass an empty allowCredentials list to credentials.get
+        this.isResidentKeyTest = false;
+
         // enable the constructor to modify the default testObject
         // would prefer to do this in the super class, but have to call super() before using `this.*`
         if (arguments.length) {
@@ -464,7 +471,9 @@ class GetCredentialsTest extends TestCase {
                         type: "public-key"
                     };
                 });
-                this.testObject.options.publicKey.allowCredentials = idList;
+                if (!this.isResidentKeyTest) {
+                    this.testObject.options.publicKey.allowCredentials = idList;
+                }
                 // return super.test(desc);
             })
             .catch((err) => {
@@ -475,6 +484,11 @@ class GetCredentialsTest extends TestCase {
     validateRet(ret) {
         validatePublicKeyCredential(ret);
         validateAuthenticatorAssertionResponse(ret.response);
+    }
+
+    setIsResidentKeyTest(isResidentKeyTest) {
+        this.isResidentKeyTest = isResidentKeyTest;
+        return this;
     }
 }
 
@@ -535,12 +549,17 @@ function validateAuthenticatorAssertionResponse(assert) {
     // TODO: parseAuthenticatorData() and make sure flags are correct
 }
 
-function standardSetup(cb) {
+function standardSetup(cb, options = {}) {
     // Setup an automated testing environment if available.
-    window.test_driver.add_virtual_authenticator({
+    let authenticatorArgs = {
         protocol: "ctap1/u2f",
-        transport: "usb"
-    }).then(authenticator => {
+        transport: "usb",
+        hasResidentKey: false,
+        hasUserVerification: false,
+        isUserVerified: false,
+    };
+    extendObject(authenticatorArgs, options);
+    window.test_driver.add_virtual_authenticator(authenticatorArgs).then(authenticator => {
         cb();
         // XXX add a subtest to clean up the virtual authenticator since
         // testharness does not support waiting for promises on cleanup.

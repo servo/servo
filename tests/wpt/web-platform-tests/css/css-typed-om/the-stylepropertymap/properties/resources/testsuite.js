@@ -33,6 +33,10 @@ const gCssWideKeywordsExamples = [
     description: 'unset keyword',
     input: new CSSKeywordValue('initial')
   },
+  {
+    description: 'revert keyword',
+    input: new CSSKeywordValue('revert')
+  },
 ];
 
 const gVarReferenceExamples = [

@@ -132,6 +132,14 @@ var FragmentHelper = {
                  tag == "mtd");
     },
 
+    isTokenElement: function(tag) {
+        return (tag == "mi" ||
+                tag == "mtext" ||
+                tag == "mo" ||
+                tag == "mn" ||
+                tag == "ms")
+    },
+
     isEmpty: function(tag) {
         return tag === "mspace" || tag == "mprescripts" || tag == "none";
     },

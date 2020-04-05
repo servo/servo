@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests</title>
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const rids = [0, 1, 2];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  exchangeIceCandidates(pc1, pc2);
+
+  const metadataToBeLoaded = [];
+  pc2.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded.push(new Promise((resolve) => {
+        v.addEventListener('loadedmetadata', () => {
+            resolve();
+        });
+    }));
+  };
+
+  // use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
+  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  pc1.addTransceiver(stream.getVideoTracks()[0], {
+    streams: [stream],
+    sendEncodings: rids.map(rid => {rid}),
+  });
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer),
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: swapRidAndMidExtensionsInSimulcastOffer(offer, rids),
+  });
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription({
+    type: 'answer',
+    sdp: swapRidAndMidExtensionsInSimulcastAnswer(answer, pc1.localDescription, rids),
+  });
+  assert_equals(metadataToBeLoaded.length, 3);
+  return Promise.all(metadataToBeLoaded);
+}, 'Basic simulcast setup with three spatial layers');
+</script>
