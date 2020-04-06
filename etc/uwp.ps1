@@ -8,7 +8,7 @@ CheckNetIsolation LoopbackExempt -s
 Write-Output "PAUL: UNINSTALL PKG -----"
 $(Get-AppxPackage MozillaFoundation.FirefoxReality)| Remove-AppxPackage
 
-$url = "https://community-tc.services.mozilla.com/api/queue/v1/task/JGARl_P0RnmuJdnL9BiNNg/runs/0/artifacts/public/ServoApp_1.0.0.0_Debug_Test.zip"
+$url = "https://community-tc.services.mozilla.com/api/queue/v1/task/a5TVjKpZTk-Df-uZcQFhxw/runs/0/artifacts/public/ServoApp_1.0.0.0_Debug_Test.zip"
 
 Write-Output "PAUL: DOWNLOADING AND UNZIPPING PKG -----"
 Invoke-WebRequest -Uri $url -OutFile tc.zip

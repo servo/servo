@@ -330,10 +330,10 @@ def windows_uwp_x64():
         .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
         .with_script(
             "python mach package-pre-check",
-            # "python mach build --dev --target=x86_64-uwp-windows-msvc",
-            # "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
-            # "python ./etc/test_uwp.py",
-            "powershell ./etc/uwp.ps1",
+            "python mach build --dev --target=x86_64-uwp-windows-msvc",
+            "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
+            "python ./etc/test_uwp.py",
+            # "powershell ./etc/uwp.ps1",
         )
         .with_artifacts(appx_artifact(debug=True))
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())
