@@ -104,6 +104,12 @@ pub fn main() {
     opts.optflag("", "msaa", "Use multisample antialiasing in WebRender.");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
+    opts.optopt(
+        "u",
+        "user-agent",
+        "Set custom user agent string (or ios / android / desktop for platform default)",
+        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
+    );
 
     let opts_matches;
     let content_process_token;
@@ -173,12 +179,20 @@ pub fn main() {
     let use_msaa = opts_matches.opt_present("msaa");
     let device_pixels_per_px = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
         dppx_str.parse().unwrap_or_else(|err| {
-            error!( "Error parsing option: --device-pixel-ratio ({})", err);
+            error!("Error parsing option: --device-pixel-ratio ({})", err);
             process::exit(1);
         })
     });
+    let user_agent = opts_matches.opt_str("u");
 
-    App::run(angle, enable_vsync, use_msaa, do_not_use_native_titlebar, device_pixels_per_px);
+    App::run(
+        angle,
+        enable_vsync,
+        use_msaa,
+        do_not_use_native_titlebar,
+        device_pixels_per_px,
+        user_agent,
+    );
 
     platform::deinit(clean_shutdown)
 }

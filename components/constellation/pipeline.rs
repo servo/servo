@@ -41,6 +41,7 @@ use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
@@ -201,6 +202,9 @@ pub struct InitialPipelineState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+
+    /// User agent string to report in network requests.
+    pub user_agent: Cow<'static, str>,
 }
 
 pub struct NewPipeline {
@@ -304,6 +308,7 @@ impl Pipeline {
                     webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
+                    user_agent: state.user_agent,
                 };
 
                 // Spawn the child process.
@@ -520,6 +525,7 @@ pub struct UnprivilegedPipelineContent {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
+    user_agent: Cow<'static, str>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -588,7 +594,7 @@ impl UnprivilegedPipelineContent {
             self.opts.userscripts,
             self.opts.headless,
             self.opts.replace_surrogates,
-            self.opts.user_agent,
+            self.user_agent,
         );
 
         LTF::create(

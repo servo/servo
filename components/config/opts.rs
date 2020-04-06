@@ -10,7 +10,6 @@ use euclid::Size2D;
 use getopts::{Matches, Options};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
 use std::default::Default;
 use std::env;
 use std::fs::{self, File};
@@ -129,9 +128,6 @@ pub struct Opts {
 
     /// The initial requested size of the window.
     pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-
-    /// An optional string allowing the user agent to be set for testing.
-    pub user_agent: Cow<'static, str>,
 
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
@@ -473,51 +469,6 @@ pub fn multiprocess() -> bool {
     MULTIPROCESS.load(Ordering::Relaxed)
 }
 
-enum UserAgent {
-    Desktop,
-    Android,
-    #[allow(non_camel_case_types)]
-    iOS,
-}
-
-fn default_user_agent_string(agent: UserAgent) -> &'static str {
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Servo/1.0 Firefox/72.0";
-    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:72.0) Servo/1.0 Firefox/72.0";
-
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Servo/1.0 Firefox/72.0";
-    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; rv:72.0) Servo/1.0 Firefox/72.0";
-
-    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
-    // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
-    const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
-
-    match agent {
-        UserAgent::Desktop => DESKTOP_UA_STRING,
-        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:68.0) Servo/1.0 Firefox/68.0",
-        UserAgent::iOS => {
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X; rv:72.0) Servo/1.0 Firefox/72.0"
-        },
-    }
-}
-
-#[cfg(target_os = "android")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
-
-#[cfg(target_os = "ios")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
-
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
-
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
@@ -546,7 +497,6 @@ pub fn default_opts() -> Opts {
         devtools_port: None,
         webdriver_port: None,
         initial_window_size: Size2D::new(1024, 740),
-        user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
         background_hang_monitor: false,
         random_pipeline_closure_probability: None,
@@ -661,12 +611,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "7000",
     );
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
-    opts.optopt(
-        "u",
-        "user-agent",
-        "Set custom user agent string (or ios / android / desktop for platform default)",
-        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
-    );
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("B", "bhm", "Background Hang Monitor enabled");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -912,14 +856,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         MULTIPROCESS.store(true, Ordering::SeqCst)
     }
 
-    let user_agent = match opt_match.opt_str("u") {
-        Some(ref ua) if ua == "ios" => default_user_agent_string(UserAgent::iOS).into(),
-        Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android).into(),
-        Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop).into(),
-        Some(ua) => ua.into(),
-        None => default_user_agent_string(DEFAULT_USER_AGENT).into(),
-    };
-
     let user_stylesheets = opt_match
         .opt_strs("user-stylesheet")
         .iter()
@@ -964,7 +900,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
-        user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),

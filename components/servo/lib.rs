@@ -321,7 +321,11 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    pub fn new(mut embedder: Box<dyn EmbedderMethods>, window: Rc<Window>) -> Servo<Window> {
+    pub fn new(
+        mut embedder: Box<dyn EmbedderMethods>,
+        window: Rc<Window>,
+        user_agent: Option<String>,
+    ) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -337,6 +341,21 @@ where
         if !opts.multiprocess {
             media_platform::init();
         }
+
+        let user_agent = match user_agent {
+            Some(ref ua) if ua == "ios" => default_user_agent_string_for(UserAgent::iOS).into(),
+            Some(ref ua) if ua == "android" => {
+                default_user_agent_string_for(UserAgent::Android).into()
+            },
+            Some(ref ua) if ua == "desktop" => {
+                default_user_agent_string_for(UserAgent::Desktop).into()
+            },
+            Some(ua) => ua.into(),
+            None => embedder
+                .get_user_agent_string()
+                .map(Into::into)
+                .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
+        };
 
         // Make sure the gl context is made current.
         window.make_gl_context_current();
@@ -521,7 +540,7 @@ where
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
         let constellation_chan = create_constellation(
-            opts.user_agent.clone(),
+            user_agent,
             opts.config_dir.clone(),
             embedder_proxy,
             compositor_proxy.clone(),
@@ -885,7 +904,7 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
-        user_agent,
+        user_agent.clone(),
         devtools_chan.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
@@ -918,6 +937,7 @@ fn create_constellation(
         player_context,
         event_loop_waker,
         pending_wr_frame,
+        user_agent,
     };
 
     let (canvas_chan, ipc_canvas_chan) = canvas::canvas_paint_thread::CanvasPaintThread::start();
@@ -1146,3 +1166,47 @@ where
         Some((webxr_surface_providers, webgl_executor)),
     )
 }
+
+enum UserAgent {
+    Desktop,
+    Android,
+    #[allow(non_camel_case_types)]
+    iOS,
+}
+
+fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Servo/1.0 Firefox/72.0";
+    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux i686; rv:72.0) Servo/1.0 Firefox/72.0";
+
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Servo/1.0 Firefox/72.0";
+    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 10.0; rv:72.0) Servo/1.0 Firefox/72.0";
+
+    #[cfg(target_os = "macos")]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
+
+    match agent {
+        UserAgent::Desktop => DESKTOP_UA_STRING,
+        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:68.0) Servo/1.0 Firefox/68.0",
+        UserAgent::iOS => {
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X; rv:72.0) Servo/1.0 Firefox/72.0"
+        },
+    }
+}
+
+#[cfg(target_os = "android")]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
+
+#[cfg(target_os = "ios")]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
