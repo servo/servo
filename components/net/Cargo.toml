@@ -6,7 +6,6 @@ license = "MPL-2.0"
 edition = "2018"
 publish = false
 autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
-build = "build.rs"
 
 [lib]
 name = "net"
@@ -42,8 +41,7 @@ mime = "0.3"
 mime_guess = "2.0.0"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-openssl = "0.10"
-openssl-sys = "0.9"
+openssl = { version = "0.10", features = ["vendored"] }
 percent-encoding = "2.0"
 pixels = { path = "../pixels" }
 profile_traits = { path = "../profile_traits" }

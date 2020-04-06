@@ -3598,7 +3598,6 @@ dependencies = [
  "msg",
  "net_traits",
  "openssl",
- "openssl-sys",
  "percent-encoding",
  "pixels",
  "profile_traits",
@@ -3810,9 +3809,9 @@ checksum = "51ecbcb821e1bd256d456fe858aaa7f380b63863eab2eb86eee1bd9f33dd6682"
 
 [[package]]
 name = "openssl"
-version = "0.10.26"
+version = "0.10.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a3cc5799d98e1088141b8e01ff760112bbd9f19d850c124500566ca6901a585"
+checksum = "cee6d85f4cb4c4f59a6a85d5b68a233d280c82e29e822913b9c8b129fbf20bdd"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -3823,14 +3822,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "openssl-sys"
-version = "0.9.55"
+name = "openssl-src"
+version = "111.9.0+1.1.1g"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7717097d810a0f2e2323f9e5d11e71608355e24828410b55b9d4f18aa5f9a5d8"
+checksum = "a2dbe10ddd1eb335aba3780eb2eaa13e1b7b441d2562fd962398740927f39ec4"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f02309a7f127000ed50594f0b50ecc69e7c654e16d41b4e8156d1b3df8e0b52e"
 dependencies = [
  "autocfg",
  "cc",
  "libc",
+ "openssl-src",
  "pkg-config",
  "vcpkg",
 ]

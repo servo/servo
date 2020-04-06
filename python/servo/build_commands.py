@@ -326,11 +326,14 @@ class MachCommands(CommandBase):
                 print(stderr.decode(encoding))
                 exit(1)
 
-        # Ensure that GStreamer libraries are accessible when linking.
         if 'windows' in target_triple:
+            # Ensure that GStreamer libraries are accessible when linking.
             gst_root = gstreamer_root(target_triple, env)
             if gst_root:
                 append_to_path_env(os.path.join(gst_root, "lib"), env, "LIB")
+
+            # Don't use openssl-src until UWP support is upstreamed
+            env["OPENSSL_NO_VENDOR"] = "1"
 
         if android:
             if "ANDROID_NDK" not in env:
