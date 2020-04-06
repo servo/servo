@@ -6,7 +6,6 @@
 
 use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
-use crate::data::StyleAndLayoutData;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
@@ -1036,24 +1035,12 @@ fn inner_text_collection_steps<'dom>(
             _ => child,
         };
 
-        let element_data = {
-            &node
-                .get_opaque_style_and_layout_data()
-                .as_ref()
-                .map(|opaque| {
-                    &opaque
-                        .downcast_ref::<StyleAndLayoutData>()
-                        .unwrap()
-                        .style_data
-                        .element_data
-                })
+        let element_data = match node.get_style_and_opaque_layout_data() {
+            Some(data) => &data.style_data.element_data,
+            None => continue,
         };
 
-        if element_data.is_none() {
-            continue;
-        }
-
-        let style = match element_data.unwrap().borrow().styles.get_primary() {
+        let style = match element_data.borrow().styles.get_primary() {
             None => continue,
             Some(style) => style.clone(),
         };

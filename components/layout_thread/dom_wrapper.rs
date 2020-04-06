@@ -30,10 +30,10 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use layout::data::StyleAndLayoutData;
+use layout::data::LayoutData;
 use layout::wrapper::GetStyleAndLayoutData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
@@ -50,13 +50,13 @@ use script::layout_exports::{
     LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, LayoutShadowRootHelpers,
 };
 use script_layout_interface::wrapper_traits::{
-    DangerousThreadSafeLayoutNode, GetOpaqueStyleAndLayoutData, LayoutNode,
+    DangerousThreadSafeLayoutNode, GetStyleAndOpaqueLayoutData, LayoutNode,
 };
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{
-    HTMLCanvasData, HTMLMediaData, LayoutNodeType, OpaqueStyleAndLayoutData,
+    HTMLCanvasData, HTMLMediaData, LayoutNodeType, StyleAndOpaqueLayoutData,
 };
 use script_layout_interface::{SVGSVGData, StyleData, TrustedNodeAddress};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
@@ -269,17 +269,20 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
 
     unsafe fn initialize_data(&self) {
         if self.get_style_and_layout_data().is_none() {
-            let opaque = OpaqueStyleAndLayoutData::new(StyleAndLayoutData::new());
-            self.init_opaque_style_and_layout_data(opaque);
+            let opaque = StyleAndOpaqueLayoutData::new(
+                StyleData::new(),
+                AtomicRefCell::new(LayoutData::new()),
+            );
+            self.init_style_and_opaque_layout_data(opaque);
         };
     }
 
-    unsafe fn init_opaque_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        self.get_jsmanaged().init_opaque_style_and_layout_data(data);
+    unsafe fn init_style_and_opaque_layout_data(&self, data: Box<StyleAndOpaqueLayoutData>) {
+        self.get_jsmanaged().init_style_and_opaque_layout_data(data);
     }
 
-    unsafe fn take_opaque_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
-        self.get_jsmanaged().take_opaque_style_and_layout_data()
+    unsafe fn take_style_and_opaque_layout_data(&self) -> Box<StyleAndOpaqueLayoutData> {
+        self.get_jsmanaged().take_style_and_opaque_layout_data()
     }
 
     fn is_connected(&self) -> bool {
@@ -287,27 +290,27 @@ impl<'ln> LayoutNode<'ln> for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'dom> GetOpaqueStyleAndLayoutData<'dom> for ServoLayoutNode<'dom> {
-    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
-        self.get_jsmanaged().get_opaque_style_and_layout_data()
+impl<'dom> GetStyleAndOpaqueLayoutData<'dom> for ServoLayoutNode<'dom> {
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
+        self.get_jsmanaged().get_style_and_opaque_layout_data()
     }
 }
 
-impl<'dom> GetOpaqueStyleAndLayoutData<'dom> for ServoLayoutElement<'dom> {
-    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
-        self.as_node().get_opaque_style_and_layout_data()
+impl<'dom> GetStyleAndOpaqueLayoutData<'dom> for ServoLayoutElement<'dom> {
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
+        self.as_node().get_style_and_opaque_layout_data()
     }
 }
 
-impl<'dom> GetOpaqueStyleAndLayoutData<'dom> for ServoThreadSafeLayoutNode<'dom> {
-    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
-        self.node.get_opaque_style_and_layout_data()
+impl<'dom> GetStyleAndOpaqueLayoutData<'dom> for ServoThreadSafeLayoutNode<'dom> {
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
+        self.node.get_style_and_opaque_layout_data()
     }
 }
 
-impl<'dom> GetOpaqueStyleAndLayoutData<'dom> for ServoThreadSafeLayoutElement<'dom> {
-    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
-        self.element.as_node().get_opaque_style_and_layout_data()
+impl<'dom> GetStyleAndOpaqueLayoutData<'dom> for ServoThreadSafeLayoutElement<'dom> {
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
+        self.element.as_node().get_style_and_opaque_layout_data()
     }
 }
 
@@ -537,7 +540,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     unsafe fn clear_data(&self) {
         if self.get_style_and_layout_data().is_some() {
-            drop(self.as_node().take_opaque_style_and_layout_data());
+            drop(self.as_node().take_style_and_opaque_layout_data());
         }
     }
 
@@ -695,12 +698,8 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        self.get_opaque_style_and_layout_data().map(|opaque| {
-            &opaque
-                .downcast_ref::<StyleAndLayoutData>()
-                .unwrap()
-                .style_data
-        })
+        self.get_style_and_opaque_layout_data()
+            .map(|data| &data.style_data)
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
@@ -1045,8 +1044,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
             })
     }
 
-    fn get_opaque_style_and_layout_data(self) -> Option<&'ln OpaqueStyleAndLayoutData> {
-        self.node.get_opaque_style_and_layout_data()
+    fn get_style_and_opaque_layout_data(self) -> Option<&'ln StyleAndOpaqueLayoutData> {
+        self.node.get_style_and_opaque_layout_data()
     }
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
