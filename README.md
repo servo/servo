@@ -286,6 +286,10 @@ linker = "lld-link.exe"
 > `Redist\ucrt\DLLs\x64\api-ms-win-crt-runtime-l1-1-0.dll`, for example
 > `C:\Program Files (x86)\Windows Kits\10`.
 
+> If you get the error `thread 'main' panicked at 'Unable to find libclang: "couldn\'t find any valid shared libraries matching: [\'clang.dll\', \'libclang.dll\'], set the `LIBCLANG_PATH` environment variable to a path where one of these files can be found (invalid: ... invalid DLL (64-bit))])"'`
+> then `rustup` may have installed the 32-bit default target rather than the 64-bit one.
+> You can find the configuration with `rustup show`, and set the default with `rustup set default-host x86_64-pc-windows-msvc`.
+
 #### Cross-compilation for Android
 
 Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
