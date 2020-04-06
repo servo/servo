@@ -178,7 +178,7 @@ impl WebGLExtensions {
             .insert(name, Box::new(TypedWebGLExtensionWrapper::<T>::new()));
     }
 
-    pub fn get_suported_extensions(&self) -> Vec<&'static str> {
+    pub fn get_supported_extensions(&self) -> Vec<&'static str> {
         self.extensions
             .borrow()
             .iter()

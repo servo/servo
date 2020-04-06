@@ -1915,7 +1915,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
-        let extensions = self.extension_manager.get_suported_extensions();
+        let extensions = self.extension_manager.get_supported_extensions();
         Some(
             extensions
                 .iter()
