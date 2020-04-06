@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+  .turbulent {
+    width: 160px;
+    height: 90px;
+    margin: 10px;
+    filter: url(#turbulence);
+  }
+
+  .visibleContent {
+    background-color: red;
+  }
+</style>
+<div class="turbulent"></div>
+<div class="turbulent visibleContent"></div>
+
+This test passes if both divs look the same.
+
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs>
+    <filter id="turbulence" color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2"/>
+    </filter>
+  </defs>
+</svg>
