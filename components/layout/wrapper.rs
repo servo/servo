@@ -32,7 +32,7 @@
 
 use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use script_layout_interface::wrapper_traits::GetLayoutData;
+use script_layout_interface::wrapper_traits::GetOpaqueStyleAndLayoutData;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
@@ -47,14 +47,16 @@ pub trait LayoutNodeLayoutData<'dom> {
 
 impl<'dom, T> LayoutNodeLayoutData<'dom> for T
 where
-    T: GetLayoutData<'dom>,
+    T: GetOpaqueStyleAndLayoutData<'dom>,
 {
     fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>> {
-        self.get_raw_data().map(|d| d.layout_data.borrow())
+        self.get_style_and_layout_data()
+            .map(|d| d.layout_data.borrow())
     }
 
     fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>> {
-        self.get_raw_data().map(|d| d.layout_data.borrow_mut())
+        self.get_style_and_layout_data()
+            .map(|d| d.layout_data.borrow_mut())
     }
 
     fn flow_debug_id(self) -> usize {
@@ -63,16 +65,16 @@ where
     }
 }
 
-pub trait GetRawData<'dom> {
-    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData>;
+pub trait GetStyleAndLayoutData<'dom> {
+    fn get_style_and_layout_data(self) -> Option<&'dom StyleAndLayoutData>;
 }
 
-impl<'dom, T> GetRawData<'dom> for T
+impl<'dom, T> GetStyleAndLayoutData<'dom> for T
 where
-    T: GetLayoutData<'dom>,
+    T: GetOpaqueStyleAndLayoutData<'dom>,
 {
-    fn get_raw_data(self) -> Option<&'dom StyleAndLayoutData> {
-        self.get_style_and_layout_data()
+    fn get_style_and_layout_data(self) -> Option<&'dom StyleAndLayoutData> {
+        self.get_opaque_style_and_layout_data()
             .map(|opaque| opaque.downcast_ref().unwrap())
     }
 }
@@ -143,7 +145,7 @@ where
         }
 
         let damage = {
-            let data = node.get_raw_data().unwrap();
+            let data = node.get_style_and_layout_data().unwrap();
 
             if !data
                 .layout_data

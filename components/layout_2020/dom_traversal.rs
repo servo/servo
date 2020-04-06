@@ -8,7 +8,7 @@ use crate::element_data::{LayoutBox, LayoutDataForElement};
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use crate::wrapper::GetRawData;
+use crate::wrapper::GetStyleAndLayoutData;
 use atomic_refcell::AtomicRefMut;
 use html5ever::LocalName;
 use net_traits::image::base::Image as NetImage;
@@ -448,7 +448,7 @@ where
 
     #[allow(unsafe_code)]
     fn layout_data_mut(self) -> AtomicRefMut<'dom, LayoutDataForElement> {
-        self.get_raw_data()
+        self.get_style_and_layout_data()
             .map(|d| d.layout_data.borrow_mut())
             .unwrap()
     }

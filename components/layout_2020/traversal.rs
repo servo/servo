@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::wrapper::GetRawData;
+use crate::wrapper::GetStyleAndLayoutData;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
@@ -63,7 +63,7 @@ where
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
-        node.get_raw_data().is_none() || !parent_data.damage.is_empty()
+        node.get_style_and_layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

@@ -1037,13 +1037,16 @@ fn inner_text_collection_steps<'dom>(
         };
 
         let element_data = {
-            &node.get_style_and_layout_data().as_ref().map(|opaque| {
-                &opaque
-                    .downcast_ref::<StyleAndLayoutData>()
-                    .unwrap()
-                    .style_data
-                    .element_data
-            })
+            &node
+                .get_opaque_style_and_layout_data()
+                .as_ref()
+                .map(|opaque| {
+                    &opaque
+                        .downcast_ref::<StyleAndLayoutData>()
+                        .unwrap()
+                        .style_data
+                        .element_data
+                })
         };
 
         if element_data.is_none() {

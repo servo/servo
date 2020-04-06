@@ -1282,9 +1282,9 @@ pub trait LayoutNodeHelpers<'dom> {
 
     fn children_count(self) -> u32;
 
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
-    unsafe fn init_style_and_layout_data(self, data: OpaqueStyleAndLayoutData);
-    unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData;
+    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
+    unsafe fn init_opaque_style_and_layout_data(self, data: OpaqueStyleAndLayoutData);
+    unsafe fn take_opaque_style_and_layout_data(self) -> OpaqueStyleAndLayoutData;
 
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
@@ -1410,13 +1410,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
+    fn get_opaque_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
         unsafe { (*self.unsafe_get().style_and_layout_data.get()).as_ref() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn init_style_and_layout_data(self, val: OpaqueStyleAndLayoutData) {
+    unsafe fn init_opaque_style_and_layout_data(self, val: OpaqueStyleAndLayoutData) {
         let data = &mut *self.unsafe_get().style_and_layout_data.get();
         debug_assert!(data.is_none());
         *data = Some(val);
@@ -1424,7 +1424,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData {
+    unsafe fn take_opaque_style_and_layout_data(self) -> OpaqueStyleAndLayoutData {
         (*self.unsafe_get().style_and_layout_data.get())
             .take()
             .unwrap()
