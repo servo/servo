@@ -21,7 +21,6 @@ use crate::values::specified::font::{
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
-use byteorder::{BigEndian, ByteOrder};
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -676,13 +675,53 @@ pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C)]
-pub struct FontLanguageOverride(pub u32);
+pub struct FontLanguageOverride(u32);
 
 impl FontLanguageOverride {
     #[inline]
     /// Get computed default value of `font-language-override` with 0
     pub fn zero() -> FontLanguageOverride {
         FontLanguageOverride(0)
+    }
+
+    /// Returns this value as a `&str`, backed by `storage`.
+    #[inline]
+    pub fn to_str(self, storage: &mut [u8; 4]) -> &str {
+        if self.0 == 0 {
+            return "normal";
+        }
+        *storage = u32::to_be_bytes(self.0);
+        // Safe because we ensure it's ASCII during computing
+        let slice = if cfg!(debug_assertions) {
+            std::str::from_utf8(&storage[..]).unwrap()
+        } else {
+            unsafe { std::str::from_utf8_unchecked(&storage[..]) }
+        };
+        slice.trim_end()
+    }
+
+    /// Parses a str, return `Self::zero()` if the input isn't a valid OpenType
+    /// "language system" tag.
+    #[inline]
+    pub fn from_str(lang: &str) -> Self {
+        if lang.is_empty() || lang.len() > 4 {
+            return Self::zero();
+        }
+        let mut bytes = [b' '; 4];
+        for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
+            if !lang_byte.is_ascii() {
+                return Self::zero();
+            }
+            *byte = *lang_byte;
+        }
+        Self(u32::from_be_bytes(bytes))
+    }
+
+    /// Unsafe because `Self::to_str` requires the value to represent a UTF-8
+    /// string.
+    #[inline]
+    pub unsafe fn from_u32(value: u32) -> Self {
+        Self(value)
     }
 }
 
@@ -691,27 +730,7 @@ impl ToCss for FontLanguageOverride {
     where
         W: fmt::Write,
     {
-        use std::str;
-
-        if self.0 == 0 {
-            return dest.write_str("normal");
-        }
-        let mut buf = [0; 4];
-        BigEndian::write_u32(&mut buf, self.0);
-        // Safe because we ensure it's ASCII during computing
-        let slice = if cfg!(debug_assertions) {
-            str::from_utf8(&buf).unwrap()
-        } else {
-            unsafe { str::from_utf8_unchecked(&buf) }
-        };
-        slice.trim_end().to_css(dest)
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u32> for FontLanguageOverride {
-    fn from(bits: u32) -> FontLanguageOverride {
-        FontLanguageOverride(bits)
+        self.to_str(&mut [0; 4]).to_css(dest)
     }
 }
 

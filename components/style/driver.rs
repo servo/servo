@@ -165,10 +165,9 @@ pub fn traverse_dom<E, D>(
     if dump_stats || report_stats {
         let mut aggregate = mem::replace(&mut context.thread_local.statistics, Default::default());
         let parallel = maybe_tls.is_some();
-        if let Some(ref mut tls) = maybe_tls {
-            let slots = unsafe { tls.unsafe_get() };
-            for slot in slots {
-                if let Some(ref cx) = *slot.borrow() {
+        if let Some(tls) = maybe_tls {
+            for mut slot in tls.into_slots().into_vec() {
+                if let Some(cx) = slot.get_mut() {
                     aggregate += cx.statistics.clone();
                 }
             }
